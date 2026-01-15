@@ -42,6 +42,36 @@
   --color-newsletter-input-text: #374151;
   --color-newsletter-icon: #6b7280;
 
+  /* Product Section Colors */
+  --color-product-bg: #bde8f5;
+  --color-product-card-bg: #ffffff;
+  --color-product-title: #4988c4;
+  --color-product-name: #neutral-900;
+  --color-product-price: #neutral-900;
+  --color-product-discount: #ea580c;
+  --color-product-rating: #fb923c;
+  --color-product-tab-active: #bde8f5;
+  --color-product-tab-inactive: #040505;
+  --color-product-icon-hover: #bde8f5;
+
+  /* Testimonials Section Colors */
+  --color-testimonials-bg-start: rgba(191, 219, 254, 0.2);
+  --color-testimonials-bg-end: rgba(255, 255, 255, 0);
+  --color-testimonials-title: #2563eb;
+  --color-testimonials-subtitle: #6b7280;
+  --color-testimonials-card-bg: #ffffff;
+  --color-testimonials-card-border: #dbeafe;
+  --color-testimonials-quote: #bfdbfe;
+  --color-testimonials-star: #fbbf24;
+  --color-testimonials-text: #4b5563;
+  --color-testimonials-name: #1f2937;
+  --color-testimonials-avatar-bg: #dbeafe;
+  --color-testimonials-avatar-text: #2563eb;
+  --color-testimonials-button-bg: #ffffff;
+  --color-testimonials-button-border: #e5e7eb;
+  --color-testimonials-button-hover-border: #d1d5db;
+  --color-testimonials-button-icon: #374151;
+
   /* Text Colors */
   --color-text-primary: #000000;
   --color-text-secondary: #000000;
@@ -60,6 +90,29 @@
   --shadow-newsletter-input: 0 4px 12px rgba(0, 0, 0, 0.1);
   --shadow-newsletter-input-hover: 0 6px 16px rgba(0, 0, 0, 0.15);
   --shadow-newsletter-image: 0 20px 40px rgba(0, 0, 0, 0.15);
+  --shadow-testimonials-card: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow-testimonials-card-hover: 0 8px 20px rgba(37, 99, 235, 0.15);
+  --shadow-testimonials-button: 0 2px 6px rgba(0, 0, 0, 0.08);
+  --shadow-testimonials-button-hover: 0 4px 12px rgba(37, 99, 235, 0.2);
+
+  /* Additional Colors */
+  --color-tradein-bg: #FFFAFA;
+
+  /* Cleaning Services Section Colors */
+  --color-cleaning-title: #4988c4;
+  --color-cleaning-subtitle: #374151;
+  --color-cleaning-feature-bg: #f0f9ff;
+  --color-cleaning-border: #93c5fd;
+  --color-cleaning-feature-title: #1e40af;
+  --color-cleaning-feature-text: #4b5563;
+  --color-cleaning-process-title: #4988c4;
+  --color-cleaning-process-text: #374151;
+  --color-cleaning-package-title: #1f2937;
+  --color-cleaning-price: #4988c4;
+  --color-cleaning-feature-list: #6b7280;
+  --color-cleaning-booking-btn: #bde8f5;
+  --color-cleaning-booking-text: #000000;
+  --color-cleaning-featured-border: #4988c4;
 }
 
 /* Reset & Base Setup */
@@ -226,5 +279,15 @@ svg {
   to {
     opacity: 1;
     transform: translateX(0);
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-20px);
   }
 }
