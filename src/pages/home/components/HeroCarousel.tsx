@@ -8,19 +8,19 @@ const slides = [
         title: "A good night's sleep for",
         subtitle: "your baby",
         description: "every peaceful night",
-        image: "src/assets/images/chan_ga.jpg",
+        image: "/images/chan_ga.jpg",
     },
     {
         title: "Premium comfort for",
         subtitle: "your family",
         description: "restful nights guaranteed",
-        image: "src/assets/images/chan_ga.jpg",
+        image: "/images/chan_ga.jpg",
     },
     {
         title: "Sweet dreams await",
         subtitle: "every night",
         description: "quality you can trust",
-        image: "/src/assets/images/chan_ga.jpg",
+        image: "/images/chan_ga.jpg",
     },
 ]
 
