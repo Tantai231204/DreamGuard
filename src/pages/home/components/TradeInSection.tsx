@@ -114,7 +114,7 @@ export default function TradeInSection() {
                         <div className="relative aspect-[4/3] rounded-2xl overflow-visible">
                             {/* Pillow - Base layer */}
                             <img
-                                src="/src/assets/images/pillow.svg"
+                                src="/images/pillow.svg"
                                 alt="Trade in pillows"
                                 className="w-full h-full object-contain"
                                 loading="lazy"
@@ -123,7 +123,7 @@ export default function TradeInSection() {
                             {/* Cloud - Floating layer */}
                             <div className="absolute -top-10 -right-10 w-3/4 h-3/4 opacity-60 ">
                                 <img
-                                    src="/src/assets/images/clound.svg"
+                                    src="/images/clound.svg"
                                     alt="Cloud decoration"
                                     className="w-full h-full object-contain drop-shadow-lg"
                                     loading="lazy"
@@ -131,7 +131,7 @@ export default function TradeInSection() {
                             </div>
                             <div className="absolute top-60 right-60 w-2/3 h-2/3 ">
                                 <img
-                                    src="/src/assets/images/clound.svg"
+                                    src="/images/clound.svg"
                                     alt="Cloud decoration"
                                     className="w-full h-full object-contain drop-shadow-lg"
                                     loading="lazy"

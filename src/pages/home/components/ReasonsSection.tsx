@@ -4,27 +4,27 @@ const reasons = [
         id: 1,
         title: "For the baby's development",
         description: "Providing restful sleep throughout each stage of development.",
-        icon: "/src/assets/images/embeicon.svg",
+        icon: "/images/embeicon.svg",
     },
     {
         id: 2,
         title: "Health care",
         description: "DreamGuard places the health and safety of your baby before all else.",
-        icon: "/src/assets/images/traitimicon.svg",
+        icon: "/images/traitimicon.svg",
     },
     {
         id: 3,
         title: "Consider the smallest details",
         description:
             "The center focuses on improving materials that are safe and supportive of the baby's movements.",
-        icon: "/src/assets/images/likeicon.svg",
+        icon: "/images/likeicon.svg",
     },
     {
         id: 4,
         title: "It begins with understanding",
         description:
             "Build a connection and be there for your baby during each stage.",
-        icon: "/src/assets/images/handshakeicon.svg",
+        icon: "/images/handshakeicon.svg",
     },
 ]
 
@@ -34,21 +34,21 @@ const certifications = [
         id: 1,
         name: "Standard 100 by OEKO-TEX®",
         description: "Certificate 09.HCN.68375",
-        icon: "/src/assets/images/Standard 100 by OEKO-TEX .png",
+        icon: "/images/Standard 100 by OEKO-TEX .png",
     },
     {
         id: 2,
         name: "Polyurethane by CertiPUR-US®",
         description:
             "Certificate does not test on heavy metals. Does not harm the respiratory system",
-        icon: "/src/assets/images/Polyurethane by CertiPUR-US.png",
+        icon: "/images/Polyurethane by CertiPUR-US.png",
     },
     {
         id: 3,
         name: "Global Organic Textile Standard",
         description:
             "Made of 100% organic cotton with no use of any harmful chemical-based organic textile standards.",
-        icon: "/src/assets/images/Global Organic Textile Standard.png",
+        icon: "/images/Global Organic Textile Standard.png",
     },
 ]
 
@@ -106,7 +106,7 @@ export default function ReasonsSection() {
                     <div
                         className="
     absolute inset-0
-    bg-[url('/src/assets/images/bg-section.png')]
+    bg-[url('/images/bg-section.png')]
     bg-no-repeat
     bg-contain
     bg-center
