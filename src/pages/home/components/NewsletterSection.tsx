@@ -6,7 +6,7 @@ export default function NewsletterSection() {
             {/* Background Image */}
             <div
                 className="absolute inset-0 bg-contain bg-no-repeat opacity-70"
-                style={{ backgroundImage: "url('src/assets/images/longvu.png')" }}
+                style={{ backgroundImage: "url('/images/longvu.png')" }}
             />
 
             <div className="relative container mx-auto max-w-7xl px-4 py-16 md:py-20">
@@ -44,7 +44,7 @@ export default function NewsletterSection() {
                     <div className="relative">
                         <div className="aspect-[4/3] rounded-[2rem] overflow-hidden shadow-2xl">
                             <img
-                                src="src/assets/images/chan_ga.jpg"
+                                src="/images/chan_ga.jpg"
                                 alt="Family on bed"
                                 className="w-full h-full object-cover"
                                 loading="lazy"
