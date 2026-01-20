@@ -96,7 +96,27 @@
   --shadow-testimonials-button-hover: 0 4px 12px rgba(37, 99, 235, 0.2);
 
   /* Additional Colors */
-  --color-tradein-bg: #FFFAFA;
+  --color-tradein-bg: #fffafa;
+
+  /* Auth Form Colors */
+  --color-auth-primary: #7dd3e8;
+  --color-auth-primary-hover: #5bc4dc;
+  --color-auth-title: #1e3a5f;
+  --color-auth-input-bg: rgba(249, 250, 251, 0.5);
+  --color-auth-input-border: #e5e7eb;
+  --color-auth-input-focus: #7dd3e8;
+  --color-auth-link: #1167b1;
+  --color-auth-link-dark: #1e3a5f;
+  --color-auth-btn-bg: #bde8f5;
+  --color-auth-btn-hover: #4988c4;
+  --color-auth-btn-border: #4988c4;
+  --color-auth-btn-text: #ffffff;
+  --color-auth-btn-outline-bg: #ffffff;
+  --color-auth-btn-outline-text: #374151;
+  --color-auth-btn-outline-hover-bg: #f9fafb;
+  --color-auth-label: #1c4d8d;
+  --color-auth-otp-border: #d1d5db;
+  --color-auth-otp-focus: #7dd3e8;
 
   /* Cleaning Services Section Colors */
   --color-cleaning-title: #4988c4;
