@@ -5,10 +5,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useAuthStore } from "../../store/authStore";
 import { AppRoute } from "../../lib/constants";
-import { Eye, EyeOff, Mail, Lock } from "lucide-react";
+import { Eye, EyeOff, User, Mail, Lock } from "lucide-react";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Button } from "../../components/ui/button";
+import { Checkbox } from "../../components/ui/checkbox";
 
 // Google Icon Component
 const GoogleIcon = () => (
@@ -20,14 +21,18 @@ const GoogleIcon = () => (
     </svg>
 );
 
-const loginSchema = z.object({
+const registerSchema = z.object({
+    fullName: z.string().min(2, "Họ tên phải có ít nhất 2 ký tự"),
     email: z.string().email("Email không hợp lệ"),
     password: z.string().min(6, "Mật khẩu phải có ít nhất 6 ký tự"),
+    agreeTerms: z.boolean().refine((val) => val === true, {
+        message: "Bạn phải đồng ý với Điều khoản & Điều kiện",
+    }),
 });
 
-type LoginFormData = z.infer<typeof loginSchema>;
+type RegisterFormData = z.infer<typeof registerSchema>;
 
-export default function Login() {
+export default function Register() {
     const navigate = useNavigate();
     const setToken = useAuthStore((state) => state.setToken);
     const [showPassword, setShowPassword] = useState(false);
@@ -36,15 +41,17 @@ export default function Login() {
         register,
         handleSubmit,
         formState: { errors, isSubmitting },
-    } = useForm<LoginFormData>({
-        resolver: zodResolver(loginSchema),
+    } = useForm<RegisterFormData>({
+        resolver: zodResolver(registerSchema),
         defaultValues: {
+            fullName: "",
             email: "",
             password: "",
+            agreeTerms: false,
         },
     });
 
-    const onSubmit = useCallback((data: LoginFormData) => {
+    const onSubmit = useCallback((data: RegisterFormData) => {
         console.log(data);
         const token = `demo-token-${Date.now()}`;
         setToken(token, 'user');
@@ -78,9 +85,31 @@ export default function Login() {
                 </span>
             </div>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+                {/* Full Name */}
+                <div className="space-y-1.5">
+                    <Label htmlFor="fullName">
+                        Full name <span className="text-red-500">*</span>
+                    </Label>
+                    <div className="relative">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input
+                            id="fullName"
+                            type="text"
+                            placeholder="Full name"
+                            className="pl-10 h-11"
+                            {...register("fullName")}
+                        />
+                    </div>
+                    {errors.fullName && (
+                        <p className="text-xs text-red-500">{errors.fullName.message}</p>
+                    )}
+                </div>
+
                 {/* Email */}
                 <div className="space-y-1.5">
-                    <Label htmlFor="email">Email</Label>
+                    <Label htmlFor="email">
+                        Email <span className="text-red-500">*</span>
+                    </Label>
                     <div className="relative">
                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                         <Input
@@ -98,13 +127,15 @@ export default function Login() {
 
                 {/* Password */}
                 <div className="space-y-1.5">
-                    <Label htmlFor="password">Password</Label>
+                    <Label htmlFor="password">
+                        Password <span className="text-red-500">*</span>
+                    </Label>
                     <div className="relative">
                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                         <Input
                             id="password"
                             type={showPassword ? "text" : "password"}
-                            placeholder="password"
+                            placeholder="Password"
                             className="pl-10 pr-10 h-11"
                             {...register("password")}
                         />
@@ -120,21 +151,40 @@ export default function Login() {
                     {errors.password && (
                         <p className="text-xs text-red-500">{errors.password.message}</p>
                     )}
-                    {/* Forgot Password */}
-                    <div className="text-right">
-                        <Link to="/forgot-password" className="text-sm text-[var(--color-auth-link)] hover:underline">
-                            Forgot password?
-                        </Link>
-                    </div>
                 </div>
 
-                {/* Log In Button */}
+                {/* Terms & Conditions */}
+                <div className="space-y-1">
+                    <div className="flex items-start gap-2">
+                        <Checkbox
+                            id="terms"
+                            className="mt-0.5"
+                            {...register("agreeTerms")}
+                        />
+                        <label htmlFor="terms" className="text-sm text-gray-600 leading-tight">
+                            I have read and agree to the{" "}
+                            <Link to="/terms" className="text-[var(--color-auth-link)] hover:underline">
+                                Terms & Conditions
+                            </Link>{" "}
+                            and{" "}
+                            <Link to="/privacy" className="text-[var(--color-auth-link)] hover:underline">
+                                Privacy Policy
+                            </Link>{" "}
+                            provided.
+                        </label>
+                    </div>
+                    {errors.agreeTerms && (
+                        <p className="text-xs text-red-500">{errors.agreeTerms.message}</p>
+                    )}
+                </div>
+
+                {/* Sign Up Button */}
                 <Button
                     type="submit"
                     disabled={isSubmitting}
                     className="w-full h-11 bg-[var(--color-auth-btn-bg)] hover:bg-[var(--color-auth-btn-hover)] text-[var(--color-auth-btn-text)] font-semibold rounded-lg border-2 border-[var(--color-auth-btn-border)] shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98]"
                 >
-                    {isSubmitting ? "Logging in..." : "Log In"}
+                    {isSubmitting ? "Signing up..." : "Sign Up"}
                 </Button>
 
                 {/* Google Login */}
@@ -145,15 +195,15 @@ export default function Login() {
                     className="w-full h-11 bg-[var(--color-auth-btn-outline-bg)] text-[var(--color-auth-btn-outline-text)] border-2 border-[var(--color-auth-btn-border)] rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-[var(--color-auth-btn-outline-hover-bg)] shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98]"
                 >
                     <GoogleIcon />
-                    Login with Google
+                    Sign up with Google
                 </Button>
             </form>
 
-            {/* Register Link */}
+            {/* Login Link */}
             <p className="text-center text-sm text-gray-600 mt-6">
-                Don't have an account yet?{" "}
-                <Link to="/register" className="text-[var(--color-auth-link-dark)] font-semibold hover:underline">
-                    Sign In
+                Do you already have an account?{" "}
+                <Link to="/login" className="text-[var(--color-auth-link-dark)] font-semibold hover:underline">
+                    Log in
                 </Link>
             </p>
         </div>

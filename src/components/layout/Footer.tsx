@@ -6,185 +6,186 @@ import {
     MapPin,
     Mail,
     Phone,
+    ArrowRight,
 } from "lucide-react";
 import { AppRoute } from "../../lib/constants";
 
-type FooterSectionProps = {
-    title: string;
-    children: React.ReactNode;
-};
-
-const FooterSection = ({ title, children }: FooterSectionProps) => (
-    <div>
-        <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-[var(--color-text-primary)]">
-            {title}
-        </h3>
-        {children}
-    </div>
-);
-
-type FooterLinkProps = {
-    to: string;
-    children: React.ReactNode;
-};
-
-const FooterLink = ({ to, children }: FooterLinkProps) => (
+/* ================= Footer Link ================= */
+const FooterLink = ({ to, children }: { to: string; children: React.ReactNode }) => (
     <li>
         <Link
             to={to}
-            className="text-sm text-[var(--color-text-secondary)] transition-colors hover:text-[var(--color-primary)]"
+            className="text-sm text-muted-foreground transition-colors hover:text-primary"
         >
             {children}
         </Link>
     </li>
 );
 
+/* ================= Social Icon ================= */
+const SocialIcon = ({ href, children }: { href: string; children: React.ReactNode }) => (
+    <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition-all hover:border-primary hover:bg-primary hover:text-white"
+    >
+        {children}
+    </a>
+);
+
+/* ================= Footer ================= */
 export default function Footer() {
     return (
-        <footer
-            className="
-    border-t border-border
-    bg-[linear-gradient(to_bottom,var(--color-footer-gradient-start)_0%,var(--color-footer-gradient-mid)_20%,var(--color-footer-gradient-end)_65%)]
-  "
-        >
+        <footer className="border-t bg-muted/30">
+            {/* Newsletter Section */}
+            <div className="border-b bg-primary/5">
+                <div className="container mx-auto max-w-7xl px-4 py-8 sm:py-10">
+                    <div className="flex flex-col items-center justify-between gap-6 lg:flex-row">
+                        <div className="text-center lg:text-left">
+                            <h3 className="text-lg font-semibold text-foreground">
+                                Subscribe to our Newsletter
+                            </h3>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                                Get the latest updates on new products and upcoming sales
+                            </p>
+                        </div>
 
-            <div className="container mx-auto max-w-7xl px-4 py-12">
-                {/* ================= Top ================= */}
-                <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
+                        <div className="flex w-full max-w-md flex-col gap-3 sm:flex-row sm:gap-2">
+                            <input
+                                type="email"
+                                placeholder="Enter your email"
+                                className="flex-1 rounded-lg border border-border bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            />
+                            <button className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90">
+                                Subscribe
+                                <ArrowRight className="h-4 w-4" />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Main Footer */}
+            <div className="container mx-auto max-w-7xl px-4 py-10 sm:py-12">
+                <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:grid-cols-12 lg:gap-10">
                     {/* Brand */}
-                    <div>
-                        <Link to={AppRoute.HOME} className="inline-block mb-4">
-                            <div className="flex flex-col">
-                                <span className="text-2xl font-bold text-[var(--color-primary)]">
-                                    DreamGuard
-                                </span>
-                                <span className="text-xs tracking-wider text-[var(--color-text-secondary)]">
-                                    Sleep Better, Live Better
-                                </span>
-                            </div>
+                    <div className="col-span-2 sm:col-span-3 lg:col-span-4">
+                        <Link to={AppRoute.HOME} className="inline-block">
+                            <img
+                                src="/images/logo_with_name.svg"
+                                alt="DreamGuard"
+                                className="h-12 w-auto sm:h-14"
+                            />
                         </Link>
 
-                        <p className="text-sm leading-relaxed text-[var(--color-text-secondary)]">
+                        <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
                             Premium quality mattresses and bedding products designed for your
-                            ultimate comfort and better sleep.
+                            ultimate comfort and better sleep experience.
                         </p>
-                    </div>
-
-                    {/* About */}
-                    <FooterSection title="About">
-                        <ul className="space-y-2">
-                            <FooterLink to="#">Our Story</FooterLink>
-                            <FooterLink to="#">Our Impact</FooterLink>
-                            <FooterLink to="#">FAQ</FooterLink>
-                        </ul>
-                    </FooterSection>
-
-                    {/* Resources */}
-                    <FooterSection title="Resources">
-                        <ul className="space-y-2">
-                            <FooterLink to="#">E-Catalog</FooterLink>
-                            <FooterLink to="#">Request Catalog</FooterLink>
-                            <FooterLink to="#">Support</FooterLink>
-                        </ul>
-                    </FooterSection>
-
-                    {/* Contact */}
-                    <FooterSection title="Contact">
-                        <ul className="space-y-3 text-sm text-[var(--color-text-secondary)]">
-                            <li className="flex items-start gap-2">
-                                <MapPin className="mt-0.5 h-5 w-5 flex-shrink-0 text-[var(--color-primary)]" />
-                                <span>12 John Avenue #2, New York</span>
-                            </li>
-
-                            <li className="flex items-center gap-2">
-                                <Mail className="h-5 w-5 flex-shrink-0 text-[var(--color-primary)]" />
-                                <a
-                                    href="mailto:sleepy@shop.com"
-                                    className="transition-colors hover:text-[var(--color-primary)]"
-                                >
-                                    sleepy@shop.com
-                                </a>
-                            </li>
-
-                            <li className="flex items-center gap-2">
-                                <Phone className="h-5 w-5 flex-shrink-0 text-[var(--color-primary)]" />
-                                <a
-                                    href="tel:+12223475339"
-                                    className="transition-colors hover:text-[var(--color-primary)]"
-                                >
-                                    +1-222-34-SLEEP
-                                </a>
-                            </li>
-                        </ul>
 
                         {/* Social */}
-                        <div className="mt-5">
-                            <p className="mb-3 text-sm text-[var(--color-text-secondary)]">
-                                Follow Us:
-                            </p>
-
-                            <div className="flex items-center gap-3">
-                                <SocialIcon
-                                    href="https://facebook.com"
-                                    color="var(--color-facebook)"
-                                >
-                                    <Facebook className="h-5 w-5" />
-                                </SocialIcon>
-
-                                <SocialIcon
-                                    href="https://instagram.com"
-                                    color="var(--color-instagram)"
-                                >
-                                    <Instagram className="h-5 w-5" />
-                                </SocialIcon>
-
-                                <SocialIcon
-                                    href="https://twitter.com"
-                                    color="var(--color-twitter)"
-                                >
-                                    <Twitter className="h-5 w-5" />
-                                </SocialIcon>
-                            </div>
+                        <div className="mt-6 flex items-center gap-3">
+                            <SocialIcon href="https://facebook.com">
+                                <Facebook className="h-4 w-4" />
+                            </SocialIcon>
+                            <SocialIcon href="https://instagram.com">
+                                <Instagram className="h-4 w-4" />
+                            </SocialIcon>
+                            <SocialIcon href="https://twitter.com">
+                                <Twitter className="h-4 w-4" />
+                            </SocialIcon>
                         </div>
-                    </FooterSection>
-                </div>
+                    </div>
 
-                {/* ================= Bottom ================= */}
-                <div className="mt-10 border-t border-[var(--color-border)] pt-6">
-                    <p className="text-center text-xs text-[var(--color-text-secondary)]">
-                        © 2023 Sleepy Shop. All rights reserved.
-                    </p>
+                    {/* Products */}
+                    <div className="col-span-1 lg:col-span-2">
+                        <h4 className="mb-4 text-sm font-semibold text-foreground">
+                            Products
+                        </h4>
+                        <ul className="space-y-3">
+                            <FooterLink to="#">Mattresses</FooterLink>
+                            <FooterLink to="#">Pillows</FooterLink>
+                            <FooterLink to="#">Bedding Sets</FooterLink>
+                            <FooterLink to="#">Accessories</FooterLink>
+                        </ul>
+                    </div>
+
+                    {/* Company */}
+                    <div className="col-span-1 lg:col-span-2">
+                        <h4 className="mb-4 text-sm font-semibold text-foreground">
+                            Company
+                        </h4>
+                        <ul className="space-y-3">
+                            <FooterLink to="#">Our Story</FooterLink>
+                            <FooterLink to="#">Blog</FooterLink>
+                            <FooterLink to="#">Careers</FooterLink>
+                            <FooterLink to="#">Press</FooterLink>
+                        </ul>
+                    </div>
+
+                    {/* Support */}
+                    <div className="col-span-1 lg:col-span-2">
+                        <h4 className="mb-4 text-sm font-semibold text-foreground">
+                            Support
+                        </h4>
+                        <ul className="space-y-3">
+                            <FooterLink to="#">Help Center</FooterLink>
+                            <FooterLink to="#">Returns</FooterLink>
+                            <FooterLink to="#">Warranty</FooterLink>
+                            <FooterLink to="#">FAQ</FooterLink>
+                        </ul>
+                    </div>
+
+                    {/* Contact */}
+                    <div className="col-span-1 lg:col-span-2">
+                        <h4 className="mb-4 text-sm font-semibold text-foreground">
+                            Contact
+                        </h4>
+                        <ul className="space-y-3">
+                            <li className="flex items-start gap-2.5 text-sm text-muted-foreground">
+                                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                                <span>123 Sleep Street, NY 10001</span>
+                            </li>
+                            <li className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                                <Phone className="h-4 w-4 shrink-0 text-primary" />
+                                <a href="tel:1800123456" className="hover:text-primary">
+                                    1-800-DREAM-GD
+                                </a>
+                            </li>
+                            <li className="flex items-center gap-2.5 text-sm text-muted-foreground">
+                                <Mail className="h-4 w-4 shrink-0 text-primary" />
+                                <a href="mailto:hello@dreamguard.com" className="hover:text-primary">
+                                    hello@dreamguard.com
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            {/* Bottom Bar */}
+            <div className="border-t">
+                <div className="container mx-auto max-w-7xl px-4 py-5">
+                    <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
+                        <p className="text-xs text-muted-foreground">
+                            © 2026 DreamGuard. All rights reserved.
+                        </p>
+
+                        <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs text-muted-foreground">
+                            <Link to="#" className="hover:text-primary">
+                                Terms of Service
+                            </Link>
+                            <Link to="#" className="hover:text-primary">
+                                Privacy Policy
+                            </Link>
+                            <Link to="#" className="hover:text-primary">
+                                Cookies
+                            </Link>
+                        </div>
+                    </div>
                 </div>
             </div>
         </footer>
     );
 }
-
-/* ===== Social Icon ===== */
-type SocialIconProps = {
-    href: string;
-    color: string;
-    children: React.ReactNode;
-};
-
-const SocialIcon = ({ href, color, children }: SocialIconProps) => (
-    <a
-        href={href}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--color-border)] bg-white transition-all duration-200"
-        style={{ color }}
-        onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = color;
-            e.currentTarget.style.color = "#fff";
-            e.currentTarget.style.borderColor = color;
-        }}
-        onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = "#fff";
-            e.currentTarget.style.color = color;
-            e.currentTarget.style.borderColor = "var(--color-border)";
-        }}
-    >
-        {children}
-    </a>
-);
