@@ -20,7 +20,7 @@ const categories: CategoryItem[] = [
     {
         id: 3,
         name: "Blanket",
-        image: "https://images.unsplash.com/photo-1616627577420-a416cd6ba3f3?w=300&h=300&fit=crop",
+        image: "https://i.pinimg.com/1200x/b1/3d/35/b13d3502877a91f5b1d734cb63c3c895.jpg",
     },
     {
         id: 4,

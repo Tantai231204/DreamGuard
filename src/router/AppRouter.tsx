@@ -3,13 +3,15 @@ import AppLayout from "../layouts/AppLayout";
 import AuthLayout from "../layouts/AuthLayout";
 import PrivateRoute from "../components/router/PrivateRoute";
 import AdminRoute from "../components/router/AdminRoute";
-import Login from "../pages/Login";
+import Login from "../pages/auth/Login";
+import Register from "../pages/auth/Register";
+import ForgotPassword from "../pages/auth/ForgotPassword";
+import VerifyOTP from "../pages/auth/VerifyOTP";
+import ResetPassword from "../pages/auth/ResetPassword";
+import ResetPasswordSuccess from "../pages/auth/ResetPasswordSuccess";
 import Profile from "../pages/Profile";
 import Admin from "../pages/Admin";
 import Home from "../pages/home";
-
-// Pages
-
 
 export default function AppRouter() {
     return (
@@ -22,6 +24,11 @@ export default function AppRouter() {
             {/* Auth Routes */}
             <Route element={<AuthLayout />}>
                 <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/verify-otp" element={<VerifyOTP />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/reset-password-success" element={<ResetPasswordSuccess />} />
             </Route>
 
             {/* Private Routes - Main Layout */}

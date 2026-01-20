@@ -13,7 +13,7 @@ export default function LaundryProcess({ processes }: LaundryProcessProps) {
                     <AspectRatio.Root ratio={4 / 3}>
                         <div className="rounded-lg overflow-hidden bg-gray-100 w-full h-full">
                             <img
-                                src="/api/placeholder/500/375"
+                                src="https://i.pinimg.com/736x/a3/e5/b4/a3e5b4880c313bcef61e90af755c4208.jpg"
                                 alt="Professional Laundry"
                                 className="w-full h-full object-cover"
                             />
