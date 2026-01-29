@@ -1,6 +1,7 @@
 import type { FC } from 'react';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface PaginationProps {
@@ -22,19 +23,16 @@ export const Pagination: FC<PaginationProps> = ({
     const maxVisible = 5;
 
     if (totalPages <= maxVisible) {
-      // Show all pages if total is small
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
       }
     } else {
-      // Always show first page
       pages.push(1);
 
       if (currentPage > 3) {
         pages.push('...');
       }
 
-      // Show pages around current page
       const start = Math.max(2, currentPage - 1);
       const end = Math.min(totalPages - 1, currentPage + 1);
 
@@ -46,79 +44,116 @@ export const Pagination: FC<PaginationProps> = ({
         pages.push('...');
       }
 
-      // Always show last page
       pages.push(totalPages);
     }
 
     return pages;
   };
 
-  const handlePrevious = () => {
-    if (currentPage > 1) {
-      onPageChange(currentPage - 1);
-    }
-  };
-
-  const handleNext = () => {
-    if (currentPage < totalPages) {
-      onPageChange(currentPage + 1);
-    }
-  };
+  const handleFirst = () => onPageChange(1);
+  const handlePrevious = () => currentPage > 1 && onPageChange(currentPage - 1);
+  const handleNext = () => currentPage < totalPages && onPageChange(currentPage + 1);
+  const handleLast = () => onPageChange(totalPages);
 
   if (totalPages <= 1) {
     return null;
   }
 
   return (
-    <div className={cn('flex items-center justify-center gap-2', className)}>
+    <motion.div 
+      className={cn('flex items-center justify-center gap-1.5', className)}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: 0.2 }}
+    >
+      {/* First Button */}
+      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleFirst}
+          disabled={currentPage === 1}
+          className="h-10 w-10 rounded-xl border-gray-200 transition-all hover:border-[var(--color-primary)]/50 hover:bg-[var(--color-primary-light)]/30 disabled:opacity-40"
+        >
+          <ChevronsLeft className="h-4 w-4" />
+        </Button>
+      </motion.div>
+
       {/* Previous Button */}
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={handlePrevious}
-        disabled={currentPage === 1}
-        className="h-9 w-9"
-      >
-        <ChevronLeft className="h-4 w-4" />
-      </Button>
+      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handlePrevious}
+          disabled={currentPage === 1}
+          className="h-10 w-10 rounded-xl border-gray-200 transition-all hover:border-[var(--color-primary)]/50 hover:bg-[var(--color-primary-light)]/30 disabled:opacity-40"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+      </motion.div>
 
       {/* Page Numbers */}
-      {getPageNumbers().map((page, index) => {
-        if (page === '...') {
-          return (
-            <span key={`ellipsis-${index}`} className="px-2 text-gray-500">
-              ...
-            </span>
-          );
-        }
+      <div className="flex items-center gap-1">
+        {getPageNumbers().map((page, index) => {
+          if (page === '...') {
+            return (
+              <span key={`ellipsis-${index}`} className="px-2 text-gray-400">
+                •••
+              </span>
+            );
+          }
 
-        return (
-          <Button
-            key={page}
-            variant={currentPage === page ? 'default' : 'outline'}
-            size="icon"
-            onClick={() => onPageChange(page as number)}
-            className={cn(
-              'h-9 w-9',
-              currentPage === page &&
-                'bg-blue-600 text-white hover:bg-blue-700 hover:text-white'
-            )}
-          >
-            {page}
-          </Button>
-        );
-      })}
+          const isActive = currentPage === page;
+
+          return (
+            <motion.div
+              key={page}
+              whileHover={{ scale: isActive ? 1 : 1.08 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <Button
+                variant={isActive ? 'default' : 'outline'}
+                size="icon"
+                onClick={() => onPageChange(page as number)}
+                className={cn(
+                  'h-10 w-10 rounded-xl text-sm font-medium transition-all',
+                  isActive
+                    ? 'bg-[var(--color-primary)] text-white shadow-md hover:bg-[var(--color-primary-hover)]'
+                    : 'border-gray-200 text-gray-600 hover:border-[var(--color-primary)]/50 hover:bg-[var(--color-primary-light)]/30 hover:text-[var(--color-primary-dark)]'
+                )}
+              >
+                {page}
+              </Button>
+            </motion.div>
+          );
+        })}
+      </div>
 
       {/* Next Button */}
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={handleNext}
-        disabled={currentPage === totalPages}
-        className="h-9 w-9"
-      >
-        <ChevronRight className="h-4 w-4" />
-      </Button>
-    </div>
+      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleNext}
+          disabled={currentPage === totalPages}
+          className="h-10 w-10 rounded-xl border-gray-200 transition-all hover:border-[var(--color-primary)]/50 hover:bg-[var(--color-primary-light)]/30 disabled:opacity-40"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </motion.div>
+
+      {/* Last Button */}
+      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleLast}
+          disabled={currentPage === totalPages}
+          className="h-10 w-10 rounded-xl border-gray-200 transition-all hover:border-[var(--color-primary)]/50 hover:bg-[var(--color-primary-light)]/30 disabled:opacity-40"
+        >
+          <ChevronsRight className="h-4 w-4" />
+        </Button>
+      </motion.div>
+    </motion.div>
   );
 };

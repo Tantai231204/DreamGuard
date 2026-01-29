@@ -1,22 +1,46 @@
-import { useState, useMemo } from 'react';
-import { ProductFilters } from './components/ProductFilters';
+import { useState, useMemo, useCallback } from 'react';
+import { motion } from 'framer-motion';
+import { ChevronDown, Search } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { FilterSidebar } from './components/FilterSidebar';
 import { ProductGrid } from './components/ProductGrid';
 import { Pagination } from './components/Pagination';
 import type { FilterOptions } from './types';
-import { mockProducts } from './data';
+import { mockProducts, sortOptions } from './data';
 
 const ITEMS_PER_PAGE = 9;
 
+// Default filter state
+const defaultFilters: FilterOptions = {
+    materials: [],
+    ages: [],
+    categories: [],
+    colors: [],
+    sizes: [],
+    priceRange: { min: null, max: null },
+    sortBy: 'default',
+};
+
+// Animation variants
+const pageVariants = {
+    initial: { opacity: 0 },
+    animate: {
+        opacity: 1,
+        transition: { duration: 0.4 }
+    }
+};
+
 export default function ProductsPage() {
-    const [filters, setFilters] = useState<FilterOptions>({
-        material: 'All',
-        age: 'All',
-        category: 'All',
-        sortBy: 'default',
-    });
+    const [filters, setFilters] = useState<FilterOptions>(defaultFilters);
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-    const [wishlistItems, setWishlistItems] = useState<string[]>([]);
 
     // Filter and sort products
     const filteredProducts = useMemo(() => {
@@ -32,19 +56,33 @@ export default function ProductsPage() {
             );
         }
 
-        // Apply category filter
-        if (filters.category !== 'All') {
-            result = result.filter((product) => product.category === filters.category);
+        // Apply category filter (multi-select)
+        if (filters.categories.length > 0) {
+            result = result.filter((product) =>
+                filters.categories.includes(product.category)
+            );
         }
 
-        // Apply material filter
-        if (filters.material !== 'All') {
-            result = result.filter((product) => product.material === filters.material);
+        // Apply material filter (multi-select)
+        if (filters.materials.length > 0) {
+            result = result.filter((product) =>
+                product.material && filters.materials.includes(product.material)
+            );
         }
 
-        // Apply age filter
-        if (filters.age !== 'All') {
-            result = result.filter((product) => product.ageRange === filters.age);
+        // Apply age filter (multi-select)
+        if (filters.ages.length > 0) {
+            result = result.filter((product) =>
+                product.ageRange && filters.ages.includes(product.ageRange)
+            );
+        }
+
+        // Apply price range filter
+        if (filters.priceRange.min !== null) {
+            result = result.filter((product) => product.price >= filters.priceRange.min!);
+        }
+        if (filters.priceRange.max !== null) {
+            result = result.filter((product) => product.price <= filters.priceRange.max!);
         }
 
         // Apply sorting
@@ -62,7 +100,6 @@ export default function ProductsPage() {
                 result.sort((a, b) => b.rating - a.rating);
                 break;
             default:
-                // Default sorting - keep original order
                 break;
         }
 
@@ -79,14 +116,14 @@ export default function ProductsPage() {
     const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
 
     // Handlers
-    const handleFilterChange = (newFilters: FilterOptions) => {
+    const handleFilterChange = useCallback((newFilters: FilterOptions) => {
         setFilters(newFilters);
-        setCurrentPage(1); // Reset to first page when filters change
-    };
+        setCurrentPage(1);
+    }, []);
 
-    const handleSearch = (query: string) => {
-        setSearchQuery(query);
-        setCurrentPage(1); // Reset to first page when search changes
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        setCurrentPage(1);
     };
 
     const handlePageChange = (page: number) => {
@@ -96,65 +133,135 @@ export default function ProductsPage() {
 
     const handleAddToCart = (productId: string) => {
         console.log('Add to cart:', productId);
-        // TODO: Implement add to cart functionality
     };
 
-    const handleToggleWishlist = (productId: string) => {
-        setWishlistItems((prev) =>
-            prev.includes(productId)
-                ? prev.filter((id) => id !== productId)
-                : [...prev, productId]
-        );
-    };
+    const handleResetFilters = useCallback(() => {
+        setFilters(defaultFilters);
+        setSearchQuery('');
+    }, []);
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Breadcrumb */}
-            <div className="border-b bg-white">
-                <div className="container mx-auto px-4 py-4">
-                    <nav className="flex items-center space-x-2 text-sm text-gray-600">
-                        <a href="/" className="hover:text-blue-600">
-                            Home
-                        </a>
-                        <span>/</span>
-                        <span className="font-medium text-gray-900">Mattresses</span>
-                    </nav>
-                </div>
-            </div>
-
-            {/* Main Content */}
+        <motion.div
+            className="min-h-screen bg-gray-50/50"
+            variants={pageVariants}
+            initial="initial"
+            animate="animate"
+        >
             <div className="container mx-auto px-4 py-8">
-                {/* Filters Section */}
-                <div className="mb-8 rounded-lg bg-white p-6 shadow-sm">
-                    <ProductFilters
-                        filters={filters}
-                        onFilterChange={handleFilterChange}
-                        onSearch={handleSearch}
-                        totalResults={filteredProducts.length}
-                    />
-                </div>
+                <div className="flex gap-8">
+                    {/* Sidebar Filter */}
+                    <aside className="hidden w-64 shrink-0 lg:block">
+                        <div className="sticky top-24 rounded-2xl bg-white p-5 shadow-sm">
+                            <FilterSidebar
+                                filters={filters}
+                                onFilterChange={handleFilterChange}
+                                onReset={handleResetFilters}
+                            />
+                        </div>
+                    </aside>
 
-                {/* Products Grid */}
-                <div className="mb-8">
-                    <ProductGrid
-                        products={paginatedProducts}
-                        onAddToCart={handleAddToCart}
-                        onToggleWishlist={handleToggleWishlist}
-                        wishlistItems={wishlistItems}
-                    />
-                </div>
+                    {/* Main Content */}
+                    <main className="flex-1 min-w-0">
+                        {/* Header */}
+                        <motion.div
+                            className="mb-6"
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.1 }}
+                        >
+                            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                    <h1 className="text-2xl font-bold text-[var(--color-primary-dark)]">
+                                        Baby Bedding
+                                    </h1>
+                                    <p className="mt-1 text-sm text-gray-500">
+                                        <span className="font-medium text-[var(--color-primary)]">{filteredProducts.length}</span> products found
+                                    </p>
+                                </div>
 
-                {/* Pagination */}
-                {totalPages > 1 && (
-                    <div className="mt-8">
-                        <Pagination
-                            currentPage={currentPage}
-                            totalPages={totalPages}
-                            onPageChange={handlePageChange}
-                        />
-                    </div>
-                )}
+                                {/* Sort Dropdown */}
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button
+                                            variant="outline"
+                                            className="h-10 min-w-[160px] justify-between rounded-xl border-gray-200 px-4 bg-white"
+                                        >
+                                            <span className="text-sm text-gray-600">
+                                                Sort by: <span className="font-medium text-gray-800">
+                                                    {sortOptions.find((opt) => opt.value === filters.sortBy)?.label || 'Popular'}
+                                                </span>
+                                            </span>
+                                            <ChevronDown className="ml-2 h-4 w-4 text-gray-400" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-[180px] rounded-xl p-1.5">
+                                        {sortOptions.map((option) => (
+                                            <DropdownMenuItem
+                                                key={option.value}
+                                                onClick={() => handleFilterChange({ ...filters, sortBy: option.value as FilterOptions['sortBy'] })}
+                                                className={`cursor-pointer rounded-lg px-3 py-2 text-sm ${filters.sortBy === option.value
+                                                    ? 'bg-[var(--color-primary-light)] text-[var(--color-primary-dark)]'
+                                                    : ''
+                                                    }`}
+                                            >
+                                                {option.label}
+                                            </DropdownMenuItem>
+                                        ))}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        </motion.div>
+
+                        {/* Search Bar - Mobile/Desktop */}
+                        <motion.div
+                            className="mb-6"
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.15 }}
+                        >
+                            <form onSubmit={handleSearch} className="relative">
+                                <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                                <Input
+                                    type="text"
+                                    placeholder="Search baby mattresses, blankets, pillows..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="h-11 rounded-xl border-gray-200 bg-white pl-11 pr-4 text-sm shadow-sm transition-all focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
+                                />
+                            </form>
+                        </motion.div>
+
+                        {/* Products Grid */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.2 }}
+                        >
+                            <ProductGrid
+                                products={paginatedProducts}
+                                onAddToCart={handleAddToCart}
+                                onResetFilters={handleResetFilters}
+                            />
+                        </motion.div>
+
+                        {/* Pagination */}
+                        {totalPages > 1 && (
+                            <motion.div
+                                className="mt-10"
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.3 }}
+                            >
+                                <Pagination
+                                    currentPage={currentPage}
+                                    totalPages={totalPages}
+                                    onPageChange={handlePageChange}
+                                />
+                            </motion.div>
+                        )}
+                    </main>
+                </div>
             </div>
-        </div>
+        </motion.div>
     );
 }

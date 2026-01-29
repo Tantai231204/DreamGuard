@@ -13,6 +13,7 @@ import Profile from "../pages/profile/index";
 import Admin from "../pages/Admin";
 import Home from "../pages/home";
 import Products from "../pages/products";
+import ProductDetail from "../pages/products/[id]";
 
 export default function AppRouter() {
     return (
@@ -21,6 +22,7 @@ export default function AppRouter() {
             <Route element={<AppLayout variant="home" />}>
                 <Route path="/" element={<Home />} />
                 <Route path="/products" element={<Products />} />
+                <Route path="/products/:id" element={<ProductDetail />} />
             </Route>
 
             {/* Auth Routes */}

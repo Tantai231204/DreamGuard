@@ -17,10 +17,12 @@ export interface Product {
 }
 
 export interface FilterOptions {
-  material: string;
-  age: string;
-  category: string;
-  priceRange?: [number, number];
+  materials: string[];
+  ages: string[];
+  categories: string[];
+  colors: string[];
+  sizes: string[];
+  priceRange: { min: number | null; max: number | null };
   sortBy: "default" | "price-asc" | "price-desc" | "newest" | "rating";
 }
 

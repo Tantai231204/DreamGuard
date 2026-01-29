@@ -80,7 +80,7 @@ export default function Register() {
                     />
                 </div>
 
-                <span className="text-xl font-bold text-[var(--color-auth-title)]">
+                <span className="text-xl font-bold text-[var(--color-primary-dark)]">
                     DreamGuard
                 </span>
             </div>
@@ -163,11 +163,11 @@ export default function Register() {
                         />
                         <label htmlFor="terms" className="text-sm text-gray-600 leading-tight">
                             I have read and agree to the{" "}
-                            <Link to="/terms" className="text-[var(--color-auth-link)] hover:underline">
+                            <Link to="/terms" className="text-[var(--color-blue)] hover:underline">
                                 Terms & Conditions
                             </Link>{" "}
                             and{" "}
-                            <Link to="/privacy" className="text-[var(--color-auth-link)] hover:underline">
+                            <Link to="/privacy" className="text-[var(--color-blue)] hover:underline">
                                 Privacy Policy
                             </Link>{" "}
                             provided.
@@ -182,7 +182,7 @@ export default function Register() {
                 <Button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full h-11 bg-[var(--color-auth-btn-bg)] hover:bg-[var(--color-auth-btn-hover)] text-[var(--color-auth-btn-text)] font-semibold rounded-lg border-2 border-[var(--color-auth-btn-border)] shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98]"
+                    className="w-full h-11 bg-[var(--color-primary-light)] hover:bg-[var(--color-primary)] text-gray-900 hover:text-white font-semibold rounded-lg border-2 border-[var(--color-primary)] shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98]"
                 >
                     {isSubmitting ? "Signing up..." : "Sign Up"}
                 </Button>
@@ -192,7 +192,7 @@ export default function Register() {
                     type="button"
                     variant="outline"
                     onClick={handleGoogleLogin}
-                    className="w-full h-11 bg-[var(--color-auth-btn-outline-bg)] text-[var(--color-auth-btn-outline-text)] border-2 border-[var(--color-auth-btn-border)] rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-[var(--color-auth-btn-outline-hover-bg)] shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98]"
+                    className="w-full h-11 bg-white text-gray-700 border-2 border-[var(--color-primary)] rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-gray-50 shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98]"
                 >
                     <GoogleIcon />
                     Sign up with Google
@@ -202,7 +202,7 @@ export default function Register() {
             {/* Login Link */}
             <p className="text-center text-sm text-gray-600 mt-6">
                 Do you already have an account?{" "}
-                <Link to="/login" className="text-[var(--color-auth-link-dark)] font-semibold hover:underline">
+                <Link to="/login" className="text-[var(--color-primary-dark)] font-semibold hover:underline">
                     Log in
                 </Link>
             </p>

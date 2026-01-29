@@ -21,7 +21,7 @@ export default function ResetPasswordSuccess() {
                         className="h-20 w-20 rounded-lg object-contain shadow-md"
                     />
                 </div>
-                <span className="text-xl font-bold text-[var(--color-auth-title)]">
+                <span className="text-xl font-bold text-[var(--color-primary-dark)]">
                     DreamGuard
                 </span>
             </div>
@@ -35,7 +35,7 @@ export default function ResetPasswordSuccess() {
 
             {/* Title */}
             <div className="text-center mb-6">
-                <h2 className="text-lg font-semibold text-[#1C4D8D]">Password reset successful</h2>
+                <h2 className="text-lg font-semibold text-[var(--color-primary-dark)]">Password reset successful</h2>
                 <p className="text-sm text-gray-500 mt-2">
                     Your password has been successfully reset.
                     <br />
@@ -47,7 +47,7 @@ export default function ResetPasswordSuccess() {
             <Button
                 type="button"
                 onClick={handleContinue}
-                className="w-full h-11 bg-[var(--color-auth-btn-bg)] hover:bg-[var(--color-auth-btn-hover)] text-[var(--color-auth-btn-text)] font-semibold rounded-lg border-2 border-[var(--color-auth-btn-border)] shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98]"
+                className="w-full h-11 bg-[var(--color-primary-light)] hover:bg-[var(--color-primary)] text-gray-900 hover:text-white font-semibold rounded-lg border-2 border-[var(--color-primary)] shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98]"
             >
                 Continue
             </Button>

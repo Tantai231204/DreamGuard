@@ -9,10 +9,10 @@ export default function CleaningServicesSection() {
             <div className="max-w-6xl mx-auto">
                 {/* Header */}
                 <div className="text-center mb-10">
-                    <h2 className="text-3xl font-semibold text-[var(--color-cleaning-title)] mb-2">
+                    <h2 className="text-3xl font-semibold text-primary mb-2">
                         Cleaning services
                     </h2>
-                    <p className="text-sm text-[var(--color-cleaning-subtitle)] max-w-3xl mx-auto">
+                    <p className="text-sm text-gray-700 max-w-3xl mx-auto">
                         Professional bedding cleaning service, protecting your baby's health with modern technology.
                     </p>
                 </div>
