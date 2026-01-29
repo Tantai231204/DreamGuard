@@ -1,10 +1,9 @@
 import { Link } from "react-router-dom"
-import { InstagramLogoIcon, BellIcon, PersonIcon } from "@radix-ui/react-icons"
+import { InstagramLogoIcon, BellIcon } from "@radix-ui/react-icons"
 import { Facebook, ShoppingCart } from "lucide-react"
 import { useState } from "react"
 
 import { AppRoute } from "../../lib/constants"
-import { useAuthStore } from "../../store/authStore"
 import { SearchBar } from "../ui/search-bar"
 
 import {
@@ -13,6 +12,8 @@ import {
     type HighlightCard,
 } from "./NavDropdown"
 import { MegaMenu } from "./MegaMenu.tsx"
+import UserDropdown from "./UserDropdown.tsx"
+
 /* ================= Constants ================= */
 type NavItem = {
     label: string
@@ -160,8 +161,6 @@ const IconButton = ({
 
 /* ================= Header ================= */
 export default function Header() {
-    const { token } = useAuthStore()
-
     const [activeMenu, setActiveMenu] = useState<{
         label: string
         items: DropdownLink[]
@@ -225,11 +224,7 @@ export default function Header() {
                     </Link>
 
                     <div className="justify-self-end flex items-center gap-0.5">
-                        <Link to={token ? AppRoute.PROFILE : AppRoute.LOGIN}>
-                            <IconButton>
-                                <PersonIcon className="h-5 w-5" />
-                            </IconButton>
-                        </Link>
+                        <UserDropdown />
 
                         <IconButton badge={2}>
                             <ShoppingCart className="h-5 w-5" />

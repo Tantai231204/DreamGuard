@@ -3,6 +3,7 @@ export const AppRoute = {
   EXAMPLE: "/example",
   ZUSTAND: "/zustand",
   LOGIN: "/login",
+  REGISTER: "/register",
   PROFILE: "/profile",
   ADMIN: "/admin",
   NOT_FOUND: "*",

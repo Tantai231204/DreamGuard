@@ -9,9 +9,10 @@ import ForgotPassword from "../pages/auth/ForgotPassword";
 import VerifyOTP from "../pages/auth/VerifyOTP";
 import ResetPassword from "../pages/auth/ResetPassword";
 import ResetPasswordSuccess from "../pages/auth/ResetPasswordSuccess";
-import Profile from "../pages/Profile";
+import Profile from "../pages/profile/index";
 import Admin from "../pages/Admin";
 import Home from "../pages/home";
+import Products from "../pages/products";
 
 export default function AppRouter() {
     return (
@@ -19,6 +20,7 @@ export default function AppRouter() {
             {/* Public Routes - Home Layout */}
             <Route element={<AppLayout variant="home" />}>
                 <Route path="/" element={<Home />} />
+                <Route path="/products" element={<Products />} />
             </Route>
 
             {/* Auth Routes */}
@@ -31,9 +33,9 @@ export default function AppRouter() {
                 <Route path="/reset-password-success" element={<ResetPasswordSuccess />} />
             </Route>
 
-            {/* Private Routes - Main Layout */}
+            {/* Private Routes - Home Layout with Header/Footer */}
             <Route element={<PrivateRoute />}>
-                <Route element={<AppLayout variant="main" />}>
+                <Route element={<AppLayout variant="home" />}>
                     <Route path="/profile" element={<Profile />} />
                 </Route>
             </Route>

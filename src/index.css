@@ -5,10 +5,12 @@
 :root {
   color-scheme: white;
 
-  /* Brand Colors */
-  --color-primary: #2563eb;
-  --color-primary-hover: #1d4ed8;
-  --color-secondary: #3b82f6;
+  /* Brand Colors - Baby Bedding Theme */
+  --color-primary: #4988c4;
+  --color-primary-hover: #3a73a8;
+  --color-primary-light: #bde8f5;
+  --color-secondary: #bde8f5;
+  --color-secondary-hover: #94d9ef;
   --color-search-btn: #4988c4;
   --color-search-btn-hover: #3a73a8;
 
@@ -207,7 +209,19 @@ svg {
   }
 
   .text-primary {
-    @apply text-[var(--color-primary)];
+    color: var(--color-primary);
+  }
+
+  .bg-primary {
+    background-color: var(--color-primary);
+  }
+
+  .bg-primary-light {
+    background-color: var(--color-primary-light);
+  }
+
+  .border-primary {
+    border-color: var(--color-primary);
   }
 
   .bg-banner {
