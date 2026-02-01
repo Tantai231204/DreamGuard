@@ -1,10 +1,13 @@
 import { useState } from "react"
-import { Link, useSearchParams } from "react-router-dom"
+import { useSearchParams } from "react-router-dom"
+
 import { HomeIcon } from "@radix-ui/react-icons"
 
 import { AppRoute } from "../../lib/constants"
 import type { TabId } from "./types"
 import { AddressesTab, BabiesTab, NotificationsTab, OrdersTab, ProfileInfoTab, ProfileSidebar, SecurityTab, WishlistTab } from "./components"
+import { useEffect } from 'react';
+import { useBreadcrumb } from '@/components/common/breadcrumb/useBreadcrumb';
 
 
 
@@ -26,21 +29,17 @@ export default function Profile() {
         }
     }
 
+    const { setItems: setBreadcrumb } = useBreadcrumb();
+    useEffect(() => {
+        setBreadcrumb([
+            { label: <span className="flex items-center gap-1"><HomeIcon className="h-4 w-4" /> Home</span>, href: AppRoute.HOME },
+            { label: 'My Account', active: true },
+        ]);
+        return () => setBreadcrumb([]);
+    }, [setBreadcrumb]);
     return (
         <div className="min-h-[calc(100vh-200px)] bg-gray-50/50">
             <div className="container mx-auto max-w-6xl px-4 py-8">
-                {/* Breadcrumb */}
-                <nav className="mb-6 flex items-center gap-2 text-sm">
-                    <Link
-                        to={AppRoute.HOME}
-                        className="text-gray-400 hover:text-primary transition-colors"
-                    >
-                        <HomeIcon className="h-4 w-4" />
-                    </Link>
-                    <span className="text-gray-300">/</span>
-                    <span className="font-medium text-gray-700">Tài khoản của tôi</span>
-                </nav>
-
                 {/* Main Grid */}
                 <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
                     <ProfileSidebar

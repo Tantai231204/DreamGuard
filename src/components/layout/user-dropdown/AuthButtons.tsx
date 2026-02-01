@@ -1,54 +1,35 @@
 import { Link } from "react-router-dom"
-import { LogIn, UserPlus, Phone } from "lucide-react"
+import { ArrowRight, UserPlus } from "lucide-react"
 import { AppRoute } from "../../../lib/constants"
+import { Button } from "../../ui/button"
 
 export function AuthButtons() {
     return (
-        <>
-            {/* Actions */}
-            <div className="p-3 space-y-2">
-                <Link
-                    to={AppRoute.LOGIN}
-                    className="
-                        flex items-center gap-2.5 w-full rounded-lg bg-primary px-4 py-2.5 text-white font-medium 
-                        justify-center
-                        transition-all duration-200 ease-out
-                        hover:bg-[var(--color-primary-hover)] hover:shadow-md hover:scale-[1.02]
-                        active:scale-[0.98]
-                    "
-                >
-                    <LogIn className="h-4 w-4" />
-                    Đăng nhập
+        <div className="p-4 pt-2 space-y-2.5 bg-gradient-to-t from-gray-50/80 to-transparent">
+            <Button asChild className="
+                w-full h-11 rounded-xl font-medium
+                bg-gradient-to-r from-primary to-primary/90
+                hover:from-primary hover:to-primary/80
+                shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30
+                transition-all duration-300
+                group
+            ">
+                <Link to={AppRoute.LOGIN} className="flex items-center justify-center gap-2">
+                    Sign in
+                    <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
                 </Link>
-                <Link
-                    to={AppRoute.REGISTER}
-                    className="
-                        flex items-center gap-2.5 w-full rounded-lg border border-gray-200 px-4 py-2.5 text-gray-700 font-medium 
-                        justify-center
-                        transition-all duration-200 ease-out
-                        hover:bg-gray-50 hover:border-gray-300 hover:shadow-sm
-                        active:scale-[0.98]
-                    "
-                >
+            </Button>
+            
+            <Button asChild variant="ghost" className="
+                w-full h-10 rounded-xl font-medium text-gray-600
+                hover:bg-white hover:text-gray-900 hover:shadow-sm
+                transition-all duration-300
+            ">
+                <Link to={AppRoute.REGISTER} className="flex items-center justify-center gap-2">
                     <UserPlus className="h-4 w-4" />
-                    Tạo tài khoản mới
+                    Create account
                 </Link>
-            </div>
-
-            {/* Footer */}
-            <div className="bg-gray-50 px-4 py-3 text-center border-t border-gray-100">
-                <p className="text-xs text-gray-500 flex items-center justify-center gap-1.5">
-                    <Phone className="h-3.5 w-3.5" />
-                    Cần hỗ trợ? 
-                    <span className="
-                        text-primary font-medium cursor-pointer 
-                        transition-colors duration-200
-                        hover:underline hover:text-[var(--color-primary-hover)]
-                    ">
-                        Liên hệ ngay
-                    </span>
-                </p>
-            </div>
-        </>
+            </Button>
+        </div>
     )
 }

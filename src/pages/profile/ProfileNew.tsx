@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useAuthStore } from "../../store/authStore"
 import { Link, useSearchParams } from "react-router-dom"
+import { Breadcrumb } from '@/components/common';
 import { AppRoute } from "../../lib/constants"
 import {
     PersonIcon,
@@ -860,14 +861,14 @@ export default function Profile() {
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-50/50 to-white">
             <div className="container mx-auto max-w-6xl px-4 py-8">
-                {/* Breadcrumb */}
-                <div className="mb-6 flex items-center gap-2 text-sm">
-                    <Link to={AppRoute.HOME} className="text-gray-400 hover:text-primary transition-colors">
-                        <HomeIcon className="h-4 w-4" />
-                    </Link>
-                    <span className="text-gray-300">/</span>
-                    <span className="font-medium text-gray-800">Tài khoản của tôi</span>
-                </div>
+                                {/* Breadcrumb */}
+                                <Breadcrumb
+                                    items={[
+                                        { label: <span className="flex items-center gap-1"><HomeIcon className="h-4 w-4" /> Home</span>, href: AppRoute.HOME },
+                                        { label: 'My Account', active: true },
+                                    ]}
+                                    className="mb-6"
+                                />
 
                 <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
                     {/* Sidebar */}

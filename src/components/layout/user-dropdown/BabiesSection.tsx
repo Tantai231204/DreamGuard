@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom"
-import { Baby } from "lucide-react"
+import { Baby, Plus } from "lucide-react"
 import { AppRoute } from "../../../lib/constants"
 import { BabyQuickCard } from "./BabyQuickCard"
 import type { BabyProfile } from "./types"
@@ -13,24 +13,24 @@ export function BabiesSection({ babies, maxDisplay = 2 }: BabiesSectionProps) {
     if (babies.length === 0) return null
 
     return (
-        <div className="p-3 border-b border-gray-100">
+        <div className="px-4 py-3 bg-gradient-to-b from-transparent to-gray-50/50">
             <div className="flex items-center justify-between mb-2">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide flex items-center gap-1.5">
                     <Baby className="h-3.5 w-3.5" />
-                    Bé yêu của mẹ
+                    My little ones
                 </p>
                 <Link 
                     to={`${AppRoute.PROFILE}?tab=babies`} 
                     className="
-                        text-xs font-medium text-primary 
-                        transition-all duration-200
-                        hover:underline hover:text-[var(--color-primary-hover)]
+                        flex items-center gap-1 text-xs font-medium text-primary 
+                        hover:text-primary/80 transition-colors
                     "
                 >
-                    Quản lý
+                    <Plus className="h-3 w-3" />
+                    Manage
                 </Link>
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1.5">
                 {babies.slice(0, maxDisplay).map((baby) => (
                     <BabyQuickCard key={baby.id} baby={baby} />
                 ))}

@@ -4,14 +4,17 @@ import { useAuthStore } from '../store/authStore'
 import Header from '../components/layout/Header'
 import Footer from '../components/layout/Footer'
 import { Button } from '../components/ui/button'
+import { LegacyBreadcrumb as Breadcrumb } from '../components/common/Breadcrumb';
+import { useBreadcrumb } from '../components/common/breadcrumb/useBreadcrumb';
 
 interface AppLayoutProps {
     variant?: 'home' | 'main'
 }
 
 export default function AppLayout({ variant = 'main' }: AppLayoutProps) {
-    const { token, role, logout } = useAuthStore()
-    const navigate = useNavigate()
+    const { token, role, logout } = useAuthStore();
+    const navigate = useNavigate();
+    const { items: breadcrumbItems } = useBreadcrumb();
 
     // Home variant with Header and Footer
     if (variant === 'home') {
@@ -23,10 +26,10 @@ export default function AppLayout({ variant = 'main' }: AppLayoutProps) {
                 </main>
                 <Footer />
             </div>
-        )
+        );
     }
 
-    // Main variant with simple header
+    // Main variant với header đơn giản và Breadcrumb
     return (
         <div className="min-h-screen flex flex-col">
             <header className="sticky top-0 z-50 w-full border-b bg-white">
@@ -69,6 +72,10 @@ export default function AppLayout({ variant = 'main' }: AppLayoutProps) {
 
             <main className="flex-1 w-full">
                 <div className="container max-w-7xl mx-auto px-4 py-6">
+                    {/* Breadcrumb chỉ render nếu có items */}
+                    {breadcrumbItems && breadcrumbItems.length > 0 && (
+                        <Breadcrumb items={breadcrumbItems} className="mb-6" />
+                    )}
                     <Outlet />
                 </div>
             </main>
@@ -79,5 +86,5 @@ export default function AppLayout({ variant = 'main' }: AppLayoutProps) {
                 </div>
             </footer>
         </div>
-    )
+    );
 }

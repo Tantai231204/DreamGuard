@@ -86,10 +86,10 @@ export const ProductGrid: FC<ProductGridProps> = ({
                     <Package className="h-10 w-10 text-[var(--color-primary)]" />
                 </motion.div>
                 <h3 className="mb-2 text-xl font-semibold text-[var(--color-gray-800)]">
-                    No products found
+                    Nothing here yet
                 </h3>
                 <p className="mb-6 max-w-sm text-sm text-[var(--color-gray-500)]">
-                    We couldn't find any products matching your criteria. Try adjusting your filters.
+                    Can't find what you're looking for? Try changing your filters or search terms.
                 </p>
                 <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                     <Button
@@ -97,7 +97,7 @@ export const ProductGrid: FC<ProductGridProps> = ({
                         className="gap-2 rounded-xl bg-[var(--color-primary)] px-6 py-2.5 font-medium text-white shadow-md transition-all hover:bg-[var(--color-primary-hover)] hover:shadow-lg"
                     >
                         <Search className="h-4 w-4" />
-                        Reset Filters
+                        Clear Filters
                     </Button>
                 </motion.div>
             </motion.div>

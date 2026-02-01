@@ -3,19 +3,20 @@ import type { BenefitItemProps } from "./types"
 export function BenefitItem({ icon, text }: BenefitItemProps) {
     return (
         <div className="
-            flex items-center gap-2.5 rounded-lg bg-gray-50 border border-gray-100 p-2.5
-            transition-all duration-200 ease-out
-            hover:bg-white hover:border-primary/30 hover:shadow-sm
-            group cursor-default
+            flex items-center gap-2 rounded-xl bg-gray-50/80 p-2.5
+            transition-all duration-300 ease-out
+            hover:bg-primary/5 hover:scale-[1.02]
+            cursor-default group
         ">
             <div className="
-                flex h-8 w-8 items-center justify-center rounded-md bg-white border border-gray-100 text-primary
-                transition-all duration-200
-                group-hover:scale-110 group-hover:border-primary/30
+                flex h-7 w-7 items-center justify-center rounded-lg 
+                bg-white text-primary shadow-sm
+                transition-all duration-300
+                group-hover:shadow-md group-hover:scale-110
             ">
                 {icon}
             </div>
-            <span className="text-xs font-medium text-gray-700 transition-colors group-hover:text-gray-900">
+            <span className="text-xs font-medium text-gray-600 group-hover:text-gray-800">
                 {text}
             </span>
         </div>

@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom"
 import { InstagramLogoIcon, BellIcon } from "@radix-ui/react-icons"
-import { Facebook, ShoppingCart } from "lucide-react"
+import { Facebook } from "lucide-react"
 import { useState } from "react"
 
 import { AppRoute } from "../../lib/constants"
@@ -13,6 +13,7 @@ import {
 } from "./NavDropdown"
 import { MegaMenu } from "./MegaMenu.tsx"
 import UserDropdown from "./UserDropdown.tsx"
+import { CartDrawer } from "./CartDrawer"
 
 /* ================= Constants ================= */
 type NavItem = {
@@ -226,9 +227,7 @@ export default function Header() {
                     <div className="justify-self-end flex items-center gap-0.5">
                         <UserDropdown />
 
-                        <IconButton badge={2}>
-                            <ShoppingCart className="h-5 w-5" />
-                        </IconButton>
+                        <CartDrawer />
 
                         <IconButton badge={1}>
                             <BellIcon className="h-5 w-5" />

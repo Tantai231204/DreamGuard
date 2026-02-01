@@ -65,7 +65,7 @@ export default function HeroCarousel() {
     }, [emblaApi, onSelect])
 
     return (
-        <section className="relative w-full overflow-hidden bg-gradient-to-br from-[#F5F0ED] to-[#E8DDD8]">
+        <section className="relative w-full overflow-hidden bg-gradient-to-br from-[var(--color-hero-bg-start)] to-[var(--color-hero-bg-end)]">
             {/* Top Left Decorative Element */}
             <div className="absolute top-0 left-0 w-32 h-32 bg-white/20 rounded-br-[100px] z-10" />
 
@@ -118,7 +118,7 @@ export default function HeroCarousel() {
                                                 {s.description}
                                             </p>
 
-                                            <button className="hero-button mt-6 px-10 py-4 rounded-full font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition-all">
+                                            <button className="bg-[var(--color-primary-light)] mt-6 px-10 py-4 rounded-full font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition-all">
                                                 Shop now
                                             </button>
                                         </div>

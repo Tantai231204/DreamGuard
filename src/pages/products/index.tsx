@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronDown, Search } from 'lucide-react';
+
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,6 +15,8 @@ import { ProductGrid } from './components/ProductGrid';
 import { Pagination } from './components/Pagination';
 import type { FilterOptions } from './types';
 import { mockProducts, sortOptions } from './data';
+import { useEffect } from 'react';
+import { useBreadcrumb } from '@/components/common/breadcrumb/useBreadcrumb';
 
 const ITEMS_PER_PAGE = 9;
 
@@ -140,6 +143,14 @@ export default function ProductsPage() {
         setSearchQuery('');
     }, []);
 
+    const { setItems: setBreadcrumb } = useBreadcrumb();
+    useEffect(() => {
+        setBreadcrumb([
+            { label: 'Home', href: '/' },
+            { label: 'Products', active: true },
+        ]);
+        return () => setBreadcrumb([]);
+    }, [setBreadcrumb]);
     return (
         <motion.div
             className="min-h-screen bg-gray-50/50"

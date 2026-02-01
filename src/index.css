@@ -58,18 +58,36 @@
   --color-border: var(--color-gray-200);
   --color-border-hover: var(--color-gray-300);
 
-  /* ===== COMPONENT SPECIFIC ===== */
   /* Hero */
-  --color-hero-text: #4a90e2;
   --color-hero-bg-start: #f5f0ed;
   --color-hero-bg-end: #e8ddd8;
+  --color-hero-button-text: #000000;
 
   /* Footer */
+  --color-footer-gradient-start: var(--color-white);
   --color-footer-gradient-mid: var(--color-primary-light);
   --color-footer-gradient-end: #74a4b0;
 
   /* Trade-in */
   --color-tradein-bg: #fffafa;
+
+  /* Testimonials */
+  --color-testimonials-bg-start: rgba(191, 219, 254, 0.2);
+  --color-testimonials-bg-end: transparent;
+  --color-testimonials-title: var(--color-blue);
+  --color-testimonials-subtitle: var(--color-gray-500);
+  --color-testimonials-card-bg: var(--color-white);
+  --color-testimonials-card-border: var(--color-blue-light);
+  --color-testimonials-quote: #bfdbfe;
+  --color-testimonials-star: var(--color-amber);
+  --color-testimonials-text: var(--color-gray-600);
+  --color-testimonials-name: var(--color-gray-800);
+  --color-testimonials-avatar-bg: var(--color-blue-light);
+  --color-testimonials-avatar-text: var(--color-blue);
+  --color-testimonials-button-bg: var(--color-white);
+  --color-testimonials-button-border: var(--color-gray-200);
+  --color-testimonials-button-hover-border: var(--color-gray-300);
+  --color-testimonials-button-icon: var(--color-gray-700);
 
   /* ===== SHADOWS ===== */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -82,7 +100,12 @@
   --shadow-card-hover: 0 8px 20px rgba(37, 99, 235, 0.15);
   --shadow-input: 0 4px 12px rgba(0, 0, 0, 0.1);
   --shadow-input-hover: 0 6px 16px rgba(0, 0, 0, 0.15);
-  --shadow-dropdown: 0 10px 40px -10px rgba(0, 0, 0, 0.15), 0 4px 12px -4px rgba(0, 0, 0, 0.08);
+  --shadow-dropdown:
+    0 10px 40px -10px rgba(0, 0, 0, 0.15), 0 4px 12px -4px rgba(0, 0, 0, 0.08);
+  --shadow-testimonials-button: var(--shadow-sm);
+  --shadow-testimonials-button-hover: var(--shadow-md);
+  --shadow-testimonials-card: var(--shadow-card);
+  --shadow-testimonials-card-hover: var(--shadow-card-hover);
 }
 
 /* Reset & Base Setup */
@@ -179,7 +202,7 @@ svg {
   .border-default {
     border-color: var(--color-border);
   }
-  
+
   .border-default:hover {
     border-color: var(--color-border-hover);
   }
@@ -206,19 +229,9 @@ svg {
 }
 
 /* Hero Carousel Styles */
-.hero-title {
-  color: var(--color-hero-text);
-  text-shadow: var(--shadow-text-hero);
-}
-
-.hero-description {
-  color: var(--color-hero-text);
-  text-shadow: var(--shadow-text-description);
-}
-
 .hero-button {
-  background-color: var(--color-hero-button);
-  color: var(--color-hero-button-text);
+  background-color: var(--color-primary);
+  color: var(--color-white);
 }
 
 .hero-image-card {
@@ -317,7 +330,9 @@ svg {
 
 /* Dropdown item hover states */
 [data-radix-dropdown-menu-content] [role="menuitem"] {
-  transition: background-color 150ms ease, transform 150ms ease;
+  transition:
+    background-color 150ms ease,
+    transform 150ms ease;
 }
 
 [data-radix-dropdown-menu-content] [role="menuitem"]:hover {

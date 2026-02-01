@@ -14,21 +14,24 @@ import Admin from "../pages/Admin";
 import Home from "../pages/home";
 import Products from "../pages/products";
 import ProductDetail from "../pages/products/[id]";
+import CartPage from "../pages/cart";
+import { AppRoute } from "../lib/constants";
 
 export default function AppRouter() {
     return (
         <Routes>
             {/* Public Routes - Home Layout */}
             <Route element={<AppLayout variant="home" />}>
-                <Route path="/" element={<Home />} />
+                <Route path={AppRoute.HOME} element={<Home />} />
                 <Route path="/products" element={<Products />} />
                 <Route path="/products/:id" element={<ProductDetail />} />
+                <Route path="/cart" element={<CartPage />} />
             </Route>
 
             {/* Auth Routes */}
             <Route element={<AuthLayout />}>
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
+                <Route path={AppRoute.LOGIN} element={<Login />} />
+                <Route path={AppRoute.REGISTER} element={<Register />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/verify-otp" element={<VerifyOTP />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
@@ -38,14 +41,14 @@ export default function AppRouter() {
             {/* Private Routes - Home Layout with Header/Footer */}
             <Route element={<PrivateRoute />}>
                 <Route element={<AppLayout variant="home" />}>
-                    <Route path="/profile" element={<Profile />} />
+                    <Route path={AppRoute.PROFILE} element={<Profile />} />
                 </Route>
             </Route>
 
             {/* Admin Routes - Main Layout */}
             <Route element={<AdminRoute />}>
                 <Route element={<AppLayout variant="main" />}>
-                    <Route path="/admin" element={<Admin />} />
+                    <Route path={AppRoute.ADMIN} element={<Admin />} />
                 </Route>
             </Route>
         </Routes>
