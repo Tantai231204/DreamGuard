@@ -1,8 +1,9 @@
 import { Routes, Route } from "react-router-dom";
 import AppLayout from "../layouts/AppLayout";
 import AuthLayout from "../layouts/AuthLayout";
+import AdminLayout from "../layouts/AdminLayout";
 import PrivateRoute from "../components/router/PrivateRoute";
-import AdminRoute from "../components/router/AdminRoute";
+// import AdminRoute from "../components/router/AdminRoute";
 import Login from "../pages/auth/Login";
 import Register from "../pages/auth/Register";
 import ForgotPassword from "../pages/auth/ForgotPassword";
@@ -11,6 +12,9 @@ import ResetPassword from "../pages/auth/ResetPassword";
 import ResetPasswordSuccess from "../pages/auth/ResetPasswordSuccess";
 import Profile from "../pages/profile/index";
 import Admin from "../pages/Admin";
+import OrderManagement from "../pages/admin/orders";
+import OrderDetail from "../pages/admin/orders/[id]";
+import ChatAdmin from "../pages/admin/chat";
 import Home from "../pages/home";
 import Products from "../pages/products";
 import ProductDetail from "../pages/products/[id]";
@@ -45,10 +49,14 @@ export default function AppRouter() {
                 </Route>
             </Route>
 
-            {/* Admin Routes - Main Layout */}
-            <Route element={<AdminRoute />}>
-                <Route element={<AppLayout variant="main" />}>
+            {/* Admin Routes - Admin Layout with Sidebar */}
+            {/* <Route element={<AdminRoute />}> */}
+            <Route>
+                <Route element={<AdminLayout />}>
                     <Route path={AppRoute.ADMIN} element={<Admin />} />
+                    <Route path="/admin/orders" element={<OrderManagement />} />
+                    <Route path="/admin/orders/:id" element={<OrderDetail />} />
+                    <Route path="/admin/chat" element={<ChatAdmin />} />
                 </Route>
             </Route>
         </Routes>
