@@ -1,13 +1,16 @@
 import { useState, useMemo, useCallback } from "react"
+import { useNavigate } from "react-router-dom"
 import { Drawer } from "vaul"
 import { ShoppingCart, X, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useCart } from "@/store/useCart"
+import { AppRoute } from "@/lib/constants"
 import "./cart-drawer.css"
 
 export function CartDrawer() {
     const { cart, updateQuantity, removeItem, totalItems, totalPrice } = useCart()
     const [open, setOpen] = useState(false)
+    const navigate = useNavigate()
 
     // Memoize handlers to prevent unnecessary re-renders
     const handleUpdateQuantity = useCallback((id: string, delta: number) => {
@@ -17,6 +20,11 @@ export function CartDrawer() {
     const handleRemoveItem = useCallback((id: string) => {
         removeItem(id)
     }, [removeItem])
+
+    const handleCheckout = useCallback(() => {
+        setOpen(false)
+        navigate(AppRoute.CHECKOUT)
+    }, [navigate])
 
     // Memoize cart items rendering
     const cartItems = useMemo(() => (
@@ -189,6 +197,7 @@ export function CartDrawer() {
                             {/* Actions */}
                             <div className="space-y-3">
                                 <Button
+                                    onClick={handleCheckout}
                                     className="w-full h-12 text-base font-semibold rounded-full bg-[#4988c4] hover:bg-[#3a73a8] text-white shadow-lg hover:shadow-xl transition-all duration-200 active:scale-[0.98]"
                                     size="lg"
                                 >
