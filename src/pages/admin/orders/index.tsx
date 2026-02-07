@@ -10,20 +10,16 @@ import {
     type ColumnFiltersState,
     type Row,
 } from '@tanstack/react-table'
-import { ShoppingCart, Download } from 'lucide-react'
+import { Download, ShoppingCart } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import AdminPageHeader from '@/components/layout/AdminPageHeader'
+import { AdminTableSearch, AdminTableContent, AdminTablePagination } from '@/components/admin'
 
 import { mockOrders } from '../data'
 import type { Order } from '../types'
 import { useOrderStats } from './hooks/useOrderStats'
-import {
-    OrderTableSearch,
-    OrderTableContent,
-    OrderTablePagination,
-    useOrderColumns,
-} from './components'
+import { useOrderColumns } from './components'
 
 /* =======================
    Global Search Function
@@ -91,49 +87,53 @@ export default function OrderManagement() {
     })
 
     return (
-        <div className="p-8 space-y-6 bg-gradient-to-br from-gray-50 via-white to-gray-50 min-h-screen">
-            {/* Header */}
+        <div className="flex flex-col h-full">
             <AdminPageHeader
                 title="Order Management"
                 description="Track and manage all customer orders"
                 icon={ShoppingCart}
-                breadcrumbs={[
-                    { label: 'Dashboard', href: '/admin' },
-                    { label: 'Orders' },
-                ]}
                 actions={
                     <Button
                         variant="outline"
                         size="sm"
-                        className="rounded-xl border-2 border-gray-200 hover:border-green-500 hover:bg-green-50 transition-all"
+                        className="gap-2 border border-gray-300 hover:border-[var(--color-primary)] hover:bg-blue-50 transition-all"
                     >
-                        <Download className="h-4 w-4 mr-2" />
+                        <Download className="h-4 w-4" />
                         Export
                     </Button>
                 }
                 stats={[
                     { label: 'Total', value: stats.total },
-                    { label: 'Revenue', value: `$${stats.revenue.toFixed(2)}` },
+                    { label: 'Revenue', value: `₫${stats.revenue.toLocaleString('vi-VN')}` },
                     { label: 'Pending', value: stats.pending },
                     { label: 'Delivered', value: stats.delivered },
                 ]}
             />
 
-            {/* Table */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="bg-white rounded-2xl border-2 border-gray-100 overflow-hidden shadow-xl"
-            >
-                <OrderTableSearch
-                    value={globalFilter}
-                    onChange={setGlobalFilter}
-                    table={table}
-                />
-                <OrderTableContent table={table} />
-                <OrderTablePagination table={table} />
-            </motion.div>
+            <div className="flex-1 overflow-hidden bg-gradient-to-br from-gray-50/50 via-white to-blue-50/30">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="m-6 bg-white rounded-2xl border-2 border-gray-100 overflow-hidden shadow-xl flex flex-col h-[calc(100%-3rem)]"
+                >
+                    <AdminTableSearch
+                        value={globalFilter}
+                        onChange={setGlobalFilter}
+                        placeholder="Search orders by name, email, or order ID..."
+                        table={table}
+                    />
+                    <div className="flex-1 overflow-auto">
+                        <AdminTableContent 
+                            table={table}
+                            emptyMessage="No orders found"
+                        />
+                    </div>
+                    <AdminTablePagination 
+                        table={table}
+                        itemLabel="orders"
+                    />
+                </motion.div>
+            </div>
         </div>
     )
 }

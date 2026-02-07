@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Package, Printer, Calendar, DollarSign } from 'lucide-react';
+import { Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import AdminPageHeader from '@/components/layout/AdminPageHeader';
@@ -60,22 +60,15 @@ export default function OrderDetail() {
   };
 
   return (
-    <div className="p-8 space-y-6 bg-gradient-to-br from-gray-50 via-white to-gray-50 min-h-screen">
-      {/* Header */}
+    <div className="flex flex-col h-full">
       <AdminPageHeader
         title={`Order #${order.id}`}
         description={order.customerName}
-        icon={Package}
-        breadcrumbs={[
-          { label: 'Dashboard', href: '/admin' },
-          { label: 'Orders', href: '/admin/orders' },
-          { label: `#${order.id}` },
-        ]}
         actions={
-          <>
+          <div className="flex items-center gap-2">
             <Badge
               variant="outline"
-              className={`${statusColors[order.status]} text-sm px-3 py-1.5 font-semibold`}
+              className={`${statusColors[order.status]} text-sm px-3 py-1 font-semibold`}
             >
               {statusLabels[order.status]}
             </Badge>
@@ -83,12 +76,12 @@ export default function OrderDetail() {
               variant="outline"
               onClick={handlePrint}
               size="sm"
-              className="rounded-xl hover:bg-gray-50"
+              className="gap-2 hover:bg-gray-50"
             >
-              <Printer className="h-4 w-4 mr-2" />
+              <Printer className="h-4 w-4" />
               Print
             </Button>
-          </>
+          </div>
         }
         stats={[
           {
@@ -98,60 +91,63 @@ export default function OrderDetail() {
               day: 'numeric',
               year: 'numeric',
             }),
-            icon: Calendar,
           },
-          { label: 'Total Amount', value: `$${order.total.toFixed(2)}`, icon: DollarSign },
-          { label: 'Items', value: order.items.length, icon: Package },
+          { label: 'Total Amount', value: `₫${order.total.toLocaleString('vi-VN')}` },
+          { label: 'Items', value: order.items.length },
         ]}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Order Items */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            <OrderItemsList items={order.items} />
-            <div className="mt-4">
-              <OrderSummary
-                subtotal={order.subtotal}
-                shipping={order.shipping}
-                tax={order.tax}
+      <div className="flex-1 overflow-auto bg-gradient-to-br from-gray-50/50 via-white to-blue-50/30">
+        <div className="p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Main Content */}
+            <div className="lg:col-span-2 space-y-6">
+              {/* Order Items */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+              >
+                <OrderItemsList items={order.items} />
+                <div className="mt-4">
+                  <OrderSummary
+                    subtotal={order.subtotal}
+                    shipping={order.shipping}
+                    tax={order.tax}
+                    total={order.total}
+                  />
+                </div>
+              </motion.div>
+
+              {/* Timeline */}
+              <OrderTimeline timeline={order.timeline} />
+            </div>
+
+            {/* Sidebar */}
+            <div className="space-y-4">
+              <CustomerInfoCard
+                name={order.customerName}
+                email={order.email}
+                phone={order.phone}
+                delay={0.1}
+              />
+
+              <ShippingAddressCard address={order.shippingAddress} delay={0.15} />
+
+              <PaymentInfoCard
+                paymentMethod={order.paymentMethod}
                 total={order.total}
+                delay={0.2}
+              />
+
+              <QuickActionsCard
+                onMarkDelivered={handleMarkDelivered}
+                onUpdateTracking={handleUpdateTracking}
+                onCancelOrder={handleCancelOrder}
+                delay={0.25}
               />
             </div>
-          </motion.div>
-
-          {/* Timeline */}
-          <OrderTimeline timeline={order.timeline} />
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-4">
-          <CustomerInfoCard
-            name={order.customerName}
-            email={order.email}
-            phone={order.phone}
-            delay={0.1}
-          />
-
-          <ShippingAddressCard address={order.shippingAddress} delay={0.15} />
-
-          <PaymentInfoCard
-            paymentMethod={order.paymentMethod}
-            total={order.total}
-            delay={0.2}
-          />
-
-          <QuickActionsCard
-            onMarkDelivered={handleMarkDelivered}
-            onUpdateTracking={handleUpdateTracking}
-            onCancelOrder={handleCancelOrder}
-            delay={0.25}
-          />
+          </div>
         </div>
       </div>
     </div>

@@ -37,6 +37,7 @@ const AdminDashboard = lazy(() => import("../pages/Admin"));
 const OrderManagement = lazy(() => import("../pages/admin/orders"));
 const OrderDetail = lazy(() => import("../pages/admin/orders/[id]"));
 const ChatAdmin = lazy(() => import("../pages/admin/chat"));
+const ProductManagement = lazy(() => import("../pages/admin/products"));
 
 /* =======================
    Loading
@@ -92,6 +93,7 @@ export default function AppRouter() {
                         <Route path="/admin/orders" element={<OrderManagement />} />
                         <Route path="/admin/orders/:id" element={<OrderDetail />} />
                         <Route path="/admin/chat" element={<ChatAdmin />} />
+                        <Route path="/admin/products" element={<ProductManagement />} />
                     </Route>
                 </Route>
 

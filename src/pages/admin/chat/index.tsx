@@ -1,21 +1,14 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { 
-  Search, 
-  Send, 
-  MoreVertical, 
-  UserCircle2,
-  Clock,
-  CheckCheck,
-  MessageSquare,
-  Users
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Avatar } from '@/components/ui/avatar';
-import { Card } from '@/components/ui/card';
+import { motion } from 'framer-motion';
 import AdminPageHeader from '@/components/layout/AdminPageHeader';
+import { Card } from '@/components/ui/card';
 import { mockConversations, mockMessages } from '../data';
+import ConversationList from './components/ConversationList';
+import ChatHeader from './components/ChatHeader';
+import MessageBubble from './components/MessageBubble';
+import MessageInput from './components/MessageInput';
+import EmptyState from './components/EmptyState';
+import './styles.css';
 
 
 export default function ChatAdmin() {
@@ -49,7 +42,7 @@ export default function ChatAdmin() {
 
   const handleSendMessage = () => {
     if (!message.trim()) return;
-    
+
     // In a real app, send message to backend
     console.log('Sending message:', message);
     setMessage('');
@@ -75,199 +68,99 @@ export default function ChatAdmin() {
     }
   };
 
+  const headerStats = [
+    { label: 'Active Chats', value: mockConversations.filter(c => c.unreadCount > 0).length },
+    { label: 'Total Conversations', value: mockConversations.length },
+    { label: 'Avg Response Time', value: '2m 34s' },
+  ];
+
   return (
-    <div className="p-8 space-y-6 bg-gradient-to-br from-gray-50 via-white to-gray-50 min-h-screen">
-      {/* Header */}
+    <div className="flex flex-col h-screen overflow-hidden">
       <AdminPageHeader
         title="Chat Support"
-        description="Manage customer conversations and provide support"
-        icon={MessageSquare}
-        breadcrumbs={[
-          { label: 'Dashboard', href: '/admin' },
-          { label: 'Chat' },
-        ]}
-        stats={[
-          { label: 'Active Chats', value: mockConversations.filter(c => c.unreadCount > 0).length, icon: MessageSquare },
-          { label: 'Total Conversations', value: mockConversations.length, icon: Users },
-        ]}
+        description="Manage customer conversations and provide real-time support"
+        stats={headerStats}
       />
 
       {/* Chat Container */}
-      <div className="grid grid-cols-12 gap-4 h-[calc(100vh-200px)]">
-        {/* Conversations List */}
-        <Card className="col-span-12 md:col-span-4 flex flex-col">
-          {/* Search */}
-          <div className="p-4 border-b border-gray-200">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search conversations..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </div>
+      <div className="flex-1 px-6 pb-6 pt-6 flex flex-col min-h-0 bg-gradient-to-br from-gray-50/50 via-white to-blue-50/30">
+        <div className="grid grid-cols-12 gap-4 flex-1 min-h-0">
+          {/* Conversations List Component */}
+          <ConversationList
+            conversations={filteredConversations}
+            selectedId={selectedConversation}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onSelectConversation={setSelectedConversation}
+            formatTime={formatTime}
+          />
 
-          {/* Conversations */}
-          <div className="flex-1 overflow-y-auto">
-            {filteredConversations.map((conversation) => (
-              <button
-                key={conversation.id}
-                onClick={() => setSelectedConversation(conversation.id)}
-                className={`w-full p-4 flex items-start gap-3 hover:bg-gray-50 transition-colors border-b border-gray-100 ${
-                  selectedConversation === conversation.id ? 'bg-blue-50' : ''
-                }`}
-              >
-                <Avatar className="h-10 w-10 bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold">
-                  {conversation.customerName.charAt(0)}
-                </Avatar>
-                <div className="flex-1 text-left">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="font-medium text-sm">
-                      {conversation.customerName}
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      {formatTime(conversation.lastMessageTime)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm text-gray-600 truncate flex-1">
-                      {conversation.lastMessage}
-                    </p>
-                    {conversation.unreadCount > 0 && (
-                      <Badge className="ml-2 bg-[var(--color-primary)] text-white text-xs">
-                        {conversation.unreadCount}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </Card>
+          {/* Chat Window */}
+          <Card className="col-span-12 lg:col-span-8 h-full flex flex-col shadow-lg border border-gray-200 bg-white rounded-xl overflow-hidden">
+            {currentConversation ? (
+              <>
+                <ChatHeader
+                  customerName={currentConversation.customerName}
+                  isOnline={true}
+                />
 
-        {/* Chat Window */}
-        <Card className="col-span-12 md:col-span-8 flex flex-col">
-          {currentConversation ? (
-            <>
-              {/* Chat Header */}
-              <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10 bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold">
-                    {currentConversation.customerName.charAt(0)}
-                  </Avatar>
-                  <div>
-                    <h3 className="font-semibold">
-                      {currentConversation.customerName}
-                    </h3>
-                    <p className="text-sm text-gray-500 flex items-center gap-1">
-                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                      Online
-                    </p>
-                  </div>
-                </div>
-                <Button variant="ghost" size="sm">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </div>
+                {/* Messages Area - Takes all remaining space, scrolls internally */}
+                <div className="flex-1 min-h-0 overflow-y-auto bg-gray-50/50 custom-scrollbar">
+                  {currentMessages.length > 0 ? (
+                    <div className="p-4 space-y-3">
+                      {currentMessages.map((msg, index: number) => {
+                        const showDate =
+                          index === 0 ||
+                          formatDate(currentMessages[index - 1].timestamp) !==
+                          formatDate(msg.timestamp);
 
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {currentMessages.map((msg, index: number) => {
-                  const showDate =
-                    index === 0 ||
-                    formatDate(currentMessages[index - 1].timestamp) !==
-                      formatDate(msg.timestamp);
-
-                  return (
-                    <div key={msg.id}>
-                      {showDate && (
-                        <div className="flex items-center justify-center my-4">
-                          <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-                            {formatDate(msg.timestamp)}
-                          </span>
-                        </div>
-                      )}
-
-                      <div
-                        className={`flex items-start gap-2 ${
-                          msg.senderRole === 'admin'
-                            ? 'flex-row-reverse'
-                            : 'flex-row'
-                        }`}
-                      >
-                        {msg.senderRole === 'customer' && (
-                          <Avatar className="h-8 w-8 bg-gray-200 flex items-center justify-center flex-shrink-0">
-                            <UserCircle2 className="h-5 w-5 text-gray-600" />
-                          </Avatar>
-                        )}
-
-                        <div
-                          className={`max-w-[70%] ${
-                            msg.senderRole === 'admin'
-                              ? 'bg-[var(--color-primary)] text-white'
-                              : 'bg-gray-100 text-gray-900'
-                          } rounded-2xl px-4 py-2`}
-                        >
-                          <p className="text-sm whitespace-pre-wrap">
-                            {msg.content}
-                          </p>
-                          <div
-                            className={`flex items-center gap-1 mt-1 text-xs ${
-                              msg.senderRole === 'admin'
-                                ? 'text-blue-100'
-                                : 'text-gray-500'
-                            }`}
-                          >
-                            <Clock className="h-3 w-3" />
-                            <span>{formatTime(msg.timestamp)}</span>
-                            {msg.senderRole === 'admin' && msg.isRead && (
-                              <CheckCheck className="h-3 w-3 ml-1" />
+                        return (
+                          <div key={msg.id}>
+                            {showDate && (
+                              <motion.div
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="flex items-center justify-center my-4"
+                              >
+                                <span className="text-xs text-gray-500 bg-white px-3 py-1.5 rounded-full border border-gray-200">
+                                  {formatDate(msg.timestamp)}
+                                </span>
+                              </motion.div>
                             )}
+
+                            <MessageBubble
+                              content={msg.content}
+                              timestamp={msg.timestamp}
+                              senderRole={msg.senderRole}
+                              isRead={msg.isRead}
+                              formatTime={formatTime}
+                            />
                           </div>
-                        </div>
+                        );
+                      })}
+                      <div ref={messagesEndRef} />
+                    </div>
+                  ) : (
+                    <div className="h-full flex items-center justify-center">
+                      <div className="text-center text-gray-500">
+                        <p className="text-sm font-medium">No messages yet</p>
+                        <p className="text-xs mt-1">Start the conversation below</p>
                       </div>
                     </div>
-                  );
-                })}
-                <div ref={messagesEndRef} />
-              </div>
-
-              {/* Message Input */}
-              <div className="p-4 border-t border-gray-200">
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Type a message..."
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendMessage();
-                      }
-                    }}
-                    className="flex-1"
-                  />
-                  <Button
-                    onClick={handleSendMessage}
-                    disabled={!message.trim()}
-                    className="bg-[var(--color-primary)] hover:bg-[var(--color-primary-dark)]"
-                  >
-                    <Send className="h-4 w-4" />
-                  </Button>
+                  )}
                 </div>
-              </div>
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center text-gray-400">
-              <div className="text-center">
-                <UserCircle2 className="h-16 w-16 mx-auto mb-4" />
-                <p>Select a conversation to start</p>
-              </div>
-            </div>
-          )}
-        </Card>
+
+                <MessageInput
+                  message={message}
+                  onMessageChange={setMessage}
+                  onSendMessage={handleSendMessage}
+                />
+              </>
+            ) : (
+              <EmptyState />
+            )}
+          </Card>
+        </div>
       </div>
     </div>
   );

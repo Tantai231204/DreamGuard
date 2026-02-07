@@ -8,7 +8,6 @@ import {
     TrendingUp,
     ShoppingCart,
     ArrowRight,
-    Activity
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { Card } from '@/components/ui/card';
@@ -46,38 +45,41 @@ export default function Admin() {
     const recentOrders = mockOrders.slice(0, 5);
 
     return (
-        <div className="p-8 space-y-6 bg-gradient-to-br from-gray-50 via-white to-gray-50 min-h-screen">
+        <div className="flex flex-col h-screen overflow-hidden bg-gradient-to-br from-gray-50/50 via-white to-blue-50/50">
             {/* Header */}
-            <AdminPageHeader
-                title="Dashboard"
-                description={role === 'admin' ? 'Manage your store and orders' : 'System management overview'}
-                icon={Activity}
-                actions={
-                    <Badge className="bg-green-100 text-green-700 px-4 py-2 text-sm border-green-200">
-                        <div className="flex items-center gap-2">
-                            <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                            </span>
-                            System Online
-                        </div>
-                    </Badge>
-                }
-                stats={[
-                    { label: 'Total Orders', value: stats.totalOrders, icon: ShoppingCart },
-                    { label: 'Revenue', value: `$${stats.revenue.toFixed(2)}`, icon: DollarSign },
-                    { label: 'Pending', value: stats.pendingOrders, icon: Package },
-                    { label: 'Customers', value: stats.customers, icon: Users },
-                ]}
-            />
+            <div className="flex-shrink-0 p-6 pb-4">
+                <AdminPageHeader
+                    title="Dashboard"
+                    description={role === 'admin' ? 'Manage your store and orders' : 'System management overview'}
+                    actions={
+                        <Badge className="bg-green-100 text-green-700 px-4 py-2 text-sm border-green-200">
+                            <div className="flex items-center gap-2">
+                                <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                </span>
+                                System Online
+                            </div>
+                        </Badge>
+                    }
+                    stats={[
+                        { label: 'Total Orders', value: stats.totalOrders, icon: ShoppingCart },
+                        { label: 'Revenue', value: `$${stats.revenue.toFixed(2)}`, icon: DollarSign },
+                        { label: 'Pending', value: stats.pendingOrders, icon: Package },
+                        { label: 'Customers', value: stats.customers, icon: Users },
+                    ]}
+                />
+            </div>
 
-            {/* Stats Grid */}
-            <motion.div
-                variants={container}
-                initial="hidden"
-                animate="show"
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
-            >
+            {/* Content */}
+            <div className="flex-1 px-6 pb-6 overflow-y-auto">
+                {/* Stats Grid */}
+                <motion.div
+                    variants={container}
+                    initial="hidden"
+                    animate="show"
+                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6"
+                >
                 <motion.div variants={item}>
                     <Card className="p-6 hover:shadow-xl transition-all duration-300 border-l-4 border-l-blue-500 bg-gradient-to-br from-white to-blue-50">
                         <div className="flex items-center justify-between">
@@ -275,7 +277,8 @@ export default function Admin() {
                         ))}
                     </div>
                 </Card>
-            </motion.div>
+                </motion.div>
+            </div>
         </div>
     );
 }

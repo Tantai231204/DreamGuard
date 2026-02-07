@@ -34,18 +34,23 @@ export default function AdminPageHeader({
   actions,
   stats,
 }: AdminPageHeaderProps) {
+  // Default breadcrumbs if not provided
+  const defaultBreadcrumbs = breadcrumbs || [
+    { label: 'Dashboard', href: '/admin' },
+    { label: title },
+  ];
+
   return (
     <motion.div
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="bg-white rounded-2xl shadow-lg border-2 border-gray-100 overflow-hidden"
+      className="flex-shrink-0 px-6 py-4 bg-white border-b border-gray-200"
     >
-      <div className="p-6">
-        {/* Breadcrumbs */}
-        {breadcrumbs && breadcrumbs.length > 0 && (
-          <nav className="flex items-center gap-2 text-sm mb-5 pb-4 border-b border-gray-100">
-            {breadcrumbs.map((crumb, index) => (
+      <div className="flex items-center justify-between">
+        <div className="flex-1">
+          {/* Breadcrumbs */}
+          <nav className="flex items-center gap-2 text-sm mb-2">
+            {defaultBreadcrumbs.map((crumb, index) => (
               <div key={index} className="flex items-center gap-2">
                 {crumb.href ? (
                   <Link
@@ -55,78 +60,71 @@ export default function AdminPageHeader({
                     {crumb.label}
                   </Link>
                 ) : (
-                  <Badge variant="secondary" className="bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-hover)] text-white font-semibold px-3 py-1">
+                  <Badge 
+                    variant="secondary" 
+                    className="bg-gradient-to-r from-[var(--color-primary)] to-blue-600 text-white font-semibold px-3 py-1"
+                  >
                     {crumb.label}
                   </Badge>
                 )}
-                {index < breadcrumbs.length - 1 && (
+                {index < defaultBreadcrumbs.length - 1 && (
                   <ChevronRight className="h-4 w-4 text-gray-300" />
                 )}
               </div>
             ))}
           </nav>
-        )}
 
-        {/* Header Content */}
-        <div className="flex items-start justify-between gap-6">
-          <div className="flex items-center gap-5 flex-1">
+          {/* Title */}
+          <div className="flex items-center gap-4">
             {Icon && (
-              <div className={cn(
-                "h-16 w-16 rounded-2xl bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-hover)] flex items-center justify-center shadow-lg ring-4 ring-blue-50 flex-shrink-0",
-                iconClassName
-              )}>
-                <Icon className="h-8 w-8 text-white" />
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--color-primary)] to-blue-600 flex items-center justify-center shadow-lg">
+                <Icon className={cn("h-6 w-6 text-white", iconClassName)} />
               </div>
             )}
-            <div className="flex-1">
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent tracking-tight">
-                {title}
-              </h1>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{title}</h1>
               {description && (
-                <p className="text-gray-600 mt-2 text-base font-medium flex items-center gap-2">
-                  {description}
-                </p>
+                <p className="text-sm text-gray-600 mt-1">{description}</p>
               )}
             </div>
           </div>
-
-          {/* Actions */}
-          {actions && (
-            <div className="flex items-center gap-3 flex-shrink-0">
-              {actions}
-            </div>
-          )}
         </div>
-      </div>
 
-      {/* Stats Bar */}
-      {stats && stats.length > 0 && (
-        <div className="border-t-2 border-gray-100 bg-gradient-to-br from-gray-50 to-white px-6 py-5">
-          <div className="flex items-center gap-6 flex-wrap">
+        {/* Stats */}
+        {stats && stats.length > 0 && (
+          <div className="flex items-center gap-4">
             {stats.map((stat, index) => {
               const StatIcon = stat.icon;
               return (
-                <div key={index} className="flex items-center gap-3 group">
-                  {StatIcon && (
-                    <div className="h-10 w-10 rounded-xl bg-white border-2 border-gray-200 flex items-center justify-center shadow-sm group-hover:border-[var(--color-primary)] group-hover:shadow-md transition-all">
-                      <StatIcon className="h-5 w-5 text-[var(--color-primary)]" />
-                    </div>
-                  )}
-                  <div>
-                    <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-0.5">{stat.label}</p>
-                    <p className="text-xl font-bold bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-hover)] bg-clip-text text-transparent">
-                      {stat.value}
-                    </p>
+                <motion.div
+                  key={index}
+                  whileHover={{ scale: 1.05 }}
+                  className="text-center px-4 py-2 rounded-xl bg-gradient-to-br from-blue-50 to-white border border-blue-200 shadow-sm"
+                >
+                  <div className="flex items-center gap-2 mb-1 justify-center">
+                    {StatIcon && (
+                      <StatIcon className="h-4 w-4 text-[var(--color-primary)]" />
+                    )}
+                    <span className="text-xs text-gray-500 font-semibold uppercase">
+                      {stat.label}
+                    </span>
                   </div>
-                  {index < stats.length - 1 && (
-                    <Separator orientation="vertical" className="h-10 ml-3 bg-gray-200" />
-                  )}
-                </div>
+                  <div className="text-2xl font-bold text-[var(--color-primary)]">
+                    {stat.value}
+                  </div>
+                </motion.div>
               );
             })}
           </div>
-        </div>
-      )}
+        )}
+        
+        {/* Actions */}
+        {actions && (
+          <div className="flex items-center gap-3 ml-4">
+            {actions}
+          </div>
+        )}
+      </div>
     </motion.div>
   );
 }

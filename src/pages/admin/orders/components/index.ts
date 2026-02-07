@@ -1,8 +1,4 @@
 export { OrderStats } from "./OrderStats";
-export { OrderTableSearch } from "./OrderTableSearch";
-export { OrderTableFilter } from "./OrderTableFilter";
-export { OrderTableContent } from "./OrderTableContent";
-export { OrderTablePagination } from "./OrderTablePagination";
 export { useOrderColumns } from "./useOrderColumns";
 
 // Order Detail Components
