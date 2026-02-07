@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { flexRender, type Table } from '@tanstack/react-table';
 import {
   Table as TableUI,
@@ -14,7 +13,14 @@ interface OrderTableContentProps {
   table: Table<Order>;
 }
 
-export const OrderTableContent = memo(({ table }: OrderTableContentProps) => {
+export const OrderTableContent = ({ table }: OrderTableContentProps) => {
+  const rows = table.getRowModel().rows;
+  const pageSize = table.getState().pagination.pageSize;
+  const columnCount = table.getAllColumns().length;
+
+  // Calculate empty rows needed to fill page
+  const emptyRowsCount = Math.max(0, pageSize - rows.length);
+
   return (
     <div className="overflow-x-auto">
       <TableUI>
@@ -26,46 +32,44 @@ export const OrderTableContent = memo(({ table }: OrderTableContentProps) => {
                   {header.isPlaceholder
                     ? null
                     : flexRender(
-                        header.column.columnDef.header,
-                        header.getContext()
-                      )}
+                      header.column.columnDef.header,
+                      header.getContext()
+                    )}
                 </TableHead>
               ))}
             </TableRow>
           ))}
         </TableHeader>
         <TableBody>
-          {table.getRowModel().rows?.length ? (
-            table.getRowModel().rows.map((row) => (
-              <TableRow
-                key={row.id}
-                data-state={row.getIsSelected() && 'selected'}
-                className="hover:bg-gray-50 transition-colors border-b border-gray-100"
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id} className="py-4">
-                    {flexRender(
-                      cell.column.columnDef.cell,
-                      cell.getContext()
-                    )}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell
-                colSpan={table.getAllColumns().length}
-                className="h-24 text-center"
-              >
-                No orders found.
-              </TableCell>
+          {/* Data rows */}
+          {rows.map((row) => (
+            <TableRow
+              key={row.id}
+              data-state={row.getIsSelected() && 'selected'}
+              className="hover:bg-gray-50 transition-colors border-b border-gray-100"
+            >
+              {row.getVisibleCells().map((cell) => (
+                <TableCell key={cell.id} className="py-4">
+                  {flexRender(
+                    cell.column.columnDef.cell,
+                    cell.getContext()
+                  )}
+                </TableCell>
+              ))}
             </TableRow>
-          )}
+          ))}
+          {/* Empty rows to maintain consistent height */}
+          {Array.from({ length: emptyRowsCount }).map((_, index) => (
+            <TableRow key={`empty-${index}`} className="border-b border-gray-100">
+              {Array.from({ length: columnCount }).map((_, cellIndex) => (
+                <TableCell key={cellIndex} className="py-4">
+                  <div className="h-6">&nbsp;</div>
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
         </TableBody>
       </TableUI>
     </div>
   );
-});
-
-OrderTableContent.displayName = 'OrderTableContent';
+};

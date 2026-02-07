@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import type { Table } from '@tanstack/react-table';
@@ -11,7 +10,7 @@ interface OrderTableSearchProps {
     table: Table<Order>;
 }
 
-export const OrderTableSearch = memo(({ value, onChange, table }: OrderTableSearchProps) => {
+export const OrderTableSearch = ({ value, onChange, table }: OrderTableSearchProps) => {
     return (
         <div className="p-6 border-b-2 border-gray-100 bg-gradient-to-r from-gray-50 to-white">
             <div className="flex items-center gap-4">
@@ -28,6 +27,4 @@ export const OrderTableSearch = memo(({ value, onChange, table }: OrderTableSear
             </div>
         </div>
     );
-});
-
-OrderTableSearch.displayName = 'OrderTableSearch';
+};

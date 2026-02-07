@@ -6,7 +6,7 @@ import AuthLayout from "../layouts/AuthLayout";
 import AdminLayout from "../layouts/AdminLayout";
 
 import PrivateRoute from "../components/router/PrivateRoute";
-import AdminRoute from "../components/router/AdminRoute";
+// import AdminRoute from "../components/router/AdminRoute";
 
 import { AppRoute } from "../lib/constants";
 
@@ -85,7 +85,8 @@ export default function AppRouter() {
                 </Route>
 
                 {/* ===== Admin Routes ===== */}
-                <Route element={<AdminRoute />}>
+                {/* <Route element={<AdminRoute />}> */}
+                <Route >
                     <Route element={<AdminLayout />}>
                         <Route path={AppRoute.ADMIN} element={<AdminDashboard />} />
                         <Route path="/admin/orders" element={<OrderManagement />} />

@@ -20,7 +20,7 @@ export const useOrderColumns = () => {
                     return (
                         <Button
                             variant="ghost"
-                            onClick={() => column.toggleSorting(sorted === 'asc')}
+                            onClick={() => column.toggleSorting(sorted === 'desc')}
                             className="hover:bg-gray-100 font-semibold -ml-4 gap-1"
                         >
                             Order ID
@@ -49,7 +49,7 @@ export const useOrderColumns = () => {
                     return (
                         <Button
                             variant="ghost"
-                            onClick={() => column.toggleSorting(sorted === 'asc')}
+                            onClick={() => column.toggleSorting(sorted === 'desc')}
                             className="hover:bg-gray-100 font-semibold -ml-4 gap-1"
                         >
                             Customer
@@ -96,7 +96,7 @@ export const useOrderColumns = () => {
                     return (
                         <Button
                             variant="ghost"
-                            onClick={() => column.toggleSorting(sorted === 'asc')}
+                            onClick={() => column.toggleSorting(sorted === 'desc')}
                             className="hover:bg-gray-100 font-semibold -ml-4 gap-1"
                         >
                             Total
@@ -144,14 +144,18 @@ export const useOrderColumns = () => {
             {
                 accessorKey: 'date',
                 enableSorting: true,
-                sortingFn: 'datetime',
+                sortingFn: (rowA, rowB, columnId) => {
+                    const dateA = new Date(rowA.getValue(columnId) as string);
+                    const dateB = new Date(rowB.getValue(columnId) as string);
+                    return dateA.getTime() - dateB.getTime();
+                },
                 sortDescFirst: true,
                 header: ({ column }) => {
                     const sorted = column.getIsSorted();
                     return (
                         <Button
                             variant="ghost"
-                            onClick={() => column.toggleSorting(sorted === 'asc')}
+                            onClick={() => column.toggleSorting(sorted === 'desc')}
                             className="hover:bg-gray-100 font-semibold -ml-4 gap-1"
                         >
                             Order Date

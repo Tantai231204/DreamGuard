@@ -1,4 +1,3 @@
-import { memo } from 'react';
 import { type Table } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import type { Order } from '../../types';
@@ -7,11 +6,11 @@ interface OrderTablePaginationProps {
   table: Table<Order>;
 }
 
-export const OrderTablePagination = memo(({ table }: OrderTablePaginationProps) => {
+export const OrderTablePagination = ({ table }: OrderTablePaginationProps) => {
   const pageIndex = table.getState().pagination.pageIndex;
   const pageSize = table.getState().pagination.pageSize;
   const totalRows = table.getFilteredRowModel().rows.length;
-  
+
   const startRow = pageIndex * pageSize + 1;
   const endRow = Math.min((pageIndex + 1) * pageSize, totalRows);
 
@@ -40,6 +39,4 @@ export const OrderTablePagination = memo(({ table }: OrderTablePaginationProps) 
       </div>
     </div>
   );
-});
-
-OrderTablePagination.displayName = 'OrderTablePagination';
+};
