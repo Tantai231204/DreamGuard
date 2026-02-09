@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useTransition } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { mockProducts } from '../data';
@@ -19,7 +19,6 @@ import type { TabType } from './types';
 
 export default function ProductDetail() {
     const { id } = useParams<{ id: string }>();
-    const [isPending, startTransition] = useTransition();
     const [selectedImage, setSelectedImage] = useState(0);
     const [selectedColor, setSelectedColor] = useState('cream');
     const [selectedSize, setSelectedSize] = useState('M');
@@ -76,9 +75,7 @@ export default function ProductDetail() {
     }, []);
 
     const handleTabChange = useCallback((tab: TabType) => {
-        startTransition(() => {
-            setActiveTab(tab);
-        });
+        setActiveTab(tab);
     }, []);
 
     const handleAddToCart = useCallback(() => {

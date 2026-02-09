@@ -10,6 +10,7 @@ interface AuthState {
   clearToken: () => void;
   isAuthenticated: () => boolean;
   isAdmin: () => boolean;
+  logout: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({

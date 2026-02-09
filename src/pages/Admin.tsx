@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { LayoutDashboard, Users, ShoppingCart, DollarSign, Package, TrendingUp, ArrowUpRight } from 'lucide-react';
+import { Users, ShoppingCart, DollarSign, Package, TrendingUp, ArrowUpRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import AdminPageHeader from '../components/layout/AdminPageHeader';
 import { Card } from '../components/ui/card';
