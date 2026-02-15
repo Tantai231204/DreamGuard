@@ -65,9 +65,6 @@ export const ProductInfo = memo(({
         }).format(price);
     }, []);
 
-    const savings = product.originalPrice 
-        ? product.originalPrice - product.price 
-        : 0;
 
     const finalPrice = product.price - tradeInValue;
 
