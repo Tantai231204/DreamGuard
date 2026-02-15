@@ -1,6 +1,6 @@
 import { memo, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Star, ShoppingCart, Zap } from 'lucide-react';
+import { Star, ShoppingCart, Zap, RefreshCcw } from 'lucide-react';
 import * as Separator from '@radix-ui/react-separator';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -36,6 +36,7 @@ interface ProductInfoProps {
     onQuantityChange: (quantity: number) => void;
     onAddToCart: () => void;
     onBuyNow: () => void;
+    tradeInValue?: number;
 }
 
 export const ProductInfo = memo(({
@@ -54,7 +55,8 @@ export const ProductInfo = memo(({
     onSizeChange,
     onQuantityChange,
     onAddToCart,
-    onBuyNow
+    onBuyNow,
+    tradeInValue = 0
 }: ProductInfoProps) => {
     const formatPrice = useCallback((price: number) => {
         return new Intl.NumberFormat('en-US', {
@@ -66,6 +68,8 @@ export const ProductInfo = memo(({
     const savings = product.originalPrice 
         ? product.originalPrice - product.price 
         : 0;
+
+    const finalPrice = product.price - tradeInValue;
 
     return (
         <motion.div
@@ -107,21 +111,45 @@ export const ProductInfo = memo(({
 
             {/* Price */}
             <div className="rounded-xl bg-gradient-to-r from-gray-50 to-gray-100/50 p-4">
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-baseline gap-3">
                     <span className="text-4xl font-bold text-[var(--color-primary)]">
-                        {formatPrice(product.price)}
+                        {formatPrice(tradeInValue > 0 ? finalPrice : product.price)}
                     </span>
-                    {product.originalPrice && (
-                        <>
-                            <span className="text-xl text-gray-400 line-through">
-                                {formatPrice(product.originalPrice)}
-                            </span>
-                            <Badge className="bg-gradient-to-r from-red-500 to-red-600 text-white border-0 shadow-sm">
-                                Save {formatPrice(savings)}
-                            </Badge>
-                        </>
+                    {tradeInValue > 0 && (
+                        <span className="text-lg text-gray-400 line-through">
+                            {formatPrice(product.price)}
+                        </span>
+                    )}
+                    {product.originalPrice && tradeInValue === 0 && (
+                        <span className="text-lg text-gray-400 line-through">
+                            {formatPrice(product.originalPrice)}
+                        </span>
                     )}
                 </div>
+                
+                {/* Badges row */}
+                <div className="flex flex-wrap gap-2 mt-3">
+                    {product.originalPrice && tradeInValue === 0 && (
+                        <Badge className="bg-gradient-to-r from-red-500 to-red-600 text-white border-0 shadow-sm">
+                            Sale -{Math.round((1 - product.price / product.originalPrice) * 100)}%
+                        </Badge>
+                    )}
+                    {tradeInValue > 0 && (
+                        <Badge className="bg-gradient-to-r from-emerald-500 to-green-500 text-white border-0 shadow-sm px-3 py-1">
+                            <RefreshCcw className="w-3.5 h-3.5 mr-1.5" />
+                            Trade-in saves {formatPrice(tradeInValue)}
+                        </Badge>
+                    )}
+                </div>
+                
+                {tradeInValue > 0 && (
+                    <div className="mt-3 p-2.5 bg-emerald-50 rounded-lg border border-emerald-200">
+                        <p className="text-sm text-emerald-700 font-medium flex items-center gap-2">
+                            <RefreshCcw className="w-4 h-4" />
+                            You're saving {formatPrice(tradeInValue)} with the Trade-in Program!
+                        </p>
+                    </div>
+                )}
             </div>
 
             {/* Short Description */}
@@ -154,24 +182,34 @@ export const ProductInfo = memo(({
             />
 
             {/* Action Buttons */}
-            <div className="flex gap-3 pt-2">
-                <Button
-                    size="lg"
-                    onClick={onAddToCart}
-                    className="flex-1 rounded-xl bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-hover)] py-6 text-base font-semibold text-white shadow-lg shadow-[var(--color-primary)]/30 transition-all hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
-                >
-                    <ShoppingCart className="mr-2 h-5 w-5" />
-                    Add to Cart
-                </Button>
-                <Button
-                    size="lg"
-                    variant="outline"
-                    onClick={onBuyNow}
-                    className="flex-1 rounded-xl border-2 border-[var(--color-primary)] py-6 text-base font-semibold text-[var(--color-primary)] transition-all hover:bg-gradient-to-r hover:from-[var(--color-primary)] hover:to-[var(--color-primary-hover)] hover:text-white hover:border-transparent hover:scale-[1.02] active:scale-[0.98]"
-                >
-                    <Zap className="mr-2 h-5 w-5" />
-                    Buy Now
-                </Button>
+            <div className="space-y-3 pt-2">
+                <div className="flex gap-3">
+                    <Button
+                        size="lg"
+                        onClick={onAddToCart}
+                        className="flex-1 rounded-xl bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-hover)] py-6 text-base font-semibold text-white shadow-lg shadow-[var(--color-primary)]/30 transition-all hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                        <ShoppingCart className="mr-2 h-5 w-5" />
+                        Add to Cart
+                    </Button>
+                    <Button
+                        size="lg"
+                        variant="outline"
+                        onClick={onBuyNow}
+                        className="flex-1 rounded-xl border-2 border-[var(--color-primary)] py-6 text-base font-semibold text-[var(--color-primary)] transition-all hover:bg-gradient-to-r hover:from-[var(--color-primary)] hover:to-[var(--color-primary-hover)] hover:text-white hover:border-transparent hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                        <Zap className="mr-2 h-5 w-5" />
+                        Buy Now
+                    </Button>
+                </div>
+                
+                {/* Trade-in summary in buttons area */}
+                {tradeInValue > 0 && (
+                    <div className="flex items-center justify-center gap-2 text-sm text-emerald-600 bg-emerald-50 py-2 rounded-lg">
+                        <RefreshCcw className="w-4 h-4" />
+                        <span>Trade-in discount applied: <strong>-{formatPrice(tradeInValue)}</strong></span>
+                    </div>
+                )}
             </div>
 
             {/* Benefits */}

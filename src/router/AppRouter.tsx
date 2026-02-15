@@ -36,6 +36,7 @@ const Profile = lazy(() => import("../pages/profile"));
 const AdminDashboard = lazy(() => import("../pages/Admin"));
 const OrderManagement = lazy(() => import("../pages/admin/orders"));
 const OrderDetail = lazy(() => import("../pages/admin/orders/[id]"));
+const ServiceManagement = lazy(() => import("../pages/admin/services"));
 const ChatAdmin = lazy(() => import("../pages/admin/chat"));
 const ProductManagement = lazy(() => import("../pages/admin/products"));
 
@@ -92,6 +93,7 @@ export default function AppRouter() {
                         <Route path={AppRoute.ADMIN} element={<AdminDashboard />} />
                         <Route path="/admin/orders" element={<OrderManagement />} />
                         <Route path="/admin/orders/:id" element={<OrderDetail />} />
+                        <Route path="/admin/services" element={<ServiceManagement />} />
                         <Route path="/admin/chat" element={<ChatAdmin />} />
                         <Route path="/admin/products" element={<ProductManagement />} />
                     </Route>

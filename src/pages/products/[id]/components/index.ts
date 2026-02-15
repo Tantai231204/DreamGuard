@@ -9,3 +9,5 @@ export { SafetyCertifications } from "./SafetyCertifications";
 export { ProductTabs } from "./ProductTabs";
 export { ReviewCard } from "./ReviewCard";
 export { ReviewsSummary } from "./ReviewsSummary";
+export { TradeInSelector } from "./TradeInSelector";
+export type { TradeInProduct } from "./TradeInSelector";

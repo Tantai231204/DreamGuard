@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom"
-import { Package, MapPin, Bell, Gift, Baby, Star, User, Heart, Lock, LogOut } from "lucide-react"
+import { Package, MapPin, Bell, Gift, Baby, Star, User, Heart, Lock, LogOut, RefreshCw } from "lucide-react"
 import { useAuthStore } from "../../../store/authStore"
 import { Avatar, AvatarFallback, AvatarImage } from "../../../components/ui/avatar"
 import { Badge } from "../../../components/ui/badge"
@@ -10,6 +10,7 @@ const TABS: Tab[] = [
     { id: "profile", label: "Thông tin", icon: <User className="h-[18px] w-[18px]" strokeWidth={2} /> },
     { id: "babies", label: "Hồ sơ bé", icon: <Baby className="h-[18px] w-[18px]" strokeWidth={2} />, badge: 2 },
     { id: "orders", label: "Đơn hàng", icon: <Package className="h-[18px] w-[18px]" strokeWidth={2} /> },
+    { id: "resell", label: "Bán lại SP", icon: <RefreshCw className="h-[18px] w-[18px]" strokeWidth={2} /> },
     { id: "wishlist", label: "Yêu thích", icon: <Heart className="h-[18px] w-[18px]" strokeWidth={2} /> },
     { id: "addresses", label: "Địa chỉ", icon: <MapPin className="h-[18px] w-[18px]" strokeWidth={2} /> },
     { id: "notifications", label: "Thông báo", icon: <Bell className="h-[18px] w-[18px]" strokeWidth={2} /> },

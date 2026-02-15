@@ -31,13 +31,16 @@ import {
     ShoppingBag,
     Bed,
     Star,
+    RefreshCw,
 } from "lucide-react"
+import ResellTab from "./components/ResellTab"
 
 /* ================= Types ================= */
 type TabId =
     | "profile"
     | "babies"
     | "orders"
+    | "resell"
     | "wishlist"
     | "addresses"
     | "notifications"
@@ -184,6 +187,7 @@ const TABS: Tab[] = [
     { id: "profile", label: "Thông tin phụ huynh", icon: <PersonIcon className="h-4 w-4" /> },
     { id: "babies", label: "Hồ sơ bé yêu", icon: <Baby className="h-4 w-4" />, badge: 2 },
     { id: "orders", label: "Đơn hàng", icon: <Package className="h-4 w-4" /> },
+    { id: "resell", label: "Bán lại sản phẩm", icon: <RefreshCw className="h-4 w-4" />, badge: 3 },
     { id: "wishlist", label: "Yêu thích", icon: <HeartIcon className="h-4 w-4" /> },
     { id: "addresses", label: "Địa chỉ", icon: <MapPin className="h-4 w-4" /> },
     { id: "notifications", label: "Thông báo", icon: <Bell className="h-4 w-4" /> },
@@ -850,6 +854,7 @@ export default function Profile() {
             case "profile": return <ProfileInfoTab />
             case "babies": return <BabiesTab />
             case "orders": return <OrdersTab />
+            case "resell": return <ResellTab />
             case "wishlist": return <WishlistTab />
             case "addresses": return <AddressesTab />
             case "notifications": return <NotificationsTab />

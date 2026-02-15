@@ -11,6 +11,7 @@ import {
   Users,
   BarChart3,
   LogOut,
+  Sparkles,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Separator } from '../ui/separator';
@@ -34,6 +35,12 @@ const navItems: NavItem[] = [
     title: 'Orders',
     href: '/admin/orders',
     icon: ShoppingCart,
+  },
+  {
+    title: 'Services',
+    href: '/admin/services',
+    icon: Sparkles,
+    badge: 2,
   },
   {
     title: 'Products',

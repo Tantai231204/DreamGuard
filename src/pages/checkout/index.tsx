@@ -8,7 +8,7 @@ import { OrderSummary } from "./components/OrderSummary.tsx"
 
 export default function CheckoutPage() {
     const { setItems } = useBreadcrumb()
-    const { cart, totalPrice } = useCart()
+    const { cart, totalPrice, totalTradeInDiscount, finalTotal } = useCart()
     const navigate = useNavigate()
 
     useEffect(() => {
@@ -37,8 +37,8 @@ export default function CheckoutPage() {
                 <div className="container mx-auto max-w-7xl px-4 py-6">
                     <div className="flex items-center justify-between mb-4">
                         <div>
-                            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Secure Checkout</h1>
-                            <p className="text-sm text-gray-600 mt-1">Complete your purchase in just a few steps</p>
+                            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Checkout</h1>
+                            <p className="text-sm text-gray-600 mt-1">Complete your order in just a few steps</p>
                         </div>
                         <div className="hidden sm:flex items-center gap-2 text-sm">
                             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-green-100 text-green-700 font-medium">
@@ -56,7 +56,7 @@ export default function CheckoutPage() {
                             <div className="w-8 h-8 rounded-full bg-[#4988c4] flex items-center justify-center text-white font-semibold text-sm">
                                 1
                             </div>
-                            <span className="text-sm font-medium text-gray-900">Delivery</span>
+                            <span className="text-sm font-medium text-gray-900">Shipping</span>
                         </div>
                         <div className="flex-1 h-0.5 bg-gradient-to-r from-[#4988c4] to-gray-300 mx-2" />
                         <div className="flex items-center gap-2">
@@ -80,12 +80,17 @@ export default function CheckoutPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Checkout Form */}
                     <div className="lg:col-span-2 space-y-6 animate-slide-up">
-                        <CheckoutForm totalPrice={totalPrice} />
+                        <CheckoutForm totalPrice={finalTotal} />
                     </div>
 
                     {/* Order Summary */}
                     <div className="lg:col-span-1 animate-slide-up" style={{ animationDelay: "100ms" }}>
-                        <OrderSummary cart={cart} totalPrice={totalPrice} />
+                        <OrderSummary 
+                            cart={cart} 
+                            totalPrice={totalPrice} 
+                            tradeInDiscount={totalTradeInDiscount}
+                            finalTotal={finalTotal}
+                        />
                     </div>
                 </div>
             </div>
