@@ -28,26 +28,35 @@ const NAV_ITEMS: NavItem[] = [
         label: "Mattresses",
         items: [
             {
-                label: "Foam Mattress",
-                description: "Breathable dual-sided core with washable cover.",
-                href: "#",
+                label: "Cotton",
+                description: "Soft, breathable cotton mattresses for your baby.",
+                href: "/products?category=Mattresses&material=Cotton",
+                image: "https://i.pinimg.com/736x/7c/aa/33/7caa33bf8eca070ee8a1dd20f86723ec.jpg",
             },
             {
-                label: "Hybrid Mattress",
-                description: "Pocket coil support with cooling foam comfort.",
-                href: "#",
+                label: "Silk",
+                description: "Luxurious silk mattresses with cooling comfort.",
+                href: "/products?category=Mattresses&material=Silk",
+                image: "https://i.pinimg.com/736x/a0/6f/59/a06f596cd15e4a3b0b4c3e5e2d9a7e8f.jpg",
             },
             {
-                label: "Kids Mattress",
-                description: "Gentle firmness tailored for growing sleepers.",
-                href: "#",
+                label: "Fleece",
+                description: "Warm fleece mattresses for cozy sleeping.",
+                href: "/products?category=Mattresses&material=Fleece",
+                image: "https://i.pinimg.com/736x/d1/d5/db/d1d5db8e4a3b0b4c3e5e2d9a7e8fa06f.jpg",
+            },
+            {
+                label: "Organic Cotton",
+                description: "100% organic cotton for sensitive skin.",
+                href: "/products?category=Mattresses&material=Organic+Cotton",
+                image: "https://i.pinimg.com/736x/fe/f3/c7/fef3c7a06f596cd15e4a3b0b4c3e5e2d.jpg",
             },
         ],
         highlight: {
             title: "DreamGuard Baby Foam",
             description: "Dual-side design that supports each stage of growth.",
-            ctaLabel: " Shop Now",
-            href: "#",
+            ctaLabel: "Shop Now",
+            href: "/products?category=Mattresses",
             badge: "-30%",
             image: "https://i.pinimg.com/1200x/78/47/1d/78471d920e63312ee215e0f328a67b37.jpg",
         },
@@ -56,26 +65,29 @@ const NAV_ITEMS: NavItem[] = [
         label: "Pillows",
         items: [
             {
-                label: "Memory Foam Pillow",
-                description: "Pressure-relieving core for neck alignment.",
-                href: "#",
+                label: "Cotton",
+                description: "Breathable cotton pillows for restful sleep.",
+                href: "/products?category=Pillows&material=Cotton",
+                image: "https://i.pinimg.com/736x/7c/aa/33/7caa33bf8eca070ee8a1dd20f86723ec.jpg",
             },
             {
-                label: "Contour Pillow",
-                description: "Ergonomic wave profile for side sleepers.",
-                href: "#",
+                label: "Silk",
+                description: "Smooth silk pillows for gentle neck support.",
+                href: "/products?category=Pillows&material=Silk",
+                image: "https://i.pinimg.com/736x/a0/6f/59/a06f596cd15e4a3b0b4c3e5e2d9a7e8f.jpg",
             },
             {
-                label: "Kids Pillow",
-                description: "Lower loft with airy cover for little ones.",
-                href: "#",
+                label: "Organic Cotton",
+                description: "Hypoallergenic organic cotton pillows.",
+                href: "/products?category=Pillows&material=Organic+Cotton",
+                image: "https://i.pinimg.com/736x/fe/f3/c7/fef3c7a06f596cd15e4a3b0b4c3e5e2d.jpg",
             },
         ],
         highlight: {
             title: "Cooling Cloud Pillow",
             description: "Phase-change cover keeps temperatures balanced.",
             ctaLabel: "Explore Now",
-            href: "#",
+            href: "/products?category=Pillows",
             badge: "New",
             image: "https://i.pinimg.com/1200x/78/47/1d/78471d920e63312ee215e0f328a67b37.jpg",
         },
@@ -84,61 +96,71 @@ const NAV_ITEMS: NavItem[] = [
         label: "Bedding Sets",
         items: [
             {
-                label: "Premium Cotton Set",
+                label: "Cotton",
                 description: "400-thread sateen weave with silky handfeel.",
-                href: "#",
+                href: "/products?category=Bedding+Sets&material=Cotton",
+                image: "https://i.pinimg.com/736x/7c/aa/33/7caa33bf8eca070ee8a1dd20f86723ec.jpg",
             },
             {
-                label: "Luxe Linen Set",
-                description: "Airy texture ideal for warm sleepers.",
-                href: "#",
+                label: "Silk",
+                description: "Luxurious silk bedding sets for ultimate comfort.",
+                href: "/products?category=Bedding+Sets&material=Silk",
+                image: "https://i.pinimg.com/736x/a0/6f/59/a06f596cd15e4a3b0b4c3e5e2d9a7e8f.jpg",
             },
             {
-                label: "Bamboo Blend Set",
-                description: "Moisture-wicking fibers for year-round comfort.",
-                href: "#",
+                label: "Fleece",
+                description: "Cozy fleece bedding sets for cold nights.",
+                href: "/products?category=Bedding+Sets&material=Fleece",
+                image: "https://i.pinimg.com/736x/d1/d5/db/d1d5db8e4a3b0b4c3e5e2d9a7e8fa06f.jpg",
+            },
+            {
+                label: "Organic Cotton",
+                description: "Pure organic cotton for sensitive skin.",
+                href: "/products?category=Bedding+Sets&material=Organic+Cotton",
+                image: "https://i.pinimg.com/736x/fe/f3/c7/fef3c7a06f596cd15e4a3b0b4c3e5e2d.jpg",
             },
         ],
         highlight: {
             title: "Layer and Save",
-            description:
-                "Bundle duvet covers, sheets, and pillowcases with extra savings.",
+            description: "Bundle duvet covers, sheets, and pillowcases with extra savings.",
             ctaLabel: "Shop the Collection",
-            href: "#",
+            href: "/products?category=Bedding+Sets",
             badge: "Bundle",
             image: "https://i.pinimg.com/1200x/78/47/1d/78471d920e63312ee215e0f328a67b37.jpg",
         },
     },
     {
-        label: "Accessories",
+        label: "Blankets",
         items: [
             {
-                label: "Protectors",
-                description: "Waterproof and breathable mattress shields.",
-                href: "#",
+                label: "Cotton",
+                description: "Lightweight cotton blankets for all seasons.",
+                href: "/products?category=Blankets&material=Cotton",
+                image: "https://i.pinimg.com/736x/7c/aa/33/7caa33bf8eca070ee8a1dd20f86723ec.jpg",
             },
             {
-                label: "Throws",
-                description: "Layer-friendly textures for quick styling.",
-                href: "#",
+                label: "Fleece",
+                description: "Ultra-soft fleece blankets for warmth.",
+                href: "/products?category=Blankets&material=Fleece",
+                image: "https://i.pinimg.com/736x/d1/d5/db/d1d5db8e4a3b0b4c3e5e2d9a7e8fa06f.jpg",
             },
             {
-                label: "Aromatherapy",
-                description: "Lavender and chamomile mists for bedtime.",
-                href: "#",
+                label: "Organic Cotton",
+                description: "Eco-friendly organic blankets.",
+                href: "/products?category=Blankets&material=Organic+Cotton",
+                image: "https://i.pinimg.com/736x/fe/f3/c7/fef3c7a06f596cd15e4a3b0b4c3e5e2d.jpg",
             },
         ],
         highlight: {
             title: "Sleep Better Kit",
-            description:
-                "A curated trio of protector, spray, and travel pillow.",
+            description: "A curated trio of protector, spray, and travel pillow.",
             ctaLabel: "Buy the Kit",
-            href: "#",
+            href: "/products?category=Blankets",
             badge: "-15%",
             image: "https://i.pinimg.com/1200x/78/47/1d/78471d920e63312ee215e0f328a67b37.jpg",
         },
     },
-    { label: "Services", href: "#" },
+    { label: "Services", href: "/services" },
     { label: "About", href: "#" },
 ]
 
@@ -181,11 +203,10 @@ export default function Header() {
     return (
         <>
             {/* ================= Fixed Header ================= */}
-            <header className={`fixed top-0 left-0 right-0 z-50 w-full border-b transition-all duration-300 ${
-                isScrolled 
-                    ? 'bg-white shadow-lg backdrop-blur-md' 
-                    : 'bg-white backdrop-blur supports-[backdrop-filter]:bg-background/60'
-            }`}>
+            <header className={`fixed top-0 left-0 right-0 z-50 w-full border-b transition-all duration-300 ${isScrolled
+                ? 'bg-white shadow-lg backdrop-blur-md'
+                : 'bg-white backdrop-blur supports-[backdrop-filter]:bg-background/60'
+                }`}>
                 {/* ================= Top Bar ================= */}
                 <div className="border-b bg-banner">
                     <div className="container mx-auto max-w-7xl px-4">

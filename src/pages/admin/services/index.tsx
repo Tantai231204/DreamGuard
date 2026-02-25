@@ -111,7 +111,7 @@ export default function ServiceManagement() {
               variant="outline"
               size="sm"
               onClick={handleRefresh}
-              className="gap-2 border-gray-300 hover:border-[var(--color-primary)] hover:bg-blue-50"
+              className="gap-2 rounded-xl border-2 font-medium shadow-sm hover:shadow-md border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-all"
             >
               <RefreshCw className="h-4 w-4" />
               <span className="hidden sm:inline">Làm mới</span>
@@ -120,7 +120,7 @@ export default function ServiceManagement() {
               variant="outline"
               size="sm"
               onClick={handleExport}
-              className="gap-2 border-gray-300 hover:border-[var(--color-primary)] hover:bg-blue-50"
+              className="gap-2 rounded-xl border-2 font-medium shadow-sm hover:shadow-md border-green-200 text-green-700 hover:border-green-500 hover:bg-green-500 hover:text-white transition-all"
             >
               <Download className="h-4 w-4" />
               <span className="hidden sm:inline">Xuất báo cáo</span>
@@ -128,7 +128,7 @@ export default function ServiceManagement() {
             <Button
               size="sm"
               onClick={handleCreateNew}
-              className="gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white shadow-md"
+              className="gap-2 rounded-xl bg-gradient-to-r from-[var(--color-primary)] to-blue-600 hover:from-[var(--color-primary-hover)] hover:to-blue-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
             >
               <Plus className="h-4 w-4" />
               <span className="hidden sm:inline">Tạo đơn mới</span>

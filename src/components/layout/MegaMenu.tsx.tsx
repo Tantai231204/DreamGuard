@@ -25,29 +25,42 @@ export function MegaMenu({ open, items, highlight, onMouseEnter, onMouseLeave }:
                 >
                     <div className="mx-auto max-w-7xl px-6 py-8">
                         <div className="grid grid-cols-12 gap-8">
-                            {/* Links */}
-                            <div className="col-span-8 grid grid-cols-3 gap-6">
-                                {items.map((item) => (
-                                    <Link
-                                        key={item.label}
-                                        to={item.href}
-                                        className="group rounded-lg p-3 transition hover:bg-muted"
-                                    >
-                                        <p className="font-medium group-hover:text-primary">
-                                            {item.label}
-                                        </p>
-                                        {item.description && (
-                                            <p className="mt-1 text-sm text-muted-foreground">
-                                                {item.description}
-                                            </p>
-                                        )}
-                                    </Link>
-                                ))}
+                            {/* Material Cards with Images */}
+                            <div className="col-span-8">
+                                <div className="grid grid-cols-2 gap-4">
+                                    {items.map((item) => (
+                                        <Link
+                                            key={item.label}
+                                            to={item.href}
+                                            className="group flex items-center gap-4 rounded-xl p-3 transition-all hover:bg-gray-50"
+                                        >
+                                            {item.image && (
+                                                <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-gray-100">
+                                                    <img
+                                                        src={item.image}
+                                                        alt={item.label}
+                                                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
+                                                    />
+                                                </div>
+                                            )}
+                                            <div className="min-w-0">
+                                                <p className="font-medium text-gray-900 group-hover:text-[var(--color-primary)]">
+                                                    {item.label}
+                                                </p>
+                                                {item.description && (
+                                                    <p className="mt-1 text-sm leading-snug text-gray-500 line-clamp-2">
+                                                        {item.description}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </Link>
+                                    ))}
+                                </div>
                             </div>
 
                             {/* Highlight */}
                             {highlight && (
-                                <div className="col-span-4 rounded-xl bg-muted p-5">
+                                <div className="col-span-4 rounded-xl bg-gray-50 p-5">
                                     <img
                                         src={highlight.image}
                                         alt={highlight.title}
@@ -58,17 +71,17 @@ export function MegaMenu({ open, items, highlight, onMouseEnter, onMouseLeave }:
                                             {highlight.title}
                                         </h4>
                                         {highlight.badge && (
-                                            <span className="rounded-full bg-primary px-2 py-0.5 text-xs text-white">
+                                            <span className="rounded-full bg-[var(--color-primary)] px-2 py-0.5 text-xs text-white">
                                                 {highlight.badge}
                                             </span>
                                         )}
                                     </div>
-                                    <p className="mt-2 text-sm text-muted-foreground">
+                                    <p className="mt-2 text-sm text-gray-500">
                                         {highlight.description}
                                     </p>
                                     <Link
                                         to={highlight.href}
-                                        className="mt-4 inline-block text-sm font-medium text-primary"
+                                        className="mt-4 inline-block text-sm font-medium text-[var(--color-primary)] hover:underline"
                                     >
                                         {highlight.ctaLabel} →
                                     </Link>

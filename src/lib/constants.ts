@@ -14,6 +14,7 @@ export const AppRoute = {
   // Shop Routes
   PRODUCTS: "/products",
   PRODUCT_DETAIL: "/products/:id",
+  SERVICES: "/services",
   CART: "/cart",
   CHECKOUT: "/checkout",
   

@@ -5,9 +5,11 @@ import {
   getFilteredRowModel,
   getSortedRowModel,
   getPaginationRowModel,
+  getExpandedRowModel,
   type SortingState,
   type ColumnFiltersState,
   type RowSelectionState,
+  type ExpandedState,
 } from '@tanstack/react-table';
 import { motion } from 'framer-motion';
 import { Package } from 'lucide-react';
@@ -16,6 +18,7 @@ import { AdminTableSearch, AdminTableContent, AdminTablePagination } from '@/com
 import ProductTabs from './components/ProductTabs';
 import ProductActions from './components/ProductActions';
 import BulkActionsToolbar from './components/BulkActionsToolbar';
+import ProductTableContent from './components/ProductTableContent';
 import { useProductColumns } from './components/useProductColumns';
 import { useComboColumns } from './components/useComboColumns';
 import { mockProducts, mockCombos } from './data';
@@ -28,6 +31,7 @@ export default function ProductsPage() {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [expanded, setExpanded] = useState<ExpandedState>({});
 
   // Split data
   const singleProducts = useMemo(
@@ -54,16 +58,20 @@ export default function ProductsPage() {
       globalFilter,
       columnFilters,
       rowSelection,
+      expanded: activeTab === 'single' ? expanded : {},
     },
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
     onColumnFiltersChange: setColumnFilters,
     onRowSelectionChange: setRowSelection,
+    onExpandedChange: setExpanded,
     enableRowSelection: true,
+    enableExpanding: activeTab === 'single',
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
     globalFilterFn: (row, _columnId, filterValue) => {
       const search = filterValue.toLowerCase();
       const item = row.original as Product | Combo;
@@ -86,14 +94,14 @@ export default function ProductsPage() {
       value: stats.total,
     },
     {
-      label: 'Active',
-      value: stats.active,
+      label: 'Total Variants',
+      value: stats.totalVariants,
     },
     {
       label: 'Out of Stock',
       value: stats.outOfStock,
     },
-    { label: 'Low Stock', value: stats.lowStock },
+    { label: 'Low Stock Variants', value: stats.lowStockVariants },
   ];
 
   return (
@@ -145,10 +153,17 @@ export default function ProductsPage() {
 
               {/* Table */}
               <div className="flex-1 overflow-auto">
-                <AdminTableContent 
-                  table={table}
-                  emptyMessage={`No ${activeTab === 'single' ? 'products' : 'combos'} found`}
-                />
+                {activeTab === 'single' ? (
+                  <ProductTableContent
+                    table={table as any}
+                    emptyMessage="No products found"
+                  />
+                ) : (
+                  <AdminTableContent 
+                    table={table}
+                    emptyMessage="No combos found"
+                  />
+                )}
               </div>
 
               {/* Pagination */}

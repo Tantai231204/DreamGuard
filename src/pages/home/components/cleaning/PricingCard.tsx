@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 interface PricingCardProps {
   name: string;
   price: string;
@@ -40,15 +42,16 @@ export default function PricingCard({ name, price, features, featured = false }:
         ))}
       </ul>
       
-      <button
-        className={`w-full py-2.5 text-sm font-medium rounded-full transition-all duration-300 ${
+      <Link
+        to="/services#booking"
+        className={`block w-full py-2.5 text-sm font-medium rounded-full transition-all duration-300 text-center ${
           featured
             ? "bg-primary text-white hover:bg-[var(--color-primary-hover)] hover:shadow-md"
             : "bg-[var(--color-primary-light)] text-gray-900 hover:opacity-90"
         }`}
       >
-        Booking now
-      </button>
+        Book Now
+      </Link>
     </div>
   );
 }

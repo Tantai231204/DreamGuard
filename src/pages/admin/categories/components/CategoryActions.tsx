@@ -1,27 +1,25 @@
 import { AdminActions } from '@/components/admin';
 
-interface ProductActionsProps {
-  productType: 'single' | 'combo';
+interface CategoryActionsProps {
   onAdd: () => void;
   onExport: () => void;
   onImport: () => void;
   onFilter: () => void;
 }
 
-export default function ProductActions({
-  productType,
+export default function CategoryActions({
   onAdd,
   onExport,
   onImport,
   onFilter,
-}: ProductActionsProps) {
+}: CategoryActionsProps) {
   return (
     <AdminActions
       onFilter={onFilter}
       onExport={onExport}
       onImport={onImport}
       onAdd={onAdd}
-      addLabel={productType === 'single' ? 'Add Product' : 'Create Combo'}
+      addLabel="Add Category"
     />
   );
 }

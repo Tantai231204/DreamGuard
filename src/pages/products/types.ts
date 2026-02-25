@@ -17,9 +17,7 @@ export interface Product {
 }
 
 export interface FilterOptions {
-  materials: string[];
   ages: string[];
-  categories: string[];
   colors: string[];
   sizes: string[];
   priceRange: { min: number | null; max: number | null };

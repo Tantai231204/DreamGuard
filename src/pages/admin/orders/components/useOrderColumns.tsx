@@ -1,10 +1,19 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { MoreVertical, Eye, Edit, Copy, Trash2 } from 'lucide-react';
+import { SortableHeader } from '@/components/admin';
 import { type ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import type { Order } from '../../types';
 import { statusColors, statusLabels } from '../constants';
 
@@ -12,28 +21,35 @@ export const useOrderColumns = () => {
     const columns: ColumnDef<Order>[] = useMemo(
         () => [
             {
+                id: 'select',
+                header: ({ table }) => (
+                    <div className="flex items-center justify-center">
+                        <Checkbox
+                            checked={table.getIsAllPageRowsSelected()}
+                            onChange={(e) => table.toggleAllPageRowsSelected(e.target.checked)}
+                            aria-label="Select all"
+                            className="data-[state=checked]:bg-[var(--color-primary)] data-[state=checked]:border-[var(--color-primary)]"
+                        />
+                    </div>
+                ),
+                cell: ({ row }) => (
+                    <div className="flex items-center justify-center">
+                        <Checkbox
+                            checked={row.getIsSelected()}
+                            onChange={(e) => row.toggleSelected(e.target.checked)}
+                            aria-label="Select row"
+                            className="data-[state=checked]:bg-[var(--color-primary)] data-[state=checked]:border-[var(--color-primary)]"
+                        />
+                    </div>
+                ),
+                size: 40,
+                enableSorting: false,
+            },
+            {
                 accessorKey: 'id',
                 enableSorting: true,
                 sortingFn: 'alphanumeric',
-                header: ({ column }) => {
-                    const sorted = column.getIsSorted();
-                    return (
-                        <Button
-                            variant="ghost"
-                            onClick={() => column.toggleSorting(sorted === 'desc')}
-                            className="hover:bg-gray-100 font-semibold -ml-4 gap-1"
-                        >
-                            Order ID
-                            {sorted === 'asc' ? (
-                                <ArrowUp className="h-3.5 w-3.5 text-[var(--color-primary)]" />
-                            ) : sorted === 'desc' ? (
-                                <ArrowDown className="h-3.5 w-3.5 text-[var(--color-primary)]" />
-                            ) : (
-                                <ArrowUpDown className="h-3.5 w-3.5 opacity-50" />
-                            )}
-                        </Button>
-                    );
-                },
+                header: ({ column }) => <SortableHeader column={column} label="Order ID" />,
                 cell: ({ row }) => (
                     <div className="font-mono text-sm font-bold text-[var(--color-primary)]">
                         #{row.getValue('id')}
@@ -44,25 +60,7 @@ export const useOrderColumns = () => {
                 accessorKey: 'customerName',
                 enableSorting: true,
                 sortingFn: 'text',
-                header: ({ column }) => {
-                    const sorted = column.getIsSorted();
-                    return (
-                        <Button
-                            variant="ghost"
-                            onClick={() => column.toggleSorting(sorted === 'desc')}
-                            className="hover:bg-gray-100 font-semibold -ml-4 gap-1"
-                        >
-                            Customer
-                            {sorted === 'asc' ? (
-                                <ArrowUp className="h-3.5 w-3.5 text-[var(--color-primary)]" />
-                            ) : sorted === 'desc' ? (
-                                <ArrowDown className="h-3.5 w-3.5 text-[var(--color-primary)]" />
-                            ) : (
-                                <ArrowUpDown className="h-3.5 w-3.5 opacity-50" />
-                            )}
-                        </Button>
-                    );
-                },
+                header: ({ column }) => <SortableHeader column={column} label="Customer" />,
                 cell: ({ row }) => (
                     <div className="flex items-center gap-3">
                         <Avatar className="h-9 w-9 border-2 border-gray-200">
@@ -91,25 +89,7 @@ export const useOrderColumns = () => {
                 accessorKey: 'total',
                 enableSorting: true,
                 sortingFn: 'basic',
-                header: ({ column }) => {
-                    const sorted = column.getIsSorted();
-                    return (
-                        <Button
-                            variant="ghost"
-                            onClick={() => column.toggleSorting(sorted === 'desc')}
-                            className="hover:bg-gray-100 font-semibold -ml-4 gap-1"
-                        >
-                            Total
-                            {sorted === 'asc' ? (
-                                <ArrowUp className="h-3.5 w-3.5 text-[var(--color-primary)]" />
-                            ) : sorted === 'desc' ? (
-                                <ArrowDown className="h-3.5 w-3.5 text-[var(--color-primary)]" />
-                            ) : (
-                                <ArrowUpDown className="h-3.5 w-3.5 opacity-50" />
-                            )}
-                        </Button>
-                    );
-                },
+                header: ({ column }) => <SortableHeader column={column} label="Total" />,
                 cell: ({ row }) => {
                     const amount = parseFloat(row.getValue('total'));
                     const formatted = new Intl.NumberFormat('en-US', {
@@ -150,25 +130,7 @@ export const useOrderColumns = () => {
                     return dateA.getTime() - dateB.getTime();
                 },
                 sortDescFirst: true,
-                header: ({ column }) => {
-                    const sorted = column.getIsSorted();
-                    return (
-                        <Button
-                            variant="ghost"
-                            onClick={() => column.toggleSorting(sorted === 'desc')}
-                            className="hover:bg-gray-100 font-semibold -ml-4 gap-1"
-                        >
-                            Order Date
-                            {sorted === 'asc' ? (
-                                <ArrowUp className="h-3.5 w-3.5 text-[var(--color-primary)]" />
-                            ) : sorted === 'desc' ? (
-                                <ArrowDown className="h-3.5 w-3.5 text-[var(--color-primary)]" />
-                            ) : (
-                                <ArrowUpDown className="h-3.5 w-3.5 opacity-50" />
-                            )}
-                        </Button>
-                    );
-                },
+                header: ({ column }) => <SortableHeader column={column} label="Order Date" />,
                 cell: ({ row }) => {
                     const date = new Date(row.getValue('date'));
                     return (
@@ -185,18 +147,43 @@ export const useOrderColumns = () => {
             {
                 id: 'actions',
                 enableSorting: false,
-                header: () => <span className="font-semibold">Actions</span>,
+                header: () => <div className="text-right">Actions</div>,
                 cell: ({ row }) => {
                     return (
-                        <Link to={`/admin/orders/${row.original.id}`}>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-9 px-4 hover:bg-[var(--color-primary)] hover:text-white transition-colors rounded-lg font-medium"
-                            >
-                                View Details
-                            </Button>
-                        </Link>
+                        <div className="flex justify-end">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-9 w-9 p-0 rounded-lg hover:bg-gray-100 hover:shadow-md transition-all"
+                                    >
+                                        <MoreVertical className="h-5 w-5" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-52 shadow-xl border-2 rounded-xl">
+                                    <Link to={`/admin/orders/${row.original.id}`}>
+                                        <DropdownMenuItem className="cursor-pointer py-2.5 font-medium">
+                                            <Eye className="h-4 w-4 mr-3 text-blue-600" />
+                                            View Details
+                                        </DropdownMenuItem>
+                                    </Link>
+                                    <DropdownMenuItem className="cursor-pointer py-2.5 font-medium">
+                                        <Edit className="h-4 w-4 mr-3 text-gray-700" />
+                                        Edit Order
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem className="cursor-pointer py-2.5 font-medium">
+                                        <Copy className="h-4 w-4 mr-3 text-gray-700" />
+                                        Duplicate
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator className="my-1" />
+                                    <DropdownMenuItem className="cursor-pointer py-2.5 text-red-600 font-semibold focus:bg-red-50 focus:text-red-700">
+                                        <Trash2 className="h-4 w-4 mr-3" />
+                                        Cancel Order
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
                     );
                 },
             },

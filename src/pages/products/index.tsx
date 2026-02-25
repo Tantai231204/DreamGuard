@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronDown, Search } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -22,9 +23,7 @@ const ITEMS_PER_PAGE = 9;
 
 // Default filter state
 const defaultFilters: FilterOptions = {
-    materials: [],
     ages: [],
-    categories: [],
     colors: [],
     sizes: [],
     priceRange: { min: null, max: null },
@@ -41,6 +40,10 @@ const pageVariants = {
 };
 
 export default function ProductsPage() {
+    const [searchParams] = useSearchParams();
+    const urlCategory = searchParams.get('category');
+    const urlMaterial = searchParams.get('material');
+
     const [filters, setFilters] = useState<FilterOptions>(defaultFilters);
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
@@ -49,6 +52,16 @@ export default function ProductsPage() {
     const filteredProducts = useMemo(() => {
         let result = [...mockProducts];
 
+        // Apply URL category filter
+        if (urlCategory) {
+            result = result.filter((product) => product.category === urlCategory);
+        }
+
+        // Apply URL material filter
+        if (urlMaterial) {
+            result = result.filter((product) => product.material === urlMaterial);
+        }
+
         // Apply search filter
         if (searchQuery) {
             const query = searchQuery.toLowerCase();
@@ -56,20 +69,6 @@ export default function ProductsPage() {
                 (product) =>
                     product.name.toLowerCase().includes(query) ||
                     product.category.toLowerCase().includes(query)
-            );
-        }
-
-        // Apply category filter (multi-select)
-        if (filters.categories.length > 0) {
-            result = result.filter((product) =>
-                filters.categories.includes(product.category)
-            );
-        }
-
-        // Apply material filter (multi-select)
-        if (filters.materials.length > 0) {
-            result = result.filter((product) =>
-                product.material && filters.materials.includes(product.material)
             );
         }
 
@@ -107,7 +106,7 @@ export default function ProductsPage() {
         }
 
         return result;
-    }, [filters, searchQuery]);
+    }, [filters, searchQuery, urlCategory, urlMaterial]);
 
     // Paginate products
     const paginatedProducts = useMemo(() => {
@@ -147,10 +146,12 @@ export default function ProductsPage() {
     useEffect(() => {
         setBreadcrumb([
             { label: 'Home', href: '/' },
-            { label: 'Products', active: true },
+            { label: 'Products', ...(urlCategory || urlMaterial ? { href: '/products' } : { active: true }) },
+            ...(urlCategory ? [{ label: urlCategory, ...(urlMaterial ? { href: `/products?category=${encodeURIComponent(urlCategory)}` } : { active: true as const }) }] : []),
+            ...(urlMaterial ? [{ label: urlMaterial, active: true as const }] : []),
         ]);
         return () => setBreadcrumb([]);
-    }, [setBreadcrumb]);
+    }, [setBreadcrumb, urlCategory, urlMaterial]);
     return (
         <motion.div
             className="min-h-screen bg-gray-50/50"
@@ -161,8 +162,8 @@ export default function ProductsPage() {
             <div className="container mx-auto px-4 py-8">
                 <div className="flex gap-8">
                     {/* Sidebar Filter */}
-                    <aside className="hidden w-64 shrink-0 lg:block">
-                        <div className="sticky top-24 rounded-2xl bg-white p-5 shadow-sm">
+                    <aside className="hidden w-[280px] shrink-0 lg:block">
+                        <div className="sticky top-24 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
                             <FilterSidebar
                                 filters={filters}
                                 onFilterChange={handleFilterChange}
@@ -183,7 +184,9 @@ export default function ProductsPage() {
                             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                                 <div>
                                     <h1 className="text-2xl font-bold text-[var(--color-primary-dark)]">
-                                        Baby Bedding
+                                        {urlCategory ? (
+                                            urlMaterial ? `${urlMaterial} ${urlCategory}` : urlCategory
+                                        ) : 'Baby Bedding'}
                                     </h1>
                                     <p className="mt-1 text-sm text-gray-500">
                                         <span className="font-medium text-[var(--color-primary)]">{filteredProducts.length}</span> products found

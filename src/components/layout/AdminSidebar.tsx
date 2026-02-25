@@ -12,6 +12,7 @@ import {
   BarChart3,
   LogOut,
   Sparkles,
+  FolderTree,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Separator } from '../ui/separator';
@@ -46,6 +47,11 @@ const navItems: NavItem[] = [
     title: 'Products',
     href: '/admin/products',
     icon: Package,
+  },
+  {
+    title: 'Categories',
+    href: '/admin/categories',
+    icon: FolderTree,
   },
   {
     title: 'Customers',

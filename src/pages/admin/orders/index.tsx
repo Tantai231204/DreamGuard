@@ -8,13 +8,13 @@ import {
     getSortedRowModel,
     type SortingState,
     type ColumnFiltersState,
+    type RowSelectionState,
     type Row,
 } from '@tanstack/react-table'
-import { Download, ShoppingCart } from 'lucide-react'
+import { ShoppingCart } from 'lucide-react'
 
-import { Button } from '@/components/ui/button'
 import AdminPageHeader from '@/components/layout/AdminPageHeader'
-import { AdminTableSearch, AdminTableContent, AdminTablePagination } from '@/components/admin'
+import { AdminTableSearch, AdminTableContent, AdminTablePagination, AdminActions, AdminBulkActions } from '@/components/admin'
 
 import { mockOrders } from '../data'
 import type { Order } from '../types'
@@ -46,6 +46,7 @@ export default function OrderManagement() {
     const [sorting, setSorting] = useState<SortingState>([])
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
     const [globalFilter, setGlobalFilter] = useState('')
+    const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
 
     const columns = useOrderColumns()
     const stats = useOrderStats()
@@ -59,6 +60,7 @@ export default function OrderManagement() {
             sorting,
             columnFilters,
             globalFilter,
+            rowSelection,
         },
 
         /* Sorting */
@@ -74,6 +76,10 @@ export default function OrderManagement() {
         onGlobalFilterChange: setGlobalFilter,
         globalFilterFn: globalFilterFn,
         enableGlobalFilter: true,
+
+        /* Row selection */
+        onRowSelectionChange: setRowSelection,
+        enableRowSelection: true,
 
         /* Core + pagination */
         getCoreRowModel: getCoreRowModel(),
@@ -92,16 +98,6 @@ export default function OrderManagement() {
                 title="Order Management"
                 description="Track and manage all customer orders"
                 icon={ShoppingCart}
-                actions={
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-2 border border-gray-300 hover:border-[var(--color-primary)] hover:bg-blue-50 transition-all"
-                    >
-                        <Download className="h-4 w-4" />
-                        Export
-                    </Button>
-                }
                 stats={[
                     { label: 'Total', value: stats.total },
                     { label: 'Revenue', value: `₫${stats.revenue.toLocaleString('vi-VN')}` },
@@ -116,6 +112,25 @@ export default function OrderManagement() {
                     animate={{ opacity: 1, y: 0 }}
                     className="m-6 bg-white rounded-2xl border-2 border-gray-100 overflow-hidden shadow-xl flex flex-col h-[calc(100%-3rem)]"
                 >
+                    {/* Bulk Actions */}
+                    <AdminBulkActions
+                        table={table}
+                        itemLabel="order"
+                        accentColor="blue"
+                        onEdit={() => console.log('Edit selected')}
+                        onDuplicate={() => console.log('Duplicate selected')}
+                        onDelete={() => console.log('Delete selected')}
+                    />
+
+                    {/* Actions Toolbar */}
+                    <AdminActions
+                        onFilter={() => console.log('Filter')}
+                        onExport={() => console.log('Export')}
+                        onImport={() => console.log('Import')}
+                        onAdd={() => console.log('Add order')}
+                        addLabel="Add Order"
+                    />
+
                     <AdminTableSearch
                         value={globalFilter}
                         onChange={setGlobalFilter}

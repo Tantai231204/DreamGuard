@@ -6,6 +6,7 @@ export type DropdownLink = {
     label: string
     description?: string
     href: string
+    image?: string
 }
 
 export type HighlightCard = {

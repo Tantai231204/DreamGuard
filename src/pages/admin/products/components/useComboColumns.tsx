@@ -98,7 +98,10 @@ export function useComboColumns() {
                         <div className="space-y-1">
                             {items.slice(0, 2).map((item, idx) => (
                                 <div key={idx} className="text-xs text-gray-600">
-                                    • {item.productName} (x{item.quantity})
+                                    <span>• {item.productName} (x{item.quantity})</span>
+                                    {item.variantLabel && (
+                                        <span className="text-gray-400 ml-1">— {item.variantLabel}</span>
+                                    )}
                                 </div>
                             ))}
                             {items.length > 2 && (
@@ -120,11 +123,11 @@ export function useComboColumns() {
                     </div>
                 ),
             }),
-            columnHelper.accessor('price', {
+            columnHelper.accessor('basePrice', {
                 header: 'Price',
                 cell: (info) => {
                     const price = info.getValue();
-                    const salePrice = info.row.original.salePrice;
+                    const salePrice = info.row.original.baseSalePrice;
                     return (
                         <div className="text-right space-y-0.5">
                             {salePrice && salePrice < price ? (
@@ -145,7 +148,7 @@ export function useComboColumns() {
                     );
                 },
             }),
-            columnHelper.accessor('stock', {
+            columnHelper.accessor('totalStock', {
                 header: 'Stock',
                 cell: (info) => {
                     const stock = info.getValue();

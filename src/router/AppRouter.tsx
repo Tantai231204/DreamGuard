@@ -31,14 +31,16 @@ const ResetPasswordSuccess = lazy(() => import("../pages/auth/ResetPasswordSucce
 
 // User
 const Profile = lazy(() => import("../pages/profile"));
+const Services = lazy(() => import("../pages/services"));
 
 // Admin
-const AdminDashboard = lazy(() => import("../pages/Admin"));
+const AdminDashboard = lazy(() => import("../pages/admin/dashboard"));
 const OrderManagement = lazy(() => import("../pages/admin/orders"));
 const OrderDetail = lazy(() => import("../pages/admin/orders/[id]"));
 const ServiceManagement = lazy(() => import("../pages/admin/services"));
 const ChatAdmin = lazy(() => import("../pages/admin/chat"));
 const ProductManagement = lazy(() => import("../pages/admin/products"));
+const CategoryManagement = lazy(() => import("../pages/admin/categories"));
 
 /* =======================
    Loading
@@ -62,6 +64,7 @@ export default function AppRouter() {
                     <Route path={AppRoute.HOME} element={<Home />} />
                     <Route path={AppRoute.PRODUCTS} element={<Products />} />
                     <Route path={AppRoute.PRODUCT_DETAIL} element={<ProductDetail />} />
+                    <Route path={AppRoute.SERVICES} element={<Services />} />
                     <Route path={AppRoute.CART} element={<CartPage />} />
                 </Route>
 
@@ -96,6 +99,7 @@ export default function AppRouter() {
                         <Route path="/admin/services" element={<ServiceManagement />} />
                         <Route path="/admin/chat" element={<ChatAdmin />} />
                         <Route path="/admin/products" element={<ProductManagement />} />
+                        <Route path="/admin/categories" element={<CategoryManagement />} />
                     </Route>
                 </Route>
 
