@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 interface PricingCardProps {
   name: string;
@@ -8,6 +8,12 @@ interface PricingCardProps {
 }
 
 export default function PricingCard({ name, price, features, featured = false }: PricingCardProps) {
+  const navigate = useNavigate();
+  
+  const handleBookNow = () => {
+    navigate("/services#booking");
+  };
+
   return (
     <div
       className={`bg-white border border-dashed rounded-xl p-6 transition-all duration-300 ${
@@ -42,8 +48,8 @@ export default function PricingCard({ name, price, features, featured = false }:
         ))}
       </ul>
       
-      <Link
-        to="/services#booking"
+      <button
+        onClick={handleBookNow}
         className={`block w-full py-2.5 text-sm font-medium rounded-full transition-all duration-300 text-center ${
           featured
             ? "bg-primary text-white hover:bg-[var(--color-primary-hover)] hover:shadow-md"
@@ -51,7 +57,7 @@ export default function PricingCard({ name, price, features, featured = false }:
         }`}
       >
         Book Now
-      </Link>
+      </button>
     </div>
   );
 }

@@ -6,6 +6,7 @@ import AuthLayout from "../layouts/AuthLayout";
 import AdminLayout from "../layouts/AdminLayout";
 
 import PrivateRoute from "../components/router/PrivateRoute";
+import { PageLoader } from "../components/common";
 // import AdminRoute from "../components/router/AdminRoute";
 
 import { AppRoute } from "../lib/constants";
@@ -43,20 +44,11 @@ const ProductManagement = lazy(() => import("../pages/admin/products"));
 const CategoryManagement = lazy(() => import("../pages/admin/categories"));
 
 /* =======================
-   Loading
-======================= */
-const LoadingFallback = () => (
-    <div className="flex h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#4988c4] border-t-transparent" />
-    </div>
-);
-
-/* =======================
    Router
 ======================= */
 export default function AppRouter() {
     return (
-        <Suspense fallback={<LoadingFallback />}>
+        <Suspense fallback={<PageLoader />}>
             <Routes>
 
                 {/* ===== Public Routes ===== */}

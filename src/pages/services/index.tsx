@@ -1,5 +1,4 @@
 import { useState, useCallback } from "react";
-import { motion } from "framer-motion";
 import { Package, Wrench } from "lucide-react";
 import {
   ServiceHero,
@@ -40,40 +39,32 @@ export default function ServicesPage() {
       <PricingSection onSelectPackage={handleSelectPackage} />
 
       {/* ===== Booking Section with Flow Toggle ===== */}
-      <section id="booking" className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4">
+      <section id="booking" className="py-16 px-4 bg-white">
+        <div className="max-w-6xl mx-auto">
           {/* Section header */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="text-center mb-10"
-          >
-            <span className="text-sm font-semibold tracking-wider uppercase text-[var(--color-primary)]">
-              Book Now
-            </span>
-            <h2 className="text-3xl lg:text-4xl font-bold mt-3 mb-4 text-gray-900">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-semibold text-primary mb-2">
               Schedule Your Service
             </h2>
-            <p className="text-gray-500 max-w-xl mx-auto">
+            <p className="text-sm text-gray-700 max-w-3xl mx-auto">
               Choose a ready-made package for convenience, or build your own
               custom order.
             </p>
-          </motion.div>
+          </div>
 
           {/* Flow toggle */}
-          <div className="flex justify-center mb-12">
-            <div className="inline-flex rounded-2xl bg-gray-100 p-1.5 gap-1">
+          <div className="flex justify-center mb-8">
+            <div className="inline-flex rounded-full bg-blue-50 border border-dashed border-blue-300 p-1 gap-1">
               <button
                 type="button"
                 onClick={() => setFlow("package")}
-                className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all ${
+                className={`flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold transition-all ${
                   flow === "package"
-                    ? "bg-white text-[var(--color-primary)] shadow-md"
+                    ? "bg-white text-primary shadow-sm border border-blue-200"
                     : "text-gray-500 hover:text-gray-700"
                 }`}
               >
-                <Package className="h-4 w-4" />
+                <Package className="h-3.5 w-3.5" />
                 Package Booking
               </button>
               <button
@@ -82,27 +73,29 @@ export default function ServicesPage() {
                   setFlow("custom");
                   setSelectedPackageId(undefined);
                 }}
-                className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all ${
+                className={`flex items-center gap-2 px-5 py-2 rounded-full text-xs font-semibold transition-all ${
                   flow === "custom"
-                    ? "bg-white text-[var(--color-primary)] shadow-md"
+                    ? "bg-white text-primary shadow-sm border border-blue-200"
                     : "text-gray-500 hover:text-gray-700"
                 }`}
               >
-                <Wrench className="h-4 w-4" />
+                <Wrench className="h-3.5 w-3.5" />
                 Custom Booking
               </button>
             </div>
           </div>
 
           {/* Active flow */}
-          {flow === "package" ? (
-            <PackageBooking
-              key={selectedPackageId ?? "pkg"}
-              initialPackageId={selectedPackageId}
-            />
-          ) : (
-            <CustomBookingForm key="custom" />
-          )}
+          <div className="bg-blue-50 border border-dashed border-blue-300 rounded-lg p-6">
+            {flow === "package" ? (
+              <PackageBooking
+                key={selectedPackageId ?? "pkg"}
+                initialPackageId={selectedPackageId}
+              />
+            ) : (
+              <CustomBookingForm key="custom" />
+            )}
+          </div>
         </div>
       </section>
     </div>

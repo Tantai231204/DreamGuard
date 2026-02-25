@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import ServiceCard from "./cleaning/ServiceCard";
 import LaundryProcess from "./cleaning/LaundryProcess";
 import PricingCard from "./cleaning/PricingCard";
@@ -12,9 +13,15 @@ export default function CleaningServicesSection() {
                     <h2 className="text-3xl font-semibold text-primary mb-2">
                         Cleaning services
                     </h2>
-                    <p className="text-sm text-gray-700 max-w-3xl mx-auto">
+                    <p className="text-sm text-gray-700 max-w-3xl mx-auto mb-3">
                         Professional bedding cleaning service, protecting your baby's health with modern technology.
                     </p>
+                    <Link 
+                        to="/services" 
+                        className="inline-block text-xs text-primary font-medium hover:underline"
+                    >
+                        View all services →
+                    </Link>
                 </div>
 
                 {/* Service Features */}

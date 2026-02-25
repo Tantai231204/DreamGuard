@@ -58,7 +58,7 @@ export default function ProductsPage() {
       globalFilter,
       columnFilters,
       rowSelection,
-      expanded: activeTab === 'single' ? expanded : {},
+      expanded,
     },
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
@@ -66,7 +66,7 @@ export default function ProductsPage() {
     onRowSelectionChange: setRowSelection,
     onExpandedChange: setExpanded,
     enableRowSelection: true,
-    enableExpanding: activeTab === 'single',
+    enableExpanding: true,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -153,17 +153,11 @@ export default function ProductsPage() {
 
               {/* Table */}
               <div className="flex-1 overflow-auto">
-                {activeTab === 'single' ? (
-                  <ProductTableContent
-                    table={table as any}
-                    emptyMessage="No products found"
-                  />
-                ) : (
-                  <AdminTableContent 
-                    table={table}
-                    emptyMessage="No combos found"
-                  />
-                )}
+                <ProductTableContent
+                  table={table as any}
+                  type={activeTab}
+                  emptyMessage={activeTab === 'single' ? 'No products found' : 'No combos found'}
+                />
               </div>
 
               {/* Pagination */}

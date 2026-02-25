@@ -127,13 +127,12 @@ export default function VariantTable({ variants, productName }: VariantTableProp
                           <AlertTriangle className="h-3 w-3 text-orange-500" />
                         )}
                         <span
-                          className={`text-sm font-black px-2 py-0.5 rounded ${
-                            variant.stock === 0
-                              ? 'text-red-600 bg-red-50'
-                              : variant.stock <= 5
+                          className={`text-sm font-black px-2 py-0.5 rounded ${variant.stock === 0
+                            ? 'text-red-600 bg-red-50'
+                            : variant.stock <= 5
                               ? 'text-orange-600 bg-orange-50'
                               : 'text-green-600 bg-green-50'
-                          }`}
+                            }`}
                         >
                           {variant.stock}
                         </span>

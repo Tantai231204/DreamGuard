@@ -10,6 +10,8 @@ import {
     Eye,
     Copy,
     Layers,
+    ChevronRight,
+    ChevronDown,
 } from 'lucide-react';
 import {
     DropdownMenu,
@@ -60,6 +62,24 @@ export function useComboColumns() {
                     </div>
                 ),
                 size: 40,
+            }),
+            columnHelper.display({
+                id: 'expand',
+                header: () => null,
+                cell: ({ row }) => (
+                    <button
+                        onClick={() => row.toggleExpanded()}
+                        className="p-1 rounded-md hover:bg-purple-100 transition-colors"
+                        aria-label="Toggle combo items"
+                    >
+                        {row.getIsExpanded() ? (
+                            <ChevronDown className="h-4 w-4 text-purple-600" />
+                        ) : (
+                            <ChevronRight className="h-4 w-4 text-gray-400" />
+                        )}
+                    </button>
+                ),
+                size: 36,
             }),
             columnHelper.accessor('sku', {
                 header: 'SKU',

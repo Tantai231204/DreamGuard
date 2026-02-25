@@ -81,3 +81,19 @@ export interface CustomBookingData {
   };
   notes: string;
 }
+
+export interface CustomRequestData {
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string;
+  images: File[];
+  description: string;
+  preferredDate: string;
+  preferredTime: string;
+  address: {
+    street: string;
+    ward: string;
+    district: string;
+    city: string;
+  };
+}

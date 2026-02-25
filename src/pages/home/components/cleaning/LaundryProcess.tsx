@@ -1,4 +1,5 @@
 import * as AspectRatio from "@radix-ui/react-aspect-ratio";
+import { Link } from "react-router-dom";
 
 interface LaundryProcessProps {
     processes: string[];
@@ -19,9 +20,12 @@ export default function LaundryProcess({ processes }: LaundryProcessProps) {
                             />
                         </div>
                     </AspectRatio.Root>
-                    <button className="absolute bottom-3 left-1/2 -translate-x-1/2 px-6 py-2 bg-[var(--color-primary-light)] text-gray-900 text-xs font-medium rounded-full hover:opacity-90 transition-opacity shadow-sm">
+                    <Link
+                        to="/services#booking"
+                        className="absolute bottom-3 left-1/2 -translate-x-1/2 px-6 py-2 bg-[var(--color-primary-light)] text-gray-900 text-xs font-medium rounded-full hover:opacity-90 transition-opacity shadow-sm"
+                    >
                         Booking now
-                    </button>
+                    </Link>
                 </div>
 
                 {/* Process Steps */}
@@ -40,6 +44,12 @@ export default function LaundryProcess({ processes }: LaundryProcessProps) {
                             </li>
                         ))}
                     </ul>
+                    <Link
+                        to="/services"
+                        className="inline-block mt-4 text-xs text-primary font-medium hover:underline"
+                    >
+                        View all services →
+                    </Link>
                 </div>
             </div>
         </div>

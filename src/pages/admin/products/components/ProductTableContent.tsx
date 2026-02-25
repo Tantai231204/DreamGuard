@@ -9,17 +9,20 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import VariantTable from './VariantTable';
-import type { Product } from '../types';
+import ComboItemsTable from './ComboItemsTable';
+import type { Product, Combo } from '../types';
 
-interface ProductTableContentProps {
-  table: Table<Product>;
+interface ProductTableContentProps<T extends Product | Combo> {
+  table: Table<T>;
   emptyMessage?: string;
+  type: 'single' | 'combo';
 }
 
-export default function ProductTableContent({
+export default function ProductTableContent<T extends Product | Combo>({
   table,
   emptyMessage = 'No products found',
-}: ProductTableContentProps) {
+  type,
+}: ProductTableContentProps<T>) {
   const rows = table.getRowModel().rows;
   const pageSize = table.getState().pagination.pageSize;
   const columnCount = table.getAllColumns().length;
@@ -51,16 +54,23 @@ export default function ProductTableContent({
           {rows.length > 0 ? (
             <>
               {rows.map((row) => {
-                const product = row.original;
+                const item = row.original;
                 const isExpanded = row.getIsExpanded();
+                const isCombo = type === 'combo';
 
                 return (
                   <AnimatePresence key={row.id}>
-                    {/* Product row */}
+                    {/* Product/Combo row */}
                     <TableRow
                       data-state={row.getIsSelected() && 'selected'}
-                      className={`group hover:bg-gradient-to-r hover:from-blue-50/30 hover:to-transparent transition-all duration-200 border-b border-gray-100 data-[state=selected]:bg-blue-50/50 cursor-pointer ${
-                        isExpanded ? 'bg-blue-50/20 border-b-0' : ''
+                      className={`group hover:bg-gradient-to-r transition-all duration-200 border-b border-gray-100 cursor-pointer ${
+                        isCombo 
+                          ? 'hover:from-purple-50/30 hover:to-transparent data-[state=selected]:bg-purple-50/50'
+                          : 'hover:from-blue-50/30 hover:to-transparent data-[state=selected]:bg-blue-50/50'
+                      } ${
+                        isExpanded 
+                          ? isCombo ? 'bg-purple-50/20 border-b-0' : 'bg-blue-50/20 border-b-0'
+                          : ''
                       }`}
                       onClick={(e) => {
                         // Don't toggle if clicking on checkbox, button, or dropdown
@@ -82,14 +92,22 @@ export default function ProductTableContent({
                       ))}
                     </TableRow>
 
-                    {/* Expanded variant sub-table */}
+                    {/* Expanded detail sub-table */}
                     {isExpanded && (
                       <TableRow className="hover:bg-transparent">
                         <TableCell colSpan={columnCount} className="p-0">
-                          <VariantTable
-                            variants={product.variants}
-                            productName={product.name}
-                          />
+                          {type === 'combo' ? (
+                            <ComboItemsTable
+                              items={(item as Combo).items}
+                              comboName={item.name}
+                              discount={(item as Combo).discount}
+                            />
+                          ) : (
+                            <VariantTable
+                              variants={(item as Product).variants}
+                              productName={item.name}
+                            />
+                          )}
                         </TableCell>
                       </TableRow>
                     )}

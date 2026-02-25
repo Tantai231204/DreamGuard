@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { flexRender, type Table } from '@tanstack/react-table';
 import {
   Table as TableUI,
@@ -13,7 +14,7 @@ interface OrderTableContentProps {
   table: Table<Order>;
 }
 
-export const OrderTableContent = ({ table }: OrderTableContentProps) => {
+export const OrderTableContent = memo(({ table }: OrderTableContentProps) => {
   const rows = table.getRowModel().rows;
   const pageSize = table.getState().pagination.pageSize;
   const columnCount = table.getAllColumns().length;
@@ -26,7 +27,7 @@ export const OrderTableContent = ({ table }: OrderTableContentProps) => {
       <TableUI>
         <TableHeader className="bg-gray-50">
           {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id} className="border-b-2 border-gray-200 hover:bg-gray-50">
+            <TableRow key={headerGroup.id} className="border-b-2 border-gray-200">
               {headerGroup.headers.map((header) => (
                 <TableHead key={header.id} className="font-semibold text-gray-700">
                   {header.isPlaceholder
@@ -42,14 +43,17 @@ export const OrderTableContent = ({ table }: OrderTableContentProps) => {
         </TableHeader>
         <TableBody>
           {/* Data rows */}
-          {rows.map((row) => (
+          {rows.map((row, idx) => (
             <TableRow
               key={row.id}
               data-state={row.getIsSelected() && 'selected'}
-              className="hover:bg-gray-50 transition-colors border-b border-gray-100"
+              className="hover:bg-blue-50/50 transition-all duration-200 border-b border-gray-100 group"
+              style={{
+                animation: `slideInFromLeft 0.3s ease-out ${idx * 0.05}s both`,
+              }}
             >
               {row.getVisibleCells().map((cell) => (
-                <TableCell key={cell.id} className="py-4">
+                <TableCell key={cell.id} className="py-4 group-hover:text-gray-900 transition-colors">
                   {flexRender(
                     cell.column.columnDef.cell,
                     cell.getContext()
@@ -70,6 +74,20 @@ export const OrderTableContent = ({ table }: OrderTableContentProps) => {
           ))}
         </TableBody>
       </TableUI>
+      <style>{`
+        @keyframes slideInFromLeft {
+          from {
+            opacity: 0;
+            transform: translateX(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+      `}</style>
     </div>
   );
-};
+});
+
+OrderTableContent.displayName = 'OrderTableContent';
