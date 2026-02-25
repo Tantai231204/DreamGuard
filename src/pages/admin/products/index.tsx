@@ -14,7 +14,7 @@ import {
 import { motion } from 'framer-motion';
 import { Package } from 'lucide-react';
 import AdminPageHeader from '@/components/layout/AdminPageHeader';
-import { AdminTableSearch, AdminTableContent, AdminTablePagination } from '@/components/admin';
+import { AdminTableSearch, AdminTablePagination } from '@/components/admin';
 import ProductTabs from './components/ProductTabs';
 import ProductActions from './components/ProductActions';
 import BulkActionsToolbar from './components/BulkActionsToolbar';
