@@ -1,5 +1,5 @@
+import React from 'react';
 import { flexRender, type Table } from '@tanstack/react-table';
-import { AnimatePresence } from 'framer-motion';
 import {
   Table as TableUI,
   TableBody,
@@ -59,14 +59,14 @@ export default function ProductTableContent<T extends Product | Combo>({
                 const isCombo = type === 'combo';
 
                 return (
-                  <AnimatePresence key={row.id}>
+                  <React.Fragment key={row.id}>
                     {/* Product/Combo row */}
                     <TableRow
                       data-state={row.getIsSelected() && 'selected'}
-                      className={`group hover:bg-gradient-to-r transition-all duration-200 border-b border-gray-100 cursor-pointer ${
+                      className={`hover:bg-gray-50 transition-colors border-b border-gray-100 cursor-pointer ${
                         isCombo 
-                          ? 'hover:from-purple-50/30 hover:to-transparent data-[state=selected]:bg-purple-50/50'
-                          : 'hover:from-blue-50/30 hover:to-transparent data-[state=selected]:bg-blue-50/50'
+                          ? 'data-[state=selected]:bg-purple-50'
+                          : 'data-[state=selected]:bg-blue-50'
                       } ${
                         isExpanded 
                           ? isCombo ? 'bg-purple-50/20 border-b-0' : 'bg-blue-50/20 border-b-0'
@@ -111,7 +111,7 @@ export default function ProductTableContent<T extends Product | Combo>({
                         </TableCell>
                       </TableRow>
                     )}
-                  </AnimatePresence>
+                  </React.Fragment>
                 );
               })}
               {/* Empty rows to maintain consistent height */}

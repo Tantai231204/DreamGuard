@@ -62,7 +62,7 @@ const navItems: NavItem[] = [
   },
   {
     title: 'Customers',
-    href: '/admin/customers',
+    href: '/admin/users',
     icon: Users,
   },
   {

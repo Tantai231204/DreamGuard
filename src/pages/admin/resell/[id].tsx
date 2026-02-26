@@ -193,7 +193,7 @@ export default function TradeInDetail() {
 
                         {/* Sidebar */}
                         <div className="space-y-4">
-                            <TradeInCustomerCard customer={request.customer} delay={0.1} />
+                            <TradeInCustomerCard customer={request.customer} />
 
                             {/* Show rejection info for rejected requests */}
                             {request.status === "rejected" && request.rejectionReason && (

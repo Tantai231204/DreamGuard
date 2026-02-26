@@ -9,3 +9,4 @@ export { TradeInNotFound } from "./TradeInNotFound";
 export { TradeInRequirements } from "./TradeInRequirements";
 export { RejectDialog } from "./RejectDialog";
 export { TradeInRejectionInfo } from "./TradeInRejectionInfo";
+export { SetPriceDialog } from "./SetPriceDialog";

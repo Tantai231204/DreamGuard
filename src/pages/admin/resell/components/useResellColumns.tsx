@@ -28,7 +28,7 @@ export const useResellColumns = () => {
                             checked={table.getIsAllPageRowsSelected()}
                             onChange={(e) => table.toggleAllPageRowsSelected(e.target.checked)}
                             aria-label="Select all"
-                            className="data-[state=checked]:bg-[var(--color-primary)] data-[state=checked]:border-[var(--color-primary)]"
+                            className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
                         />
                     </div>
                 ),
@@ -38,7 +38,7 @@ export const useResellColumns = () => {
                             checked={row.getIsSelected()}
                             onChange={(e) => row.toggleSelected(e.target.checked)}
                             aria-label="Select row"
-                            className="data-[state=checked]:bg-[var(--color-primary)] data-[state=checked]:border-[var(--color-primary)]"
+                            className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
                         />
                     </div>
                 ),
@@ -51,9 +51,9 @@ export const useResellColumns = () => {
                 sortingFn: "alphanumeric",
                 header: ({ column }) => <SortableHeader column={column} label="ID" />,
                 cell: ({ row }) => (
-                    <Link 
+                    <Link
                         to={`/admin/resell/${row.getValue("id")}`}
-                        className="font-mono text-xs font-semibold text-[var(--color-primary)] hover:underline"
+                        className="font-mono text-xs font-semibold text-blue-600 hover:underline"
                     >
                         #{row.getValue("id")}
                     </Link>
@@ -73,7 +73,7 @@ export const useResellColumns = () => {
                         <div className="flex items-center gap-2.5">
                             <Avatar className="h-8 w-8 border border-gray-200">
                                 <AvatarImage src={customer.avatar} />
-                                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white text-xs font-semibold">
+                                <AvatarFallback className="bg-blue-600 text-white text-xs font-semibold">
                                     {customer.name.charAt(0)}
                                 </AvatarFallback>
                             </Avatar>
@@ -188,7 +188,7 @@ export const useResellColumns = () => {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
                                 <DropdownMenuItem asChild className="gap-2 cursor-pointer text-sm">
-                                    <Link to={`/admin/resell/${request.id}`}>
+                                    <Link to={`/admin/resell/${request.id}`} className="flex items-center gap-2">
                                         <Eye className="h-4 w-4" />
                                         View Details
                                     </Link>
@@ -199,14 +199,12 @@ export const useResellColumns = () => {
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 {canShowApprove && (
-                                    <DropdownMenuItem 
+                                    <DropdownMenuItem
                                         disabled={!canApprove}
-                                        className={`gap-2 cursor-pointer text-sm ${
-                                            canApprove 
-                                                ? "text-emerald-600 focus:text-emerald-600 focus:bg-emerald-50" 
-                                                : "opacity-50 cursor-not-allowed"
-                                        }`}
-                                        title={!hasPrice ? "Must set price first" : ""}
+                                        className={`gap-2 cursor-pointer text-sm ${canApprove
+                                                ? "text-emerald-600"
+                                                : "opacity-50"
+                                            }`}
                                     >
                                         <CheckCircle className="h-4 w-4" />
                                         <span>Approve</span>
@@ -214,19 +212,19 @@ export const useResellColumns = () => {
                                     </DropdownMenuItem>
                                 )}
                                 {canComplete && (
-                                    <DropdownMenuItem className="gap-2 cursor-pointer text-sm text-green-600 focus:text-green-600 focus:bg-green-50">
+                                    <DropdownMenuItem className="gap-2 cursor-pointer text-sm text-green-600">
                                         <CheckCircle className="h-4 w-4" />
                                         Complete
                                     </DropdownMenuItem>
                                 )}
                                 {canReject && (
-                                    <DropdownMenuItem className="gap-2 cursor-pointer text-sm text-red-600 focus:text-red-600 focus:bg-red-50">
+                                    <DropdownMenuItem className="gap-2 cursor-pointer text-sm text-red-600">
                                         <XCircle className="h-4 w-4" />
                                         Reject
                                     </DropdownMenuItem>
                                 )}
                                 <DropdownMenuSeparator />
-                                <DropdownMenuItem className="gap-2 cursor-pointer text-sm text-red-600 focus:text-red-600 focus:bg-red-50">
+                                <DropdownMenuItem className="gap-2 cursor-pointer text-sm text-red-600">
                                     <Trash2 className="h-4 w-4" />
                                     Delete
                                 </DropdownMenuItem>

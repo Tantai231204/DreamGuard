@@ -44,6 +44,7 @@ const ProductManagement = lazy(() => import("../pages/admin/products"));
 const CategoryManagement = lazy(() => import("../pages/admin/categories"));
 const ResellManagement = lazy(() => import("../pages/admin/resell"));
 const TradeInDetail = lazy(() => import("../pages/admin/resell/[id]"));
+const UserManagement = lazy(() => import("../pages/admin/users"));
 
 /* =======================
    Router
@@ -96,6 +97,7 @@ export default function AppRouter() {
                         <Route path="/admin/categories" element={<CategoryManagement />} />
                         <Route path="/admin/resell" element={<ResellManagement />} />
                         <Route path="/admin/resell/:id" element={<TradeInDetail />} />
+                        <Route path="/admin/users" element={<UserManagement />} />
                     </Route>
                 </Route>
 
