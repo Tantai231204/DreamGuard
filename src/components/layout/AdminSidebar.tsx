@@ -13,6 +13,7 @@ import {
   LogOut,
   Sparkles,
   FolderTree,
+  RefreshCw,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Separator } from '../ui/separator';
@@ -52,6 +53,12 @@ const navItems: NavItem[] = [
     title: 'Categories',
     href: '/admin/categories',
     icon: FolderTree,
+  },
+  {
+    title: 'Trade-ins',
+    href: '/admin/resell',
+    icon: RefreshCw,
+    badge: 2,
   },
   {
     title: 'Customers',
