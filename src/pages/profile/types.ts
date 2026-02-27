@@ -4,6 +4,7 @@ export type TabId =
     | "orders"
     | "resell"
     | "wishlist"
+    | "vouchers"
     | "addresses"
     | "notifications"
     | "security"
@@ -71,4 +72,25 @@ export interface Address {
     address: string
     type: "home" | "office"
     isDefault: boolean
+}
+
+export interface Voucher {
+    id: string
+    code: string
+    title: string
+    description: string
+    discount: number
+    discountType: "percentage" | "fixed"
+    minPurchase: number
+    maxDiscount?: number
+    validFrom: string
+    validTo: string
+    status: "active" | "used" | "expired"
+    usedAt?: string
+    category?: string
+    image?: string
+    terms?: string[]
+    usageInstructions?: string[]
+    quantity?: number
+    usedCount?: number
 }

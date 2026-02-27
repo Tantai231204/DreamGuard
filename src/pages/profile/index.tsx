@@ -5,7 +5,7 @@ import { HomeIcon } from "@radix-ui/react-icons"
 
 import { AppRoute } from "../../lib/constants"
 import type { TabId } from "./types"
-import { AddressesTab, BabiesTab, NotificationsTab, OrdersTab, ProfileInfoTab, ProfileSidebar, ResellTab, SecurityTab, WishlistTab } from "./components"
+import { AddressesTab, BabiesTab, NotificationsTab, OrdersTab, ProfileInfoTab, ProfileSidebar, ResellTab, SecurityTab, VouchersTab, WishlistTab } from "./components"
 import { useEffect } from 'react';
 import { useBreadcrumb } from '@/components/common/breadcrumb/useBreadcrumb';
 
@@ -23,6 +23,7 @@ export default function Profile() {
             case "orders": return <OrdersTab />
             case "resell": return <ResellTab />
             case "wishlist": return <WishlistTab />
+            case "vouchers": return <VouchersTab />
             case "addresses": return <AddressesTab />
             case "notifications": return <NotificationsTab />
             case "security": return <SecurityTab />
