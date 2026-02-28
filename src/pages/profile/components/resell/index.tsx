@@ -29,7 +29,7 @@ import BenefitsBanner from "./BenefitsBanner"
 import CreateWizard from "./wizard"
 
 // Types & Constants
-import type { EligibleProduct, MediaFile, SelectedProductWithMedia, TradeInRequest, TradeInStatus } from "./types"
+import type { EligibleProduct, MediaFile, SelectedProductWithMedia, TradeInRequest } from "./types"
 import { mockEligibleProducts, mockTradeInRequests, STATUS_CONFIG } from "./constants"
 
 /* ═══════════════════════════════════════════════════════════
@@ -101,7 +101,7 @@ const columns = [
         id: "estimatedPrice",
         header: "Định giá",
         cell: ({ row }: { row: Row<TradeInRequest> }) => {
-            const total = row.original.totalEstimatedPrice ?? 
+            const total = row.original.totalEstimatedPrice ??
                 row.original.items.reduce((sum, item) => sum + item.estimatedPrice, 0)
             if (total === 0) {
                 return <span className="text-gray-400 italic text-sm">Đang xem xét</span>
@@ -222,13 +222,13 @@ export default function ResellTab() {
     const [createStep, setCreateStep] = useState(1)
     const [globalFilter, setGlobalFilter] = useState("")
     const [sorting, setSorting] = useState<SortingState>([])
-    
+
     // Multi-select products
     const [selectedProducts, setSelectedProducts] = useState<EligibleProduct[]>([])
-    
+
     // Products with media for staff evaluation
     const [productsWithMedia, setProductsWithMedia] = useState<SelectedProductWithMedia[]>([])
-    
+
     // Terms agreement
     const [agreedTerms, setAgreedTerms] = useState(false)
 
@@ -242,7 +242,7 @@ export default function ResellTab() {
             .filter((r) => r.status === "completed")
             .reduce((sum, r) => r.items.reduce((s, item) => s + item.estimatedPrice, 0) + sum, 0),
     }), [])
-    
+
     // TanStack Table instance
     const table = useReactTable({
         data: mockTradeInRequests,
@@ -264,9 +264,9 @@ export default function ResellTab() {
     })
 
     // Memoized eligible products
-    const eligibleProducts = useMemo(() => 
+    const eligibleProducts = useMemo(() =>
         mockEligibleProducts.filter(p => p.canTradeIn),
-    [])
+        [])
 
     // Toggle single product selection
     const handleToggleProduct = useCallback((product: EligibleProduct) => {
@@ -302,9 +302,9 @@ export default function ResellTab() {
 
     // Update media for a specific product
     const handleUpdateProductMedia = useCallback((productId: string, media: MediaFile[], note: string) => {
-        setProductsWithMedia(prev => 
-            prev.map(p => 
-                p.product.id === productId 
+        setProductsWithMedia(prev =>
+            prev.map(p =>
+                p.product.id === productId
                     ? { ...p, media, note }
                     : p
             )
@@ -321,7 +321,7 @@ export default function ResellTab() {
                 }
             })
         })
-        
+
         setView("list")
         setCreateStep(1)
         setSelectedProducts([])
@@ -333,19 +333,19 @@ export default function ResellTab() {
     const handleSubmit = useCallback(() => {
         // Here you would send productsWithMedia to the server
         console.log("Submitting:", productsWithMedia)
-        
+
         // Show success toast
         toast.success("Gửi yêu cầu thành công!", {
             description: `Đã gửi ${productsWithMedia.length} sản phẩm để đánh giá. Chúng tôi sẽ phản hồi trong vòng 24 giờ.`,
             duration: 5000,
         })
-        
+
         resetForm()
     }, [productsWithMedia, resetForm])
 
     // Handle view change
     const handleCreateNew = useCallback(() => setView("create"), [])
-    
+
     // Pagination info
     const pageIndex = table.getState().pagination.pageIndex
     const pageSize = table.getState().pagination.pageSize
@@ -386,7 +386,7 @@ export default function ResellTab() {
                     >
                         {/* Benefits Banner */}
                         <BenefitsBanner />
-                        
+
                         {/* Stats Cards */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <StatCard
@@ -418,7 +418,7 @@ export default function ResellTab() {
                                 bgColor="bg-gradient-to-br from-purple-50 to-fuchsia-50"
                             />
                         </div>
-                        
+
                         {/* Trade-In Requests Table */}
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
@@ -462,7 +462,7 @@ export default function ResellTab() {
                                     </div>
                                 </div>
                             </div>
-                            
+
                             {/* Table Content */}
                             <div className="overflow-x-auto">
                                 <Table>
@@ -517,7 +517,7 @@ export default function ResellTab() {
                                     </TableBody>
                                 </Table>
                             </div>
-                            
+
                             {/* Pagination */}
                             {totalRows > 0 && (
                                 <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50/50">
