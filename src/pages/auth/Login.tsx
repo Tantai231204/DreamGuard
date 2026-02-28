@@ -67,13 +67,13 @@ export default function Login() {
             <div className="flex flex-col items-center mb-8">
                 <div className="mb-1">
                     <img
-                        src="/public/images/logo_no_name.svg"
+                        src="/images/logo_no_name.svg"
                         alt="DreamGuard Logo"
                         className="h-20 w-20 rounded-lg object-contain shadow-md"
                     />
                 </div>
 
-                <span className="text-xl font-bold text-[var(--color-auth-title)]">
+                <span className="text-xl font-bold text-[var(--color-primary-dark)]">
                     DreamGuard
                 </span>
             </div>
@@ -122,7 +122,7 @@ export default function Login() {
                     )}
                     {/* Forgot Password */}
                     <div className="text-right">
-                        <Link to="/forgot-password" className="text-sm text-[var(--color-auth-link)] hover:underline">
+                        <Link to="/forgot-password" className="text-sm text-[var(--color-blue)] hover:underline">
                             Forgot password?
                         </Link>
                     </div>
@@ -132,7 +132,7 @@ export default function Login() {
                 <Button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full h-11 bg-[var(--color-auth-btn-bg)] hover:bg-[var(--color-auth-btn-hover)] text-[var(--color-auth-btn-text)] font-semibold rounded-lg border-2 border-[var(--color-auth-btn-border)] shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98]"
+                    className="w-full h-11 bg-[var(--color-primary-light)] hover:bg-[var(--color-primary)] text-gray-900 hover:text-white font-semibold rounded-lg border-2 border-[var(--color-primary)] shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98]"
                 >
                     {isSubmitting ? "Logging in..." : "Log In"}
                 </Button>
@@ -142,7 +142,7 @@ export default function Login() {
                     type="button"
                     variant="outline"
                     onClick={handleGoogleLogin}
-                    className="w-full h-11 bg-[var(--color-auth-btn-outline-bg)] text-[var(--color-auth-btn-outline-text)] border-2 border-[var(--color-auth-btn-border)] rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-[var(--color-auth-btn-outline-hover-bg)] shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98]"
+                    className="w-full h-11 bg-white text-gray-700 border-2 border-[var(--color-primary)] rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-gray-50 shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98]"
                 >
                     <GoogleIcon />
                     Login with Google
@@ -152,7 +152,7 @@ export default function Login() {
             {/* Register Link */}
             <p className="text-center text-sm text-gray-600 mt-6">
                 Don't have an account yet?{" "}
-                <Link to="/register" className="text-[var(--color-auth-link-dark)] font-semibold hover:underline">
+                <Link to="/register" className="text-[var(--color-primary-dark)] font-semibold hover:underline">
                     Sign In
                 </Link>
             </p>

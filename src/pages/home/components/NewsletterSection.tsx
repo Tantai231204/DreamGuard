@@ -14,27 +14,27 @@ export default function NewsletterSection() {
                     {/* ================= LEFT ================= */}
                     <div className="flex flex-col w-full gap-4 animate-[fadeInLeft_0.8s_ease-out]">
                         <div className="text-center">
-                            <h2 className="text-base md:text-lg font-semibold leading-tight text-gray-900">
-                                Subscribe To Get The Latest News About Us
+                            <h2 className="text-base md:text-lg font-semibold leading-tight text-[var(--color-gray-900)]">
+                                Stay in the loop with us
                             </h2>
-                            <p className="mt-3 text-xs md:text-sm leading-relaxed text-gray-700">
-                                Sign Up For Our Newsletter & Knowing About <br />
-                                Offers We Never Spam Your Inbox, So Don't Worry.
+                            <p className="mt-3 text-xs md:text-sm leading-relaxed text-[var(--color-gray-700)]">
+                                Get our newsletter for deals & updates <br />
+                                We respect your inbox – no spam here!
                             </p>
                         </div>
 
                         {/* ===== Email Input ===== */}
                         <div className="relative w-full mt-2">
-                            <div className="flex items-center w-full gap-2 px-4 py-3 rounded-full bg-white/90 backdrop-blur-sm border-2 border-gray-800 transition-all duration-300 hover:border-[var(--color-primary)] focus-within:border-[var(--color-primary)] shadow-sm">
+                            <div className="flex items-center w-full gap-2 px-4 py-3 rounded-full bg-white/95 backdrop-blur-sm border-2 border-[var(--color-primary)] transition-all duration-300 hover:border-[var(--color-primary-hover)] focus-within:border-[var(--color-primary-dark)] shadow-md">
                                 <Mail
-                                    className="w-[18px] h-[18px] flex-shrink-0 text-gray-600"
+                                    className="w-[18px] h-[18px] flex-shrink-0 text-[var(--color-primary)]"
                                     strokeWidth={2.2}
                                 />
 
                                 <input
                                     type="email"
-                                    placeholder="Enter your email"
-                                    className="flex-1 bg-transparent outline-none border-none text-sm text-gray-700 placeholder:text-gray-500"
+                                    placeholder="Your email address"
+                                    className="flex-1 bg-transparent outline-none border-none text-sm text-[var(--color-gray-700)] placeholder:text-[var(--color-gray-400)]"
                                 />
                             </div>
                         </div>

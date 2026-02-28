@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { queryClient } from "../lib/queryClient";
 
-export type UserRole = 'user' | 'admin';
+export type UserRole = "user" | "admin";
 
 interface AuthState {
   token: string | null;
@@ -16,10 +16,10 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set, get) => ({
   token: null,
   role: null,
-  setToken: (token, role = 'user') => set({ token, role }),
+  setToken: (token, role = "user") => set({ token, role }),
   clearToken: () => set({ token: null, role: null }),
   isAuthenticated: () => Boolean(get().token),
-  isAdmin: () => get().role === 'admin',
+  isAdmin: () => get().role === "admin",
   logout: () => {
     set({ token: null, role: null });
     queryClient.clear();

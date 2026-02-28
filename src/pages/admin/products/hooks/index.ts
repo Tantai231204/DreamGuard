@@ -1,0 +1,1 @@
+export { useProductStats } from './useProductStats';

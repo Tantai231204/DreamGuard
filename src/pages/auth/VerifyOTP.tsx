@@ -86,19 +86,19 @@ export default function VerifyOTP() {
             <div className="flex flex-col items-center mb-8">
                 <div className="mb-1">
                     <img
-                        src="/public/images/logo_no_name.svg"
+                        src="/images/logo_no_name.svg"
                         alt="DreamGuard Logo"
                         className="h-20 w-20 rounded-lg object-contain shadow-md"
                     />
                 </div>
-                <span className="text-xl font-bold text-[var(--color-auth-title)]">
+                <span className="text-xl font-bold text-[var(--color-primary-dark)]">
                     DreamGuard
                 </span>
             </div>
 
             {/* Title */}
             <div className="mb-6">
-                <h2 className="text-lg font-semibold text-[#1C4D8D]">Check your email</h2>
+                <h2 className="text-lg font-semibold text-[var(--color-primary-dark)]">Check your email</h2>
                 <p className="text-sm text-gray-500 mt-1">
                     We have sent a reset link to <span className="font-medium">{email}</span>
                     <br />
@@ -119,7 +119,7 @@ export default function VerifyOTP() {
                             value={digit}
                             onChange={(e) => handleChange(index, e.target.value)}
                             onKeyDown={(e) => handleKeyDown(index, e)}
-                            className="w-12 h-12 text-center text-lg font-semibold border-2 border-[var(--color-auth-otp-border)] rounded-lg bg-gray-50/50 focus:outline-none focus:border-[var(--color-auth-otp-focus)] focus:ring-2 focus:ring-[var(--color-auth-otp-focus)]/30 transition-all"
+                            className="w-12 h-12 text-center text-lg font-semibold border-2 border-gray-300 rounded-lg bg-gray-50/50 focus:outline-none focus:border-[var(--color-cyan)] focus:ring-2 focus:ring-[var(--color-cyan)]/30 transition-all"
                         />
                     ))}
                 </div>
@@ -131,7 +131,7 @@ export default function VerifyOTP() {
                 <Button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full h-11 bg-[var(--color-auth-btn-bg)] hover:bg-[var(--color-auth-btn-hover)] text-[var(--color-auth-btn-text)] font-semibold rounded-lg border-2 border-[var(--color-auth-btn-border)] shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98]"
+                    className="w-full h-11 bg-[var(--color-primary-light)] hover:bg-[var(--color-primary)] text-gray-900 hover:text-white font-semibold rounded-lg border-2 border-[var(--color-primary)] shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98]"
                 >
                     {isSubmitting ? "Verifying..." : "Verify code"}
                 </Button>
@@ -143,7 +143,7 @@ export default function VerifyOTP() {
                 <button
                     type="button"
                     onClick={handleResendEmail}
-                    className="text-[var(--color-auth-link-dark)] font-semibold hover:underline"
+                    className="text-[var(--color-primary-dark)] font-semibold hover:underline"
                 >
                     Resend the email
                 </button>
