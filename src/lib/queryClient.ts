@@ -2,7 +2,7 @@
 import { QueryClient } from "@tanstack/react-query";
 
 import { ApiErrorCode } from "./constants";
-import { ApiError } from "./axios";
+import { ApiError } from "./api";
 
 export const queryClient = new QueryClient({
   defaultOptions: {

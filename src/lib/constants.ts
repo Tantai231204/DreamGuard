@@ -1,3 +1,5 @@
+// API Base URL
+export const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 // Route Constants
 export const AppRoute = {
   // Public Routes
