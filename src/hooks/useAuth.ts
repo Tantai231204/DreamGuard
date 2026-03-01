@@ -32,5 +32,8 @@ export const useLogout = () => {
     onSuccess: () => {
       clearAuth();
     },
+    onError: () => {
+      clearAuth();
+    },
   });
 };
