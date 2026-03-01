@@ -24,7 +24,8 @@ export class ApiError extends Error {
    Axios instance
 ====================== */
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "/api",
+  // baseURL: import.meta.env.VITE_API_URL || "/api",
+  baseURL: "/api",
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
@@ -71,7 +72,7 @@ api.interceptors.response.use(
 
       // Auto logout nếu 401
       if (code === ApiErrorCode.UNAUTHORIZED) {
-        useAuthStore.getState().clearToken();
+        useAuthStore.getState().clearAuth();
       }
 
       return Promise.reject(new ApiError(message, code, status));
@@ -80,12 +81,12 @@ api.interceptors.response.use(
     // Không có response (mất mạng / timeout)
     if (error.request) {
       return Promise.reject(
-        new ApiError("Network error", ApiErrorCode.NETWORK_ERROR)
+        new ApiError("Network error", ApiErrorCode.NETWORK_ERROR),
       );
     }
 
     return Promise.reject(new ApiError(error.message, ApiErrorCode.UNKNOWN));
-  }
+  },
 );
 
 export default api;

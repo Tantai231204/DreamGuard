@@ -1,28 +1,47 @@
 import { create } from "zustand";
-import { queryClient } from "../lib/queryClient";
-
-export type UserRole = 'user' | 'admin';
+import { persist } from "zustand/middleware";
 
 interface AuthState {
   token: string | null;
-  role: UserRole | null;
-  setToken: (token: string | null, role?: UserRole | null) => void;
-  clearToken: () => void;
-  isAuthenticated: () => boolean;
-  isAdmin: () => boolean;
-  logout: () => void;
+  refreshToken: string | null;
+  role: string | null;
+  isAuthenticated: boolean;
+
+  setAuth: (data: {
+    accessToken: string;
+    refreshToken: string;
+    roleName: string;
+  }) => void;
+
+  clearAuth: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set, get) => ({
-  token: null,
-  role: null,
-  setToken: (token, role = 'user') => set({ token, role }),
-  clearToken: () => set({ token: null, role: null }),
-  isAuthenticated: () => Boolean(get().token),
-  isAdmin: () => get().role === 'admin',
-  logout: () => {
-    set({ token: null, role: null });
-    queryClient.clear();
-    window.location.href = "/login";
-  },
-}));
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      token: null,
+      refreshToken: null,
+      role: null,
+      isAuthenticated: false,
+
+      setAuth: (data) =>
+        set({
+          token: data.accessToken,
+          refreshToken: data.refreshToken,
+          role: data.roleName,
+          isAuthenticated: true,
+        }),
+
+      clearAuth: () =>
+        set({
+          token: null,
+          refreshToken: null,
+          role: null,
+          isAuthenticated: false,
+        }),
+    }),
+    {
+      name: "auth-storage",
+    }
+  )
+);
