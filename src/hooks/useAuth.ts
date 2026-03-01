@@ -37,3 +37,21 @@ export const useLogout = () => {
     },
   });
 };
+
+export const useForgotPassword = () => {
+  return useMutation({
+    mutationFn: authService.forgotPassword,
+  });
+};
+
+export const useVerifyOtp = () => {
+  return useMutation({
+    mutationFn: authService.verifyOtp,
+  });
+};
+
+export const useResetPassword = () => {
+  return useMutation({
+    mutationFn: authService.resetPassword,
+  });
+};
