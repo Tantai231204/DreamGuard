@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
     useReactTable,
     getCoreRowModel,
@@ -18,9 +18,11 @@ import {
     AdminTablePagination,
     AdminBulkActions,
 } from '@/components/admin';
+import { LoadingSpinner } from '@/components/common';
 import CategoryActions from './components/CategoryActions';
+import CategoryDialog from './components/CategoryDialog';
 import { useCategoryColumns } from './components/useCategoryColumns';
-import { mockCategories } from './data';
+import { useCategories, useCreateCategory, useUpdateCategory } from '@/hooks/queries/useCategory';
 import type { Category } from './types';
 
 export default function CategoriesPage() {
@@ -29,19 +31,59 @@ export default function CategoriesPage() {
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
-    const columns = useCategoryColumns();
+    // Dialog state
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+
+    // Gọi API lấy danh sách categories qua TanStack Query
+    const { data: categories = [], isLoading, isError, error } = useCategories();
+
+    // Mutations
+    const createMutation = useCreateCategory();
+    const updateMutation = useUpdateCategory();
+
+    // Mở dialog tạo mới
+    const handleAdd = useCallback(() => {
+        setEditingCategory(null);
+        setDialogOpen(true);
+    }, []);
+
+    // Mở dialog chỉnh sửa
+    const handleEdit = useCallback((category: Category) => {
+        setEditingCategory(category);
+        setDialogOpen(true);
+    }, []);
+
+    // Submit form (create hoặc update)
+    const handleSubmit = useCallback(
+        (data: { name: string; slug: string; isActive: boolean }) => {
+            if (editingCategory) {
+                updateMutation.mutate(
+                    { id: editingCategory.cateId, data },
+                    { onSuccess: () => setDialogOpen(false) }
+                );
+            } else {
+                createMutation.mutate(data, {
+                    onSuccess: () => setDialogOpen(false),
+                });
+            }
+        },
+        [editingCategory, createMutation, updateMutation]
+    );
+
+    const columns = useCategoryColumns({ onEdit: handleEdit });
 
     // Stats
     const stats = useMemo(() => {
-        const total = mockCategories.length;
-        const active = mockCategories.filter((c) => c.status === 'active').length;
-        const inactive = mockCategories.filter((c) => c.status === 'inactive').length;
-        const rootCategories = mockCategories.filter((c) => c.parentId === null).length;
-        return { total, active, inactive, rootCategories };
-    }, []);
+        const total = categories.length;
+        const active = categories.filter((c) => c.isActive).length;
+        const inactive = categories.filter((c) => !c.isActive).length;
+        const withChildren = categories.filter((c) => c.childCategoryList.length > 0).length;
+        return { total, active, inactive, withChildren };
+    }, [categories]);
 
     const table = useReactTable({
-        data: mockCategories,
+        data: categories,
         columns,
         state: {
             sorting,
@@ -63,8 +105,7 @@ export default function CategoriesPage() {
             const item = row.original as Category;
             return (
                 item.name.toLowerCase().includes(search) ||
-                item.slug.toLowerCase().includes(search) ||
-                item.description.toLowerCase().includes(search)
+                item.slug.toLowerCase().includes(search)
             );
         },
         initialState: {
@@ -74,11 +115,48 @@ export default function CategoriesPage() {
         },
     });
 
+    // Loading state
+    if (isLoading) {
+        return (
+            <div className="flex flex-col h-full">
+                <AdminPageHeader
+                    title="Categories"
+                    description="Manage your product categories and subcategories"
+                    icon={FolderTree}
+                    stats={[]}
+                />
+                <div className="flex-1 flex items-center justify-center">
+                    <LoadingSpinner />
+                </div>
+            </div>
+        );
+    }
+
+    // Error state
+    if (isError) {
+        return (
+            <div className="flex flex-col h-full">
+                <AdminPageHeader
+                    title="Categories"
+                    description="Manage your product categories and subcategories"
+                    icon={FolderTree}
+                    stats={[]}
+                />
+                <div className="flex-1 flex items-center justify-center">
+                    <div className="text-center">
+                        <p className="text-red-500 font-semibold text-lg">Failed to load categories</p>
+                        <p className="text-gray-500 mt-2">{error?.message || 'An unexpected error occurred'}</p>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     const headerStats = [
         { label: 'Total', value: stats.total },
         { label: 'Active', value: stats.active },
         { label: 'Inactive', value: stats.inactive },
-        { label: 'Root', value: stats.rootCategories },
+        { label: 'With Subs', value: stats.withChildren },
     ];
 
     return (
@@ -109,7 +187,7 @@ export default function CategoriesPage() {
 
                         {/* Actions Toolbar */}
                         <CategoryActions
-                            onAdd={() => console.log('Add category')}
+                            onAdd={handleAdd}
                             onExport={() => console.log('Export')}
                             onImport={() => console.log('Import')}
                             onFilter={() => console.log('Filter')}
@@ -138,6 +216,15 @@ export default function CategoriesPage() {
                     </div>
                 </motion.div>
             </div>
+
+            {/* Create / Edit Dialog */}
+            <CategoryDialog
+                open={dialogOpen}
+                onOpenChange={setDialogOpen}
+                category={editingCategory}
+                onSubmit={handleSubmit}
+                isLoading={createMutation.isPending || updateMutation.isPending}
+            />
         </div>
     );
 }

@@ -13,11 +13,10 @@ import {
 import { MoreVertical, Pencil, Trash2, Eye, Copy } from 'lucide-react';
 import { SortableHeader } from '@/components/admin';
 import type { Category } from '../types';
-import { mockCategories } from '../data';
 
 const columnHelper = createColumnHelper<Category>();
 
-export function useCategoryColumns() {
+export function useCategoryColumns(options?: { onEdit?: (category: Category) => void }) {
   return useMemo(
     () => [
       columnHelper.display({
@@ -45,34 +44,17 @@ export function useCategoryColumns() {
         size: 40,
       }),
 
-      columnHelper.accessor('image', {
-        header: 'Image',
-        cell: (info) => (
-          <div className="h-12 w-12 overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
-            <img
-              src={info.getValue()}
-              alt=""
-              className="h-full w-full object-cover"
-            />
-          </div>
-        ),
-        size: 60,
-        enableSorting: false,
-      }),
-
       columnHelper.accessor('name', {
         header: ({ column }) => <SortableHeader column={column} label="Name" />,
         cell: (info) => {
           const category = info.row.original;
-          const parent = category.parentId
-            ? mockCategories.find((c) => c.id === category.parentId)
-            : null;
+          const hasChildren = category.childCategoryList.length > 0;
           return (
             <div>
               <p className="font-semibold text-gray-900">{info.getValue()}</p>
-              {parent && (
+              {hasChildren && (
                 <p className="text-xs text-gray-500 mt-0.5">
-                  in {parent.name}
+                  {category.childCategoryList.length} subcategories
                 </p>
               )}
             </div>
@@ -89,50 +71,34 @@ export function useCategoryColumns() {
         ),
       }),
 
-      columnHelper.accessor('productCount', {
-        header: ({ column }) => <SortableHeader column={column} label="Products" />,
-        cell: (info) => (
-          <span className="font-bold text-gray-900">{info.getValue()}</span>
-        ),
+      columnHelper.accessor('childCategoryList', {
+        header: 'Subcategories',
+        cell: (info) => {
+          const children = info.getValue();
+          return (
+            <span className="font-bold text-gray-900">{children.length}</span>
+          );
+        },
+        enableSorting: false,
       }),
 
-      columnHelper.accessor('status', {
+      columnHelper.accessor('isActive', {
         header: 'Status',
         cell: (info) => {
-          const status = info.getValue();
+          const isActive = info.getValue();
           return (
             <Badge
               variant="outline"
               className={`font-semibold ${
-                status === 'active'
+                isActive
                   ? 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border-green-300 shadow-sm'
                   : 'bg-gradient-to-r from-gray-50 to-slate-50 text-gray-600 border-gray-300 shadow-sm'
               }`}
             >
-              {status === 'active' ? 'Active' : 'Inactive'}
+              {isActive ? 'Active' : 'Inactive'}
             </Badge>
           );
         },
-      }),
-
-      columnHelper.accessor('sortOrder', {
-        header: ({ column }) => <SortableHeader column={column} label="Order" />,
-        cell: (info) => (
-          <span className="text-gray-600 font-medium">#{info.getValue()}</span>
-        ),
-      }),
-
-      columnHelper.accessor('updatedAt', {
-        header: ({ column }) => <SortableHeader column={column} label="Updated" />,
-        cell: (info) => (
-          <span className="text-sm text-gray-500">
-            {new Date(info.getValue()).toLocaleDateString('en-US', {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric',
-            })}
-          </span>
-        ),
       }),
 
       columnHelper.display({
@@ -154,21 +120,21 @@ export function useCategoryColumns() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-52 shadow-xl border-2 rounded-xl">
                   <DropdownMenuItem
-                    onClick={() => console.log('View', category.id)}
+                    onClick={() => console.log('View', category.cateId)}
                     className="cursor-pointer py-2.5 font-medium"
                   >
                     <Eye className="h-4 w-4 mr-3 text-blue-600" />
                     View Details
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => console.log('Edit', category.id)}
+                    onClick={() => options?.onEdit?.(category)}
                     className="cursor-pointer py-2.5 font-medium"
                   >
                     <Pencil className="h-4 w-4 mr-3 text-gray-700" />
                     Edit Category
                   </DropdownMenuItem>
                   <DropdownMenuItem
-                    onClick={() => console.log('Duplicate', category.id)}
+                    onClick={() => console.log('Duplicate', category.cateId)}
                     className="cursor-pointer py-2.5 font-medium"
                   >
                     <Copy className="h-4 w-4 mr-3 text-gray-700" />
@@ -176,7 +142,7 @@ export function useCategoryColumns() {
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="my-1" />
                   <DropdownMenuItem
-                    onClick={() => console.log('Delete', category.id)}
+                    onClick={() => console.log('Delete', category.cateId)}
                     className="cursor-pointer py-2.5 text-red-600 font-semibold focus:bg-red-50 focus:text-red-700"
                   >
                     <Trash2 className="h-4 w-4 mr-3" />
@@ -190,6 +156,6 @@ export function useCategoryColumns() {
         size: 50,
       }),
     ],
-    []
+    [options]
   );
 }

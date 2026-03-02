@@ -1,15 +1,4 @@
-export type CategoryStatus = 'active' | 'inactive';
+import type { CategoryResponse } from '@/api';
 
-export interface Category {
-  id: string;
-  name: string;
-  slug: string;
-  description: string;
-  image: string;
-  parentId: string | null;
-  status: CategoryStatus;
-  productCount: number;
-  sortOrder: number;
-  createdAt: string;
-  updatedAt: string;
-}
+// Re-export CategoryResponse as Category cho tiện sử dụng trong admin
+export type Category = CategoryResponse;

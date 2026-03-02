@@ -1,6 +1,22 @@
 // src/api/index.ts
-// Central place to export all API modules
+// Central export cho tất cả API services và types
 
-export { default as apiService } from './apiService';
-export { default as publicApiService } from './publicApiService';
-export * from './userService';
+// Services
+export { authService, userService, categoryService } from "./services";
+
+// Types
+export type {
+  ApiResponse,
+  PaginatedResponse,
+  Token,
+  LoginRequest,
+  RegisterRequest,
+  ForgotPasswordRequest,
+  VerifyTokenRequest,
+  ResendTokenRequest,
+  UserProfile,
+  UpdateUserProfileRequest,
+  CategoryResponse,
+  CreateCategoryRequest,
+  UpdateCategoryRequest,
+} from "./types";
