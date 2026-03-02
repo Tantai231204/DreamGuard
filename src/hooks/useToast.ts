@@ -1,4 +1,4 @@
-import { toast } from 'sonner';
+import { toast } from "sonner";
 
 export const useToast = () => {
   const success = (message: string, description?: string) => {
@@ -21,13 +21,13 @@ export const useToast = () => {
     return toast.loading(message);
   };
 
-  const promise = <T,>(
+  const promise = <T>(
     promise: Promise<T>,
     messages: {
       loading: string;
       success: string | ((data: T) => string);
-      error: string | ((error: any) => string);
-    }
+      error: string | ((error: Error) => string);
+    },
   ) => {
     return toast.promise(promise, messages);
   };
