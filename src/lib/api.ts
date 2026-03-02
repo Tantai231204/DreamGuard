@@ -1,5 +1,6 @@
 // src/lib/api.ts
 import axios from "axios";
+import { toast } from "sonner";
 import { ApiErrorCode } from "./constants";
 import { useAuthStore } from "../store/authStore";
 
@@ -35,7 +36,13 @@ export const api = axios.create({
    Request interceptor
 ====================== */
 api.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().token;
+  const storeToken = useAuthStore.getState().token;
+
+  // 🔥 token test tạm thời
+  const devToken =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiQWRtaW4iLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjIxZmE5NjI4LWJlN2EtNDFlZi1iZWMwLTliZGQ0MjVlODA0NyIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkFkbWluIiwiZXhwIjoxNzcyNDQ2NzY5LCJpc3MiOiJodHRwczovL2xvY2FsaG9zdDo3MTA3IiwiYXVkIjoiaHR0cHM6Ly9sb2NhbGhvc3Q6NzEwNyJ9.JnpBC3GgEL_Wn4vTlRVZ8e_RWItrclf2udbydxDzzDk";
+
+  const token = storeToken || devToken;
 
   if (token) {
     config.headers = config.headers ?? {};
@@ -46,20 +53,119 @@ api.interceptors.request.use((config) => {
 });
 
 /* ======================
+   Helpers
+====================== */
+function extractMessage(data: unknown, fallback: string): string {
+  if (!data || typeof data !== "object") return fallback;
+  const d = data as Record<string, unknown>;
+  const raw = d.message ?? d.error ?? fallback;
+  if (Array.isArray(raw)) return raw.join(". ");
+  if (typeof raw === "string") return raw;
+  return fallback;
+}
+
+const ERROR_TITLES: Partial<Record<ApiErrorCodeType, string>> = {
+  [ApiErrorCode.VALIDATION]: "Validation Error",
+  [ApiErrorCode.UNAUTHORIZED]: "Unauthorized",
+  [ApiErrorCode.FORBIDDEN]: "Access Denied",
+  [ApiErrorCode.NOT_FOUND]: "Not Found",
+  [ApiErrorCode.SERVER_ERROR]: "Server Error",
+  [ApiErrorCode.NETWORK_ERROR]: "Network Error",
+  [ApiErrorCode.UNKNOWN]: "Error",
+};
+
+/* ======================
+   Refresh-token state
+====================== */
+let isRefreshing = false;
+let failedQueue: {
+  resolve: (token: string) => void;
+  reject: (error: unknown) => void;
+}[] = [];
+
+function processQueue(error: unknown, token: string | null = null) {
+  failedQueue.forEach((p) => {
+    if (token) p.resolve(token);
+    else p.reject(error);
+  });
+  failedQueue = [];
+}
+
+/* ======================
    Response interceptor
 ====================== */
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    // Có response từ server
+  async (error) => {
+    const originalRequest = error.config;
+
+    // ── 401 → attempt refresh token ──────────────────
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url?.includes("/auth/refresh-token") &&
+      !originalRequest.url?.includes("/auth")
+    ) {
+      const storedRefreshToken = useAuthStore.getState().refreshToken;
+
+      // No refresh token available → logout
+      if (!storedRefreshToken) {
+        useAuthStore.getState().logout();
+        return Promise.reject(
+          new ApiError("Session expired", ApiErrorCode.UNAUTHORIZED, 401),
+        );
+      }
+
+      // If already refreshing, queue this request
+      if (isRefreshing) {
+        return new Promise<string>((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then((newToken) => {
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          return api(originalRequest);
+        });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        const res = await api.post("/auth/refresh-token", {
+          refreshToken: storedRefreshToken,
+        });
+
+        const { accessToken, refreshToken: newRefreshToken } =
+          res.data?.data ?? res.data;
+
+        useAuthStore
+          .getState()
+          .setTokens(
+            accessToken,
+            newRefreshToken,
+            useAuthStore.getState().role,
+          );
+
+        // Replay queued requests with the fresh token
+        processQueue(null, accessToken);
+
+        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        processQueue(refreshError, null);
+        useAuthStore.getState().logout();
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
+      }
+    }
+
+    // ── Normal error handling ────────────────────────
     if (error.response) {
       const status: number = error.response.status;
-
-      const message =
-        error.response.data?.message ||
-        error.response.data?.error ||
-        error.message ||
-        "Đã xảy ra lỗi";
+      const message = extractMessage(
+        error.response.data,
+        error.message || "Đã xảy ra lỗi",
+      );
 
       let code: ApiErrorCodeType = ApiErrorCode.UNKNOWN;
 
@@ -69,9 +175,9 @@ api.interceptors.response.use(
       else if (status === 404) code = ApiErrorCode.NOT_FOUND;
       else if (status >= 500) code = ApiErrorCode.SERVER_ERROR;
 
-      // Auto logout nếu 401
-      if (code === ApiErrorCode.UNAUTHORIZED) {
-        useAuthStore.getState().clearToken();
+      // Global toast (skip if caller opted out)
+      if (!originalRequest?._suppressToast) {
+        toast.error(ERROR_TITLES[code] || "Error", { description: message });
       }
 
       return Promise.reject(new ApiError(message, code, status));
@@ -79,13 +185,14 @@ api.interceptors.response.use(
 
     // Không có response (mất mạng / timeout)
     if (error.request) {
-      return Promise.reject(
-        new ApiError("Network error", ApiErrorCode.NETWORK_ERROR)
-      );
+      const msg = "Unable to connect. Please check your network.";
+      toast.error("Network Error", { description: msg });
+      return Promise.reject(new ApiError(msg, ApiErrorCode.NETWORK_ERROR));
     }
 
+    toast.error("Error", { description: error.message });
     return Promise.reject(new ApiError(error.message, ApiErrorCode.UNKNOWN));
-  }
+  },
 );
 
 export default api;

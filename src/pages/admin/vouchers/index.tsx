@@ -11,7 +11,7 @@ import {
     type RowSelectionState,
 } from '@tanstack/react-table';
 import { motion } from 'framer-motion';
-import { FolderTree } from 'lucide-react';
+import { Ticket } from 'lucide-react';
 import AdminPageHeader from '@/components/layout/AdminPageHeader';
 import {
     AdminTableSearch,
@@ -20,13 +20,14 @@ import {
     AdminBulkActions,
 } from '@/components/admin';
 import { LoadingSpinner } from '@/components/common';
-import CategoryActions from './components/CategoryActions';
-import CategoryDialog from './components/CategoryDialog';
-import { useCategoryColumns } from './components/useCategoryColumns';
-import { useCategories, useCreateCategory, useUpdateCategory } from '@/hooks/queries/useCategory';
-import type { Category } from './types';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import VoucherActions from './components/VoucherActions';
+import VoucherDialog from './components/VoucherDialog';
+import { useVoucherColumns } from './components/useVoucherColumns';
+import { useVouchers, useCreateVoucher, useUpdateVoucher, useDeleteVoucher } from '@/hooks/queries/useVoucher';
+import type { Voucher } from './types';
 
-export default function CategoriesPage() {
+export default function VouchersPage() {
     const toast = useToast();
     const [globalFilter, setGlobalFilter] = useState('');
     const [sorting, setSorting] = useState<SortingState>([]);
@@ -35,65 +36,111 @@ export default function CategoriesPage() {
 
     // Dialog state
     const [dialogOpen, setDialogOpen] = useState(false);
-    const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+    const [editingVoucher, setEditingVoucher] = useState<Voucher | null>(null);
 
-    // Gọi API lấy danh sách categories qua TanStack Query
-    const { data: categories = [], isLoading, isError, error } = useCategories();
+    // Delete confirmation state
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [voucherToDelete, setVoucherToDelete] = useState<string | null>(null);
+
+    // Gọi API lấy danh sách vouchers qua TanStack Query (trang 1)
+    const { data: vouchersData, isLoading, isError, error } = useVouchers(1);
 
     // Mutations
-    const createMutation = useCreateCategory();
-    const updateMutation = useUpdateCategory();
+    const createMutation = useCreateVoucher();
+    const updateMutation = useUpdateVoucher();
+    const deleteMutation = useDeleteVoucher();
+
+    const vouchers = useMemo(() => vouchersData?.items ?? [], [vouchersData?.items]);
 
     // Mở dialog tạo mới
     const handleAdd = useCallback(() => {
-        setEditingCategory(null);
+        setEditingVoucher(null);
         setDialogOpen(true);
     }, []);
 
     // Mở dialog chỉnh sửa
-    const handleEdit = useCallback((category: Category) => {
-        setEditingCategory(category);
+    const handleEdit = useCallback((voucher: Voucher) => {
+        setEditingVoucher(voucher);
         setDialogOpen(true);
     }, []);
 
+    // Xóa voucher
+    const handleDelete = useCallback(
+        (voucherId: string) => {
+            setVoucherToDelete(voucherId);
+            setDeleteConfirmOpen(true);
+        },
+        []
+    );
+
+    const confirmDelete = useCallback(() => {
+        if (voucherToDelete) {
+            deleteMutation.mutate(voucherToDelete, {
+                onSuccess: () => {
+                    toast.success('Voucher deleted', 'The voucher has been successfully deleted.');
+                    setDeleteConfirmOpen(false);
+                },
+            });
+            setVoucherToDelete(null);
+        }
+    }, [voucherToDelete, deleteMutation, toast]);
+
     // Submit form (create hoặc update)
     const handleSubmit = useCallback(
-        (data: { name: string; slug: string; isActive: boolean }) => {
-            if (editingCategory) {
+        (data: {
+            code: string;
+            name: string;
+            description: string;
+            discountType: 'percent' | 'fixed';
+            discountValue: number;
+            minDiscountAmount: number;
+            maxDiscountAmount: number;
+            startDate: string;
+            endDate: string;
+            isActive: boolean;
+        }) => {
+            // Convert dates to ISO datetime format for API
+            const formattedData = {
+                ...data,
+                startDate: `${data.startDate}T00:00:00Z`,
+                endDate: `${data.endDate}T23:59:59Z`,
+            };
+
+            if (editingVoucher) {
                 updateMutation.mutate(
-                    { id: editingCategory.cateId, data },
+                    { id: editingVoucher.voucherId, data: formattedData },
                     {
                         onSuccess: () => {
                             setDialogOpen(false);
-                            toast.success('Category updated', 'The category has been successfully updated.');
+                            toast.success('Voucher updated', 'The voucher has been successfully updated.');
                         },
                     }
                 );
             } else {
-                createMutation.mutate(data, {
+                createMutation.mutate(formattedData, {
                     onSuccess: () => {
                         setDialogOpen(false);
-                        toast.success('Category created', 'The new category has been successfully created.');
+                        toast.success('Voucher created', 'The new voucher has been successfully created.');
                     },
                 });
             }
         },
-        [editingCategory, createMutation, updateMutation, toast]
+        [editingVoucher, createMutation, updateMutation, toast]
     );
 
-    const columns = useCategoryColumns({ onEdit: handleEdit });
+    const columns = useVoucherColumns({ onEdit: handleEdit, onDelete: handleDelete });
 
     // Stats
     const stats = useMemo(() => {
-        const total = categories.length;
-        const active = categories.filter((c) => c.isActive).length;
-        const inactive = categories.filter((c) => !c.isActive).length;
-        const withChildren = categories.filter((c) => c.childCategoryList.length > 0).length;
-        return { total, active, inactive, withChildren };
-    }, [categories]);
+        const total = vouchersData?.totalCount ?? 0;
+        const active = vouchers.filter((v) => v.isActive).length;
+        const inactive = vouchers.filter((v) => !v.isActive).length;
+        const expired = vouchers.filter((v) => new Date(v.endDate) < new Date()).length;
+        return { total, active, inactive, expired };
+    }, [vouchers, vouchersData]);
 
     const table = useReactTable({
-        data: categories,
+        data: vouchers,
         columns,
         state: {
             sorting,
@@ -112,10 +159,11 @@ export default function CategoriesPage() {
         getPaginationRowModel: getPaginationRowModel(),
         globalFilterFn: (row, _columnId, filterValue) => {
             const search = filterValue.toLowerCase();
-            const item = row.original as Category;
+            const item = row.original as Voucher;
             return (
+                item.code.toLowerCase().includes(search) ||
                 item.name.toLowerCase().includes(search) ||
-                item.slug.toLowerCase().includes(search)
+                item.description.toLowerCase().includes(search)
             );
         },
         initialState: {
@@ -130,9 +178,9 @@ export default function CategoriesPage() {
         return (
             <div className="flex flex-col h-full">
                 <AdminPageHeader
-                    title="Categories"
-                    description="Manage your product categories and subcategories"
-                    icon={FolderTree}
+                    title="Vouchers"
+                    description="Manage discount vouchers and promotional codes"
+                    icon={Ticket}
                     stats={[]}
                 />
                 <div className="flex-1 flex items-center justify-center">
@@ -147,14 +195,14 @@ export default function CategoriesPage() {
         return (
             <div className="flex flex-col h-full">
                 <AdminPageHeader
-                    title="Categories"
-                    description="Manage your product categories and subcategories"
-                    icon={FolderTree}
+                    title="Vouchers"
+                    description="Manage discount vouchers and promotional codes"
+                    icon={Ticket}
                     stats={[]}
                 />
                 <div className="flex-1 flex items-center justify-center">
                     <div className="text-center">
-                        <p className="text-red-500 font-semibold text-lg">Failed to load categories</p>
+                        <p className="text-red-500 font-semibold text-lg">Failed to load vouchers</p>
                         <p className="text-gray-500 mt-2">{error?.message || 'An unexpected error occurred'}</p>
                     </div>
                 </div>
@@ -166,19 +214,19 @@ export default function CategoriesPage() {
         { label: 'Total', value: stats.total },
         { label: 'Active', value: stats.active },
         { label: 'Inactive', value: stats.inactive },
-        { label: 'With Subs', value: stats.withChildren },
+        { label: 'Expired', value: stats.expired },
     ];
 
     return (
         <div className="flex flex-col h-full">
             <AdminPageHeader
-                title="Categories"
-                description="Manage your product categories and subcategories"
-                icon={FolderTree}
+                title="Vouchers"
+                description="Manage discount vouchers and promotional codes"
+                icon={Ticket}
                 stats={headerStats}
             />
 
-            <div className="flex-1 overflow-hidden flex flex-col bg-gradient-to-br from-gray-50/50 via-white to-blue-50/30">
+            <div className="flex-1 overflow-hidden flex flex-col bg-gradient-to-br from-gray-50/50 via-white to-purple-50/30">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -188,15 +236,15 @@ export default function CategoriesPage() {
                         {/* Bulk Actions */}
                         <AdminBulkActions
                             table={table}
-                            itemLabel="category"
-                            accentColor="blue"
+                            itemLabel="voucher"
+                            accentColor="purple"
                             onEdit={() => console.log('Edit selected')}
                             onDuplicate={() => console.log('Duplicate selected')}
                             onDelete={() => console.log('Delete selected')}
                         />
 
                         {/* Actions Toolbar */}
-                        <CategoryActions
+                        <VoucherActions
                             onAdd={handleAdd}
                             onExport={() => console.log('Export')}
                             onImport={() => console.log('Import')}
@@ -208,32 +256,45 @@ export default function CategoriesPage() {
                             table={table}
                             value={globalFilter}
                             onChange={setGlobalFilter}
-                            placeholder="Search categories by name, slug, or description..."
+                            placeholder="Search vouchers by code, name, or description..."
                             resultCount={table.getFilteredRowModel().rows.length}
-                            resultLabel="categories"
+                            resultLabel="vouchers"
                         />
 
                         {/* Table */}
                         <div className="flex-1 overflow-auto">
                             <AdminTableContent
                                 table={table}
-                                emptyMessage="No categories found"
+                                emptyMessage="No vouchers found"
                             />
                         </div>
 
                         {/* Pagination */}
-                        <AdminTablePagination table={table} itemLabel="categories" />
+                        <AdminTablePagination table={table} itemLabel="vouchers" />
                     </div>
                 </motion.div>
             </div>
 
             {/* Create / Edit Dialog */}
-            <CategoryDialog
+            <VoucherDialog
                 open={dialogOpen}
                 onOpenChange={setDialogOpen}
-                category={editingCategory}
+                voucher={editingVoucher}
                 onSubmit={handleSubmit}
                 isLoading={createMutation.isPending || updateMutation.isPending}
+            />
+
+            {/* Delete Confirmation Dialog */}
+            <ConfirmDialog
+                open={deleteConfirmOpen}
+                onOpenChange={setDeleteConfirmOpen}
+                title="Delete Voucher?"
+                description="Are you sure you want to delete this voucher? This action cannot be undone and customers will no longer be able to use this voucher code."
+                confirmText="Delete Voucher"
+                cancelText="Keep Voucher"
+                onConfirm={confirmDelete}
+                variant="danger"
+                isLoading={deleteMutation.isPending}
             />
         </div>
     );

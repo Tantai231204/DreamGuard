@@ -1,5 +1,6 @@
 export { useProductColumns } from './useProductColumns';
-export { useComboColumns } from './useComboColumns';
-export { default as ProductTabs } from './ProductTabs';
 export { default as ProductActions } from './ProductActions';
-export { default as ComboItemsTable } from './ComboItemsTable';
+export { default as ProductTableContent } from './ProductTableContent';
+export { default as ProductDialog } from './ProductDialog';
+export { default as DeleteProductDialog } from './DeleteProductDialog';
+export { default as VariantTable } from './VariantTable';

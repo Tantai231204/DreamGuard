@@ -8,10 +8,10 @@ import {
   Edit,
   Trash2,
   Eye,
-  Copy,
   Package,
   ChevronRight,
   ChevronDown,
+  Star,
   Layers,
 } from 'lucide-react';
 import { SortableHeader } from '@/components/admin';
@@ -23,22 +23,22 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { Product } from '../types';
+import { AGE_GROUPS } from '../types';
 
 const columnHelper = createColumnHelper<Product>();
 
-const statusStyles = {
-  active: 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border-green-300 shadow-sm',
-  inactive: 'bg-gradient-to-r from-gray-50 to-slate-50 text-gray-600 border-gray-300 shadow-sm',
-  out_of_stock: 'bg-gradient-to-r from-red-50 to-rose-50 text-red-700 border-red-300 shadow-sm',
+const statusStyles: Record<string, string> = {
+  Active: 'bg-green-50 text-green-700 border-green-300',
+  Inactive: 'bg-gray-50 text-gray-600 border-gray-300',
+  Draft: 'bg-yellow-50 text-yellow-700 border-yellow-300',
 };
 
-const statusLabels = {
-  active: 'Active',
-  inactive: 'Inactive',
-  out_of_stock: 'Out of Stock',
-};
+interface UseProductColumnsProps {
+  onEdit: (product: Product) => void;
+  onDelete: (product: Product) => void;
+}
 
-export function useProductColumns() {
+export function useProductColumns({ onEdit, onDelete }: UseProductColumnsProps) {
   const columns = useMemo(
     () => [
       columnHelper.display({
@@ -68,19 +68,23 @@ export function useProductColumns() {
       columnHelper.display({
         id: 'expand',
         header: () => null,
-        cell: ({ row }) => (
-          <button
-            onClick={() => row.toggleExpanded()}
-            className="p-1 rounded-md hover:bg-gray-100 transition-colors"
-            aria-label="Toggle variants"
-          >
-            {row.getIsExpanded() ? (
-              <ChevronDown className="h-4 w-4 text-[var(--color-primary)]" />
-            ) : (
-              <ChevronRight className="h-4 w-4 text-gray-400" />
-            )}
-          </button>
-        ),
+        cell: ({ row }) => {
+          const hasVariants = (row.original.variants?.length ?? 0) > 0;
+          if (!hasVariants) return null;
+          return (
+            <button
+              onClick={() => row.toggleExpanded()}
+              className="p-1 rounded-md hover:bg-gray-100 transition-colors"
+              aria-label="Toggle variants"
+            >
+              {row.getIsExpanded() ? (
+                <ChevronDown className="h-4 w-4 text-[var(--color-primary)]" />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-gray-400" />
+              )}
+            </button>
+          );
+        },
         size: 36,
       }),
       columnHelper.accessor('name', {
@@ -91,22 +95,14 @@ export function useProductColumns() {
           return (
             <div className="flex items-center gap-3">
               <div className="h-11 w-11 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0 border border-gray-200">
-                {product.images[0] ? (
-                  <img
-                    src={product.images[0]}
-                    alt={product.name}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <Package className="h-5 w-5 text-gray-400" />
-                )}
+                <Package className="h-5 w-5 text-gray-400" />
               </div>
               <div className="min-w-0">
-                <div className="font-semibold text-gray-900 truncate">
+                <div className="font-semibold text-gray-900 truncate max-w-[220px]">
                   {info.getValue()}
                 </div>
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="text-xs text-gray-500">{product.category}</span>
+                  <span className="text-xs text-gray-500">{product.categoryName || '—'}</span>
                   <span className="text-gray-300">•</span>
                   <span className="text-xs text-[var(--color-primary)] font-medium">{product.material}</span>
                 </div>
@@ -115,141 +111,81 @@ export function useProductColumns() {
           );
         },
       }),
-      columnHelper.accessor('sku', {
+      columnHelper.accessor('slug', {
         enableSorting: true,
-        header: ({ column }) => <SortableHeader column={column} label="SKU" />,
+        header: ({ column }) => <SortableHeader column={column} label="Slug" />,
         cell: (info) => (
           <span className="font-mono text-xs font-semibold text-gray-600 bg-gray-100 px-2 py-1 rounded-md">
             {info.getValue()}
           </span>
         ),
       }),
-      columnHelper.accessor('variants', {
+      columnHelper.accessor('variantCount', {
         id: 'variants_info',
         header: 'Variants',
         cell: (info) => {
-          const variants = info.getValue();
-          const colors = [...new Set(variants.map(v => v.color))];
-          const sizes = [...new Set(variants.map(v => v.size))];
+          const count = info.getValue() ?? 0;
+          if (count === 0) {
+            return <span className="text-xs text-gray-400">No variants</span>;
+          }
           return (
-            <div className="space-y-1">
-              <div className="flex items-center gap-1.5">
-                <Layers className="h-3.5 w-3.5 text-gray-400" />
-                <span className="text-sm font-bold text-gray-900">{variants.length}</span>
-                <span className="text-xs text-gray-500">variants</span>
-              </div>
-              <div className="flex items-center gap-1">
-                {colors.slice(0, 4).map((color, i) => {
-                  const hex = variants.find(v => v.color === color)?.colorHex || '#ccc';
-                  return (
-                    <div
-                      key={i}
-                      className="h-4 w-4 rounded-full border-2 border-white shadow-sm"
-                      style={{ backgroundColor: hex }}
-                      title={color}
-                    />
-                  );
-                })}
-                {colors.length > 4 && (
-                  <span className="text-xs text-gray-400 ml-0.5">+{colors.length - 4}</span>
-                )}
-                <span className="text-gray-300 mx-1">|</span>
-                <span className="text-xs text-gray-500">{sizes.length} sizes</span>
-              </div>
+            <div className="flex items-center gap-1.5">
+              <Layers className="h-3.5 w-3.5 text-gray-400" />
+              <span className="text-sm font-bold text-gray-900">{count}</span>
+              <span className="text-xs text-gray-500">{count === 1 ? 'variant' : 'variants'}</span>
             </div>
           );
         },
       }),
-      columnHelper.accessor('basePrice', {
-        enableSorting: true,
-        header: ({ column }) => <SortableHeader column={column} label="Price Range" />,
+      columnHelper.accessor('ageGroup', {
+        header: 'Age Group',
         cell: (info) => {
-          const product = info.row.original;
-          const prices = product.variants.map(v => v.salePrice || v.price);
-          const minPrice = Math.min(...prices);
-          const maxPrice = Math.max(...prices);
-          const hasDiscount = product.baseSalePrice || product.variants.some(v => v.salePrice);
-
+          const val = info.getValue();
+          if (val === null || val === undefined) return <span className="text-xs text-gray-400">—</span>;
           return (
-            <div className="text-right space-y-0.5">
-              <div className="text-sm font-bold text-gray-900">
-                {minPrice === maxPrice
-                  ? `${minPrice.toLocaleString('vi-VN')}đ`
-                  : `${minPrice.toLocaleString('vi-VN')} - ${maxPrice.toLocaleString('vi-VN')}đ`}
-              </div>
-              {hasDiscount && (
-                <div className="text-[10px] text-red-500 font-semibold">
-                  Sale active
-                </div>
-              )}
-            </div>
+            <span className="text-xs font-medium text-gray-700 bg-blue-50 px-2 py-1 rounded-md">
+              {AGE_GROUPS[val] || `Group ${val}`}
+            </span>
           );
         },
       }),
-      columnHelper.accessor('totalStock', {
+      columnHelper.accessor('averageRating', {
         enableSorting: true,
-        header: ({ column }) => <SortableHeader column={column} label="Stock" />,
+        header: ({ column }) => <SortableHeader column={column} label="Rating" />,
         cell: (info) => {
-          const product = info.row.original;
-          const totalStock = info.getValue();
-          const outOfStockVariants = product.variants.filter(v => v.status === 'out_of_stock').length;
-          const lowStockVariants = product.variants.filter(v => v.status === 'low_stock').length;
-
+          const rating = info.getValue();
           return (
-            <div className="text-right space-y-0.5">
-              <span
-                className={`text-lg font-black px-2 py-0.5 rounded ${
-                  totalStock === 0
-                    ? 'text-red-600 bg-red-50'
-                    : lowStockVariants > 0
-                    ? 'text-orange-600 bg-orange-50'
-                    : 'text-green-600 bg-green-50'
-                }`}
-              >
-                {totalStock}
-              </span>
-              {(outOfStockVariants > 0 || lowStockVariants > 0) && totalStock > 0 && (
-                <div className="flex items-center justify-end gap-1.5 mt-1">
-                  {outOfStockVariants > 0 && (
-                    <span className="text-[10px] font-semibold text-red-500 bg-red-50 px-1.5 py-0.5 rounded">
-                      {outOfStockVariants} OOS
-                    </span>
-                  )}
-                  {lowStockVariants > 0 && (
-                    <span className="text-[10px] font-semibold text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded">
-                      {lowStockVariants} low
-                    </span>
-                  )}
-                </div>
-              )}
+            <div className="flex items-center gap-1">
+              <Star className="h-3.5 w-3.5 text-yellow-400 fill-yellow-400" />
+              <span className="text-sm font-bold text-gray-900">{rating.toFixed(1)}</span>
             </div>
           );
         },
-      }),
-      columnHelper.accessor('sales', {
-        enableSorting: true,
-        header: ({ column }) => <SortableHeader column={column} label="Sales" />,
-        cell: (info) => (
-          <div className="text-right text-base font-bold text-gray-900">
-            {info.getValue()}
-          </div>
-        ),
       }),
       columnHelper.accessor('status', {
         header: 'Status',
         cell: (info) => {
           const status = info.getValue();
           return (
-            <Badge variant="outline" className={`font-semibold ${statusStyles[status]}`}>
-              {statusLabels[status]}
+            <Badge variant="outline" className={`font-semibold ${statusStyles[status] || ''}`}>
+              {status}
             </Badge>
           );
         },
       }),
+      columnHelper.accessor('createdAt', {
+        enableSorting: true,
+        header: ({ column }) => <SortableHeader column={column} label="Created" />,
+        cell: (info) => (
+          <span className="text-xs text-gray-500">
+            {new Date(info.getValue()).toLocaleDateString('vi-VN')}
+          </span>
+        ),
+      }),
       columnHelper.display({
         id: 'actions',
         header: () => <div className="text-right">Actions</div>,
-        cell: () => (
+        cell: ({ row }) => (
           <div className="flex justify-end">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -266,16 +202,18 @@ export function useProductColumns() {
                   <Eye className="h-4 w-4 mr-3 text-blue-600" />
                   View Details
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer py-2.5 font-medium">
+                <DropdownMenuItem
+                  className="cursor-pointer py-2.5 font-medium"
+                  onClick={() => onEdit(row.original)}
+                >
                   <Edit className="h-4 w-4 mr-3 text-gray-700" />
                   Edit Product
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer py-2.5 font-medium">
-                  <Copy className="h-4 w-4 mr-3 text-gray-700" />
-                  Duplicate
-                </DropdownMenuItem>
                 <DropdownMenuSeparator className="my-1" />
-                <DropdownMenuItem className="cursor-pointer py-2.5 text-red-600 font-semibold focus:bg-red-50 focus:text-red-700">
+                <DropdownMenuItem
+                  className="cursor-pointer py-2.5 text-red-600 font-semibold focus:bg-red-50 focus:text-red-700"
+                  onClick={() => onDelete(row.original)}
+                >
                   <Trash2 className="h-4 w-4 mr-3" />
                   Delete
                 </DropdownMenuItem>
@@ -285,7 +223,7 @@ export function useProductColumns() {
         ),
       }),
     ],
-    []
+    [onEdit, onDelete]
   );
 
   return columns;

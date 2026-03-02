@@ -9,25 +9,21 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import VariantTable from './VariantTable';
-import ComboItemsTable from './ComboItemsTable';
-import type { Product, Combo } from '../types';
 
-interface ProductTableContentProps<T extends Product | Combo> {
+interface ProductTableContentProps<T = unknown> {
   table: Table<T>;
   emptyMessage?: string;
-  type: 'single' | 'combo';
+  type?: 'single' | 'combo';
 }
 
-export default function ProductTableContent<T extends Product | Combo>({
+export default function ProductTableContent<T = unknown>({
   table,
   emptyMessage = 'No products found',
-  type,
 }: ProductTableContentProps<T>) {
   const rows = table.getRowModel().rows;
   const pageSize = table.getState().pagination.pageSize;
   const columnCount = table.getAllColumns().length;
 
-  // Adjust empty rows based on expanded state
   const expandedCount = rows.filter(r => r.getIsExpanded()).length;
   const emptyRowsCount = Math.max(0, pageSize - rows.length - expandedCount);
 
@@ -54,26 +50,20 @@ export default function ProductTableContent<T extends Product | Combo>({
           {rows.length > 0 ? (
             <>
               {rows.map((row) => {
-                const item = row.original;
+                const item = row.original as Record<string, unknown>;
                 const isExpanded = row.getIsExpanded();
-                const isCombo = type === 'combo';
+                const hasVariants = ((item.variants as any[])?.length ?? 0) > 0 || ((item.items as any[])?.length ?? 0) > 0;
 
                 return (
                   <React.Fragment key={row.id}>
-                    {/* Product/Combo row */}
+                    {/* Product row */}
                     <TableRow
                       data-state={row.getIsSelected() && 'selected'}
-                      className={`hover:bg-gray-50 transition-colors border-b border-gray-100 cursor-pointer ${
-                        isCombo 
-                          ? 'data-[state=selected]:bg-purple-50'
-                          : 'data-[state=selected]:bg-blue-50'
-                      } ${
-                        isExpanded 
-                          ? isCombo ? 'bg-purple-50/20 border-b-0' : 'bg-blue-50/20 border-b-0'
-                          : ''
-                      }`}
+                      className={`hover:bg-gray-50 transition-colors border-b border-gray-100 data-[state=selected]:bg-blue-50 ${
+                        isExpanded ? 'bg-blue-50/20 border-b-0' : ''
+                      } ${hasVariants ? 'cursor-pointer' : ''}`}
                       onClick={(e) => {
-                        // Don't toggle if clicking on checkbox, button, or dropdown
+                        if (!hasVariants) return;
                         const target = e.target as HTMLElement;
                         if (
                           target.closest('button') ||
@@ -92,22 +82,21 @@ export default function ProductTableContent<T extends Product | Combo>({
                       ))}
                     </TableRow>
 
-                    {/* Expanded detail sub-table */}
-                    {isExpanded && (
+                    {/* Expanded variant sub-table (for products) or combo items (for combos) */}
+                    {isExpanded && (item.variants as any[])?.length > 0 && (
                       <TableRow className="hover:bg-transparent">
                         <TableCell colSpan={columnCount} className="p-0">
-                          {type === 'combo' ? (
-                            <ComboItemsTable
-                              items={(item as Combo).items}
-                              comboName={item.name}
-                              discount={(item as Combo).discount}
-                            />
-                          ) : (
-                            <VariantTable
-                              variants={(item as Product).variants}
-                              productName={item.name}
-                            />
-                          )}
+                          <VariantTable
+                            variants={item.variants as any}
+                            productName={item.name as string}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {isExpanded && (item.items as any[])?.length > 0 && (
+                      <TableRow className="hover:bg-transparent">
+                        <TableCell colSpan={columnCount} className="p-0">
+                          {/* Combo items will be rendered by ComboItemsTable in the column definition */}
                         </TableCell>
                       </TableRow>
                     )}
