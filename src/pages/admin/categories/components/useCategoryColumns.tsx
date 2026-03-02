@@ -48,13 +48,13 @@ export function useCategoryColumns(options?: { onEdit?: (category: Category) => 
         header: ({ column }) => <SortableHeader column={column} label="Name" />,
         cell: (info) => {
           const category = info.row.original;
-          const hasChildren = category.childCategoryList.length > 0;
+          const hasChildren = (category.childCategoryList?.length ?? 0) > 0;
           return (
             <div>
               <p className="font-semibold text-gray-900">{info.getValue()}</p>
               {hasChildren && (
                 <p className="text-xs text-gray-500 mt-0.5">
-                  {category.childCategoryList.length} subcategories
+                  {category.childCategoryList?.length ?? 0} subcategories
                 </p>
               )}
             </div>
@@ -76,7 +76,7 @@ export function useCategoryColumns(options?: { onEdit?: (category: Category) => 
         cell: (info) => {
           const children = info.getValue();
           return (
-            <span className="font-bold text-gray-900">{children.length}</span>
+            <span className="font-bold text-gray-900">{children?.length ?? 0}</span>
           );
         },
         enableSorting: false,

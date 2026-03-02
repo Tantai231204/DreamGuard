@@ -8,17 +8,24 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import VariantTable from './VariantTable';
+import VariantTableWrapper from './VariantTableWrapper';
+import type { ProductVariant } from '../types';
 
 interface ProductTableContentProps<T = unknown> {
   table: Table<T>;
   emptyMessage?: string;
   type?: 'single' | 'combo';
+  onAddVariant?: (productId: string, productName: string, productSlug: string, variantCount: number) => void;
+  onEditVariant?: (variant: ProductVariant) => void;
+  onDeleteVariant?: (variant: ProductVariant) => void;
 }
 
 export default function ProductTableContent<T = unknown>({
   table,
   emptyMessage = 'No products found',
+  onAddVariant,
+  onEditVariant,
+  onDeleteVariant,
 }: ProductTableContentProps<T>) {
   const rows = table.getRowModel().rows;
   const pageSize = table.getState().pagination.pageSize;
@@ -52,7 +59,8 @@ export default function ProductTableContent<T = unknown>({
               {rows.map((row) => {
                 const item = row.original as Record<string, unknown>;
                 const isExpanded = row.getIsExpanded();
-                const hasVariants = ((item.variants as any[])?.length ?? 0) > 0 || ((item.items as any[])?.length ?? 0) > 0;
+                // Check both variants array and variantCount (API may return count without full array)
+                const hasVariants = ((item.variants as any[])?.length ?? 0) > 0 || (item.variantCount as number ?? 0) > 0 || ((item.items as any[])?.length ?? 0) > 0;
 
                 return (
                   <React.Fragment key={row.id}>
@@ -83,22 +91,30 @@ export default function ProductTableContent<T = unknown>({
                     </TableRow>
 
                     {/* Expanded variant sub-table (for products) or combo items (for combos) */}
-                    {isExpanded && (item.variants as any[])?.length > 0 && (
-                      <TableRow className="hover:bg-transparent">
-                        <TableCell colSpan={columnCount} className="p-0">
-                          <VariantTable
-                            variants={item.variants as any}
-                            productName={item.name as string}
-                          />
-                        </TableCell>
-                      </TableRow>
-                    )}
-                    {isExpanded && (item.items as any[])?.length > 0 && (
-                      <TableRow className="hover:bg-transparent">
-                        <TableCell colSpan={columnCount} className="p-0">
-                          {/* Combo items will be rendered by ComboItemsTable in the column definition */}
-                        </TableCell>
-                      </TableRow>
+                    {isExpanded && (
+                      <>
+                        {/* Show variant table - fetch from API */}
+                        {((item.variants as ProductVariant[])?.length > 0 || (item.variantCount as number ?? 0) > 0) && (
+                          <TableRow className="hover:bg-transparent">
+                            <TableCell colSpan={columnCount} className="p-0">
+                              <VariantTableWrapper
+                                productId={item.id as string}
+                                productName={item.name as string}
+                                onAddVariant={() => onAddVariant?.(item.id as string, item.name as string, (item as any).slug as string, (item.variants as ProductVariant[])?.length ?? (item.variantCount as number) ?? 0)}
+                                onEditVariant={(variant) => onEditVariant?.(variant)}
+                                onDeleteVariant={(variant) => onDeleteVariant?.(variant)}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        )}
+                        {(item.items as any[])?.length > 0 && (
+                          <TableRow className="hover:bg-transparent">
+                            <TableCell colSpan={columnCount} className="p-0">
+                              {/* Combo items will be rendered by ComboItemsTable in the column definition */}
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </>
                     )}
                   </React.Fragment>
                 );

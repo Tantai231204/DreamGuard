@@ -2,7 +2,21 @@
 // Central export cho tất cả API services và types
 
 // Services
-export { authService, userService, categoryService, voucherService, productService } from "./services";
+export {
+  authService,
+  userService,
+  categoryService,
+  voucherService,
+  productService,
+  variantService,
+} from "./services";
+
+// Variant Types (exported from service)
+export type {
+  CreateVariantRequest,
+  UpdateVariantRequest,
+  VariantResponse,
+} from "./services/variantService";
 
 // Types
 export type {

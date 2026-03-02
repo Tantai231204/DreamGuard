@@ -24,16 +24,14 @@ import type { Combo } from '../types';
 
 const columnHelper = createColumnHelper<Combo>();
 
-const statusStyles = {
-    active: 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border-green-300 shadow-sm',
-    inactive: 'bg-gradient-to-r from-gray-50 to-slate-50 text-gray-600 border-gray-300 shadow-sm',
-    out_of_stock: 'bg-gradient-to-r from-red-50 to-rose-50 text-red-700 border-red-300 shadow-sm',
+const statusStyles: Record<string, string> = {
+    Active: 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border-green-300 shadow-sm',
+    Inactive: 'bg-gradient-to-r from-gray-50 to-slate-50 text-gray-600 border-gray-300 shadow-sm',
 };
 
-const statusLabels = {
-    active: 'Active',
-    inactive: 'Inactive',
-    out_of_stock: 'Out of Stock',
+const statusLabels: Record<string, string> = {
+    Active: 'Active',
+    Inactive: 'Inactive',
 };
 
 export function useComboColumns() {

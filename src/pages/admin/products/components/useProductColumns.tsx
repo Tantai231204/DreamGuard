@@ -13,6 +13,7 @@ import {
   ChevronDown,
   Star,
   Layers,
+  Plus,
 } from 'lucide-react';
 import { SortableHeader } from '@/components/admin';
 import {
@@ -36,9 +37,10 @@ const statusStyles: Record<string, string> = {
 interface UseProductColumnsProps {
   onEdit: (product: Product) => void;
   onDelete: (product: Product) => void;
+  onAddVariant: (product: Product) => void;
 }
 
-export function useProductColumns({ onEdit, onDelete }: UseProductColumnsProps) {
+export function useProductColumns({ onEdit, onDelete, onAddVariant }: UseProductColumnsProps) {
   const columns = useMemo(
     () => [
       columnHelper.display({
@@ -69,7 +71,8 @@ export function useProductColumns({ onEdit, onDelete }: UseProductColumnsProps) 
         id: 'expand',
         header: () => null,
         cell: ({ row }) => {
-          const hasVariants = (row.original.variants?.length ?? 0) > 0;
+          // Check both variants array and variantCount (API may return count without full array)
+          const hasVariants = (row.original.variants?.length ?? 0) > 0 || (row.original.variantCount ?? 0) > 0;
           if (!hasVariants) return null;
           return (
             <button
@@ -209,6 +212,13 @@ export function useProductColumns({ onEdit, onDelete }: UseProductColumnsProps) 
                   <Edit className="h-4 w-4 mr-3 text-gray-700" />
                   Edit Product
                 </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer py-2.5 font-medium"
+                  onClick={() => onAddVariant(row.original)}
+                >
+                  <Plus className="h-4 w-4 mr-3 text-indigo-600" />
+                  Add Variant
+                </DropdownMenuItem>
                 <DropdownMenuSeparator className="my-1" />
                 <DropdownMenuItem
                   className="cursor-pointer py-2.5 text-red-600 font-semibold focus:bg-red-50 focus:text-red-700"
@@ -223,7 +233,7 @@ export function useProductColumns({ onEdit, onDelete }: UseProductColumnsProps) 
         ),
       }),
     ],
-    [onEdit, onDelete]
+    [onEdit, onDelete, onAddVariant]
   );
 
   return columns;

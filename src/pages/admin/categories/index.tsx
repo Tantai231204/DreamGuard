@@ -38,7 +38,12 @@ export default function CategoriesPage() {
     const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
     // Gọi API lấy danh sách categories qua TanStack Query
-    const { data: categories = [], isLoading, isError, error } = useCategories();
+    const { data: categoriesData = [], isLoading, isError, error } = useCategories();
+    
+    // Ensure categories is always an array
+    const categories = useMemo(() => {
+        return Array.isArray(categoriesData) ? categoriesData : [];
+    }, [categoriesData]);
 
     // Mutations
     const createMutation = useCreateCategory();
@@ -88,7 +93,7 @@ export default function CategoriesPage() {
         const total = categories.length;
         const active = categories.filter((c) => c.isActive).length;
         const inactive = categories.filter((c) => !c.isActive).length;
-        const withChildren = categories.filter((c) => c.childCategoryList.length > 0).length;
+        const withChildren = categories.filter((c) => c.childCategoryList?.length > 0).length;
         return { total, active, inactive, withChildren };
     }, [categories]);
 

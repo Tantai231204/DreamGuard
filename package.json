@@ -41,6 +41,7 @@
     "framer-motion": "^12.29.2",
     "lucide-react": "^0.367.0",
     "react": "^18.2.0",
+    "react-colorful": "^5.6.1",
     "react-dom": "^18.2.0",
     "react-dropzone": "^14.3.5",
     "react-hook-form": "^7.51.3",

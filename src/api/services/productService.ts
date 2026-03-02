@@ -1,12 +1,12 @@
 // src/api/services/productService.ts
-import apiClient from '../../lib/api';
+import apiClient, { type CustomAxiosRequestConfig } from '../../lib/api';
 import type { ProductResponse, CreateProductRequest, UpdateProductRequest, AdminProductPageResponse, AdminProductParams } from '../types';
 
 const productService = {
   /** Lấy danh sách products cho admin (paginated) */
   getAllAdmin: (params: AdminProductParams = {}): Promise<AdminProductPageResponse> =>
     apiClient
-      .get('/product/admin', { params, _suppressToast: true } as any)
+      .get<AdminProductPageResponse>('/product/admin', { params, _suppressToast: true } as CustomAxiosRequestConfig)
       .then((res) => res.data)
       .catch((err) => {
         if (err?.status === 404) {
@@ -18,7 +18,7 @@ const productService = {
   /** Lấy danh sách tất cả products (404 → empty array) */
   getAll: (): Promise<ProductResponse[]> =>
     apiClient
-      .get('/product', { _suppressToast: true } as any)
+      .get<ProductResponse[]>('/product', { _suppressToast: true } as CustomAxiosRequestConfig)
       .then((res) => res.data)
       .catch((err) => (err?.status === 404 ? [] : Promise.reject(err))),
 

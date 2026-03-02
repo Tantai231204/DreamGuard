@@ -24,6 +24,7 @@ import { LoadingSpinner } from '@/components/common';
 import ProductActions from './components/ProductActions';
 import ProductTableContent from './components/ProductTableContent';
 import ProductDialog from './components/ProductDialog';
+import VariantDialog from './components/VariantDialog';
 import DeleteProductDialog from './components/DeleteProductDialog';
 import ProductTabs from './components/ProductTabs';
 import { useProductColumns } from './components/useProductColumns';
@@ -33,9 +34,12 @@ import {
   useCreateProduct,
   useUpdateProduct,
   useDeleteProduct,
+  useCreateVariant,
+  useUpdateVariant,
+  useDeleteVariant,
 } from '@/hooks/queries/useProduct';
 import { useCategories } from '@/hooks/queries/useCategory';
-import type { Product, CreateProductRequest } from './types';
+import type { Product, CreateProductRequest, ProductVariant, CreateVariantRequest } from './types';
 import { INT_TO_STATUS, INT_TO_VARIANT_STATUS } from './types';
 import { mockCombos } from './data';
 
@@ -53,6 +57,14 @@ export default function ProductsPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deleteProduct, setDeleteProduct] = useState<Product | null>(null);
+
+  // Variant dialog state
+  const [variantDialogOpen, setVariantDialogOpen] = useState(false);
+  const [editingVariant, setEditingVariant] = useState<ProductVariant | null>(null);
+  const [variantProductId, setVariantProductId] = useState<string>('');
+  const [variantProductName, setVariantProductName] = useState<string>('');
+  const [variantProductSlug, setVariantProductSlug] = useState<string>('');
+  const [variantCount, setVariantCount] = useState<number>(0);
 
   // API queries — server-side paginated admin endpoint
   const { data: pageData, isLoading } = useAdminProducts({
@@ -80,6 +92,11 @@ export default function ProductsPage() {
   const updateMutation = useUpdateProduct();
   const deleteMutation = useDeleteProduct();
 
+  // Variant Mutations
+  const createVariantMutation = useCreateVariant();
+  const updateVariantMutation = useUpdateVariant();
+  const deleteVariantMutation = useDeleteVariant();
+
   // Handlers
   const handleAdd = useCallback(() => {
     setEditingProduct(null);
@@ -94,6 +111,72 @@ export default function ProductsPage() {
   const handleDelete = useCallback((product: Product) => {
     setDeleteProduct(product);
   }, []);
+
+  // Variant handlers
+  const handleAddVariant = useCallback((product: Product) => {
+    setEditingVariant(null);
+    setVariantProductId(product.id);
+    setVariantProductName(product.name);
+    setVariantProductSlug(product.slug);
+    setVariantCount(product.variantCount ?? product.variants?.length ?? 0);
+    setVariantDialogOpen(true);
+  }, []);
+
+  const handleAddVariantFromTable = useCallback((productId: string, productName: string, productSlug: string, count: number) => {
+    setEditingVariant(null);
+    setVariantProductId(productId);
+    setVariantProductName(productName);
+    setVariantProductSlug(productSlug);
+    setVariantCount(count);
+    setVariantDialogOpen(true);
+  }, []);
+
+  const handleEditVariant = useCallback((variant: ProductVariant) => {
+    setEditingVariant(variant);
+    setVariantProductId(variant.productId);
+    // Find product from products list
+    const product = products.find(p => p.id === variant.productId);
+    setVariantProductName(product?.name || '');
+    setVariantProductSlug(product?.slug || '');
+    setVariantCount(product?.variantCount ?? product?.variants?.length ?? 0);
+    setVariantDialogOpen(true);
+  }, [products]);
+
+  const handleDeleteVariant = useCallback((variant: ProductVariant) => {
+    if (!confirm(`Are you sure you want to delete variant "${variant.sku}"?`)) return;
+    deleteVariantMutation.mutate(variant.id, {
+      onSuccess: () => {
+        toast.success('Variant deleted', 'The variant has been successfully deleted.');
+      },
+    });
+  }, [deleteVariantMutation, toast]);
+
+  const handleVariantSubmit = useCallback(
+    (data: CreateVariantRequest) => {
+      if (editingVariant) {
+        // Update existing variant
+        const { productId, ...updateData } = data;
+        updateVariantMutation.mutate(
+          { id: editingVariant.id, data: updateData },
+          {
+            onSuccess: () => {
+              setVariantDialogOpen(false);
+              toast.success('Variant updated', 'The variant has been successfully updated.');
+            },
+          }
+        );
+      } else {
+        // Create new variant
+        createVariantMutation.mutate(data, {
+          onSuccess: () => {
+            setVariantDialogOpen(false);
+            toast.success('Variant created', 'The new variant has been successfully created.');
+          },
+        });
+      }
+    },
+    [editingVariant, createVariantMutation, updateVariantMutation, toast]
+  );
 
   const handleSubmit = useCallback(
     (data: CreateProductRequest) => {
@@ -129,7 +212,7 @@ export default function ProductsPage() {
     });
   }, [deleteProduct, deleteMutation, toast]);
 
-  const productColumns = useProductColumns({ onEdit: handleEdit, onDelete: handleDelete });
+  const productColumns = useProductColumns({ onEdit: handleEdit, onDelete: handleDelete, onAddVariant: handleAddVariant });
   const comboColumns = useComboColumns();
 
   // Stats
@@ -276,6 +359,9 @@ export default function ProductsPage() {
                   table={activeTab === 'single' ? productTable : (comboTable as any)}
                   type={activeTab}
                   emptyMessage={activeTab === 'single' ? 'No products found' : 'No combos found'}
+                  onAddVariant={handleAddVariantFromTable}
+                  onEditVariant={handleEditVariant}
+                  onDeleteVariant={handleDeleteVariant}
                 />
               </div>
 
@@ -306,6 +392,19 @@ export default function ProductsPage() {
         productName={deleteProduct?.name ?? ''}
         onConfirm={handleConfirmDelete}
         isLoading={deleteMutation.isPending}
+      />
+
+      {/* Variant Dialog */}
+      <VariantDialog
+        open={variantDialogOpen}
+        onOpenChange={setVariantDialogOpen}
+        variant={editingVariant}
+        productId={variantProductId}
+        productName={variantProductName}
+        productSlug={variantProductSlug}
+        variantCount={variantCount}
+        onSubmit={handleVariantSubmit}
+        isLoading={createVariantMutation.isPending || updateVariantMutation.isPending}
       />
     </div>
   );

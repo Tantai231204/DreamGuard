@@ -256,8 +256,8 @@ function ProductDialogInner({
                                     </span>
                                 </SelectTrigger>
                                 <SelectContent className="rounded-xl shadow-xl z-[200]">
-                                    {flatCategories.map((cat) => (
-                                        <SelectItem key={cat.cateId} value={String(cat.cateId)} className="rounded-lg hover:bg-purple-50 hover:text-purple-900">
+                                    {flatCategories.map((cat, index) => (
+                                        <SelectItem key={cat.cateId ?? `cat-${index}`} value={String(cat.cateId)} className="rounded-lg hover:bg-purple-50 hover:text-purple-900">
                                             <span style={{ paddingLeft: `${cat.depth * 16}px` }} className="flex items-center gap-1.5">
                                                 {cat.depth > 0 && <span className="text-gray-300">└</span>}
                                                 {cat.name}
@@ -281,7 +281,7 @@ function ProductDialogInner({
                                 </SelectTrigger>
                                 <SelectContent className="rounded-xl shadow-xl z-[200]">
                                     {Object.entries(AGE_GROUPS).map(([key, label]) => (
-                                        <SelectItem key={key} value={key} className="rounded-lg hover:bg-purple-50 hover:text-purple-900">{label}</SelectItem>
+                                        <SelectItem key={`age-${key}`} value={key} className="rounded-lg hover:bg-purple-50 hover:text-purple-900">{label}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
@@ -351,8 +351,8 @@ function ProductDialogInner({
                                     </span>
                                 </SelectTrigger>
                                 <SelectContent className="rounded-xl shadow-xl z-[200]">
-                                    {PRODUCT_STATUSES.map((s) => (
-                                        <SelectItem key={s.value} value={s.value} className="rounded-lg hover:bg-purple-50 hover:text-purple-900">
+                                    {PRODUCT_STATUSES.map((s, index) => (
+                                        <SelectItem key={s.value ?? `status-${index}`} value={s.value} className="rounded-lg hover:bg-purple-50 hover:text-purple-900">
                                             <span className="flex items-center gap-2">
                                                 <span className={cn('h-2 w-2 rounded-full', STATUS_COLORS[s.value])} />
                                                 {s.label}

@@ -4,3 +4,9 @@ export { default as userService } from './userService';
 export { default as categoryService } from './categoryService';
 export { default as voucherService } from './voucherService';
 export { default as productService } from './productService';
+export { default as variantService } from './variantService';
+export type {
+    CreateVariantRequest,
+    UpdateVariantRequest,
+    VariantResponse,
+} from './variantService';

@@ -39,6 +39,40 @@ export const INT_TO_VARIANT_STATUS: Record<number, VariantStatus> = {
   1: "Inactive",
 };
 
+// ── Size Options ─────────────────────────────────────────
+export const SIZE_OPTIONS = [
+  { value: "60x120cm", label: "60 × 120 cm", description: "Cũi / Baby Crib" },
+  { value: "70x130cm", label: "70 × 130 cm", description: "Cũi lớn" },
+  { value: "80x160cm", label: "80 × 160 cm", description: "Junior" },
+  { value: "90x190cm", label: "90 × 190 cm", description: "Single / 1 người" },
+  { value: "100x200cm", label: "100 × 200 cm", description: "Single XL" },
+  { value: "120x200cm", label: "120 × 200 cm", description: "Super Single" },
+  { value: "140x200cm", label: "140 × 200 cm", description: "Double / 2 người" },
+  { value: "160x200cm", label: "160 × 200 cm", description: "Queen" },
+  { value: "180x200cm", label: "180 × 200 cm", description: "King" },
+  { value: "200x200cm", label: "200 × 200 cm", description: "Super King" },
+] as const;
+
+// ── Preset Colors ────────────────────────────────────────
+export const PRESET_COLORS = [
+  { name: "White", code: "#f5f5f5" },
+  { name: "Pink", code: "#ffc0cb" },
+  { name: "Blue", code: "#add8e6" },
+  { name: "Red", code: "#ff6b6b" },
+  { name: "Green", code: "#90ee90" },
+  { name: "Yellow", code: "#ffeb3b" },
+  { name: "Orange", code: "#ffa500" },
+  { name: "Purple", code: "#dda0dd" },
+  { name: "Black", code: "#333333" },
+  { name: "Gray", code: "#9e9e9e" },
+  { name: "Brown", code: "#a0522d" },
+  { name: "Beige", code: "#f5f5dc" },
+  { name: "Navy", code: "#001f3f" },
+  { name: "Cream", code: "#fffdd0" },
+  { name: "Light Blue", code: "#87ceeb" },
+  { name: "Mint", code: "#98ff98" },
+] as const;
+
 export interface Product {
   id: string; // UUID
   name: string;
@@ -77,19 +111,41 @@ export interface CreateProductRequest {
 export type UpdateProductRequest = CreateProductRequest;
 
 // ── Product Variant ──────────────────────────────────────
+export interface VariantAttributes {
+  color?: string;
+  colorCode?: string; // hex color code
+  [key: string]: unknown;
+}
+
 export interface ProductVariant {
   id: string; // UUID
   sku: string;
   basePrice: number;
   salePrice: number;
   weight: number | null;
-  attributes: Record<string, unknown> | null;
+  attributes: VariantAttributes | null;
   size: string;
   status: VariantStatus;
   createdAt: string;
   isNew: boolean;
   productId: string;
+  // Inventory (from joined table or computed)
+  stockQuantity?: number;
 }
+
+export interface CreateVariantRequest {
+  productId: string;
+  sku: string;
+  size: string;
+  basePrice: number;
+  salePrice: number;
+  weight: number | null;
+  isNew: boolean;
+  status: number;
+  attributes: Record<string, unknown> | null;
+}
+
+export type UpdateVariantRequest = Omit<CreateVariantRequest, 'productId'>;
 
 // ── Combo (kept for combo tab) ──────────────────────────
 export interface ComboItem {

@@ -1,5 +1,5 @@
 // src/lib/api.ts
-import axios from "axios";
+import axios, { type AxiosRequestConfig } from "axios";
 import { toast } from "sonner";
 import { ApiErrorCode } from "./constants";
 import { useAuthStore } from "../store/authStore";
@@ -22,6 +22,13 @@ export class ApiError extends Error {
 }
 
 /* ======================
+   Custom Config Types
+====================== */
+export interface CustomAxiosRequestConfig extends AxiosRequestConfig {
+  _suppressToast?: boolean;
+}
+
+/* ======================
    Axios instance
 ====================== */
 export const api = axios.create({
@@ -40,8 +47,7 @@ api.interceptors.request.use((config) => {
 
   // 🔥 token test tạm thời
   const devToken =
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiQWRtaW4iLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjIxZmE5NjI4LWJlN2EtNDFlZi1iZWMwLTliZGQ0MjVlODA0NyIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkFkbWluIiwiZXhwIjoxNzcyNDQ2NzY5LCJpc3MiOiJodHRwczovL2xvY2FsaG9zdDo3MTA3IiwiYXVkIjoiaHR0cHM6Ly9sb2NhbGhvc3Q6NzEwNyJ9.JnpBC3GgEL_Wn4vTlRVZ8e_RWItrclf2udbydxDzzDk";
-
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiQWRtaW4iLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6IjIxZmE5NjI4LWJlN2EtNDFlZi1iZWMwLTliZGQ0MjVlODA0NyIsImh0dHA6Ly9zY2hlbWFzLm1pY3Jvc29mdC5jb20vd3MvMjAwOC8wNi9pZGVudGl0eS9jbGFpbXMvcm9sZSI6IkFkbWluIiwiZXhwIjoxNzcyNDU2MjQ1LCJpc3MiOiJodHRwczovL2xvY2FsaG9zdDo3MTA3IiwiYXVkIjoiaHR0cHM6Ly9sb2NhbGhvc3Q6NzEwNyJ9.t97k77UY-fHtOWyyjzhr2gfgDYeSxbDE7qlpc1oZ76E";
   const token = storeToken || devToken;
 
   if (token) {

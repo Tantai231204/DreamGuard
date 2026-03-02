@@ -5,11 +5,13 @@ import {
   useQueryClient,
   keepPreviousData,
 } from "@tanstack/react-query";
-import { productService } from "@/api";
+import { productService, variantService } from "@/api";
 import type {
   CreateProductRequest,
   UpdateProductRequest,
   AdminProductParams,
+  CreateVariantRequest,
+  UpdateVariantRequest,
 } from "@/api";
 
 // ========================
@@ -19,6 +21,12 @@ export const productKeys = {
   all: ["products"] as const,
   admin: (params: AdminProductParams) => ["products", "admin", params] as const,
   detail: (id: string) => ["products", id] as const,
+};
+
+export const variantKeys = {
+  all: ["variants"] as const,
+  byProduct: (productId: string) => ["variants", "product", productId] as const,
+  detail: (id: string) => ["variants", id] as const,
 };
 
 // ========================
@@ -48,6 +56,15 @@ export const useProductDetail = (id: string) => {
     queryKey: productKeys.detail(id),
     queryFn: () => productService.getById(id),
     enabled: !!id,
+  });
+};
+
+/** Fetch variants by product ID */
+export const useProductVariants = (productId: string, enabled = true) => {
+  return useQuery({
+    queryKey: variantKeys.byProduct(productId),
+    queryFn: () => variantService.getByProductId(productId),
+    enabled: !!productId && enabled,
   });
 };
 
@@ -88,6 +105,50 @@ export const useDeleteProduct = () => {
     mutationFn: (id: string) => productService.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.all });
+    },
+  });
+};
+
+// ========================
+// Variant Mutations
+// ========================
+
+/** Create variant */
+export const useCreateVariant = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: CreateVariantRequest) => variantService.create(data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+      queryClient.invalidateQueries({ queryKey: variantKeys.byProduct(variables.productId) });
+    },
+  });
+};
+
+/** Update variant */
+export const useUpdateVariant = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateVariantRequest }) =>
+      variantService.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+      queryClient.invalidateQueries({ queryKey: variantKeys.all });
+    },
+  });
+};
+
+/** Delete variant */
+export const useDeleteVariant = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => variantService.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+      queryClient.invalidateQueries({ queryKey: variantKeys.all });
     },
   });
 };
