@@ -3,7 +3,6 @@ import { ImagePlus, Plus, Trash2, ZoomIn, Loader2, Download, Image } from 'lucid
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SectionHeading } from './Sectionheading';
-import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Tooltip,

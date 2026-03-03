@@ -1,6 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronLeft, ChevronRight, Download, ZoomIn } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 
 interface Asset {
     id: string;
@@ -141,11 +141,10 @@ function ImageLightbox({ images, currentIndex, onClose, onPrev, onNext }: ImageL
                                 if (diff > 0) for (let j = 0; j < diff; j++) onNext();
                                 else if (diff < 0) for (let j = 0; j < Math.abs(diff); j++) onPrev();
                             }}
-                            className={`relative h-12 w-12 overflow-hidden rounded-xl transition-all duration-200 ${
-                                i === currentIndex
+                            className={`relative h-12 w-12 overflow-hidden rounded-xl transition-all duration-200 ${i === currentIndex
                                     ? 'ring-2 ring-white ring-offset-1 ring-offset-black/50 scale-110'
                                     : 'opacity-50 hover:opacity-80 hover:scale-105'
-                            }`}
+                                }`}
                         >
                             <img
                                 src={img.url}
