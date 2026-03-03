@@ -1,4 +1,4 @@
-import api from "../lib/axios";
+import api from "../lib/api";
 import type { LoginRequest, AuthResponse } from "../types/auth";
 
 // chĩnh lại format code cho clear hơn

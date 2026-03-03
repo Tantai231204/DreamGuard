@@ -1,17 +1,29 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
-import AppRouter from "./router/AppRouter";
 import { queryClient } from "./lib/queryClient";
-
-
+import { BreadcrumbProvider } from "./components/common/breadcrumb/BreadcrumbContext";
+import { CartProvider } from "./store/cartStore";
+import { CartAnimationProvider } from "./store/cartAnimationStore";
+import { ErrorBoundary } from "./components/common";
+import { Toaster } from "./components/ui/toaster";
+import AppRouter from "./router/AppRouter";
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AppRouter />
-      </BrowserRouter>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <CartProvider>
+            <CartAnimationProvider>
+              <BreadcrumbProvider>
+                <AppRouter />
+                <Toaster />
+              </BreadcrumbProvider>
+            </CartAnimationProvider>
+          </CartProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

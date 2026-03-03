@@ -22,7 +22,7 @@ export default function ProductCard({ product }: Props) {
                 <span
                     className="
                         absolute top-2 left-2 z-10
-                        bg-[var(--color-product-discount)]
+                        bg-[var(--color-orange)]
                         text-white text-[10px] font-semibold
                         px-2 py-0.5 rounded-full
                     "
@@ -50,9 +50,9 @@ export default function ProductCard({ product }: Props) {
                         absolute left-3 right-3 bottom-3
                         py-2.5
                         text-xs font-semibold uppercase
-                        text-black
+                        text-gray-900
                         rounded-full
-                        bg-[var(--color-product-tab-active)]
+                        bg-[var(--color-primary-light)]
                         shadow-lg
 
                         opacity-0 translate-y-2
@@ -83,7 +83,7 @@ export default function ProductCard({ product }: Props) {
                                     className={`
                                         w-3 h-3
                                         ${i < product.rating!
-                                            ? 'fill-[var(--color-product-rating)] text-[var(--color-product-rating)]'
+                                            ? 'fill-[var(--color-amber)] text-[var(--color-amber)]'
                                             : 'text-gray-300'
                                         }
                                     `}

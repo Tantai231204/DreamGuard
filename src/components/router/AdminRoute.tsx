@@ -1,18 +1,23 @@
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
 import { AppRoute } from "../../lib/constants";
 
+/**
+ * AdminRoute component - Protects routes that require admin privileges
+ * 1. Redirects to login if not authenticated
+ * 2. Redirects to home if authenticated but not admin
+ */
 export default function AdminRoute() {
-  const { isAuthenticated, role } = useAuthStore((s) => ({
-    isAuthenticated: s.isAuthenticated,
-    role: s.role,
-  }));
+  const { isAuthenticated, role } = useAuthStore();
+  const location = useLocation();
 
+  // Check authentication
   if (!isAuthenticated) {
-    return <Navigate to={AppRoute.LOGIN} replace />;
+    return <Navigate to={AppRoute.LOGIN} replace state={{ from: location }} />;
   }
 
-  if (role !== "Admin") {
+  // Check admin role
+  if (role !== "admin") {
     return <Navigate to={AppRoute.HOME} replace />;
   }
 

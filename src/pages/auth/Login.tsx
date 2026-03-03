@@ -10,6 +10,7 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Button } from "../../components/ui/button";
 import { useLogin } from "../../hooks/useAuth";
+import Logo from "../../assets/logo_no_name.svg";
 
 // Google Icon Component
 const GoogleIcon = () => (
@@ -99,7 +100,7 @@ export default function Login() {
       <div className="flex flex-col items-center mb-8">
         <div className="mb-1">
           <img
-            src="/public/images/logo_no_name.svg"
+            src={Logo}
             alt="DreamGuard Logo"
             className="h-20 w-20 rounded-lg object-contain shadow-md"
           />

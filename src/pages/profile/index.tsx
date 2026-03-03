@@ -1,34 +1,59 @@
-import { useAuthStore } from "../../store/authStore";
-import { Link } from "react-router-dom";
-import { AppRoute } from "../../lib/constants";
+import { useState } from "react"
+import { useSearchParams } from "react-router-dom"
+
+import { HomeIcon } from "@radix-ui/react-icons"
+
+import { AppRoute } from "../../lib/constants"
+import type { TabId } from "./types"
+import { AddressesTab, BabiesTab, NotificationsTab, OrdersTab, ProfileInfoTab, ProfileSidebar, ResellTab, SecurityTab, VouchersTab, WishlistTab } from "./components"
+import { useEffect } from 'react';
+import { useBreadcrumb } from '@/components/common/breadcrumb/useBreadcrumb';
+
+
 
 export default function Profile() {
-    const { token, role } = useAuthStore();
+    const [searchParams] = useSearchParams()
+    const tabFromUrl = searchParams.get("tab") as TabId | null
+    const [activeTab, setActiveTab] = useState<TabId>(tabFromUrl || "profile")
 
+    const renderTabContent = () => {
+        switch (activeTab) {
+            case "profile": return <ProfileInfoTab />
+            case "babies": return <BabiesTab />
+            case "orders": return <OrdersTab />
+            case "resell": return <ResellTab />
+            case "wishlist": return <WishlistTab />
+            case "vouchers": return <VouchersTab />
+            case "addresses": return <AddressesTab />
+            case "notifications": return <NotificationsTab />
+            case "security": return <SecurityTab />
+            default: return <ProfileInfoTab />
+        }
+    }
+
+    const { setItems: setBreadcrumb } = useBreadcrumb();
+    useEffect(() => {
+        setBreadcrumb([
+            { label: <span className="flex items-center gap-1"><HomeIcon className="h-4 w-4" /> Home</span>, href: AppRoute.HOME },
+            { label: 'My Account', active: true },
+        ]);
+        return () => setBreadcrumb([]);
+    }, [setBreadcrumb]);
     return (
-        <div className="max-w-2xl mx-auto">
-            <div className="bg-white rounded-lg border border-[var(--color-border)] p-8 space-y-6">
-                <h1 className="text-3xl font-bold">Profile</h1>
-                
-                <div className="space-y-4">
-                    <div>
-                        <label className="text-sm font-medium text-muted-foreground">Role</label>
-                        <p className="text-lg font-semibold capitalize">{role}</p>
-                    </div>
-                    
-                    <div>
-                        <label className="text-sm font-medium text-muted-foreground">Token</label>
-                        <p className="text-sm font-mono bg-muted p-2 rounded truncate">{token}</p>
-                    </div>
-                </div>
+        <div className="min-h-[calc(100vh-200px)] bg-gray-50/50">
+            <div className="container mx-auto max-w-6xl px-4 py-8">
+                {/* Main Grid */}
+                <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
+                    <ProfileSidebar
+                        activeTab={activeTab}
+                        onTabChange={setActiveTab}
+                    />
 
-                <Link 
-                    to={AppRoute.HOME}
-                    className="inline-block btn-primary px-6 py-2 rounded-lg font-semibold"
-                >
-                    Back to Home
-                </Link>
+                    <main className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm min-h-[500px]">
+                        {renderTabContent()}
+                    </main>
+                </div>
             </div>
         </div>
-    );
+    )
 }

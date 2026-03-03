@@ -8,9 +8,10 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Button } from "../../components/ui/button";
 import { useForgotPassword } from "../../hooks/useAuth";
+import Logo from "../../assets/logo_no_name.svg";
 
 const forgotPasswordSchema = z.object({
-  email: z.string().email("Email không hợp lệ"),
+    email: z.string().email("Invalid email address"),
 });
 
 type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
@@ -43,31 +44,29 @@ export default function ForgotPassword() {
   );
 };
 
-  return (
-    <div className="bg-white rounded-2xl shadow-lg border border-[var(--color-border)] p-8 w-full max-w-md">
-      {/* Logo */}
-      <div className="flex flex-col items-center mb-8">
-        <div className="mb-1">
-          <img
-            src="/public/images/logo_no_name.svg"
-            alt="DreamGuard Logo"
-            className="h-20 w-20 rounded-lg object-contain shadow-md"
-          />
-        </div>
-        <span className="text-xl font-bold text-[var(--color-auth-title)]">
-          DreamGuard
-        </span>
-      </div>
+    return (
+        <div className="bg-white rounded-2xl shadow-lg border border-[var(--color-border)] p-8 w-full max-w-md">
+            {/* Logo */}
+            <div className="flex flex-col items-center mb-8">
+                <div className="mb-1">
+                    <img
+                        src={Logo}
+                        alt="DreamGuard Logo"
+                        className="h-20 w-20 rounded-lg object-contain shadow-md"
+                    />
+                </div>
+                <span className="text-xl font-bold text-[var(--color-primary-dark)]">
+                    DreamGuard
+                </span>
+            </div>
 
-      {/* Title */}
-      <div className="mb-6">
-        <h2 className="text-lg font-semibold text-[#1C4D8D]">
-          Forgot Password
-        </h2>
-        <p className="text-sm text-gray-500 mt-1">
-          Enter your email address to reset your password.
-        </p>
-      </div>
+            {/* Title */}
+            <div className="mb-6">
+                <h2 className="text-lg font-semibold text-[var(--color-primary-dark)]">Forgot Password</h2>
+                <p className="text-sm text-gray-500 mt-1">
+                    Enter your email address to reset your password.
+                </p>
+            </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         {/* Email */}

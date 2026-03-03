@@ -5,10 +5,10 @@ import ProductGrid from './products/ProductGrid'
 
 export default function ProductSection() {
     return (
-        <section className="py-12 md:py-16 bg-[var(--color-product-bg)]/20">
+        <section className="py-12 md:py-16 bg-[var(--color-primary-light)]/20">
             <div className="container mx-auto max-w-7xl px-4">
                 {/* Title */}
-                <h2 className="text-xl md:text-2xl font-bold text-center text-[var(--color-product-title)] mb-6">
+                <h2 className="text-xl md:text-2xl font-bold text-center text-primary mb-6">
                     Top picks for your little ones
                 </h2>
 
@@ -29,7 +29,7 @@ export default function ProductSection() {
 
                 {/* See More Button */}
                 <div className="flex justify-center">
-                    <button className="px-10 py-2.5 bg-[var(--color-product-tab-active)] text-black rounded-full text-xs font-semibold hover:bg-[var(--color-product-tab-active)]/90 transition-colors duration-300 shadow-md hover:shadow-lg">
+                    <button className="px-10 py-2.5 bg-[var(--color-primary-light)] text-black rounded-full text-xs font-semibold hover:bg-[var(--color-primary-light)]/90 transition-colors duration-300 shadow-md hover:shadow-lg">
                         SEE MORE
                     </button>
                 </div>
