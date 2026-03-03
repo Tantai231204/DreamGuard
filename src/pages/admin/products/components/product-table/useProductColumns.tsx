@@ -22,8 +22,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import type { Product } from '../types';
-import { AGE_GROUPS, PRODUCT_STATUS_VARIANT } from '../types';
+import type { Product } from '../../types';
+import { AGE_GROUPS, PRODUCT_STATUS_VARIANT } from '../../types';
 import { VariantInfoCell, PriceRangeCell, StockCell } from './cells';
 
 const columnHelper = createColumnHelper<Product>();

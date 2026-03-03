@@ -1,13 +1,21 @@
-export { useProductColumns } from "./useProductColumns";
-export { default as ProductActions } from "./ProductActions";
-export { default as ProductTableContent } from "./ProductTableContent";
-export { default as ProductDialog } from "./ProductDialog";
-export { default as ProductCreationSuccess } from "./ProductCreationSuccess";
-export { default as ImageUploadDialog } from "./ImageUploadDialog";
-export { default as VariantDialog } from "./VariantDialog";
-export { default as DeleteProductDialog } from "./DeleteProductDialog";
-export { default as VariantTable } from "./VariantTable";
-export { default as ColorPicker } from "./ColorPicker";
-export { default as SectionHeading } from "./SectionHeading";
-export { default as AttributesEditor } from "./AttributesEditor";
-export type { AttributeField } from "./AttributesEditor";
+// ── Product Table ────────────────────────────────────────
+export { useProductColumns, ProductActions, ProductTableContent, BulkActionsToolbar, ProductTabs } from './product-table';
+
+// ── Product Dialog ───────────────────────────────────────
+export { default as ProductDialog } from './product-dialog';
+
+// ── Variant Dialog ───────────────────────────────────────
+export { VariantDialog, ColorPicker, AttributesEditor } from './variant-dialog';
+export type { AttributeField } from './variant-dialog';
+
+// ── Variant Table ────────────────────────────────────────
+export { VariantTable, VariantTableWrapper, VariantSummaryCell, VariantSummaryDisplay } from './variant-table';
+
+// ── Dialogs ──────────────────────────────────────────────
+export { DeleteProductDialog, ImageUploadDialog, ProductCreationSuccess } from './dialogs';
+
+// ── Combo ────────────────────────────────────────────────
+export { ComboItemsTable, useComboColumns } from './combo';
+
+// ── Shared ───────────────────────────────────────────────
+export { SectionHeading, MaterialCombobox } from './shared';

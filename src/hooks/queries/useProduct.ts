@@ -58,11 +58,11 @@ export const useProducts = () => {
 };
 
 /** Lấy chi tiết 1 product theo ID */
-export const useProductDetail = (id: string) => {
+export const useProductDetail = (id: string, enabled = true) => {
   return useQuery({
     queryKey: productKeys.detail(id),
     queryFn: () => productService.getById(id),
-    enabled: !!id,
+    enabled: !!id && enabled,
   });
 };
 

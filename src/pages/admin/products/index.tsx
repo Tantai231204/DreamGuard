@@ -22,16 +22,11 @@ import {
   AdminBulkActions,
 } from '@/components/admin';
 import { LoadingSpinner } from '@/components/common';
-import ProductActions from './components/ProductActions';
-import ProductTableContent from './components/ProductTableContent';
-import ProductDialog from './components/ProductDialog';
-import VariantDialog from './components/VariantDialog';
-import DeleteProductDialog from './components/DeleteProductDialog';
-import ProductCreationSuccess from './components/ProductCreationSuccess';
-import ImageUploadDialog from './components/ImageUploadDialog';
-import ProductTabs from './components/ProductTabs';
-import { useProductColumns } from './components/useProductColumns';
-import { useComboColumns } from './components/useComboColumns';
+import { ProductActions, ProductTableContent, ProductTabs, useProductColumns } from './components/product-table';
+import ProductDialog from './components/product-dialog';
+import { VariantDialog } from './components/variant-dialog';
+import { DeleteProductDialog, ImageUploadDialog, ProductCreationSuccess } from './components/dialogs';
+import { useComboColumns } from './components/combo';
 import {
   useAdminProducts,
   useCreateProduct,

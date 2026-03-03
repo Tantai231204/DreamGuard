@@ -18,10 +18,10 @@ import {
     Ruler,
     Move3D,
 } from 'lucide-react';
-import type { ProductVariant, VariantStatus, CreateVariantRequest, VariantAttributes } from '../types';
-import { VARIANT_STATUS_TO_INT } from '../types';
+import type { ProductVariant, VariantStatus, CreateVariantRequest, VariantAttributes } from '../../types';
+import { VARIANT_STATUS_TO_INT } from '../../types';
 import ColorPicker from './ColorPicker';
-import SectionHeading from './SectionHeading';
+import SectionHeading from '../shared/SectionHeading';
 import AttributesEditor, { type AttributeField } from './AttributesEditor';
 
 /* ─── Constants ───────────────────────────────────────── */

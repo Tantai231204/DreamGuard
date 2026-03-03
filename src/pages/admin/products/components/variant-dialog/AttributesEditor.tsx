@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Plus, Trash2 } from 'lucide-react';
-import SectionHeading from './SectionHeading';
+import SectionHeading from '../shared/SectionHeading';
 
 /* ─── Types ───────────────────────────────────────────── */
 export interface AttributeField {

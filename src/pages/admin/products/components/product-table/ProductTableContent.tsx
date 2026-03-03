@@ -8,8 +8,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import VariantTableWrapper from './VariantTableWrapper';
-import type { Product, ProductVariant } from '../types';
+import VariantTableWrapper from '../variant-table/VariantTableWrapper';
+import type { Product, ProductVariant } from '../../types';
 
 // Extended product type that includes combo items
 interface ProductWithItems extends Product {

@@ -1,8 +1,8 @@
 import { useMemo, useCallback } from 'react';
 import { useProductVariants } from '@/hooks/queries/useProduct';
 import VariantTable from './VariantTable';
-import type { ProductVariant, VariantStatus } from '../types';
-import { INT_TO_VARIANT_STATUS } from '../types';
+import type { ProductVariant, VariantStatus } from '../../types';
+import { INT_TO_VARIANT_STATUS } from '../../types';
 
 interface VariantTableWrapperProps {
     productId: string;

@@ -1,6 +1,8 @@
 import { motion } from 'framer-motion';
-import { ComboHeader, ComboProductGroup, ComboSummaryStats } from './combo';
-import type { ComboItem } from '../types';
+import ComboHeader from './ComboHeader';
+import ComboProductGroup from './ComboProductGroup';
+import ComboSummaryStats from './ComboSummaryStats';
+import type { ComboItem } from '../../types';
 
 interface ComboItemsTableProps {
     items: ComboItem[];

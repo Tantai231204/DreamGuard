@@ -20,7 +20,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import type { Combo } from '../types';
+import type { Combo } from '../../types';
 
 const columnHelper = createColumnHelper<Combo>();
 
