@@ -34,7 +34,15 @@ const statusLabels: Record<string, string> = {
     Inactive: 'Inactive',
 };
 
-export function useComboColumns() {
+interface UseComboColumnsOptions {
+    onView?: (combo: Combo) => void;
+    onEdit?: (combo: Combo) => void;
+    onDelete?: (combo: Combo) => void;
+    onDuplicate?: (combo: Combo) => void;
+}
+
+export function useComboColumns(options: UseComboColumnsOptions = {}) {
+    const { onView, onEdit, onDelete, onDuplicate } = options;
     const columns = useMemo(
         () => [
             columnHelper.display({
@@ -207,7 +215,7 @@ export function useComboColumns() {
             columnHelper.display({
                 id: 'actions',
                 header: () => <div className="text-right">Actions</div>,
-                cell: () => (
+                cell: ({ row }) => (
                     <div className="flex justify-end">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -216,20 +224,32 @@ export function useComboColumns() {
                                 </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-52 shadow-xl border-2 rounded-xl">
-                                <DropdownMenuItem className="cursor-pointer py-2.5 font-medium">
+                                <DropdownMenuItem
+                                    className="cursor-pointer py-2.5 font-medium"
+                                    onClick={() => onView?.(row.original)}
+                                >
                                     <Eye className="h-4 w-4 mr-3 text-purple-600" />
                                     View Details
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="cursor-pointer py-2.5 font-medium">
+                                <DropdownMenuItem
+                                    className="cursor-pointer py-2.5 font-medium"
+                                    onClick={() => onEdit?.(row.original)}
+                                >
                                     <Edit className="h-4 w-4 mr-3 text-gray-700" />
                                     Edit Combo
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="cursor-pointer py-2.5 font-medium">
+                                <DropdownMenuItem
+                                    className="cursor-pointer py-2.5 font-medium"
+                                    onClick={() => onDuplicate?.(row.original)}
+                                >
                                     <Copy className="h-4 w-4 mr-3 text-gray-700" />
                                     Duplicate
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator className="my-1" />
-                                <DropdownMenuItem className="cursor-pointer py-2.5 text-red-600 font-semibold focus:bg-red-50 focus:text-red-700">
+                                <DropdownMenuItem
+                                    className="cursor-pointer py-2.5 text-red-600 font-semibold focus:bg-red-50 focus:text-red-700"
+                                    onClick={() => onDelete?.(row.original)}
+                                >
                                     <Trash2 className="h-4 w-4 mr-3" />
                                     Delete
                                 </DropdownMenuItem>
@@ -239,7 +259,7 @@ export function useComboColumns() {
                 ),
             }),
         ],
-        []
+        [onView, onEdit, onDelete, onDuplicate]
     );
 
     return columns;

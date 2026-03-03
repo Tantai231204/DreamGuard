@@ -248,3 +248,102 @@ export const useDeleteProductImage = () => {
     },
   });
 };
+
+// ========================
+// Combo helpers
+// ========================
+
+/** Flattened variant option for combo item picker */
+export interface VariantOption {
+  variantId: string;
+  productId: string;
+  productName: string;
+  sku: string;
+  color?: string;
+  size?: string;
+  basePrice: number;
+  salePrice: number;
+  stockQuantity: number;
+  stockStatus: string;
+  status: string;
+  label: string;
+}
+
+/**
+ * Fetch all products (admin endpoint) then use admin variant endpoint
+ * (`GET /variants/admin/product/:id`) per product.
+ * Returns a flat VariantOption[] cached by React Query.
+ */
+export const useAllVariantOptions = (enabled = true) => {
+  return useQuery({
+    queryKey: [...variantKeys.all, "all-options"] as const,
+    queryFn: async (): Promise<VariantOption[]> => {
+      // 1. Fetch product list from admin endpoint (large page)
+      const page = await productService.getAllAdmin({
+        pageSize: 200,
+        pageNumber: 1,
+      });
+      const products = page?.items ?? [];
+      if (products.length === 0) return [];
+
+      // 2. Fetch admin variants per product in parallel batches
+      const results: VariantOption[] = [];
+      const batchSize = 5;
+
+      for (let i = 0; i < products.length; i += batchSize) {
+        const batch = products.slice(i, i + batchSize);
+        const batchResults = await Promise.allSettled(
+          batch.map((p) =>
+            variantService
+              .getAdminByProductId(p.id)
+              .then((res) => flattenAdminVariants(res, p.name)),
+          ),
+        );
+        for (const r of batchResults) {
+          if (r.status === "fulfilled") results.push(...r.value);
+        }
+      }
+      return results;
+    },
+    enabled,
+    staleTime: 2 * 60 * 1000, // cache 2 min
+  });
+};
+
+/** Convert AdminVariantsByProductResponse → flat VariantOption[] */
+function flattenAdminVariants(
+  res: import("@/api/services/variantService").AdminVariantsByProductResponse,
+  fallbackName?: string,
+): VariantOption[] {
+  const options: VariantOption[] = [];
+  // Use API productName if available, otherwise fall back to the product name
+  // from the product list (the admin variant endpoint sometimes returns empty name)
+  const productName = res.productName || fallbackName || "Unknown Product";
+
+  for (const group of res.colorGroups) {
+    for (const v of group.variants) {
+      const parts = [productName];
+      const attrs: string[] = [];
+      if (group.color) attrs.push(group.color);
+      if (v.size) attrs.push(v.size);
+      if (attrs.length > 0) parts.push(attrs.join(" / "));
+      parts.push(`(${v.sku})`);
+
+      options.push({
+        variantId: v.id,
+        productId: res.productId,
+        productName: productName,
+        sku: v.sku,
+        color: group.color || undefined,
+        size: v.size || undefined,
+        basePrice: v.basePrice,
+        salePrice: v.salePrice,
+        stockQuantity: v.stockQuantity,
+        stockStatus: v.stockStatus,
+        status: v.status,
+        label: parts.join(" — "),
+      });
+    }
+  }
+  return options;
+}

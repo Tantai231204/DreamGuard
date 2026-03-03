@@ -9,6 +9,7 @@ export {
   voucherService,
   productService,
   variantService,
+  comboService,
 } from "./services";
 
 // Variant Types (exported from service)
@@ -17,6 +18,17 @@ export type {
   UpdateVariantRequest,
   VariantResponse,
 } from "./services/variantService";
+
+// Combo Types (exported from service)
+export type {
+  CreateComboRequest,
+  UpdateComboRequest,
+  ComboResponse,
+  ComboItemResponse,
+  ComboItemRequest,
+  ComboPageResponse,
+  ComboParams,
+} from "./services";
 
 // Types
 export type {

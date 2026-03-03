@@ -27,6 +27,7 @@ import ProductDialog from './components/product-dialog';
 import { VariantDialog } from './components/variant-dialog';
 import { DeleteProductDialog, ImageUploadDialog, ProductCreationSuccess } from './components/dialogs';
 import { useComboColumns } from './components/combo';
+import { ComboDialog } from './components/combo-dialog';
 import {
   useAdminProducts,
   useCreateProduct,
@@ -37,10 +38,15 @@ import {
   useUpdateVariant,
   useDeleteVariant,
 } from '@/hooks/queries/useProduct';
+import {
+  useAdminCombos,
+  useCreateCombo,
+  useUpdateCombo,
+  useDeleteCombo,
+} from '@/hooks/queries/useCombo';
 import { useCategories } from '@/hooks/queries/useCategory';
-import type { Product, CreateProductRequest, ProductVariant, CreateVariantRequest } from './types';
+import type { Product, CreateProductRequest, ProductVariant, CreateVariantRequest, Combo } from './types';
 import { INT_TO_STATUS, INT_TO_VARIANT_STATUS } from './types';
-import { mockCombos } from './data';
 
 export default function ProductsPage() {
   const toast = useToast();
@@ -52,10 +58,22 @@ export default function ProductsPage() {
   const [expanded, setExpanded] = useState<ExpandedState>({});
   const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
 
+  // Combo table state (separate from product)
+  const [comboPagination, setComboPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
+  const [comboGlobalFilter, setComboGlobalFilter] = useState('');
+  const [comboSorting, setComboSorting] = useState<SortingState>([]);
+  const [comboRowSelection, setComboRowSelection] = useState<RowSelectionState>({});
+  const [comboExpanded, setComboExpanded] = useState<ExpandedState>({});
+
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deleteProduct, setDeleteProduct] = useState<Product | null>(null);
+
+  // Combo dialog state
+  const [deleteCombo, setDeleteCombo] = useState<Combo | null>(null);
+  const [comboDialogOpen, setComboDialogOpen] = useState(false);
+  const [editingCombo, setEditingCombo] = useState<Combo | null>(null);
 
   // Success dialog state
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
@@ -96,6 +114,25 @@ export default function ProductsPage() {
       })),
     [pageData?.items]
   );
+  // Combo API queries
+  const { data: comboPageData, isLoading: isLoadingCombos } = useAdminCombos({
+    pageNumber: comboPagination.pageIndex + 1,
+    pageSize: comboPagination.pageSize,
+    name: comboGlobalFilter || undefined,
+  });
+
+  // Map API combo response to local Combo type
+  const combos: Combo[] = useMemo(
+    () =>
+      (comboPageData?.items ?? []).map((item) => ({
+        ...item,
+        type: 'combo' as const,
+        baseSalePrice: item.salePrice,
+        status: item.status === 0 ? 'Active' as const : 'Inactive' as const,
+      })),
+    [comboPageData?.items]
+  );
+
   const { data: categories = [] } = useCategories();
 
   // Mutations
@@ -109,11 +146,21 @@ export default function ProductsPage() {
   const updateVariantMutation = useUpdateVariant();
   const deleteVariantMutation = useDeleteVariant();
 
+  // Combo Mutations
+  const createComboMutation = useCreateCombo();
+  const updateComboMutation = useUpdateCombo();
+  const deleteComboMutation = useDeleteCombo();
+
   // Handlers
   const handleAdd = useCallback(() => {
-    setEditingProduct(null);
-    setDialogOpen(true);
-  }, []);
+    if (activeTab === 'combo') {
+      setEditingCombo(null);
+      setComboDialogOpen(true);
+    } else {
+      setEditingProduct(null);
+      setDialogOpen(true);
+    }
+  }, [activeTab]);
 
   const handleEdit = useCallback((product: Product) => {
     setEditingProduct(product);
@@ -282,8 +329,85 @@ export default function ProductsPage() {
     navigate(`/admin/products/${product.id}`);
   }, [navigate]);
 
+  // ── Combo handlers ─────────────────────────────────────
+  const handleViewCombo = useCallback((combo: Combo) => {
+    navigate(`/admin/products/combo/${combo.id}`);
+  }, [navigate]);
+
+  const handleEditCombo = useCallback((combo: Combo) => {
+    setEditingCombo(combo);
+    setComboDialogOpen(true);
+  }, []);
+
+  const handleDeleteCombo = useCallback((combo: Combo) => {
+    setDeleteCombo(combo);
+  }, []);
+
+  const handleConfirmDeleteCombo = useCallback(() => {
+    if (!deleteCombo) return;
+    deleteComboMutation.mutate(deleteCombo.id, {
+      onSuccess: () => {
+        setDeleteCombo(null);
+        toast.success('Combo deleted', 'The combo has been successfully deleted.');
+      },
+    });
+  }, [deleteCombo, deleteComboMutation, toast]);
+
+  const handleDuplicateCombo = useCallback((combo: Combo) => {
+    const duplicateData: import('@/api/services/comboService').CreateComboRequest = {
+      name: `${combo.name} (Copy)`,
+      slug: `${combo.sku}-copy`,
+      ageGroup: 0,
+      color: '',
+      size: '',
+      description: combo.description,
+      basePrice: combo.basePrice,
+      salePrice: combo.baseSalePrice ?? combo.basePrice,
+      imageUrl: combo.images?.[0] ?? '',
+      imagePublicId: '',
+      items: combo.items.map((item) => ({
+        productVariantId: item.variantId || item.productId,
+        quantity: item.quantity,
+      })),
+    };
+    createComboMutation.mutate(duplicateData, {
+      onSuccess: () => {
+        toast.success('Combo duplicated', `"${combo.name}" has been duplicated.`);
+      },
+    });
+  }, [createComboMutation, toast]);
+
+  const handleComboSubmit = useCallback(
+    async (data: import('@/api/services/comboService').CreateComboRequest) => {
+      if (editingCombo) {
+        updateComboMutation.mutate(
+          { id: editingCombo.id, data },
+          {
+            onSuccess: () => {
+              setComboDialogOpen(false);
+              toast.success('Combo updated', 'The combo has been successfully updated.');
+            },
+          }
+        );
+      } else {
+        createComboMutation.mutate(data, {
+          onSuccess: () => {
+            setComboDialogOpen(false);
+            toast.success('Combo created', 'The new combo has been successfully created.');
+          },
+        });
+      }
+    },
+    [editingCombo, createComboMutation, updateComboMutation, toast]
+  );
+
   const productColumns = useProductColumns({ onView: handleViewDetail, onEdit: handleEdit, onDelete: handleDelete, onAddVariant: handleAddVariant });
-  const comboColumns = useComboColumns();
+  const comboColumns = useComboColumns({
+    onView: handleViewCombo,
+    onEdit: handleEditCombo,
+    onDelete: handleDeleteCombo,
+    onDuplicate: handleDuplicateCombo,
+  });
 
   // Stats
   const stats = useMemo(() => {
@@ -324,21 +448,23 @@ export default function ProductsPage() {
   });
 
   const comboTable = useReactTable({
-    data: mockCombos,
+    data: combos,
     columns: comboColumns,
+    pageCount: comboPageData?.totalPages ?? -1,
     state: {
-      sorting,
-      globalFilter,
-      columnFilters,
-      rowSelection,
-      expanded,
-      pagination: { pageIndex: 0, pageSize: 10 },
+      sorting: comboSorting,
+      globalFilter: comboGlobalFilter,
+      rowSelection: comboRowSelection,
+      expanded: comboExpanded,
+      pagination: comboPagination,
     },
-    onSortingChange: setSorting,
-    onGlobalFilterChange: setGlobalFilter,
-    onColumnFiltersChange: setColumnFilters,
-    onRowSelectionChange: setRowSelection,
-    onExpandedChange: setExpanded,
+    onSortingChange: setComboSorting,
+    onGlobalFilterChange: setComboGlobalFilter,
+    onRowSelectionChange: setComboRowSelection,
+    onExpandedChange: setComboExpanded,
+    onPaginationChange: setComboPagination,
+    manualPagination: true,
+    manualFiltering: true,
     enableRowSelection: true,
     enableExpanding: true,
     getCoreRowModel: getCoreRowModel(),
@@ -348,7 +474,7 @@ export default function ProductsPage() {
   });
 
   // Loading state
-  if (isLoading) {
+  if (isLoading || isLoadingCombos) {
     return (
       <div className="flex flex-col h-full">
         <AdminPageHeader
@@ -393,7 +519,7 @@ export default function ProductsPage() {
             activeTab={activeTab}
             onTabChange={setActiveTab}
             singleCount={pageData?.totalCount ?? 0}
-            comboCount={mockCombos.length}
+            comboCount={comboPageData?.totalCount ?? 0}
           >
             <div className="flex flex-col h-full overflow-hidden">
               {/* Bulk Actions */}
@@ -418,10 +544,10 @@ export default function ProductsPage() {
               {/* Search */}
               <AdminTableSearch
                 table={activeTab === 'single' ? productTable : (comboTable as any)}
-                value={globalFilter}
-                onChange={setGlobalFilter}
+                value={activeTab === 'single' ? globalFilter : comboGlobalFilter}
+                onChange={activeTab === 'single' ? setGlobalFilter : setComboGlobalFilter}
                 placeholder={activeTab === 'single' ? 'Search products by name...' : 'Search combos...'}
-                resultCount={activeTab === 'single' ? (pageData?.totalCount ?? 0) : mockCombos.length}
+                resultCount={activeTab === 'single' ? (pageData?.totalCount ?? 0) : (comboPageData?.totalCount ?? 0)}
                 resultLabel={activeTab === 'single' ? 'products' : 'combos'}
               />
 
@@ -496,6 +622,24 @@ export default function ProductsPage() {
         productName={uploadProductName}
         onUpload={handleUploadImages}
         isUploading={uploadImagesMutation.isPending}
+      />
+
+      {/* Delete Combo Confirmation */}
+      <DeleteProductDialog
+        open={!!deleteCombo}
+        onOpenChange={(open) => { if (!open) setDeleteCombo(null); }}
+        productName={deleteCombo?.name ?? ''}
+        onConfirm={handleConfirmDeleteCombo}
+        isLoading={deleteComboMutation.isPending}
+      />
+
+      {/* Combo Create / Edit Dialog */}
+      <ComboDialog
+        open={comboDialogOpen}
+        onOpenChange={setComboDialogOpen}
+        combo={editingCombo}
+        onSubmit={handleComboSubmit}
+        isLoading={createComboMutation.isPending || updateComboMutation.isPending}
       />
     </div>
   );
