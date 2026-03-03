@@ -1,5 +1,13 @@
 // src/api/types/product.types.ts
 
+export interface AssetResponse {
+  id: string;
+  url: string;
+  type: string;
+  publicId: string;
+  productId: string;
+}
+
 export interface ProductResponse {
   id: string;
   name: string;
@@ -20,6 +28,7 @@ export interface ProductResponse {
   variantCount?: number;
   maxPrice?: number;
   minPrice?: number;
+  assets?: AssetResponse[];
 }
 
 export interface AdminProductPageResponse {

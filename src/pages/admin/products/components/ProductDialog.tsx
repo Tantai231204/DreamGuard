@@ -22,11 +22,7 @@ import { AGE_GROUPS, PRODUCT_STATUSES, STATUS_TO_INT } from '../types';
 import type { CategoryResponse } from '@/api';
 
 /* ─── Constants ───────────────────────────────────────── */
-const STATUS_COLORS: Record<string, string> = {
-    Active: 'bg-emerald-500',
-    Inactive: 'bg-gray-400',
-    Draft: 'bg-amber-400',
-};
+import { PRODUCT_STATUS_COLORS } from '../types';
 
 const INPUT_CLS =
     'h-11 rounded-xl border-gray-200 bg-gray-50/50 hover:border-purple-300 hover:bg-white focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 transition-all';
@@ -49,7 +45,7 @@ interface ProductDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     product?: Product | null;
-    onSubmit: (data: CreateProductRequest) => void;
+    onSubmit: (data: CreateProductRequest) => void | Promise<void>;
     isLoading?: boolean;
     categories?: CategoryResponse[];
 }
@@ -79,24 +75,47 @@ function ProductDialogInner({
         product?.returnPolicyDay != null ? String(product.returnPolicyDay) : '',
     );
     const [status, setStatus] = useState<ProductStatus>(
-        product?.status || 'Active'
+        product?.status || 'Draft'
     );
     const [cateId, setCateId] = useState<string>(
         product?.cateId != null ? String(product.cateId) : '',
     );
+    const [subCateId, setSubCateId] = useState<string>('');
 
     /* Flatten category tree (must be before callbacks that reference it) */
     const flatCategories = useMemo(() => {
-        const result: { cateId: number; name: string; slug: string; depth: number }[] = [];
-        const walk = (list: CategoryResponse[], depth = 0) => {
+        const result: { cateId: number; name: string; slug: string; depth: number; parentId?: number }[] = [];
+        const walk = (list: CategoryResponse[], depth = 0, parentId?: number) => {
             for (const cat of list) {
-                result.push({ cateId: cat.cateId, name: cat.name, slug: cat.slug, depth });
-                if (cat.childCategoryList?.length) walk(cat.childCategoryList, depth + 1);
+                result.push({ cateId: cat.cateId, name: cat.name, slug: cat.slug, depth, parentId });
+                if (cat.childCategoryList?.length) walk(cat.childCategoryList, depth + 1, cat.cateId);
             }
         };
         walk(categories);
         return result;
     }, [categories]);
+
+    /* Find top-level parent of a category */
+    const findTopLevelParent = useCallback((selectedCateId: string): string => {
+        const cat = flatCategories.find(c => String(c.cateId) === selectedCateId);
+        if (!cat || cat.depth === 0) return selectedCateId;
+
+        // Walk up to find root
+        let current = cat;
+        while (current.parentId) {
+            const parent = flatCategories.find(c => c.cateId === current.parentId);
+            if (!parent) break;
+            current = parent;
+        }
+        return String(current.cateId);
+    }, [flatCategories]);
+
+    /* Get child categories of selected category */
+    const childCategories = useMemo(() => {
+        if (!cateId) return [];
+        const selectedCat = categories.find(c => String(c.cateId) === cateId);
+        return selectedCat?.childCategoryList || [];
+    }, [cateId, categories]);
 
     const toSlug = (text: string) =>
         text.toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
@@ -121,36 +140,58 @@ function ProductDialogInner({
     );
 
     const handleCateChange = useCallback(
-        (newCateId: string) => {
-            setCateId(newCateId);
-            if (!isEdit && name.trim()) setSlug(buildSlug(name, newCateId));
+        (selectedCateId: string) => {
+            const selectedCat = flatCategories.find(c => String(c.cateId) === selectedCateId);
+
+            if (selectedCat && selectedCat.depth > 0) {
+                // Selected a child category - set parent as cateId, child as subCateId
+                const topLevelParentId = findTopLevelParent(selectedCateId);
+                setCateId(topLevelParentId);
+                setSubCateId(selectedCateId);
+                if (!isEdit && name.trim()) setSlug(buildSlug(name, topLevelParentId));
+            } else {
+                // Selected a top-level category
+                setCateId(selectedCateId);
+                setSubCateId('');
+                if (!isEdit && name.trim()) setSlug(buildSlug(name, selectedCateId));
+            }
         },
-        [isEdit, name, buildSlug],
+        [isEdit, name, buildSlug, flatCategories, findTopLevelParent],
     );
 
     const handleSubmit = useCallback(
         (e: React.FormEvent) => {
             e.preventDefault();
-            if (!name.trim() || !slug.trim() || !summary.trim() || !description.trim() || !material.trim()) return;
+            // If has subcategories, use subcategory. Otherwise require material
+            const hasSubcategories = childCategories.length > 0;
+            const materialOrSubcate = hasSubcategories ? subCateId : material.trim();
+
+            if (!name.trim() || !slug.trim() || !summary.trim() || !description.trim() || !materialOrSubcate) return;
+
             onSubmit({
                 name: name.trim(),
                 slug: slug.trim(),
                 summary: summary.trim(),
                 description: description.trim(),
-                material: material.trim(),
+                material: hasSubcategories && subCateId
+                    ? (childCategories.find((c) => String(c.cateId) === subCateId)?.name ?? '')
+                    : material.trim(),
                 ageGroup: ageGroup ? Number(ageGroup) : null,
                 warrantyPolicyDay: warrantyPolicyDay ? Number(warrantyPolicyDay) : null,
                 returnPolicyDay: returnPolicyDay ? Number(returnPolicyDay) : null,
                 status: STATUS_TO_INT[status],
-                cateId: cateId ? Number(cateId) : null,
+                cateId: hasSubcategories && subCateId ? Number(subCateId) : (cateId ? Number(cateId) : null),
             });
         },
-        [name, slug, summary, description, material, ageGroup, warrantyPolicyDay, returnPolicyDay, status, cateId, onSubmit],
+        [name, slug, summary, description, material, ageGroup, warrantyPolicyDay, returnPolicyDay, status, cateId, subCateId, childCategories, onSubmit],
     );
 
     const handleStatusChange = useCallback((v: string) => setStatus(v as ProductStatus), []);
 
-    const isValid = name.trim() !== '' && slug.trim() !== '' && summary.trim() !== '' && description.trim() !== '' && material.trim() !== '';
+    // Validate: name, slug, summary, description required, and either material OR subcategory
+    const hasSubcategories = childCategories.length > 0;
+    const materialOrSubcateValid = hasSubcategories ? subCateId !== '' : material.trim() !== '';
+    const isValid = name.trim() !== '' && slug.trim() !== '' && summary.trim() !== '' && description.trim() !== '' && materialOrSubcateValid;
 
     return (
         <>
@@ -290,9 +331,39 @@ function ProductDialogInner({
 
                     <div className="space-y-2">
                         <Label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
-                            <Shirt className="h-3.5 w-3.5 text-gray-400" /> Material <span className="text-red-500">*</span>
+                            {childCategories.length > 0 ? (
+                                <>
+                                    <FolderTree className="h-3.5 w-3.5 text-gray-400" /> Subcategory
+                                </>
+                            ) : (
+                                <>
+                                    <Shirt className="h-3.5 w-3.5 text-gray-400" /> Material <span className="text-red-500">*</span>
+                                </>
+                            )}
                         </Label>
-                        <MaterialCombobox value={material} onChange={setMaterial} disabled={isLoading} />
+                        {childCategories.length > 0 ? (
+                            <Select value={subCateId} onValueChange={setSubCateId} disabled={isLoading}>
+                                <SelectTrigger className={SELECT_CLS}>
+                                    <span className="flex-1">
+                                        <FolderTree className="h-4 w-4 text-gray-400 shrink-0" />
+                                        <SelectValue placeholder="Select subcategory" />
+                                    </span>
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl shadow-xl z-[200]">
+                                    {childCategories.map((subCat) => (
+                                        <SelectItem
+                                            key={subCat.cateId}
+                                            value={String(subCat.cateId)}
+                                            className="rounded-lg hover:bg-purple-50 hover:text-purple-900"
+                                        >
+                                            {subCat.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        ) : (
+                            <MaterialCombobox value={material} onChange={setMaterial} disabled={isLoading} />
+                        )}
                     </div>
                 </section>
 
@@ -354,7 +425,7 @@ function ProductDialogInner({
                                     {PRODUCT_STATUSES.map((s, index) => (
                                         <SelectItem key={s.value ?? `status-${index}`} value={s.value} className="rounded-lg hover:bg-purple-50 hover:text-purple-900">
                                             <span className="flex items-center gap-2">
-                                                <span className={cn('h-2 w-2 rounded-full', STATUS_COLORS[s.value])} />
+                                                <span className={cn('h-2 w-2 rounded-full', PRODUCT_STATUS_COLORS[s.value])} />
                                                 {s.label}
                                             </span>
                                         </SelectItem>

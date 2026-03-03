@@ -12,7 +12,6 @@ import {
   ChevronRight,
   ChevronDown,
   Star,
-  Layers,
   Plus,
 } from 'lucide-react';
 import { SortableHeader } from '@/components/admin';
@@ -24,23 +23,33 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { Product } from '../types';
-import { AGE_GROUPS } from '../types';
+import { AGE_GROUPS, PRODUCT_STATUS_VARIANT } from '../types';
+import { VariantInfoCell, PriceRangeCell, StockCell } from './cells';
 
 const columnHelper = createColumnHelper<Product>();
 
 const statusStyles: Record<string, string> = {
-  Active: 'bg-green-50 text-green-700 border-green-300',
-  Inactive: 'bg-gray-50 text-gray-600 border-gray-300',
-  Draft: 'bg-yellow-50 text-yellow-700 border-yellow-300',
+  Draft: 'bg-amber-50 text-amber-700 border-amber-300',
+  Published: 'bg-emerald-50 text-emerald-700 border-emerald-300',
+  OutOfStock: 'bg-red-50 text-red-700 border-red-300',
+  Hidden: 'bg-gray-50 text-gray-600 border-gray-300',
+};
+
+const statusLabels: Record<string, string> = {
+  Draft: 'Draft',
+  Published: 'Published',
+  OutOfStock: 'Out of Stock',
+  Hidden: 'Hidden',
 };
 
 interface UseProductColumnsProps {
+  onView: (product: Product) => void;
   onEdit: (product: Product) => void;
   onDelete: (product: Product) => void;
   onAddVariant: (product: Product) => void;
 }
 
-export function useProductColumns({ onEdit, onDelete, onAddVariant }: UseProductColumnsProps) {
+export function useProductColumns({ onView, onEdit, onDelete, onAddVariant }: UseProductColumnsProps) {
   const columns = useMemo(
     () => [
       columnHelper.display({
@@ -116,9 +125,9 @@ export function useProductColumns({ onEdit, onDelete, onAddVariant }: UseProduct
       }),
       columnHelper.accessor('slug', {
         enableSorting: true,
-        header: ({ column }) => <SortableHeader column={column} label="Slug" />,
+        header: ({ column }) => <SortableHeader column={column} label="SKU" />,
         cell: (info) => (
-          <span className="font-mono text-xs font-semibold text-gray-600 bg-gray-100 px-2 py-1 rounded-md">
+          <span className="font-mono text-xs font-semibold text-gray-700 bg-gray-50 px-2.5 py-1.5 rounded-md">
             {info.getValue()}
           </span>
         ),
@@ -128,16 +137,24 @@ export function useProductColumns({ onEdit, onDelete, onAddVariant }: UseProduct
         header: 'Variants',
         cell: (info) => {
           const count = info.getValue() ?? 0;
-          if (count === 0) {
-            return <span className="text-xs text-gray-400">No variants</span>;
-          }
-          return (
-            <div className="flex items-center gap-1.5">
-              <Layers className="h-3.5 w-3.5 text-gray-400" />
-              <span className="text-sm font-bold text-gray-900">{count}</span>
-              <span className="text-xs text-gray-500">{count === 1 ? 'variant' : 'variants'}</span>
-            </div>
-          );
+          const productId = info.row.original.id;
+          return <VariantInfoCell productId={productId} variantCount={count} />;
+        },
+      }),
+      columnHelper.display({
+        id: 'price_range',
+        header: 'Price Range',
+        cell: ({ row }) => {
+          const variantCount = row.original.variantCount ?? 0;
+          return <PriceRangeCell productId={row.original.id} variantCount={variantCount} />;
+        },
+      }),
+      columnHelper.display({
+        id: 'stock',
+        header: 'Stock',
+        cell: ({ row }) => {
+          const variantCount = row.original.variantCount ?? 0;
+          return <StockCell productId={row.original.id} variantCount={variantCount} />;
         },
       }),
       columnHelper.accessor('ageGroup', {
@@ -169,9 +186,10 @@ export function useProductColumns({ onEdit, onDelete, onAddVariant }: UseProduct
         header: 'Status',
         cell: (info) => {
           const status = info.getValue();
+          const variant = PRODUCT_STATUS_VARIANT[status] || 'outline';
           return (
-            <Badge variant="outline" className={`font-semibold ${statusStyles[status] || ''}`}>
-              {status}
+            <Badge variant={variant} className={`font-medium text-xs ${statusStyles[status] || ''}`}>
+              {statusLabels[status] || status}
             </Badge>
           );
         },
@@ -201,7 +219,10 @@ export function useProductColumns({ onEdit, onDelete, onAddVariant }: UseProduct
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52 shadow-xl border-2 rounded-xl">
-                <DropdownMenuItem className="cursor-pointer py-2.5 font-medium">
+                <DropdownMenuItem
+                  className="cursor-pointer py-2.5 font-medium"
+                  onClick={() => onView(row.original)}
+                >
                   <Eye className="h-4 w-4 mr-3 text-blue-600" />
                   View Details
                 </DropdownMenuItem>
@@ -233,7 +254,7 @@ export function useProductColumns({ onEdit, onDelete, onAddVariant }: UseProduct
         ),
       }),
     ],
-    [onEdit, onDelete, onAddVariant]
+    [onView, onEdit, onDelete, onAddVariant]
   );
 
   return columns;

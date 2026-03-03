@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
     Dialog,
     DialogContent,
@@ -11,19 +11,28 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, FolderTree, Tag, Link2, Power } from 'lucide-react';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { Loader2, FolderTree, Tag, Link2, Power, FolderOpen } from 'lucide-react';
 import type { CategoryResponse } from '@/api';
 
 interface CategoryDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     category?: CategoryResponse | null;
-    onSubmit: (data: { name: string; slug: string; isActive: boolean }) => void;
+    allCategories?: CategoryResponse[];
+    onSubmit: (data: { name: string; slug: string; isActive: boolean; cateParentId?: number }) => void;
     isLoading?: boolean;
 }
 
 function CategoryDialogInner({
     category,
+    allCategories = [],
     onOpenChange,
     onSubmit,
     isLoading = false,
@@ -33,6 +42,16 @@ function CategoryDialogInner({
     const [name, setName] = useState(category?.name ?? '');
     const [slug, setSlug] = useState(category?.slug ?? '');
     const [isActive, setIsActive] = useState(category?.isActive ?? true);
+    const [parentId, setParentId] = useState<string | undefined>(undefined);
+
+    // Only show top-level categories in dropdown (exclude current category when editing)
+    const topLevelCategories = useMemo(() => {
+        // When editing, exclude self to prevent circular reference
+        if (isEdit && category) {
+            return allCategories.filter(c => c.cateId !== category.cateId);
+        }
+        return allCategories;
+    }, [allCategories, category, isEdit]);
 
     // Auto generate slug từ name
     const handleNameChange = (value: string) => {
@@ -51,7 +70,12 @@ function CategoryDialogInner({
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!name.trim() || !slug.trim()) return;
-        onSubmit({ name: name.trim(), slug: slug.trim(), isActive });
+        onSubmit({ 
+            name: name.trim(), 
+            slug: slug.trim(), 
+            isActive,
+            cateParentId: parentId && parentId !== 'none' ? parseInt(parentId) : undefined
+        });
     };
 
     return (
@@ -111,6 +135,31 @@ function CategoryDialogInner({
                     </p>
                 </div>
 
+                {/* Parent Category */}
+                <div className="space-y-2">
+                    <Label htmlFor="parentId" className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+                        <FolderOpen className="w-3.5 h-3.5 text-gray-500" />
+                        Parent Category
+                        <span className="text-xs font-normal text-gray-400">(optional)</span>
+                    </Label>
+                    <Select value={parentId} onValueChange={setParentId} disabled={isLoading}>
+                        <SelectTrigger className="bg-gray-50 border-gray-300 focus:border-purple-500 focus:ring-purple-500/20 h-10">
+                            <SelectValue placeholder="None - Top level category" />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-[300px]">
+                            <SelectItem value="none">None - Top level category</SelectItem>
+                            {topLevelCategories.map((cat) => (
+                                <SelectItem key={cat.cateId} value={cat.cateId.toString()}>
+                                    {cat.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-500">
+                        Select a top-level category as parent to create a subcategory.
+                    </p>
+                </div>
+
                 {/* isActive */}
                 <div className="rounded-lg border border-gray-200 bg-white p-4">
                     <div className="flex items-center justify-between">
@@ -161,6 +210,7 @@ export default function CategoryDialog({
     open,
     onOpenChange,
     category,
+    allCategories,
     onSubmit,
     isLoading,
 }: CategoryDialogProps) {
@@ -171,6 +221,7 @@ export default function CategoryDialog({
                 <CategoryDialogInner
                     key={category?.cateId ?? 'new'}
                     category={category}
+                    allCategories={allCategories}
                     onOpenChange={onOpenChange}
                     onSubmit={onSubmit}
                     isLoading={isLoading}

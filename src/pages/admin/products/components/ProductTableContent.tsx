@@ -9,7 +9,12 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import VariantTableWrapper from './VariantTableWrapper';
-import type { ProductVariant } from '../types';
+import type { Product, ProductVariant } from '../types';
+
+// Extended product type that includes combo items
+interface ProductWithItems extends Product {
+  items?: { id: string; name: string; quantity: number }[];
+}
 
 interface ProductTableContentProps<T = unknown> {
   table: Table<T>;
@@ -57,19 +62,18 @@ export default function ProductTableContent<T = unknown>({
           {rows.length > 0 ? (
             <>
               {rows.map((row) => {
-                const item = row.original as Record<string, unknown>;
+                const item = row.original as ProductWithItems;
                 const isExpanded = row.getIsExpanded();
                 // Check both variants array and variantCount (API may return count without full array)
-                const hasVariants = ((item.variants as any[])?.length ?? 0) > 0 || (item.variantCount as number ?? 0) > 0 || ((item.items as any[])?.length ?? 0) > 0;
+                const hasVariants = (item.variants?.length ?? 0) > 0 || (item.variantCount ?? 0) > 0 || (item.items?.length ?? 0) > 0;
 
                 return (
                   <React.Fragment key={row.id}>
                     {/* Product row */}
                     <TableRow
                       data-state={row.getIsSelected() && 'selected'}
-                      className={`hover:bg-gray-50 transition-colors border-b border-gray-100 data-[state=selected]:bg-blue-50 ${
-                        isExpanded ? 'bg-blue-50/20 border-b-0' : ''
-                      } ${hasVariants ? 'cursor-pointer' : ''}`}
+                      className={`hover:bg-gray-50 transition-colors border-b border-gray-100 data-[state=selected]:bg-blue-50 ${isExpanded ? 'bg-blue-50/20 border-b-0' : ''
+                        } ${hasVariants ? 'cursor-pointer' : ''}`}
                       onClick={(e) => {
                         if (!hasVariants) return;
                         const target = e.target as HTMLElement;
@@ -94,20 +98,20 @@ export default function ProductTableContent<T = unknown>({
                     {isExpanded && (
                       <>
                         {/* Show variant table - fetch from API */}
-                        {((item.variants as ProductVariant[])?.length > 0 || (item.variantCount as number ?? 0) > 0) && (
+                        {((item.variants?.length ?? 0) > 0 || (item.variantCount ?? 0) > 0) && (
                           <TableRow className="hover:bg-transparent">
                             <TableCell colSpan={columnCount} className="p-0">
                               <VariantTableWrapper
-                                productId={item.id as string}
-                                productName={item.name as string}
-                                onAddVariant={() => onAddVariant?.(item.id as string, item.name as string, (item as any).slug as string, (item.variants as ProductVariant[])?.length ?? (item.variantCount as number) ?? 0)}
+                                productId={item.id}
+                                productName={item.name}
+                                onAddVariant={() => onAddVariant?.(item.id, item.name, item.slug, item.variants?.length ?? item.variantCount ?? 0)}
                                 onEditVariant={(variant) => onEditVariant?.(variant)}
                                 onDeleteVariant={(variant) => onDeleteVariant?.(variant)}
                               />
                             </TableCell>
                           </TableRow>
                         )}
-                        {(item.items as any[])?.length > 0 && (
+                        {(item.items?.length ?? 0) > 0 && (
                           <TableRow className="hover:bg-transparent">
                             <TableCell colSpan={columnCount} className="p-0">
                               {/* Combo items will be rendered by ComboItemsTable in the column definition */}

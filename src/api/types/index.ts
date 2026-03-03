@@ -22,8 +22,7 @@ export type {
   UpdateVoucherRequest,
   VoucherPageResponse,
 } from "./voucher.types";
-export type {
-  ProductResponse,
+export type {  AssetResponse,  ProductResponse,
   ProductVariantResponse,
   CreateProductRequest,
   UpdateProductRequest,

@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/useToast';
 import {
   useReactTable,
@@ -26,6 +27,8 @@ import ProductTableContent from './components/ProductTableContent';
 import ProductDialog from './components/ProductDialog';
 import VariantDialog from './components/VariantDialog';
 import DeleteProductDialog from './components/DeleteProductDialog';
+import ProductCreationSuccess from './components/ProductCreationSuccess';
+import ImageUploadDialog from './components/ImageUploadDialog';
 import ProductTabs from './components/ProductTabs';
 import { useProductColumns } from './components/useProductColumns';
 import { useComboColumns } from './components/useComboColumns';
@@ -34,6 +37,7 @@ import {
   useCreateProduct,
   useUpdateProduct,
   useDeleteProduct,
+  useUploadProductImages,
   useCreateVariant,
   useUpdateVariant,
   useDeleteVariant,
@@ -58,6 +62,18 @@ export default function ProductsPage() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deleteProduct, setDeleteProduct] = useState<Product | null>(null);
 
+  // Success dialog state
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
+  const [createdProductId, setCreatedProductId] = useState<string>('');
+  const [createdProductName, setCreatedProductName] = useState<string>('');
+
+  // Image upload dialog state
+  const [imageUploadOpen, setImageUploadOpen] = useState(false);
+  const [uploadProductId, setUploadProductId] = useState<string>('');
+  const [uploadProductName, setUploadProductName] = useState<string>('');
+  // Use ref to always have the latest product ID (avoids stale closure)
+  const uploadProductIdRef = useRef<string>('');
+
   // Variant dialog state
   const [variantDialogOpen, setVariantDialogOpen] = useState(false);
   const [editingVariant, setEditingVariant] = useState<ProductVariant | null>(null);
@@ -77,7 +93,7 @@ export default function ProductsPage() {
     () =>
       (pageData?.items ?? []).map((item) => ({
         ...item,
-        status: INT_TO_STATUS[item.status] || 'Active',
+        status: INT_TO_STATUS[item.status] || 'Draft',
         variants: item.variants?.map((v) => ({
           ...v,
           status: INT_TO_VARIANT_STATUS[v.status] || 'Active',
@@ -91,6 +107,7 @@ export default function ProductsPage() {
   const createMutation = useCreateProduct();
   const updateMutation = useUpdateProduct();
   const deleteMutation = useDeleteProduct();
+  const uploadImagesMutation = useUploadProductImages();
 
   // Variant Mutations
   const createVariantMutation = useCreateVariant();
@@ -154,8 +171,9 @@ export default function ProductsPage() {
   const handleVariantSubmit = useCallback(
     (data: CreateVariantRequest) => {
       if (editingVariant) {
-        // Update existing variant
-        const { productId, ...updateData } = data;
+        // Update existing variant - destructure to omit productId
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { productId: _, ...updateData } = data;
         updateVariantMutation.mutate(
           { id: editingVariant.id, data: updateData },
           {
@@ -179,7 +197,7 @@ export default function ProductsPage() {
   );
 
   const handleSubmit = useCallback(
-    (data: CreateProductRequest) => {
+    async (data: CreateProductRequest) => {
       if (editingProduct) {
         updateMutation.mutate(
           { id: editingProduct.id, data },
@@ -191,12 +209,24 @@ export default function ProductsPage() {
           }
         );
       } else {
-        createMutation.mutate(data, {
-          onSuccess: () => {
-            setDialogOpen(false);
-            toast.success('Product created', 'The new product has been successfully created.');
-          },
-        });
+        try {
+          const response = await createMutation.mutateAsync(data);
+          console.log('[CreateProduct] response:', JSON.stringify(response));
+          setDialogOpen(false);
+          toast.success('Product created', 'The new product has been successfully created.');
+
+          // response.id is resolved by productService (from header or re-fetch by name)
+          const productId = response?.id;
+          const productName = response?.name || data.name;
+          console.log('[CreateProduct] productId:', productId, 'productName:', productName);
+
+          uploadProductIdRef.current = productId ?? '';
+          setCreatedProductId(productId ?? '');
+          setCreatedProductName(productName);
+          setSuccessDialogOpen(true);
+        } catch (error) {
+          console.error('[CreateProduct] Error:', error);
+        }
       }
     },
     [editingProduct, createMutation, updateMutation, toast]
@@ -212,16 +242,62 @@ export default function ProductsPage() {
     });
   }, [deleteProduct, deleteMutation, toast]);
 
-  const productColumns = useProductColumns({ onEdit: handleEdit, onDelete: handleDelete, onAddVariant: handleAddVariant });
+  const handleUploadImages = useCallback(
+    async (productId: string, files: File[]) => {
+      // Use ref as fallback in case prop is stale
+      const id = productId || uploadProductIdRef.current;
+      if (!id || files.length === 0) {
+        console.error('[Upload] Aborted — missing id or files', { id, filesCount: files.length });
+        return;
+      }
+
+      console.log('[Upload] Calling API for product:', id, 'files:', files.length);
+
+      try {
+        await uploadImagesMutation.mutateAsync({ productId: id, files });
+        setImageUploadOpen(false);
+        toast.success('Images uploaded', 'Product images have been successfully uploaded.');
+      } catch (error) {
+        console.error('[Upload] Error:', error);
+        toast.error('Upload failed', 'Failed to upload images. Please try again.');
+      }
+    },
+    [uploadImagesMutation, toast]
+  );
+
+  // Handler for success dialog - Add Images
+  const handleAddImagesFromSuccess = useCallback(() => {
+    const id = uploadProductIdRef.current || createdProductId;
+    console.log('[AddImages] ref:', uploadProductIdRef.current, 'state:', createdProductId, 'using:', id);
+    setSuccessDialogOpen(false);
+    setUploadProductId(id);
+    setUploadProductName(createdProductName);
+    setImageUploadOpen(true);
+  }, [createdProductId, createdProductName]);
+
+  // Handler for success dialog - Skip
+  const handleSkipImages = useCallback(() => {
+    setSuccessDialogOpen(false);
+    setCreatedProductId('');
+    setCreatedProductName('');
+  }, []);
+
+  const navigate = useNavigate();
+  const handleViewDetail = useCallback((product: Product) => {
+    navigate(`/admin/products/${product.id}`);
+  }, [navigate]);
+
+  const productColumns = useProductColumns({ onView: handleViewDetail, onEdit: handleEdit, onDelete: handleDelete, onAddVariant: handleAddVariant });
   const comboColumns = useComboColumns();
 
   // Stats
   const stats = useMemo(() => {
     const total = pageData?.totalCount ?? 0;
-    const active = products.filter((p) => p.status === 'Active').length;
-    const inactive = products.filter((p) => p.status === 'Inactive').length;
+    const published = products.filter((p) => p.status === 'Published').length;
+    const outOfStock = products.filter((p) => p.status === 'OutOfStock').length;
     const draft = products.filter((p) => p.status === 'Draft').length;
-    return { total, active, inactive, draft };
+    const hidden = products.filter((p) => p.status === 'Hidden').length;
+    return { total, published, outOfStock, draft, hidden };
   }, [pageData?.totalCount, products]);
 
   const productTable = useReactTable({
@@ -297,9 +373,10 @@ export default function ProductsPage() {
 
   const headerStats = [
     { label: 'Total', value: stats.total },
-    { label: 'Active', value: stats.active },
-    { label: 'Inactive', value: stats.inactive },
+    { label: 'Published', value: stats.published },
+    { label: 'Out of Stock', value: stats.outOfStock },
     { label: 'Draft', value: stats.draft },
+    { label: 'Hidden', value: stats.hidden },
   ];
 
   return (
@@ -385,6 +462,15 @@ export default function ProductsPage() {
         categories={categories}
       />
 
+      {/* Product Creation Success */}
+      <ProductCreationSuccess
+        open={successDialogOpen}
+        onOpenChange={setSuccessDialogOpen}
+        productName={createdProductName}
+        onAddImages={handleAddImagesFromSuccess}
+        onSkip={handleSkipImages}
+      />
+
       {/* Delete Confirmation */}
       <DeleteProductDialog
         open={!!deleteProduct}
@@ -405,6 +491,16 @@ export default function ProductsPage() {
         variantCount={variantCount}
         onSubmit={handleVariantSubmit}
         isLoading={createVariantMutation.isPending || updateVariantMutation.isPending}
+      />
+
+      {/* Image Upload Dialog */}
+      <ImageUploadDialog
+        open={imageUploadOpen}
+        onOpenChange={setImageUploadOpen}
+        productId={uploadProductId}
+        productName={uploadProductName}
+        onUpload={handleUploadImages}
+        isUploading={uploadImagesMutation.isPending}
       />
     </div>
   );

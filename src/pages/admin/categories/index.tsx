@@ -32,6 +32,7 @@ export default function CategoriesPage() {
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+    const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
 
     // Dialog state
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -44,6 +45,37 @@ export default function CategoriesPage() {
     const categories = useMemo(() => {
         return Array.isArray(categoriesData) ? categoriesData : [];
     }, [categoriesData]);
+
+    // Toggle expand/collapse
+    const handleToggleExpand = useCallback((id: number) => {
+        setExpandedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+    }, []);
+
+    // Flatten categories for table display (including expanded children)
+    const flattenedCategories = useMemo(() => {
+        const result: (Category & { level: number; parentId?: number })[] = [];
+        
+        const flatten = (cats: Category[], level = 0, parentId?: number) => {
+            cats.forEach((cat) => {
+                result.push({ ...cat, level, parentId });
+                
+                if (expandedIds.has(cat.cateId) && cat.childCategoryList?.length > 0) {
+                    flatten(cat.childCategoryList, level + 1, cat.cateId);
+                }
+            });
+        };
+        
+        flatten(categories);
+        return result;
+    }, [categories, expandedIds]);
 
     // Mutations
     const createMutation = useCreateCategory();
@@ -63,7 +95,7 @@ export default function CategoriesPage() {
 
     // Submit form (create hoặc update)
     const handleSubmit = useCallback(
-        (data: { name: string; slug: string; isActive: boolean }) => {
+        (data: { name: string; slug: string; isActive: boolean; cateParentId?: number }) => {
             if (editingCategory) {
                 updateMutation.mutate(
                     { id: editingCategory.cateId, data },
@@ -86,7 +118,11 @@ export default function CategoriesPage() {
         [editingCategory, createMutation, updateMutation, toast]
     );
 
-    const columns = useCategoryColumns({ onEdit: handleEdit });
+    const columns = useCategoryColumns({ 
+        onEdit: handleEdit,
+        expandedIds,
+        onToggleExpand: handleToggleExpand
+    });
 
     // Stats
     const stats = useMemo(() => {
@@ -98,7 +134,7 @@ export default function CategoriesPage() {
     }, [categories]);
 
     const table = useReactTable({
-        data: categories,
+        data: flattenedCategories,
         columns,
         state: {
             sorting,
@@ -237,6 +273,7 @@ export default function CategoriesPage() {
                 open={dialogOpen}
                 onOpenChange={setDialogOpen}
                 category={editingCategory}
+                allCategories={categories}
                 onSubmit={handleSubmit}
                 isLoading={createMutation.isPending || updateMutation.isPending}
             />

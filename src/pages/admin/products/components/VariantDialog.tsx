@@ -12,15 +12,17 @@ import {
     Tag,
     DollarSign,
     Scale,
-    Ruler,
     CircleDot,
     Sparkles,
     RefreshCw,
+    Ruler,
+    Move3D,
 } from 'lucide-react';
-import type { ProductVariant, VariantStatus, CreateVariantRequest } from '../types';
-import { VARIANT_STATUS_TO_INT, SIZE_OPTIONS } from '../types';
+import type { ProductVariant, VariantStatus, CreateVariantRequest, VariantAttributes } from '../types';
+import { VARIANT_STATUS_TO_INT } from '../types';
 import ColorPicker from './ColorPicker';
 import SectionHeading from './SectionHeading';
+import AttributesEditor, { type AttributeField } from './AttributesEditor';
 
 /* ─── Constants ───────────────────────────────────────── */
 const STATUS_COLORS: Record<string, string> = {
@@ -46,6 +48,14 @@ const generateSku = (productSlug: string, variantIndex: number): string => {
         .map(s => s.toUpperCase().slice(0, 4))
         .join('-');
     return `${prefix}-V${String(variantIndex + 1).padStart(3, '0')}`;
+};
+
+/* ─── Helper: Parse Attributes ────────────────────────── */
+const parseAttributesToFields = (attributes: VariantAttributes | null | undefined): AttributeField[] => {
+    if (!attributes) return [];
+    return Object.entries(attributes)
+        .filter(([key]) => !['width', 'length', 'thickness', 'color'].includes(key))
+        .map(([key, value]) => ({ key, value: String(value ?? '') }));
 };
 
 /* ─── Props ───────────────────────────────────────────── */
@@ -81,8 +91,24 @@ function VariantDialogInner({
         return '';
     }, [variant?.sku, productSlug, variantCount]);
 
+    // State
     const [sku, setSku] = useState(initialSku);
-    const [size, setSize] = useState(variant?.size ?? '');
+    
+    // Dimensions (stored in attributes)
+    const [width, setWidth] = useState(
+        variant?.attributes?.width != null ? String(variant.attributes.width) : ''
+    );
+    const [length, setLength] = useState(
+        variant?.attributes?.length != null ? String(variant.attributes.length) : ''
+    );
+    const [thickness, setThickness] = useState(
+        variant?.attributes?.thickness != null ? String(variant.attributes.thickness) : ''
+    );
+    
+    // Color (hex code stored in attributes)
+    const [color, setColor] = useState(variant?.attributes?.color ?? '#f5f5f5');
+    
+    // Pricing
     const [basePrice, setBasePrice] = useState(
         variant?.basePrice != null ? String(variant.basePrice) : ''
     );
@@ -92,14 +118,18 @@ function VariantDialogInner({
     const [weight, setWeight] = useState(
         variant?.weight != null ? String(variant.weight) : ''
     );
+    
+    // Other
     const [isNew, setIsNew] = useState(variant?.isNew ?? false);
     const [status, setStatus] = useState<VariantStatus>(variant?.status || 'Active');
-    const [color, setColor] = useState(variant?.attributes?.color ?? '');
-    const [colorCode, setColorCode] = useState(variant?.attributes?.colorCode ?? '');
 
-    const handleColorChange = useCallback((name: string, code: string) => {
-        setColor(name);
-        setColorCode(code);
+    // Dynamic attributes (key-value pairs for extra fields)
+    const [attributes, setAttributes] = useState<AttributeField[]>(
+        () => parseAttributesToFields(variant?.attributes)
+    );
+
+    const handleColorChange = useCallback((_name: string, code: string) => {
+        setColor(code);
     }, []);
 
     const handleRegenerateSku = useCallback(() => {
@@ -111,25 +141,43 @@ function VariantDialogInner({
     const handleSubmit = useCallback(
         (e: React.FormEvent) => {
             e.preventDefault();
-            if (!sku.trim() || !size.trim() || !basePrice.trim()) return;
+            if (!sku.trim() || !basePrice.trim()) return;
+
+            // Build attributes object
+            const finalAttributes: VariantAttributes = {};
+
+            // Add dimensions if present
+            if (width) finalAttributes.width = Number(width);
+            if (length) finalAttributes.length = Number(length);
+            if (thickness) finalAttributes.thickness = Number(thickness);
+            
+            // Add color (hex)
+            if (color) finalAttributes.color = color;
+
+            // Add dynamic attributes
+            attributes.forEach(attr => {
+                if (attr.key.trim()) {
+                    finalAttributes[attr.key.trim()] = attr.value;
+                }
+            });
+
             onSubmit({
                 productId,
                 sku: sku.trim(),
-                size: size.trim(),
                 basePrice: Number(basePrice),
                 salePrice: salePrice ? Number(salePrice) : Number(basePrice),
                 weight: weight ? Number(weight) : null,
                 isNew,
                 status: VARIANT_STATUS_TO_INT[status],
-                attributes: color ? { color, colorCode } : null,
+                attributes: Object.keys(finalAttributes).length > 0 ? finalAttributes : null,
             });
         },
-        [productId, sku, size, basePrice, salePrice, weight, isNew, status, color, colorCode, onSubmit]
+        [productId, sku, width, length, thickness, color, basePrice, salePrice, weight, isNew, status, attributes, onSubmit]
     );
 
     const handleStatusChange = useCallback((v: string) => setStatus(v as VariantStatus), []);
 
-    const isValid = sku.trim() !== '' && size.trim() !== '' && basePrice.trim() !== '';
+    const isValid = sku.trim() !== '' && basePrice.trim() !== '';
 
     return (
         <>
@@ -158,65 +206,100 @@ function VariantDialogInner({
                 <section className="space-y-4">
                     <SectionHeading title="Basic Information" />
 
-                    <div className="grid grid-cols-2 gap-5">
-                        {/* SKU */}
-                        <div className="space-y-2">
-                            <Label htmlFor="sku" className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
-                                <Tag className="h-3.5 w-3.5 text-gray-400" />
-                                SKU <span className="text-red-500">*</span>
-                            </Label>
-                            <div className="flex gap-2">
-                                <Input
-                                    id="sku"
-                                    placeholder="e.g. PROD-001-V001"
-                                    value={sku}
-                                    onChange={(e) => setSku(e.target.value)}
+                    {/* SKU */}
+                    <div className="space-y-2">
+                        <Label htmlFor="sku" className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+                            <Tag className="h-3.5 w-3.5 text-gray-400" />
+                            SKU <span className="text-red-500">*</span>
+                        </Label>
+                        <div className="flex gap-2">
+                            <Input
+                                id="sku"
+                                placeholder="e.g. PROD-001"
+                                value={sku}
+                                onChange={(e) => setSku(e.target.value)}
+                                disabled={isLoading}
+                                className={cn(INPUT_CLS, 'font-mono text-sm flex-1')}
+                                autoFocus
+                            />
+                            {!isEdit && productSlug && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={handleRegenerateSku}
                                     disabled={isLoading}
-                                    className={cn(INPUT_CLS, 'font-mono text-sm flex-1')}
-                                    autoFocus
+                                    className="h-11 w-11 rounded-xl border-gray-200 hover:border-purple-300"
+                                    title="Regenerate SKU"
+                                >
+                                    <RefreshCw className="h-4 w-4" />
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                </section>
+
+                {/* Dimensions */}
+                <section className="space-y-4">
+                    <SectionHeading title="Dimensions" />
+
+                    <div className="grid grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="width" className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+                                <Ruler className="h-3.5 w-3.5 text-gray-400" />
+                                Width
+                            </Label>
+                            <div className="relative">
+                                <Input
+                                    id="width"
+                                    type="number"
+                                    min={0}
+                                    placeholder="0"
+                                    value={width}
+                                    onChange={(e) => setWidth(e.target.value)}
+                                    disabled={isLoading}
+                                    className={cn(INPUT_CLS, 'pr-10')}
                                 />
-                                {!isEdit && productSlug && (
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        size="icon"
-                                        onClick={handleRegenerateSku}
-                                        disabled={isLoading}
-                                        className="h-11 w-11 rounded-xl border-gray-200 hover:border-purple-300"
-                                        title="Regenerate SKU"
-                                    >
-                                        <RefreshCw className="h-4 w-4" />
-                                    </Button>
-                                )}
+                                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">cm</span>
                             </div>
                         </div>
-
-                        {/* Size */}
                         <div className="space-y-2">
-                            <Label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+                            <Label htmlFor="length" className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
                                 <Ruler className="h-3.5 w-3.5 text-gray-400" />
-                                Size <span className="text-red-500">*</span>
+                                Length
                             </Label>
-                            <Select value={size} onValueChange={setSize} disabled={isLoading}>
-                                <SelectTrigger className={SELECT_CLS}>
-                                    <Ruler className="h-4 w-4 text-gray-400 shrink-0" />
-                                    <SelectValue placeholder="Select size" />
-                                </SelectTrigger>
-                                <SelectContent className="rounded-xl shadow-xl z-[200]">
-                                    {SIZE_OPTIONS.map((s) => (
-                                        <SelectItem
-                                            key={s.value}
-                                            value={s.value}
-                                            className="rounded-lg hover:bg-purple-50 hover:text-purple-900"
-                                        >
-                                            <span className="flex items-center gap-2">
-                                                <span className="font-medium">{s.label}</span>
-                                                <span className="text-xs text-gray-400">({s.description})</span>
-                                            </span>
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                            <div className="relative">
+                                <Input
+                                    id="length"
+                                    type="number"
+                                    min={0}
+                                    placeholder="0"
+                                    value={length}
+                                    onChange={(e) => setLength(e.target.value)}
+                                    disabled={isLoading}
+                                    className={cn(INPUT_CLS, 'pr-10')}
+                                />
+                                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">cm</span>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="thickness" className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+                                <Move3D className="h-3.5 w-3.5 text-gray-400" />
+                                Thickness
+                            </Label>
+                            <div className="relative">
+                                <Input
+                                    id="thickness"
+                                    type="number"
+                                    min={0}
+                                    placeholder="0"
+                                    value={thickness}
+                                    onChange={(e) => setThickness(e.target.value)}
+                                    disabled={isLoading}
+                                    className={cn(INPUT_CLS, 'pr-10')}
+                                />
+                                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">cm</span>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -225,12 +308,19 @@ function VariantDialogInner({
                 <section className="space-y-4">
                     <SectionHeading title="Color" />
                     <ColorPicker
-                        color={color}
-                        colorCode={colorCode}
+                        color=""
+                        colorCode={color}
                         onColorChange={handleColorChange}
                         disabled={isLoading}
                     />
                 </section>
+
+                {/* Custom Attributes */}
+                <AttributesEditor
+                    attributes={attributes}
+                    onChange={setAttributes}
+                    disabled={isLoading}
+                />
 
                 {/* Pricing */}
                 <section className="space-y-4">

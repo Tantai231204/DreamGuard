@@ -1,5 +1,5 @@
 // ── Product ──────────────────────────────────────────────
-export type ProductStatus = "Active" | "Inactive" | "Draft";
+export type ProductStatus = "Draft" | "Published" | "OutOfStock" | "Hidden";
 export type VariantStatus = "Active" | "Inactive";
 
 export const AGE_GROUPS: Record<number, string> = {
@@ -10,23 +10,42 @@ export const AGE_GROUPS: Record<number, string> = {
 };
 
 export const PRODUCT_STATUSES: { value: ProductStatus; label: string }[] = [
-  { value: "Active", label: "Active" },
-  { value: "Inactive", label: "Inactive" },
   { value: "Draft", label: "Draft" },
+  { value: "Published", label: "Published" },
+  { value: "OutOfStock", label: "Out of Stock" },
+  { value: "Hidden", label: "Hidden" },
 ];
 
 /** Map string status → .NET enum int value */
 export const STATUS_TO_INT: Record<ProductStatus, number> = {
-  Active: 0,
-  Inactive: 1,
-  Draft: 2,
+  Draft: 0,
+  Published: 1,
+  OutOfStock: 2,
+  Hidden: 3,
 };
 
 /** Map .NET enum int → string status */
 export const INT_TO_STATUS: Record<number, ProductStatus> = {
-  0: "Active",
-  1: "Inactive",
-  2: "Draft",
+  0: "Draft",
+  1: "Published",
+  2: "OutOfStock",
+  3: "Hidden",
+};
+
+/** Badge variant for each product status */
+export const PRODUCT_STATUS_VARIANT: Record<ProductStatus, 'success' | 'warning' | 'outline' | 'danger'> = {
+  Draft: 'warning',
+  Published: 'success',
+  OutOfStock: 'danger',
+  Hidden: 'outline',
+};
+
+/** Color classes for each product status */
+export const PRODUCT_STATUS_COLORS: Record<ProductStatus, string> = {
+  Draft: 'bg-amber-400',
+  Published: 'bg-emerald-500',
+  OutOfStock: 'bg-red-500',
+  Hidden: 'bg-gray-400',
 };
 
 export const VARIANT_STATUS_TO_INT: Record<VariantStatus, number> = {
@@ -112,8 +131,10 @@ export type UpdateProductRequest = CreateProductRequest;
 
 // ── Product Variant ──────────────────────────────────────
 export interface VariantAttributes {
-  color?: string;
-  colorCode?: string; // hex color code
+  width?: number;      // Width in cm
+  length?: number;     // Length in cm  
+  thickness?: number;  // Thickness in cm
+  color?: string;      // Color (hex code like "#ff0000" or name like "red")
   [key: string]: unknown;
 }
 
@@ -124,7 +145,6 @@ export interface ProductVariant {
   salePrice: number;
   weight: number | null;
   attributes: VariantAttributes | null;
-  size: string;
   status: VariantStatus;
   createdAt: string;
   isNew: boolean;
@@ -136,13 +156,12 @@ export interface ProductVariant {
 export interface CreateVariantRequest {
   productId: string;
   sku: string;
-  size: string;
   basePrice: number;
   salePrice: number;
   weight: number | null;
   isNew: boolean;
   status: number;
-  attributes: Record<string, unknown> | null;
+  attributes: VariantAttributes | null;
 }
 
 export type UpdateVariantRequest = Omit<CreateVariantRequest, 'productId'>;

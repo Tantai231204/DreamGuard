@@ -6,6 +6,11 @@ import {
   keepPreviousData,
 } from "@tanstack/react-query";
 import { productService, variantService } from "@/api";
+import {
+  inventoryService,
+  type AddStockRequest,
+  type ReduceStockRequest,
+} from "@/api/services/inventoryService";
 import type {
   CreateProductRequest,
   UpdateProductRequest,
@@ -26,6 +31,8 @@ export const productKeys = {
 export const variantKeys = {
   all: ["variants"] as const,
   byProduct: (productId: string) => ["variants", "product", productId] as const,
+  adminByProduct: (productId: string) =>
+    ["variants", "admin", productId] as const,
   detail: (id: string) => ["variants", id] as const,
 };
 
@@ -64,6 +71,15 @@ export const useProductVariants = (productId: string, enabled = true) => {
   return useQuery({
     queryKey: variantKeys.byProduct(productId),
     queryFn: () => variantService.getByProductId(productId),
+    enabled: !!productId && enabled,
+  });
+};
+
+/** Fetch admin variants grouped by color */
+export const useAdminProductVariants = (productId: string, enabled = true) => {
+  return useQuery({
+    queryKey: variantKeys.adminByProduct(productId),
+    queryFn: () => variantService.getAdminByProductId(productId),
     enabled: !!productId && enabled,
   });
 };
@@ -109,6 +125,20 @@ export const useDeleteProduct = () => {
   });
 };
 
+/** Upload images for product */
+export const useUploadProductImages = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ productId, files }: { productId: string; files: File[] }) =>
+      productService.uploadImage(productId, files),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+      queryClient.invalidateQueries({ queryKey: productKeys.detail(variables.productId) });
+    },
+  });
+};
+
 // ========================
 // Variant Mutations
 // ========================
@@ -121,7 +151,12 @@ export const useCreateVariant = () => {
     mutationFn: (data: CreateVariantRequest) => variantService.create(data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: productKeys.all });
-      queryClient.invalidateQueries({ queryKey: variantKeys.byProduct(variables.productId) });
+      queryClient.invalidateQueries({
+        queryKey: variantKeys.byProduct(variables.productId),
+      });
+      queryClient.invalidateQueries({
+        queryKey: variantKeys.adminByProduct(variables.productId),
+      });
     },
   });
 };
@@ -149,6 +184,67 @@ export const useDeleteVariant = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.all });
       queryClient.invalidateQueries({ queryKey: variantKeys.all });
+    },
+  });
+};
+
+// ========================
+// Inventory Mutations
+// ========================
+
+/** Add stock to a variant */
+export const useAddStock = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: AddStockRequest) => inventoryService.addStock(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+      queryClient.invalidateQueries({ queryKey: variantKeys.all });
+    },
+  });
+};
+
+/** Reduce stock from a variant */
+export const useReduceStock = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: ReduceStockRequest) =>
+      inventoryService.reduceStock(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+      queryClient.invalidateQueries({ queryKey: variantKeys.all });
+    },
+  });
+};
+
+// ========================
+// Product Image Mutations
+// ========================
+
+/** Upload ảnh sản phẩm */
+export const useUploadProductImage = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ productId, files }: { productId: string; files: File[] }) =>
+      productService.uploadImage(productId, files),
+    onSuccess: (_, { productId }) => {
+      queryClient.invalidateQueries({ queryKey: productKeys.detail(productId) });
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+    },
+  });
+};
+
+/** Xóa ảnh sản phẩm */
+export const useDeleteProductImage = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (assetId: string) => productService.deleteImage(assetId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
     },
   });
 };

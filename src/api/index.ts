@@ -37,6 +37,7 @@ export type {
   CreateVoucherRequest,
   UpdateVoucherRequest,
   VoucherPageResponse,
+  AssetResponse,
   ProductResponse,
   ProductVariantResponse,
   CreateProductRequest,
