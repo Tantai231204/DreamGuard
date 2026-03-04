@@ -31,7 +31,7 @@ export const productKeys = {
   all: ["products"] as const,
   admin: (params: AdminProductParams) => ["products", "admin", params] as const,
   byFilter: (params: ProductParams) => ["products", "filter", params] as const,
-  detail: (id: string) => ["products", id] as const,
+  detail: (slug: string) => ["products", slug] as const,
 };
 
 export const variantKeys = {
@@ -63,12 +63,17 @@ export const useProducts = () => {
   });
 };
 
-/** Lấy chi tiết 1 product theo ID */
-export const useProductDetail = (id: string, enabled = true) => {
+/** Lấy chi tiết 1 product theo ID hoặc slug */
+export const useProductDetail = (identifier: string, enabled = true) => {
+  const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
+
   return useQuery({
-    queryKey: productKeys.detail(id),
-    queryFn: () => productService.getById(id),
-    enabled: !!id && enabled,
+    queryKey: productKeys.detail(identifier),
+    queryFn: () =>
+      isGuid
+        ? productService.getById(identifier)
+        : productService.getBySlug(identifier),
+    enabled: !!identifier && enabled,
   });
 };
 
@@ -84,10 +89,12 @@ export const useProductsByFilter = (params: ProductParams, enabled = true) => {
 
 /** Fetch variants by product ID */
 export const useProductVariants = (productId: string, enabled = true) => {
+  const isGuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(productId);
+
   return useQuery({
     queryKey: variantKeys.byProduct(productId),
     queryFn: () => variantService.getByProductId(productId),
-    enabled: !!productId && enabled,
+    enabled: !!productId && isGuid && enabled,
   });
 };
 

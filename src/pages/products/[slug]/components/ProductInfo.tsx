@@ -4,6 +4,13 @@ import { Star, ShoppingCart, Zap, RefreshCcw, Package, CheckCircle2, AlertTriang
 import * as Separator from '@radix-ui/react-separator';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { ColorSelector } from './ColorSelector';
 import { SizeSelector } from './SizeSelector';
@@ -188,26 +195,56 @@ export const ProductInfo = memo(({
                     )}
 
                     {typeof stockLeft === 'number' && (
-                        <Badge
-                            variant="outline"
-                            className={cn(
-                                "inline-flex items-center gap-1.5 border-0 px-3 py-1 text-xs font-medium shadow-sm",
-                                isOutOfStock
-                                    ? "bg-red-50 text-red-700"
-                                    : stockLeft < 5
-                                        ? "bg-amber-50 text-amber-700"
-                                        : "bg-emerald-50 text-emerald-700",
-                            )}
-                        >
-                            <Package className="w-3.5 h-3.5" />
-                            <span>
-                                {isOutOfStock
-                                    ? "Out of stock"
-                                    : stockStatusLabel || `${stockLeft} in stock`}
-                            </span>
-                        </Badge>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Badge
+                                        variant="outline"
+                                        className={cn(
+                                            "inline-flex items-center gap-1.5 border-0 px-3 py-1 text-xs font-medium shadow-sm transition-all hover:bg-white/50 cursor-help",
+                                            isOutOfStock
+                                                ? "bg-red-50 text-red-700"
+                                                : stockLeft < 10
+                                                    ? "bg-amber-50 text-amber-700 animate-pulse"
+                                                    : "bg-emerald-50 text-emerald-700",
+                                        )}
+                                    >
+                                        <Package className="w-3.5 h-3.5" />
+                                        <span>
+                                            {isOutOfStock
+                                                ? "Out of stock"
+                                                : stockLeft < 10
+                                                    ? `Hurry! Only ${stockLeft} left`
+                                                    : `${stockLeft} in stock`}
+                                        </span>
+                                    </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="bg-gray-900 border-gray-800 text-white max-w-[200px] text-xs">
+                                    {isOutOfStock
+                                        ? "This variant is currently unavailable. Please choose another or check back later."
+                                        : stockLeft < 10
+                                            ? `Low stock! We only have ${stockLeft} items remaining in this configuration.`
+                                            : "High availability! This item is currently in stock and ready to ship."}
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                     )}
                 </div>
+
+                {!isOutOfStock && typeof stockLeft === 'number' && stockLeft < 20 && (
+                    <div className="space-y-1.5 pt-1">
+                        <div className="flex justify-between text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                            <span>Stock Level</span>
+                            <span className={cn(stockLeft < 5 ? "text-red-500" : "text-amber-500")}>
+                                {stockLeft < 5 ? "Extremely Low" : "Running Low"}
+                            </span>
+                        </div>
+                        <Progress
+                            value={(stockLeft / 20) * 100}
+                            className="h-1.5 bg-gray-200"
+                        />
+                    </div>
+                )}
 
                 {tradeInValue > 0 && (
                     <div className="mt-1.5 p-2.5 bg-emerald-50 rounded-lg border border-emerald-200">
@@ -304,7 +341,7 @@ export const ProductInfo = memo(({
                         Buy Now
                     </Button>
                 </div>
-                
+
                 {/* Trade-in summary in buttons area */}
                 {tradeInValue > 0 && (
                     <div className="flex items-center justify-center gap-2 text-sm text-emerald-600 bg-emerald-50 py-2 rounded-lg">

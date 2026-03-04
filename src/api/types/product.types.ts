@@ -15,7 +15,7 @@ export interface ProductResponse {
   summary: string;
   description: string;
   material: string;
-  ageGroup: string | null;
+  ageGroup: string | number | null;
   warrantyPolicyDay: number | null;
   returnPolicyDay: number | null;
   status: string;  // .NET enum might serialize as string or int
@@ -29,6 +29,7 @@ export interface ProductResponse {
   maxPrice?: number;
   minPrice?: number;
   assets?: AssetResponse[];
+  imageUrls?: string[];
 }
 
 export interface AdminProductPageResponse {

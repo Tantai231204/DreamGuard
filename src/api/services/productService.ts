@@ -39,6 +39,10 @@ const productService = {
   getById: (id: string): Promise<ProductResponse> =>
     apiClient.get(`/product/${id}`).then((res) => res.data),
 
+  /** Lấy chi tiết product theo Slug */
+  getBySlug: (slug: string): Promise<ProductResponse> =>
+    apiClient.get(`/product/slug/${slug}`).then((res) => res.data),
+
   /** Tạo mới product - server trả về empty, lấy ID từ header Location hoặc fetch lại theo slug */
   create: async (data: CreateProductRequest): Promise<ProductResponse> => {
     const res = await apiClient.post('/product', data);

@@ -66,7 +66,12 @@ export default function ProductTableContent<T = unknown>({
               {rows.map((row) => {
                 const item = row.original as ProductWithItems;
                 const isExpanded = row.getIsExpanded();
-                const hasVariants = (item.variants?.length ?? 0) > 0 || (item.variantCount ?? 0) > 0 || (item.items?.length ?? 0) > 0 || (item.children?.length ?? 0) > 0;
+                const isCombo = !!(item as any).type && (item as any).type === 'combo';
+                const hasVariants = (item.variants?.length ?? 0) > 0 ||
+                  (item.variantCount ?? 0) > 0 ||
+                  (item.items?.length ?? 0) > 0 ||
+                  (item.children?.length ?? 0) > 0 ||
+                  ((item as any).productItems?.length ?? 0) > 0;
 
                 return (
                   <React.Fragment key={row.id}>
@@ -112,11 +117,12 @@ export default function ProductTableContent<T = unknown>({
                             </TableCell>
                           </TableRow>
                         )}
-                        {(item.items?.length ?? 0) > 0 && (
+                        {((item.items?.length ?? 0) > 0 || ((item as any).productItems?.length ?? 0) > 0 || isCombo) && (
                           <TableRow className="hover:bg-transparent">
                             <TableCell colSpan={columnCount} className="p-0 border-b-2 border-indigo-100">
                               <ComboItemsTable
-                                items={item.items as ComboItem[]}
+                                comboId={item.id}
+                                items={item.items as ComboItem[] || []}
                                 comboName={item.name}
                                 discount={(item as unknown as { discount?: number }).discount || 0}
                               />

@@ -20,21 +20,30 @@ export default function ComboProductGroup({
     const variantCount = items.length;
 
     return (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-4 transition-all hover:shadow-md hover:border-purple-200 group/product">
             {/* Product header */}
-            <div className="flex items-center justify-between px-4 py-2.5 bg-gray-50/80 border-b border-gray-100">
-                <div className="flex items-center gap-2">
-                    <Package className="h-4 w-4 text-purple-600" />
-                    <span className="text-sm font-semibold text-gray-800">{productName}</span>
-                    <span className="text-xs text-gray-400">
-                        ({variantCount} {variantCount === 1 ? 'variant' : 'variants'})
-                    </span>
+            <div className="flex items-center justify-between px-5 py-3.5 bg-white border-b border-gray-100">
+                <div className="flex items-center gap-3">
+                    <div className="h-6 w-6 rounded-md bg-purple-50 flex items-center justify-center">
+                        <Package className="h-3.5 w-3.5 text-purple-600" />
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                        <span className="text-[14px] font-bold text-gray-900 group-hover/product:text-purple-700 transition-colors">
+                            {productName}
+                        </span>
+                        <span className="text-[12px] text-gray-400 font-medium">
+                            ({variantCount} {variantCount === 1 ? 'variant' : 'variants'})
+                        </span>
+                    </div>
                 </div>
-                <span className="text-xs font-mono text-gray-400">#{productId}</span>
+                <span className="text-[11px] font-bold font-mono text-gray-300 tracking-wider">
+                    #{productId}
+                </span>
             </div>
 
             {/* Variants list */}
-            <div className="divide-y divide-gray-50">{items.map((item) => (
+            <div className="bg-white">
+                {items.map((item) => (
                     <ComboVariantRow
                         key={`${item.productId}-${item.variantId || 'default'}`}
                         item={item}

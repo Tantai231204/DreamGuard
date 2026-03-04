@@ -198,6 +198,7 @@ export interface Combo {
   updatedAt: string;
   sales: number;
   items: ComboItem[];
+  productItems?: import('@/api/services/comboService').ProductItemResponse[];
   discount: number;
   comboParentId?: string;
   /** Color/size for combo variants (children) */
@@ -205,4 +206,5 @@ export interface Combo {
   size?: string;
   /** Virtual: child combos grouped under this parent */
   children?: Combo[];
+  childCombos?: Combo[];
 }

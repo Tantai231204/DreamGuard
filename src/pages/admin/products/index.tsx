@@ -120,6 +120,7 @@ export default function ProductsPage() {
       (pageData?.items ?? []).map((item) => ({
         ...item,
         status: (item.status as ProductStatus) || 'Draft',
+        ageGroup: item.ageGroup !== null ? String(item.ageGroup) : null,
         variants: item.variants?.map((v) => ({
           ...v,
           status: (v.status as VariantStatus) || 'Published',
@@ -136,7 +137,9 @@ export default function ProductsPage() {
 
   // Map API combo response to local Combo type, grouped as parent → children
   const combos: Combo[] = useMemo(() => {
-    const flat = (comboPageData?.items ?? []).map((item) => ({
+    const rawItems = comboPageData?.items ?? [];
+
+    const mapItem = (item: any): Combo => ({
       ...item,
       type: 'combo' as const,
       baseSalePrice: item.salePrice,
@@ -144,32 +147,57 @@ export default function ProductsPage() {
       comboParentId: item.comboParentId,
       color: item.color,
       size: item.size,
-    }));
+      // Map API's childCombos to TanStack's children
+      children: item.childCombos?.map((child: any) => mapItem(child)) ?? []
+    });
 
-    // Build parent → children tree
-    const parentMap = new Map<string, Combo>();
-    const orphans: Combo[] = [];
+    const allMapped = rawItems.map(mapItem);
 
-    // First pass: collect all parents
-    for (const c of flat) {
+    // Build a set of all IDs that are children of other combos in this response
+    // to filter them out from the root level to avoid duplicates
+    const childIdsInResult = new Set<string>();
+    const parentsInResult = new Map<string, Combo>();
+
+    // Helper to collect all nested child IDs
+    const collectChildIds = (items: Combo[]) => {
+      items.forEach(c => {
+        c.children?.forEach(child => {
+          childIdsInResult.add(child.id);
+          if (child.children?.length) collectChildIds(child.children);
+        });
+      });
+    };
+
+    for (const c of allMapped) {
       if (!c.comboParentId) {
-        parentMap.set(c.id, { ...c, children: [] });
+        parentsInResult.set(c.id, c);
       }
     }
+    collectChildIds(allMapped);
 
-    // Second pass: attach children to parents
-    for (const c of flat) {
+    // Manual grouping for children that might be at root but have parentId
+    const rootCombos: Combo[] = [];
+    for (const c of allMapped) {
+      // CRITICAL: If this item's ID is found anywhere as a child of another item, 
+      // do NOT show it at the root level.
+      if (childIdsInResult.has(c.id)) continue;
+
+      // If it has a parentId, check if that parent is in our list
       if (c.comboParentId) {
-        const parent = parentMap.get(c.comboParentId);
+        const parent = parentsInResult.get(c.comboParentId);
         if (parent) {
-          parent.children!.push(c);
-        } else {
-          orphans.push(c); // parent not in current page — show as standalone
+          // Add it to the parent if not already there
+          if (!parent.children?.find(child => child.id === c.id)) {
+            parent.children = [...(parent.children || []), c];
+          }
+          continue; // Successfully grouped, skip as root
         }
       }
+
+      rootCombos.push(c);
     }
 
-    return [...parentMap.values(), ...orphans];
+    return rootCombos;
   }, [comboPageData?.items]);
 
   const { data: categories = [] } = useCategories();

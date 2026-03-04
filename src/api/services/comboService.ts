@@ -34,6 +34,15 @@ export interface ComboItemResponse {
   quantity: number;
 }
 
+export interface ProductItemResponse {
+  productVariantId: string;
+  sku: string;
+  productName: string;
+  basePrice: number;
+  salePrice: number;
+  quantity: number;
+}
+
 export interface ComboResponse {
   id: string;
   name: string;
@@ -56,8 +65,10 @@ export interface ComboResponse {
   sales: number;
   sku: string;
   items: ComboItemResponse[];
+  productItems?: ProductItemResponse[];
   createdAt: string;
   updatedAt: string;
+  childCombos?: ComboResponse[];
 }
 
 /** Check if a combo is a parent (no comboParentId, typically no items) */

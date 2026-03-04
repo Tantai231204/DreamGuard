@@ -15,7 +15,7 @@ export const AppRoute = {
   
   // Shop Routes
   PRODUCTS: "/products",
-  PRODUCT_DETAIL: "/products/:id",
+  PRODUCT_DETAIL: "/products/:slug",
   SERVICES: "/services",
   CART: "/cart",
   CHECKOUT: "/checkout",
@@ -33,7 +33,7 @@ export const AppRoute = {
 export type AppRoute = (typeof AppRoute)[keyof typeof AppRoute];
 
 // Helper function to generate product detail route
-export const getProductDetailRoute = (id: string | number) => `/products/${id}`;
+export const getProductDetailRoute = (slug: string) => `/products/${slug}`;
 
 export const ApiErrorCode = {
   NETWORK_ERROR: "NETWORK_ERROR",

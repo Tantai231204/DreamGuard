@@ -28,7 +28,7 @@ export const ProductCard: FC<ProductCardProps> = ({
     const hasRating = product.rating > 0
 
     return (
-        <Link to={getProductDetailRoute(product.id)}>
+        <Link to={getProductDetailRoute(product.slug)}>
             <Card className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--color-gray-200)] bg-white shadow-[var(--shadow-card)] transition-all duration-300 hover:border-[var(--color-primary)]/30 hover:shadow-[var(--shadow-card-hover)]">
                 {/* Image */}
                 <div className="relative p-3">

@@ -5,10 +5,10 @@ import { useCart } from "@/store/useCart";
 import { useCartAnimation } from "@/store/useCartAnimation";
 import {
   useProductDetail,
-  useProductVariants,
 } from "@/hooks/queries/useProduct";
 import type { ProductVariantResponse } from "@/api/types/product.types";
 import { Breadcrumb } from "./components/Breadcrumb";
+import { SEO } from "@/components/common";
 import { ProductImageGallery } from "./components/ProductImageGallery";
 import { ProductInfo } from "./components/ProductInfo";
 import { SafetyCertifications } from "./components/SafetyCertifications";
@@ -68,7 +68,7 @@ const mockEligibleTradeInProducts: TradeInProduct[] = [
 ];
 
 export default function ProductDetail() {
-  const { id } = useParams<{ id: string }>();
+  const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { addItem } = useCart();
   const { triggerFlyToCart } = useCartAnimation();
@@ -88,24 +88,27 @@ export default function ProductDetail() {
   // Fetch product detail & variants from API
   const {
     data: product,
-    isLoading: isLoadingProduct,
+    isLoading,
     isError: isProductError,
-  } = useProductDetail(id || "", !!id);
-
-  const { data: routeVariants, isLoading: isLoadingVariants } =
-    useProductVariants(id || "", !!id);
-
-  const isLoading = isLoadingProduct || isLoadingVariants;
+  } = useProductDetail(slug || "", !!slug);
 
   const allVariants: ProductVariantResponse[] = useMemo(() => {
-    if (routeVariants && routeVariants.length > 0) {
-      return routeVariants;
+    return product?.variants ?? [];
+  }, [product]);
+
+  // Helper to normalize size from variant (either use size label or build from dimensions)
+  const getVariantSize = useCallback((v: ProductVariantResponse) => {
+    if (v.size && v.size.trim().length > 0) return v.size.trim();
+    const attrs = (v.attributes || {}) as {
+      width?: number;
+      length?: number;
+      thickness?: number;
+    };
+    if (attrs.width && attrs.length) {
+      return `${attrs.width}x${attrs.length}${attrs.thickness ? `x${attrs.thickness}` : ""} cm`;
     }
-    if (product?.variants && product.variants.length > 0) {
-      return product.variants;
-    }
-    return [];
-  }, [product, routeVariants]);
+    return "";
+  }, []);
 
   // Build color & size options from variants
   const dynamicColorOptions = useMemo(() => {
@@ -158,30 +161,19 @@ export default function ProductDetail() {
     const sizes = Array.from(
       new Set(
         allVariants
-          .map((v) => v.size?.toString().trim())
+          .map((v) => getVariantSize(v))
           .filter((s): s is string => !!s),
       ),
     );
 
     return sizes.map((value) => {
-      const variant = allVariants.find((v) => v.size === value);
-      const attrs = (variant?.attributes || {}) as {
-        width?: number;
-        length?: number;
-        thickness?: number;
-      };
-      const dimensions =
-        attrs.width && attrs.length
-          ? `${attrs.width}x${attrs.length}${attrs.thickness ? `x${attrs.thickness}` : ""} cm`
-          : "";
-
       return {
         value,
         label: value,
-        description: dimensions || "Standard size",
+        description: "",
       };
     });
-  }, [allVariants]);
+  }, [allVariants, getVariantSize]);
 
   // Initialize default selections once variants have loaded (first render only)
   useEffect(() => {
@@ -194,15 +186,19 @@ export default function ProductDetail() {
     });
     setSelectedSize((prev) => {
       if (prev) return prev;
-      const first = allVariants[0];
-      return first.size ?? "";
+      return getVariantSize(allVariants[0]);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [allVariants, getVariantSize]);
 
   // Mock additional images for gallery
   const productImages = useMemo(() => {
     if (!product) return [];
+
+    // Use imageUrls if available (new API structure), otherwise fallback to assets
+    const imagesFromUrls = product.imageUrls?.filter(Boolean) ?? [];
+    if (imagesFromUrls.length > 0) return imagesFromUrls;
+
     const urls = product.assets?.map((a) => a.url).filter(Boolean) ?? [];
     if (urls.length === 0) {
       return ["/images/placeholder-product.svg"];
@@ -246,13 +242,14 @@ export default function ProductDetail() {
     const match = allVariants.find((v) => {
       const attrs = (v.attributes || {}) as { color?: string };
       const color = attrs.color?.toLowerCase();
+      const size = getVariantSize(v);
       return (
         (!selectedColor || color === selectedColor.toLowerCase()) &&
-        (!selectedSize || v.size === selectedSize)
+        (!selectedSize || size === selectedSize)
       );
     });
     return match ?? allVariants[0];
-  }, [allVariants, selectedColor, selectedSize]);
+  }, [allVariants, selectedColor, selectedSize, getVariantSize]);
 
   // Build availability maps: which colors and sizes still have stock
   const { colorsWithStock, sizesWithStock, sizeByColor } = useMemo(() => {
@@ -263,7 +260,7 @@ export default function ProductDetail() {
     for (const v of allVariants) {
       const attrs = (v.attributes || {}) as { color?: string };
       const color = attrs.color?.toLowerCase().trim();
-      const size = v.size?.toString().trim();
+      const size = getVariantSize(v);
       const inStock =
         typeof v.stockQuantity === "number" ? v.stockQuantity > 0 : true;
       if (!inStock) continue;
@@ -283,7 +280,7 @@ export default function ProductDetail() {
     }
 
     return { colorsWithStock: colors, sizesWithStock: sizes, sizeByColor: map };
-  }, [allVariants]);
+  }, [allVariants, getVariantSize]);
 
   const currentPriceInfo = useMemo(() => {
     if (!product)
@@ -332,7 +329,8 @@ export default function ProductDetail() {
 
   // Derive human-readable age label from ageGroup for reuse
   const ageLabel = useMemo(() => {
-    return product?.ageGroup || undefined;
+    if (product?.ageGroup === null || product?.ageGroup === undefined) return undefined;
+    return String(product.ageGroup);
   }, [product?.ageGroup]);
 
   // Build ProductSpec[] from API data for the "Specifications" tab
@@ -594,6 +592,14 @@ export default function ProductDetail() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+      {product && (
+        <SEO
+          title={product.name}
+          description={product.summary || product.description?.substring(0, 160)}
+          image={productImages[0]}
+          url={window.location.href}
+        />
+      )}
       <div className="container mx-auto px-4 py-6 lg:px-8">
         {/* Breadcrumb */}
         <Breadcrumb productName={product.name} />
@@ -635,7 +641,7 @@ export default function ProductDetail() {
                 [
                   (currentVariant?.attributes as { color?: string } | null)
                     ?.color,
-                  currentVariant?.size,
+                  currentVariant ? getVariantSize(currentVariant) : "",
                 ]
                   .filter(Boolean)
                   .join(" • ") || undefined

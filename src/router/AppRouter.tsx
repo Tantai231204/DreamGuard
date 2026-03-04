@@ -18,7 +18,7 @@ import { AppRoute } from "../lib/constants";
 // Public
 const Home = lazy(() => import("../pages/home"));
 const Products = lazy(() => import("../pages/products"));
-const ProductDetail = lazy(() => import("../pages/products/[id]"));
+const ProductDetail = lazy(() => import("../pages/products/[slug]"));
 const CartPage = lazy(() => import("../pages/cart"));
 const CheckoutPage = lazy(() => import("../pages/checkout"));
 
