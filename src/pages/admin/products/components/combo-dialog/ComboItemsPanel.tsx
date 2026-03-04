@@ -85,12 +85,12 @@ const ComboItemsPanel = memo(function ComboItemsPanel({
     return (
         <div className="flex flex-col h-full">
             {/* Panel header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50/80 shrink-0">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50/80 shrink-0">
                 <div className="flex items-center gap-2">
-                    <ShoppingBag className="h-4 w-4 text-violet-500" />
-                    <span className="text-sm font-semibold text-gray-800">Combo Items</span>
+                    <ShoppingBag className="h-4 w-4 text-purple-600" />
+                    <span className="text-sm font-semibold text-slate-800">Combo Items</span>
                     {items.length > 0 && (
-                        <Badge variant="secondary" className="h-5 text-[10px] font-bold px-1.5 bg-violet-100 text-violet-700 border-0">
+                        <Badge variant="secondary" className="h-5 text-[10px] font-bold px-1.5 bg-purple-100 text-purple-700 border-0">
                             {items.filter(i => i.productVariantId).length}/{items.length}
                         </Badge>
                     )}
@@ -118,7 +118,7 @@ const ComboItemsPanel = memo(function ComboItemsPanel({
                         disabled={disabled}
                         className={cn(
                             'h-7 px-3 text-[11px] font-semibold rounded-lg flex items-center gap-1',
-                            'bg-violet-600 text-white hover:bg-violet-700 transition-all shadow-sm',
+                            'bg-purple-600 text-white hover:bg-purple-700 transition-all shadow-sm',
                             'disabled:opacity-40 disabled:cursor-not-allowed',
                         )}
                     >
@@ -137,16 +137,16 @@ const ComboItemsPanel = memo(function ComboItemsPanel({
                         disabled={disabled}
                         className={cn(
                             'flex flex-col items-center justify-center w-full h-full min-h-[200px]',
-                            'border-2 border-dashed border-gray-200 rounded-xl',
-                            'hover:border-violet-300 hover:bg-violet-50/20 transition-all cursor-pointer',
+                            'border-2 border-dashed border-slate-200 rounded-xl',
+                            'hover:border-purple-300 hover:bg-purple-50/20 transition-all cursor-pointer',
                             'disabled:cursor-not-allowed disabled:opacity-50',
                         )}
                     >
-                        <div className="h-14 w-14 rounded-2xl bg-violet-100 flex items-center justify-center mb-3">
-                            <ShoppingBag className="h-7 w-7 text-violet-400" />
+                        <div className="h-14 w-14 rounded-2xl bg-purple-100 flex items-center justify-center mb-3">
+                            <ShoppingBag className="h-7 w-7 text-purple-400" />
                         </div>
-                        <p className="text-sm font-semibold text-gray-600">No items yet</p>
-                        <p className="text-xs text-gray-400 mt-1">Click to add your first product</p>
+                        <p className="text-sm font-semibold text-slate-600">No items yet</p>
+                        <p className="text-xs text-slate-400 mt-1">Click to add your first product</p>
                     </button>
                 ) : (
                     items.map((item, index) => {
@@ -159,16 +159,16 @@ const ComboItemsPanel = memo(function ComboItemsPanel({
                                 className={cn(
                                     'rounded-xl border transition-all',
                                     hasVariant
-                                        ? 'border-violet-100 bg-white shadow-sm'
+                                        ? 'border-purple-100 bg-white shadow-sm'
                                         : 'border-orange-200 bg-orange-50/30',
                                 )}
                             >
                                 {/* Item header */}
                                 <div className="flex items-center gap-2 px-3 pt-2.5 pb-2">
-                                    <GripVertical className="h-4 w-4 text-gray-300 cursor-grab shrink-0" />
+                                    <GripVertical className="h-4 w-4 text-slate-300 cursor-grab shrink-0" />
                                     <div className={cn(
                                         'flex items-center justify-center w-5 h-5 rounded-md text-[10px] font-bold shrink-0',
-                                        hasVariant ? 'bg-violet-100 text-violet-700' : 'bg-orange-100 text-orange-600',
+                                        hasVariant ? 'bg-purple-100 text-purple-700' : 'bg-orange-100 text-orange-600',
                                     )}>
                                         {index + 1}
                                     </div>
@@ -179,12 +179,12 @@ const ComboItemsPanel = memo(function ComboItemsPanel({
                                                 <div className="h-5 w-5 rounded-md border border-black/10 shrink-0"
                                                     style={{ backgroundColor: colorHex(item.color) }} />
                                             )}
-                                            <span className="text-[13px] font-semibold text-gray-800 truncate">{item.productName}</span>
+                                            <span className="text-[13px] font-semibold text-slate-800 truncate">{item.productName}</span>
                                             {colorLabel(item.color) && (
-                                                <span className="text-[11px] text-gray-500 shrink-0">{colorLabel(item.color)}</span>
+                                                <span className="text-[11px] text-slate-500 shrink-0">{colorLabel(item.color)}</span>
                                             )}
                                             {item.size && (
-                                                <span className="text-[11px] bg-gray-100 text-gray-600 rounded px-1.5 py-0.5 shrink-0">{item.size}</span>
+                                                <span className="text-[11px] bg-slate-100 text-slate-600 rounded px-1.5 py-0.5 shrink-0">{item.size}</span>
                                             )}
                                         </div>
                                     ) : (
@@ -198,7 +198,7 @@ const ComboItemsPanel = memo(function ComboItemsPanel({
                                         type="button"
                                         onClick={() => handleRemove(item.id)}
                                         disabled={disabled}
-                                        className="h-6 w-6 flex items-center justify-center rounded-md text-gray-300 hover:text-red-500 hover:bg-red-50 transition-all shrink-0"
+                                        className="h-6 w-6 flex items-center justify-center rounded-md text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all shrink-0"
                                     >
                                         <Trash2 className="h-3.5 w-3.5" />
                                     </button>
@@ -221,12 +221,12 @@ const ComboItemsPanel = memo(function ComboItemsPanel({
                                             {/* Price info */}
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-1.5">
-                                                    <span className="text-[11px] text-gray-400 font-mono truncate">{item.sku}</span>
-                                                    <span className="text-[11px] font-bold text-violet-600">
+                                                    <span className="text-[11px] text-slate-400 font-mono truncate">{item.sku}</span>
+                                                    <span className="text-[11px] font-bold text-purple-600">
                                                         {item.salePrice.toLocaleString('vi-VN')}đ
                                                     </span>
                                                     {item.salePrice < item.basePrice && (
-                                                        <span className="text-[10px] text-gray-400 line-through">
+                                                        <span className="text-[10px] text-slate-400 line-through">
                                                             {item.basePrice.toLocaleString('vi-VN')}đ
                                                         </span>
                                                     )}
@@ -236,7 +236,7 @@ const ComboItemsPanel = memo(function ComboItemsPanel({
                                             {/* Quantity stepper */}
                                             <div className="flex items-center gap-0.5">
                                                 <button type="button"
-                                                    className="h-6 w-6 rounded-md flex items-center justify-center hover:bg-violet-50 hover:text-violet-700 text-gray-400 transition-all disabled:opacity-30"
+                                                    className="h-6 w-6 rounded-md flex items-center justify-center hover:bg-purple-50 hover:text-purple-700 text-slate-400 transition-all disabled:opacity-30"
                                                     onClick={() => handleQty(item.id, item.quantity - 1)}
                                                     disabled={disabled || item.quantity <= 1}
                                                 >
@@ -246,10 +246,10 @@ const ComboItemsPanel = memo(function ComboItemsPanel({
                                                     type="number" min={1} value={item.quantity}
                                                     onChange={e => handleQty(item.id, parseInt(e.target.value) || 1)}
                                                     disabled={disabled}
-                                                    className="h-6 w-9 text-center text-xs font-bold rounded-md border border-gray-200 bg-gray-50 outline-none focus:border-violet-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                    className="h-6 w-9 text-center text-xs font-bold rounded-md border border-slate-200 bg-slate-50 outline-none focus:border-purple-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                                 />
                                                 <button type="button"
-                                                    className="h-6 w-6 rounded-md flex items-center justify-center hover:bg-violet-50 hover:text-violet-700 text-gray-400 transition-all disabled:opacity-30"
+                                                    className="h-6 w-6 rounded-md flex items-center justify-center hover:bg-purple-50 hover:text-purple-700 text-slate-400 transition-all disabled:opacity-30"
                                                     onClick={() => handleQty(item.id, item.quantity + 1)}
                                                     disabled={disabled}
                                                 >
@@ -258,7 +258,7 @@ const ComboItemsPanel = memo(function ComboItemsPanel({
                                             </div>
 
                                             {/* Subtotal */}
-                                            <span className="text-[12px] font-bold text-gray-800 min-w-[60px] text-right">
+                                            <span className="text-[12px] font-bold text-slate-800 min-w-[60px] text-right">
                                                 {subtotal.toLocaleString('vi-VN')}đ
                                             </span>
 
@@ -283,15 +283,15 @@ const ComboItemsPanel = memo(function ComboItemsPanel({
 
             {/* Summary footer */}
             {items.length > 0 && (
-                <div className="shrink-0 border-t border-gray-100 bg-gray-50/80 px-4 py-3 space-y-2">
-                    <div className="flex items-center justify-between text-xs text-gray-500">
+                <div className="shrink-0 border-t border-slate-100 bg-slate-50/80 px-4 py-3 space-y-2">
+                    <div className="flex items-center justify-between text-xs text-slate-500">
                         <span>
-                            <span className="font-bold text-gray-700">{items.filter(i => i.productVariantId).length}</span> products ·{' '}
-                            <span className="font-bold text-gray-700">{totalItems}</span> items total
+                            <span className="font-bold text-slate-700">{items.filter(i => i.productVariantId).length}</span> products ·{' '}
+                            <span className="font-bold text-slate-700">{totalItems}</span> items total
                         </span>
                         <span>
                             Variant total:{' '}
-                            <span className="font-bold text-gray-800">{totalVariantPrice.toLocaleString('vi-VN')}đ</span>
+                            <span className="font-bold text-slate-800">{totalVariantPrice.toLocaleString('vi-VN')}đ</span>
                         </span>
                     </div>
 

@@ -2,3 +2,4 @@
 export * from './useCategory';
 export * from './useVoucher';
 export * from './useCombo';
+export * from './useProduct';

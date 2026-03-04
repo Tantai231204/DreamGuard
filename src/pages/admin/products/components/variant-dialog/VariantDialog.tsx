@@ -12,28 +12,15 @@ import {
     Tag,
     DollarSign,
     Scale,
-    CircleDot,
     Sparkles,
     RefreshCw,
     Ruler,
     Move3D,
 } from 'lucide-react';
 import type { ProductVariant, VariantStatus, CreateVariantRequest, VariantAttributes } from '../../types';
-import { VARIANT_STATUS_TO_INT } from '../../types';
+import { PRODUCT_STATUS_COLORS, VARIANT_STATUS_OPTIONS } from '../../types';
 import ColorPicker from './ColorPicker';
 import SectionHeading from '../shared/SectionHeading';
-import AttributesEditor, { type AttributeField } from './AttributesEditor';
-
-/* ─── Constants ───────────────────────────────────────── */
-const STATUS_COLORS: Record<string, string> = {
-    Active: 'bg-emerald-500',
-    Inactive: 'bg-gray-400',
-};
-
-const VARIANT_STATUSES: { value: VariantStatus; label: string }[] = [
-    { value: 'Active', label: 'Active' },
-    { value: 'Inactive', label: 'Inactive' },
-];
 
 const INPUT_CLS =
     'h-11 rounded-xl border-gray-200 bg-gray-50/50 hover:border-purple-300 hover:bg-white focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 transition-all';
@@ -50,15 +37,18 @@ const generateSku = (productSlug: string, variantIndex: number): string => {
     return `${prefix}-V${String(variantIndex + 1).padStart(3, '0')}`;
 };
 
-/* ─── Helper: Parse Attributes ────────────────────────── */
-const parseAttributesToFields = (attributes: VariantAttributes | null | undefined): AttributeField[] => {
-    if (!attributes) return [];
-    return Object.entries(attributes)
-        .filter(([key]) => !['width', 'length', 'thickness', 'color'].includes(key))
-        .map(([key, value]) => ({ key, value: String(value ?? '') }));
-};
-
 /* ─── Props ───────────────────────────────────────────── */
+export interface VariantFormData {
+    productid: string;
+    sku: string;
+    baseprice: number;
+    saleprice: number;
+    weight: number;
+    status: VariantStatus;
+    stockStatus: string;
+    attributes: VariantAttributes | null;
+}
+
 interface VariantDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
@@ -67,7 +57,7 @@ interface VariantDialogProps {
     productName: string;
     productSlug?: string;
     variantCount?: number;
-    onSubmit: (data: CreateVariantRequest) => void;
+    onSubmit: (data: VariantFormData) => void;
     isLoading?: boolean;
 }
 
@@ -93,7 +83,7 @@ function VariantDialogInner({
 
     // State
     const [sku, setSku] = useState(initialSku);
-    
+
     // Dimensions (stored in attributes)
     const [width, setWidth] = useState(
         variant?.attributes?.width != null ? String(variant.attributes.width) : ''
@@ -104,10 +94,10 @@ function VariantDialogInner({
     const [thickness, setThickness] = useState(
         variant?.attributes?.thickness != null ? String(variant.attributes.thickness) : ''
     );
-    
+
     // Color (hex code stored in attributes)
     const [color, setColor] = useState(variant?.attributes?.color ?? '#f5f5f5');
-    
+
     // Pricing
     const [basePrice, setBasePrice] = useState(
         variant?.basePrice != null ? String(variant.basePrice) : ''
@@ -118,15 +108,11 @@ function VariantDialogInner({
     const [weight, setWeight] = useState(
         variant?.weight != null ? String(variant.weight) : ''
     );
-    
+
     // Other
     const [isNew, setIsNew] = useState(variant?.isNew ?? false);
-    const [status, setStatus] = useState<VariantStatus>(variant?.status || 'Active');
-
-    // Dynamic attributes (key-value pairs for extra fields)
-    const [attributes, setAttributes] = useState<AttributeField[]>(
-        () => parseAttributesToFields(variant?.attributes)
-    );
+    const [status, setStatus] = useState<VariantStatus>(variant?.status || 'Published');
+    const stockStatus = variant?.stockStatus || 'In Stock';
 
     const handleColorChange = useCallback((_name: string, code: string) => {
         setColor(code);
@@ -150,29 +136,22 @@ function VariantDialogInner({
             if (width) finalAttributes.width = Number(width);
             if (length) finalAttributes.length = Number(length);
             if (thickness) finalAttributes.thickness = Number(thickness);
-            
+
             // Add color (hex)
             if (color) finalAttributes.color = color;
 
-            // Add dynamic attributes
-            attributes.forEach(attr => {
-                if (attr.key.trim()) {
-                    finalAttributes[attr.key.trim()] = attr.value;
-                }
-            });
-
             onSubmit({
-                productId,
+                productid: productId, // Internal remains productId, but API wants productid
                 sku: sku.trim(),
-                basePrice: Number(basePrice),
-                salePrice: salePrice ? Number(salePrice) : Number(basePrice),
-                weight: weight ? Number(weight) : null,
-                isNew,
-                status: VARIANT_STATUS_TO_INT[status],
+                baseprice: Number(basePrice),
+                saleprice: salePrice ? Number(salePrice) : Number(basePrice),
+                weight: weight ? Number(weight) : 0, // Ensure number
+                status: status,
+                stockStatus: stockStatus,
                 attributes: Object.keys(finalAttributes).length > 0 ? finalAttributes : null,
             });
         },
-        [productId, sku, width, length, thickness, color, basePrice, salePrice, weight, isNew, status, attributes, onSubmit]
+        [productId, sku, width, length, thickness, color, basePrice, salePrice, weight, status, stockStatus, onSubmit]
     );
 
     const handleStatusChange = useCallback((v: string) => setStatus(v as VariantStatus), []);
@@ -187,9 +166,17 @@ function VariantDialogInner({
                     <Package className="w-6 h-6 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
-                    <DialogTitle className="text-xl font-bold text-gray-900">
-                        {isEdit ? 'Edit Variant' : 'Add Variant'}
-                    </DialogTitle>
+                    <div className="flex items-center gap-3">
+                        <DialogTitle className="text-xl font-bold text-gray-900">
+                            {isEdit ? 'Edit Variant' : 'Add Variant'}
+                        </DialogTitle>
+                        {isEdit && (
+                            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-gray-100 border border-gray-200">
+                                <span className={cn('h-2 w-2 rounded-full', PRODUCT_STATUS_COLORS[status])} />
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-600">{status}</span>
+                            </div>
+                        )}
+                    </div>
                     <DialogDescription className="text-sm text-gray-500 mt-0.5">
                         {isEdit ? 'Update variant details' : `Add a new variant for "${productName}"`}
                     </DialogDescription>
@@ -315,13 +302,6 @@ function VariantDialogInner({
                     />
                 </section>
 
-                {/* Custom Attributes */}
-                <AttributesEditor
-                    attributes={attributes}
-                    onChange={setAttributes}
-                    disabled={isLoading}
-                />
-
                 {/* Pricing */}
                 <section className="space-y-4">
                     <SectionHeading title="Pricing" />
@@ -393,31 +373,26 @@ function VariantDialogInner({
                                 <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">kg</span>
                             </div>
                         </div>
+
                         <div className="space-y-2">
-                            <Label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
-                                <CircleDot className="h-3.5 w-3.5 text-gray-400" />
-                                Status
+                            <Label className="text-sm font-medium text-gray-700">
+                                Variant Status
                             </Label>
 
                             <Select value={status} onValueChange={handleStatusChange} disabled={isLoading}>
                                 <SelectTrigger className={SELECT_CLS}>
-                                    <span
-                                        className={cn(
-                                            'h-2.5 w-2.5 rounded-full shrink-0',
-                                            STATUS_COLORS[status]
-                                        )}
-                                    />
                                     <SelectValue placeholder="Select status" />
                                 </SelectTrigger>
 
                                 <SelectContent className="rounded-xl shadow-xl z-[200]">
-                                    {VARIANT_STATUSES.map((s, index) => (
+                                    {VARIANT_STATUS_OPTIONS.map((s, index) => (
                                         <SelectItem
                                             key={`status-${index}`}
                                             value={s.value}
                                             className="rounded-lg hover:bg-purple-50 hover:text-purple-900"
                                         >
                                             <span className="flex items-center gap-2">
+                                                <span className={cn('h-2 w-2 rounded-full', PRODUCT_STATUS_COLORS[s.value])} />
                                                 {s.label}
                                             </span>
                                         </SelectItem>
@@ -427,24 +402,19 @@ function VariantDialogInner({
                         </div>
                     </div>
 
-                    {/* isNew Toggle */}
-                    <div className="rounded-xl border border-gray-200 bg-white p-4">
-                        <div className="flex items-center justify-between">
-                            <div className="space-y-1 flex-1">
-                                <Label htmlFor="isNew" className="text-sm font-medium text-gray-900 cursor-pointer flex items-center gap-2">
-                                    <Sparkles className="w-3.5 h-3.5 text-orange-500" />
-                                    Mark as New
-                                </Label>
-                                <p className="text-xs text-gray-500">
-                                    {isNew ? 'This variant will display a "New" badge' : 'No "New" badge will be shown'}
-                                </p>
-                            </div>
+                    <div className="grid grid-cols-2 gap-5">
+                        {/* isNew Toggle */}
+                        <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4 h-11">
+                            <Label htmlFor="isNew" className="text-sm font-medium text-gray-900 cursor-pointer flex items-center gap-2">
+                                <Sparkles className="w-3.5 h-3.5 text-orange-500" />
+                                Mark as New
+                            </Label>
                             <Switch
                                 id="isNew"
                                 checked={isNew}
                                 onCheckedChange={setIsNew}
                                 disabled={isLoading}
-                                className="data-[state=checked]:bg-purple-600"
+                                className="data-[state=checked]:bg-purple-600 scale-75"
                             />
                         </div>
                     </div>

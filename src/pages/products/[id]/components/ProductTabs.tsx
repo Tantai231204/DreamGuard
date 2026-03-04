@@ -19,7 +19,11 @@ interface ProductTabsProps {
     activeTab: TabType;
     onTabChange: (tab: TabType) => void;
     productName: string;
+    /** Full rich description from API (fallback to marketing copy if missing) */
+    description?: string | null;
+    /** Structured specs (built from API fields by caller) */
     specs: ProductSpec[];
+    /** Reviews – currently mock data, can be wired to API later */
     reviews: Review[];
     averageRating: number;
 }
@@ -28,6 +32,7 @@ export const ProductTabs = memo(({
     activeTab,
     onTabChange,
     productName,
+    description,
     specs,
     reviews,
     averageRating
@@ -60,7 +65,10 @@ export const ProductTabs = memo(({
                 {/* Tab Content with Suspense */}
                 <Tabs.Content value="description" className="py-8">
                     <Suspense fallback={<TabContentSkeleton />}>
-                        <DescriptionTab productName={productName} />
+                        <DescriptionTab
+                            productName={productName}
+                            description={description ?? undefined}
+                        />
                     </Suspense>
                 </Tabs.Content>
 
@@ -85,7 +93,13 @@ export const ProductTabs = memo(({
 ProductTabs.displayName = 'ProductTabs';
 
 // Sub-components với animations mượt hơn
-const DescriptionTab = memo(({ productName }: { productName: string }) => (
+const DescriptionTab = memo(({
+    productName,
+    description,
+}: {
+    productName: string;
+    description?: string;
+}) => (
     <motion.div
         className="prose prose-gray max-w-none"
         initial={{ opacity: 0, y: 20 }}
@@ -94,23 +108,29 @@ const DescriptionTab = memo(({ productName }: { productName: string }) => (
         transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
     >
         <div className="space-y-4 text-gray-600 leading-relaxed">
-            <p>
-                The <strong>{productName}</strong> bedding set is specially designed for young children,
-                made from 100% natural organic cotton that's soft and gentle on your baby's sensitive skin.
-            </p>
-            <p>
-                This set includes: 1 fitted sheet, 1 bolster pillow, and 2 pillowcases, decorated with
-                adorable bunny patterns on a soft cream background, creating a warm and relaxing sleep environment for your little one.
-            </p>
-            <h3 className="text-lg font-semibold text-gray-900">Key Features:</h3>
-            <ul className="list-disc pl-5 space-y-2">
-                <li>100% Organic Cotton, free from harmful chemicals</li>
-                <li>Soft, breathable fabric with excellent moisture absorption</li>
-                <li>Gentle colors that are easy on the eyes</li>
-                <li>Durable stitching with safe, rounded edges</li>
-                <li>Easy machine wash at temperatures ≤40°C</li>
-                <li>Certified by international safety standards: OEKO-TEX, GOTS, CPSC, CE</li>
-            </ul>
+            {description ? (
+                <p>{description}</p>
+            ) : (
+                <>
+                    <p>
+                        The <strong>{productName}</strong> bedding set is specially designed for young children,
+                        made from 100% natural organic cotton that's soft and gentle on your baby's sensitive skin.
+                    </p>
+                    <p>
+                        This set includes: 1 fitted sheet, 1 bolster pillow, and 2 pillowcases, decorated with
+                        adorable bunny patterns on a soft cream background, creating a warm and relaxing sleep environment for your little one.
+                    </p>
+                    <h3 className="text-lg font-semibold text-gray-900">Key Features:</h3>
+                    <ul className="list-disc pl-5 space-y-2">
+                        <li>100% Organic Cotton, free from harmful chemicals</li>
+                        <li>Soft, breathable fabric with excellent moisture absorption</li>
+                        <li>Gentle colors that are easy on the eyes</li>
+                        <li>Durable stitching with safe, rounded edges</li>
+                        <li>Easy machine wash at temperatures ≤40°C</li>
+                        <li>Certified by international safety standards: OEKO-TEX, GOTS, CPSC, CE</li>
+                    </ul>
+                </>
+            )}
         </div>
     </motion.div>
 ));

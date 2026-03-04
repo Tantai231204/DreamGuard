@@ -164,7 +164,7 @@ export function useProductColumns({ onView, onEdit, onDelete, onAddVariant }: Us
           if (val === null || val === undefined) return <span className="text-xs text-gray-400">—</span>;
           return (
             <span className="text-xs font-medium text-gray-700 bg-blue-50 px-2 py-1 rounded-md">
-              {AGE_GROUPS[val] || `Group ${val}`}
+              {AGE_GROUPS[val] || val}
             </span>
           );
         },

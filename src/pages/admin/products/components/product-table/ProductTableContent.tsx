@@ -9,11 +9,13 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import VariantTableWrapper from '../variant-table/VariantTableWrapper';
-import type { Product, ProductVariant } from '../../types';
+import ComboItemsTable from '../combo/ComboItemsTable';
+import type { Product, ProductVariant, ComboItem } from '../../types';
 
 // Extended product type that includes combo items
 interface ProductWithItems extends Product {
-  items?: { id: string; name: string; quantity: number }[];
+  items?: ComboItem[];
+  children?: unknown[]; // For Combos
 }
 
 interface ProductTableContentProps<T = unknown> {
@@ -64,8 +66,7 @@ export default function ProductTableContent<T = unknown>({
               {rows.map((row) => {
                 const item = row.original as ProductWithItems;
                 const isExpanded = row.getIsExpanded();
-                // Check both variants array and variantCount (API may return count without full array)
-                const hasVariants = (item.variants?.length ?? 0) > 0 || (item.variantCount ?? 0) > 0 || (item.items?.length ?? 0) > 0;
+                const hasVariants = (item.variants?.length ?? 0) > 0 || (item.variantCount ?? 0) > 0 || (item.items?.length ?? 0) > 0 || (item.children?.length ?? 0) > 0;
 
                 return (
                   <React.Fragment key={row.id}>
@@ -113,8 +114,12 @@ export default function ProductTableContent<T = unknown>({
                         )}
                         {(item.items?.length ?? 0) > 0 && (
                           <TableRow className="hover:bg-transparent">
-                            <TableCell colSpan={columnCount} className="p-0">
-                              {/* Combo items will be rendered by ComboItemsTable in the column definition */}
+                            <TableCell colSpan={columnCount} className="p-0 border-b-2 border-indigo-100">
+                              <ComboItemsTable
+                                items={item.items as ComboItem[]}
+                                comboName={item.name}
+                                discount={(item as unknown as { discount?: number }).discount || 0}
+                              />
                             </TableCell>
                           </TableRow>
                         )}

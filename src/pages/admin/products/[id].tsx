@@ -16,7 +16,7 @@ import {
 import { useCategories } from '@/hooks/queries/useCategory';
 import { useQueryClient } from '@tanstack/react-query';
 import AdminPageHeader from '@/components/layout/AdminPageHeader';
-import { AGE_GROUPS, INT_TO_STATUS, PRODUCT_STATUS_VARIANT } from './types';
+import { AGE_GROUPS, PRODUCT_STATUS_VARIANT } from './types';
 import type { ProductStatus } from './types';
 import {
     DetailSkeleton,
@@ -45,7 +45,6 @@ const STATUS_LABELS: Record<string, string> = {
 /* ─── Helpers ─────────────────────────────────────────── */
 function resolveStatus(raw: unknown): string {
     if (typeof raw === 'string') return raw;
-    if (typeof raw === 'number') return INT_TO_STATUS[raw] ?? 'Unknown';
     return 'Unknown';
 }
 

@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Shield, RotateCcw, CircleDot } from 'lucide-react';
+import { Shield, RotateCcw } from 'lucide-react';
 import { PRODUCT_STATUSES, PRODUCT_STATUS_COLORS } from '../../types';
 import type { ProductStatus } from '../../types';
 import SectionHeading from '../shared/SectionHeading';
@@ -71,15 +71,12 @@ const PolicyStatusSection = memo(function PolicyStatusSection({
 
                 {/* Status */}
                 <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
-                        <CircleDot className="h-3.5 w-3.5 text-gray-400" /> Status
+                    <Label className="text-sm font-medium text-gray-700">
+                        Status
                     </Label>
                     <Select value={status} onValueChange={onStatusChange} disabled={isLoading}>
                         <SelectTrigger className={SELECT_CLS}>
-                            <span className="flex-1">
-                                <CircleDot className="h-4 w-4 text-gray-400 shrink-0" />
-                                <SelectValue placeholder="Select status" />
-                            </span>
+                            <SelectValue placeholder="Select status" />
                         </SelectTrigger>
                         <SelectContent className="rounded-xl shadow-xl z-[200]">
                             {PRODUCT_STATUSES.map((s, index) => (

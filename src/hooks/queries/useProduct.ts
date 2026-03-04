@@ -15,8 +15,13 @@ import type {
   CreateProductRequest,
   UpdateProductRequest,
   AdminProductParams,
+  ProductParams,
   CreateVariantRequest,
   UpdateVariantRequest,
+  UpdateProductStatusParams,
+  UpdateVariantStatusParams,
+  UpdateVariantStockStatusParams,
+  AdminVariantsByProductResponse,
 } from "@/api";
 
 // ========================
@@ -25,6 +30,7 @@ import type {
 export const productKeys = {
   all: ["products"] as const,
   admin: (params: AdminProductParams) => ["products", "admin", params] as const,
+  byFilter: (params: ProductParams) => ["products", "filter", params] as const,
   detail: (id: string) => ["products", id] as const,
 };
 
@@ -63,6 +69,16 @@ export const useProductDetail = (id: string, enabled = true) => {
     queryKey: productKeys.detail(id),
     queryFn: () => productService.getById(id),
     enabled: !!id && enabled,
+  });
+};
+
+/** Fetch products by filter (cateId, color, maxPrice, maxAgeGroup, key...) – public */
+export const useProductsByFilter = (params: ProductParams, enabled = true) => {
+  return useQuery({
+    queryKey: productKeys.byFilter(params),
+    queryFn: () => productService.getByFilter(params),
+    staleTime: 1000 * 60 * 2, // 2 minutes
+    enabled,
   });
 };
 
@@ -105,10 +121,24 @@ export const useUpdateProduct = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateProductRequest }) =>
-      productService.update(id, data),
-    onSuccess: () => {
+    mutationFn: (data: UpdateProductRequest) => productService.update(data),
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: productKeys.all });
+      queryClient.invalidateQueries({ queryKey: productKeys.detail(variables.id) });
+    },
+  });
+};
+
+/** Cập nhật trạng thái product */
+export const useUpdateProductStatus = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (params: UpdateProductStatusParams) =>
+      productService.updateStatus(params),
+    onSuccess: (_, { productId }) => {
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+      queryClient.invalidateQueries({ queryKey: productKeys.detail(productId) });
     },
   });
 };
@@ -152,10 +182,10 @@ export const useCreateVariant = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: productKeys.all });
       queryClient.invalidateQueries({
-        queryKey: variantKeys.byProduct(variables.productId),
+        queryKey: variantKeys.byProduct(variables.productid),
       });
       queryClient.invalidateQueries({
-        queryKey: variantKeys.adminByProduct(variables.productId),
+        queryKey: variantKeys.adminByProduct(variables.productid),
       });
     },
   });
@@ -168,6 +198,35 @@ export const useUpdateVariant = () => {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateVariantRequest }) =>
       variantService.update(id, data),
+    onSuccess: (_, { data }) => {
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+      queryClient.invalidateQueries({ queryKey: variantKeys.all });
+      queryClient.invalidateQueries({ queryKey: variantKeys.adminByProduct(data.productid) });
+    },
+  });
+};
+
+/** Update variant status */
+export const useUpdateVariantStatus = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (params: UpdateVariantStatusParams) =>
+      variantService.updateStatus(params),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+      queryClient.invalidateQueries({ queryKey: variantKeys.all });
+    },
+  });
+};
+
+/** Update variant stock status */
+export const useUpdateVariantStockStatus = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (params: UpdateVariantStockStatusParams) =>
+      variantService.updateStockStatus(params),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.all });
       queryClient.invalidateQueries({ queryKey: variantKeys.all });
@@ -312,7 +371,7 @@ export const useAllVariantOptions = (enabled = true) => {
 
 /** Convert AdminVariantsByProductResponse → flat VariantOption[] */
 function flattenAdminVariants(
-  res: import("@/api/services/variantService").AdminVariantsByProductResponse,
+  res: AdminVariantsByProductResponse,
   fallbackName?: string,
 ): VariantOption[] {
   const options: VariantOption[] = [];

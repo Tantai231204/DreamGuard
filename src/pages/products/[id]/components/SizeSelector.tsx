@@ -9,9 +9,10 @@ interface SizeSelectorProps {
     options: SizeOption[];
     selected: string;
     onChange: (value: string) => void;
+    disabledValues?: string[];
 }
 
-export const SizeSelector = memo(({ options, selected, onChange }: SizeSelectorProps) => {
+export const SizeSelector = memo(({ options, selected, onChange, disabledValues }: SizeSelectorProps) => {
     return (
         <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -48,11 +49,16 @@ export const SizeSelector = memo(({ options, selected, onChange }: SizeSelectorP
                         className={cn(
                             "group flex min-w-[90px] flex-col items-center rounded-lg border-2 px-4 py-3 transition-all duration-200",
                             "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2",
-                            "hover:border-[var(--color-primary)]/50 hover:shadow-sm",
-                            selected === size.value
+                            disabledValues?.includes(size.value)
+                                ? "cursor-not-allowed border-gray-200 bg-gray-50 text-gray-400 opacity-60"
+                                : "hover:border-[var(--color-primary)]/50 hover:shadow-sm",
+                            !disabledValues?.includes(size.value) && selected === size.value
                                 ? "border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-[var(--color-primary)] shadow-sm"
-                                : "border-gray-200 bg-white text-gray-700"
+                                : !disabledValues?.includes(size.value)
+                                    ? "border-gray-200 bg-white text-gray-700"
+                                    : ""
                         )}
+                        disabled={disabledValues?.includes(size.value)}
                     >
                         <span className="text-base font-semibold">{size.label}</span>
                         <span className={cn(

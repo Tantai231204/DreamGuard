@@ -2,7 +2,7 @@ import { useMemo, useCallback } from 'react';
 import { useProductVariants } from '@/hooks/queries/useProduct';
 import VariantTable from './VariantTable';
 import type { ProductVariant, VariantStatus } from '../../types';
-import { INT_TO_VARIANT_STATUS } from '../../types';
+
 
 interface VariantTableWrapperProps {
     productId: string;
@@ -29,7 +29,7 @@ export default function VariantTableWrapper({
         apiVariants.forEach((v) => {
             const variant: ProductVariant = {
                 ...v,
-                status: (INT_TO_VARIANT_STATUS[v.status] || 'Active') as VariantStatus,
+                status: (v.status || 'Published') as VariantStatus,
                 attributes: v.attributes as ProductVariant['attributes'],
             };
             map.set(v.id, variant);

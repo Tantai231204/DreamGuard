@@ -15,10 +15,10 @@ export interface ProductResponse {
   summary: string;
   description: string;
   material: string;
-  ageGroup: number | null;
+  ageGroup: string | null;
   warrantyPolicyDay: number | null;
   returnPolicyDay: number | null;
-  status: number;  // .NET enum serializes as int
+  status: string;  // .NET enum might serialize as string or int
   createdAt: string;
   averageRating: number;
   cateId: number | null;
@@ -47,6 +47,16 @@ export interface AdminProductParams {
   name?: string;
 }
 
+/** Public product query params – matches GET /api/product */
+export interface ProductParams {
+  cateId?: number;
+  pageNumber?: number;
+  color?: string;
+  maxPrice?: number;
+  maxAgeGroup?: number;
+  key?: string;
+}
+
 export interface ProductVariantResponse {
   id: string;
   sku: string;
@@ -55,10 +65,13 @@ export interface ProductVariantResponse {
   weight: number | null;
   attributes: Record<string, unknown> | null;
   size: string;
-  status: number;
+  status: string;
   createdAt: string;
   isNew: boolean;
   productId: string;
+  // Optional stock fields (may be present on some endpoints)
+  stockQuantity?: number;
+  stockStatus?: string;
 }
 
 export interface CreateProductRequest {
@@ -67,11 +80,28 @@ export interface CreateProductRequest {
   summary: string;
   description: string;
   material: string;
-  ageGroup: number | null;
+  ageGroup: string | null;
   warrantyPolicyDay: number | null;
   returnPolicyDay: number | null;
-  status: number;
+  status: string;
   cateId: number | null;
 }
 
-export type UpdateProductRequest = CreateProductRequest;
+export interface UpdateProductRequest {
+  id: string;
+  name: string;
+  slug: string;
+  summary: string;
+  description: string;
+  material?: string;
+  status?: string;
+  ageGroup: string | null;
+  warrantyPolicyDay: number | null;
+  returnPolicyDay: number | null;
+  cateId: number | null;
+}
+
+export interface UpdateProductStatusParams {
+  productId: string;
+  status: string;
+}

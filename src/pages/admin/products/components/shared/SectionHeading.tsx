@@ -7,10 +7,8 @@ interface SectionHeadingProps {
 
 const SectionHeading = memo(function SectionHeading({ title }: SectionHeadingProps) {
     return (
-        <h3 className="text-xs font-bold uppercase tracking-widest text-purple-600/70 flex items-center gap-2">
-            <span className="h-px flex-1 bg-gradient-to-r from-purple-200 to-transparent" />
+        <h3 className="text-[11px] font-bold uppercase tracking-widest text-slate-500 pb-1.5 border-b border-slate-200/60 flex items-center gap-1.5">
             {title}
-            <span className="h-px flex-1 bg-gradient-to-l from-purple-200 to-transparent" />
         </h3>
     );
 });

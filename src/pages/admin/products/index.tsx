@@ -12,6 +12,7 @@ import {
   type RowSelectionState,
   type ExpandedState,
   type PaginationState,
+  type Table,
 } from '@tanstack/react-table';
 import { motion } from 'framer-motion';
 import { Package } from 'lucide-react';
@@ -27,15 +28,18 @@ import ProductDialog from './components/product-dialog';
 import { VariantDialog } from './components/variant-dialog';
 import { DeleteProductDialog, ImageUploadDialog, ProductCreationSuccess } from './components/dialogs';
 import { useComboColumns } from './components/combo';
-import { ComboDialog } from './components/combo-dialog';
+import { ComboDialog, type ComboDialogMode } from './components/combo-dialog';
 import {
   useAdminProducts,
   useCreateProduct,
   useUpdateProduct,
+  useUpdateProductStatus,
   useDeleteProduct,
   useUploadProductImages,
   useCreateVariant,
   useUpdateVariant,
+  useUpdateVariantStatus,
+  useUpdateVariantStockStatus,
   useDeleteVariant,
 } from '@/hooks/queries/useProduct';
 import {
@@ -45,9 +49,16 @@ import {
   useDeleteCombo,
 } from '@/hooks/queries/useCombo';
 import { useCategories } from '@/hooks/queries/useCategory';
-import type { Product, CreateProductRequest, ProductVariant, CreateVariantRequest, Combo } from './types';
-import { INT_TO_STATUS, INT_TO_VARIANT_STATUS } from './types';
-
+import type {
+  Product,
+  CreateProductRequest,
+  UpdateProductRequest,
+  ProductVariant,
+  CreateVariantRequest,
+  Combo,
+  ProductStatus,
+  VariantStatus,
+} from './types';
 export default function ProductsPage() {
   const toast = useToast();
   const [activeTab, setActiveTab] = useState<'single' | 'combo'>('single');
@@ -74,6 +85,9 @@ export default function ProductsPage() {
   const [deleteCombo, setDeleteCombo] = useState<Combo | null>(null);
   const [comboDialogOpen, setComboDialogOpen] = useState(false);
   const [editingCombo, setEditingCombo] = useState<Combo | null>(null);
+  const [comboDialogMode, setComboDialogMode] = useState<ComboDialogMode | undefined>(undefined);
+  const [comboDialogKey, setComboDialogKey] = useState(0);
+  const [comboDefaultParentId, setComboDefaultParentId] = useState<string | undefined>(undefined);
 
   // Success dialog state
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
@@ -106,10 +120,10 @@ export default function ProductsPage() {
     () =>
       (pageData?.items ?? []).map((item) => ({
         ...item,
-        status: INT_TO_STATUS[item.status] || 'Draft',
+        status: (item.status as ProductStatus) || 'Draft',
         variants: item.variants?.map((v) => ({
           ...v,
-          status: INT_TO_VARIANT_STATUS[v.status] || 'Active',
+          status: (v.status as VariantStatus) || 'Published',
         })),
       })),
     [pageData?.items]
@@ -121,23 +135,50 @@ export default function ProductsPage() {
     name: comboGlobalFilter || undefined,
   });
 
-  // Map API combo response to local Combo type
-  const combos: Combo[] = useMemo(
-    () =>
-      (comboPageData?.items ?? []).map((item) => ({
-        ...item,
-        type: 'combo' as const,
-        baseSalePrice: item.salePrice,
-        status: item.status === 0 ? 'Active' as const : 'Inactive' as const,
-      })),
-    [comboPageData?.items]
-  );
+  // Map API combo response to local Combo type, grouped as parent → children
+  const combos: Combo[] = useMemo(() => {
+    const flat = (comboPageData?.items ?? []).map((item) => ({
+      ...item,
+      type: 'combo' as const,
+      baseSalePrice: item.salePrice,
+      status: (item.status as ProductStatus) || 'Draft',
+      comboParentId: item.comboParentId,
+      color: item.color,
+      size: item.size,
+    }));
+
+    // Build parent → children tree
+    const parentMap = new Map<string, Combo>();
+    const orphans: Combo[] = [];
+
+    // First pass: collect all parents
+    for (const c of flat) {
+      if (!c.comboParentId) {
+        parentMap.set(c.id, { ...c, children: [] });
+      }
+    }
+
+    // Second pass: attach children to parents
+    for (const c of flat) {
+      if (c.comboParentId) {
+        const parent = parentMap.get(c.comboParentId);
+        if (parent) {
+          parent.children!.push(c);
+        } else {
+          orphans.push(c); // parent not in current page — show as standalone
+        }
+      }
+    }
+
+    return [...parentMap.values(), ...orphans];
+  }, [comboPageData?.items]);
 
   const { data: categories = [] } = useCategories();
 
   // Mutations
   const createMutation = useCreateProduct();
   const updateMutation = useUpdateProduct();
+  const updateProductStatusMutation = useUpdateProductStatus();
   const deleteMutation = useDeleteProduct();
   const uploadImagesMutation = useUploadProductImages();
 
@@ -155,6 +196,9 @@ export default function ProductsPage() {
   const handleAdd = useCallback(() => {
     if (activeTab === 'combo') {
       setEditingCombo(null);
+      setComboDialogMode(undefined); // show mode selection screen
+      setComboDefaultParentId(undefined);
+      setComboDialogKey((k) => k + 1);
       setComboDialogOpen(true);
     } else {
       setEditingProduct(null);
@@ -210,46 +254,100 @@ export default function ProductsPage() {
     });
   }, [deleteVariantMutation, toast]);
 
+  const updateVariantStatusMutation = useUpdateVariantStatus();
+  const updateVariantStockStatusMutation = useUpdateVariantStockStatus();
+
   const handleVariantSubmit = useCallback(
-    (data: CreateVariantRequest) => {
-      if (editingVariant) {
-        // Update existing variant - destructure to omit productId
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { productId: _, ...updateData } = data;
-        updateVariantMutation.mutate(
-          { id: editingVariant.id, data: updateData },
-          {
-            onSuccess: () => {
-              setVariantDialogOpen(false);
-              toast.success('Variant updated', 'The variant has been successfully updated.');
-            },
+    async (formData: any) => {
+      // Destructure to separate core data from status fields
+      const { status, stockStatus, ...bodyData } = formData;
+
+      try {
+        if (editingVariant) {
+          // 1. Update core info (sku, prices, weight, attributes, productid)
+          await updateVariantMutation.mutateAsync({ id: editingVariant.id, data: bodyData });
+
+          // 2. Parallel status updates if changed
+          const statusPromises: Promise<any>[] = [];
+
+          if (status !== editingVariant.status) {
+            statusPromises.push(updateVariantStatusMutation.mutateAsync({ variantId: editingVariant.id, status }));
           }
-        );
-      } else {
-        // Create new variant
-        createVariantMutation.mutate(data, {
-          onSuccess: () => {
-            setVariantDialogOpen(false);
-            toast.success('Variant created', 'The new variant has been successfully created.');
-          },
-        });
+
+          if (stockStatus !== editingVariant.stockStatus) {
+            statusPromises.push(updateVariantStockStatusMutation.mutateAsync({ variantId: editingVariant.id, stockStatus }));
+          }
+
+          if (statusPromises.length > 0) {
+            await Promise.all(statusPromises);
+          }
+
+          setVariantDialogOpen(false);
+          toast.success('Variant updated', 'The variant and its status have been updated.');
+        } else {
+          // 3. Create new variant
+          const newVariant = await createVariantMutation.mutateAsync(bodyData);
+
+          // 4. Update status for the newly created variant if it's not default
+          // (Assuming create doesn't set status based on screenshots)
+          const statusPromises: Promise<any>[] = [];
+          statusPromises.push(updateVariantStatusMutation.mutateAsync({ variantId: newVariant.id, status }));
+          statusPromises.push(updateVariantStockStatusMutation.mutateAsync({ variantId: newVariant.id, stockStatus }));
+
+          await Promise.all(statusPromises);
+
+          setVariantDialogOpen(false);
+          toast.success('Variant created', 'The new variant has been successfully created.');
+        }
+      } catch (error) {
+        console.error('Variant submission failed:', error);
+        toast.error('Operation failed', 'There was an error saving the variant.');
       }
     },
-    [editingVariant, createVariantMutation, updateVariantMutation, toast]
+    [editingVariant, createVariantMutation, updateVariantMutation, updateVariantStatusMutation, updateVariantStockStatusMutation, toast]
   );
 
   const handleSubmit = useCallback(
     async (data: CreateProductRequest) => {
       if (editingProduct) {
-        updateMutation.mutate(
-          { id: editingProduct.id, data },
-          {
-            onSuccess: () => {
-              setDialogOpen(false);
-              toast.success('Product updated', 'The product has been successfully updated.');
-            },
+        try {
+          // Prepare parallel updates
+          const promises: Promise<any>[] = [];
+
+          // 1. General info update (matches PUT /api/product body in screenshot)
+          const updatePayload: UpdateProductRequest = {
+            id: editingProduct.id,
+            name: data.name,
+            slug: data.slug,
+            summary: data.summary,
+            description: data.description,
+            material: data.material,
+            // status is handled by a separate API if changed
+            ageGroup: data.ageGroup || null,
+            warrantyPolicyDay: data.warrantyPolicyDay ? Number(data.warrantyPolicyDay) : null,
+            returnPolicyDay: data.returnPolicyDay ? Number(data.returnPolicyDay) : null,
+            cateId: data.cateId ? Number(data.cateId) : null,
+          };
+          promises.push(updateMutation.mutateAsync(updatePayload));
+
+          // 2. Status update if changed (matches PUT /api/product/{id}?status=Value)
+          if (data.status !== editingProduct.status) {
+            promises.push(
+              updateProductStatusMutation.mutateAsync({
+                productId: editingProduct.id,
+                status: data.status,
+              })
+            );
           }
-        );
+
+          await Promise.all(promises);
+
+          setDialogOpen(false);
+          toast.success('Product updated', 'The product has been successfully updated.');
+        } catch (error) {
+          console.error('[UpdateProduct] parallel error:', error);
+          toast.error('Update failed', 'There was an error updating the product.');
+        }
       } else {
         try {
           const response = await createMutation.mutateAsync(data);
@@ -336,6 +434,17 @@ export default function ProductsPage() {
 
   const handleEditCombo = useCallback((combo: Combo) => {
     setEditingCombo(combo);
+    setComboDialogMode(combo.comboParentId ? 'variant' : 'parent');
+    setComboDefaultParentId(undefined);
+    setComboDialogKey((k) => k + 1);
+    setComboDialogOpen(true);
+  }, []);
+
+  const handleAddComboVariant = useCallback((parent: Combo) => {
+    setEditingCombo(null);
+    setComboDialogMode('variant');
+    setComboDefaultParentId(parent.id);
+    setComboDialogKey((k) => k + 1);
     setComboDialogOpen(true);
   }, []);
 
@@ -365,6 +474,7 @@ export default function ProductsPage() {
       salePrice: combo.baseSalePrice ?? combo.basePrice,
       imageUrl: combo.images?.[0] ?? '',
       imagePublicId: '',
+      status: combo.status,
       items: combo.items.map((item) => ({
         productVariantId: item.variantId || item.productId,
         quantity: item.quantity,
@@ -407,6 +517,7 @@ export default function ProductsPage() {
     onEdit: handleEditCombo,
     onDelete: handleDeleteCombo,
     onDuplicate: handleDuplicateCombo,
+    onAddVariant: handleAddComboVariant,
   });
 
   // Stats
@@ -467,11 +578,17 @@ export default function ProductsPage() {
     manualFiltering: true,
     enableRowSelection: true,
     enableExpanding: true,
+    getSubRows: (row) => row.children,
+    getRowCanExpand: (row) => !!(row.original.children?.length) || !!(row.original.items?.length),
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
   });
+
+  const activeTable = activeTab === 'single'
+    ? productTable
+    : (comboTable as unknown as Table<Product>);
 
   // Loading state
   if (isLoading || isLoadingCombos) {
@@ -524,7 +641,7 @@ export default function ProductsPage() {
             <div className="flex flex-col h-full overflow-hidden">
               {/* Bulk Actions */}
               <AdminBulkActions
-                table={activeTab === 'single' ? productTable : (comboTable as any)}
+                table={activeTable}
                 itemLabel={activeTab === 'single' ? 'product' : 'combo'}
                 accentColor={activeTab === 'single' ? 'blue' : 'purple'}
                 onEdit={() => console.log('Edit selected')}
@@ -543,7 +660,7 @@ export default function ProductsPage() {
 
               {/* Search */}
               <AdminTableSearch
-                table={activeTab === 'single' ? productTable : (comboTable as any)}
+                table={activeTable}
                 value={activeTab === 'single' ? globalFilter : comboGlobalFilter}
                 onChange={activeTab === 'single' ? setGlobalFilter : setComboGlobalFilter}
                 placeholder={activeTab === 'single' ? 'Search products by name...' : 'Search combos...'}
@@ -554,7 +671,7 @@ export default function ProductsPage() {
               {/* Table */}
               <div className="flex-1 overflow-auto">
                 <ProductTableContent
-                  table={activeTab === 'single' ? productTable : (comboTable as any)}
+                  table={activeTable}
                   type={activeTab}
                   emptyMessage={activeTab === 'single' ? 'No products found' : 'No combos found'}
                   onAddVariant={handleAddVariantFromTable}
@@ -565,7 +682,7 @@ export default function ProductsPage() {
 
               {/* Pagination */}
               <AdminTablePagination
-                table={activeTab === 'single' ? productTable : (comboTable as any)}
+                table={activeTable}
                 itemLabel={activeTab === 'single' ? 'products' : 'combos'}
               />
             </div>
@@ -635,9 +752,18 @@ export default function ProductsPage() {
 
       {/* Combo Create / Edit Dialog */}
       <ComboDialog
+        key={comboDialogKey}
         open={comboDialogOpen}
-        onOpenChange={setComboDialogOpen}
+        onOpenChange={(open) => {
+          setComboDialogOpen(open);
+          if (!open) {
+            setComboDialogMode(undefined);
+            setComboDefaultParentId(undefined);
+          }
+        }}
         combo={editingCombo}
+        initialMode={comboDialogMode}
+        defaultParentId={comboDefaultParentId}
         onSubmit={handleComboSubmit}
         isLoading={createComboMutation.isPending || updateComboMutation.isPending}
       />

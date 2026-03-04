@@ -11,7 +11,7 @@ export function useProductStats(products: Product[]) {
 
     const allVariants = products.flatMap(p => p.variants ?? []);
     const totalVariants = allVariants.length;
-    const activeVariants = allVariants.filter(v => v.status === 'Active').length;
+    const activeVariants = allVariants.filter(v => v.status === 'Published').length;
 
     return {
       total,

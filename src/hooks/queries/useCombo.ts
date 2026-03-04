@@ -11,6 +11,7 @@ import type {
   UpdateComboRequest,
   ComboParams,
 } from '@/api';
+import { isComboParent } from '@/api/services/comboService';
 
 // ========================
 // Query Keys
@@ -35,10 +36,11 @@ export const useAdminCombos = (params: ComboParams = {}) => {
 };
 
 /** Fetch all combos (non-paginated) */
-export const useCombos = () => {
+export const useCombos = (enabled = true) => {
   return useQuery({
     queryKey: comboKeys.all,
     queryFn: comboService.getAllList,
+    enabled,
   });
 };
 
@@ -48,6 +50,18 @@ export const useComboDetail = (id: string, enabled = true) => {
     queryKey: comboKeys.detail(id),
     queryFn: () => comboService.getById(id),
     enabled: !!id && enabled,
+  });
+};
+
+/** Fetch only parent combos (no comboParentId) for selection dropdowns */
+export const useComboParents = (enabled = true) => {
+  return useQuery({
+    queryKey: [...comboKeys.all, 'parents'] as const,
+    queryFn: async () => {
+      const all = await comboService.getAllList();
+      return all.filter(isComboParent);
+    },
+    enabled,
   });
 };
 

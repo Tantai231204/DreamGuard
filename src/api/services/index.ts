@@ -20,3 +20,4 @@ export type {
     ComboPageResponse,
     ComboParams,
 } from './comboService';
+export { isComboParent } from './comboService';

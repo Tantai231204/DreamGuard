@@ -2,8 +2,7 @@ import { useMemo } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Loader2 } from 'lucide-react';
 import { useProductDetail } from '@/hooks/queries/useProduct';
-import type { Product, CreateProductRequest } from '../../types';
-import { INT_TO_STATUS } from '../../types';
+import type { Product, CreateProductRequest, ProductStatus } from '../../types';
 import type { CategoryResponse } from '@/api';
 import ProductDialogForm from './ProductDialogForm';
 
@@ -43,7 +42,7 @@ export default function ProductDialog({
         return {
             ...product,
             ...detail,
-            status: INT_TO_STATUS[productDetail.status] ?? product.status,
+            status: (productDetail.status as ProductStatus) ?? product.status,
         };
     }, [product, productDetail]);
 

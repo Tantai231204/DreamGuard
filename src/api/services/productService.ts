@@ -1,6 +1,6 @@
 // src/api/services/productService.ts
 import apiClient, { type CustomAxiosRequestConfig } from '../../lib/api';
-import type { ProductResponse, CreateProductRequest, UpdateProductRequest, AdminProductPageResponse, AdminProductParams } from '../types';
+import type { ProductResponse, CreateProductRequest, UpdateProductRequest, AdminProductPageResponse, AdminProductParams, ProductParams, UpdateProductStatusParams } from '../types';
 
 const productService = {
   /** Lấy danh sách products cho admin (paginated) */
@@ -20,6 +20,19 @@ const productService = {
     apiClient
       .get<ProductResponse[]>('/product', { _suppressToast: true } as CustomAxiosRequestConfig)
       .then((res) => res.data)
+      .catch((err) => (err?.status === 404 ? [] : Promise.reject(err))),
+
+  /** Lấy products theo filter (public, cho trang /products) */
+  getByFilter: (params: ProductParams = {}): Promise<ProductResponse[]> =>
+    apiClient
+      .get('/product', { params, _suppressToast: true } as CustomAxiosRequestConfig)
+      .then((res) => {
+        // API có thể wrap: { data: { items: [...] } } hoặc { items: [...] } hoặc [...]
+        const raw = res.data?.data ?? res.data;
+        if (Array.isArray(raw)) return raw;
+        if (raw?.items && Array.isArray(raw.items)) return raw.items;
+        return [];
+      })
       .catch((err) => (err?.status === 404 ? [] : Promise.reject(err))),
 
   /** Lấy chi tiết product theo ID */
@@ -53,8 +66,12 @@ const productService = {
   },
 
   /** Cập nhật product */
-  update: (id: string, data: UpdateProductRequest): Promise<ProductResponse> =>
-    apiClient.put(`/product/${id}`, data).then((res) => res.data),
+  update: (data: UpdateProductRequest): Promise<ProductResponse> =>
+    apiClient.put('/product', data).then((res) => res.data),
+
+  /** Cập nhật trạng thái product */
+  updateStatus: ({ productId, status }: UpdateProductStatusParams): Promise<void> =>
+    apiClient.put(`/product/${productId}`, null, { params: { status } }).then((res) => res.data),
 
   /** Xóa product */
   delete: (id: string): Promise<void> =>

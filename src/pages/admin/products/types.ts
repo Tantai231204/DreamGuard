@@ -1,12 +1,12 @@
 // ── Product ──────────────────────────────────────────────
 export type ProductStatus = "Draft" | "Published" | "OutOfStock" | "Hidden";
-export type VariantStatus = "Active" | "Inactive";
+export type VariantStatus = ProductStatus;
 
-export const AGE_GROUPS: Record<number, string> = {
-  0: "Newborn (0–1 year)",
-  1: "Toddler (1–3 years)",
-  2: "Preschool (3–6 years)",
-  3: "School Age (6–12 years)",
+export const AGE_GROUPS: Record<string, string> = {
+  "0 - 6 tháng": "0 - 6 tháng",
+  "6 - 12 tháng": "6 - 12 tháng",
+  "12 - 24 tháng": "12 - 24 tháng",
+  "2 - 4 tuổi": "2 - 4 tuổi",
 };
 
 export const PRODUCT_STATUSES: { value: ProductStatus; label: string }[] = [
@@ -16,21 +16,18 @@ export const PRODUCT_STATUSES: { value: ProductStatus; label: string }[] = [
   { value: "Hidden", label: "Hidden" },
 ];
 
-/** Map string status → .NET enum int value */
-export const STATUS_TO_INT: Record<ProductStatus, number> = {
-  Draft: 0,
-  Published: 1,
-  OutOfStock: 2,
-  Hidden: 3,
-};
+export const STOCK_STATUS_OPTIONS = [
+  { value: "In Stock", label: "In Stock" },
+  { value: "Low Stock", label: "Low Stock" },
+  { value: "Out of Stock", label: "Out of Stock" },
+];
 
-/** Map .NET enum int → string status */
-export const INT_TO_STATUS: Record<number, ProductStatus> = {
-  0: "Draft",
-  1: "Published",
-  2: "OutOfStock",
-  3: "Hidden",
-};
+export const VARIANT_STATUS_OPTIONS: { value: ProductStatus; label: string }[] = [
+  { value: "Draft", label: "Draft" },
+  { value: "Published", label: "Published" },
+  { value: "Hidden", label: "Hidden" },
+];
+
 
 /** Badge variant for each product status */
 export const PRODUCT_STATUS_VARIANT: Record<ProductStatus, 'success' | 'warning' | 'outline' | 'danger'> = {
@@ -48,15 +45,6 @@ export const PRODUCT_STATUS_COLORS: Record<ProductStatus, string> = {
   Hidden: 'bg-gray-400',
 };
 
-export const VARIANT_STATUS_TO_INT: Record<VariantStatus, number> = {
-  Active: 0,
-  Inactive: 1,
-};
-
-export const INT_TO_VARIANT_STATUS: Record<number, VariantStatus> = {
-  0: "Active",
-  1: "Inactive",
-};
 
 // ── Size Options ─────────────────────────────────────────
 export const SIZE_OPTIONS = [
@@ -99,7 +87,7 @@ export interface Product {
   summary: string;
   description: string;
   material: string;
-  ageGroup: number | null;
+  ageGroup: string | null;
   warrantyPolicyDay: number | null;
   returnPolicyDay: number | null;
   status: ProductStatus;
@@ -120,14 +108,26 @@ export interface CreateProductRequest {
   summary: string;
   description: string;
   material: string;
-  ageGroup: number | null;
+  ageGroup: string | null;
   warrantyPolicyDay: number | null;
   returnPolicyDay: number | null;
-  status: number;
+  status: string;
   cateId: number | null;
 }
 
-export type UpdateProductRequest = CreateProductRequest;
+export interface UpdateProductRequest {
+  id: string;
+  name: string;
+  slug: string;
+  summary: string;
+  description: string;
+  material?: string;
+  status?: string;
+  ageGroup: string | null;
+  warrantyPolicyDay: number | null;
+  returnPolicyDay: number | null;
+  cateId: number | null;
+}
 
 // ── Product Variant ──────────────────────────────────────
 export interface VariantAttributes {
@@ -151,20 +151,26 @@ export interface ProductVariant {
   productId: string;
   // Inventory (from joined table or computed)
   stockQuantity?: number;
+  stockStatus?: string;
 }
 
 export interface CreateVariantRequest {
-  productId: string;
   sku: string;
-  basePrice: number;
-  salePrice: number;
-  weight: number | null;
-  isNew: boolean;
-  status: number;
+  baseprice: number;
+  saleprice: number;
+  weight: number;
   attributes: VariantAttributes | null;
+  productid: string;
 }
 
-export type UpdateVariantRequest = Omit<CreateVariantRequest, 'productId'>;
+export interface UpdateVariantRequest {
+  sku: string;
+  baseprice: number;
+  saleprice: number;
+  weight: number;
+  attributes: VariantAttributes | null;
+  productid: string;
+}
 
 // ── Combo (kept for combo tab) ──────────────────────────
 export interface ComboItem {
@@ -184,7 +190,7 @@ export interface Combo {
   basePrice: number;
   baseSalePrice?: number;
   totalStock: number;
-  status: "Active" | "Inactive";
+  status: ProductStatus;
   images: string[];
   description: string;
   featured: boolean;
@@ -193,4 +199,10 @@ export interface Combo {
   sales: number;
   items: ComboItem[];
   discount: number;
+  comboParentId?: string;
+  /** Color/size for combo variants (children) */
+  color?: string;
+  size?: string;
+  /** Virtual: child combos grouped under this parent */
+  children?: Combo[];
 }

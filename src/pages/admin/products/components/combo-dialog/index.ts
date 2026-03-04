@@ -8,11 +8,11 @@ import { cn } from "@/lib/utils";
 // STYLE CONSTANTS
 // ─────────────────────────────────────────────────────────
 export const INPUT_CLS =
-  "h-10 rounded-lg border-gray-200 bg-white hover:border-violet-300 focus:border-violet-400 focus:ring-2 focus:ring-violet-500/15 transition-all text-sm";
+  "h-11 rounded-xl border-slate-200 bg-slate-50/50 hover:bg-slate-50 hover:border-purple-300 focus:bg-white focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all text-sm font-medium text-slate-900 placeholder:text-slate-400 shadow-[0_1px_2px_-1px_rgba(0,0,0,0.05)] disabled:opacity-60 disabled:hover:bg-slate-50/50";
 
 export const SELECT_TRIGGER_CLS = cn(
   INPUT_CLS,
-  "px-3 [&>span]:!flex [&>span]:!items-center [&>span]:!gap-2",
+  "px-3.5 [&>span]:!flex [&>span]:!items-center [&>span]:!gap-2 [&>span]:!truncate [&>span_*]:!truncate data-[state=open]:border-purple-500 data-[state=open]:ring-4 data-[state=open]:ring-purple-500/10 data-[state=open]:bg-white",
 );
 
 // ─────────────────────────────────────────────────────────
@@ -64,6 +64,11 @@ export function colorLabel(c?: string): string | undefined {
 }
 
 // ─────────────────────────────────────────────────────────
+// COMBO DIALOG MODE
+// ─────────────────────────────────────────────────────────
+export type ComboDialogMode = 'parent' | 'variant';
+
+// ─────────────────────────────────────────────────────────
 // COMBO ITEM ENTRY
 // ─────────────────────────────────────────────────────────
 export interface ComboItemEntry {
@@ -94,15 +99,16 @@ export interface ComboFormState {
   imageUrl: string;
   imagePublicId: string;
   comboParentId: string;
+  status: string;
   items: ComboItemEntry[];
 }
 
 export type FormAction =
   | {
-      type: "SET_FIELD";
-      field: keyof Omit<ComboFormState, "items">;
-      payload: string;
-    }
+    type: "SET_FIELD";
+    field: keyof Omit<ComboFormState, "items">;
+    payload: string;
+  }
   | { type: "SET_ITEMS"; payload: ComboItemEntry[] }
   | { type: "RESET"; payload: ComboFormState };
 
@@ -128,14 +134,15 @@ export function getInitialState(
       name: combo.name ?? "",
       slug: combo.sku ?? "",
       ageGroup: "",
-      color: "",
-      size: "",
+      color: combo.color ?? "",
+      size: combo.size ?? "",
       basePrice: String(combo.basePrice ?? ""),
       salePrice: String(combo.baseSalePrice ?? ""),
       description: combo.description ?? "",
       imageUrl: combo.images?.[0] ?? "",
       imagePublicId: "",
-      comboParentId: "",
+      comboParentId: combo.comboParentId ?? "",
+      status: combo.status ?? "Published",
       items:
         combo.items?.map((item, idx) => ({
           id: `existing-${idx}`,
@@ -163,6 +170,7 @@ export function getInitialState(
     imageUrl: "",
     imagePublicId: "",
     comboParentId: "",
+    status: "Published",
     items: [],
   };
 }
@@ -192,3 +200,8 @@ export { default as ComboDialog } from "./ComboDialog";
 export { default as ComboFormFields } from "./ComboFormFields";
 export { default as ComboItemsPanel } from "./ComboItemsPanel";
 export { default as VirtualVariantSelect } from "./VirtualVariantSelect";
+export { default as ComboModeSelector } from "./ComboModeSelector";
+export { default as ComboDialogHeader } from "./ComboDialogHeader";
+export { default as ComboDialogFooter } from "./ComboDialogFooter";
+export { useComboForm } from "./useComboForm";
+

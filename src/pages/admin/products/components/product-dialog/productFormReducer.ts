@@ -19,9 +19,9 @@ type FormAction =
     | { type: 'RESET'; payload?: undefined }
     | { type: keyof FormState; payload: string };
 
-export function getInitialFormState(product?: { 
+export function getInitialFormState(product?: {
     name?: string; slug?: string; summary?: string; description?: string;
-    material?: string; ageGroup?: number | null; warrantyPolicyDay?: number | null;
+    material?: string; ageGroup?: string | null; warrantyPolicyDay?: number | null;
     returnPolicyDay?: number | null; status?: ProductStatus; cateId?: number | null;
 } | null): FormState {
     return {

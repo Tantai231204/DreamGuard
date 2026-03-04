@@ -1,6 +1,6 @@
 import { memo, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Star, ShoppingCart, Zap, RefreshCcw } from 'lucide-react';
+import { Star, ShoppingCart, Zap, RefreshCcw, Package, CheckCircle2, AlertTriangle, Tag } from 'lucide-react';
 import * as Separator from '@radix-ui/react-separator';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,9 +14,15 @@ import type { ColorOption, SizeOption, ProductBenefit } from '../types';
 interface Product {
     id: string;
     name: string;
+    sku?: string;
     price: number;
     originalPrice?: number;
     category: string;
+    summary?: string;
+    material?: string;
+    ageLabel?: string;
+    warrantyPolicyDay?: number | null;
+    returnPolicyDay?: number | null;
 }
 
 interface ProductInfoProps {
@@ -28,15 +34,23 @@ interface ProductInfoProps {
     selectedSize: string;
     quantity: number;
     stockLeft?: number;
+    disabledColors?: string[];
+    disabledSizes?: string[];
     colorOptions: ColorOption[];
     sizeOptions: SizeOption[];
     benefits: ProductBenefit[];
+    // Variant meta
+    sku?: string;
+    variantLabel?: string;
+    isNewVariant?: boolean;
     onColorChange: (color: string) => void;
     onSizeChange: (size: string) => void;
     onQuantityChange: (quantity: number) => void;
     onAddToCart: () => void;
     onBuyNow: () => void;
     tradeInValue?: number;
+    stockStatusLabel?: string;
+    isOutOfStock?: boolean;
 }
 
 export const ProductInfo = memo(({
@@ -47,7 +61,9 @@ export const ProductInfo = memo(({
     selectedColor,
     selectedSize,
     quantity,
-    stockLeft = 50,
+    stockLeft,
+    disabledColors,
+    disabledSizes,
     colorOptions,
     sizeOptions,
     benefits,
@@ -56,7 +72,12 @@ export const ProductInfo = memo(({
     onQuantityChange,
     onAddToCart,
     onBuyNow,
-    tradeInValue = 0
+    tradeInValue = 0,
+    sku,
+    variantLabel,
+    isNewVariant,
+    stockStatusLabel,
+    isOutOfStock = false,
 }: ProductInfoProps) => {
     const formatPrice = useCallback((price: number) => {
         return new Intl.NumberFormat('en-US', {
@@ -66,7 +87,7 @@ export const ProductInfo = memo(({
     }, []);
 
 
-    const finalPrice = product.price - tradeInValue;
+    const finalPrice = Math.max(0, product.price - tradeInValue);
 
     return (
         <motion.div
@@ -75,15 +96,44 @@ export const ProductInfo = memo(({
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1, duration: 0.5 }}
         >
-            {/* Category Badge */}
-            <Badge variant="secondary" className="bg-gradient-to-r from-[var(--color-primary)]/10 to-[var(--color-primary)]/5 text-[var(--color-primary)] border-0">
-                {product.category}
-            </Badge>
+            {/* Meta badges */}
+            <div className="flex flex-wrap items-center gap-2">
+                {product.category && (
+                    <Badge
+                        variant="secondary"
+                        className="bg-gradient-to-r from-[var(--color-primary)]/10 to-[var(--color-primary)]/5 text-[var(--color-primary)] border-0"
+                    >
+                        {product.category}
+                    </Badge>
+                )}
+                {isNewVariant && (
+                    <Badge className="gap-1 bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 shadow-sm">
+                        <Tag className="h-3.5 w-3.5" />
+                        New variant
+                    </Badge>
+                )}
+            </div>
 
             {/* Title */}
             <h1 className="text-3xl font-bold leading-tight text-gray-900 lg:text-4xl">
                 {product.name}
             </h1>
+
+            {/* Variant / SKU line */}
+            {(variantLabel || sku) && (
+                <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500">
+                    {variantLabel && (
+                        <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+                            {variantLabel}
+                        </span>
+                    )}
+                    {sku && (
+                        <span className="text-xs font-mono text-gray-500">
+                            SKU: <span className="font-semibold text-gray-700">{sku}</span>
+                        </span>
+                    )}
+                </div>
+            )}
 
             {/* Rating */}
             <div className="flex flex-wrap items-center gap-3">
@@ -106,8 +156,8 @@ export const ProductInfo = memo(({
                 <span className="text-sm font-medium text-green-600">{soldCount}+ sold</span>
             </div>
 
-            {/* Price */}
-            <div className="rounded-xl bg-gradient-to-r from-gray-50 to-gray-100/50 p-4">
+            {/* Price & stock panel */}
+            <div className="rounded-xl bg-gradient-to-r from-gray-50 to-gray-100/60 p-4 space-y-3">
                 <div className="flex flex-wrap items-baseline gap-3">
                     <span className="text-4xl font-bold text-[var(--color-primary)]">
                         {formatPrice(tradeInValue > 0 ? finalPrice : product.price)}
@@ -123,9 +173,8 @@ export const ProductInfo = memo(({
                         </span>
                     )}
                 </div>
-                
-                {/* Badges row */}
-                <div className="flex flex-wrap gap-2 mt-3">
+
+                <div className="flex flex-wrap items-center gap-2">
                     {product.originalPrice && tradeInValue === 0 && (
                         <Badge className="bg-gradient-to-r from-red-500 to-red-600 text-white border-0 shadow-sm">
                             Sale -{Math.round((1 - product.price / product.originalPrice) * 100)}%
@@ -137,10 +186,31 @@ export const ProductInfo = memo(({
                             Trade-in saves {formatPrice(tradeInValue)}
                         </Badge>
                     )}
+
+                    {typeof stockLeft === 'number' && (
+                        <Badge
+                            variant="outline"
+                            className={cn(
+                                "inline-flex items-center gap-1.5 border-0 px-3 py-1 text-xs font-medium shadow-sm",
+                                isOutOfStock
+                                    ? "bg-red-50 text-red-700"
+                                    : stockLeft < 5
+                                        ? "bg-amber-50 text-amber-700"
+                                        : "bg-emerald-50 text-emerald-700",
+                            )}
+                        >
+                            <Package className="w-3.5 h-3.5" />
+                            <span>
+                                {isOutOfStock
+                                    ? "Out of stock"
+                                    : stockStatusLabel || `${stockLeft} in stock`}
+                            </span>
+                        </Badge>
+                    )}
                 </div>
-                
+
                 {tradeInValue > 0 && (
-                    <div className="mt-3 p-2.5 bg-emerald-50 rounded-lg border border-emerald-200">
+                    <div className="mt-1.5 p-2.5 bg-emerald-50 rounded-lg border border-emerald-200">
                         <p className="text-sm text-emerald-700 font-medium flex items-center gap-2">
                             <RefreshCcw className="w-4 h-4" />
                             You're saving {formatPrice(tradeInValue)} with the Trade-in Program!
@@ -149,34 +219,57 @@ export const ProductInfo = memo(({
                 )}
             </div>
 
-            {/* Short Description */}
-            <p className="text-base text-gray-600 leading-relaxed">
-                Premium baby bedding set made from 100% organic cotton, incredibly soft and absolutely safe for your baby's sensitive skin. Certified by international child product safety standards.
-            </p>
+            {/* Variant selection */}
+            <div className="space-y-4 rounded-xl border border-gray-100 bg-white/80 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm text-gray-600">
+                        <span className="font-semibold text-gray-900">Selected:</span>{" "}
+                        <span className="font-medium text-[var(--color-primary)]">
+                            {selectedColor && selectedSize
+                                ? `${selectedColor.toUpperCase()} • ${selectedSize}`
+                                : selectedColor || selectedSize || "Choose variant"}
+                        </span>
+                    </p>
+                    {typeof stockLeft === 'number' && (
+                        <div className={cn(
+                            "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium",
+                            isOutOfStock
+                                ? "bg-red-50 text-red-700"
+                                : stockLeft < 5
+                                    ? "bg-amber-50 text-amber-700"
+                                    : "bg-emerald-50 text-emerald-700",
+                        )}>
+                            {isOutOfStock ? (
+                                <AlertTriangle className="w-3.5 h-3.5" />
+                            ) : (
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                            )}
+                            <span>{stockStatusLabel || `${stockLeft} in stock`}</span>
+                        </div>
+                    )}
+                </div>
 
-            {/* Divider */}
-            <Separator.Root className="bg-gray-200" />
+                <ColorSelector
+                    options={colorOptions}
+                    selected={selectedColor}
+                    onChange={onColorChange}
+                    disabledValues={disabledColors}
+                />
 
-            {/* Color Selection */}
-            <ColorSelector
-                options={colorOptions}
-                selected={selectedColor}
-                onChange={onColorChange}
-            />
+                <SizeSelector
+                    options={sizeOptions}
+                    selected={selectedSize}
+                    onChange={onSizeChange}
+                    disabledValues={disabledSizes}
+                />
 
-            {/* Size Selection */}
-            <SizeSelector
-                options={sizeOptions}
-                selected={selectedSize}
-                onChange={onSizeChange}
-            />
-
-            {/* Quantity */}
-            <QuantitySelector
-                value={quantity}
-                onChange={onQuantityChange}
-                stockLeft={stockLeft}
-            />
+                <QuantitySelector
+                    value={quantity}
+                    onChange={onQuantityChange}
+                    stockLeft={stockLeft}
+                    max={stockLeft && stockLeft > 0 ? stockLeft : undefined}
+                />
+            </div>
 
             {/* Action Buttons */}
             <div className="space-y-3 pt-2">
@@ -184,7 +277,13 @@ export const ProductInfo = memo(({
                     <Button
                         size="lg"
                         onClick={onAddToCart}
-                        className="flex-1 rounded-xl bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-hover)] py-6 text-base font-semibold text-white shadow-lg shadow-[var(--color-primary)]/30 transition-all hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]"
+                        disabled={isOutOfStock}
+                        className={cn(
+                            "flex-1 rounded-xl py-6 text-base font-semibold shadow-lg transition-all hover:shadow-xl hover:scale-[1.02] active:scale-[0.98]",
+                            isOutOfStock
+                                ? "bg-gray-200 text-gray-500 cursor-not-allowed shadow-none hover:scale-100"
+                                : "bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-hover)] text-white shadow-[var(--color-primary)]/30",
+                        )}
                     >
                         <ShoppingCart className="mr-2 h-5 w-5" />
                         Add to Cart
@@ -193,7 +292,13 @@ export const ProductInfo = memo(({
                         size="lg"
                         variant="outline"
                         onClick={onBuyNow}
-                        className="flex-1 rounded-xl border-2 border-[var(--color-primary)] py-6 text-base font-semibold text-[var(--color-primary)] transition-all hover:bg-gradient-to-r hover:from-[var(--color-primary)] hover:to-[var(--color-primary-hover)] hover:text-white hover:border-transparent hover:scale-[1.02] active:scale-[0.98]"
+                        disabled={isOutOfStock}
+                        className={cn(
+                            "flex-1 rounded-xl border-2 py-6 text-base font-semibold transition-all hover:scale-[1.02] active:scale-[0.98]",
+                            isOutOfStock
+                                ? "border-gray-200 text-gray-400 cursor-not-allowed hover:scale-100"
+                                : "border-[var(--color-primary)] text-[var(--color-primary)] hover:bg-gradient-to-r hover:from-[var(--color-primary)] hover:to-[var(--color-primary-hover)] hover:text-white hover:border-transparent",
+                        )}
                     >
                         <Zap className="mr-2 h-5 w-5" />
                         Buy Now

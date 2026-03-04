@@ -1,6 +1,5 @@
-import { useCallback, useReducer } from 'react';
-import type { Product, CreateProductRequest, ProductStatus } from '../../types';
-import { STATUS_TO_INT } from '../../types';
+import { useCallback, useReducer, useEffect } from 'react';
+import type { Product, CreateProductRequest } from '../../types';
 import type { CategoryResponse } from '@/api';
 import { formReducer, getInitialFormState, type FormState } from './productFormReducer';
 import { useCategoryTree } from './useCategoryTree';
@@ -38,6 +37,26 @@ export default function ProductDialogForm({
     /* ── Category tree hook ── */
     const { flatCategories, findTopLevelParent, childCategories, buildSlug } =
         useCategoryTree(categories, form.cateId);
+
+    // Load initial category hierarchy if editing
+    useEffect(() => {
+        if (isEdit && product?.cateId && flatCategories.length > 0) {
+            const currentId = String(product.cateId);
+            const foundCat = flatCategories.find(c => String(c.cateId) === currentId);
+
+            if (foundCat && foundCat.depth > 0) {
+                // If the product belongs to a subcategory, set both correctly
+                const parentId = findTopLevelParent(currentId);
+                dispatch({
+                    type: 'SET_ALL',
+                    payload: {
+                        cateId: parentId,
+                        subCateId: currentId
+                    }
+                });
+            }
+        }
+    }, [isEdit, product?.id, flatCategories, findTopLevelParent]);
 
     /* ── Handlers ── */
     const handleNameChange = useCallback(
@@ -93,10 +112,10 @@ export default function ProductDialogForm({
                 summary: form.summary.trim(),
                 description: form.description.trim(),
                 material: form.material.trim(),
-                ageGroup: form.ageGroup ? Number(form.ageGroup) : null,
+                ageGroup: form.ageGroup || null,
                 warrantyPolicyDay: form.warrantyPolicyDay ? Number(form.warrantyPolicyDay) : null,
                 returnPolicyDay: form.returnPolicyDay ? Number(form.returnPolicyDay) : null,
-                status: STATUS_TO_INT[form.status as ProductStatus],
+                status: form.status,
                 cateId: form.cateId ? Number(form.cateId) : null,
             });
         },
@@ -115,7 +134,7 @@ export default function ProductDialogForm({
 
     return (
         <>
-            <DialogHeader isEdit={isEdit} />
+            <DialogHeader isEdit={isEdit} status={form.status} />
 
             <form
                 id="product-form"

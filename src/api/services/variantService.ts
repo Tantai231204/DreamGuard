@@ -10,24 +10,31 @@ export interface VariantAttributes {
 }
 
 export interface CreateVariantRequest {
-  productId: string;
   sku: string;
-  basePrice: number;
-  salePrice: number;
-  weight: number | null;
-  isNew: boolean;
-  status: number;
+  baseprice: number;
+  saleprice: number;
+  weight: number;
   attributes: VariantAttributes | null;
+  productid: string;
 }
 
 export interface UpdateVariantRequest {
   sku: string;
-  basePrice: number;
-  salePrice: number;
-  weight: number | null;
-  isNew: boolean;
-  status: number;
+  baseprice: number;
+  saleprice: number;
+  weight: number;
   attributes: VariantAttributes | null;
+  productid: string;
+}
+
+export interface UpdateVariantStatusParams {
+  variantId: string;
+  status: string;
+}
+
+export interface UpdateVariantStockStatusParams {
+  variantId: string;
+  stockStatus: string;
 }
 
 export interface VariantResponse {
@@ -37,10 +44,13 @@ export interface VariantResponse {
   salePrice: number;
   weight: number | null;
   attributes: VariantAttributes | null;
-  status: number;
+  size: string;
+  status: string;
   createdAt: string;
   isNew: boolean;
   productId: string;
+  stockQuantity?: number;
+  stockStatus?: string;
 }
 
 // Admin API response types
@@ -72,9 +82,17 @@ const variantService = {
   create: (data: CreateVariantRequest): Promise<VariantResponse> =>
     apiClient.post("/variants", data).then((res) => res.data),
 
-  /** Update variant */
+  /** Update variant info */
   update: (id: string, data: UpdateVariantRequest): Promise<VariantResponse> =>
     apiClient.put(`/variants/${id}`, data).then((res) => res.data),
+
+  /** Update variant status */
+  updateStatus: ({ variantId, status }: UpdateVariantStatusParams): Promise<void> =>
+    apiClient.patch(`/variants/${variantId}/status`, null, { params: { status } }).then((res) => res.data),
+
+  /** Update variant stock status */
+  updateStockStatus: ({ variantId, stockStatus }: UpdateVariantStockStatusParams): Promise<void> =>
+    apiClient.patch(`/variants/${variantId}/stock-status`, null, { params: { stockStatus } }).then((res) => res.data),
 
   /** Delete variant */
   delete: (id: string): Promise<void> =>

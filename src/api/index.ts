@@ -17,6 +17,9 @@ export type {
   CreateVariantRequest,
   UpdateVariantRequest,
   VariantResponse,
+  AdminVariantsByProductResponse,
+  UpdateVariantStatusParams,
+  UpdateVariantStockStatusParams,
 } from "./services/variantService";
 
 // Combo Types (exported from service)
@@ -56,4 +59,6 @@ export type {
   UpdateProductRequest,
   AdminProductPageResponse,
   AdminProductParams,
+  ProductParams,
+  UpdateProductStatusParams,
 } from "./types";

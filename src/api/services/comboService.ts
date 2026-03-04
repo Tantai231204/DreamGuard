@@ -20,6 +20,7 @@ export interface CreateComboRequest {
   imageUrl: string;
   imagePublicId: string;
   comboParentId?: string;
+  status: string;
   items: ComboItemRequest[];
 }
 
@@ -48,7 +49,7 @@ export interface ComboResponse {
   comboParentId?: string;
   discount: number;
   totalStock: number;
-  status: number;
+  status: string;
   featured: boolean;
   images: string[];
   category: string;
@@ -57,6 +58,11 @@ export interface ComboResponse {
   items: ComboItemResponse[];
   createdAt: string;
   updatedAt: string;
+}
+
+/** Check if a combo is a parent (no comboParentId, typically no items) */
+export function isComboParent(c: ComboResponse): boolean {
+  return !c.comboParentId;
 }
 
 export interface ComboPageResponse {
@@ -73,7 +79,7 @@ export interface ComboParams {
   pageNumber?: number;
   pageSize?: number;
   name?: string;
-  status?: number;
+  status?: string;
 }
 
 // ── Service ──────────────────────────────────────────────
@@ -91,11 +97,14 @@ const comboService = {
         return Promise.reject(err);
       }),
 
-  /** Lấy tất cả combos (non-paginated) */
+  /** Lấy tất cả combos (sử dụng admin endpoint với pageSize lớn) */
   getAllList: (): Promise<ComboResponse[]> =>
     apiClient
-      .get<ComboResponse[]>('/combo', { _suppressToast: true } as CustomAxiosRequestConfig)
-      .then((res) => res.data)
+      .get<ComboPageResponse>('/combo/admin', {
+        params: { pageNumber: 1, pageSize: 1000 },
+        _suppressToast: true
+      } as CustomAxiosRequestConfig)
+      .then((res) => res.data.items || [])
       .catch((err) => (err?.status === 404 ? [] : Promise.reject(err))),
 
   /** Lấy chi tiết 1 combo theo ID */
