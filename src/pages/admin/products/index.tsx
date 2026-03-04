@@ -54,7 +54,6 @@ import type {
   CreateProductRequest,
   UpdateProductRequest,
   ProductVariant,
-  CreateVariantRequest,
   Combo,
   ProductStatus,
   VariantStatus,

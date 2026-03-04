@@ -17,7 +17,7 @@ import {
     Ruler,
     Move3D,
 } from 'lucide-react';
-import type { ProductVariant, VariantStatus, CreateVariantRequest, VariantAttributes } from '../../types';
+import type { ProductVariant, VariantStatus, VariantAttributes } from '../../types';
 import { PRODUCT_STATUS_COLORS, VARIANT_STATUS_OPTIONS } from '../../types';
 import ColorPicker from './ColorPicker';
 import SectionHeading from '../shared/SectionHeading';

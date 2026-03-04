@@ -5,8 +5,7 @@ export { useProductColumns, ProductActions, ProductTableContent, BulkActionsTool
 export { default as ProductDialog } from './product-dialog';
 
 // ── Variant Dialog ───────────────────────────────────────
-export { VariantDialog, ColorPicker, AttributesEditor } from './variant-dialog';
-export type { AttributeField } from './variant-dialog';
+export { VariantDialog, ColorPicker } from './variant-dialog';
 
 // ── Variant Table ────────────────────────────────────────
 export { VariantTable, VariantTableWrapper, VariantSummaryCell, VariantSummaryDisplay } from './variant-table';
