@@ -2,7 +2,6 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { useVerifyOtp } from "../../hooks/useAuth";
-import Logo from "../../assets/logo_no_name.svg";
 
 export default function VerifyOTP() {
   const navigate = useNavigate();
@@ -111,7 +110,7 @@ useEffect(() => {
       <div className="flex flex-col items-center mb-8">
         <div className="mb-1">
           <img
-            src={Logo}
+            src="/images/logo_with_name.svg"
             alt="DreamGuard Logo"
             className="h-20 w-20 rounded-lg object-contain shadow-md"
           />

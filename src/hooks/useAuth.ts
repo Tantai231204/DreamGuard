@@ -18,9 +18,14 @@ export const useLogin = () => {
     }
   >({
     mutationFn: authService.login,
+    // onSuccess: (data) => {
+    //   setAuth(data);
+    // },
     onSuccess: (data) => {
-      setAuth(data);
-    },
+  console.log("🔥 LOGIN SUCCESS:", data);
+  setAuth(data);
+  console.log("🔥 AFTER SET AUTH:", useAuthStore.getState());
+},
   });
 };
 

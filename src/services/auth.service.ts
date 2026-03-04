@@ -24,7 +24,7 @@ export interface RegisterRequest {
   lastName: string;
   phoneNumber: string;
   gender: "Male" | "Female";
-  dateOfBirth: string;
+  dateOfBirth: Date | undefined;
 }
 
 export const authService = {

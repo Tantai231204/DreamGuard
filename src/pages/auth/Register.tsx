@@ -12,7 +12,6 @@ import { Button } from "../../components/ui/button";
 import { Checkbox } from "../../components/ui/checkbox";
 import { authService } from "../../services/auth.service";
 import { AxiosError } from "axios";
-import Logo from "../../assets/logo_no_name.svg";
 
 // Google Icon Component
 const GoogleIcon = () => (
@@ -128,7 +127,7 @@ export default function Register() {
       <div className="flex flex-col items-center mb-8">
         <div className="mb-1">
           <img
-            src={Logo}
+            src="/images/logo_with_name.svg"
             alt="DreamGuard Logo"
             className="h-20 w-20 rounded-lg object-contain shadow-md"
           />
