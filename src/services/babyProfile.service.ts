@@ -1,0 +1,65 @@
+import { AxiosError } from "axios";
+import api from "../lib/api";
+import type {
+  BabyProfile,
+  CreateBabyProfilePayload,
+  UpdateBabyProfilePayload,
+} from "../types/babyProfile";
+// import { API_BASE_URL } from "@/lib/constants";
+
+// GET ALL
+// export const getBabyProfiles = async (): Promise<BabyProfile[]> => {
+//   const res = await api.get("/BabyProfiles?pageNumber=1");
+//   return res.data;
+// };
+export const getBabyProfiles = async (): Promise<BabyProfile[]> => {
+  const res = await api.get("/BabyProfiles?pageNumber=1");
+  console.log("API response:", res.data);
+  return res.data.items;
+};
+
+// GET BY ID
+export const getBabyProfileById = async (id: string): Promise<BabyProfile> => {
+  const res = await api.get(`/BabyProfiles/${id}`);
+  return res.data;
+};
+
+// CREATE
+export const createBabyProfile = async (
+  payload: CreateBabyProfilePayload,
+): Promise<string> => {
+  try {
+    const res = await api.post("/BabyProfiles", payload)
+    return res.data
+  } catch (error: unknown) {
+    if (error instanceof AxiosError) {
+      console.log("CREATE ERROR:", error.response?.data)
+    } else {
+      console.log("CREATE ERROR:", error)
+    }
+    throw error
+  }
+}
+
+// UPDATE
+export const updateBabyProfile = async (
+  payload: UpdateBabyProfilePayload,
+): Promise<void> => {
+  const { babyId, ...data } = payload
+
+  try {
+    await api.put(`/BabyProfiles/${babyId}`, data)
+  } catch (error: unknown) {
+    if (error instanceof AxiosError) {
+      console.log("UPDATE ERROR:", error.response?.data)
+    } else {
+      console.log("UPDATE ERROR:", error)
+    }
+    throw error
+  }
+}
+
+// DELETE
+export const deleteBabyProfile = async (id: string): Promise<void> => {
+  await api.delete(`/BabyProfiles/${id}`);
+};

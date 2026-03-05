@@ -8,18 +8,18 @@ import { AppRoute } from "../../lib/constants";
  * 2. Redirects to home if authenticated but not admin
  */
 export default function AdminRoute() {
-    const { isAuthenticated, isAdmin } = useAuthStore();
-    const location = useLocation();
+  const { isAuthenticated, role } = useAuthStore();
+  const location = useLocation();
 
-    // Check authentication first
-    if (!isAuthenticated()) {
-        return <Navigate to={AppRoute.LOGIN} replace state={{ from: location }} />;
-    }
+  // Check authentication
+  if (!isAuthenticated) {
+    return <Navigate to={AppRoute.LOGIN} replace state={{ from: location }} />;
+  }
 
-    // Check admin role
-    if (!isAdmin()) {
-        return <Navigate to={AppRoute.HOME} replace />;
-    }
+  // Check admin role
+  if (role !== "admin") {
+    return <Navigate to={AppRoute.HOME} replace />;
+  }
 
-    return <Outlet />;
+  return <Outlet />;
 }

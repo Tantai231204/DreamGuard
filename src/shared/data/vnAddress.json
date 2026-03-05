@@ -1,0 +1,103 @@
+[
+  {
+    "code": "79",
+    "name": "TP. Hồ Chí Minh",
+    "districts": [
+      {
+        "code": "760",
+        "name": "Quận 1",
+        "wards": [
+          { "code": "76001", "name": "Phường Bến Nghé" },
+          { "code": "76002", "name": "Phường Bến Thành" },
+          { "code": "76003", "name": "Phường Đa Kao" },
+          { "code": "76004", "name": "Phường Nguyễn Thái Bình" }
+        ]
+      },
+      {
+        "code": "761",
+        "name": "Quận 3",
+        "wards": [
+          { "code": "76101", "name": "Phường Võ Thị Sáu" },
+          { "code": "76102", "name": "Phường 1" },
+          { "code": "76103", "name": "Phường 2" }
+        ]
+      },
+      {
+        "code": "762",
+        "name": "Quận 4",
+        "wards": [
+          { "code": "76201", "name": "Phường 1" },
+          { "code": "76202", "name": "Phường 2" },
+          { "code": "76203", "name": "Phường 3" }
+        ]
+      },
+      {
+        "code": "763",
+        "name": "Quận 5",
+        "wards": [
+          { "code": "76301", "name": "Phường 1" },
+          { "code": "76302", "name": "Phường 2" },
+          { "code": "76303", "name": "Phường 3" }
+        ]
+      },
+      {
+        "code": "764",
+        "name": "Quận 7",
+        "wards": [
+          { "code": "76401", "name": "Phường Tân Phú" },
+          { "code": "76402", "name": "Phường Tân Phong" },
+          { "code": "76403", "name": "Phường Phú Mỹ" }
+        ]
+      },
+      {
+        "code": "765",
+        "name": "Quận Bình Thạnh",
+        "wards": [
+          { "code": "76501", "name": "Phường 1" },
+          { "code": "76502", "name": "Phường 2" },
+          { "code": "76503", "name": "Phường 25" }
+        ]
+      },
+      {
+        "code": "766",
+        "name": "Thành phố Thủ Đức",
+        "wards": [
+          { "code": "76601", "name": "Phường Linh Trung" },
+          { "code": "76602", "name": "Phường Hiệp Bình Chánh" },
+          { "code": "76603", "name": "Phường Thảo Điền" }
+        ]
+      },
+      {
+        "code": "767",
+        "name": "Quận Tân Bình",
+        "wards": [
+          { "code": "76701", "name": "Phường 2" },
+          { "code": "76702", "name": "Phường 4" },
+          { "code": "76703", "name": "Phường 12" }
+        ]
+      },
+      {
+        "code": "768",
+        "name": "Quận Phú Nhuận",
+        "wards": [
+          { "code": "76801", "name": "Phường 1" },
+          { "code": "76802", "name": "Phường 2" },
+          { "code": "76803", "name": "Phường 7" }
+        ]
+      }
+    ]
+  },
+  {
+    "code": "01",
+    "name": "Hà Nội",
+    "districts": [
+      {
+        "code": "001",
+        "name": "Ba Đình",
+        "wards": [
+          { "code": "00101", "name": "Phường Phúc Xá" }
+        ]
+      }
+    ]
+  }
+]
