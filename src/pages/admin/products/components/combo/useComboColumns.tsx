@@ -110,12 +110,16 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
                 header: "SKU",
                 cell: ({ row }) => {
                     const combo = row.original
-                    const sku = combo.sku ?? combo.id?.slice(0, 8)
+                    const sku = combo.slug || combo.sku || "—"
                     const canExpand = row.getCanExpand()
                     const isExpanded = row.getIsExpanded()
+                    const depth = row.depth
 
                     return (
-                        <div className="flex items-center gap-2">
+                        <div
+                            className="flex items-center gap-2"
+                            style={{ paddingLeft: `${depth * 24}px` }}
+                        >
                             {/* Expand chevron — in SKU column so it's always visible */}
                             {canExpand ? (
                                 <button
@@ -297,35 +301,51 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
                         <div className="flex justify-end">
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button size="icon" variant="ghost" className="h-8 w-8">
-                                        <MoreVertical className="h-4 w-4" />
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-9 w-9 p-0 rounded-lg hover:bg-gray-100 hover:shadow-md transition-all"
+                                    >
+                                        <MoreVertical className="h-5 w-5" />
                                     </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-44 rounded-xl shadow-lg">
-                                    <DropdownMenuItem onClick={() => onView?.(combo)}>
-                                        <Eye className="mr-2 h-4 w-4" />
-                                        View
+                                <DropdownMenuContent align="end" className="w-52 shadow-xl border-2 rounded-xl">
+                                    <DropdownMenuItem
+                                        className="cursor-pointer py-2.5 font-medium"
+                                        onClick={() => onView?.(combo)}
+                                    >
+                                        <Eye className="h-4 w-4 mr-3 text-blue-600" />
+                                        View Details
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => onEdit?.(combo)}>
-                                        <Edit className="mr-2 h-4 w-4" />
-                                        Edit
+                                    <DropdownMenuItem
+                                        className="cursor-pointer py-2.5 font-medium"
+                                        onClick={() => onEdit?.(combo)}
+                                    >
+                                        <Edit className="h-4 w-4 mr-3 text-gray-700" />
+                                        Edit Combo
                                     </DropdownMenuItem>
                                     {isParent && onAddVariant && (
-                                        <DropdownMenuItem onClick={() => onAddVariant(combo)}>
-                                            <Plus className="mr-2 h-4 w-4" />
+                                        <DropdownMenuItem
+                                            className="cursor-pointer py-2.5 font-medium"
+                                            onClick={() => onAddVariant(combo)}
+                                        >
+                                            <Plus className="h-4 w-4 mr-3 text-indigo-600" />
                                             Add Variant
                                         </DropdownMenuItem>
                                     )}
-                                    <DropdownMenuItem onClick={() => onDuplicate?.(combo)}>
-                                        <Copy className="mr-2 h-4 w-4" />
+                                    <DropdownMenuItem
+                                        className="cursor-pointer py-2.5 font-medium"
+                                        onClick={() => onDuplicate?.(combo)}
+                                    >
+                                        <Copy className="h-4 w-4 mr-3 text-sky-600" />
                                         Duplicate
                                     </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
+                                    <DropdownMenuSeparator className="my-1" />
                                     <DropdownMenuItem
-                                        className="text-red-600 focus:text-red-700 focus:bg-red-50"
+                                        className="cursor-pointer py-2.5 text-red-600 font-semibold focus:bg-red-50 focus:text-red-700"
                                         onClick={() => onDelete?.(combo)}
                                     >
-                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        <Trash2 className="h-4 w-4 mr-3" />
                                         Delete
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>

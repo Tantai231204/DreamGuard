@@ -145,6 +145,7 @@ export default function ProductTableContent<T = unknown>({
                             <ComboItemsTable
                               comboId={item.id}
                               items={(item.items as ComboItem[]) ?? []}
+                              childCombos={(item as any).childCombos}
                               comboName={item.name}
                               discount={(row.original as unknown as Combo).discount ?? 0}
                             />

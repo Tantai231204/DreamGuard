@@ -75,7 +75,8 @@ export function useComboForm({
         if (!parent) return;
 
         // Count existing variants for this parent
-        const existingVariantCount = allCombos.filter(
+        // Use parent.childCombos.length if nested, fallback to flat filter
+        const existingVariantCount = parent.childCombos?.length ?? allCombos.filter(
             c => c.comboParentId === parentId
         ).length;
         const nextNumber = existingVariantCount + 1;
@@ -141,54 +142,66 @@ export function useComboForm({
     );
 
     // ── Submission ───────────────────────────────────────
-    const handleSubmit = useCallback(
-        (e: React.FormEvent) => {
-            e.preventDefault();
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+
+        if (mode === 'parent') {
             if (!form.name.trim() || !form.slug.trim()) return;
+            onSubmit({
+                name: form.name.trim(),
+                slug: form.slug.trim(),
+                ageGroup: form.ageGroup ? Number(form.ageGroup) : 0,
+                color: '',
+                size: '',
+                basePrice: Number(form.basePrice) || 0,
+                salePrice: Number(form.salePrice) || 0,
+                description: form.description.trim(),
+                imageUrl: form.imageUrl.trim(),
+                imagePublicId: form.imagePublicId.trim(),
+                comboParentId: undefined,
+                status: form.status,
+                items: [],
+            });
+        } else {
+            const validItems = form.items.filter((i) => i.productVariantId);
+            if (validItems.length === 0) return;
+            if (!form.comboParentId) return;
 
-            if (mode === 'parent') {
-                onSubmit({
-                    name: form.name.trim(),
-                    slug: form.slug.trim(),
-                    ageGroup: form.ageGroup ? Number(form.ageGroup) : 0,
-                    color: '',
-                    size: '',
-                    basePrice: Number(form.basePrice) || 0,
-                    salePrice: Number(form.salePrice) || 0,
-                    description: form.description.trim(),
-                    imageUrl: form.imageUrl.trim(),
-                    imagePublicId: form.imagePublicId.trim(),
-                    comboParentId: undefined,
-                    status: form.status,
-                    items: [],
-                });
-            } else {
-                const validItems = form.items.filter((i) => i.productVariantId);
-                if (validItems.length === 0) return;
-                if (!form.comboParentId) return;
+            let finalName = form.name.trim();
+            let finalSlug = form.slug.trim();
 
-                onSubmit({
-                    name: form.name.trim(),
-                    slug: form.slug.trim(),
-                    ageGroup: form.ageGroup ? Number(form.ageGroup) : 0,
-                    color: form.color,
-                    size: form.size,
-                    basePrice: Number(form.basePrice) || 0,
-                    salePrice: Number(form.salePrice) || 0,
-                    description: form.description.trim(),
-                    imageUrl: form.imageUrl.trim(),
-                    imagePublicId: form.imagePublicId.trim(),
-                    comboParentId: form.comboParentId.trim() || undefined,
-                    status: form.status,
-                    items: validItems.map((i) => ({
-                        productVariantId: i.productVariantId,
-                        quantity: i.quantity,
-                    })),
-                });
+            // Fallback if empty
+            if (!finalName || !finalSlug) {
+                const parent = allCombos.find(c => c.id === form.comboParentId);
+                const existingVariantCount = parent?.childCombos?.length ?? allCombos.filter(
+                    c => c.comboParentId === form.comboParentId
+                ).length;
+                const nextNumber = existingVariantCount + 1;
+
+                if (!finalName) finalName = parent ? `${parent.name} #${nextNumber}` : `Variant #${nextNumber}`;
+                if (!finalSlug) finalSlug = toSlug(finalName);
             }
-        },
-        [form, mode, onSubmit],
-    );
+
+            onSubmit({
+                name: finalName,
+                slug: finalSlug,
+                ageGroup: form.ageGroup ? Number(form.ageGroup) : 0,
+                color: form.color,
+                size: form.size,
+                basePrice: Number(form.basePrice) || 0,
+                salePrice: Number(form.salePrice) || 0,
+                description: form.description.trim(),
+                imageUrl: form.imageUrl.trim(),
+                imagePublicId: form.imagePublicId.trim(),
+                comboParentId: form.comboParentId.trim() || undefined,
+                status: form.status,
+                items: validItems.map((i) => ({
+                    productVariantId: i.productVariantId,
+                    quantity: i.quantity,
+                })),
+            });
+        }
+    };
 
     // ── Cmd/Ctrl + Enter shortcut ────────────────────────
     useEffect(() => {
@@ -205,9 +218,7 @@ export function useComboForm({
     // ── Validation ───────────────────────────────────────
     const isValid = mode === 'parent'
         ? form.name.trim() !== "" && form.slug.trim() !== ""
-        : form.name.trim() !== "" &&
-        form.slug.trim() !== "" &&
-        form.comboParentId.trim() !== "" &&
+        : form.comboParentId.trim() !== "" &&
         form.items.some((i) => i.productVariantId);
 
     return {

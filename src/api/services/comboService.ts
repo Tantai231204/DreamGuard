@@ -47,7 +47,7 @@ export interface ComboResponse {
   id: string;
   name: string;
   slug: string;
-  ageGroup: number;
+  ageGroup: number | null;
   color: string;
   size: string;
   basePrice: number;
@@ -55,20 +55,21 @@ export interface ComboResponse {
   description: string;
   imageUrl: string;
   imagePublicId: string;
-  comboParentId?: string;
+  comboParentId?: string | null;
   discount: number;
   totalStock: number;
   status: string;
   featured: boolean;
-  images: string[];
+  images: string[] | null;
   category: string;
   sales: number;
   sku: string;
   items: ComboItemResponse[];
-  productItems?: ProductItemResponse[];
+  productItems?: ProductItemResponse[] | null;
+  averageRating?: number;
   createdAt: string;
   updatedAt: string;
-  childCombos?: ComboResponse[];
+  childCombos?: ComboResponse[] | null;
 }
 
 /** Check if a combo is a parent (no comboParentId, typically no items) */

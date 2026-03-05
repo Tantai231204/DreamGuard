@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -121,15 +121,7 @@ export default function VariantTable({
     });
   }, []);
 
-  // Auto-expand all groups on first data load
-  useEffect(() => {
-    if (colorGroups.length > 0 && expandedGroups.size === 0) {
-      const allColors = new Set(colorGroups.map((g) => g.color));
-      // Only update if needed to avoid infinite loop
-      setExpandedGroups(allColors);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [colorGroups.length]); // Only depend on length to avoid re-running when data changes
+  // Groups are collapsed by default per user request
 
   if (isLoading) {
     return (

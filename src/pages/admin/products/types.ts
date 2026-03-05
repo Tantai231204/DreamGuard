@@ -184,29 +184,34 @@ export interface ComboItem {
 export interface Combo {
   id: string;
   name: string;
+  slug: string;
   sku: string;
-  type: "combo";
-  category: string;
+  type?: "combo";
+  category?: string;
+  ageGroup?: number | null;
   basePrice: number;
   baseSalePrice?: number;
+  salePrice?: number;
   totalStock: number;
   status: ProductStatus;
-  images: string[];
+  images?: string[] | null;
+  imageUrl?: string | null;
   description: string;
-  featured: boolean;
+  featured?: boolean;
+  averageRating?: number;
   createdAt: string;
   updatedAt: string;
-  sales: number;
-  items: ComboItem[];
-  productItems?: import('@/api/services/comboService').ProductItemResponse[];
+  sales?: number;
+  items?: ComboItem[];
+  productItems?: import('@/api/services/comboService').ProductItemResponse[] | null;
   discount: number;
-  comboParentId?: string;
+  comboParentId?: string | null;
   /** Color/size for combo variants (children) */
   color?: string;
   size?: string;
   /** Virtual: child combos grouped under this parent */
   children?: Combo[];
-  childCombos?: Combo[];
+  childCombos?: Combo[] | null;
   /** TanStack Table sub-rows — populated by mapCombosToSubRows() */
   subRows?: Combo[];
 }

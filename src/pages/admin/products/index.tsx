@@ -498,7 +498,7 @@ export default function ProductsPage() {
       imageUrl: combo.images?.[0] ?? '',
       imagePublicId: '',
       status: combo.status,
-      items: combo.items.map((item) => ({
+      items: (combo.items ?? []).map((item) => ({
         productVariantId: item.variantId || item.productId,
         quantity: item.quantity,
       })),

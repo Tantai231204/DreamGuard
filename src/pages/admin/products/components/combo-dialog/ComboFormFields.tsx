@@ -41,7 +41,6 @@ const ComboFormFields = memo(function ComboFormFields({
     const isVariant = mode === 'variant';
     // In variant mode: lock parent selector once chosen, lock name/slug (auto-generated)
     const isParentLocked = isVariant && !!form.comboParentId;
-    const isNameLocked = isVariant;
 
     return (
         <div className="p-5 space-y-6">
@@ -115,20 +114,20 @@ const ComboFormFields = memo(function ComboFormFields({
                         <Label htmlFor="c-name" className="text-sm font-medium text-gray-700 mb-2 block">
                             {isVariant ? 'Variant Name' : 'Combo Name'} <span className="text-red-500">*</span>
                         </Label>
-                        <Input id="c-name" placeholder={isVariant ? "Auto-generated from parent" : "e.g. Combo Chăm Sóc Bé Yêu"}
+                        <Input id="c-name" placeholder={isVariant ? "Default: [Parent] #[Index]" : "e.g. Combo Chăm Sóc Bé Yêu"}
                             value={form.name} onChange={e => onNameChange(e.target.value)}
-                            disabled={isLoading || isNameLocked} className={cn(INPUT_CLS, isNameLocked && 'bg-gray-50 text-gray-500 cursor-not-allowed')} autoFocus={!isNameLocked} />
-                        {isNameLocked && (
-                            <p className="text-[10px] text-gray-400 mt-1">Auto-generated from parent name</p>
+                            disabled={isLoading} className={cn(INPUT_CLS)} autoFocus />
+                        {isVariant && !form.name.trim() && (
+                            <p className="text-[10px] text-gray-400 mt-1 italic">Will default to Parent Name #Index if left empty.</p>
                         )}
                     </div>
                     <div>
                         <Label htmlFor="c-slug" className="text-sm font-medium text-gray-700 mb-1.5 block">
                             URL Slug <span className="text-red-500">*</span>
                         </Label>
-                        <Input id="c-slug" placeholder="combo-cham-soc-be-yeu"
+                        <Input id="c-slug" placeholder={isVariant ? "Default: parent-slug-N" : "combo-cham-soc-be-yeu"}
                             value={form.slug} onChange={e => setField('slug', e.target.value)}
-                            disabled={isLoading || isNameLocked} className={cn(INPUT_CLS, 'font-mono text-[12px]', isNameLocked && 'bg-gray-50 text-gray-500 cursor-not-allowed')} />
+                            disabled={isLoading} className={cn(INPUT_CLS, 'font-mono text-[12px]')} />
                     </div>
                     <div>
                         <Label htmlFor="c-desc" className="text-sm font-medium text-gray-700 mb-2 block">Description</Label>
