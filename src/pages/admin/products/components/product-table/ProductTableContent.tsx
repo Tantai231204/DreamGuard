@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/table';
 import VariantTableWrapper from '../variant-table/VariantTableWrapper';
 import ComboItemsTable from '../combo/ComboItemsTable';
+import { cn } from '@/lib/utils';
 import type { Product, ProductVariant, Combo, ComboItem } from '../../types';
 
 interface ExtendedRow extends Product {
@@ -99,28 +100,28 @@ export default function ProductTableContent<T = unknown>({
                     {/* ── Data row ── */}
                     <TableRow
                       data-state={row.getIsSelected() && 'selected'}
-                      className={[
-                        'hover:bg-gray-50 transition-colors border-b border-gray-100',
-                        'data-[state=selected]:bg-blue-50',
-                        isExpanded ? 'bg-blue-50/20 border-b-0' : '',
-                        isClickable ? 'cursor-pointer' : '',
-                      ]
-                        .filter(Boolean)
-                        .join(' ')}
+                      className={cn(
+                        'group transition-colors border-b border-slate-100',
+                        'hover:bg-slate-50/80',
+                        'data-[state=selected]:bg-slate-50',
+                        isExpanded && 'bg-slate-50/50 border-b-transparent relative z-10',
+                        isClickable && 'cursor-pointer'
+                      )}
                       onClick={(e) => {
                         if (!isClickable) return;
                         const target = e.target as HTMLElement;
                         if (
                           target.closest('button') ||
                           target.closest('[role="checkbox"]') ||
-                          target.closest('[role="menuitem"]')
+                          target.closest('[role="menuitem"]') ||
+                          target.closest('.dropdown-trigger')
                         )
                           return;
                         row.toggleExpanded();
                       }}
                     >
                       {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id} className="py-3.5">
+                        <TableCell key={cell.id} className="py-4 first:pl-6 last:pr-6">
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </TableCell>
                       ))}
@@ -128,40 +129,48 @@ export default function ProductTableContent<T = unknown>({
 
                     {/* ── Expanded panel ── */}
                     {isExpanded && (
-                      <TableRow className="hover:bg-transparent">
-                        <TableCell colSpan={columnCount} className="p-0">
-                          {/* Single product → variant table */}
-                          {!isCombo && hasProductVariants && (
-                            <VariantTableWrapper
-                              productId={item.id}
-                              productName={item.name}
-                              onAddVariant={() =>
-                                onAddVariant?.(
-                                  item.id,
-                                  item.name,
-                                  item.slug,
-                                  item.variants?.length ?? item.variantCount ?? 0,
-                                )
-                              }
-                              onEditVariant={(v) => onEditVariant?.(v)}
-                              onDeleteVariant={(v) => onDeleteVariant?.(v)}
-                            />
-                          )}
+                      <TableRow className="hover:bg-transparent border-none">
+                        <TableCell colSpan={columnCount} className="p-0 border-none">
+                          <div className="relative pl-12 pb-6 pr-6 animate-in fade-in slide-in-from-top-1 duration-200">
+                            {/* Visual Connector Line */}
+                            <div className="absolute left-6 top-0 bottom-6 w-px bg-slate-200" />
+                            <div className="absolute left-6 bottom-6 w-4 h-px bg-slate-200" />
 
-                          {/* Combo → items table */}
-                          {isCombo && (
-                            <ComboItemsTable
-                              comboId={item.id}
-                              items={(item.items as ComboItem[]) ?? []}
-                              childCombos={(item as any).childCombos}
-                              comboName={item.name}
-                              discount={(row.original as unknown as Combo).discount ?? 0}
-                              onAddVariant={onAddComboVariant}
-                              onEditVariant={onEditCombo}
-                              onDeleteVariant={onDeleteCombo}
-                              onDuplicateVariant={onDuplicateCombo}
-                            />
-                          )}
+                            <div className="bg-white rounded-xl border border-slate-200 mt-1 mx-2 overflow-hidden">
+                              {/* Single product → variant table */}
+                              {!isCombo && hasProductVariants && (
+                                <VariantTableWrapper
+                                  productId={item.id}
+                                  productName={item.name}
+                                  onAddVariant={() =>
+                                    onAddVariant?.(
+                                      item.id,
+                                      item.name,
+                                      item.slug,
+                                      item.variants?.length ?? item.variantCount ?? 0,
+                                    )
+                                  }
+                                  onEditVariant={(v) => onEditVariant?.(v)}
+                                  onDeleteVariant={(v) => onDeleteVariant?.(v)}
+                                />
+                              )}
+
+                              {/* Combo → items table */}
+                              {isCombo && (
+                                <ComboItemsTable
+                                  comboId={item.id}
+                                  items={(item.items as ComboItem[]) ?? []}
+                                  childCombos={(item as any).childCombos}
+                                  comboName={item.name}
+                                  discount={(row.original as unknown as Combo).discount ?? 0}
+                                  onAddVariant={onAddComboVariant}
+                                  onEditVariant={onEditCombo}
+                                  onDeleteVariant={onDeleteCombo}
+                                  onDuplicateVariant={onDuplicateCombo}
+                                />
+                              )}
+                            </div>
+                          </div>
                         </TableCell>
                       </TableRow>
                     )}

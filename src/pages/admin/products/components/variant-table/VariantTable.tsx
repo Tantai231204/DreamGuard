@@ -19,9 +19,9 @@ import {
   Loader2,
   AlertTriangle,
   ChevronDown,
-  ChevronRight,
   Package2,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import type { AdminColorGroup, AdminVariantItem } from '@/api/services/variantService';
 import { useAdminProductVariants } from '@/hooks/queries/useProduct';
 import { useStockAdjustment } from './useStockAdjustment';
@@ -262,30 +262,50 @@ function ColorGroupRow({
   const colorHex = getColorHex(group.color);
 
   return (
-    <div>
+    <div className="group/grouprow">
       {/* Color Group Header - Clickable to expand/collapse */}
       <button
         onClick={onToggle}
-        className="w-full flex items-center gap-3 px-4 sm:px-6 py-3 bg-gradient-to-r from-gray-50 to-gray-100 hover:from-gray-100 hover:to-gray-200 border-y border-gray-200 transition-all group cursor-pointer"
-      >
-        {isExpanded ? (
-          <ChevronDown className="h-4 w-4 text-gray-500 group-hover:text-gray-700 transition-colors" />
-        ) : (
-          <ChevronRight className="h-4 w-4 text-gray-500 group-hover:text-gray-700 transition-colors" />
+        className={cn(
+          "w-full flex items-center gap-3 px-4 sm:px-6 py-4 transition-all duration-300 border-y border-transparent cursor-pointer",
+          isExpanded
+            ? "bg-slate-50/80 border-slate-200 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)]"
+            : "bg-white hover:bg-slate-50"
         )}
-        <span
-          className="w-5 h-5 rounded-full border-2 border-gray-300 shadow-sm group-hover:scale-110 transition-transform"
-          style={{ backgroundColor: colorHex }}
-        />
-        <span className="text-sm font-bold text-gray-800 group-hover:text-blue-600 transition-colors">{group.color}</span>
-        <Badge variant="outline" className="text-[10px] bg-white border-gray-300 text-gray-500 rounded-full px-2">
-          {group.variants.length} size{group.variants.length !== 1 ? 's' : ''}
+      >
+        <div className={cn(
+          "w-6 h-6 rounded-full flex items-center justify-center transition-transform",
+          isExpanded ? "rotate-180" : ""
+        )}>
+          <ChevronDown className={cn("h-4 w-4 transition-colors", isExpanded ? "text-indigo-600" : "text-slate-400")} />
+        </div>
+
+        <div className="relative">
+          <span
+            className="w-5 h-5 rounded-full border border-slate-200 shadow-sm block ring-4 ring-transparent group-hover/grouprow:ring-slate-100 transition-all"
+            style={{ backgroundColor: colorHex }}
+          />
+          {isExpanded && (
+            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-0.5 h-8 bg-gradient-to-b from-indigo-200 to-transparent" />
+          )}
+        </div>
+
+        <span className="text-[15px] font-black text-slate-800 tracking-tight">{group.color}</span>
+
+        <Badge variant="secondary" className="bg-slate-100 text-slate-500 font-bold hover:bg-slate-100">
+          {group.variants.length} SKU{group.variants.length !== 1 ? 's' : ''}
         </Badge>
-        <div className="ml-auto flex items-center gap-2 text-xs text-gray-500">
-          <Package2 className="h-3.5 w-3.5" />
-          <span className="font-semibold">
-            {group.variants.reduce((sum, v) => sum + v.stockQuantity, 0)} units
-          </span>
+
+        <div className="ml-auto flex items-center gap-4">
+          <div className="flex flex-col items-end">
+            <div className="flex items-center gap-1.5 text-xs text-slate-400 font-bold uppercase tracking-widest">
+              <Package2 className="h-3 w-3" />
+              Inventory
+            </div>
+            <div className="text-sm font-black text-slate-900">
+              {group.variants.reduce((sum, v) => sum + v.stockQuantity, 0)} <span className="text-[10px] text-slate-400 font-medium">units</span>
+            </div>
+          </div>
         </div>
       </button>
 
@@ -296,10 +316,10 @@ function ColorGroupRow({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
             className="overflow-hidden"
           >
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-slate-50 bg-white">
               {group.variants.map((variant, index) => (
                 <VariantRow
                   key={variant.id}
@@ -322,7 +342,6 @@ function ColorGroupRow({
 /* ─── Variant Row ──────────────────────────────────────── */
 function VariantRow({
   variant,
-  isEven,
   onEdit,
   onDelete,
   onAddStock,
@@ -340,133 +359,115 @@ function VariantRow({
   const isLowStock = variant.stockStatus === 'Low Stock';
   const isOutOfStock = variant.stockStatus === 'Out of Stock';
 
-  const handleQuickAdd = useCallback(() => {
-    onAddStock();
-  }, [onAddStock]);
-
-  const handleQuickReduce = useCallback(() => {
-    onReduceStock();
-  }, [onReduceStock]);
-
   return (
-    <div
-      className={`grid grid-cols-[50px_120px_1fr_120px_100px_100px_50px] gap-2 sm:gap-4 items-center px-4 sm:px-6 py-3 hover:bg-blue-50/40 transition-colors group ${isEven ? 'bg-white' : 'bg-gray-50/50'
-        }`}
-    >
-      {/* Checkbox placeholder */}
-      <div className="flex items-center justify-center">
-        <div className="w-4 h-4 rounded border border-gray-300 bg-white"></div>
-      </div>
+    <div className="grid grid-cols-[80px_100px_1fr_120px_140px_120px_60px] gap-4 items-center px-10 py-3.5 hover:bg-slate-50/50 transition-all group/vrow relative">
+      {/* Visual Connector for nesting */}
+      <div className="absolute left-6 top-0 bottom-0 w-px bg-slate-100" />
+      <div className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-px bg-slate-100" />
 
       {/* Size badge */}
       <div>
-        <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-gradient-to-br from-blue-50 to-indigo-50 text-xs font-bold text-blue-700 border border-blue-200 shadow-sm">
+        <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-black text-slate-700 shadow-sm leading-none group-hover/vrow:border-indigo-200 group-hover/vrow:bg-indigo-50/30 transition-colors">
           {variant.size || 'N/A'}
         </span>
       </div>
 
       {/* SKU */}
       <div className="min-w-0">
-        <span className="font-mono text-xs text-gray-500 truncate block">{variant.sku}</span>
+        <span className="font-mono text-[11px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded border border-slate-100 truncate block uppercase tracking-tighter">
+          {variant.sku}
+        </span>
       </div>
 
       {/* Price */}
-      <div className="text-center">
-        <div className="text-sm font-bold text-blue-600">
-          {variant.salePrice.toLocaleString('vi-VN')}đ
+      <div className="text-right">
+        <div className="text-[14px] font-black text-slate-900">
+          {variant.salePrice.toLocaleString('vi-VN')} <span className="text-[10px] text-slate-400">đ</span>
         </div>
         {hasSale && (
-          <div className="text-[10px] text-gray-400 line-through">
+          <div className="text-[11px] text-slate-300 line-through">
             {variant.basePrice.toLocaleString('vi-VN')}đ
           </div>
         )}
       </div>
 
-      {/* Stock Quantity - Quick Actions */}
-      <div className="text-center">
-        <div className="flex items-center justify-center gap-1">
+      {/* Stock Quantity - High Frequency Action Area */}
+      <div className="flex items-center justify-center">
+        <div className="flex items-center gap-1.5 bg-slate-50 rounded-xl p-1 border border-slate-100 group-hover/vrow:border-slate-200 group-hover/vrow:bg-white transition-all shadow-inner">
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleQuickReduce}
+            onClick={(e) => { e.stopPropagation(); onReduceStock(); }}
             disabled={variant.stockQuantity <= 0}
-            className="h-6 w-6 p-0 rounded hover:bg-red-100 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
-            title="Reduce stock"
+            className="h-7 w-7 p-0 rounded-lg hover:bg-red-50 hover:text-red-600 disabled:opacity-30 opacity-0 group-hover/vrow:opacity-100 transition-all scale-90"
           >
-            <Minus className="h-3 w-3" />
+            <Minus className="h-3.5 w-3.5" />
           </Button>
-          <div className="flex items-center gap-1 min-w-[48px] justify-center">
-            {isLowStock && <AlertTriangle className="h-3.5 w-3.5 text-orange-500" />}
-            <span
-              className={`text-sm font-bold ${isLowStock ? 'text-orange-500' : isOutOfStock ? 'text-red-500' : 'text-gray-900'
-                }`}
-            >
+
+          <div className="min-w-[40px] flex items-center justify-center gap-1 px-1">
+            {isLowStock && <AlertTriangle className="h-3 w-3 text-amber-500 animate-pulse" />}
+            <span className={cn(
+              "text-sm font-black tracking-tight",
+              isLowStock ? "text-amber-500" : isOutOfStock ? "text-red-500" : "text-slate-900"
+            )}>
               {variant.stockQuantity}
             </span>
           </div>
+
           <Button
             variant="ghost"
             size="sm"
-            onClick={handleQuickAdd}
-            className="h-6 w-6 p-0 rounded hover:bg-green-100 hover:text-green-600 opacity-0 group-hover:opacity-100 transition-opacity"
-            title="Add stock"
+            onClick={(e) => { e.stopPropagation(); onAddStock(); }}
+            className="h-7 w-7 p-0 rounded-lg hover:bg-emerald-50 hover:text-emerald-600 opacity-0 group-hover/vrow:opacity-100 transition-all scale-90"
           >
-            <Plus className="h-3 w-3" />
+            <Plus className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
 
-      {/* Stock Status */}
+      {/* Stock Status Badge */}
       <div className="text-center">
         <Badge
           variant="outline"
-          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${statusConfig.className
-            }`}
+          className={cn(
+            "text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border shadow-none",
+            statusConfig.className
+          )}
         >
           {statusConfig.label}
         </Badge>
       </div>
 
-      {/* Actions */}
-      <div className="text-center">
+      {/* Contextual Actions */}
+      <div className="flex justify-end opacity-0 group-hover/vrow:opacity-100 transition-opacity">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
               size="sm"
-              className="h-7 w-7 p-0 rounded-md hover:bg-gray-100 opacity-0 group-hover:opacity-100 transition-opacity"
+              className="h-8 w-8 p-0 rounded-lg hover:bg-white hover:shadow-sm border border-transparent hover:border-slate-100 transition-all"
             >
-              <MoreVertical className="h-4 w-4" />
+              <MoreVertical className="h-4 w-4 text-slate-400" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-44 shadow-xl border rounded-xl">
-            <DropdownMenuItem
-              className="cursor-pointer py-2.5 font-medium text-green-600 focus:bg-green-50 focus:text-green-700"
-              onClick={onAddStock}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Stock
+          <DropdownMenuContent align="end" className="w-48 shadow-2xl border-slate-200 rounded-2xl p-1">
+            <DropdownMenuItem className="rounded-xl cursor-pointer py-2.5 font-bold gap-3" onClick={onEdit}>
+              <div className="h-7 w-7 rounded-lg bg-indigo-50 flex items-center justify-center">
+                <Edit className="h-3.5 w-3.5 text-indigo-600" />
+              </div>
+              Modify Info
             </DropdownMenuItem>
+
+            <DropdownMenuSeparator className="my-1 bg-slate-50" />
+
             <DropdownMenuItem
-              className="cursor-pointer py-2.5 font-medium text-orange-600 focus:bg-orange-50 focus:text-orange-700"
-              onClick={onReduceStock}
-              disabled={variant.stockQuantity <= 0}
-            >
-              <Minus className="h-4 w-4 mr-2" />
-              Reduce Stock
-            </DropdownMenuItem>
-            <DropdownMenuSeparator className="my-1" />
-            <DropdownMenuItem className="cursor-pointer py-2.5 font-medium" onClick={onEdit}>
-              <Edit className="h-4 w-4 mr-2 text-gray-600" />
-              Edit Variant
-            </DropdownMenuItem>
-            <DropdownMenuSeparator className="my-1" />
-            <DropdownMenuItem
-              className="cursor-pointer py-2.5 text-red-600 font-semibold focus:bg-red-50 focus:text-red-700"
+              className="rounded-xl cursor-pointer py-2.5 text-red-600 font-black gap-3 focus:bg-red-50 focus:text-red-700"
               onClick={onDelete}
             >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete
+              <div className="h-7 w-7 rounded-lg bg-red-50 flex items-center justify-center">
+                <Trash2 className="h-3.5 w-3.5" />
+              </div>
+              Delete Item
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

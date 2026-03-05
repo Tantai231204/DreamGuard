@@ -60,38 +60,36 @@ export default function VariantInfoCell({ productId, variantCount }: VariantInfo
   }
 
   return (
-    <div className="space-y-1">
+    <div className="flex flex-col gap-0.5">
       {/* Variant count */}
       <div className="flex items-center gap-1.5">
-        <Layers className="h-3.5 w-3.5 text-gray-400" />
-        <span className="text-sm font-semibold text-gray-900">{variantCount}</span>
-        <span className="text-xs text-gray-500">variant{variantCount !== 1 ? 's' : ''}</span>
+        <Layers className="h-3.5 w-3.5 text-slate-400" />
+        <span className="text-sm font-bold text-slate-900">{variantCount}</span>
+        <span className="text-sm text-slate-500 font-normal">variant{variantCount !== 1 ? 's' : ''}</span>
       </div>
 
       {/* Colors + sizes */}
       {summary && (
-        <div className="flex items-center gap-1.5">
-          {summary.colors.map((color, idx) => (
-            <div
-              key={idx}
-              className="h-4 w-4 rounded-full border-2 border-gray-300 shadow-sm"
-              style={{ backgroundColor: getColorHex(color) }}
-              title={color}
-            />
-          ))}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            {summary.colors.map((color, idx) => (
+              <div
+                key={idx}
+                className="h-3.5 w-3.5 rounded-full border border-slate-100 shadow-[0_0_0_1px_rgba(0,0,0,0.05)]"
+                style={{ backgroundColor: getColorHex(color) }}
+                title={color}
+              />
+            ))}
+            {summary.moreColors > 0 && (
+              <span className="text-[10px] text-slate-400 font-bold">+{summary.moreColors}</span>
+            )}
+          </div>
 
-          {summary.moreColors > 0 && (
-            <span className="text-xs text-gray-400">+{summary.moreColors}</span>
-          )}
+          <span className="text-slate-200 font-light">|</span>
 
-          {summary.sizeCount > 0 && (
-            <>
-              <span className="text-gray-300 mx-0.5">|</span>
-              <span className="text-xs text-gray-500">
-                {summary.sizeCount} size{summary.sizeCount !== 1 ? 's' : ''}
-              </span>
-            </>
-          )}
+          <span className="text-sm text-slate-500 font-normal">
+            {summary.sizeCount} size{summary.sizeCount !== 1 ? 's' : ''}
+          </span>
         </div>
       )}
     </div>

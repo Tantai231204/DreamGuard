@@ -18,6 +18,7 @@ import {
     Eye,
     MoreVertical,
     Package,
+    Layers,
     Plus,
     Trash2,
 } from "lucide-react"
@@ -53,11 +54,11 @@ function formatItemLine(item: ComboItem): string {
 /* ─── Status config ─────────────────────────────────────── */
 
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-    Draft: { label: "Draft", className: "bg-amber-50 text-amber-700 border-amber-300" },
-    Published: { label: "Published", className: "bg-green-50 text-green-700 border-green-300" },
-    Active: { label: "Active", className: "bg-green-50 text-green-700 border-green-300" },
-    OutOfStock: { label: "Out of Stock", className: "bg-red-50 text-red-700 border-red-300" },
-    Hidden: { label: "Hidden", className: "bg-gray-50 text-gray-600 border-gray-300" },
+    Draft: { label: "Draft", className: "bg-amber-50 text-amber-600 border-amber-200" },
+    Published: { label: "Published", className: "bg-emerald-50 text-emerald-600 border-emerald-200" },
+    Active: { label: "Active", className: "bg-emerald-50 text-emerald-600 border-emerald-200" },
+    OutOfStock: { label: "Out of Stock", className: "bg-red-50 text-red-600 border-red-200" },
+    Hidden: { label: "Hidden", className: "bg-slate-50 text-slate-500 border-slate-200" },
 }
 
 /* ─── SubRow mapping ────────────────────────────────────── */
@@ -123,33 +124,36 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
                             {canExpand ? (
                                 <button
                                     onClick={info.row.getToggleExpandedHandler()}
-                                    className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-white hover:shadow-md border border-transparent hover:border-gray-200 transition-all flex-shrink-0"
+                                    className="h-8 w-8 flex items-center justify-center rounded hover:bg-slate-100 transition-colors flex-shrink-0"
                                 >
                                     {isExpanded
-                                        ? <ChevronDown className="h-4 w-4 text-purple-600" />
-                                        : <ChevronRight className="h-4 w-4 text-gray-400" />
+                                        ? <ChevronDown className="h-4 w-4 text-blue-600" />
+                                        : <ChevronRight className="h-4 w-4 text-slate-400" />
                                     }
                                 </button>
                             ) : (
                                 <div className="h-8 w-8 flex-shrink-0" />
                             )}
 
-                            <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-gradient-to-br from-violet-50 to-indigo-100 border border-indigo-200/50 flex-shrink-0 shadow-sm">
-                                <Package className="h-5 w-5 text-indigo-600" />
+                            <div className="h-12 w-12 flex items-center justify-center rounded-lg bg-slate-50 border border-slate-200 flex-shrink-0">
+                                <Package className="h-6 w-6 text-slate-400" />
                             </div>
 
                             <div className="min-w-0 flex flex-col gap-0.5">
-                                <div className="font-black text-[14px] text-gray-900 truncate max-w-[240px] leading-tight group-hover:text-indigo-700 transition-colors">
+                                <div className="font-bold text-[14px] text-slate-900 truncate max-w-[240px] leading-tight group-hover:text-blue-700 transition-colors">
                                     {info.getValue()}
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <code className="text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 italic">
+                                <div className="flex items-center gap-1.5 overflow-hidden">
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200/60 flex-shrink-0">
                                         {sku}
-                                    </code>
-                                    <span className="text-gray-300 text-[10px]">•</span>
-                                    <span className="text-[11px] text-gray-500 font-bold uppercase tracking-tighter">
-                                        {items.length} {items.length === 1 ? "Item" : "Items"}
                                     </span>
+                                    <span className="text-slate-300 text-[10px]">.</span>
+                                    <div className="flex items-center gap-1.5 truncate">
+                                        <Layers className="h-3 w-3 text-slate-400" />
+                                        <span className="text-[11px] text-blue-600/80 font-bold uppercase tracking-wider truncate">
+                                            {items.length} {items.length === 1 ? "Item" : "Items"}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -175,14 +179,14 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
                         <div className="space-y-0.5 max-w-[280px]">
                             {preview.map((item, idx) => (
                                 <div key={idx} className="flex items-baseline gap-1 text-xs leading-relaxed">
-                                    <span className="text-gray-300 flex-shrink-0">•</span>
-                                    <span className="text-gray-700 truncate">
+                                    <span className="text-gray-300 flex-shrink-0">.</span>
+                                    <span className="text-gray-700 truncate font-medium">
                                         {formatItemLine(item)}
                                     </span>
                                 </div>
                             ))}
                             {rest > 0 && (
-                                <span className="text-[11px] text-indigo-500 font-medium ml-3">
+                                <span className="text-[11px] text-blue-500 font-bold ml-2.5">
                                     +{rest} more
                                 </span>
                             )}
@@ -228,7 +232,7 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
 
                     return (
                         <div className="text-right">
-                            <div className="font-bold text-purple-600 text-[14px]">
+                            <div className="font-bold text-blue-600 text-[14px]">
                                 {(hasSale ? salePrice : basePrice).toLocaleString("vi-VN")}đ
                             </div>
                             {hasSale && (
@@ -291,49 +295,49 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        className="h-9 w-9 p-0 rounded-lg hover:bg-gray-100 hover:shadow-md transition-all"
+                                        className="h-9 w-9 p-0 rounded hover:bg-slate-100 transition-colors"
                                     >
-                                        <MoreVertical className="h-5 w-5" />
+                                        <MoreVertical className="h-5 w-5 text-slate-400" />
                                     </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-52 shadow-xl border-2 rounded-xl">
+                                <DropdownMenuContent align="end" className="w-48 shadow-xl border border-slate-200/60 rounded-xl p-1 animate-in fade-in zoom-in-95 duration-100">
                                     <DropdownMenuItem
-                                        className="cursor-pointer py-2.5 font-medium"
+                                        className="rounded-lg cursor-pointer py-2 px-3 font-medium text-slate-600 hover:text-blue-600 focus:bg-blue-50 focus:text-blue-700 transition-colors gap-2.5"
                                         onClick={() => onView?.(combo)}
                                     >
-                                        <Eye className="h-4 w-4 mr-3 text-blue-600" />
-                                        View Details
+                                        <Eye className="h-4 w-4 opacity-70" />
+                                        <span className="text-[13px]">View Details</span>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
-                                        className="cursor-pointer py-2.5 font-medium"
+                                        className="rounded-lg cursor-pointer py-2 px-3 font-medium text-slate-600 hover:text-blue-600 focus:bg-blue-50 focus:text-blue-700 transition-colors gap-2.5"
                                         onClick={() => onEdit?.(combo)}
                                     >
-                                        <Edit className="h-4 w-4 mr-3 text-gray-700" />
-                                        Edit Combo
+                                        <Edit className="h-4 w-4 opacity-70" />
+                                        <span className="text-[13px]">Edit Combo</span>
                                     </DropdownMenuItem>
                                     {isParent && onAddVariant && (
                                         <DropdownMenuItem
-                                            className="cursor-pointer py-2.5 font-medium"
+                                            className="rounded-lg cursor-pointer py-2 px-3 font-medium text-slate-600 hover:text-blue-600 focus:bg-blue-50 focus:text-blue-700 transition-colors gap-2.5"
                                             onClick={() => onAddVariant(combo)}
                                         >
-                                            <Plus className="h-4 w-4 mr-3 text-indigo-600" />
-                                            Add Variant
+                                            <Plus className="h-4 w-4 opacity-70" />
+                                            <span className="text-[13px]">Add Variant</span>
                                         </DropdownMenuItem>
                                     )}
                                     <DropdownMenuItem
-                                        className="cursor-pointer py-2.5 font-medium"
+                                        className="rounded-lg cursor-pointer py-2 px-3 font-medium text-slate-600 hover:text-blue-600 focus:bg-blue-50 focus:text-blue-700 transition-colors gap-2.5"
                                         onClick={() => onDuplicate?.(combo)}
                                     >
-                                        <Copy className="h-4 w-4 mr-3 text-sky-600" />
-                                        Duplicate
+                                        <Copy className="h-4 w-4 opacity-70" />
+                                        <span className="text-[13px]">Duplicate</span>
                                     </DropdownMenuItem>
-                                    <DropdownMenuSeparator className="my-1" />
+                                    <DropdownMenuSeparator className="my-1 bg-slate-100" />
                                     <DropdownMenuItem
-                                        className="cursor-pointer py-2.5 text-red-600 font-semibold focus:bg-red-50 focus:text-red-700"
+                                        className="rounded-lg cursor-pointer py-2 px-3 font-medium text-red-500 focus:bg-red-50 focus:text-red-600 transition-colors gap-2.5"
                                         onClick={() => onDelete?.(combo)}
                                     >
-                                        <Trash2 className="h-4 w-4 mr-3" />
-                                        Delete
+                                        <Trash2 className="h-4 w-4 opacity-70" />
+                                        <span className="text-[13px]">Delete Combo</span>
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>

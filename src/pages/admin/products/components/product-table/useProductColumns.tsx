@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { cn } from '@/lib/utils';
 import { createColumnHelper } from '@tanstack/react-table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -105,20 +106,24 @@ export function useProductColumns({ onView, onEdit, onDelete, onAddVariant }: Us
         cell: (info) => {
           const product = info.row.original;
           return (
-            <div className="flex items-center gap-4 py-1">
-              <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0 border border-gray-200 shadow-sm group-hover:border-purple-200 transition-colors">
-                <Package className="h-6 w-6 text-gray-400 group-hover:text-purple-500 transition-colors" />
+            <div className="flex items-center gap-4 py-1 group/pcell">
+              <div className="h-12 w-12 rounded-lg bg-slate-50 flex items-center justify-center overflow-hidden flex-shrink-0 border border-slate-200 transition-colors group-hover/pcell:border-blue-200">
+                <Package className="h-6 w-6 text-slate-400 group-hover/pcell:text-blue-500 transition-colors" />
               </div>
-              <div className="min-w-0 flex flex-col gap-0.5">
-                <div className="font-bold text-gray-900 truncate max-w-[240px] leading-tight group-hover:text-purple-700 transition-colors">
+              <div className="min-w-0 flex flex-col gap-1">
+                <div className="font-bold text-slate-900 truncate max-w-[280px] leading-tight group-hover:text-blue-700 transition-colors text-[14px]">
                   {info.getValue()}
                 </div>
-                <div className="flex items-center gap-2">
-                  <code className="text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 italic">
-                    {product.slug}
-                  </code>
-                  <span className="text-gray-300 text-[10px]">•</span>
-                  <span className="text-[11px] text-gray-500 font-medium truncate max-w-[100px]">{product.categoryName || 'No Category'}</span>
+                <div className="flex items-center gap-1.5 overflow-hidden">
+                  <div className="flex items-center gap-1.5 truncate">
+                    <span className="text-[12px] text-slate-500 font-medium truncate">{product.categoryName || 'General'}</span>
+                    {product.material && (
+                      <>
+                        <span className="text-blue-200 font-bold text-[10px]">.</span>
+                        <span className="text-[12px] text-blue-600 font-semibold truncate">{product.material}</span>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -131,7 +136,11 @@ export function useProductColumns({ onView, onEdit, onDelete, onAddVariant }: Us
         cell: (info) => {
           const count = info.getValue() ?? 0;
           const productId = info.row.original.id;
-          return <VariantInfoCell productId={productId} variantCount={count} />;
+          return (
+            <div className="flex flex-col items-start gap-1">
+              <VariantInfoCell productId={productId} variantCount={count} />
+            </div>
+          );
         },
       }),
       columnHelper.display({
@@ -139,15 +148,23 @@ export function useProductColumns({ onView, onEdit, onDelete, onAddVariant }: Us
         header: 'Price Range',
         cell: ({ row }) => {
           const variantCount = row.original.variantCount ?? 0;
-          return <PriceRangeCell productId={row.original.id} variantCount={variantCount} />;
+          return (
+            <div className="font-bold text-slate-700 py-1 px-3 bg-slate-50 border border-slate-200/60 rounded-lg inline-block text-[13px]">
+              <PriceRangeCell productId={row.original.id} variantCount={variantCount} />
+            </div>
+          );
         },
       }),
       columnHelper.display({
         id: 'stock',
-        header: 'Stock',
+        header: 'Health',
         cell: ({ row }) => {
           const variantCount = row.original.variantCount ?? 0;
-          return <StockCell productId={row.original.id} variantCount={variantCount} />;
+          return (
+            <div className="flex items-center gap-2">
+              <StockCell productId={row.original.id} variantCount={variantCount} />
+            </div>
+          );
         },
       }),
       columnHelper.accessor('ageGroup', {
@@ -160,7 +177,7 @@ export function useProductColumns({ onView, onEdit, onDelete, onAddVariant }: Us
             : String(val);
 
           return (
-            <span className="text-xs font-semibold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100 shadow-sm">
+            <span className="text-[11px] font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded border border-blue-100/80">
               {formatted}
             </span>
           );
@@ -184,8 +201,9 @@ export function useProductColumns({ onView, onEdit, onDelete, onAddVariant }: Us
         cell: (info) => {
           const status = info.getValue();
           const variant = PRODUCT_STATUS_VARIANT[status] || 'outline';
+          const styles = statusStyles[status] || 'bg-slate-50 text-slate-600 border-slate-200';
           return (
-            <Badge variant={variant} className={`font-medium text-xs ${statusStyles[status] || ''}`}>
+            <Badge variant={variant} className={cn("px-2.5 py-1 rounded-full font-bold text-[10px] uppercase tracking-wider border", styles)}>
               {statusLabels[status] || status}
             </Badge>
           );
@@ -202,48 +220,70 @@ export function useProductColumns({ onView, onEdit, onDelete, onAddVariant }: Us
       }),
       columnHelper.display({
         id: 'actions',
-        header: () => <div className="text-right">Actions</div>,
+        header: () => <div className="text-right pr-4 uppercase text-[10px] font-black tracking-widest text-slate-400">Actions</div>,
         cell: ({ row }) => (
-          <div className="flex justify-end">
+          <div className="flex justify-end items-center gap-1 pr-2">
+            {/* Direct Hover Actions for Admin Efficiency */}
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 rounded hover:bg-slate-100 text-slate-500 hover:text-blue-600"
+                onClick={(e) => { e.stopPropagation(); onView(row.original); }}
+                title="View Details"
+              >
+                <Eye className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0 rounded hover:bg-slate-100 text-slate-500 hover:text-blue-600"
+                onClick={(e) => { e.stopPropagation(); onEdit(row.original); }}
+                title="Edit Product"
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+            </div>
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-9 w-9 p-0 rounded-lg hover:bg-gray-100 hover:shadow-md transition-all"
+                  className="h-8 w-8 p-0 rounded hover:bg-slate-100 dropdown-trigger transition-colors"
                 >
-                  <MoreVertical className="h-5 w-5" />
+                  <MoreVertical className="h-4 w-4 text-slate-400" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-52 shadow-xl border-2 rounded-xl">
+              <DropdownMenuContent align="end" className="w-48 shadow-xl border border-slate-200/60 rounded-xl p-1 animate-in fade-in zoom-in-95 duration-100">
                 <DropdownMenuItem
-                  className="cursor-pointer py-2.5 font-medium"
+                  className="rounded-lg cursor-pointer py-2 px-3 font-medium text-slate-600 hover:text-blue-600 focus:bg-blue-50 focus:text-blue-700 transition-colors gap-2.5"
                   onClick={() => onView(row.original)}
                 >
-                  <Eye className="h-4 w-4 mr-3 text-blue-600" />
-                  View Details
+                  <Eye className="h-4 w-4 opacity-70" />
+                  <span className="text-[13px]">View Details</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  className="cursor-pointer py-2.5 font-medium"
+                  className="rounded-lg cursor-pointer py-2 px-3 font-medium text-slate-600 hover:text-blue-600 focus:bg-blue-50 focus:text-blue-700 transition-colors gap-2.5"
                   onClick={() => onEdit(row.original)}
                 >
-                  <Edit className="h-4 w-4 mr-3 text-gray-700" />
-                  Edit Product
+                  <Edit className="h-4 w-4 opacity-70" />
+                  <span className="text-[13px]">Edit Product</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  className="cursor-pointer py-2.5 font-medium"
+                  className="rounded-lg cursor-pointer py-2 px-3 font-medium text-slate-600 hover:text-blue-600 focus:bg-blue-50 focus:text-blue-700 transition-colors gap-2.5"
                   onClick={() => onAddVariant(row.original)}
                 >
-                  <Plus className="h-4 w-4 mr-3 text-indigo-600" />
-                  Add Variant
+                  <Plus className="h-4 w-4 opacity-70" />
+                  <span className="text-[13px]">Add Variant</span>
                 </DropdownMenuItem>
-                <DropdownMenuSeparator className="my-1" />
+                <DropdownMenuSeparator className="my-1 bg-slate-100" />
                 <DropdownMenuItem
-                  className="cursor-pointer py-2.5 text-red-600 font-semibold focus:bg-red-50 focus:text-red-700"
+                  className="rounded-lg cursor-pointer py-2 px-3 font-medium text-red-500 focus:bg-red-50 focus:text-red-600 transition-colors gap-2.5"
                   onClick={() => onDelete(row.original)}
                 >
-                  <Trash2 className="h-4 w-4 mr-3" />
-                  Delete
+                  <Trash2 className="h-4 w-4 opacity-70" />
+                  <span className="text-[13px]">Delete Item</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
