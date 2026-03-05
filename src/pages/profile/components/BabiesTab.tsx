@@ -15,13 +15,8 @@ import {
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
-import { Badge } from "../../../components/ui/badge";
 import {
-  Card,
   CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
 } from "../../../components/ui/card";
 import { mockRecommendations } from "../data";
 import { calculateAge, getStageInfo, formatPrice } from "../utils";

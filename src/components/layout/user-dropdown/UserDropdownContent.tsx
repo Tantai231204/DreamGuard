@@ -10,7 +10,7 @@ import { LogoutButton } from "./LogoutButton"
 import { mockBabies, mockUser } from "./data"
 
 export function UserDropdownContent() {
-    const { role, logout } = useAuthStore()
+    const { role, clearAuth: logout } = useAuthStore()
 
     return (
         <DropdownMenuContent
