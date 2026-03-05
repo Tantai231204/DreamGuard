@@ -123,24 +123,27 @@ export function toSlug(str: string) {
     .replace(/đ/g, "d")
     .replace(/Đ/g, "d")
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
+    .replace(/^-+|-+$/g, "");
 }
 
 export function getInitialState(
   combo?: import("../../types").Combo | null,
 ): ComboFormState {
   if (combo) {
+    const images = combo.images ?? [];
+    const imageUrl = combo.imageUrl ?? images[0] ?? "";
+
     return {
       name: combo.name ?? "",
-      slug: combo.sku ?? "",
-      ageGroup: "",
+      slug: combo.slug ?? "",
+      ageGroup: combo.ageGroup ? String(combo.ageGroup) : "",
       color: combo.color ?? "",
       size: combo.size ?? "",
       basePrice: String(combo.basePrice ?? ""),
-      salePrice: String(combo.baseSalePrice ?? ""),
+      salePrice: String(combo.salePrice ?? combo.baseSalePrice ?? ""),
       description: combo.description ?? "",
-      imageUrl: combo.images?.[0] ?? "",
-      imagePublicId: "",
+      imageUrl: imageUrl,
+      imagePublicId: "", // Currently not available in Combo type, keep empty or map if added
       comboParentId: combo.comboParentId ?? "",
       status: combo.status ?? "Published",
       items:

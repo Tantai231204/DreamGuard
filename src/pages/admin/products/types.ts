@@ -3,11 +3,23 @@ export type ProductStatus = "Draft" | "Published" | "OutOfStock" | "Hidden";
 export type VariantStatus = ProductStatus;
 
 export const AGE_GROUPS: Record<string, string> = {
-  "0 - 6 tháng": "0 - 6 tháng",
-  "6 - 12 tháng": "6 - 12 tháng",
-  "12 - 24 tháng": "12 - 24 tháng",
-  "2 - 4 tuổi": "2 - 4 tuổi",
+  "0": "Newborn",
+  "6": "6 months",
+  "12": "12 months",
+  "24": "24 months",
+  "48": "4 years",
 };
+
+/** Formats age group number (months) to readable text */
+export function formatAgeGroup(age?: string | number | null): string {
+  if (age === null || age === undefined || age === "") return "—";
+  const n = Number(age);
+  if (isNaN(n)) return String(age);
+  if (n === 0) return "Newborn";
+  if (n < 12) return `${n} months`;
+  if (n % 12 === 0) return `${n / 12} years`;
+  return `${n} months`;
+}
 
 export const PRODUCT_STATUSES: { value: ProductStatus; label: string }[] = [
   { value: "Draft", label: "Draft" },

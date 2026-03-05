@@ -6,9 +6,9 @@ interface BulkActionsToolbarProps<T> {
   productType: 'single' | 'combo';
 }
 
-export default function BulkActionsToolbar<T>({ 
+export default function BulkActionsToolbar<T>({
   table,
-  productType 
+  productType
 }: BulkActionsToolbarProps<T>) {
   return (
     <AdminBulkActions

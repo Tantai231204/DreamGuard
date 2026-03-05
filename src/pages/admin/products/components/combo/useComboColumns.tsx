@@ -16,7 +16,6 @@ import {
     Copy,
     Edit,
     Eye,
-    Layers,
     MoreVertical,
     Package,
     Plus,
@@ -104,65 +103,53 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
                 size: 40,
             }),
 
-            /* ── SKU ──────────────────────────────────────────────── */
-            columnHelper.display({
-                id: "sku",
-                header: "SKU",
-                cell: ({ row }) => {
-                    const combo = row.original
+            /* ── Combo Info (Rich Cell) ───────────────────────── */
+            columnHelper.accessor("name", {
+                header: "Combo Info",
+                cell: (info) => {
+                    const combo = info.row.original
+                    const items = resolveItems(combo)
                     const sku = combo.slug || combo.sku || "—"
-                    const canExpand = row.getCanExpand()
-                    const isExpanded = row.getIsExpanded()
-                    const depth = row.depth
+                    const canExpand = info.row.getCanExpand()
+                    const isExpanded = info.row.getIsExpanded()
+                    const depth = info.row.depth
 
                     return (
                         <div
-                            className="flex items-center gap-2"
+                            className="flex items-center gap-4 py-1"
                             style={{ paddingLeft: `${depth * 24}px` }}
                         >
-                            {/* Expand chevron — in SKU column so it's always visible */}
+                            {/* Expand chevron */}
                             {canExpand ? (
                                 <button
-                                    onClick={row.getToggleExpandedHandler()}
-                                    className="h-6 w-6 flex items-center justify-center rounded hover:bg-gray-100 flex-shrink-0"
+                                    onClick={info.row.getToggleExpandedHandler()}
+                                    className="h-8 w-8 flex items-center justify-center rounded-lg hover:bg-white hover:shadow-md border border-transparent hover:border-gray-200 transition-all flex-shrink-0"
                                 >
                                     {isExpanded
-                                        ? <ChevronDown className="h-4 w-4 text-gray-500" />
+                                        ? <ChevronDown className="h-4 w-4 text-purple-600" />
                                         : <ChevronRight className="h-4 w-4 text-gray-400" />
                                     }
                                 </button>
                             ) : (
-                                <span className="h-6 w-6 flex-shrink-0" />
+                                <div className="h-8 w-8 flex-shrink-0" />
                             )}
-                            <Layers className="h-4 w-4 text-purple-400 shrink-0" />
-                            <span className="font-mono text-xs font-semibold text-gray-600 truncate max-w-[90px]">
-                                {sku ?? "—"}
-                            </span>
-                        </div>
-                    )
-                },
-            }),
 
-            /* ── Combo Name ───────────────────────────────────────── */
-            columnHelper.accessor("name", {
-                header: "Combo Name",
-                cell: (info) => {
-                    const combo = info.row.original
-                    const items = resolveItems(combo)
-
-                    return (
-                        <div className="flex items-center gap-2.5">
-                            <div className="h-9 w-9 flex items-center justify-center rounded-lg bg-violet-100 flex-shrink-0">
-                                <Package className="h-4 w-4 text-violet-600" />
+                            <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-gradient-to-br from-violet-50 to-indigo-100 border border-indigo-200/50 flex-shrink-0 shadow-sm">
+                                <Package className="h-5 w-5 text-indigo-600" />
                             </div>
-                            <div className="min-w-0">
-                                <div className="font-bold text-[14px] text-gray-900 truncate">
+
+                            <div className="min-w-0 flex flex-col gap-0.5">
+                                <div className="font-black text-[14px] text-gray-900 truncate max-w-[240px] leading-tight group-hover:text-indigo-700 transition-colors">
                                     {info.getValue()}
                                 </div>
-                                <div className="text-[11px] text-gray-400 mt-0.5">
-                                    {items.length > 0
-                                        ? `${items.length} item${items.length !== 1 ? "s" : ""}`
-                                        : "No items"}
+                                <div className="flex items-center gap-2">
+                                    <code className="text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 italic">
+                                        {sku}
+                                    </code>
+                                    <span className="text-gray-300 text-[10px]">•</span>
+                                    <span className="text-[11px] text-gray-500 font-bold uppercase tracking-tighter">
+                                        {items.length} {items.length === 1 ? "Item" : "Items"}
+                                    </span>
                                 </div>
                             </div>
                         </div>

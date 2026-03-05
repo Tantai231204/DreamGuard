@@ -12,7 +12,7 @@
 
 import { useCallback, useReducer, useEffect, useRef } from "react";
 import { useAllVariantOptions } from "@/hooks/queries/useProduct";
-import { useComboParents, useCombos } from "@/hooks/queries/useCombo";
+import { useComboParents, useCombos, useComboDetail } from "@/hooks/queries/useCombo";
 import type { CreateComboRequest } from "@/api/services/comboService";
 import type { Combo } from "../../types";
 import {
@@ -58,6 +58,19 @@ export function useComboForm({
         useComboParents(open && isVariantMode);
     // Fetch ALL combos to find parent name + count existing variants
     const { data: allCombos = [] } = useCombos(open && isVariantMode);
+
+    // Fetch full detail to ensure we have description, etc.
+    const { data: detail, isLoading: isLoadingDetail } = useComboDetail(
+        combo?.id ?? "",
+        open && isEdit
+    );
+
+    // Sync form when detail is loaded
+    useEffect(() => {
+        if (detail && isEdit) {
+            dispatch({ type: "RESET", payload: getInitialState(detail as any) });
+        }
+    }, [detail, isEdit]);
 
     // ── Auto-generate variant name ───────────────────────
     const autoNameAppliedRef = useRef<string | null>(null);
@@ -131,9 +144,9 @@ export function useComboForm({
     const handleNameChange = useCallback(
         (value: string) => {
             setField("name", value);
-            if (!isEdit) setField("slug", toSlug(value));
+            setField("slug", toSlug(value));
         },
-        [isEdit, setField],
+        [setField],
     );
 
     const handleItemsChange = useCallback(
@@ -230,6 +243,7 @@ export function useComboForm({
         isLoadingVariants,
         comboParents,
         isLoadingParents,
+        isLoadingDetail,
         // Handlers
         setField,
         handleNameChange,

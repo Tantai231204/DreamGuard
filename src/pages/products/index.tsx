@@ -64,7 +64,7 @@ function mapToProduct(p: ProductResponse): Product {
         image: firstImage || '/images/placeholder-product.svg',
         category: p.categoryName || '',
         material: p.material || '',
-        ageRange: p.ageGroup || '',
+        ageRange: p.ageGroup?.toString() || '',
         inStock: isPublished && !isOutOfStock,
         isNew: firstVariant?.isNew || false,
         status: p.status,

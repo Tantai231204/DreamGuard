@@ -26,6 +26,10 @@ interface ProductTableContentProps<T = unknown> {
   onAddVariant?: (productId: string, productName: string, productSlug: string, variantCount: number) => void;
   onEditVariant?: (variant: ProductVariant) => void;
   onDeleteVariant?: (variant: ProductVariant) => void;
+  onAddComboVariant?: (parent: Combo) => void;
+  onEditCombo?: (combo: Combo) => void;
+  onDeleteCombo?: (combo: Combo) => void;
+  onDuplicateCombo?: (combo: Combo) => void;
 }
 
 export default function ProductTableContent<T = unknown>({
@@ -35,6 +39,10 @@ export default function ProductTableContent<T = unknown>({
   onAddVariant,
   onEditVariant,
   onDeleteVariant,
+  onAddComboVariant,
+  onEditCombo,
+  onDeleteCombo,
+  onDuplicateCombo,
 }: ProductTableContentProps<T>) {
   // Only iterate depth-0 rows; sub-rows are handled by expansion panels below each row
   const allRows = table.getRowModel().rows;
@@ -148,6 +156,10 @@ export default function ProductTableContent<T = unknown>({
                               childCombos={(item as any).childCombos}
                               comboName={item.name}
                               discount={(row.original as unknown as Combo).discount ?? 0}
+                              onAddVariant={onAddComboVariant}
+                              onEditVariant={onEditCombo}
+                              onDeleteVariant={onDeleteCombo}
+                              onDuplicateVariant={onDuplicateCombo}
                             />
                           )}
                         </TableCell>

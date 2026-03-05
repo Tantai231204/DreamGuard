@@ -701,6 +701,10 @@ export default function ProductsPage() {
                   onAddVariant={handleAddVariantFromTable}
                   onEditVariant={handleEditVariant}
                   onDeleteVariant={handleDeleteVariant}
+                  onAddComboVariant={handleAddComboVariant}
+                  onEditCombo={handleEditCombo}
+                  onDeleteCombo={handleDeleteCombo}
+                  onDuplicateCombo={handleDuplicateCombo}
                 />
               </div>
 

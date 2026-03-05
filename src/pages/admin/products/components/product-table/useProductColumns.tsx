@@ -23,7 +23,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { Product } from '../../types';
-import { AGE_GROUPS, PRODUCT_STATUS_VARIANT } from '../../types';
+import { formatAgeGroup, PRODUCT_STATUS_VARIANT } from '../../types';
 import { VariantInfoCell, PriceRangeCell, StockCell } from './cells';
 
 const columnHelper = createColumnHelper<Product>();
@@ -105,32 +105,25 @@ export function useProductColumns({ onView, onEdit, onDelete, onAddVariant }: Us
         cell: (info) => {
           const product = info.row.original;
           return (
-            <div className="flex items-center gap-3">
-              <div className="h-11 w-11 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0 border border-gray-200">
-                <Package className="h-5 w-5 text-gray-400" />
+            <div className="flex items-center gap-4 py-1">
+              <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0 border border-gray-200 shadow-sm group-hover:border-purple-200 transition-colors">
+                <Package className="h-6 w-6 text-gray-400 group-hover:text-purple-500 transition-colors" />
               </div>
-              <div className="min-w-0">
-                <div className="font-semibold text-gray-900 truncate max-w-[220px]">
+              <div className="min-w-0 flex flex-col gap-0.5">
+                <div className="font-bold text-gray-900 truncate max-w-[240px] leading-tight group-hover:text-purple-700 transition-colors">
                   {info.getValue()}
                 </div>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="text-xs text-gray-500">{product.categoryName || '—'}</span>
-                  <span className="text-gray-300">•</span>
-                  <span className="text-xs text-[var(--color-primary)] font-medium">{product.material}</span>
+                <div className="flex items-center gap-2">
+                  <code className="text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100 italic">
+                    {product.slug}
+                  </code>
+                  <span className="text-gray-300 text-[10px]">•</span>
+                  <span className="text-[11px] text-gray-500 font-medium truncate max-w-[100px]">{product.categoryName || 'No Category'}</span>
                 </div>
               </div>
             </div>
           );
         },
-      }),
-      columnHelper.accessor('slug', {
-        enableSorting: true,
-        header: ({ column }) => <SortableHeader column={column} label="SKU" />,
-        cell: (info) => (
-          <span className="font-mono text-xs font-semibold text-gray-700 bg-gray-50 px-2.5 py-1.5 rounded-md">
-            {info.getValue()}
-          </span>
-        ),
       }),
       columnHelper.accessor('variantCount', {
         id: 'variants_info',
@@ -161,10 +154,14 @@ export function useProductColumns({ onView, onEdit, onDelete, onAddVariant }: Us
         header: 'Age Group',
         cell: (info) => {
           const val = info.getValue();
-          if (val === null || val === undefined) return <span className="text-xs text-gray-400">—</span>;
+          if (val === null || val === undefined || val === '') return <span className="text-xs text-gray-400">—</span>;
+          const formatted = typeof val === 'string' || typeof val === 'number'
+            ? (formatAgeGroup(val))
+            : String(val);
+
           return (
-            <span className="text-xs font-medium text-gray-700 bg-blue-50 px-2 py-1 rounded-md">
-              {AGE_GROUPS[val] || val}
+            <span className="text-xs font-semibold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-100 shadow-sm">
+              {formatted}
             </span>
           );
         },
