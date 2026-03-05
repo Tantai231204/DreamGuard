@@ -51,8 +51,8 @@ export function VariantListView({
                         </div>
                         <div className="flex items-center gap-4">
                             <div className="text-right">
-                                <div className="text-sm font-black text-gray-900 leading-none">{(child.salePrice || child.basePrice).toLocaleString('vi-VN')}đ</div>
-                                <p className="text-[9px] text-gray-400 mt-1 font-bold uppercase tracking-tighter">Base: {child.basePrice.toLocaleString('vi-VN')}đ</p>
+                                <div className="text-sm font-black text-gray-900 leading-none">{(child.salePrice || child.basePrice).toLocaleString('en-US')}₫</div>
+                                <p className="text-[9px] text-gray-400 mt-1 font-bold uppercase tracking-tighter">Base: {child.basePrice.toLocaleString('en-US')}₫</p>
                             </div>
                             <Separator orientation="vertical" className="h-8 bg-gray-200" />
                             <VariantActionDropdown

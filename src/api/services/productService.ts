@@ -3,7 +3,7 @@ import apiClient, { type CustomAxiosRequestConfig } from '../../lib/api';
 import type { ProductResponse, CreateProductRequest, UpdateProductRequest, AdminProductPageResponse, AdminProductParams, ProductParams, UpdateProductStatusParams } from '../types';
 
 const productService = {
-  /** Lấy danh sách products cho admin (paginated) */
+  /** Get paginated products for admin */
   getAllAdmin: (params: AdminProductParams = {}): Promise<AdminProductPageResponse> =>
     apiClient
       .get<AdminProductPageResponse>('/product/admin', { params, _suppressToast: true } as CustomAxiosRequestConfig)
@@ -15,19 +15,19 @@ const productService = {
         return Promise.reject(err);
       }),
 
-  /** Lấy danh sách tất cả products (404 → empty array) */
+  /** Get all products (non-paginated, empty array on 404) */
   getAll: (): Promise<ProductResponse[]> =>
     apiClient
       .get<ProductResponse[]>('/product', { _suppressToast: true } as CustomAxiosRequestConfig)
       .then((res) => res.data)
       .catch((err) => (err?.status === 404 ? [] : Promise.reject(err))),
 
-  /** Lấy products theo filter (public, cho trang /products) */
+  /** Get products by filter (public, for /products page) */
   getByFilter: (params: ProductParams = {}): Promise<ProductResponse[]> =>
     apiClient
       .get('/product', { params, _suppressToast: true } as CustomAxiosRequestConfig)
       .then((res) => {
-        // API có thể wrap: { data: { items: [...] } } hoặc { items: [...] } hoặc [...]
+        // The API might wrap the response: { data: { items: [...] } } or { items: [...] } or directly [...]
         const raw = res.data?.data ?? res.data;
         if (Array.isArray(raw)) return raw;
         if (raw?.items && Array.isArray(raw.items)) return raw.items;
@@ -35,15 +35,15 @@ const productService = {
       })
       .catch((err) => (err?.status === 404 ? [] : Promise.reject(err))),
 
-  /** Lấy chi tiết product theo ID */
+  /** Get product detail by ID */
   getById: (id: string): Promise<ProductResponse> =>
     apiClient.get(`/product/${id}`).then((res) => res.data),
 
-  /** Lấy chi tiết product theo Slug */
+  /** Get product detail by Slug */
   getBySlug: (slug: string): Promise<ProductResponse> =>
     apiClient.get(`/product/slug/${slug}`).then((res) => res.data),
 
-  /** Tạo mới product - server trả về empty, lấy ID từ header Location hoặc fetch lại theo slug */
+  /** Create new product - returns ID from Location header or refetches by name */
   create: async (data: CreateProductRequest): Promise<ProductResponse> => {
     const res = await apiClient.post('/product', data);
     console.log('[productService.create] status:', res.status, 'headers:', JSON.stringify(res.headers), 'data:', JSON.stringify(res.data));
@@ -69,19 +69,19 @@ const productService = {
     return res.data;
   },
 
-  /** Cập nhật product */
+  /** Update product */
   update: (data: UpdateProductRequest): Promise<ProductResponse> =>
     apiClient.put('/product', data).then((res) => res.data),
 
-  /** Cập nhật trạng thái product */
+  /** Update product status */
   updateStatus: ({ productId, status }: UpdateProductStatusParams): Promise<void> =>
     apiClient.put(`/product/${productId}`, null, { params: { status } }).then((res) => res.data),
 
-  /** Xóa product */
+  /** Delete product */
   delete: (id: string): Promise<void> =>
     apiClient.delete(`/product/${id}`).then((res) => res.data),
 
-  /** Upload ảnh cho product */
+  /** Upload images for product */
   uploadImage: (productId: string, files: File[]): Promise<{ message: string; urls: string[] }> => {
     const formData = new FormData();
     files.forEach((file) => {
@@ -97,7 +97,7 @@ const productService = {
       .then((res) => res.data);
   },
 
-  /** Xóa ảnh sản phẩm theo assetId */
+  /** Delete product image by assetId */
   deleteImage: (assetId: string): Promise<void> =>
     apiClient.delete(`/asset/product/${assetId}`).then((res) => res.data),
 };

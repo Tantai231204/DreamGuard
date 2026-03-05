@@ -79,7 +79,7 @@ export default function ImageUploadDialog({
         for (let i = 0; i < files.length; i++) {
             await onUpload(productId, [files[i].file]);
             setFiles((prev) => {
-                // Xóa preview đã upload
+                // Xóa preview ₫ã upload
                 URL.revokeObjectURL(prev[0].preview);
                 return prev.slice(1);
             });

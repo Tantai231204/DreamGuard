@@ -7,7 +7,7 @@ import type {
 } from "../types";
 
 const categoryService = {
-  /** Lấy danh sách tất cả categories */
+  /** Get all categories */
   getAll: (): Promise<CategoryResponse[]> =>
     apiClient.get("/category").then((res) => {
       // API trả về mảng trực tiếp hoặc wrapped { data: [...] }
@@ -15,15 +15,15 @@ const categoryService = {
       return Array.isArray(data) ? data : [];
     }),
 
-  /** Lấy chi tiết category theo ID */
+  /** Get category detail by ID */
   getById: (id: number): Promise<CategoryResponse> =>
     apiClient.get(`/category/${id}`).then((res) => res.data?.data ?? res.data),
 
-  /** Tạo mới category */
+  /** Create new category */
   create: (data: CreateCategoryRequest): Promise<CategoryResponse> =>
     apiClient.post("/category", data).then((res) => res.data?.data ?? res.data),
 
-  /** Cập nhật category */
+  /** Update category */
   update: (
     id: number,
     data: UpdateCategoryRequest,
@@ -32,7 +32,7 @@ const categoryService = {
       .put(`/category/${id}`, data)
       .then((res) => res.data?.data ?? res.data),
 
-  /** Xóa category */
+  /** Delete category */
   delete: (id: number): Promise<void> =>
     apiClient
       .delete(`/category/${id}`)

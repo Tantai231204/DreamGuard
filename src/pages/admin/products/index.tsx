@@ -324,7 +324,6 @@ export default function ProductsPage() {
         }
       } catch (error) {
         console.error('Variant submission failed:', error);
-        toast.error('Operation failed', 'There was an error saving the variant.');
       }
     },
     [editingVariant, createVariantMutation, updateVariantMutation, updateVariantStatusMutation, updateVariantStockStatusMutation, toast]
@@ -369,7 +368,6 @@ export default function ProductsPage() {
           toast.success('Product updated', 'The product has been successfully updated.');
         } catch (error) {
           console.error('[UpdateProduct] parallel error:', error);
-          toast.error('Update failed', 'There was an error updating the product.');
         }
       } else {
         try {
@@ -422,7 +420,6 @@ export default function ProductsPage() {
         toast.success('Images uploaded', 'Product images have been successfully uploaded.');
       } catch (error) {
         console.error('[Upload] Error:', error);
-        toast.error('Upload failed', 'Failed to upload images. Please try again.');
       }
     },
     [uploadImagesMutation, toast]

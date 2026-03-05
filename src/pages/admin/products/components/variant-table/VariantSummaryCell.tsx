@@ -8,7 +8,7 @@ interface VariantSummaryCellProps {
     variantCount: number;
 }
 
-const MAX_DOTS = 2; // 👈 chỉ hiện tối đa 2 màu
+const MAX_DOTS = 2; // 👈 chỉ hiện tối ₫a 2 màu
 
 const colorMap: Record<string, string> = {
     white: '#f5f5f5',
@@ -160,13 +160,13 @@ export default function VariantSummaryCell({
                     {summary.minPrice > 0 && (
                         <div className="text-xs">
                             <span className="font-bold text-blue-600">
-                                {summary.minPrice.toLocaleString('vi-VN')}đ
+                                {summary.minPrice.toLocaleString('en-US')}₫
                             </span>
                             {summary.maxPrice > summary.minPrice && (
                                 <>
                                     <span className="text-gray-400 mx-1">-</span>
                                     <span className="font-bold text-blue-600">
-                                        {summary.maxPrice.toLocaleString('vi-VN')}đ
+                                        {summary.maxPrice.toLocaleString('en-US')}₫
                                     </span>
                                 </>
                             )}

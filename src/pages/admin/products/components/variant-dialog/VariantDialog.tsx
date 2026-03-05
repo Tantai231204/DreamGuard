@@ -323,7 +323,7 @@ function VariantDialogInner({
                                     disabled={isLoading}
                                     className={cn(INPUT_CLS, 'pr-10')}
                                 />
-                                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">đ</span>
+                                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">₫</span>
                             </div>
                         </div>
                         <div className="space-y-2">
@@ -342,7 +342,7 @@ function VariantDialogInner({
                                     disabled={isLoading}
                                     className={cn(INPUT_CLS, 'pr-10')}
                                 />
-                                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">đ</span>
+                                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">₫</span>
                             </div>
                         </div>
                     </div>

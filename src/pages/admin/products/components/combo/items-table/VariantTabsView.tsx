@@ -151,7 +151,7 @@ export function VariantTabsView({
                                                 {isWarning && <span className="text-[8px] text-red-500 font-black animate-bounce">! STOCK</span>}
                                             </div>
                                             <span className={`text-[10px] font-black ${isActive ? 'text-indigo-600' : 'text-gray-800'}`}>
-                                                {(child.salePrice || child.basePrice).toLocaleString('vi-VN')}đ
+                                                {(child.salePrice || child.basePrice).toLocaleString('en-US')}₫
                                             </span>
                                         </div>
                                     </div>
@@ -194,7 +194,7 @@ export function VariantTabsView({
                             <div className="flex items-center gap-6">
                                 <div className="text-right">
                                     <p className="text-[10px] text-gray-400 font-black uppercase tracking-tighter">Current Value</p>
-                                    <div className="text-lg font-black text-indigo-600">{(child.salePrice || child.basePrice).toLocaleString('vi-VN')}đ</div>
+                                    <div className="text-lg font-black text-indigo-600">{(child.salePrice || child.basePrice).toLocaleString('en-US')}₫</div>
                                 </div>
                                 <Separator orientation="vertical" className="h-10 bg-gray-100" />
                                 <VariantActionDropdown

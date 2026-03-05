@@ -6,12 +6,12 @@ import { UserDropdownContent } from "./UserDropdownContent"
 
 export default function UserDropdown() {
     const { isAuthenticated } = useAuthStore()
-    const authenticated = isAuthenticated()
+    // const authenticated = isAuthenticated()
 
     return (
         <DropdownMenu>
-            <TriggerButton isAuthenticated={authenticated} />
-            {authenticated ? <UserDropdownContent /> : <GuestDropdownContent />}
+            <TriggerButton isAuthenticated={isAuthenticated} />
+            {isAuthenticated ? <UserDropdownContent /> : <GuestDropdownContent />}
         </DropdownMenu>
     )
 }

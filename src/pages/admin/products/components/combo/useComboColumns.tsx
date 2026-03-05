@@ -233,11 +233,11 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
                     return (
                         <div className="text-right">
                             <div className="font-bold text-blue-600 text-[14px]">
-                                {(hasSale ? salePrice : basePrice).toLocaleString("vi-VN")}đ
+                                {(hasSale ? salePrice : basePrice).toLocaleString("en-US")}₫
                             </div>
                             {hasSale && (
                                 <div className="text-xs line-through text-gray-400">
-                                    {basePrice.toLocaleString("vi-VN")}đ
+                                    {basePrice.toLocaleString("en-US")}₫
                                 </div>
                             )}
                         </div>

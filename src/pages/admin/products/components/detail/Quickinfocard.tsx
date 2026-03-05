@@ -66,8 +66,8 @@ function QuickInfoCard({
 
     const priceRange = minPrice != null && maxPrice != null && (
         minPrice === maxPrice
-            ? `${minPrice.toLocaleString('vi-VN')}₫`
-            : `${minPrice.toLocaleString('vi-VN')}₫ — ${maxPrice.toLocaleString('vi-VN')}₫`
+            ? `${minPrice.toLocaleString('en-US')}₫`
+            : `${minPrice.toLocaleString('en-US')}₫ — ${maxPrice.toLocaleString('en-US')}₫`
     );
 
     return (

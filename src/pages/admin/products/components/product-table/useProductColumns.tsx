@@ -214,7 +214,7 @@ export function useProductColumns({ onView, onEdit, onDelete, onAddVariant }: Us
         header: ({ column }) => <SortableHeader column={column} label="Created" />,
         cell: (info) => (
           <span className="text-xs text-gray-500">
-            {new Date(info.getValue()).toLocaleDateString('vi-VN')}
+            {new Date(info.getValue()).toLocaleDateString('en-US')}
           </span>
         ),
       }),

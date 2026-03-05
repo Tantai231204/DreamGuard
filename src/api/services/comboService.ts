@@ -97,7 +97,7 @@ export interface ComboParams {
 // ── Service ──────────────────────────────────────────────
 
 const comboService = {
-  /** Lấy danh sách combos cho admin (paginated) */
+  /** Get paginated combos for admin */
   getAll: (params: ComboParams = {}): Promise<ComboPageResponse> =>
     apiClient
       .get<ComboPageResponse>('/combo/admin', { params, _suppressToast: true } as CustomAxiosRequestConfig)
@@ -109,7 +109,7 @@ const comboService = {
         return Promise.reject(err);
       }),
 
-  /** Lấy tất cả combos (sử dụng admin endpoint với pageSize lớn) */
+  /** Get all combos (uses admin endpoint with large pageSize) */
   getAllList: (): Promise<ComboResponse[]> =>
     apiClient
       .get<ComboPageResponse>('/combo/admin', {
@@ -119,11 +119,11 @@ const comboService = {
       .then((res) => res.data.items || [])
       .catch((err) => (err?.status === 404 ? [] : Promise.reject(err))),
 
-  /** Lấy chi tiết 1 combo theo ID */
+  /** Get combo detail by ID */
   getById: (id: string): Promise<ComboResponse> =>
     apiClient.get(`/combo/${id}`).then((res) => res.data),
 
-  /** Tạo mới combo */
+  /** Create new combo */
   create: async (data: CreateComboRequest): Promise<ComboResponse> => {
     const res = await apiClient.post('/combo', data);
 
@@ -137,11 +137,11 @@ const comboService = {
     return res.data;
   },
 
-  /** Cập nhật combo */
+  /** Update combo */
   update: (id: string, data: UpdateComboRequest): Promise<ComboResponse> =>
     apiClient.put(`/combo/${id}`, data).then((res) => res.data),
 
-  /** Xóa combo */
+  /** Delete combo */
   delete: (id: string): Promise<void> =>
     apiClient.delete(`/combo/${id}`).then((res) => res.data),
 };

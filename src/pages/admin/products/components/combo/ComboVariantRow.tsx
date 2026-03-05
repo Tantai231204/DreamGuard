@@ -84,12 +84,12 @@ export default function ComboVariantRow({ item, onQuantityChange, onDelete, isDe
                 {salePrice > 0 ? (
                     <>
                         <div className="text-[14px] font-black text-gray-900 tracking-tight">
-                            {salePrice.toLocaleString('vi-VN')}đ
+                            {salePrice.toLocaleString('en-US')}₫
                         </div>
                         {hasSale && (
                             <div className="flex items-center gap-1.5 mt-0.5">
                                 <span className="text-[10px] text-gray-400 line-through">
-                                    {basePrice.toLocaleString('vi-VN')}đ
+                                    {basePrice.toLocaleString('en-US')}₫
                                 </span>
                                 <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-1 rounded">
                                     -{Math.round((1 - salePrice / basePrice) * 100)}%

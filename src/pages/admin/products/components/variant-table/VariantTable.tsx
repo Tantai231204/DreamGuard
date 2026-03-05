@@ -382,11 +382,11 @@ function VariantRow({
       {/* Price */}
       <div className="text-right">
         <div className="text-[14px] font-black text-slate-900">
-          {variant.salePrice.toLocaleString('vi-VN')} <span className="text-[10px] text-slate-400">đ</span>
+          {variant.salePrice.toLocaleString('en-US')} <span className="text-[10px] text-slate-400">₫</span>
         </div>
         {hasSale && (
           <div className="text-[11px] text-slate-300 line-through">
-            {variant.basePrice.toLocaleString('vi-VN')}đ
+            {variant.basePrice.toLocaleString('en-US')}₫
           </div>
         )}
       </div>

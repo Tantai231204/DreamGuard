@@ -78,11 +78,11 @@ function VariantItemsPanel({ variantId }: { variantId: string }) {
                     </span>
                     <div className="text-right flex-shrink-0 min-w-[80px]">
                         <div className="text-[12px] font-bold text-violet-700">
-                            {item.salePrice.toLocaleString('vi-VN')}đ
+                            {item.salePrice.toLocaleString('en-US')}₫
                         </div>
                         {item.salePrice < item.basePrice && (
                             <div className="text-[10px] text-gray-400 line-through">
-                                {item.basePrice.toLocaleString('vi-VN')}đ
+                                {item.basePrice.toLocaleString('en-US')}₫
                             </div>
                         )}
                     </div>
@@ -167,11 +167,11 @@ function ComboVariantRow({
                 {/* Price */}
                 <div className="text-right">
                     <div className="text-sm font-bold text-blue-600">
-                        {(hasSale ? variant.baseSalePrice! : variant.basePrice).toLocaleString('vi-VN')}đ
+                        {(hasSale ? variant.baseSalePrice! : variant.basePrice).toLocaleString('en-US')}₫
                     </div>
                     {hasSale && (
                         <div className="text-[10px] text-gray-400 line-through">
-                            {variant.basePrice.toLocaleString('vi-VN')}đ
+                            {variant.basePrice.toLocaleString('en-US')}₫
                         </div>
                     )}
                 </div>

@@ -194,7 +194,7 @@ const VirtualVariantSelect = memo(function VirtualVariantSelect({
                     </div>
                 </div>
                 <div className="text-right shrink-0">
-                    <div className="text-xs font-bold text-violet-600">{selectedOption.salePrice.toLocaleString('vi-VN')}đ</div>
+                    <div className="text-xs font-bold text-violet-600">{selectedOption.salePrice.toLocaleString('en-US')}₫</div>
                     <ChevronDown className="h-3 w-3 text-gray-400 mx-auto mt-0.5" />
                 </div>
             </button>
@@ -354,11 +354,11 @@ const VirtualVariantSelect = memo(function VirtualVariantSelect({
                                                     {/* Price */}
                                                     <div className="text-right shrink-0 min-w-[60px]">
                                                         <div className="text-[12px] font-bold text-gray-800">
-                                                            {row.variant.salePrice.toLocaleString('vi-VN')}đ
+                                                            {row.variant.salePrice.toLocaleString('en-US')}₫
                                                         </div>
                                                         {row.variant.salePrice < row.variant.basePrice && (
                                                             <div className="text-[10px] text-gray-400 line-through">
-                                                                {row.variant.basePrice.toLocaleString('vi-VN')}đ
+                                                                {row.variant.basePrice.toLocaleString('en-US')}₫
                                                             </div>
                                                         )}
                                                     </div>

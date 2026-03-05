@@ -8,7 +8,7 @@ import { AppRoute } from "../../lib/constants";
  * Preserves the intended destination for redirect after login
  */
 export default function PrivateRoute() {
-    const isAuthenticated = useAuthStore((state) => state.isAuthenticated());
+    const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
     const location = useLocation();
 
     if (!isAuthenticated) {

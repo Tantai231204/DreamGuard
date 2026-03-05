@@ -223,11 +223,11 @@ const ComboItemsPanel = memo(function ComboItemsPanel({
                                                 <div className="flex items-center gap-1.5">
                                                     <span className="text-[11px] text-slate-400 font-mono truncate">{item.sku}</span>
                                                     <span className="text-[11px] font-bold text-purple-600">
-                                                        {item.salePrice.toLocaleString('vi-VN')}đ
+                                                        {item.salePrice.toLocaleString('en-US')}₫
                                                     </span>
                                                     {item.salePrice < item.basePrice && (
                                                         <span className="text-[10px] text-slate-400 line-through">
-                                                            {item.basePrice.toLocaleString('vi-VN')}đ
+                                                            {item.basePrice.toLocaleString('en-US')}₫
                                                         </span>
                                                     )}
                                                 </div>
@@ -259,7 +259,7 @@ const ComboItemsPanel = memo(function ComboItemsPanel({
 
                                             {/* Subtotal */}
                                             <span className="text-[12px] font-bold text-slate-800 min-w-[60px] text-right">
-                                                {subtotal.toLocaleString('vi-VN')}đ
+                                                {subtotal.toLocaleString('en-US')}₫
                                             </span>
 
                                             {/* Change variant */}
@@ -291,7 +291,7 @@ const ComboItemsPanel = memo(function ComboItemsPanel({
                         </span>
                         <span>
                             Variant total:{' '}
-                            <span className="font-bold text-slate-800">{totalVariantPrice.toLocaleString('vi-VN')}đ</span>
+                            <span className="font-bold text-slate-800">{totalVariantPrice.toLocaleString('en-US')}₫</span>
                         </span>
                     </div>
 

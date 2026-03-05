@@ -131,11 +131,11 @@ export default function ComboItemsInlinePanel({ combo, colSpan }: ComboItemsInli
                                             {price != null && (
                                                 <div className="text-right flex-shrink-0 min-w-[90px]">
                                                     <div className="text-[13px] font-bold text-violet-700">
-                                                        {price.toLocaleString('vi-VN')}đ
+                                                        {price.toLocaleString('en-US')}₫
                                                     </div>
                                                     {(item as any).basePrice && (item as any).salePrice && (item as any).salePrice < (item as any).basePrice && (
                                                         <div className="text-[10px] line-through text-gray-400">
-                                                            {(item as any).basePrice.toLocaleString('vi-VN')}đ
+                                                            {(item as any).basePrice.toLocaleString('en-US')}₫
                                                         </div>
                                                     )}
                                                 </div>
@@ -165,7 +165,7 @@ export default function ComboItemsInlinePanel({ combo, colSpan }: ComboItemsInli
                                     <span>
                                         Combo price:{' '}
                                         <span className="font-bold text-violet-700">
-                                            {combo.basePrice.toLocaleString('vi-VN')}đ
+                                            {combo.basePrice.toLocaleString('en-US')}₫
                                         </span>
                                     </span>
                                 </>

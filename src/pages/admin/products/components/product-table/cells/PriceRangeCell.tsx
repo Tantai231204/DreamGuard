@@ -43,14 +43,14 @@ export default function PriceRangeCell({ productId, variantCount }: PriceRangeCe
     <div className="space-y-0.5">
       {/* Price range */}
       <div className="text-sm font-bold text-gray-900">
-        {priceInfo.minPrice.toLocaleString('vi-VN')}
+        {priceInfo.minPrice.toLocaleString('en-US')}
         {priceInfo.maxPrice > priceInfo.minPrice && (
           <>
             <span className="text-gray-400 mx-1">-</span>
-            {priceInfo.maxPrice.toLocaleString('vi-VN')}
+            {priceInfo.maxPrice.toLocaleString('en-US')}
           </>
         )}
-        đ
+        ₫
       </div>
 
       {/* Sale active badge */}
