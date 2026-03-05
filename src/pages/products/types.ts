@@ -2,6 +2,7 @@ export interface Product {
   id: string;
   name: string;
   slug: string;
+  summary?: string;
   price: number;
   originalPrice?: number;
   discount?: number;
@@ -14,6 +15,9 @@ export interface Product {
   inStock: boolean;
   isNew?: boolean;
   isBestSeller?: boolean;
+  stockQuantity?: number;
+  /** Product status: 0='Draft', 1='Published', 2='OutOfStock', 3='Hidden', but API may return string */
+  status?: number | string;
 }
 
 export interface FilterOptions {

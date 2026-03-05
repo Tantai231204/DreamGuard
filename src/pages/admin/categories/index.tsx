@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
+import { useToast } from '@/hooks/useToast';
 import {
     useReactTable,
     getCoreRowModel,
@@ -26,17 +27,55 @@ import { useCategories, useCreateCategory, useUpdateCategory } from '@/hooks/que
 import type { Category } from './types';
 
 export default function CategoriesPage() {
+    const toast = useToast();
     const [globalFilter, setGlobalFilter] = useState('');
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+    const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
 
     // Dialog state
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
     // Gọi API lấy danh sách categories qua TanStack Query
-    const { data: categories = [], isLoading, isError, error } = useCategories();
+    const { data: categoriesData = [], isLoading, isError, error } = useCategories();
+    
+    // Ensure categories is always an array
+    const categories = useMemo(() => {
+        return Array.isArray(categoriesData) ? categoriesData : [];
+    }, [categoriesData]);
+
+    // Toggle expand/collapse
+    const handleToggleExpand = useCallback((id: number) => {
+        setExpandedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+    }, []);
+
+    // Flatten categories for table display (including expanded children)
+    const flattenedCategories = useMemo(() => {
+        const result: (Category & { level: number; parentId?: number })[] = [];
+        
+        const flatten = (cats: Category[], level = 0, parentId?: number) => {
+            cats.forEach((cat) => {
+                result.push({ ...cat, level, parentId });
+                
+                if (expandedIds.has(cat.cateId) && cat.childCategoryList?.length > 0) {
+                    flatten(cat.childCategoryList, level + 1, cat.cateId);
+                }
+            });
+        };
+        
+        flatten(categories);
+        return result;
+    }, [categories, expandedIds]);
 
     // Mutations
     const createMutation = useCreateCategory();
@@ -56,34 +95,46 @@ export default function CategoriesPage() {
 
     // Submit form (create hoặc update)
     const handleSubmit = useCallback(
-        (data: { name: string; slug: string; isActive: boolean }) => {
+        (data: { name: string; slug: string; isActive: boolean; cateParentId?: number }) => {
             if (editingCategory) {
                 updateMutation.mutate(
                     { id: editingCategory.cateId, data },
-                    { onSuccess: () => setDialogOpen(false) }
+                    {
+                        onSuccess: () => {
+                            setDialogOpen(false);
+                            toast.success('Category updated', 'The category has been successfully updated.');
+                        },
+                    }
                 );
             } else {
                 createMutation.mutate(data, {
-                    onSuccess: () => setDialogOpen(false),
+                    onSuccess: () => {
+                        setDialogOpen(false);
+                        toast.success('Category created', 'The new category has been successfully created.');
+                    },
                 });
             }
         },
-        [editingCategory, createMutation, updateMutation]
+        [editingCategory, createMutation, updateMutation, toast]
     );
 
-    const columns = useCategoryColumns({ onEdit: handleEdit });
+    const columns = useCategoryColumns({ 
+        onEdit: handleEdit,
+        expandedIds,
+        onToggleExpand: handleToggleExpand
+    });
 
     // Stats
     const stats = useMemo(() => {
         const total = categories.length;
         const active = categories.filter((c) => c.isActive).length;
         const inactive = categories.filter((c) => !c.isActive).length;
-        const withChildren = categories.filter((c) => c.childCategoryList.length > 0).length;
+        const withChildren = categories.filter((c) => c.childCategoryList?.length > 0).length;
         return { total, active, inactive, withChildren };
     }, [categories]);
 
     const table = useReactTable({
-        data: categories,
+        data: flattenedCategories,
         columns,
         state: {
             sorting,
@@ -222,6 +273,7 @@ export default function CategoriesPage() {
                 open={dialogOpen}
                 onOpenChange={setDialogOpen}
                 category={editingCategory}
+                allCategories={categories}
                 onSubmit={handleSubmit}
                 isLoading={createMutation.isPending || updateMutation.isPending}
             />

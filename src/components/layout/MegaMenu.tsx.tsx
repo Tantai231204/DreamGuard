@@ -26,8 +26,8 @@ export function MegaMenu({ open, items, highlight, onMouseEnter, onMouseLeave }:
                     <div className="mx-auto max-w-7xl px-6 py-8">
                         <div className="grid grid-cols-12 gap-8">
                             {/* Material Cards with Images */}
-                            <div className="col-span-8">
-                                <div className="grid grid-cols-2 gap-4">
+                            <div className={highlight ? "col-span-8" : "col-span-12"}>
+                                <div className={`grid gap-4 ${highlight ? "grid-cols-2" : "grid-cols-3 lg:grid-cols-4"}`}>
                                     {items.map((item) => (
                                         <Link
                                             key={item.label}

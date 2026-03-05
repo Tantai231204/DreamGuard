@@ -14,6 +14,7 @@ import {
   Sparkles,
   FolderTree,
   RefreshCw,
+  Ticket,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Separator } from '../ui/separator';
@@ -53,6 +54,11 @@ const navItems: NavItem[] = [
     title: 'Categories',
     href: '/admin/categories',
     icon: FolderTree,
+  },
+  {
+    title: 'Vouchers',
+    href: '/admin/vouchers',
+    icon: Ticket,
   },
   {
     title: 'Trade-ins',

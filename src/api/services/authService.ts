@@ -9,6 +9,9 @@ const authService = {
   register: (data: RegisterRequest): Promise<ApiResponse<Token>> =>
     apiClient.post('/register', data).then((res) => res.data),
 
+  refreshToken: (refreshToken: string): Promise<ApiResponse<Token>> =>
+    apiClient.post('/auth/refresh-token', { refreshToken }).then((res) => res.data),
+
   forgotPassword: (data: ForgotPasswordRequest): Promise<ApiResponse<null>> =>
     apiClient.put('/auth/forgot-password', data).then((res) => res.data),
 

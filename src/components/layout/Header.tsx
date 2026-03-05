@@ -1,7 +1,8 @@
 import { Link } from "react-router-dom"
 import { InstagramLogoIcon, BellIcon } from "@radix-ui/react-icons"
 import { Facebook } from "lucide-react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
+import { useCategories } from "@/hooks/queries/useCategory"
 
 import { AppRoute } from "../../lib/constants"
 import { SearchBar } from "../ui/search-bar"
@@ -14,6 +15,39 @@ import {
 import { MegaMenu } from "./MegaMenu.tsx"
 import UserDropdown from "./UserDropdown.tsx"
 import { CartDrawer } from "./CartDrawer"
+import type { CategoryResponse } from "@/api/types/category.types"
+
+// --- Material Data Store ---
+const MATERIAL_ASSETS: Record<string, { image: string, description: string }> = {
+    'Polyester': {
+        image: 'https://i.pinimg.com/736x/d1/d5/db/d1d5db8e4a3b0b4c3e5e2d9a7e8fa06f.jpg',
+        description: 'Durable, lightweight and wrinkle-resistant.',
+    },
+    'Cotton': {
+        image: 'https://i.pinimg.com/736x/7c/aa/33/7caa33bf8eca070ee8a1dd20f86723ec.jpg',
+        description: 'Soft, breathable and perfect for everyday comfort.',
+    },
+    'Organic Cotton': {
+        image: 'https://i.pinimg.com/736x/fe/f3/c7/fef3c7a06f596cd15e4a3b0b4c3e5e2d.jpg',
+        description: '100% organic, hypoallergenic and eco-friendly.',
+    },
+    'Bamboo Fiber': {
+        image: 'https://i.pinimg.com/736x/39/59/09/39590918cf5dc918f6734fbdbfcc8cf0.jpg',
+        description: 'Naturally antibacterial and highly absorbent.',
+    },
+    'Fleece': {
+        image: 'https://i.pinimg.com/736x/d1/d5/db/d1d5db8e4a3b0b4c3e5e2d9a7e8fa06f.jpg',
+        description: 'Warm, cozy, and ideal for chilly nights.',
+    },
+    'Memory Foam': {
+        image: 'https://i.pinimg.com/736x/a0/6f/59/a06f596cd15e4a3b0b4c3e5e2d9a7e8f.jpg',
+        description: 'Contouring support that adapts to your shape.',
+    },
+    'default': {
+        image: 'https://i.pinimg.com/736x/1a/10/7b/1a107b22d1406d44bcab4affb42fa023.jpg',
+        description: 'High-quality material selected for best experience.',
+    }
+}
 
 /* ================= Constants ================= */
 type NavItem = {
@@ -21,148 +55,8 @@ type NavItem = {
     href?: string
     items?: DropdownLink[]
     highlight?: HighlightCard
+    isSimpleMenu?: boolean
 }
-
-const NAV_ITEMS: NavItem[] = [
-    {
-        label: "Mattresses",
-        items: [
-            {
-                label: "Cotton",
-                description: "Soft, breathable cotton mattresses for your baby.",
-                href: "/products?category=Mattresses&material=Cotton",
-                image: "https://i.pinimg.com/736x/7c/aa/33/7caa33bf8eca070ee8a1dd20f86723ec.jpg",
-            },
-            {
-                label: "Silk",
-                description: "Luxurious silk mattresses with cooling comfort.",
-                href: "/products?category=Mattresses&material=Silk",
-                image: "https://i.pinimg.com/736x/a0/6f/59/a06f596cd15e4a3b0b4c3e5e2d9a7e8f.jpg",
-            },
-            {
-                label: "Fleece",
-                description: "Warm fleece mattresses for cozy sleeping.",
-                href: "/products?category=Mattresses&material=Fleece",
-                image: "https://i.pinimg.com/736x/d1/d5/db/d1d5db8e4a3b0b4c3e5e2d9a7e8fa06f.jpg",
-            },
-            {
-                label: "Organic Cotton",
-                description: "100% organic cotton for sensitive skin.",
-                href: "/products?category=Mattresses&material=Organic+Cotton",
-                image: "https://i.pinimg.com/736x/fe/f3/c7/fef3c7a06f596cd15e4a3b0b4c3e5e2d.jpg",
-            },
-        ],
-        highlight: {
-            title: "DreamGuard Baby Foam",
-            description: "Dual-side design that supports each stage of growth.",
-            ctaLabel: "Shop Now",
-            href: "/products?category=Mattresses",
-            badge: "-30%",
-            image: "https://i.pinimg.com/1200x/78/47/1d/78471d920e63312ee215e0f328a67b37.jpg",
-        },
-    },
-    {
-        label: "Pillows",
-        items: [
-            {
-                label: "Cotton",
-                description: "Breathable cotton pillows for restful sleep.",
-                href: "/products?category=Pillows&material=Cotton",
-                image: "https://i.pinimg.com/736x/7c/aa/33/7caa33bf8eca070ee8a1dd20f86723ec.jpg",
-            },
-            {
-                label: "Silk",
-                description: "Smooth silk pillows for gentle neck support.",
-                href: "/products?category=Pillows&material=Silk",
-                image: "https://i.pinimg.com/736x/a0/6f/59/a06f596cd15e4a3b0b4c3e5e2d9a7e8f.jpg",
-            },
-            {
-                label: "Organic Cotton",
-                description: "Hypoallergenic organic cotton pillows.",
-                href: "/products?category=Pillows&material=Organic+Cotton",
-                image: "https://i.pinimg.com/736x/fe/f3/c7/fef3c7a06f596cd15e4a3b0b4c3e5e2d.jpg",
-            },
-        ],
-        highlight: {
-            title: "Cooling Cloud Pillow",
-            description: "Phase-change cover keeps temperatures balanced.",
-            ctaLabel: "Explore Now",
-            href: "/products?category=Pillows",
-            badge: "New",
-            image: "https://i.pinimg.com/1200x/78/47/1d/78471d920e63312ee215e0f328a67b37.jpg",
-        },
-    },
-    {
-        label: "Bedding Sets",
-        items: [
-            {
-                label: "Cotton",
-                description: "400-thread sateen weave with silky handfeel.",
-                href: "/products?category=Bedding+Sets&material=Cotton",
-                image: "https://i.pinimg.com/736x/7c/aa/33/7caa33bf8eca070ee8a1dd20f86723ec.jpg",
-            },
-            {
-                label: "Silk",
-                description: "Luxurious silk bedding sets for ultimate comfort.",
-                href: "/products?category=Bedding+Sets&material=Silk",
-                image: "https://i.pinimg.com/736x/a0/6f/59/a06f596cd15e4a3b0b4c3e5e2d9a7e8f.jpg",
-            },
-            {
-                label: "Fleece",
-                description: "Cozy fleece bedding sets for cold nights.",
-                href: "/products?category=Bedding+Sets&material=Fleece",
-                image: "https://i.pinimg.com/736x/d1/d5/db/d1d5db8e4a3b0b4c3e5e2d9a7e8fa06f.jpg",
-            },
-            {
-                label: "Organic Cotton",
-                description: "Pure organic cotton for sensitive skin.",
-                href: "/products?category=Bedding+Sets&material=Organic+Cotton",
-                image: "https://i.pinimg.com/736x/fe/f3/c7/fef3c7a06f596cd15e4a3b0b4c3e5e2d.jpg",
-            },
-        ],
-        highlight: {
-            title: "Layer and Save",
-            description: "Bundle duvet covers, sheets, and pillowcases with extra savings.",
-            ctaLabel: "Shop the Collection",
-            href: "/products?category=Bedding+Sets",
-            badge: "Bundle",
-            image: "https://i.pinimg.com/1200x/78/47/1d/78471d920e63312ee215e0f328a67b37.jpg",
-        },
-    },
-    {
-        label: "Blankets",
-        items: [
-            {
-                label: "Cotton",
-                description: "Lightweight cotton blankets for all seasons.",
-                href: "/products?category=Blankets&material=Cotton",
-                image: "https://i.pinimg.com/736x/7c/aa/33/7caa33bf8eca070ee8a1dd20f86723ec.jpg",
-            },
-            {
-                label: "Fleece",
-                description: "Ultra-soft fleece blankets for warmth.",
-                href: "/products?category=Blankets&material=Fleece",
-                image: "https://i.pinimg.com/736x/d1/d5/db/d1d5db8e4a3b0b4c3e5e2d9a7e8fa06f.jpg",
-            },
-            {
-                label: "Organic Cotton",
-                description: "Eco-friendly organic blankets.",
-                href: "/products?category=Blankets&material=Organic+Cotton",
-                image: "https://i.pinimg.com/736x/fe/f3/c7/fef3c7a06f596cd15e4a3b0b4c3e5e2d.jpg",
-            },
-        ],
-        highlight: {
-            title: "Sleep Better Kit",
-            description: "A curated trio of protector, spray, and travel pillow.",
-            ctaLabel: "Buy the Kit",
-            href: "/products?category=Blankets",
-            badge: "-15%",
-            image: "https://i.pinimg.com/1200x/78/47/1d/78471d920e63312ee215e0f328a67b37.jpg",
-        },
-    },
-    { label: "Services", href: "/services" },
-    { label: "About", href: "#" },
-]
 
 /* ================= Icon Button ================= */
 const IconButton = ({
@@ -190,6 +84,56 @@ export default function Header() {
         highlight?: HighlightCard
     } | null>(null)
     const [isScrolled, setIsScrolled] = useState(false)
+
+    const { data: categories = [] } = useCategories()
+
+    const navItems: NavItem[] = useMemo(() => {
+        const topCategories = categories.slice(0, 3);
+        const restCategories = categories.slice(3);
+
+        const items: NavItem[] = topCategories.map((cat: CategoryResponse) => {
+            const childItems: DropdownLink[] = (cat.childCategoryList || []).map(child => {
+                const asset = MATERIAL_ASSETS[child.name] || MATERIAL_ASSETS['default'];
+                return {
+                    label: child.name,
+                    href: `/products?cateId=${child.cateId}&categoryName=${encodeURIComponent(cat.name)}&materialName=${encodeURIComponent(child.name)}`,
+                    image: asset.image,
+                    description: asset.description
+                };
+            });
+
+            return {
+                label: cat.name,
+                items: childItems,
+                highlight: {
+                    title: `Shop ${cat.name}`,
+                    description: "Discover our premium quality collection.",
+                    ctaLabel: "Shop Now",
+                    href: `/products?cateId=${cat.cateId}`,
+                    image: "https://i.pinimg.com/1200x/78/47/1d/78471d920e63312ee215e0f328a67b37.jpg",
+                }
+            }
+        });
+
+        if (restCategories.length > 0) {
+            const restDropdownItems: DropdownLink[] = restCategories.map((cat: CategoryResponse) => ({
+                label: cat.name,
+                href: `/products?cateId=${cat.cateId}`,
+                description: `Explore all ${cat.name}`
+            }));
+
+            items.push({
+                label: "Categories",
+                items: restDropdownItems,
+                isSimpleMenu: true
+            });
+        }
+
+        items.push({ label: "Services", href: "/services" });
+        items.push({ label: "About", href: "/about" });
+
+        return items;
+    }, [categories]);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -284,13 +228,14 @@ export default function Header() {
             >
                 <div className="container mx-auto max-w-7xl px-4">
                     <ul className="flex h-12 items-center justify-center gap-8 text-sm font-medium">
-                        {NAV_ITEMS.map(({ label, items, highlight, href }) => (
+                        {navItems.map(({ label, items, highlight, isSimpleMenu, href }) => (
                             <li key={label}>
                                 {items ? (
                                     <NavDropdown
                                         label={label}
                                         items={items}
                                         highlight={highlight}
+                                        isSimpleMenu={isSimpleMenu}
                                         isActive={activeMenu?.label === label}
                                         onOpen={() =>
                                             setActiveMenu({
@@ -316,7 +261,7 @@ export default function Header() {
 
                 {/* ===== Mega Menu – ALWAYS CENTERED ===== */}
                 <MegaMenu
-                    open={!!activeMenu}
+                    open={!!activeMenu && !!activeMenu.items}
                     items={activeMenu?.items ?? null}
                     highlight={activeMenu?.highlight}
                     onMouseEnter={() => {

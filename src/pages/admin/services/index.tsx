@@ -1,8 +1,8 @@
 import { useState, useMemo, useCallback } from 'react';
-import { 
-  Sparkles, 
-  Plus, 
-  Download, 
+import {
+  Sparkles,
+  Plus,
+  Download,
   RefreshCw,
   LayoutGrid,
   List
@@ -37,7 +37,7 @@ export default function ServiceManagement() {
       // Search filter
       if (searchQuery) {
         const search = searchQuery.toLowerCase();
-        const matchesSearch = 
+        const matchesSearch =
           booking.id.toLowerCase().includes(search) ||
           booking.customerName.toLowerCase().includes(search) ||
           booking.customerPhone.includes(search) ||
@@ -66,44 +66,44 @@ export default function ServiceManagement() {
 
   // Handlers
   const handleViewBooking = useCallback((id: string) => {
-    toast.info(`Xem chi tiết đơn ${id}`);
+    toast.info(`View details for booking ${id}`);
     // TODO: Navigate to detail page
   }, []);
 
   const handleEditBooking = useCallback((id: string) => {
-    toast.info(`Chỉnh sửa đơn ${id}`);
+    toast.info(`Edit booking ${id}`);
   }, []);
 
   const handleConfirmBooking = useCallback((id: string) => {
-    toast.success(`Đã xác nhận đơn ${id}`);
+    toast.success(`Confirmed booking ${id}`);
   }, []);
 
   const handleCancelBooking = useCallback((id: string) => {
-    toast.error(`Đã hủy đơn ${id}`);
+    toast.error(`Cancelled booking ${id}`);
   }, []);
 
   const handleAssignTechnician = useCallback((id: string) => {
-    toast.info(`Phân công kỹ thuật viên cho đơn ${id}`);
+    toast.info(`Assign technician to booking ${id}`);
   }, []);
 
   const handleExport = useCallback(() => {
-    toast.success('Đang xuất báo cáo...');
+    toast.success('Exporting report...');
   }, []);
 
   const handleRefresh = useCallback(() => {
-    toast.success('Đã làm mới dữ liệu');
+    toast.success('Data refreshed');
   }, []);
 
   const handleCreateNew = useCallback(() => {
-    toast.info('Tạo đơn dịch vụ mới');
+    toast.info('Creating new service booking');
   }, []);
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
       {/* Header */}
       <AdminPageHeader
-        title="Quản lý dịch vụ vệ sinh"
-        description="Theo dõi và quản lý các đơn đặt dịch vụ vệ sinh"
+        title="Cleaning Service Management"
+        description="Track and manage cleaning service bookings"
         icon={Sparkles}
         actions={
           <div className="flex items-center gap-2">
@@ -114,7 +114,7 @@ export default function ServiceManagement() {
               className="gap-2 rounded-xl border-2 font-medium shadow-sm hover:shadow-md border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-all"
             >
               <RefreshCw className="h-4 w-4" />
-              <span className="hidden sm:inline">Làm mới</span>
+              <span className="hidden sm:inline">Refresh</span>
             </Button>
             <Button
               variant="outline"
@@ -123,7 +123,7 @@ export default function ServiceManagement() {
               className="gap-2 rounded-xl border-2 font-medium shadow-sm hover:shadow-md border-green-200 text-green-700 hover:border-green-500 hover:bg-green-500 hover:text-white transition-all"
             >
               <Download className="h-4 w-4" />
-              <span className="hidden sm:inline">Xuất báo cáo</span>
+              <span className="hidden sm:inline">Export Report</span>
             </Button>
             <Button
               size="sm"
@@ -131,7 +131,7 @@ export default function ServiceManagement() {
               className="gap-2 rounded-xl bg-gradient-to-r from-[var(--color-primary)] to-blue-600 hover:from-[var(--color-primary-hover)] hover:to-blue-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
             >
               <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Tạo đơn mới</span>
+              <span className="hidden sm:inline">Create New</span>
             </Button>
           </div>
         }
@@ -157,18 +157,18 @@ export default function ServiceManagement() {
         {/* View Toggle & Results Count */}
         <div className="flex items-center justify-between">
           <p className="text-sm text-gray-600">
-            Tìm thấy <strong className="text-gray-900">{filteredBookings.length}</strong> đơn đặt dịch vụ
+            Found <strong className="text-gray-900">{filteredBookings.length}</strong> service bookings
           </p>
 
           <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
             <TabsList className="h-9">
               <TabsTrigger value="grid" className="h-7 px-3 gap-1.5">
                 <LayoutGrid className="h-4 w-4" />
-                <span className="hidden sm:inline text-xs">Lưới</span>
+                <span className="hidden sm:inline text-xs">Grid</span>
               </TabsTrigger>
               <TabsTrigger value="list" className="h-7 px-3 gap-1.5">
                 <List className="h-4 w-4" />
-                <span className="hidden sm:inline text-xs">Danh sách</span>
+                <span className="hidden sm:inline text-xs">List</span>
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -202,14 +202,14 @@ export default function ServiceManagement() {
                 <Sparkles className="h-8 w-8 text-gray-400" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                Không tìm thấy đơn đặt dịch vụ
+                No bookings found
               </h3>
               <p className="text-sm text-gray-500 mb-4">
-                Thử thay đổi bộ lọc hoặc tạo đơn mới
+                Try changing filters or create a new booking
               </p>
               <Button onClick={handleCreateNew} className="gap-2">
                 <Plus className="h-4 w-4" />
-                Tạo đơn mới
+                Create New Booking
               </Button>
             </CardContent>
           </Card>

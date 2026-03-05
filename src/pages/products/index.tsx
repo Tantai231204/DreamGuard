@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronDown, Search } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
@@ -15,9 +15,12 @@ import { FilterSidebar } from './components/FilterSidebar';
 import { ProductGrid } from './components/ProductGrid';
 import { Pagination } from './components/Pagination';
 import type { FilterOptions } from './types';
-import { mockProducts, sortOptions } from './data';
-import { useEffect } from 'react';
+import type { Product } from './types';
+import { sortOptions } from './data';
 import { useBreadcrumb } from '@/components/common/breadcrumb/useBreadcrumb';
+import { useProductsByFilter } from '@/hooks/queries/useProduct';
+import { useCategories } from '@/hooks/queries/useCategory';
+import type { ProductResponse } from '@/api/types/product.types';
 
 const ITEMS_PER_PAGE = 9;
 
@@ -30,6 +33,44 @@ const defaultFilters: FilterOptions = {
     sortBy: 'default',
 };
 
+// ... (constants above)
+
+/** Map a ProductResponse from API → local Product type for ProductCard */
+function mapToProduct(p: ProductResponse): Product {
+    const firstVariant = p.variants?.[0];
+    const price = firstVariant?.salePrice || firstVariant?.basePrice || p.minPrice || 0;
+    const originalPrice = firstVariant?.basePrice || p.maxPrice || undefined;
+    const discount =
+        originalPrice && originalPrice > price
+            ? Math.round(((originalPrice - price) / originalPrice) * 100)
+            : undefined;
+
+    const firstImage = p.assets?.[0]?.url;
+
+    // status: 0=Draft, 1=Published, 2=OutOfStock, 3=Hidden
+    const isOutOfStock = p.status === 'OutOfStock';
+    const isPublished = p.status === 'Published';
+
+    return {
+        id: p.id,
+        name: p.name,
+        slug: p.slug,
+        summary: p.summary || '',
+        price,
+        originalPrice: discount ? originalPrice : undefined,
+        discount,
+        rating: p.averageRating ?? 0,
+        reviewCount: 0,
+        image: firstImage || '/images/placeholder-product.svg',
+        category: p.categoryName || '',
+        material: p.material || '',
+        ageRange: p.ageGroup?.toString() || '',
+        inStock: isPublished && !isOutOfStock,
+        isNew: firstVariant?.isNew || false,
+        status: p.status,
+    };
+}
+
 // Animation variants
 const pageVariants = {
     initial: { opacity: 0 },
@@ -41,26 +82,42 @@ const pageVariants = {
 
 export default function ProductsPage() {
     const [searchParams] = useSearchParams();
-    const urlCategory = searchParams.get('category');
-    const urlMaterial = searchParams.get('material');
+    const urlCateId = searchParams.get('cateId');
+    const urlCategoryName = searchParams.get('categoryName');
+    const urlMaterialName = searchParams.get('materialName');
 
     const [filters, setFilters] = useState<FilterOptions>(defaultFilters);
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
 
+    // Build API params from URL
+    const apiParams = useMemo(() => {
+        const params: Record<string, unknown> = {};
+        if (urlCateId) params.cateId = Number(urlCateId);
+        params.pageNumber = 1; // fetch all for now, paginate client-side
+        return params;
+    }, [urlCateId]);
+
+    // Fetch products from API
+    const { data: apiProducts = [], isLoading } = useProductsByFilter(apiParams);
+
+    // Get category list for breadcrumb name lookup
+    const { data: categories = [] } = useCategories();
+    const categoryName = useMemo(() => {
+        if (!urlCateId) return null;
+        const cat = categories.find(c => c.cateId === Number(urlCateId));
+        return cat?.name || null;
+    }, [urlCateId, categories]);
+
+    // Map API data → local Product type
+    const products: Product[] = useMemo(
+        () => apiProducts.map(mapToProduct),
+        [apiProducts]
+    );
+
     // Filter and sort products
     const filteredProducts = useMemo(() => {
-        let result = [...mockProducts];
-
-        // Apply URL category filter
-        if (urlCategory) {
-            result = result.filter((product) => product.category === urlCategory);
-        }
-
-        // Apply URL material filter
-        if (urlMaterial) {
-            result = result.filter((product) => product.material === urlMaterial);
-        }
+        let result = [...products];
 
         // Apply search filter
         if (searchQuery) {
@@ -68,7 +125,8 @@ export default function ProductsPage() {
             result = result.filter(
                 (product) =>
                     product.name.toLowerCase().includes(query) ||
-                    product.category.toLowerCase().includes(query)
+                    product.category.toLowerCase().includes(query) ||
+                    (product.material?.toLowerCase().includes(query))
             );
         }
 
@@ -106,16 +164,18 @@ export default function ProductsPage() {
         }
 
         return result;
-    }, [filters, searchQuery, urlCategory, urlMaterial]);
+    }, [products, filters, searchQuery]);
+
+    // Effective page: clamp to available range
+    const totalPages = Math.max(1, Math.ceil(filteredProducts.length / ITEMS_PER_PAGE));
+    const effectivePage = Math.min(currentPage, totalPages);
 
     // Paginate products
     const paginatedProducts = useMemo(() => {
-        const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        const startIndex = (effectivePage - 1) * ITEMS_PER_PAGE;
         const endIndex = startIndex + ITEMS_PER_PAGE;
         return filteredProducts.slice(startIndex, endIndex);
-    }, [filteredProducts, currentPage]);
-
-    const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
+    }, [filteredProducts, effectivePage]);
 
     // Handlers
     const handleFilterChange = useCallback((newFilters: FilterOptions) => {
@@ -142,16 +202,28 @@ export default function ProductsPage() {
         setSearchQuery('');
     }, []);
 
+    // Breadcrumb
     const { setItems: setBreadcrumb } = useBreadcrumb();
     useEffect(() => {
+        const displayCategory = urlCategoryName || categoryName;
         setBreadcrumb([
             { label: 'Home', href: '/' },
-            { label: 'Products', ...(urlCategory || urlMaterial ? { href: '/products' } : { active: true }) },
-            ...(urlCategory ? [{ label: urlCategory, ...(urlMaterial ? { href: `/products?category=${encodeURIComponent(urlCategory)}` } : { active: true as const }) }] : []),
-            ...(urlMaterial ? [{ label: urlMaterial, active: true as const }] : []),
+            { label: 'Products', ...(displayCategory || urlMaterialName ? { href: '/products' } : { active: true }) },
+            ...(displayCategory ? [{ label: displayCategory, ...(urlMaterialName ? { href: `/products?cateId=${urlCateId}` } : { active: true as const }) }] : []),
+            ...(urlMaterialName ? [{ label: urlMaterialName, active: true as const }] : []),
         ]);
         return () => setBreadcrumb([]);
-    }, [setBreadcrumb, urlCategory, urlMaterial]);
+    }, [setBreadcrumb, categoryName, urlCategoryName, urlMaterialName, urlCateId]);
+
+    // Page title
+    const pageTitle = useMemo(() => {
+        const displayCategory = urlCategoryName || categoryName;
+        if (urlMaterialName && displayCategory) return `${urlMaterialName} – ${displayCategory}`;
+        if (urlMaterialName) return urlMaterialName;
+        if (displayCategory) return displayCategory;
+        return 'All Products';
+    }, [categoryName, urlCategoryName, urlMaterialName]);
+
     return (
         <motion.div
             className="min-h-screen bg-gray-50/50"
@@ -184,9 +256,7 @@ export default function ProductsPage() {
                             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                                 <div>
                                     <h1 className="text-2xl font-bold text-[var(--color-primary-dark)]">
-                                        {urlCategory ? (
-                                            urlMaterial ? `${urlMaterial} ${urlCategory}` : urlCategory
-                                        ) : 'Baby Bedding'}
+                                        {pageTitle}
                                     </h1>
                                     <p className="mt-1 text-sm text-gray-500">
                                         <span className="font-medium text-[var(--color-primary)]">{filteredProducts.length}</span> products found
@@ -253,6 +323,7 @@ export default function ProductsPage() {
                         >
                             <ProductGrid
                                 products={paginatedProducts}
+                                isLoading={isLoading}
                                 onAddToCart={handleAddToCart}
                                 onResetFilters={handleResetFilters}
                             />
