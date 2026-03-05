@@ -82,10 +82,6 @@ export default function Register() {
 
   const onSubmit = async (data: RegisterFormData) => {
     try {
-      const formattedDate = new Date(data.dateOfBirth)
-        .toISOString()
-        .split("T")[0];
-
       await authService.register({
         email: data.email,
         password: data.password,
@@ -93,7 +89,7 @@ export default function Register() {
         lastName: data.lastName,
         phoneNumber: data.phoneNumber,
         gender: data.gender,
-        dateOfBirth: formattedDate,
+        dateOfBirth: new Date(data.dateOfBirth),
       });
 
       navigate(AppRoute.LOGIN);

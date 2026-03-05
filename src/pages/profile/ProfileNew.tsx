@@ -700,8 +700,8 @@ function WishlistTab() {
                             <button
                                 disabled={!item.inStock}
                                 className={`mt-3 w-full rounded-xl py-2.5 text-sm font-semibold transition-colors ${item.inStock
-                                        ? "bg-primary text-white hover:bg-primary/90"
-                                        : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                    ? "bg-primary text-white hover:bg-primary/90"
+                                    : "bg-gray-100 text-gray-400 cursor-not-allowed"
                                     }`}
                             >
                                 {item.inStock ? "Thêm vào giỏ" : "Hết hàng"}
@@ -844,7 +844,7 @@ function SecurityTab() {
 
 /* ================= Main Profile Page ================= */
 export default function Profile() {
-    const { role, logout } = useAuthStore()
+    const { role, clearAuth: logout } = useAuthStore()
     const [searchParams] = useSearchParams()
     const tabFromUrl = searchParams.get("tab") as TabId | null
     const [activeTab, setActiveTab] = useState<TabId>(tabFromUrl || "profile")
@@ -866,14 +866,14 @@ export default function Profile() {
     return (
         <div className="min-h-screen bg-gradient-to-b from-gray-50/50 to-white">
             <div className="container mx-auto max-w-6xl px-4 py-8">
-                                {/* Breadcrumb */}
-                                <Breadcrumb
-                                    items={[
-                                        { label: <span className="flex items-center gap-1"><HomeIcon className="h-4 w-4" /> Home</span>, href: AppRoute.HOME },
-                                        { label: 'My Account', active: true },
-                                    ]}
-                                    className="mb-6"
-                                />
+                {/* Breadcrumb */}
+                <Breadcrumb
+                    items={[
+                        { label: <span className="flex items-center gap-1"><HomeIcon className="h-4 w-4" /> Home</span>, href: AppRoute.HOME },
+                        { label: 'My Account', active: true },
+                    ]}
+                    className="mb-6"
+                />
 
                 <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
                     {/* Sidebar */}
@@ -915,8 +915,8 @@ export default function Profile() {
                                         <button
                                             onClick={() => setActiveTab(tab.id)}
                                             className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all ${activeTab === tab.id
-                                                    ? "bg-primary text-white shadow-sm"
-                                                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-800"
+                                                ? "bg-primary text-white shadow-sm"
+                                                : "text-gray-600 hover:bg-gray-50 hover:text-gray-800"
                                                 }`}
                                         >
                                             {tab.icon}
