@@ -10,12 +10,13 @@ import {
 } from '@/components/ui/table';
 import VariantTableWrapper from '../variant-table/VariantTableWrapper';
 import ComboItemsTable from '../combo/ComboItemsTable';
-import type { Product, ProductVariant, ComboItem } from '../../types';
+import type { Product, ProductVariant, Combo, ComboItem } from '../../types';
 
-// Extended product type that includes combo items
-interface ProductWithItems extends Product {
+interface ExtendedRow extends Product {
   items?: ComboItem[];
-  children?: unknown[]; // For Combos
+  productItems?: unknown[];
+  type?: string;
+  discount?: number;
 }
 
 interface ProductTableContentProps<T = unknown> {
@@ -30,16 +31,20 @@ interface ProductTableContentProps<T = unknown> {
 export default function ProductTableContent<T = unknown>({
   table,
   emptyMessage = 'No products found',
+  type,
   onAddVariant,
   onEditVariant,
   onDeleteVariant,
 }: ProductTableContentProps<T>) {
-  const rows = table.getRowModel().rows;
+  // Only iterate depth-0 rows; sub-rows are handled by expansion panels below each row
+  const allRows = table.getRowModel().rows;
+  const rootRows = type === 'combo'
+    ? allRows.filter((r) => r.depth === 0)
+    : allRows;
+
   const pageSize = table.getState().pagination.pageSize;
   const columnCount = table.getAllColumns().length;
-
-  const expandedCount = rows.filter(r => r.getIsExpanded()).length;
-  const emptyRowsCount = Math.max(0, pageSize - rows.length - expandedCount);
+  const emptyRowsCount = Math.max(0, pageSize - rootRows.length);
 
   return (
     <div className="overflow-x-auto">
@@ -60,81 +65,98 @@ export default function ProductTableContent<T = unknown>({
             </TableRow>
           ))}
         </TableHeader>
+
         <TableBody>
-          {rows.length > 0 ? (
+          {rootRows.length > 0 ? (
             <>
-              {rows.map((row) => {
-                const item = row.original as ProductWithItems;
+              {rootRows.map((row) => {
+                const item = row.original as ExtendedRow;
                 const isExpanded = row.getIsExpanded();
-                const isCombo = !!(item as any).type && (item as any).type === 'combo';
-                const hasVariants = (item.variants?.length ?? 0) > 0 ||
-                  (item.variantCount ?? 0) > 0 ||
-                  (item.items?.length ?? 0) > 0 ||
-                  (item.children?.length ?? 0) > 0 ||
-                  ((item as any).productItems?.length ?? 0) > 0;
+                const isCombo = type === 'combo' || item?.type === 'combo';
+
+                const hasProductVariants =
+                  !isCombo &&
+                  ((item.variants?.length ?? 0) > 0 || (item.variantCount ?? 0) > 0);
+
+                const hasComboItems =
+                  isCombo &&
+                  ((item.items?.length ?? 0) > 0 ||
+                    (item.productItems?.length ?? 0) > 0 ||
+                    row.getCanExpand());
+
+                const isClickable = hasProductVariants || hasComboItems || (isCombo && row.getCanExpand());
 
                 return (
                   <React.Fragment key={row.id}>
-                    {/* Product row */}
+                    {/* ── Data row ── */}
                     <TableRow
                       data-state={row.getIsSelected() && 'selected'}
-                      className={`hover:bg-gray-50 transition-colors border-b border-gray-100 data-[state=selected]:bg-blue-50 ${isExpanded ? 'bg-blue-50/20 border-b-0' : ''
-                        } ${hasVariants ? 'cursor-pointer' : ''}`}
+                      className={[
+                        'hover:bg-gray-50 transition-colors border-b border-gray-100',
+                        'data-[state=selected]:bg-blue-50',
+                        isExpanded ? 'bg-blue-50/20 border-b-0' : '',
+                        isClickable ? 'cursor-pointer' : '',
+                      ]
+                        .filter(Boolean)
+                        .join(' ')}
                       onClick={(e) => {
-                        if (!hasVariants) return;
+                        if (!isClickable) return;
                         const target = e.target as HTMLElement;
                         if (
                           target.closest('button') ||
                           target.closest('[role="checkbox"]') ||
                           target.closest('[role="menuitem"]')
-                        ) {
+                        )
                           return;
-                        }
                         row.toggleExpanded();
                       }}
                     >
                       {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id} className="py-4">
+                        <TableCell key={cell.id} className="py-3.5">
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </TableCell>
                       ))}
                     </TableRow>
 
-                    {/* Expanded variant sub-table (for products) or combo items (for combos) */}
+                    {/* ── Expanded panel ── */}
                     {isExpanded && (
-                      <>
-                        {/* Show variant table - fetch from API */}
-                        {((item.variants?.length ?? 0) > 0 || (item.variantCount ?? 0) > 0) && (
-                          <TableRow className="hover:bg-transparent">
-                            <TableCell colSpan={columnCount} className="p-0">
-                              <VariantTableWrapper
-                                productId={item.id}
-                                productName={item.name}
-                                onAddVariant={() => onAddVariant?.(item.id, item.name, item.slug, item.variants?.length ?? item.variantCount ?? 0)}
-                                onEditVariant={(variant) => onEditVariant?.(variant)}
-                                onDeleteVariant={(variant) => onDeleteVariant?.(variant)}
-                              />
-                            </TableCell>
-                          </TableRow>
-                        )}
-                        {((item.items?.length ?? 0) > 0 || ((item as any).productItems?.length ?? 0) > 0 || isCombo) && (
-                          <TableRow className="hover:bg-transparent">
-                            <TableCell colSpan={columnCount} className="p-0 border-b-2 border-indigo-100">
-                              <ComboItemsTable
-                                comboId={item.id}
-                                items={item.items as ComboItem[] || []}
-                                comboName={item.name}
-                                discount={(item as unknown as { discount?: number }).discount || 0}
-                              />
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </>
+                      <TableRow className="hover:bg-transparent">
+                        <TableCell colSpan={columnCount} className="p-0">
+                          {/* Single product → variant table */}
+                          {!isCombo && hasProductVariants && (
+                            <VariantTableWrapper
+                              productId={item.id}
+                              productName={item.name}
+                              onAddVariant={() =>
+                                onAddVariant?.(
+                                  item.id,
+                                  item.name,
+                                  item.slug,
+                                  item.variants?.length ?? item.variantCount ?? 0,
+                                )
+                              }
+                              onEditVariant={(v) => onEditVariant?.(v)}
+                              onDeleteVariant={(v) => onDeleteVariant?.(v)}
+                            />
+                          )}
+
+                          {/* Combo → items table */}
+                          {isCombo && (
+                            <ComboItemsTable
+                              comboId={item.id}
+                              items={(item.items as ComboItem[]) ?? []}
+                              comboName={item.name}
+                              discount={(row.original as unknown as Combo).discount ?? 0}
+                            />
+                          )}
+                        </TableCell>
+                      </TableRow>
                     )}
                   </React.Fragment>
                 );
               })}
-              {/* Empty rows to maintain consistent height */}
+
+              {/* Empty filler rows */}
               {Array.from({ length: emptyRowsCount }).map((_, index) => (
                 <TableRow key={`empty-${index}`} className="border-b border-gray-100">
                   {Array.from({ length: columnCount }).map((_, cellIndex) => (

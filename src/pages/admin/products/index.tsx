@@ -27,7 +27,7 @@ import { ProductActions, ProductTableContent, ProductTabs, useProductColumns } f
 import ProductDialog from './components/product-dialog';
 import { VariantDialog } from './components/variant-dialog';
 import { DeleteProductDialog, ImageUploadDialog, ProductCreationSuccess } from './components/dialogs';
-import { useComboColumns } from './components/combo';
+import { useComboColumns, mapCombosToSubRows } from './components/combo';
 import { ComboDialog, type ComboDialogMode } from './components/combo-dialog';
 import {
   useAdminProducts,
@@ -136,6 +136,7 @@ export default function ProductsPage() {
   });
 
   // Map API combo response to local Combo type, grouped as parent → children
+  // Then convert `children` → `subRows` so TanStack Table can natively expand them
   const combos: Combo[] = useMemo(() => {
     const rawItems = comboPageData?.items ?? [];
 
@@ -147,57 +148,52 @@ export default function ProductsPage() {
       comboParentId: item.comboParentId,
       color: item.color,
       size: item.size,
-      // Map API's childCombos to TanStack's children
-      children: item.childCombos?.map((child: any) => mapItem(child)) ?? []
+      // Keep childCombos from API for mapCombosToSubRows
+      childCombos: item.childCombos?.map((child: any) => mapItem(child)) ?? [],
     });
 
     const allMapped = rawItems.map(mapItem);
 
     // Build a set of all IDs that are children of other combos in this response
-    // to filter them out from the root level to avoid duplicates
+    // to filter them out from the root level and avoid duplicates
     const childIdsInResult = new Set<string>();
     const parentsInResult = new Map<string, Combo>();
 
-    // Helper to collect all nested child IDs
     const collectChildIds = (items: Combo[]) => {
       items.forEach(c => {
-        c.children?.forEach(child => {
+        c.childCombos?.forEach((child: Combo) => {
           childIdsInResult.add(child.id);
-          if (child.children?.length) collectChildIds(child.children);
+          if (child.childCombos?.length) collectChildIds(child.childCombos);
         });
       });
     };
 
     for (const c of allMapped) {
-      if (!c.comboParentId) {
-        parentsInResult.set(c.id, c);
-      }
+      if (!c.comboParentId) parentsInResult.set(c.id, c);
     }
     collectChildIds(allMapped);
 
-    // Manual grouping for children that might be at root but have parentId
+    // Manual grouping for children that appear at root but have a parentId
     const rootCombos: Combo[] = [];
     for (const c of allMapped) {
-      // CRITICAL: If this item's ID is found anywhere as a child of another item, 
-      // do NOT show it at the root level.
       if (childIdsInResult.has(c.id)) continue;
 
-      // If it has a parentId, check if that parent is in our list
       if (c.comboParentId) {
         const parent = parentsInResult.get(c.comboParentId);
         if (parent) {
-          // Add it to the parent if not already there
-          if (!parent.children?.find(child => child.id === c.id)) {
-            parent.children = [...(parent.children || []), c];
+          const already = parent.childCombos?.find((ch: Combo) => ch.id === c.id);
+          if (!already) {
+            parent.childCombos = [...(parent.childCombos || []), c];
           }
-          continue; // Successfully grouped, skip as root
+          continue;
         }
       }
 
       rootCombos.push(c);
     }
 
-    return rootCombos;
+    // Convert childCombos → subRows recursively so TanStack Table can expand them
+    return mapCombosToSubRows(rootCombos);
   }, [comboPageData?.items]);
 
   const { data: categories = [] } = useCategories();
@@ -605,13 +601,14 @@ export default function ProductsPage() {
     manualFiltering: true,
     enableRowSelection: true,
     enableExpanding: true,
-    getSubRows: (row) => row.children,
-    getRowCanExpand: (row) => !!(row.original.children?.length) || !!(row.original.items?.length),
+    // All combos can expand to show their ComboItemsTable
+    getRowCanExpand: () => true,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getExpandedRowModel: getExpandedRowModel(),
   });
+
 
   const activeTable = activeTab === 'single'
     ? productTable
@@ -706,6 +703,7 @@ export default function ProductsPage() {
                   onDeleteVariant={handleDeleteVariant}
                 />
               </div>
+
 
               {/* Pagination */}
               <AdminTablePagination

@@ -207,4 +207,7 @@ export interface Combo {
   /** Virtual: child combos grouped under this parent */
   children?: Combo[];
   childCombos?: Combo[];
+  /** TanStack Table sub-rows — populated by mapCombosToSubRows() */
+  subRows?: Combo[];
 }
+

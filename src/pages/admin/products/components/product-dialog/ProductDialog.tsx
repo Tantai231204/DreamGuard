@@ -1,10 +1,17 @@
-import { useMemo } from 'react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { Loader2 } from 'lucide-react';
-import { useProductDetail } from '@/hooks/queries/useProduct';
-import type { Product, CreateProductRequest, ProductStatus } from '../../types';
-import type { CategoryResponse } from '@/api';
-import ProductDialogForm from './ProductDialogForm';
+import { useMemo } from "react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Loader2 } from "lucide-react";
+import { useProductDetail } from "@/hooks/queries/useProduct";
+
+import type {
+    Product,
+    CreateProductRequest,
+    ProductStatus,
+} from "../../types";
+
+import type { CategoryResponse } from "@/api";
+
+import ProductDialogForm from "./ProductDialogForm";
 
 interface ProductDialogProps {
     open: boolean;
@@ -23,30 +30,52 @@ export default function ProductDialog({
     isLoading,
     categories,
 }: ProductDialogProps) {
-    const isEdit = !!product;
+    const isEdit = Boolean(product);
 
-    // Fetch full product detail from API when editing
-    const { data: productDetail, isLoading: isLoadingDetail } = useProductDetail(
-        product?.id ?? '',
-        open && isEdit, // only fetch when dialog is open & editing
-    );
+    /**
+     * Fetch product detail only when:
+     * - dialog open
+     * - editing product
+     */
+    const { data: productDetail, isLoading: isLoadingDetail } =
+        useProductDetail(product?.id ?? "", open && isEdit);
 
-    // Merge API response into local Product type (status int → string)
+    /**
+     * Merge product list item + product detail
+     * Transform API fields → UI types
+     */
     const resolvedProduct = useMemo<Product | null>(() => {
         if (!product) return null;
-        if (!productDetail) return product; // fallback to list data while loading
-        // Exclude `variants` from API response to avoid type mismatch
-        // (ProductVariantResponse.status is number, ProductVariant.status is VariantStatus)
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { variants: _v, ...detail } = productDetail;
+        if (!productDetail) return product;
+
+        const mappedVariants =
+            productDetail.variants?.map((v) => ({
+                ...v,
+                status: v.status as ProductStatus,
+            })) ?? undefined;
+
         return {
             ...product,
-            ...detail,
-            status: (productDetail.status as ProductStatus) ?? product.status,
+            ...productDetail,
+
+            status:
+                (productDetail.status as ProductStatus) ??
+                product.status,
+
+            ageGroup:
+                productDetail.ageGroup !== null
+                    ? String(productDetail.ageGroup)
+                    : null,
+
+            variants: mappedVariants,
         };
     }, [product, productDetail]);
 
-    const showLoading = isEdit && isLoadingDetail && !productDetail;
+    /**
+     * Show loading spinner only when editing
+     */
+    const showLoading =
+        isEdit && isLoadingDetail && !productDetail;
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -57,10 +86,10 @@ export default function ProductDialog({
                     </div>
                 ) : (
                     <ProductDialogForm
-                        key={resolvedProduct?.id ?? 'new'}
+                        key={resolvedProduct?.id ?? "create-product"}
                         product={resolvedProduct}
-                        onOpenChange={onOpenChange}
                         onSubmit={onSubmit}
+                        onOpenChange={onOpenChange}
                         isLoading={isLoading}
                         categories={categories}
                     />

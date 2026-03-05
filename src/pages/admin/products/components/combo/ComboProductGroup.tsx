@@ -3,7 +3,8 @@ import ComboVariantRow from './ComboVariantRow';
 import type { ComboItem } from '../../types';
 
 interface ComboProductGroupProps {
-    productId: string;
+    /** Short ID displayed on the right, e.g. "#PRD001" */
+    productRef: string;
     productName: string;
     items: ComboItem[];
     onQuantityChange?: (itemKey: string, quantity: number) => void;
@@ -11,7 +12,7 @@ interface ComboProductGroupProps {
 }
 
 export default function ComboProductGroup({
-    productId,
+    productRef,
     productName,
     items,
     onQuantityChange,
@@ -20,32 +21,30 @@ export default function ComboProductGroup({
     const variantCount = items.length;
 
     return (
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden mb-4 transition-all hover:shadow-md hover:border-purple-200 group/product">
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden transition-all hover:border-purple-200 hover:shadow-sm">
             {/* Product header */}
-            <div className="flex items-center justify-between px-5 py-3.5 bg-white border-b border-gray-100">
-                <div className="flex items-center gap-3">
-                    <div className="h-6 w-6 rounded-md bg-purple-50 flex items-center justify-center">
-                        <Package className="h-3.5 w-3.5 text-purple-600" />
+            <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
+                <div className="flex items-center gap-2.5">
+                    <div className="h-[22px] w-[22px] rounded-md bg-purple-100 flex items-center justify-center flex-shrink-0">
+                        <Package className="h-3 w-3 text-purple-600" />
                     </div>
-                    <div className="flex items-baseline gap-2">
-                        <span className="text-[14px] font-bold text-gray-900 group-hover/product:text-purple-700 transition-colors">
-                            {productName}
-                        </span>
-                        <span className="text-[12px] text-gray-400 font-medium">
-                            ({variantCount} {variantCount === 1 ? 'variant' : 'variants'})
-                        </span>
-                    </div>
+                    <span className="text-[14px] font-bold text-gray-900">
+                        {productName}
+                    </span>
+                    <span className="text-[12px] text-gray-400">
+                        ({variantCount} {variantCount === 1 ? 'variant' : 'variants'})
+                    </span>
                 </div>
-                <span className="text-[11px] font-bold font-mono text-gray-300 tracking-wider">
-                    #{productId}
+                <span className="text-[11px] font-mono text-gray-400 tracking-wider">
+                    {productRef}
                 </span>
             </div>
 
-            {/* Variants list */}
-            <div className="bg-white">
-                {items.map((item) => (
+            {/* Variant rows */}
+            <div className="divide-y divide-gray-50">
+                {items.map((item, idx) => (
                     <ComboVariantRow
-                        key={`${item.productId}-${item.variantId || 'default'}`}
+                        key={`${item.productId}-${item.variantId ?? idx}`}
                         item={item}
                         onQuantityChange={onQuantityChange}
                         onDelete={onDelete}

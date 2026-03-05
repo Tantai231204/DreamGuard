@@ -1,177 +1,118 @@
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Edit, Trash2, Save, X as XIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Save, X as XIcon } from 'lucide-react';
 import type { ComboItem } from '../../types';
 
+/* ─── Color helpers ─────────────────────────────────────── */
+const COLOR_MAP: Record<string, string> = {
+    white: '#f5f5f5', pink: '#ffc0cb', blue: '#add8e6', red: '#ff6b6b',
+    green: '#90ee90', yellow: '#ffeb3b', orange: '#ffa500', purple: '#dda0dd',
+    black: '#333333', gray: '#9e9e9e', grey: '#9e9e9e', brown: '#a0522d',
+    beige: '#f5f5dc', navy: '#001f3f', cream: '#fffdd0', mint: '#98ff98',
+    lavender: '#c4b5fd', teal: '#14b8a6', cyan: '#06b6d4', indigo: '#6366f1',
+};
+
+function getColorHex(name: string | undefined): string {
+    if (!name) return '#e5e7eb';
+    if (name.startsWith('#')) return name;
+    return COLOR_MAP[name.toLowerCase().trim()] ?? '#e5e7eb';
+}
+
+/* ─── Parse "White / S" or "White-S" → {color, size} ───── */
+function parseVariantLabel(label: string): { color: string; size: string | null } {
+    if (!label) return { color: '—', size: null };
+    const parts = label.split(/[/\-,]/).map((p) => p.trim()).filter(Boolean);
+    if (parts.length >= 2) return { color: parts[0], size: parts[1] };
+    return { color: parts[0] ?? label, size: null };
+}
+
 interface ComboVariantRowProps {
-    item: ComboItem;
-    onQuantityChange?: (itemKey: string, quantity: number) => void;
+    item: ComboItem & { basePrice?: number; salePrice?: number };
+    onQuantityChange?: (itemKey: string, qty: number) => void;
     onDelete?: (itemKey: string) => void;
 }
 
-// Helper to parse variant label into color and size
-const parseVariantLabel = (label: string) => {
-    if (!label) return { color: 'Standard', size: 'Base' };
-
-    // Split by common separators
-    const parts = label.split(/[-/,]/).map(p => p.trim());
-    if (parts.length >= 2) {
-        return { color: parts[0], size: parts[1] };
-    }
-
-    // Fallback for SKU like BABY-BEDD-N-V001 (not perfect but better than nothing)
-    if (label.includes('-V')) {
-        return { color: label, size: 'Variant' };
-    }
-
-    return { color: label, size: null };
-};
-
-// Color mapping for visualization
-const getColorHex = (colorName: string): string => {
-    const colorMap: Record<string, string> = {
-        'Red': '#EF4444',
-        'Blue': '#3B82F6',
-        'Green': '#10B981',
-        'Yellow': '#FBBF24',
-        'Purple': '#A855F7',
-        'Pink': '#EC4899',
-        'Orange': '#F97316',
-        'Black': '#1F2937',
-        'White': '#FFFFFF',
-        'Gray': '#9CA3AF',
-        'Grey': '#9CA3AF',
-        'Brown': '#92400E',
-        'Beige': '#E5D4C1',
-        'Navy': '#1E3A8A',
-        'Teal': '#14B8A6',
-        'Lavender': '#C4B5FD',
-        'Cyan': '#06B6D4',
-        'Indigo': '#6366F1',
-        'Lime': '#84CC16',
-        'Emerald': '#10B981',
-    };
-    return colorMap[colorName] || '#9CA3AF';
-};
-
 export default function ComboVariantRow({ item, onQuantityChange, onDelete }: ComboVariantRowProps) {
     const [isEditing, setIsEditing] = useState(false);
-    const [editQuantity, setEditQuantity] = useState(item.quantity);
+    const [editQty, setEditQty] = useState(item.quantity);
 
-    const itemKey = `${item.productId}-${item.variantId || 'default'}`;
-    const variantInfo = item.variantLabel ? parseVariantLabel(item.variantLabel) : null;
-    const colorHex = variantInfo?.color ? getColorHex(variantInfo.color) : '#9CA3AF';
-
-    const handleEditStart = () => {
-        setIsEditing(true);
-        setEditQuantity(item.quantity);
-    };
+    const itemKey = `${item.productId}-${item.variantId ?? 'default'}`;
+    const { color, size } = item.variantLabel
+        ? parseVariantLabel(item.variantLabel)
+        : { color: '—', size: null };
+    const colorHex = getColorHex(color);
+    const sku = item.variantId ?? null;
 
     const handleSave = () => {
-        onQuantityChange?.(itemKey, editQuantity);
-        setIsEditing(false);
-    };
-
-    const handleCancel = () => {
-        setEditQuantity(item.quantity);
+        onQuantityChange?.(itemKey, editQty);
         setIsEditing(false);
     };
 
     return (
-        <div className="flex items-center gap-6 px-8 py-5 hover:bg-gray-50/50 transition-colors group relative">
-            {/* Color Indicator */}
-            {variantInfo && (
-                <div className="flex items-center gap-3 min-w-[140px] flex-shrink-0">
-                    <div
-                        className="h-6 w-6 rounded-full border-2 border-white shadow-[0_2px_8px_rgba(0,0,0,0.1)] group-hover:scale-110 transition-transform"
-                        style={{ backgroundColor: colorHex }}
-                        title={variantInfo.color}
-                    />
-                    <span className="text-[14px] font-bold text-gray-700">{variantInfo.color}</span>
-                </div>
-            )}
+        <div className="flex items-center gap-5 px-5 py-3.5 hover:bg-gray-50/60 transition-colors group">
+            {/* Color dot + name */}
+            <div className="flex items-center gap-2.5 min-w-[120px]">
+                <span
+                    className="h-5 w-5 rounded-full border border-gray-200 shadow-sm flex-shrink-0"
+                    style={{ backgroundColor: colorHex }}
+                    title={color}
+                />
+                <span className="text-[13px] font-semibold text-gray-700">
+                    {color !== '—' ? color : <span className="text-gray-300">—</span>}
+                </span>
+            </div>
 
-            {/* Size */}
-            <div className="min-w-[80px] flex-shrink-0">
-                {variantInfo?.size ? (
-                    <span className="inline-flex items-center justify-center h-7 px-4 rounded-full bg-gray-100 text-[11px] font-black text-gray-600 uppercase tracking-tighter">
-                        {variantInfo.size}
+            {/* Size badge */}
+            <div className="min-w-[70px]">
+                {size ? (
+                    <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full bg-gray-100 text-[11px] font-bold text-gray-600">
+                        {size}
                     </span>
                 ) : (
                     <span className="text-xs text-gray-300">—</span>
                 )}
             </div>
 
-            {/* SKU / Variant ID (Tiny mono box) */}
-            <div className="min-w-[100px] flex-shrink-0">
-                {item.variantId ? (
-                    <span className="font-mono text-[9px] font-bold text-gray-300 border border-gray-100 px-2 py-1 rounded-md uppercase">
-                        {item.variantId}
+            {/* SKU */}
+            <div className="min-w-[80px]">
+                {sku ? (
+                    <span className="font-mono text-[11px] text-gray-400">
+                        {sku}
                     </span>
                 ) : (
-                    <span className="text-[10px] text-gray-300 font-bold uppercase">Base</span>
+                    <span className="text-[11px] text-gray-300">—</span>
                 )}
             </div>
 
             {/* Quantity */}
-            <div className="min-w-[120px] flex-shrink-0">
+            <div className="flex items-center gap-2">
+                <span className="text-[12px] text-gray-400 font-medium">Qty:</span>
                 {isEditing ? (
                     <Input
                         type="number"
-                        value={editQuantity}
-                        onChange={(e) => setEditQuantity(Number(e.target.value))}
-                        className="h-8 w-20 text-center text-xs font-bold border-purple-200 focus-visible:ring-purple-500"
+                        value={editQty}
+                        onChange={(e) => setEditQty(Number(e.target.value))}
+                        className="h-7 w-16 text-center text-xs font-bold border-purple-300 focus-visible:ring-purple-400"
                         min={1}
                         autoFocus
                     />
                 ) : (
-                    <div className="flex items-baseline gap-2">
-                        <span className="text-[12px] font-bold text-gray-400">Qty:</span>
-                        <div className="inline-flex items-center justify-center h-8 px-4 rounded-lg bg-purple-50 text-[14px] font-black text-purple-700 min-w-[48px]">
-                            {item.quantity}
-                        </div>
-                    </div>
+                    <span
+                        className="inline-flex items-center justify-center h-7 px-3 rounded-md bg-indigo-50 text-[13px] font-black text-indigo-700 min-w-[36px] cursor-pointer hover:bg-indigo-100 transition-colors"
+                        onClick={() => { setIsEditing(true); setEditQty(item.quantity); }}
+                        title="Click to edit"
+                    >
+                        {item.quantity}
+                    </span>
                 )}
-            </div>
-
-            {/* Actions */}
-            <div className="flex items-center gap-2 ml-auto opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
-                {isEditing ? (
+                {isEditing && (
                     <>
-                        <Button
-                            size="sm"
-                            className="h-8 w-8 p-0 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm"
-                            onClick={handleSave}
-                        >
-                            <Save className="h-4 w-4" />
+                        <Button size="sm" className="h-7 w-7 p-0 bg-emerald-500 hover:bg-emerald-600 text-white rounded-md" onClick={handleSave}>
+                            <Save className="h-3.5 w-3.5" />
                         </Button>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0 rounded-lg hover:bg-gray-100"
-                            onClick={handleCancel}
-                        >
-                            <XIcon className="h-4 w-4" />
-                        </Button>
-                    </>
-                ) : (
-                    <>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0 rounded-lg hover:bg-blue-50 hover:text-blue-600 transition-colors"
-                            onClick={handleEditStart}
-                        >
-                            <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0 rounded-lg hover:bg-red-50 hover:text-red-500 transition-colors"
-                            onClick={() => onDelete?.(itemKey)}
-                        >
-                            <Trash2 className="h-4 w-4" />
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0 rounded-md hover:bg-gray-100" onClick={() => setIsEditing(false)}>
+                            <XIcon className="h-3.5 w-3.5" />
                         </Button>
                     </>
                 )}
