@@ -81,31 +81,27 @@ export default function Register() {
   });
 
   const onSubmit = async (data: RegisterFormData) => {
-    try {
-      const formattedDate = new Date(data.dateOfBirth)
-        .toISOString()
-        .split("T")[0];
+  try {
+    await authService.register({
+      email: data.email,
+      password: data.password,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      phoneNumber: data.phoneNumber,
+      gender: data.gender,
+      dateOfBirth: data.dateOfBirth,
+    });
 
-      await authService.register({
-        email: data.email,
-        password: data.password,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        phoneNumber: data.phoneNumber,
-        gender: data.gender,
-        dateOfBirth: formattedDate,
-      });
-
-      navigate(AppRoute.LOGIN);
-    } catch (error: unknown) {
-      if (error instanceof AxiosError) {
-        console.log("STATUS:", error.response?.status);
-        console.log("DATA:", error.response?.data);
-      } else {
-        console.log("UNKNOWN ERROR:", error);
-      }
+    navigate(AppRoute.LOGIN);
+  } catch (error: unknown) {
+    if (error instanceof AxiosError) {
+      console.log("STATUS:", error.response?.status);
+      console.log("DATA:", error.response?.data);
+    } else {
+      console.log("UNKNOWN ERROR:", error);
     }
-  };
+  }
+};
 
   const handleGoogleLogin = useCallback(() => {
     setAuth({
