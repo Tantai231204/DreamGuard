@@ -32,10 +32,6 @@ export interface UpdateVariantStatusParams {
   status: string;
 }
 
-export interface UpdateVariantStockStatusParams {
-  variantId: string;
-  stockStatus: string;
-}
 
 export interface VariantResponse {
   id: string;
@@ -90,9 +86,6 @@ const variantService = {
   updateStatus: ({ variantId, status }: UpdateVariantStatusParams): Promise<void> =>
     apiClient.patch(`/variants/${variantId}/status`, null, { params: { status } }).then((res) => res.data),
 
-  /** Update variant stock status */
-  updateStockStatus: ({ variantId, stockStatus }: UpdateVariantStockStatusParams): Promise<void> =>
-    apiClient.patch(`/variants/${variantId}/stock-status`, null, { params: { stockStatus } }).then((res) => res.data),
 
   /** Delete variant */
   delete: (id: string): Promise<void> =>

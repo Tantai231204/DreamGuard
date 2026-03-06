@@ -15,7 +15,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "../../../components/ui/dialog";
-import type { Address } from "../../../types/address";
+import type { Address } from "../../../api/types/address";
 import {
   Select,
   SelectTrigger,

@@ -19,7 +19,6 @@ export type {
   VariantResponse,
   AdminVariantsByProductResponse,
   UpdateVariantStatusParams,
-  UpdateVariantStockStatusParams,
 } from "./services/variantService";
 
 // Combo Types (exported from service)

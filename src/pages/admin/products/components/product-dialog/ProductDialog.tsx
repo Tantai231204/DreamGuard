@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Loader2 } from "lucide-react";
 import { useProductDetail } from "@/hooks/queries/useProduct";
 
@@ -80,6 +81,11 @@ export default function ProductDialog({
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-[740px] rounded-2xl p-7 gap-0">
+                <VisuallyHidden>
+                    <DialogTitle>
+                        {isEdit ? 'Edit Product' : 'Add New Product'}
+                    </DialogTitle>
+                </VisuallyHidden>
                 {showLoading ? (
                     <div className="flex items-center justify-center py-20">
                         <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
