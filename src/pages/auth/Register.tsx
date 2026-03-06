@@ -10,7 +10,7 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Button } from "../../components/ui/button";
 import { Checkbox } from "../../components/ui/checkbox";
-import { authService } from "../../services/auth.service";
+import { authService } from "../../api/services";
 import { AxiosError } from "axios";
 
 // Google Icon Component

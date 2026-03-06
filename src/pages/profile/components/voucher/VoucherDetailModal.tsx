@@ -2,6 +2,8 @@ import { useState } from "react"
 import {
     Dialog,
     DialogContent,
+    DialogHeader,
+    DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -51,15 +53,18 @@ export default function VoucherDetailModal({
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white p-0 gap-0">
-                {/* Header - Simple */}
-                <div className="flex items-center justify-between px-6 py-4 border-b">
-                    <h2 className="text-lg font-bold text-gray-900">Chi tiết khuyến mại</h2>
-                    <Badge
-                        className={`${statusColors.bg} ${statusColors.text} ${statusColors.border} border font-semibold`}
-                    >
-                        {getStatusLabel(voucher.status)}
-                    </Badge>
-                </div>
+                <DialogHeader className="px-6 py-4 border-b">
+                    <div className="flex items-center justify-between">
+                        <DialogTitle className="text-lg font-bold text-gray-900">
+                            Chi tiết khuyến mại
+                        </DialogTitle>
+                        <Badge
+                            className={`${statusColors.bg} ${statusColors.text} ${statusColors.border} border font-semibold`}
+                        >
+                            {getStatusLabel(voucher.status)}
+                        </Badge>
+                    </div>
+                </DialogHeader>
 
                 {/* Hero Image/Banner */}
                 {voucher.image && (

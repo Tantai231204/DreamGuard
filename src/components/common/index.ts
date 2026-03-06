@@ -4,4 +4,5 @@ export { LoadingSpinner } from "./LoadingSpinner";
 export { ErrorBoundary } from "./ErrorBoundary";
 export { PageLoader } from "./PageLoader";
 export { EmptyState, EmptySearchState, EmptyFilterState, EmptyDataState } from "./EmptyState";
-export { TableLoadingState, CardLoadingState, FullPageLoadingState } from "./LoadingStates";
+export { CloudsBackground } from "./CloudsBackground";
+export { SEO } from "./SEO";

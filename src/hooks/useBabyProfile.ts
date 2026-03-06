@@ -5,7 +5,7 @@ import {
   createBabyProfile,
   updateBabyProfile,
   deleteBabyProfile,
-} from "@/services/babyProfile.service"
+} from "@/api/services/babyProfile.service"
 
 // GET ALL
 export const useBabyProfiles = () => {

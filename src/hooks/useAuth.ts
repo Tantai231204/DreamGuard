@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { authService } from "../services/auth.service";
+import { authService } from "../api/services";
 import { useAuthStore } from "../store/authStore";
 
 export const useLogin = () => {
@@ -22,10 +22,10 @@ export const useLogin = () => {
     //   setAuth(data);
     // },
     onSuccess: (data) => {
-  console.log("🔥 LOGIN SUCCESS:", data);
-  setAuth(data);
-  console.log("🔥 AFTER SET AUTH:", useAuthStore.getState());
-},
+      console.log("🔥 LOGIN SUCCESS:", data);
+      setAuth(data);
+      console.log("🔥 AFTER SET AUTH:", useAuthStore.getState());
+    },
   });
 };
 

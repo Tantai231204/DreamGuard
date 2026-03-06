@@ -24,7 +24,7 @@ interface ProfileSidebarProps {
 }
 
 export default function ProfileSidebar({ activeTab, onTabChange }: ProfileSidebarProps) {
-    const { role, logout } = useAuthStore()
+    const { role, clearAuth: logout } = useAuthStore()
 
     return (
         <aside className="space-y-4">
@@ -83,11 +83,10 @@ export default function ProfileSidebar({ activeTab, onTabChange }: ProfileSideba
                                     <li key={tab.id}>
                                         <button
                                             onClick={() => onTabChange(tab.id)}
-                                            className={`group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
-                                                isActive
+                                            className={`group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${isActive
                                                     ? "bg-[#4988c4] text-white shadow-lg shadow-[#4988c4]/30"
                                                     : "text-gray-600 hover:bg-[#bde8f5]/50 hover:text-[#4988c4]"
-                                            }`}
+                                                }`}
                                         >
                                             <span className={`${isActive ? "text-white" : "text-gray-400 group-hover:text-[#4988c4]"} transition-colors`}>
                                                 {tab.icon}

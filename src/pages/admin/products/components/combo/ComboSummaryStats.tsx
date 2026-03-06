@@ -12,23 +12,25 @@ export default function ComboSummaryStats({
     discount,
 }: ComboSummaryStatsProps) {
     return (
-        <div className="mt-3 flex items-center gap-4 text-xs text-gray-500 px-1">
+        <div className="mt-4 flex items-center gap-4 text-[13px] text-gray-400 px-1 font-medium">
             <span>
                 Total items:{' '}
-                <span className="font-bold text-gray-700">{totalItems}</span>
+                <span className="font-bold text-gray-900">{totalItems}</span>
             </span>
-            <span className="text-gray-300">|</span>
+            <span className="text-gray-200">|</span>
             <span>
                 Products:{' '}
-                <span className="font-bold text-purple-600">{productsCount}</span>
+                <span className="font-bold text-gray-900">{productsCount}</span>
             </span>
+            <span className="text-gray-200">|</span>
             <span>
                 Variants:{' '}
-                <span className="font-bold text-blue-600">{variantsCount}</span>
+                <span className="font-bold text-gray-900">{variantsCount}</span>
             </span>
+            <span className="text-gray-200">|</span>
             <span>
                 Discount:{' '}
-                <span className="font-bold text-orange-600">{discount}%</span>
+                <span className="font-bold text-orange-500">{discount}%</span>
             </span>
         </div>
     );

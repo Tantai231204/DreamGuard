@@ -18,7 +18,7 @@ import { AppRoute } from "../lib/constants";
 // Public
 const Home = lazy(() => import("../pages/home"));
 const Products = lazy(() => import("../pages/products"));
-const ProductDetail = lazy(() => import("../pages/products/[id]"));
+const ProductDetail = lazy(() => import("../pages/products/[slug]"));
 const CartPage = lazy(() => import("../pages/cart"));
 const CheckoutPage = lazy(() => import("../pages/checkout"));
 
@@ -41,7 +41,9 @@ const OrderDetail = lazy(() => import("../pages/admin/orders/[id]"));
 const ServiceManagement = lazy(() => import("../pages/admin/services"));
 const ChatAdmin = lazy(() => import("../pages/admin/chat"));
 const ProductManagement = lazy(() => import("../pages/admin/products"));
+const AdminProductDetail = lazy(() => import("../pages/admin/products/[id]"));
 const CategoryManagement = lazy(() => import("../pages/admin/categories"));
+const VoucherManagement = lazy(() => import("../pages/admin/vouchers"));
 const ResellManagement = lazy(() => import("../pages/admin/resell"));
 const TradeInDetail = lazy(() => import("../pages/admin/resell/[id]"));
 const UserManagement = lazy(() => import("../pages/admin/users"));
@@ -94,7 +96,9 @@ export default function AppRouter() {
                         <Route path="/admin/services" element={<ServiceManagement />} />
                         <Route path="/admin/chat" element={<ChatAdmin />} />
                         <Route path="/admin/products" element={<ProductManagement />} />
+                        <Route path="/admin/products/:id" element={<AdminProductDetail />} />
                         <Route path="/admin/categories" element={<CategoryManagement />} />
+                        <Route path="/admin/vouchers" element={<VoucherManagement />} />
                         <Route path="/admin/resell" element={<ResellManagement />} />
                         <Route path="/admin/resell/:id" element={<TradeInDetail />} />
                         <Route path="/admin/users" element={<UserManagement />} />

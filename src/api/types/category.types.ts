@@ -13,7 +13,7 @@ export interface CreateCategoryRequest {
   name: string;
   slug: string;
   isActive?: boolean;
-  parentId?: number;
+  cateParentId?: number;
 }
 
 export interface UpdateCategoryRequest {
