@@ -1,26 +1,27 @@
-import api from "@/lib/api"
-import { AxiosError } from "axios"
+import api, { ApiError } from "@/lib/api"
 import type {
   Address,
   CreateAddressPayload,
   UpdateAddressPayload,
-} from "@/types/address"
+} from "@/api/types/address"
 
 /* 
    GET ALL
  */
 export const getAddresses = async (): Promise<Address[]> => {
   try {
-    const res = await api.get("/Addresses?pageNumber=1")
+    const res = await api.get("/Addresses?pageNumber=1", {
+      _suppressToast: true,
+    } as any)
     return res.data?.items ?? res.data
-  } catch (error: unknown) {
-    if (error instanceof AxiosError) {
+  } catch (error: any) {
+    if (error instanceof ApiError) {
       // Nếu backend trả 404 vì không có dữ liệu
-      if (error.response?.status === 404) {
-        return [] 
+      if (error.status === 404) {
+        return []
       }
 
-      console.log("GET ADDRESSES ERROR:", error.response?.data)
+      console.log("GET ADDRESSES ERROR:", error.message)
     }
 
     throw error
@@ -34,9 +35,9 @@ export const getAddressById = async (id: string): Promise<Address> => {
   try {
     const res = await api.get(`/Addresses/${id}`)
     return res.data
-  } catch (error: unknown) {
-    if (error instanceof AxiosError) {
-      console.log("GET ADDRESS ERROR:", error.response?.data)
+  } catch (error: any) {
+    if (error instanceof ApiError) {
+      console.log("GET ADDRESS ERROR:", error.message)
     }
     throw error
   }
@@ -53,9 +54,9 @@ export const createAddress = async (
 
     const res = await api.post("/Addresses", payload)
     return res.data
-  } catch (error: unknown) {
-    if (error instanceof AxiosError) {
-      console.log("CREATE ADDRESS ERROR:", error.response?.data)
+  } catch (error: any) {
+    if (error instanceof ApiError) {
+      console.log("CREATE ADDRESS ERROR:", error.message)
     }
     throw error
   }
@@ -71,9 +72,9 @@ export const updateAddress = async (
 
   try {
     await api.put(`/Addresses/${id}`, data)
-  } catch (error: unknown) {
-    if (error instanceof AxiosError) {
-      console.log("UPDATE ADDRESS ERROR:", error.response?.data)
+  } catch (error: any) {
+    if (error instanceof ApiError) {
+      console.log("UPDATE ADDRESS ERROR:", error.message)
     }
     throw error
   }
@@ -85,9 +86,9 @@ export const updateAddress = async (
 export const deleteAddress = async (id: string): Promise<void> => {
   try {
     await api.delete(`/Addresses/${id}`)
-  } catch (error: unknown) {
-    if (error instanceof AxiosError) {
-      console.log("DELETE ADDRESS ERROR:", error.response?.data)
+  } catch (error: any) {
+    if (error instanceof ApiError) {
+      console.log("DELETE ADDRESS ERROR:", error.message)
     }
     throw error
   }

@@ -6,8 +6,14 @@ export interface Token {
 }
 
 export interface LoginRequest {
-  email: string;
+  phoneNumber: string;
   password: string;
+}
+
+export interface AuthResponse {
+  accessToken: string;
+  refreshToken: string;
+  roleName: string;
 }
 
 export interface RegisterRequest {

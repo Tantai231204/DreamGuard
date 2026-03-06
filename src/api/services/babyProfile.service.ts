@@ -1,5 +1,4 @@
-import { AxiosError } from "axios";
-import api from "../lib/api";
+import api, { ApiError } from "../../lib/api";
 import type {
   BabyProfile,
   CreateBabyProfilePayload,
@@ -13,9 +12,23 @@ import type {
 //   return res.data;
 // };
 export const getBabyProfiles = async (): Promise<BabyProfile[]> => {
-  const res = await api.get("/BabyProfiles?pageNumber=1");
-  console.log("API response:", res.data);
-  return res.data.items;
+  try {
+    const res = await api.get("/BabyProfiles?pageNumber=1", {
+      _suppressToast: true,
+    } as any);
+    return res.data?.items ?? res.data;
+  } catch (error: unknown) {
+    if (error instanceof ApiError) {
+      // Nếu backend trả 404 vì không có dữ liệu
+      if (error.status === 404) {
+        return [];
+      }
+      console.log("GET BABY PROFILES ERROR:", error.message);
+    } else {
+      console.log("GET BABY PROFILES ERROR:", error);
+    }
+    throw error;
+  }
 };
 
 // GET BY ID
@@ -31,9 +44,9 @@ export const createBabyProfile = async (
   try {
     const res = await api.post("/BabyProfiles", payload)
     return res.data
-  } catch (error: unknown) {
-    if (error instanceof AxiosError) {
-      console.log("CREATE ERROR:", error.response?.data)
+  } catch (error: any) {
+    if (error instanceof ApiError) {
+      console.log("CREATE ERROR:", error.message)
     } else {
       console.log("CREATE ERROR:", error)
     }
@@ -49,9 +62,9 @@ export const updateBabyProfile = async (
 
   try {
     await api.put(`/BabyProfiles/${babyId}`, data)
-  } catch (error: unknown) {
-    if (error instanceof AxiosError) {
-      console.log("UPDATE ERROR:", error.response?.data)
+  } catch (error: any) {
+    if (error instanceof ApiError) {
+      console.log("UPDATE ERROR:", error.message)
     } else {
       console.log("UPDATE ERROR:", error)
     }

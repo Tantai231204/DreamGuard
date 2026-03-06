@@ -39,7 +39,6 @@ import {
   useCreateVariant,
   useUpdateVariant,
   useUpdateVariantStatus,
-  useUpdateVariantStockStatus,
   useDeleteVariant,
 } from '@/hooks/queries/useProduct';
 import {
@@ -278,7 +277,6 @@ export default function ProductsPage() {
   }, [deleteVariantMutation, toast]);
 
   const updateVariantStatusMutation = useUpdateVariantStatus();
-  const updateVariantStockStatusMutation = useUpdateVariantStockStatus();
 
   const handleVariantSubmit = useCallback(
     async (formData: any) => {
@@ -297,10 +295,6 @@ export default function ProductsPage() {
             statusPromises.push(updateVariantStatusMutation.mutateAsync({ variantId: editingVariant.id, status }));
           }
 
-          if (stockStatus !== editingVariant.stockStatus) {
-            statusPromises.push(updateVariantStockStatusMutation.mutateAsync({ variantId: editingVariant.id, stockStatus }));
-          }
-
           if (statusPromises.length > 0) {
             await Promise.all(statusPromises);
           }
@@ -315,7 +309,6 @@ export default function ProductsPage() {
           // (Assuming create doesn't set status based on screenshots)
           const statusPromises: Promise<any>[] = [];
           statusPromises.push(updateVariantStatusMutation.mutateAsync({ variantId: newVariant.id, status }));
-          statusPromises.push(updateVariantStockStatusMutation.mutateAsync({ variantId: newVariant.id, stockStatus }));
 
           await Promise.all(statusPromises);
 
@@ -326,7 +319,7 @@ export default function ProductsPage() {
         console.error('Variant submission failed:', error);
       }
     },
-    [editingVariant, createVariantMutation, updateVariantMutation, updateVariantStatusMutation, updateVariantStockStatusMutation, toast]
+    [editingVariant, createVariantMutation, updateVariantMutation, updateVariantStatusMutation, toast]
   );
 
   const handleSubmit = useCallback(

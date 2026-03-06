@@ -20,7 +20,6 @@ import type {
   UpdateVariantRequest,
   UpdateProductStatusParams,
   UpdateVariantStatusParams,
-  UpdateVariantStockStatusParams,
   AdminVariantsByProductResponse,
 } from "@/api";
 
@@ -220,20 +219,6 @@ export const useUpdateVariantStatus = () => {
   return useMutation({
     mutationFn: (params: UpdateVariantStatusParams) =>
       variantService.updateStatus(params),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: productKeys.all });
-      queryClient.invalidateQueries({ queryKey: variantKeys.all });
-    },
-  });
-};
-
-/** Update variant stock status */
-export const useUpdateVariantStockStatus = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (params: UpdateVariantStockStatusParams) =>
-      variantService.updateStockStatus(params),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.all });
       queryClient.invalidateQueries({ queryKey: variantKeys.all });

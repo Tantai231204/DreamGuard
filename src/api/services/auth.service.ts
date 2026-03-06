@@ -1,5 +1,5 @@
-import api from "../lib/api";
-import type { LoginRequest, AuthResponse } from "../types/auth";
+import api from "@/lib/api";
+import type { LoginRequest, AuthResponse } from "@/api/types/auth.types";
 
 // chĩnh lại format code cho clear hơn
 export interface ForgotPasswordRequest {
@@ -24,7 +24,7 @@ export interface RegisterRequest {
   lastName: string;
   phoneNumber: string;
   gender: "Male" | "Female";
-  dateOfBirth: Date | undefined;
+  dateOfBirth: string;
 }
 
 export const authService = {

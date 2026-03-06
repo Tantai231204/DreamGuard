@@ -5,7 +5,7 @@ import {
   createAddress,
   updateAddress,
   deleteAddress,
-} from "@/services/address.service"
+} from "@/api/services/address.service"
 
 /* 
    GET ALL
