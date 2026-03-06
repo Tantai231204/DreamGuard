@@ -6,8 +6,9 @@ import AuthLayout from "../layouts/AuthLayout";
 import AdminLayout from "../layouts/AdminLayout";
 
 import PrivateRoute from "../components/router/PrivateRoute";
+import AdminRoute from "../components/router/AdminRoute";
+import UserGuard from "../components/router/UserGuard";
 import { PageLoader } from "../components/common";
-// import AdminRoute from "../components/router/AdminRoute";
 
 import { AppRoute } from "../lib/constants";
 
@@ -56,39 +57,41 @@ export default function AppRouter() {
         <Suspense fallback={<PageLoader />}>
             <Routes>
 
-                {/* ===== Public Routes ===== */}
-                <Route element={<AppLayout variant="home" />}>
-                    <Route path={AppRoute.HOME} element={<Home />} />
-                    <Route path={AppRoute.PRODUCTS} element={<Products />} />
-                    <Route path={AppRoute.PRODUCT_DETAIL} element={<ProductDetail />} />
-                    <Route path={AppRoute.SERVICES} element={<Services />} />
-                    <Route path={AppRoute.CART} element={<CartPage />} />
-                </Route>
-
-                {/* ===== Auth Routes ===== */}
-                <Route element={<AuthLayout />}>
-                    <Route path={AppRoute.LOGIN} element={<Login />} />
-                    <Route path={AppRoute.REGISTER} element={<Register />} />
-                    <Route path={AppRoute.FORGOT_PASSWORD} element={<ForgotPassword />} />
-                    <Route path={AppRoute.VERIFY_OTP} element={<VerifyOTP />} />
-                    <Route path={AppRoute.RESET_PASSWORD} element={<ResetPassword />} />
-                    <Route
-                        path={AppRoute.RESET_PASSWORD_SUCCESS}
-                        element={<ResetPasswordSuccess />}
-                    />
-                </Route>
-
-                {/* ===== Private Routes (User) ===== */}
-                <Route element={<PrivateRoute />}>
+                {/* ===== Public & Auth Routes (Restricted for Admins) ===== */}
+                <Route element={<UserGuard />}>
+                    {/* Public Routes */}
                     <Route element={<AppLayout variant="home" />}>
-                        <Route path={AppRoute.PROFILE} element={<Profile />} />
-                        <Route path={AppRoute.CHECKOUT} element={<CheckoutPage />} />
+                        <Route path={AppRoute.HOME} element={<Home />} />
+                        <Route path={AppRoute.PRODUCTS} element={<Products />} />
+                        <Route path={AppRoute.PRODUCT_DETAIL} element={<ProductDetail />} />
+                        <Route path={AppRoute.SERVICES} element={<Services />} />
+                        <Route path={AppRoute.CART} element={<CartPage />} />
+                    </Route>
+
+                    {/* Auth Routes */}
+                    <Route element={<AuthLayout />}>
+                        <Route path={AppRoute.LOGIN} element={<Login />} />
+                        <Route path={AppRoute.REGISTER} element={<Register />} />
+                        <Route path={AppRoute.FORGOT_PASSWORD} element={<ForgotPassword />} />
+                        <Route path={AppRoute.VERIFY_OTP} element={<VerifyOTP />} />
+                        <Route path={AppRoute.RESET_PASSWORD} element={<ResetPassword />} />
+                        <Route
+                            path={AppRoute.RESET_PASSWORD_SUCCESS}
+                            element={<ResetPasswordSuccess />}
+                        />
+                    </Route>
+
+                    {/* Private User Routes */}
+                    <Route element={<PrivateRoute />}>
+                        <Route element={<AppLayout variant="home" />}>
+                            <Route path={AppRoute.PROFILE} element={<Profile />} />
+                            <Route path={AppRoute.CHECKOUT} element={<CheckoutPage />} />
+                        </Route>
                     </Route>
                 </Route>
 
                 {/* ===== Admin Routes ===== */}
-                {/* <Route element={<AdminRoute />}> */}
-                <Route >
+                <Route element={<AdminRoute />}>
                     <Route element={<AdminLayout />}>
                         <Route path={AppRoute.ADMIN} element={<AdminDashboard />} />
                         <Route path="/admin/orders" element={<OrderManagement />} />

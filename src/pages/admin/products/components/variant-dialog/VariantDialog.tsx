@@ -23,7 +23,7 @@ import ColorPicker from './ColorPicker';
 import SectionHeading from '../shared/SectionHeading';
 
 const INPUT_CLS =
-    'h-11 rounded-xl border-gray-200 bg-gray-50/50 hover:border-purple-300 hover:bg-white focus:border-purple-400 focus:ring-2 focus:ring-purple-500/20 transition-all';
+    'h-11 rounded-xl border-gray-200 bg-gray-50/50 hover:border-[#4988c4]/60 hover:bg-white focus:border-[#4988c4] focus:ring-2 focus:ring-[#4988c4]/20 transition-all';
 
 const SELECT_CLS = cn(INPUT_CLS, 'px-3.5 [&>span]:flex [&>span]:items-center [&>span]:gap-2');
 
@@ -162,7 +162,7 @@ function VariantDialogInner({
         <>
             {/* Header */}
             <div className="flex items-center gap-4 pb-5 border-b border-gray-100">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
+                <div className="w-12 h-12 rounded-2xl bg-[#4988c4] flex items-center justify-center shadow-sm">
                     <Package className="w-6 h-6 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -216,7 +216,7 @@ function VariantDialogInner({
                                     size="icon"
                                     onClick={handleRegenerateSku}
                                     disabled={isLoading}
-                                    className="h-11 w-11 rounded-xl border-gray-200 hover:border-purple-300"
+                                    className="h-11 w-11 rounded-xl border-gray-200 hover:border-[#4988c4]/60"
                                     title="Regenerate SKU"
                                 >
                                     <RefreshCw className="h-4 w-4" />
@@ -434,13 +434,12 @@ function VariantDialogInner({
                 </Button>
                 <Button
                     type="submit"
-                    form="variant-form"
                     disabled={isLoading || !isValid}
                     className={cn(
-                        'flex-1 h-11 rounded-xl font-medium transition-all',
-                        'bg-gradient-to-r from-indigo-600 to-purple-600',
-                        'hover:from-indigo-700 hover:to-purple-700',
-                        'shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40',
+                        'flex-1 h-11 rounded-xl font-medium transition-all text-white',
+                        'bg-[#4988c4]',
+                        'hover:bg-[#3a6fa0]',
+                        'shadow-sm',
                         'disabled:opacity-50 disabled:shadow-none',
                     )}
                 >

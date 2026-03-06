@@ -21,7 +21,7 @@ export default function ComboProductGroup({
     const variantCount = items.length;
 
     return (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden transition-all hover:border-purple-200 hover:shadow-sm">
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden transition-all hover:border-[#4988c4]/60 hover:shadow-sm">
             {/* Product header */}
             <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
                 <div className="flex items-center gap-2.5">

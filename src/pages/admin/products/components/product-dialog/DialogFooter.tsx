@@ -27,10 +27,10 @@ const DialogFooter = memo(function DialogFooter({ isEdit, isLoading, isValid, on
                 form="product-form"
                 disabled={isLoading || !isValid}
                 className={cn(
-                    'flex-1 h-11 rounded-xl font-medium transition-all',
-                    'bg-gradient-to-r from-purple-600 to-indigo-600',
-                    'hover:from-purple-700 hover:to-indigo-700',
-                    'shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40',
+                    'flex-1 h-11 rounded-xl font-medium transition-all text-white',
+                    'bg-[#4988c4]',
+                    'hover:bg-[#3a6fa0]',
+                    'shadow-sm',
                     'disabled:opacity-50 disabled:shadow-none',
                 )}
             >

@@ -50,7 +50,7 @@ export default function ComboVariantRow({ item, onQuantityChange, onDelete, isDe
             <div className="flex items-center gap-4 min-w-0">
                 <div className="relative flex-shrink-0">
                     <div
-                        className="h-10 w-10 rounded-xl bg-white border border-gray-100 flex items-center justify-center shadow-sm group-hover:border-indigo-200 group-hover:shadow-md transition-all duration-300"
+                        className="h-10 w-10 rounded-xl bg-white border border-gray-100 flex items-center justify-center shadow-sm group-hover:border-[#4988c4]/60 group-hover:shadow-md transition-all duration-300"
                         title={`Color: ${color}`}
                     >
                         <span
@@ -123,7 +123,7 @@ export default function ComboVariantRow({ item, onQuantityChange, onDelete, isDe
                         </Button>
                     </div>
                 ) : (
-                    <div className="flex items-center bg-gray-100/50 p-1 rounded-xl border border-gray-200 group-hover:bg-white group-hover:border-indigo-100 transition-all duration-300">
+                    <div className="flex items-center bg-gray-100/50 p-1 rounded-xl border border-gray-200 group-hover:bg-white group-hover:border-[#4988c4]/60 transition-all duration-300">
                         <button
                             onClick={() => handleQuickChange(-1)}
                             className="h-6 w-6 flex items-center justify-center rounded-lg hover:bg-red-50 hover:text-red-500 text-gray-400 disabled:opacity-30 transition-colors"

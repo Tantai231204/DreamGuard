@@ -95,6 +95,20 @@ export const useUpdateCombo = () => {
   });
 };
 
+/** Cập nhật items của combo */
+export const useUpdateComboItems = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, items }: { id: string; items: import('@/api').ComboItemRequest[] }) =>
+      comboService.updateItems(id, { items }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: comboKeys.all });
+      queryClient.invalidateQueries({ queryKey: comboKeys.detail(variables.id) });
+    },
+  });
+};
+
 /** Xóa combo */
 export const useDeleteCombo = () => {
   const queryClient = useQueryClient();

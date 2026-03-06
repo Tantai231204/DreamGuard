@@ -59,7 +59,7 @@ export function VoucherDiscountSettings({
                         >
                             <SelectTrigger 
                                 id="discountType" 
-                                className="bg-gray-50 border-gray-300 hover:border-gray-400 focus:border-purple-500 focus:ring-purple-500/20 transition-colors h-10"
+                                className="bg-gray-50 border-gray-300 hover:border-gray-400 focus:border-[#4988c4] focus:ring-[#4988c4]/20 transition-colors h-10"
                             >
                                 <SelectValue placeholder="Select type" />
                             </SelectTrigger>
@@ -106,7 +106,7 @@ export function VoucherDiscountSettings({
                                 value={discountValue}
                                 onChange={onDiscountValueChange}
                                 disabled={isLoading}
-                                className="bg-gray-50 border-gray-300 hover:border-gray-400 focus:border-purple-500 focus:ring-purple-500/20 pl-10 pr-4 font-semibold text-base h-10 transition-colors"
+                                className="bg-gray-50 border-gray-300 hover:border-gray-400 focus:border-[#4988c4] focus:ring-[#4988c4]/20 pl-10 pr-4 font-semibold text-base h-10 transition-colors"
                             />
                             <div className="absolute left-3 top-1/2 -translate-y-1/2">
                                 <div className={`w-6 h-6 rounded-md flex items-center justify-center ${
@@ -140,7 +140,7 @@ export function VoucherDiscountSettings({
                                 value={minDiscountAmount}
                                 onChange={onMinAmountChange}
                                 disabled={isLoading}
-                                className="bg-gray-50 border-gray-300 hover:border-gray-400 focus:border-purple-500 pl-8 text-sm h-10 transition-colors"
+                                className="bg-gray-50 border-gray-300 hover:border-gray-400 focus:border-[#4988c4] pl-8 text-sm h-10 transition-colors"
                             />
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">$</span>
                         </div>
@@ -161,7 +161,7 @@ export function VoucherDiscountSettings({
                                 value={maxDiscountAmount}
                                 onChange={onMaxAmountChange}
                                 disabled={isLoading}
-                                className="bg-gray-50 border-gray-300 hover:border-gray-400 focus:border-purple-500 pl-8 text-sm h-10 transition-colors"
+                                className="bg-gray-50 border-gray-300 hover:border-gray-400 focus:border-[#4988c4] pl-8 text-sm h-10 transition-colors"
                             />
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 font-medium">$</span>
                         </div>

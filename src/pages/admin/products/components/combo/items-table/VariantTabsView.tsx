@@ -34,7 +34,6 @@ interface VariantTabsViewProps {
     onAddVariant?: () => void;
     onEditVariant?: (v: Combo) => void;
     onDeleteVariant?: (v: Combo) => void;
-    onDuplicateVariant?: (v: Combo) => void;
     statusMap: Record<string, { label: string; className: string }>;
 }
 
@@ -43,7 +42,6 @@ export function VariantTabsView({
     onAddVariant,
     onEditVariant,
     onDeleteVariant,
-    onDuplicateVariant,
     statusMap,
 }: VariantTabsViewProps) {
     const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -201,7 +199,6 @@ export function VariantTabsView({
                                     variant={child as unknown as Combo}
                                     onEdit={onEditVariant}
                                     onDelete={onDeleteVariant}
-                                    onDuplicate={onDuplicateVariant}
                                 />
                             </div>
                         </div>

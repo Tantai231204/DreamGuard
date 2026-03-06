@@ -46,7 +46,7 @@ export function VoucherDateRange({
                             onChange={onStartDateChange}
                             disabled={isLoading}
                             min={today}
-                            className="bg-gray-50 border-gray-300 hover:border-gray-400 focus:border-purple-500 focus:ring-purple-500/20 h-10 transition-colors"
+                            className="bg-gray-50 border-gray-300 hover:border-gray-400 focus:border-[#4988c4] focus:ring-[#4988c4]/20 h-10 transition-colors"
                         />
                         <p className="text-xs text-gray-500">When voucher becomes active</p>
                     </div>
@@ -62,7 +62,7 @@ export function VoucherDateRange({
                             onChange={onEndDateChange}
                             disabled={isLoading}
                             min={startDate || today}
-                            className="bg-gray-50 border-gray-300 hover:border-gray-400 focus:border-purple-500 focus:ring-purple-500/20 h-10 transition-colors"
+                            className="bg-gray-50 border-gray-300 hover:border-gray-400 focus:border-[#4988c4] focus:ring-[#4988c4]/20 h-10 transition-colors"
                         />
                         <p className="text-xs text-gray-500">When voucher expires</p>
                     </div>

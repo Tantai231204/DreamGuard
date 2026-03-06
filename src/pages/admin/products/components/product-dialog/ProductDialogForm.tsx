@@ -58,7 +58,7 @@ export default function ProductDialogForm({
                 });
             }
         }
-    }, [isEdit, product?.id, flatCategories, findTopLevelParent]);
+    }, [isEdit, product?.id, product?.cateId, flatCategories, findTopLevelParent]);
 
     /* ── Handlers ── */
     const handleNameChange = useCallback(
@@ -154,13 +154,13 @@ export default function ProductDialogForm({
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mt-4">
                 <TabsList className="grid grid-cols-3 w-full h-12 bg-gray-100/50 p-1 rounded-xl border border-gray-200/50">
-                    <TabsTrigger value="general" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-purple-700 data-[state=active]:shadow-sm text-xs font-bold gap-2">
+                    <TabsTrigger value="general" className="rounded-lg data-[state=active]:bg-[#4988c4] data-[state=active]:text-white data-[state=active]:shadow-sm text-xs font-bold gap-2">
                         <Info className="h-4 w-4" /> General
                     </TabsTrigger>
-                    <TabsTrigger value="classification" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-purple-700 data-[state=active]:shadow-sm text-xs font-bold gap-2">
+                    <TabsTrigger value="classification" className="rounded-lg data-[state=active]:bg-[#4988c4] data-[state=active]:text-white data-[state=active]:shadow-sm text-xs font-bold gap-2">
                         <LayoutGrid className="h-4 w-4" /> Attributes
                     </TabsTrigger>
-                    <TabsTrigger value="policy" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-purple-700 data-[state=active]:shadow-sm text-xs font-bold gap-2">
+                    <TabsTrigger value="policy" className="rounded-lg data-[state=active]:bg-[#4988c4] data-[state=active]:text-white data-[state=active]:shadow-sm text-xs font-bold gap-2">
                         <ShieldCheck className="h-4 w-4" /> Policies
                     </TabsTrigger>
                 </TabsList>

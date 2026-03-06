@@ -138,7 +138,7 @@ const ComboItemsPanel = memo(function ComboItemsPanel({
                         className={cn(
                             'flex flex-col items-center justify-center w-full h-full min-h-[200px]',
                             'border-2 border-dashed border-slate-200 rounded-xl',
-                            'hover:border-purple-300 hover:bg-purple-50/20 transition-all cursor-pointer',
+                            'hover:border-[#4988c4]/60 hover:bg-purple-50/20 transition-all cursor-pointer',
                             'disabled:cursor-not-allowed disabled:opacity-50',
                         )}
                     >
@@ -246,7 +246,7 @@ const ComboItemsPanel = memo(function ComboItemsPanel({
                                                     type="number" min={1} value={item.quantity}
                                                     onChange={e => handleQty(item.id, parseInt(e.target.value) || 1)}
                                                     disabled={disabled}
-                                                    className="h-6 w-9 text-center text-xs font-bold rounded-md border border-slate-200 bg-slate-50 outline-none focus:border-purple-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                    className="h-6 w-9 text-center text-xs font-bold rounded-md border border-slate-200 bg-slate-50 outline-none focus:border-[#4988c4] [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                                 />
                                                 <button type="button"
                                                     className="h-6 w-6 rounded-md flex items-center justify-center hover:bg-purple-50 hover:text-purple-700 text-slate-400 transition-all disabled:opacity-30"

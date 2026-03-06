@@ -130,13 +130,13 @@ export default function ComboDialog({
                             <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col flex-1 min-h-0">
                                 <div className="px-5 pt-4 pb-0 bg-white border-b border-slate-100 flex-shrink-0">
                                     <TabsList className="grid grid-cols-3 w-full h-11 bg-slate-100/50 p-1 rounded-xl border border-slate-200/50 mb-3">
-                                        <TabsTrigger value="general" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-sm text-[11px] font-black uppercase tracking-wider gap-2">
+                                        <TabsTrigger value="general" className="rounded-lg data-[state=active]:bg-[#4988c4] data-[state=active]:text-white data-[state=active]:shadow-sm text-[11px] font-black uppercase tracking-wider gap-2">
                                             <Info className="h-3.5 w-3.5" /> General
                                         </TabsTrigger>
-                                        <TabsTrigger value="config" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-sm text-[11px] font-black uppercase tracking-wider gap-2">
+                                        <TabsTrigger value="config" className="rounded-lg data-[state=active]:bg-[#4988c4] data-[state=active]:text-white data-[state=active]:shadow-sm text-[11px] font-black uppercase tracking-wider gap-2">
                                             <Settings2 className="h-3.5 w-3.5" /> Config
                                         </TabsTrigger>
-                                        <TabsTrigger value="pricing" className="rounded-lg data-[state=active]:bg-white data-[state=active]:text-indigo-700 data-[state=active]:shadow-sm text-[11px] font-black uppercase tracking-wider gap-2">
+                                        <TabsTrigger value="pricing" className="rounded-lg data-[state=active]:bg-[#4988c4] data-[state=active]:text-white data-[state=active]:shadow-sm text-[11px] font-black uppercase tracking-wider gap-2">
                                             <DollarSign className="h-3.5 w-3.5" /> Price
                                         </TabsTrigger>
                                     </TabsList>

@@ -114,7 +114,7 @@ const ComboFormFields = memo(function ComboFormFields({
                             <Textarea id="c-desc" placeholder="Brief description..."
                                 value={form.description} onChange={e => setField('description', e.target.value)}
                                 disabled={isLoading} rows={4}
-                                className="w-full rounded-xl border border-slate-200 bg-white hover:border-indigo-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all text-sm font-medium text-slate-900 shadow-sm resize-none p-3" />
+                                className="w-full rounded-xl border border-slate-200 bg-white hover:border-[#4988c4]/60 focus:border-[#4988c4] focus:ring-4 focus:ring-[#4988c4]/20 transition-all text-sm font-medium text-slate-900 shadow-sm resize-none p-3" />
                         </div>
                     </div>
                 </section>

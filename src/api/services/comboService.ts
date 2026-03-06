@@ -141,6 +141,10 @@ const comboService = {
   update: (id: string, data: UpdateComboRequest): Promise<ComboResponse> =>
     apiClient.put(`/combo/${id}`, data).then((res) => res.data),
 
+  /** Update combo line items (products inside combo) */
+  updateItems: (id: string, data: { items: ComboItemRequest[] }): Promise<void> =>
+    apiClient.put(`/combo/${id}/products`, data).then((res) => res.data),
+
   /** Delete combo */
   delete: (id: string): Promise<void> =>
     apiClient.delete(`/combo/${id}`).then((res) => res.data),

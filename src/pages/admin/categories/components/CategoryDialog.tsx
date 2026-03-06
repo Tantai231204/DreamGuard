@@ -70,9 +70,9 @@ function CategoryDialogInner({
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!name.trim() || !slug.trim()) return;
-        onSubmit({ 
-            name: name.trim(), 
-            slug: slug.trim(), 
+        onSubmit({
+            name: name.trim(),
+            slug: slug.trim(),
             isActive,
             cateParentId: parentId && parentId !== 'none' ? parseInt(parentId) : undefined
         });
@@ -82,7 +82,7 @@ function CategoryDialogInner({
         <>
             <DialogHeader className="pb-4 border-b">
                 <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-lg bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-md">
+                    <div className="w-11 h-11 rounded-lg bg-[#4988c4] flex items-center justify-center shadow-sm">
                         <FolderTree className="w-5 h-5 text-white" />
                     </div>
                     <div>
@@ -111,7 +111,7 @@ function CategoryDialogInner({
                         value={name}
                         onChange={(e) => handleNameChange(e.target.value)}
                         disabled={isLoading}
-                        className="bg-gray-50 border-gray-300 focus:border-purple-500 focus:ring-purple-500/20 h-10 transition-colors"
+                        className="bg-gray-50 border-gray-300 focus:border-[#4988c4] focus:ring-[#4988c4]/20 h-10 transition-colors"
                         autoFocus
                     />
                 </div>
@@ -128,7 +128,7 @@ function CategoryDialogInner({
                         value={slug}
                         onChange={(e) => setSlug(e.target.value)}
                         disabled={isLoading}
-                        className="font-mono text-sm bg-gray-50 border-gray-300 focus:border-purple-500 focus:ring-purple-500/20 h-10 transition-colors"
+                        className="font-mono text-sm bg-gray-50 border-gray-300 focus:border-[#4988c4] focus:ring-[#4988c4]/20 h-10 transition-colors"
                     />
                     <p className="text-xs text-gray-500">
                         URL-friendly identifier. Auto-generated from name.
@@ -143,7 +143,7 @@ function CategoryDialogInner({
                         <span className="text-xs font-normal text-gray-400">(optional)</span>
                     </Label>
                     <Select value={parentId} onValueChange={setParentId} disabled={isLoading}>
-                        <SelectTrigger className="bg-gray-50 border-gray-300 focus:border-purple-500 focus:ring-purple-500/20 h-10">
+                        <SelectTrigger className="bg-gray-50 border-gray-300 focus:border-[#4988c4] focus:ring-[#4988c4]/20 h-10">
                             <SelectValue placeholder="None - Top level category" />
                         </SelectTrigger>
                         <SelectContent className="max-h-[300px]">
@@ -177,7 +177,7 @@ function CategoryDialogInner({
                             checked={isActive}
                             onCheckedChange={setIsActive}
                             disabled={isLoading}
-                            className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-green-500 data-[state=checked]:to-emerald-600"
+                            className="data-[state=checked]:bg-green-600"
                         />
                     </div>
                 </div>
@@ -195,7 +195,7 @@ function CategoryDialogInner({
                     <Button
                         type="submit"
                         disabled={isLoading || !name.trim() || !slug.trim()}
-                        className="flex-1 h-10 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 shadow-lg shadow-purple-500/30 font-medium transition-all disabled:opacity-50"
+                        className="flex-1 h-10 bg-[#4988c4] hover:bg-[#3a6fa0] text-white shadow-sm font-medium transition-all disabled:opacity-50"
                     >
                         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         {isEdit ? 'Update Category' : 'Create Category'}

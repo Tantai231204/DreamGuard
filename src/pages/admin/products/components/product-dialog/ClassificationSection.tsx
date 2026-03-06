@@ -86,7 +86,7 @@ const ClassificationSection = memo(function ClassificationSection({
                             onChange={(e) => onAgeGroupChange(e.target.value)}
                             disabled={isLoading}
                             className={cn(
-                                "flex h-11 w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3.5 py-2 text-sm transition-all focus:border-purple-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-500/20 disabled:cursor-not-allowed disabled:opacity-50 pr-24",
+                                "flex h-11 w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3.5 py-2 text-sm transition-all focus:border-[#4988c4] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#4988c4]/20 disabled:cursor-not-allowed disabled:opacity-50 pr-24",
                                 "font-medium text-slate-900"
                             )}
                             min={0}

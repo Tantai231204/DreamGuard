@@ -41,11 +41,11 @@ const ComboDialogHeader = memo(function ComboDialogHeader({
                 "w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border",
                 mode === 'parent'
                     ? "bg-slate-50 border-slate-200"
-                    : "bg-purple-50/50 border-purple-100",
+                    : "bg-[#4988c4]/10 border-[#4988c4]/20",
             )}>
                 {mode === 'parent'
                     ? <Package className="w-5 h-5 text-slate-700" />
-                    : <GitBranch className="w-5 h-5 text-purple-600" />}
+                    : <GitBranch className="w-5 h-5 text-[#4988c4]" />}
             </div>
             <div className="flex-1 min-w-0">
                 <DialogTitle className="text-lg font-bold text-slate-900">
@@ -68,7 +68,7 @@ const ComboDialogHeader = memo(function ComboDialogHeader({
                     "text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md border shadow-sm",
                     mode === 'parent'
                         ? "bg-slate-50 text-slate-600 border-slate-200"
-                        : "bg-purple-50 text-purple-700 border-purple-200",
+                        : "bg-[#4988c4]/10 text-[#4988c4] border-[#4988c4]/20",
                 )}>
                     {mode === 'parent' ? 'PARENT' : 'VARIANT'}
                 </span>

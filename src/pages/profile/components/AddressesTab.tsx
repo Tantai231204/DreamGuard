@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   PlusIcon,
   Pencil1Icon,
@@ -255,6 +255,7 @@ export default function AddressesTab() {
       )}
 
       <AddressFormDialog
+        key={showForm ? (editingAddress?.addressId || "new") : "closed"}
         open={showForm}
         onOpenChange={setShowForm}
         initialData={editingAddress}
@@ -263,20 +264,17 @@ export default function AddressesTab() {
   );
 }
 
-function AddressFormDialog({ open, onOpenChange, initialData }: any) {
+interface AddressFormDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  initialData: Address | null;
+}
+
+function AddressFormDialog({ open, onOpenChange, initialData }: AddressFormDialogProps) {
   const createMutation = useCreateAddress();
   const updateMutation = useUpdateAddress();
-  const [formData, setFormData] = useState({
-    receiverName: "",
-    phoneNumber: "",
-    street: "",
-    province: "",
-    district: "",
-    ward: "",
-  });
-
-  useEffect(() => {
-    if (open && initialData) {
+  const [formData, setFormData] = useState(() => {
+    if (initialData) {
       const province = vnAddress.find(p => p.name === initialData.province)?.code || "";
       let district = "";
       let ward = "";
@@ -292,18 +290,24 @@ function AddressFormDialog({ open, onOpenChange, initialData }: any) {
         }
       }
 
-      setFormData({
+      return {
         receiverName: initialData.receiverName,
         phoneNumber: initialData.phoneNumber,
         street: initialData.street,
         province,
         district,
         ward,
-      });
-    } else if (open) {
-      setFormData({ receiverName: "", phoneNumber: "", street: "", province: "", district: "", ward: "" });
+      };
     }
-  }, [open, initialData]);
+    return {
+      receiverName: "",
+      phoneNumber: "",
+      street: "",
+      province: "",
+      district: "",
+      ward: "",
+    };
+  });
 
   const selectedProv = vnAddress.find((p) => p.code === formData.province);
   const districts = selectedProv?.districts ?? [];

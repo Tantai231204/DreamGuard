@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "../../../components/ui/avat
 import { Badge } from "../../../components/ui/badge"
 import { Card, CardContent } from "../../../components/ui/card"
 import type { TabId, Tab } from "../types"
+import { useProfile } from "@/hooks/queries"
 
 const TABS: Tab[] = [
     { id: "profile", label: "Thông tin", icon: <User className="h-[18px] w-[18px]" strokeWidth={2} /> },
@@ -25,6 +26,10 @@ interface ProfileSidebarProps {
 
 export default function ProfileSidebar({ activeTab, onTabChange }: ProfileSidebarProps) {
     const { role, clearAuth: logout } = useAuthStore()
+    const { data: profile } = useProfile()
+
+    const fullName = profile ? `${profile.firstName} ${profile.lastName}` : "User"
+    const initials = profile ? `${profile.firstName[0]}${profile.lastName[0]}`.toUpperCase() : "U"
 
     return (
         <aside className="space-y-4">
@@ -34,13 +39,13 @@ export default function ProfileSidebar({ activeTab, onTabChange }: ProfileSideba
                 <CardContent className="p-5 -mt-8">
                     <div className="flex items-end gap-4">
                         <Avatar size="lg" className="h-16 w-16 ring-4 ring-white shadow-lg">
-                            <AvatarImage src="/images/avatar-placeholder.jpg" alt="User" />
+                            <AvatarImage src={profile?.avatarUrl} alt={fullName} />
                             <AvatarFallback className="bg-gradient-to-br from-[#4988c4] to-[#3a73a8] text-white text-lg font-semibold">
-                                MA
+                                {initials}
                             </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0 pb-1">
-                            <p className="font-semibold text-gray-900 truncate">Nguyễn Thị Minh Anh</p>
+                            <p className="font-semibold text-gray-900 truncate">{fullName}</p>
                             <p className="text-sm text-gray-500">
                                 {role === "admin" ? "Quản trị viên" : "Thành viên"}
                             </p>
@@ -84,8 +89,8 @@ export default function ProfileSidebar({ activeTab, onTabChange }: ProfileSideba
                                         <button
                                             onClick={() => onTabChange(tab.id)}
                                             className={`group flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${isActive
-                                                    ? "bg-[#4988c4] text-white shadow-lg shadow-[#4988c4]/30"
-                                                    : "text-gray-600 hover:bg-[#bde8f5]/50 hover:text-[#4988c4]"
+                                                ? "bg-[#4988c4] text-white shadow-lg shadow-[#4988c4]/30"
+                                                : "text-gray-600 hover:bg-[#bde8f5]/50 hover:text-[#4988c4]"
                                                 }`}
                                         >
                                             <span className={`${isActive ? "text-white" : "text-gray-400 group-hover:text-[#4988c4]"} transition-colors`}>

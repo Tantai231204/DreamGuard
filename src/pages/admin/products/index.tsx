@@ -46,6 +46,7 @@ import {
   useCreateCombo,
   useUpdateCombo,
   useDeleteCombo,
+  useUpdateComboItems,
 } from '@/hooks/queries/useCombo';
 import { useCategories } from '@/hooks/queries/useCategory';
 import type {
@@ -213,6 +214,7 @@ export default function ProductsPage() {
   const createComboMutation = useCreateCombo();
   const updateComboMutation = useUpdateCombo();
   const deleteComboMutation = useDeleteCombo();
+  const updateComboItemsMutation = useUpdateComboItems();
 
   // Handlers
   const handleAdd = useCallback(() => {
@@ -475,43 +477,30 @@ export default function ProductsPage() {
     });
   }, [deleteCombo, deleteComboMutation, toast]);
 
-  const handleDuplicateCombo = useCallback((combo: Combo) => {
-    const duplicateData: import('@/api/services/comboService').CreateComboRequest = {
-      name: `${combo.name} (Copy)`,
-      slug: `${combo.sku}-copy`,
-      ageGroup: 0,
-      color: '',
-      size: '',
-      description: combo.description,
-      basePrice: combo.basePrice,
-      salePrice: combo.baseSalePrice ?? combo.basePrice,
-      imageUrl: combo.images?.[0] ?? '',
-      imagePublicId: '',
-      status: combo.status,
-      items: (combo.items ?? []).map((item) => ({
-        productVariantId: item.variantId || item.productId,
-        quantity: item.quantity,
-      })),
-    };
-    createComboMutation.mutate(duplicateData, {
-      onSuccess: () => {
-        toast.success('Combo duplicated', `"${combo.name}" has been duplicated.`);
-      },
-    });
-  }, [createComboMutation, toast]);
-
   const handleComboSubmit = useCallback(
     async (data: import('@/api/services/comboService').CreateComboRequest) => {
       if (editingCombo) {
-        updateComboMutation.mutate(
-          { id: editingCombo.id, data },
-          {
-            onSuccess: () => {
-              setComboDialogOpen(false);
-              toast.success('Combo updated', 'The combo has been successfully updated.');
-            },
+        try {
+          // Destructure items from data so we can update info and items separately
+          const { items, ...infoData } = data;
+
+          const promises = [];
+
+          // 1. Update Combo Info
+          promises.push(updateComboMutation.mutateAsync({ id: editingCombo.id, data: infoData }));
+
+          // 2. Update Combo Line Items securely inside a separate endpoint
+          if (items && items.length > 0) {
+            promises.push(updateComboItemsMutation.mutateAsync({ id: editingCombo.id, items }));
           }
-        );
+
+          await Promise.all(promises);
+
+          setComboDialogOpen(false);
+          toast.success('Combo updated', 'The combo has been successfully updated.');
+        } catch (error) {
+          console.error('[UpdateCombo] Update failed', error);
+        }
       } else {
         createComboMutation.mutate(data, {
           onSuccess: () => {
@@ -521,7 +510,7 @@ export default function ProductsPage() {
         });
       }
     },
-    [editingCombo, createComboMutation, updateComboMutation, toast]
+    [editingCombo, createComboMutation, updateComboMutation, updateComboItemsMutation, toast]
   );
 
   const productColumns = useProductColumns({ onView: handleViewDetail, onEdit: handleEdit, onDelete: handleDelete, onAddVariant: handleAddVariant });
@@ -529,7 +518,6 @@ export default function ProductsPage() {
     onView: handleViewCombo,
     onEdit: handleEditCombo,
     onDelete: handleDeleteCombo,
-    onDuplicate: handleDuplicateCombo,
     onAddVariant: handleAddComboVariant,
   });
 
@@ -694,7 +682,6 @@ export default function ProductsPage() {
                   onAddComboVariant={handleAddComboVariant}
                   onEditCombo={handleEditCombo}
                   onDeleteCombo={handleDeleteCombo}
-                  onDuplicateCombo={handleDuplicateCombo}
                 />
               </div>
 

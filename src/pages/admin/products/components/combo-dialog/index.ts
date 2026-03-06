@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 // STYLE CONSTANTS
 // ─────────────────────────────────────────────────────────
 export const INPUT_CLS =
-  "h-11 rounded-xl border-slate-200 bg-slate-50/50 hover:bg-slate-50 hover:border-purple-300 focus:bg-white focus:border-purple-500 focus:ring-4 focus:ring-purple-500/10 transition-all text-sm font-medium text-slate-900 placeholder:text-slate-400 shadow-[0_1px_2px_-1px_rgba(0,0,0,0.05)] disabled:opacity-60 disabled:hover:bg-slate-50/50";
+  "h-11 rounded-xl border-slate-200 bg-slate-50/50 hover:bg-slate-50 hover:border-[#4988c4]/60 focus:bg-white focus:border-[#4988c4] focus:ring-4 focus:ring-[#4988c4]/20 transition-all text-sm font-medium text-slate-900 placeholder:text-slate-400 shadow-[0_1px_2px_-1px_rgba(0,0,0,0.05)] disabled:opacity-60 disabled:hover:bg-slate-50/50";
 
 export const SELECT_TRIGGER_CLS = cn(
   INPUT_CLS,

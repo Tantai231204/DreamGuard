@@ -30,7 +30,6 @@ interface ComboItemsTableProps {
     onAddVariant?: (parent: Combo) => void;
     onEditVariant?: (variant: Combo) => void;
     onDeleteVariant?: (variant: Combo) => void;
-    onDuplicateVariant?: (variant: Combo) => void;
 }
 
 const STATUS_MAP: Record<string, { label: string; className: string }> = {
@@ -50,7 +49,6 @@ export default function ComboItemsTable({
     onAddVariant,
     onEditVariant,
     onDeleteVariant,
-    onDuplicateVariant,
 }: ComboItemsTableProps) {
     const { data: detail, isLoading, isError } = useComboDetail(comboId);
     const [searchQuery, setSearchQuery] = React.useState('');
@@ -142,7 +140,6 @@ export default function ComboItemsTable({
                             onAddVariant={() => onAddVariant?.(detail as Combo)}
                             onEditVariant={onEditVariant}
                             onDeleteVariant={onDeleteVariant}
-                            onDuplicateVariant={onDuplicateVariant}
                             statusMap={STATUS_MAP}
                         />
                     ) : (
@@ -150,7 +147,6 @@ export default function ComboItemsTable({
                             childCombos={childCombosFiltered}
                             onEditVariant={onEditVariant}
                             onDeleteVariant={onDeleteVariant}
-                            onDuplicateVariant={onDuplicateVariant}
                             statusMap={STATUS_MAP}
                         />
                     )

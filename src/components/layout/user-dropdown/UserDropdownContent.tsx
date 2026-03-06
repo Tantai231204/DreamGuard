@@ -8,9 +8,18 @@ import { MenuItem } from "./MenuItem"
 import { RecommendationCard } from "./RecommendationCard"
 import { LogoutButton } from "./LogoutButton"
 import { mockBabies, mockUser } from "./data"
+import { useProfile } from "@/hooks/queries"
 
 export function UserDropdownContent() {
     const { role, clearAuth: logout } = useAuthStore()
+    const { data: profile } = useProfile()
+
+    const userData = {
+        ...mockUser,
+        name: profile ? `${profile.firstName} ${profile.lastName}` : mockUser.name,
+        email: profile?.email || mockUser.email,
+        // points and rank can be added to UserProfile type later
+    }
 
     return (
         <DropdownMenuContent
@@ -27,7 +36,7 @@ export function UserDropdownContent() {
                 duration-200
             "
         >
-            <UserHeader user={mockUser} />
+            <UserHeader user={userData} />
 
             <BabiesSection babies={mockBabies} />
 

@@ -11,7 +11,6 @@ interface VariantListViewProps {
     childCombos: ComboResponse[];
     onEditVariant?: (v: Combo) => void;
     onDeleteVariant?: (v: Combo) => void;
-    onDuplicateVariant?: (v: Combo) => void;
     statusMap: Record<string, { label: string; className: string }>;
 }
 
@@ -19,7 +18,6 @@ export function VariantListView({
     childCombos,
     onEditVariant,
     onDeleteVariant,
-    onDuplicateVariant,
     statusMap,
 }: VariantListViewProps) {
     if (childCombos.length === 0) return <EmptyResults />;
@@ -59,7 +57,6 @@ export function VariantListView({
                                 variant={child as unknown as Combo}
                                 onEdit={onEditVariant}
                                 onDelete={onDeleteVariant}
-                                onDuplicate={onDuplicateVariant}
                             />
                         </div>
                     </div>

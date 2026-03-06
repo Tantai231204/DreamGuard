@@ -47,7 +47,7 @@ export function VoucherBasicInfo({
                         value={code}
                         onChange={onCodeChange}
                         disabled={isLoading}
-                        className="font-mono text-sm font-semibold tracking-wide uppercase bg-gray-50 border-gray-300 focus:border-purple-500 focus:ring-purple-500/20 h-10 transition-colors"
+                        className="font-mono text-sm font-semibold tracking-wide uppercase bg-gray-50 border-gray-300 focus:border-[#4988c4] focus:ring-[#4988c4]/20 h-10 transition-colors"
                         autoFocus
                         maxLength={20}
                     />
@@ -65,7 +65,7 @@ export function VoucherBasicInfo({
                         value={name}
                         onChange={onNameChange}
                         disabled={isLoading}
-                        className="bg-gray-50 border-gray-300 focus:border-purple-500 focus:ring-purple-500/20 h-10 transition-colors"
+                        className="bg-gray-50 border-gray-300 focus:border-[#4988c4] focus:ring-[#4988c4]/20 h-10 transition-colors"
                         maxLength={100}
                     />
                     <p className="text-xs text-gray-500">Customer-facing name</p>
@@ -86,7 +86,7 @@ export function VoucherBasicInfo({
                     disabled={isLoading}
                     rows={3}
                     maxLength={500}
-                    className="resize-none bg-gray-50 border-gray-300 focus:border-purple-500 focus:ring-purple-500/20 transition-colors"
+                    className="resize-none bg-gray-50 border-gray-300 focus:border-[#4988c4] focus:ring-[#4988c4]/20 transition-colors"
                 />
                 <div className="flex items-center justify-between text-xs text-gray-500">
                     <span>Optional - Displayed to customers</span>
