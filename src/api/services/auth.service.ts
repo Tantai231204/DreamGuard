@@ -1,5 +1,9 @@
 import api from "@/lib/api";
-import type { LoginRequest, AuthResponse } from "@/api/types/auth.types";
+import type {
+  LoginRequest,
+  AuthResponse,
+  RegisterRequest
+} from "../types/auth.types";
 
 // chĩnh lại format code cho clear hơn
 export interface ForgotPasswordRequest {
@@ -8,7 +12,8 @@ export interface ForgotPasswordRequest {
 
 export interface VerifyOtpRequest {
   email: string;
-  otp: string;
+  phoneNumber: string;
+  otpCode: string;
 }
 
 export interface ResetPasswordRequest {
@@ -17,15 +22,15 @@ export interface ResetPasswordRequest {
   newPassword: string;
 }
 
-export interface RegisterRequest {
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-  phoneNumber: string;
-  gender: "Male" | "Female";
-  dateOfBirth: string;
-}
+// export interface RegisterRequest {
+//   email: string;
+//   password: string;
+//   firstName: string;
+//   lastName: string;
+//   phoneNumber: string;
+//   gender: "Male" | "Female";
+//   dateOfBirth: string;
+// }
 
 export const authService = {
   login: async (data: LoginRequest): Promise<AuthResponse> => {
@@ -69,4 +74,17 @@ export const authService = {
     const res = await api.post("/auths/register", data);
     return res.data;
   },
+
+  resendOtp: async (email: string): Promise<{ message: string }> => {
+  const res = await api.post("/auths/resend-otp", { email });
+  return res.data;
+},
+
+sendRegisterOtp: async (data: {
+  email: string
+  phone: string
+}) => {
+  const res = await api.post("/auths/register-otp", data)
+  return res.data
+}
 };

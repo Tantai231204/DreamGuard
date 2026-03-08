@@ -24,7 +24,10 @@ const CheckoutPage = lazy(() => import("../pages/checkout"));
 
 // Auth
 const Login = lazy(() => import("../pages/auth/Login"));
-const Register = lazy(() => import("../pages/auth/Register"));
+// const Register = lazy(() => import("../pages/auth/Register"));
+const RegisterBasic = lazy(() => import("../pages/auth/RegisterBasic"));
+const VerifyRegisterOTP = lazy(() => import("../pages/auth/VerifyRegisterOTP"));
+const RegisterComplete = lazy(() => import("../pages/auth/RegisterComplete"));
 const ForgotPassword = lazy(() => import("../pages/auth/ForgotPassword"));
 const VerifyOTP = lazy(() => import("../pages/auth/VerifyOTP"));
 const ResetPassword = lazy(() => import("../pages/auth/ResetPassword"));
@@ -68,7 +71,10 @@ export default function AppRouter() {
                 {/* ===== Auth Routes ===== */}
                 <Route element={<AuthLayout />}>
                     <Route path={AppRoute.LOGIN} element={<Login />} />
-                    <Route path={AppRoute.REGISTER} element={<Register />} />
+                    {/* <Route path={AppRoute.REGISTER} element={<Register />} /> */}
+                    <Route path={AppRoute.REGISTER_BASIC} element={<RegisterBasic />} />
+                    <Route path="/verify-register-otp" element={<VerifyRegisterOTP />} />
+                    <Route path={AppRoute.REGISTER_COMPLETE} element={<RegisterComplete />} />
                     <Route path={AppRoute.FORGOT_PASSWORD} element={<ForgotPassword />} />
                     <Route path={AppRoute.VERIFY_OTP} element={<VerifyOTP />} />
                     <Route path={AppRoute.RESET_PASSWORD} element={<ResetPassword />} />
