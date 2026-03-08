@@ -20,25 +20,30 @@ import {
     Package,
     Layers,
     Plus,
+    ShoppingCart,
     Trash2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { Combo, ComboItem } from "../../types"
+import type { ProductItemResponse } from "@/api/services/comboService"
 
 const columnHelper = createColumnHelper<Combo>()
 
 /* ─── helpers ──────────────────────────────────────────── */
+interface ProductItemWithLabel extends ProductItemResponse {
+    variantLabel?: string;
+}
 
 function resolveItems(combo: Combo): ComboItem[] {
     // Prefer combo.items (has variantLabel), fallback to productItems
     if (combo.items?.length) return combo.items
     if (combo.productItems?.length)
-        return combo.productItems.map((pi) => ({
-            productId: (pi as any).productVariantId ?? "",
-            productName: (pi as any).productName ?? "",
-            variantId: (pi as any).sku,
-            variantLabel: (pi as any).variantLabel,
-            quantity: (pi as any).quantity ?? 0,
+        return (combo.productItems as ProductItemWithLabel[]).map((pi) => ({
+            productId: pi.productVariantId ?? "",
+            productName: pi.productName ?? "",
+            variantId: pi.sku,
+            variantLabel: pi.variantLabel || "",
+            quantity: pi.quantity ?? 0,
         }))
     return []
 }
@@ -66,7 +71,7 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
 export function mapCombosToSubRows(combos: Combo[]): Combo[] {
     return combos.map((combo) => {
         const subRows = combo.childCombos?.length ? mapCombosToSubRows(combo.childCombos) : []
-        const { children, ...rest } = combo as any
+        const rest = { ...combo }
         return { ...rest, subRows }
     })
 }
@@ -79,10 +84,11 @@ interface UseComboColumnsOptions {
     onDelete?: (combo: Combo) => void
     onDuplicate?: (combo: Combo) => void
     onAddVariant?: (combo: Combo) => void
+    onAddToCart?: (combo: Combo) => void
 }
 
 export function useComboColumns(options: UseComboColumnsOptions = {}) {
-    const { onView, onEdit, onDelete, onDuplicate, onAddVariant } = options
+    const { onView, onEdit, onDelete, onDuplicate, onAddVariant, onAddToCart } = options
 
     return useMemo(
         () => [
@@ -223,7 +229,7 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
                 cell: ({ row }) => {
                     const combo = row.original
                     const basePrice = combo.basePrice
-                    const salePrice = combo.baseSalePrice ?? (combo as any).salePrice ?? null
+                    const salePrice = combo.baseSalePrice ?? combo.salePrice ?? null
 
                     if (!basePrice)
                         return <span className="text-gray-400 text-xs block text-right">—</span>
@@ -289,7 +295,16 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
                     const isParent = !combo.comboParentId
 
                     return (
-                        <div className="flex justify-end">
+                        <div className="flex justify-end gap-1">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-9 w-9 p-0 rounded hover:bg-slate-100 transition-colors text-blue-600"
+                                onClick={(e) => { e.stopPropagation(); onAddToCart?.(combo); }}
+                                title="Add to Cart"
+                            >
+                                <ShoppingCart className="h-5 w-5" />
+                            </Button>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button
@@ -346,6 +361,6 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
                 },
             }),
         ],
-        [onView, onEdit, onDelete, onDuplicate, onAddVariant]
+        [onView, onEdit, onDelete, onDuplicate, onAddVariant, onAddToCart]
     )
 }

@@ -20,6 +20,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Separator } from '../ui/separator';
 import { useState } from 'react';
 import { cn } from '../../lib/utils';
+import { useProfile } from '@/hooks/queries';
+import { useLogout } from '@/hooks/useAuth';
 
 interface NavItem {
   title: string;
@@ -92,6 +94,8 @@ const navItems: NavItem[] = [
 export default function AdminSidebar() {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const { data: profile } = useProfile();
+  const { mutate: logout } = useLogout();
 
   const isActive = (path: string) => {
     if (path === '/admin') {
@@ -103,8 +107,8 @@ export default function AdminSidebar() {
   return (
     <motion.aside
       animate={{ width: collapsed ? 80 : 280 }}
-      transition={{ 
-        duration: 0.4, 
+      transition={{
+        duration: 0.4,
         ease: [0.4, 0, 0.2, 1],
         type: 'tween'
       }}
@@ -153,9 +157,9 @@ export default function AdminSidebar() {
           )}
         >
           <Avatar className="h-10 w-10 border-2 border-[var(--color-primary)] flex-shrink-0">
-            <AvatarImage src="https://github.com/shadcn.png" alt="Admin" />
+            <AvatarImage src={profile?.avatarUrl} alt={profile ? `${profile.firstName} ${profile.lastName}` : "Admin"} />
             <AvatarFallback className="bg-[var(--color-primary)] text-white">
-              AD
+              {profile ? `${profile.firstName[0]}${profile.lastName[0]}`.toUpperCase() : 'AD'}
             </AvatarFallback>
           </Avatar>
           {!collapsed && (
@@ -167,9 +171,9 @@ export default function AdminSidebar() {
               className="flex-1 min-w-0 overflow-hidden"
             >
               <p className="text-sm font-semibold text-gray-900 truncate">
-                Admin User
+                {profile ? `${profile.firstName} ${profile.lastName}` : 'Admin User'}
               </p>
-              <p className="text-xs text-gray-500 truncate">admin@dreamguard.com</p>
+              <p className="text-xs text-gray-500 truncate">{profile?.email || 'admin@dreamguard.com'}</p>
             </motion.div>
           )}
         </div>
@@ -253,6 +257,7 @@ export default function AdminSidebar() {
       {/* Logout Button */}
       <div className="p-4">
         <button
+          onClick={() => logout()}
           className={cn(
             'flex items-center gap-3 px-4 py-3 rounded-xl w-full transition-all duration-300',
             collapsed && 'justify-center px-2',

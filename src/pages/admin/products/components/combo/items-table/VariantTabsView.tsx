@@ -27,14 +27,12 @@ import { getColorHex } from '../combo-utils';
 import { VariantActionDropdown } from './VariantActionDropdown';
 import { EmptyResults } from './StatsAndFeedback';
 import type { Combo } from '../../../types';
-import type { ComboResponse } from '@/api/services/comboService';
 
 interface VariantTabsViewProps {
-    childCombos: ComboResponse[];
+    childCombos: Combo[];
     onAddVariant?: () => void;
     onEditVariant?: (v: Combo) => void;
     onDeleteVariant?: (v: Combo) => void;
-    onDuplicateVariant?: (v: Combo) => void;
     statusMap: Record<string, { label: string; className: string }>;
 }
 
@@ -43,7 +41,6 @@ export function VariantTabsView({
     onAddVariant,
     onEditVariant,
     onDeleteVariant,
-    onDuplicateVariant,
     statusMap,
 }: VariantTabsViewProps) {
     const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -75,7 +72,7 @@ export function VariantTabsView({
                         <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
                             Variants ({rows.length})
                         </span>
-                        <span className="text-[9px] text-emerald-600 font-bold">● {rows.filter(r => r.original.status === 'Active').length} Active</span>
+                        <span className="text-[9px] text-emerald-600 font-bold">● {rows.filter(r => r.original.status === 'Published').length} Published</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                         <Button
@@ -198,10 +195,9 @@ export function VariantTabsView({
                                 </div>
                                 <Separator orientation="vertical" className="h-10 bg-gray-100" />
                                 <VariantActionDropdown
-                                    variant={child as unknown as Combo}
+                                    variant={child}
                                     onEdit={onEditVariant}
                                     onDelete={onDeleteVariant}
-                                    onDuplicate={onDuplicateVariant}
                                 />
                             </div>
                         </div>

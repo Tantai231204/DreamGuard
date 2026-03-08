@@ -7,18 +7,18 @@ export default function VerifyOTP() {
   const navigate = useNavigate();
   const { mutate: verifyOtp, isPending, error: apiError } = useVerifyOtp();
   const [otp, setOtp] = useState<string[]>(["", "", "", "", ""]);
-//   const [isSubmitting, setIsSubmitting] = useState(false);
+  //   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Get email from sessionStorage
   const email = sessionStorage.getItem("resetEmail");
 
-useEffect(() => {
-  if (!email) {
-    navigate("/forgot-password");
-  }
-}, [email, navigate]);
+  useEffect(() => {
+    if (!email) {
+      navigate("/forgot-password");
+    }
+  }, [email, navigate]);
 
   const handleChange = useCallback(
     (index: number, value: string) => {
@@ -84,7 +84,7 @@ useEffect(() => {
       }
 
       verifyOtp(
-        { email, otp: otpValue },
+        { email, phoneNumber: "", otpCode: otpValue },
         {
           onSuccess: () => {
             sessionStorage.setItem("resetOtp", otpValue);

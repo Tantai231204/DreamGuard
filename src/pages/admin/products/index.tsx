@@ -26,6 +26,7 @@ import { LoadingSpinner } from '@/components/common';
 import { ProductActions, ProductTableContent, ProductTabs, useProductColumns } from './components/product-table';
 import ProductDialog from './components/product-dialog';
 import { VariantDialog } from './components/variant-dialog';
+import type { VariantFormData } from './components/variant-dialog/VariantDialog';
 import { DeleteProductDialog, ImageUploadDialog, ProductCreationSuccess } from './components/dialogs';
 import { useComboColumns, mapCombosToSubRows } from './components/combo';
 import { ComboDialog, type ComboDialogMode } from './components/combo-dialog';
@@ -46,7 +47,10 @@ import {
   useCreateCombo,
   useUpdateCombo,
   useDeleteCombo,
+  useUpdateComboItems,
+  useUploadComboImage,
 } from '@/hooks/queries/useCombo';
+import { useAddToCart } from '@/hooks/queries/useCart';
 import { useCategories } from '@/hooks/queries/useCategory';
 import type {
   Product,
@@ -96,6 +100,7 @@ export default function ProductsPage() {
   const [imageUploadOpen, setImageUploadOpen] = useState(false);
   const [uploadProductId, setUploadProductId] = useState<string>('');
   const [uploadProductName, setUploadProductName] = useState<string>('');
+  const [comboIsCurrentUpload, setComboIsCurrentUpload] = useState(false);
   // Use ref to always have the latest product ID (avoids stale closure)
   const uploadProductIdRef = useRef<string>('');
 
@@ -139,7 +144,7 @@ export default function ProductsPage() {
   const combos: Combo[] = useMemo(() => {
     const rawItems = comboPageData?.items ?? [];
 
-    const mapItem = (item: any): Combo => ({
+    const mapItem = (item: import('@/api/services/comboService').ComboResponse): Combo => ({
       ...item,
       type: 'combo' as const,
       baseSalePrice: item.salePrice,
@@ -148,7 +153,7 @@ export default function ProductsPage() {
       color: item.color,
       size: item.size,
       // Keep childCombos from API for mapCombosToSubRows
-      childCombos: item.childCombos?.map((child: any) => mapItem(child)) ?? [],
+      childCombos: item.childCombos?.map((child: import('@/api/services/comboService').ComboResponse) => mapItem(child)) ?? [],
     });
 
     const allMapped = rawItems.map(mapItem);
@@ -213,9 +218,13 @@ export default function ProductsPage() {
   const createComboMutation = useCreateCombo();
   const updateComboMutation = useUpdateCombo();
   const deleteComboMutation = useDeleteCombo();
+  const updateComboItemsMutation = useUpdateComboItems();
+  const addToCartMutation = useAddToCart();
+  const uploadComboImageMutation = useUploadComboImage();
 
   // Handlers
   const handleAdd = useCallback(() => {
+    setComboIsCurrentUpload(activeTab === 'combo');
     if (activeTab === 'combo') {
       setEditingCombo(null);
       setComboDialogMode(undefined); // show mode selection screen
@@ -229,6 +238,7 @@ export default function ProductsPage() {
   }, [activeTab]);
 
   const handleEdit = useCallback((product: Product) => {
+    setComboIsCurrentUpload(false);
     setEditingProduct(product);
     setDialogOpen(true);
   }, []);
@@ -279,9 +289,9 @@ export default function ProductsPage() {
   const updateVariantStatusMutation = useUpdateVariantStatus();
 
   const handleVariantSubmit = useCallback(
-    async (formData: any) => {
+    async (formData: VariantFormData & { status: VariantStatus; stockStatus: string }) => {
       // Destructure to separate core data from status fields
-      const { status, stockStatus, ...bodyData } = formData;
+      const { status, ...bodyData } = formData;
 
       try {
         if (editingVariant) {
@@ -289,7 +299,7 @@ export default function ProductsPage() {
           await updateVariantMutation.mutateAsync({ id: editingVariant.id, data: bodyData });
 
           // 2. Parallel status updates if changed
-          const statusPromises: Promise<any>[] = [];
+          const statusPromises: Promise<unknown>[] = [];
 
           if (status !== editingVariant.status) {
             statusPromises.push(updateVariantStatusMutation.mutateAsync({ variantId: editingVariant.id, status }));
@@ -307,7 +317,7 @@ export default function ProductsPage() {
 
           // 4. Update status for the newly created variant if it's not default
           // (Assuming create doesn't set status based on screenshots)
-          const statusPromises: Promise<any>[] = [];
+          const statusPromises: Promise<unknown>[] = [];
           statusPromises.push(updateVariantStatusMutation.mutateAsync({ variantId: newVariant.id, status }));
 
           await Promise.all(statusPromises);
@@ -327,7 +337,7 @@ export default function ProductsPage() {
       if (editingProduct) {
         try {
           // Prepare parallel updates
-          const promises: Promise<any>[] = [];
+          const promises: Promise<unknown>[] = [];
 
           // 1. General info update (matches PUT /api/product body in screenshot)
           const updatePayload: UpdateProductRequest = {
@@ -383,7 +393,7 @@ export default function ProductsPage() {
         }
       }
     },
-    [editingProduct, createMutation, updateMutation, toast]
+    [editingProduct, createMutation, updateMutation, updateProductStatusMutation, toast]
   );
 
   const handleConfirmDelete = useCallback(() => {
@@ -446,6 +456,7 @@ export default function ProductsPage() {
   }, [navigate]);
 
   const handleEditCombo = useCallback((combo: Combo) => {
+    setComboIsCurrentUpload(true);
     setEditingCombo(combo);
     setComboDialogMode(combo.comboParentId ? 'variant' : 'parent');
     setComboDefaultParentId(undefined);
@@ -454,6 +465,7 @@ export default function ProductsPage() {
   }, []);
 
   const handleAddComboVariant = useCallback((parent: Combo) => {
+    setComboIsCurrentUpload(true);
     setEditingCombo(null);
     setComboDialogMode('variant');
     setComboDefaultParentId(parent.id);
@@ -475,53 +487,80 @@ export default function ProductsPage() {
     });
   }, [deleteCombo, deleteComboMutation, toast]);
 
-  const handleDuplicateCombo = useCallback((combo: Combo) => {
-    const duplicateData: import('@/api/services/comboService').CreateComboRequest = {
-      name: `${combo.name} (Copy)`,
-      slug: `${combo.sku}-copy`,
-      ageGroup: 0,
-      color: '',
-      size: '',
-      description: combo.description,
-      basePrice: combo.basePrice,
-      salePrice: combo.baseSalePrice ?? combo.basePrice,
-      imageUrl: combo.images?.[0] ?? '',
-      imagePublicId: '',
-      status: combo.status,
-      items: (combo.items ?? []).map((item) => ({
-        productVariantId: item.variantId || item.productId,
-        quantity: item.quantity,
-      })),
-    };
-    createComboMutation.mutate(duplicateData, {
-      onSuccess: () => {
-        toast.success('Combo duplicated', `"${combo.name}" has been duplicated.`);
-      },
-    });
-  }, [createComboMutation, toast]);
+  // Combo Handlers
+  const handleUploadComboImages = useCallback(
+    async (comboId: string, files: File[]) => {
+      const id = comboId || uploadProductIdRef.current;
+      if (!id || files.length === 0) return;
+
+      try {
+        await uploadComboImageMutation.mutateAsync({ comboId: id, files });
+        setImageUploadOpen(false);
+        toast.success('Images uploaded', 'Combo images have been successfully uploaded.');
+      } catch (error) {
+        console.error('[UploadCombo] Error:', error);
+      }
+    },
+    [uploadComboImageMutation, toast]
+  );
 
   const handleComboSubmit = useCallback(
     async (data: import('@/api/services/comboService').CreateComboRequest) => {
       if (editingCombo) {
-        updateComboMutation.mutate(
-          { id: editingCombo.id, data },
-          {
-            onSuccess: () => {
-              setComboDialogOpen(false);
-              toast.success('Combo updated', 'The combo has been successfully updated.');
-            },
+        try {
+          // Destructure items from data so we can update info and items separately
+          const { items, ...infoData } = data;
+
+          const promises: Promise<unknown>[] = [];
+
+          // 1. Update Combo Info
+          promises.push(updateComboMutation.mutateAsync({ id: editingCombo.id, data: infoData }));
+
+          // 2. Update Combo Line Items securely inside a separate endpoint
+          if (items && items.length > 0) {
+            promises.push(updateComboItemsMutation.mutateAsync({ id: editingCombo.id, items }));
           }
-        );
+
+          await Promise.all(promises);
+
+          setComboDialogOpen(false);
+          toast.success('Combo updated', 'The combo has been successfully updated.');
+        } catch (error) {
+          console.error('[UpdateCombo] Update failed', error);
+        }
       } else {
         createComboMutation.mutate(data, {
-          onSuccess: () => {
+          onSuccess: (response) => {
+            const id = response?.id;
+            const name = response?.name || data.name;
+
+            uploadProductIdRef.current = id ?? '';
+            setCreatedProductId(id ?? '');
+            setCreatedProductName(name);
             setComboDialogOpen(false);
-            toast.success('Combo created', 'The new combo has been successfully created.');
+            setSuccessDialogOpen(true);
+            setComboIsCurrentUpload(true); // Flag to know if we should use combo upload endpoint
           },
         });
       }
     },
-    [editingCombo, createComboMutation, updateComboMutation, toast]
+    [editingCombo, createComboMutation, updateComboMutation, updateComboItemsMutation, toast]
+  );
+
+  const handleComboAddToCart = useCallback(
+    async (combo: import('@/api').ComboResponse) => {
+      try {
+        await addToCartMutation.mutateAsync({
+          productVariantId: null,
+          comboId: combo.id,
+          quantity: 1,
+        });
+        toast.success('Combo added to cart', `Successfully added ${combo.name} to cart.`);
+      } catch {
+        toast.error('Failed to add combo', 'There was an error while adding to cart.');
+      }
+    },
+    [addToCartMutation, toast]
   );
 
   const productColumns = useProductColumns({ onView: handleViewDetail, onEdit: handleEdit, onDelete: handleDelete, onAddVariant: handleAddVariant });
@@ -529,8 +568,8 @@ export default function ProductsPage() {
     onView: handleViewCombo,
     onEdit: handleEditCombo,
     onDelete: handleDeleteCombo,
-    onDuplicate: handleDuplicateCombo,
     onAddVariant: handleAddComboVariant,
+    onAddToCart: handleComboAddToCart,
   });
 
   // Stats
@@ -694,7 +733,6 @@ export default function ProductsPage() {
                   onAddComboVariant={handleAddComboVariant}
                   onEditCombo={handleEditCombo}
                   onDeleteCombo={handleDeleteCombo}
-                  onDuplicateCombo={handleDuplicateCombo}
                 />
               </div>
 
@@ -756,8 +794,8 @@ export default function ProductsPage() {
         onOpenChange={setImageUploadOpen}
         productId={uploadProductId}
         productName={uploadProductName}
-        onUpload={handleUploadImages}
-        isUploading={uploadImagesMutation.isPending}
+        onUpload={comboIsCurrentUpload ? handleUploadComboImages : handleUploadImages}
+        isUploading={comboIsCurrentUpload ? uploadComboImageMutation.isPending : uploadImagesMutation.isPending}
       />
 
       {/* Delete Combo Confirmation */}

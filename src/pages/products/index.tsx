@@ -1,5 +1,4 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { motion } from 'framer-motion';
 import { ChevronDown, Search } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 
@@ -14,17 +13,16 @@ import {
 import { FilterSidebar } from './components/FilterSidebar';
 import { ProductGrid } from './components/ProductGrid';
 import { Pagination } from './components/Pagination';
-import type { FilterOptions } from './types';
-import type { Product } from './types';
+import type { FilterOptions, Product } from './types';
 import { sortOptions } from './data';
 import { useBreadcrumb } from '@/components/common/breadcrumb/useBreadcrumb';
 import { useProductsByFilter } from '@/hooks/queries/useProduct';
 import { useCategories } from '@/hooks/queries/useCategory';
 import type { ProductResponse } from '@/api/types/product.types';
+import { cn } from '@/lib/utils';
 
 const ITEMS_PER_PAGE = 9;
 
-// Default filter state
 const defaultFilters: FilterOptions = {
     ages: [],
     colors: [],
@@ -33,9 +31,6 @@ const defaultFilters: FilterOptions = {
     sortBy: 'default',
 };
 
-// ... (constants above)
-
-/** Map a ProductResponse from API → local Product type for ProductCard */
 function mapToProduct(p: ProductResponse): Product {
     const firstVariant = p.variants?.[0];
     const price = firstVariant?.salePrice || firstVariant?.basePrice || p.minPrice || 0;
@@ -46,8 +41,6 @@ function mapToProduct(p: ProductResponse): Product {
             : undefined;
 
     const firstImage = p.assets?.[0]?.url;
-
-    // status: 0=Draft, 1=Published, 2=OutOfStock, 3=Hidden
     const isOutOfStock = p.status === 'OutOfStock';
     const isPublished = p.status === 'Published';
 
@@ -71,15 +64,6 @@ function mapToProduct(p: ProductResponse): Product {
     };
 }
 
-// Animation variants
-const pageVariants = {
-    initial: { opacity: 0 },
-    animate: {
-        opacity: 1,
-        transition: { duration: 0.4 }
-    }
-};
-
 export default function ProductsPage() {
     const [searchParams] = useSearchParams();
     const urlCateId = searchParams.get('cateId');
@@ -90,36 +74,30 @@ export default function ProductsPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
 
-    // Build API params from URL
     const apiParams = useMemo(() => {
         const params: Record<string, unknown> = {};
         if (urlCateId) params.cateId = Number(urlCateId);
-        params.pageNumber = 1; // fetch all for now, paginate client-side
+        params.pageNumber = 1;
         return params;
     }, [urlCateId]);
 
-    // Fetch products from API
     const { data: apiProducts = [], isLoading } = useProductsByFilter(apiParams);
-
-    // Get category list for breadcrumb name lookup
     const { data: categories = [] } = useCategories();
+
     const categoryName = useMemo(() => {
         if (!urlCateId) return null;
         const cat = categories.find(c => c.cateId === Number(urlCateId));
         return cat?.name || null;
     }, [urlCateId, categories]);
 
-    // Map API data → local Product type
     const products: Product[] = useMemo(
         () => apiProducts.map(mapToProduct),
         [apiProducts]
     );
 
-    // Filter and sort products
     const filteredProducts = useMemo(() => {
         let result = [...products];
 
-        // Apply search filter
         if (searchQuery) {
             const query = searchQuery.toLowerCase();
             result = result.filter(
@@ -130,14 +108,12 @@ export default function ProductsPage() {
             );
         }
 
-        // Apply age filter (multi-select)
         if (filters.ages.length > 0) {
             result = result.filter((product) =>
                 product.ageRange && filters.ages.includes(product.ageRange)
             );
         }
 
-        // Apply price range filter
         if (filters.priceRange.min !== null) {
             result = result.filter((product) => product.price >= filters.priceRange.min!);
         }
@@ -145,7 +121,6 @@ export default function ProductsPage() {
             result = result.filter((product) => product.price <= filters.priceRange.max!);
         }
 
-        // Apply sorting
         switch (filters.sortBy) {
             case 'price-asc':
                 result.sort((a, b) => a.price - b.price);
@@ -166,18 +141,15 @@ export default function ProductsPage() {
         return result;
     }, [products, filters, searchQuery]);
 
-    // Effective page: clamp to available range
     const totalPages = Math.max(1, Math.ceil(filteredProducts.length / ITEMS_PER_PAGE));
     const effectivePage = Math.min(currentPage, totalPages);
 
-    // Paginate products
     const paginatedProducts = useMemo(() => {
         const startIndex = (effectivePage - 1) * ITEMS_PER_PAGE;
         const endIndex = startIndex + ITEMS_PER_PAGE;
         return filteredProducts.slice(startIndex, endIndex);
     }, [filteredProducts, effectivePage]);
 
-    // Handlers
     const handleFilterChange = useCallback((newFilters: FilterOptions) => {
         setFilters(newFilters);
         setCurrentPage(1);
@@ -193,16 +165,11 @@ export default function ProductsPage() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
-    const handleAddToCart = (productId: string) => {
-        console.log('Add to cart:', productId);
-    };
-
     const handleResetFilters = useCallback(() => {
         setFilters(defaultFilters);
         setSearchQuery('');
     }, []);
 
-    // Breadcrumb
     const { setItems: setBreadcrumb } = useBreadcrumb();
     useEffect(() => {
         const displayCategory = urlCategoryName || categoryName;
@@ -215,7 +182,6 @@ export default function ProductsPage() {
         return () => setBreadcrumb([]);
     }, [setBreadcrumb, categoryName, urlCategoryName, urlMaterialName, urlCateId]);
 
-    // Page title
     const pageTitle = useMemo(() => {
         const displayCategory = urlCategoryName || categoryName;
         if (urlMaterialName && displayCategory) return `${urlMaterialName} – ${displayCategory}`;
@@ -225,17 +191,20 @@ export default function ProductsPage() {
     }, [categoryName, urlCategoryName, urlMaterialName]);
 
     return (
-        <motion.div
-            className="min-h-screen bg-gray-50/50"
-            variants={pageVariants}
-            initial="initial"
-            animate="animate"
-        >
-            <div className="container mx-auto px-4 py-8">
-                <div className="flex gap-8">
-                    {/* Sidebar Filter */}
-                    <aside className="hidden w-[280px] shrink-0 lg:block">
-                        <div className="sticky top-24 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+        <div className="min-h-screen bg-white">
+            <div className="container mx-auto px-4 py-12 lg:py-20 lg:px-8 xl:max-w-7xl">
+                <div className="flex flex-col lg:flex-row gap-12 lg:gap-20">
+                    <aside className="w-full lg:w-[300px] shrink-0">
+                        <div className="sticky top-10 space-y-12">
+                            <div className="space-y-4">
+                                <h1 className="text-4xl lg:text-6xl font-black text-gray-950 uppercase tracking-tighter leading-none">
+                                    {pageTitle}
+                                </h1>
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                                    {filteredProducts.length} items found
+                                </p>
+                            </div>
+
                             <FilterSidebar
                                 filters={filters}
                                 onFilterChange={handleFilterChange}
@@ -244,109 +213,65 @@ export default function ProductsPage() {
                         </div>
                     </aside>
 
-                    {/* Main Content */}
-                    <main className="flex-1 min-w-0">
-                        {/* Header */}
-                        <motion.div
-                            className="mb-6"
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.1 }}
-                        >
-                            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                                <div>
-                                    <h1 className="text-2xl font-bold text-[var(--color-primary-dark)]">
-                                        {pageTitle}
-                                    </h1>
-                                    <p className="mt-1 text-sm text-gray-500">
-                                        <span className="font-medium text-[var(--color-primary)]">{filteredProducts.length}</span> products found
-                                    </p>
-                                </div>
-
-                                {/* Sort Dropdown */}
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button
-                                            variant="outline"
-                                            className="h-10 min-w-[160px] justify-between rounded-xl border-gray-200 px-4 bg-white"
-                                        >
-                                            <span className="text-sm text-gray-600">
-                                                Sort by: <span className="font-medium text-gray-800">
-                                                    {sortOptions.find((opt) => opt.value === filters.sortBy)?.label || 'Popular'}
-                                                </span>
-                                            </span>
-                                            <ChevronDown className="ml-2 h-4 w-4 text-gray-400" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="w-[180px] rounded-xl p-1.5">
-                                        {sortOptions.map((option) => (
-                                            <DropdownMenuItem
-                                                key={option.value}
-                                                onClick={() => handleFilterChange({ ...filters, sortBy: option.value as FilterOptions['sortBy'] })}
-                                                className={`cursor-pointer rounded-lg px-3 py-2 text-sm ${filters.sortBy === option.value
-                                                    ? 'bg-[var(--color-primary-light)] text-[var(--color-primary-dark)]'
-                                                    : ''
-                                                    }`}
-                                            >
-                                                {option.label}
-                                            </DropdownMenuItem>
-                                        ))}
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+                    <main className="flex-1 min-w-0 space-y-12">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-8 border-b border-gray-100 gap-6">
+                            <div className="relative w-full max-w-sm">
+                                <Search className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-300" />
+                                <form onSubmit={handleSearch}>
+                                    <Input
+                                        type="text"
+                                        placeholder="Search products..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="h-10 w-full border-0 bg-transparent pl-8 text-[11px] font-black uppercase tracking-widest focus-visible:ring-0"
+                                    />
+                                </form>
                             </div>
-                        </motion.div>
 
-                        {/* Search Bar - Mobile/Desktop */}
-                        <motion.div
-                            className="mb-6"
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.15 }}
-                        >
-                            <form onSubmit={handleSearch} className="relative">
-                                <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                                <Input
-                                    type="text"
-                                    placeholder="Search baby mattresses, blankets, pillows..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="h-11 rounded-xl border-gray-200 bg-white pl-11 pr-4 text-sm shadow-sm transition-all focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
-                                />
-                            </form>
-                        </motion.div>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" className="h-10 gap-4 text-[11px] font-black tracking-widest uppercase hover:bg-transparent px-0">
+                                        Sort by: <span className="text-gray-400">
+                                            {sortOptions.find((opt) => opt.value === filters.sortBy)?.label || 'Featured'}
+                                        </span>
+                                        <ChevronDown className="h-4 w-4 text-gray-400" />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-64 rounded-2xl p-2 shadow-2xl border-gray-100">
+                                    {sortOptions.map((option) => (
+                                        <DropdownMenuItem
+                                            key={option.value}
+                                            onClick={() => handleFilterChange({ ...filters, sortBy: option.value as FilterOptions['sortBy'] })}
+                                            className={cn(
+                                                "rounded-xl px-4 py-3 text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all",
+                                                filters.sortBy === option.value ? "bg-gray-950 text-white" : "text-gray-400 hover:text-gray-950"
+                                            )}
+                                        >
+                                            {option.label}
+                                        </DropdownMenuItem>
+                                    ))}
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
 
-                        {/* Products Grid */}
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: 0.2 }}
-                        >
-                            <ProductGrid
-                                products={paginatedProducts}
-                                isLoading={isLoading}
-                                onAddToCart={handleAddToCart}
-                                onResetFilters={handleResetFilters}
-                            />
-                        </motion.div>
+                        <ProductGrid
+                            products={paginatedProducts}
+                            isLoading={isLoading}
+                            onResetFilters={handleResetFilters}
+                        />
 
-                        {/* Pagination */}
                         {totalPages > 1 && (
-                            <motion.div
-                                className="mt-10"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 0.3 }}
-                            >
+                            <div className="pt-20">
                                 <Pagination
                                     currentPage={currentPage}
                                     totalPages={totalPages}
                                     onPageChange={handlePageChange}
                                 />
-                            </motion.div>
+                            </div>
                         )}
                     </main>
                 </div>
             </div>
-        </motion.div>
+        </div>
     );
 }

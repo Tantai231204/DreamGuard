@@ -1,20 +1,19 @@
-import { useState, useCallback, useRef, useMemo, useEffect, type FC } from 'react';
+import { useState, useCallback, useRef, useEffect, type FC } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import {
     SlidersHorizontal,
     RotateCcw,
     X,
-    DollarSign,
     Palette,
     Baby,
     Ruler,
     ChevronDown,
+    Zap
 } from 'lucide-react';
 import type { FilterOptions } from '../types';
 import { ageRanges } from '../data';
@@ -26,7 +25,6 @@ interface FilterSidebarProps {
     onReset: () => void;
 }
 
-// Color options
 interface ColorOption {
     value: string;
     label: string;
@@ -45,46 +43,38 @@ const colorOptions: ColorOption[] = [
 
 const sizeOptions = ['Newborn', 'S (0-6M)', 'M (6-12M)', 'L (1-2Y)', 'XL (2Y+)'];
 
-// Collapsible filter section component
 function FilterSection({
     title,
     icon: Icon,
     children,
     defaultOpen = true,
-    count,
 }: {
     title: string;
     icon: React.ElementType;
     children: React.ReactNode;
     defaultOpen?: boolean;
-    count?: number;
 }) {
     const [isOpen, setIsOpen] = useState(defaultOpen);
 
     return (
-        <div className="py-1">
+        <div className="py-2">
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex w-full items-center justify-between py-2.5 group"
+                className="flex w-full items-center justify-between py-6 group"
             >
-                <div className="flex items-center gap-2.5">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--color-primary)]/10">
-                        <Icon className="h-3.5 w-3.5 text-[var(--color-primary)]" />
+                <div className="flex items-center gap-4">
+                    <div className={cn(
+                        "flex h-10 w-10 items-center justify-center rounded-2xl transition-all duration-300",
+                        isOpen ? "bg-gray-950 text-white" : "bg-gray-50 text-gray-400 group-hover:bg-gray-100 group-hover:text-gray-950"
+                    )}>
+                        <Icon className="h-4 w-4" />
                     </div>
-                    <span className="text-[13px] font-semibold text-gray-800">{title}</span>
-                    {count !== undefined && count > 0 && (
-                        <Badge
-                            variant="secondary"
-                            className="h-5 min-w-5 px-1.5 text-[10px] font-bold bg-[var(--color-primary)] text-white border-0"
-                        >
-                            {count}
-                        </Badge>
-                    )}
+                    <span className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-950">{title}</span>
                 </div>
                 <ChevronDown
                     className={cn(
-                        "h-4 w-4 text-gray-400 transition-transform duration-200 group-hover:text-gray-600",
+                        "h-4 w-4 text-gray-300 transition-transform duration-500",
                         isOpen && "rotate-180"
                     )}
                 />
@@ -95,10 +85,10 @@ function FilterSection({
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2, ease: 'easeInOut' }}
+                        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
                         className="overflow-hidden"
                     >
-                        <div className="pb-2 pt-1">{children}</div>
+                        <div className="pb-8 pt-2">{children}</div>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -111,13 +101,11 @@ export const FilterSidebar: FC<FilterSidebarProps> = ({
     onFilterChange,
     onReset,
 }) => {
-    // Local price state for slider
     const [priceRange, setPriceRange] = useState<[number, number]>([
         filters.priceRange.min ?? 0,
         filters.priceRange.max ?? 1000,
     ]);
 
-    // Debounce timer refs
     const filterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const priceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -128,7 +116,13 @@ export const FilterSidebar: FC<FilterSidebarProps> = ({
         };
     }, []);
 
-    // Toggle array filter with debounce
+    const isSelected = useCallback(
+        (key: 'ages' | 'colors' | 'sizes', value: string) => {
+            return filters[key].includes(value);
+        },
+        [filters]
+    );
+
     const toggleArrayFilter = useCallback(
         (key: 'ages' | 'colors' | 'sizes', value: string) => {
             const currentArray = filters[key];
@@ -139,206 +133,118 @@ export const FilterSidebar: FC<FilterSidebarProps> = ({
             if (filterTimerRef.current) clearTimeout(filterTimerRef.current);
             filterTimerRef.current = setTimeout(() => {
                 onFilterChange({ ...filters, [key]: newArray });
-            }, 150);
+            }, 100);
         },
         [filters, onFilterChange]
     );
 
-    // Handle price slider change with debounce
     const handlePriceChange = useCallback(
         (value: number[]) => {
             setPriceRange([value[0], value[1]]);
-
             if (priceTimerRef.current) clearTimeout(priceTimerRef.current);
             priceTimerRef.current = setTimeout(() => {
                 onFilterChange({
                     ...filters,
                     priceRange: { min: value[0], max: value[1] },
                 });
-            }, 200);
+            }, 150);
         },
         [filters, onFilterChange]
     );
 
-    // Handle min input change
     const handleMinInput = useCallback(
         (e: React.ChangeEvent<HTMLInputElement>) => {
             const val = parseInt(e.target.value) || 0;
             const clamped = Math.min(Math.max(val, 0), priceRange[1] - 10);
             setPriceRange([clamped, priceRange[1]]);
-
             if (priceTimerRef.current) clearTimeout(priceTimerRef.current);
             priceTimerRef.current = setTimeout(() => {
-                onFilterChange({
-                    ...filters,
-                    priceRange: { min: clamped, max: priceRange[1] },
-                });
-            }, 400);
+                onFilterChange({ ...filters, priceRange: { min: clamped, max: priceRange[1] } });
+            }, 300);
         },
         [filters, onFilterChange, priceRange]
     );
 
-    // Handle max input change
     const handleMaxInput = useCallback(
         (e: React.ChangeEvent<HTMLInputElement>) => {
             const val = parseInt(e.target.value) || 1000;
             const clamped = Math.max(Math.min(val, 1000), priceRange[0] + 10);
             setPriceRange([priceRange[0], clamped]);
-
             if (priceTimerRef.current) clearTimeout(priceTimerRef.current);
             priceTimerRef.current = setTimeout(() => {
-                onFilterChange({
-                    ...filters,
-                    priceRange: { min: priceRange[0], max: clamped },
-                });
-            }, 400);
+                onFilterChange({ ...filters, priceRange: { min: priceRange[0], max: clamped } });
+            }, 300);
         },
         [filters, onFilterChange, priceRange]
     );
 
-    // Quick price presets
-    const pricePresets = useMemo(
-        () => [
-            { label: 'Under $50', min: 0, max: 50 },
-            { label: '$50–200', min: 50, max: 200 },
-            { label: '$200–500', min: 200, max: 500 },
-            { label: '$500+', min: 500, max: 1000 },
-        ],
-        []
-    );
+    const activeFilterCount = filters.ages.length +
+        filters.colors.length +
+        filters.sizes.length +
+        (filters.priceRange.min !== null && filters.priceRange.min !== 0 ? 1 : 0) +
+        (filters.priceRange.max !== null && filters.priceRange.max !== 1000 ? 1 : 0);
 
-    const handlePreset = useCallback(
-        (min: number, max: number) => {
-            setPriceRange([min, max]);
-            onFilterChange({ ...filters, priceRange: { min, max } });
-        },
-        [filters, onFilterChange]
-    );
+    const filteredAgeRanges = ageRanges.filter((a) => a !== 'All');
 
-    const isPresetActive = useCallback(
-        (min: number, max: number) => priceRange[0] === min && priceRange[1] === max,
-        [priceRange]
-    );
-
-    const isSelected = useCallback(
-        (key: 'ages' | 'colors' | 'sizes', value: string) =>
-            filters[key].includes(value),
-        [filters]
-    );
-
-    const activeFilterCount = useMemo(
-        () =>
-            filters.ages.length +
-            filters.colors.length +
-            filters.sizes.length +
-            (filters.priceRange.min !== null && filters.priceRange.min !== 0 ? 1 : 0) +
-            (filters.priceRange.max !== null && filters.priceRange.max !== 1000 ? 1 : 0),
-        [filters]
-    );
-
-    const filteredAgeRanges = useMemo(() => ageRanges.filter((a) => a !== 'All'), []);
-
-    const handleReset = useCallback(() => {
+    const handleReset = () => {
         setPriceRange([0, 1000]);
         onReset();
-    }, [onReset]);
-
-    // Collect all active pills
-    const activePills = useMemo(() => {
-        const pills: { key: 'ages' | 'colors' | 'sizes'; value: string; color: string }[] = [];
-        filters.ages.forEach((v) => pills.push({ key: 'ages', value: v, color: 'amber' }));
-        filters.colors.forEach((v) => pills.push({ key: 'colors', value: v, color: 'purple' }));
-        filters.sizes.forEach((v) => pills.push({ key: 'sizes', value: v, color: 'rose' }));
-        return pills;
-    }, [filters]);
-
-    const pillColorMap: Record<string, string> = {
-        amber: 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100',
-        purple: 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100',
-        rose: 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100',
     };
+
+    const activePills = [
+        ...filters.ages.map(v => ({ key: 'ages' as const, value: v })),
+        ...filters.colors.map(v => ({ key: 'colors' as const, value: v })),
+        ...filters.sizes.map(v => ({ key: 'sizes' as const, value: v })),
+    ];
 
     return (
         <motion.aside
-            className="w-full"
-            initial={{ opacity: 0, x: -16 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.35 }}
+            className="w-full space-y-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.6 }}
         >
-            {/* Header */}
             <div className="flex items-center justify-between pb-4">
-                <div className="flex items-center gap-2.5">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--color-primary)] shadow-sm">
-                        <SlidersHorizontal className="h-4 w-4 text-white" />
-                    </div>
-                    <div>
-                        <h2 className="text-sm font-bold text-gray-900">Filters</h2>
-                        {activeFilterCount > 0 && (
-                            <p className="text-[11px] text-gray-500">
-                                {activeFilterCount} active
-                            </p>
-                        )}
-                    </div>
+                <div className="flex items-center gap-3">
+                    <SlidersHorizontal className="h-5 w-5 text-gray-950" />
+                    <h2 className="text-[12px] font-black uppercase tracking-[0.2em] text-gray-950">Filters</h2>
                 </div>
                 {activeFilterCount > 0 && (
                     <Button
                         variant="ghost"
                         size="sm"
                         onClick={handleReset}
-                        className="h-8 gap-1.5 rounded-lg text-xs text-gray-500 hover:text-red-500 hover:bg-red-50"
+                        className="h-8 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-950 transition-all p-0"
                     >
-                        <RotateCcw className="h-3 w-3" />
-                        Clear all
+                        <RotateCcw className="h-3 w-3 mr-2" />
+                        Reset
                     </Button>
                 )}
             </div>
 
-            {/* Active Filter Pills */}
             <AnimatePresence>
                 {activePills.length > 0 && (
-                    <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="overflow-hidden"
-                    >
-                        <div className="flex flex-wrap gap-1.5 pb-4">
-                            {activePills.map((pill) => (
-                                <motion.button
-                                    key={`${pill.key}-${pill.value}`}
-                                    type="button"
-                                    initial={{ opacity: 0, scale: 0.8 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 0.8 }}
-                                    onClick={() => toggleArrayFilter(pill.key, pill.value)}
-                                    className={cn(
-                                        "inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors",
-                                        pillColorMap[pill.color]
-                                    )}
-                                >
-                                    {pill.value}
-                                    <X className="h-3 w-3 opacity-60" />
-                                </motion.button>
-                            ))}
-                        </div>
-                    </motion.div>
+                    <div className="flex flex-wrap gap-2 pb-6">
+                        {activePills.map((pill) => (
+                            <motion.button
+                                key={`${pill.key}-${pill.value}`}
+                                initial={{ scale: 0.9, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.9, opacity: 0 }}
+                                onClick={() => toggleArrayFilter(pill.key, pill.value)}
+                                className="inline-flex items-center gap-2 rounded-lg bg-gray-50 border border-gray-100 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-gray-950 hover:bg-gray-100 transition-all"
+                            >
+                                {pill.value}
+                                <X className="h-3 w-3 text-gray-400" />
+                            </motion.button>
+                        ))}
+                    </div>
                 )}
             </AnimatePresence>
 
-            <Separator className="bg-gray-100" />
-
-            {/* Price Range */}
-            <FilterSection
-                title="Price Range"
-                icon={DollarSign}
-                count={
-                    (filters.priceRange.min !== null && filters.priceRange.min !== 0 ? 1 : 0) +
-                    (filters.priceRange.max !== null && filters.priceRange.max !== 1000 ? 1 : 0)
-                }
-            >
-                <div className="space-y-5 px-0.5">
-                    {/* Slider */}
-                    <div className="px-1">
+            <div className="space-y-2">
+                <FilterSection title="Price" icon={Zap}>
+                    <div className="space-y-8 pt-2">
                         <Slider
                             min={0}
                             max={1000}
@@ -347,176 +253,104 @@ export const FilterSidebar: FC<FilterSidebarProps> = ({
                             onValueChange={handlePriceChange}
                             className="w-full"
                         />
-                    </div>
-
-                    {/* Editable Min / Max inputs */}
-                    <div className="flex items-center gap-3">
-                        <div className="flex-1 relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-medium text-gray-400">$</span>
+                        <div className="flex items-center gap-4">
                             <Input
                                 type="number"
-                                min={0}
-                                max={priceRange[1] - 10}
                                 value={priceRange[0]}
                                 onChange={handleMinInput}
-                                className="h-10 pl-7 pr-2 text-sm font-semibold text-gray-800 rounded-xl border-gray-200 bg-gray-50/80 text-center focus:border-[var(--color-primary)] focus:bg-white focus:ring-2 focus:ring-[var(--color-primary)]/15 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                className="h-10 rounded-xl border-gray-100 bg-gray-50 text-center text-[10px] font-black uppercase focus:bg-white focus:ring-0 transition-all"
                             />
-                            <span className="absolute -bottom-4 left-0 text-[10px] text-gray-400">Min</span>
-                        </div>
-                        <div className="flex items-center gap-1 pt-0">
-                            <div className="h-px w-3 bg-gray-300" />
-                        </div>
-                        <div className="flex-1 relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-medium text-gray-400">$</span>
+                            <span className="text-gray-200">—</span>
                             <Input
                                 type="number"
-                                min={priceRange[0] + 10}
-                                max={1000}
                                 value={priceRange[1]}
                                 onChange={handleMaxInput}
-                                className="h-10 pl-7 pr-2 text-sm font-semibold text-gray-800 rounded-xl border-gray-200 bg-gray-50/80 text-center focus:border-[var(--color-primary)] focus:bg-white focus:ring-2 focus:ring-[var(--color-primary)]/15 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                className="h-10 rounded-xl border-gray-100 bg-gray-50 text-center text-[10px] font-black uppercase focus:bg-white focus:ring-0 transition-all"
                             />
-                            <span className="absolute -bottom-4 right-0 text-[10px] text-gray-400">Max</span>
                         </div>
                     </div>
+                </FilterSection>
 
-                    {/* Quick presets */}
-                    <div className="grid grid-cols-2 gap-1.5 pt-2">
-                        {pricePresets.map((preset) => (
-                            <button
-                                key={preset.label}
-                                type="button"
-                                onClick={() => handlePreset(preset.min, preset.max)}
-                                className={cn(
-                                    "rounded-lg border px-2.5 py-1.5 text-[11px] font-medium transition-all",
-                                    isPresetActive(preset.min, preset.max)
-                                        ? "border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-[var(--color-primary-dark)]"
-                                        : "border-gray-150 text-gray-500 hover:border-gray-300 hover:bg-gray-50"
-                                )}
-                            >
-                                {preset.label}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            </FilterSection>
+                <Separator className="bg-gray-100/50" />
 
-            <Separator className="bg-gray-100" />
-
-            {/* Color */}
-            <FilterSection title="Color" icon={Palette} count={filters.colors.length}>
-                <div className="grid grid-cols-3 gap-2">
-                    {colorOptions.map((color) => {
-                        const selected = isSelected('colors', color.value);
-                        return (
-                            <button
-                                key={color.value}
-                                type="button"
-                                onClick={() => toggleArrayFilter('colors', color.value)}
-                                className={cn(
-                                    "group flex flex-col items-center gap-1.5 rounded-xl border-2 p-2.5 transition-all",
-                                    selected
-                                        ? "border-[var(--color-primary)] bg-[var(--color-primary)]/5 shadow-sm"
-                                        : "border-transparent hover:border-gray-200 hover:bg-gray-50"
-                                )}
-                            >
-                                <div className="relative">
-                                    <span
-                                        className={cn(
-                                            "block h-7 w-7 rounded-full shadow-sm transition-transform group-hover:scale-110",
-                                            color.border && "border border-gray-200"
-                                        )}
-                                        style={{ backgroundColor: color.color }}
-                                    />
-                                    {selected && (
-                                        <motion.div
-                                            initial={{ scale: 0 }}
-                                            animate={{ scale: 1 }}
-                                            className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-primary)] text-white"
-                                        >
-                                            <svg className="h-2.5 w-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                            </svg>
-                                        </motion.div>
-                                    )}
-                                </div>
-                                <span className={cn(
-                                    "text-[11px] font-medium",
-                                    selected ? "text-[var(--color-primary-dark)]" : "text-gray-500"
-                                )}>
-                                    {color.label}
-                                </span>
-                            </button>
-                        );
-                    })}
-                </div>
-            </FilterSection>
-
-            <Separator className="bg-gray-100" />
-
-            {/* Age Range */}
-            <FilterSection title="Age Range" icon={Baby} count={filters.ages.length}>
-                <div className="space-y-1">
-                    {filteredAgeRanges.map((age) => {
-                        const selected = isSelected('ages', age);
-                        return (
-                            <label
-                                key={age}
-                                htmlFor={`age-${age}`}
-                                className={cn(
-                                    "flex cursor-pointer items-center gap-3 rounded-xl px-3 py-2.5 transition-all",
-                                    selected
-                                        ? "bg-[var(--color-primary)]/5 border border-[var(--color-primary)]/20"
-                                        : "hover:bg-gray-50 border border-transparent"
-                                )}
-                            >
-                                <Checkbox
-                                    id={`age-${age}`}
-                                    checked={selected}
-                                    onChange={() => toggleArrayFilter('ages', age)}
-                                    className="h-4 w-4 rounded border-gray-300"
-                                />
-                                <span
+                <FilterSection title="Colors" icon={Palette}>
+                    <div className="grid grid-cols-3 gap-3">
+                        {colorOptions.map((color) => {
+                            const selected = isSelected('colors', color.value);
+                            return (
+                                <button
+                                    key={color.value}
+                                    onClick={() => toggleArrayFilter('colors', color.value)}
                                     className={cn(
-                                        "text-[13px]",
+                                        "flex flex-col items-center gap-2 rounded-xl border p-3 transition-all",
                                         selected
-                                            ? "font-semibold text-[var(--color-primary-dark)]"
-                                            : "text-gray-600"
+                                            ? "border-gray-950 bg-gray-950 text-white"
+                                            : "border-gray-50 bg-gray-50/50 hover:border-gray-200"
                                     )}
                                 >
-                                    {age}
-                                </span>
-                            </label>
-                        );
-                    })}
-                </div>
-            </FilterSection>
+                                    <div
+                                        className={cn("h-6 w-6 rounded-full border border-white/20", color.border && "border-gray-200")}
+                                        style={{ backgroundColor: color.color }}
+                                    />
+                                    <span className="text-[8px] font-black uppercase tracking-widest">{color.label}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </FilterSection>
 
-            <Separator className="bg-gray-100" />
+                <Separator className="bg-gray-100/50" />
 
-            {/* Size */}
-            <FilterSection title="Size" icon={Ruler} count={filters.sizes.length}>
-                <div className="grid grid-cols-2 gap-2">
-                    {sizeOptions.map((size) => {
-                        const selected = isSelected('sizes', size);
-                        return (
-                            <button
-                                key={size}
-                                type="button"
-                                onClick={() => toggleArrayFilter('sizes', size)}
-                                className={cn(
-                                    "rounded-xl border-2 px-3 py-2 text-xs font-medium transition-all",
-                                    selected
-                                        ? "border-[var(--color-primary)] bg-[var(--color-primary)]/5 text-[var(--color-primary-dark)] shadow-sm"
-                                        : "border-gray-100 text-gray-500 hover:border-[var(--color-primary)]/40 hover:bg-[var(--color-primary)]/5 hover:text-[var(--color-primary-dark)]"
-                                )}
-                            >
-                                {size}
-                            </button>
-                        );
-                    })}
-                </div>
-            </FilterSection>
+                <FilterSection title="Age" icon={Baby}>
+                    <div className="grid gap-2">
+                        {filteredAgeRanges.map((age) => {
+                            const selected = isSelected('ages', age);
+                            return (
+                                <label
+                                    key={age}
+                                    className={cn(
+                                        "flex items-center gap-3 rounded-xl border px-4 py-3 cursor-pointer transition-all",
+                                        selected
+                                            ? "border-gray-950 bg-gray-950 text-white"
+                                            : "border-gray-50 bg-gray-50/50 hover:border-gray-100"
+                                    )}
+                                >
+                                    <Checkbox
+                                        checked={selected}
+                                        onCheckedChange={() => toggleArrayFilter('ages', age)}
+                                        className={cn("h-4 w-4 border-2", selected ? "border-white bg-white text-gray-950" : "border-gray-200")}
+                                    />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">{age}</span>
+                                </label>
+                            );
+                        })}
+                    </div>
+                </FilterSection>
+
+                <Separator className="bg-gray-100/50" />
+
+                <FilterSection title="Sizes" icon={Ruler}>
+                    <div className="grid grid-cols-2 gap-2">
+                        {sizeOptions.map((size) => {
+                            const selected = isSelected('sizes', size);
+                            return (
+                                <button
+                                    key={size}
+                                    onClick={() => toggleArrayFilter('sizes', size)}
+                                    className={cn(
+                                        "h-12 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all",
+                                        selected
+                                            ? "border-gray-950 bg-gray-950 text-white"
+                                            : "border-gray-50 bg-white hover:border-gray-950"
+                                    )}
+                                >
+                                    {size}
+                                </button>
+                            );
+                        })}
+                    </div>
+                </FilterSection>
+            </div>
         </motion.aside>
     );
 };

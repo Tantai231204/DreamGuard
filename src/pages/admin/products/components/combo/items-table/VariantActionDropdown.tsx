@@ -1,4 +1,4 @@
-import { MoreVertical, Edit, Copy, Trash2 } from 'lucide-react';
+import { MoreVertical, Edit, Trash2 } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -13,14 +13,12 @@ interface VariantActionDropdownProps {
     variant: Combo;
     onEdit?: (v: Combo) => void;
     onDelete?: (v: Combo) => void;
-    onDuplicate?: (v: Combo) => void;
 }
 
 export function VariantActionDropdown({
     variant,
     onEdit,
     onDelete,
-    onDuplicate,
 }: VariantActionDropdownProps) {
     return (
         <DropdownMenu>
@@ -28,24 +26,26 @@ export function VariantActionDropdown({
                 <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 w-8 p-0 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                    className="h-8 w-8 p-0 rounded hover:bg-slate-100 transition-colors"
                 >
-                    <MoreVertical className="h-4 w-4" />
+                    <MoreVertical className="h-4 w-4 text-slate-400" />
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 shadow-xl border-2 rounded-xl border-gray-100 animate-in fade-in zoom-in-95 duration-200">
-                <DropdownMenuItem className="cursor-pointer py-2 font-medium" onClick={() => onEdit?.(variant)}>
-                    <Edit className="h-3.5 w-3.5 mr-2.5 text-gray-600" />
-                    Edit Variant
+            <DropdownMenuContent align="end" className="w-48 shadow-xl border border-slate-200/60 rounded-xl p-1 animate-in fade-in zoom-in-95 duration-100">
+                <DropdownMenuItem
+                    className="rounded-lg cursor-pointer py-2 px-3 font-medium text-slate-600 hover:text-blue-600 focus:bg-blue-50 focus:text-blue-700 transition-colors gap-2.5"
+                    onClick={() => onEdit?.(variant)}
+                >
+                    <Edit className="h-4 w-4 opacity-70" />
+                    <span className="text-[13px]">Edit Variant</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer py-2 font-medium" onClick={() => onDuplicate?.(variant)}>
-                    <Copy className="h-3.5 w-3.5 mr-2.5 text-emerald-500" />
-                    Duplicate
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="cursor-pointer py-2 text-red-600 font-bold focus:bg-red-50 focus:text-red-700" onClick={() => onDelete?.(variant)}>
-                    <Trash2 className="h-3.5 w-3.5 mr-2.5" />
-                    Delete Variant
+                <DropdownMenuSeparator className="my-1 bg-slate-100" />
+                <DropdownMenuItem
+                    className="rounded-lg cursor-pointer py-2 px-3 font-medium text-red-500 focus:bg-red-50 focus:text-red-600 transition-colors gap-2.5"
+                    onClick={() => onDelete?.(variant)}
+                >
+                    <Trash2 className="h-4 w-4 opacity-70" />
+                    <span className="text-[13px]">Delete Variant</span>
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>

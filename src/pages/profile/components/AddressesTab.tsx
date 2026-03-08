@@ -1,5 +1,9 @@
-import { useState, useEffect } from "react";
-import { PlusIcon, Pencil1Icon, TrashIcon } from "@radix-ui/react-icons";
+import { useState } from "react";
+import {
+  PlusIcon,
+  Pencil1Icon,
+  TrashIcon,
+} from "@radix-ui/react-icons";
 import { MapPin, Phone, CheckCircle2, Home, Star } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import { Input } from "../../../components/ui/input";
@@ -38,7 +42,9 @@ export default function AddressesTab() {
   };
 
   const handleDelete = (id: string) => {
-    deleteMutation.mutate(id);
+    if (window.confirm("Are you sure you want to delete this address?")) {
+      deleteMutation.mutate(id);
+    }
   };
 
   if (isPending) {
@@ -46,7 +52,7 @@ export default function AddressesTab() {
       <div className="flex items-center justify-center p-12">
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 rounded-full border-2 border-[#4988c4]/20 border-t-[#4988c4] animate-spin" />
-          <p className="text-sm text-gray-400 font-medium">Loading...</p>
+          <p className="text-sm text-gray-400 font-medium">Loading addresses...</p>
         </div>
       </div>
     );
@@ -81,27 +87,25 @@ export default function AddressesTab() {
         {addresses.map((address: Address) => (
           <div
             key={address.addressId}
-            className={`group relative rounded-3xl bg-white overflow-hidden transition-all duration-300 ${
-              address.isDefault
-                ? "border-2 border-[#4988c4]/50 shadow-lg shadow-[#4988c4]/10"
-                : "border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-gray-200/60"
-            }`}
+            className={`group relative rounded-3xl bg-white overflow-hidden transition-all duration-300 ${address.isDefault
+              ? "border-2 border-[#4988c4]/50 shadow-lg shadow-[#4988c4]/10"
+              : "border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-gray-200/60"
+              }`}
             style={
               !address.isDefault
                 ? {
-                    boxShadow:
-                      "0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)",
-                  }
+                  boxShadow:
+                    "0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)",
+                }
                 : undefined
             }
           >
             {/* Accent stripe */}
             <div
-              className={`absolute top-0 left-0 right-0 h-1 ${
-                address.isDefault
-                  ? "bg-gradient-to-r from-[#4988c4] via-sky-400 to-cyan-300"
-                  : "bg-gradient-to-r from-gray-200 to-gray-100 group-hover:from-[#4988c4]/40 group-hover:to-cyan-200/60 transition-all duration-300"
-              }`}
+              className={`absolute top-0 left-0 right-0 h-1 ${address.isDefault
+                ? "bg-gradient-to-r from-[#4988c4] via-sky-400 to-cyan-300"
+                : "bg-gradient-to-r from-gray-200 to-gray-100 group-hover:from-[#4988c4]/40 group-hover:to-cyan-200/60 transition-all duration-300"
+                }`}
             />
 
             {/* Default badge */}
@@ -118,18 +122,16 @@ export default function AddressesTab() {
               {/* Name + Avatar */}
               <div className="flex items-center gap-4 mb-4">
                 <div
-                  className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm shrink-0 ${
-                    address.isDefault
-                      ? "bg-gradient-to-br from-blue-100 to-sky-200"
-                      : "bg-gray-50 group-hover:bg-blue-50 transition-colors"
-                  }`}
+                  className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm shrink-0 ${address.isDefault
+                    ? "bg-gradient-to-br from-blue-100 to-sky-200"
+                    : "bg-gray-50 group-hover:bg-blue-50 transition-colors"
+                    }`}
                 >
                   <Home
-                    className={`h-5 w-5 ${
-                      address.isDefault
-                        ? "text-[#4988c4]"
-                        : "text-gray-400 group-hover:text-[#4988c4] transition-colors"
-                    }`}
+                    className={`h-5 w-5 ${address.isDefault
+                      ? "text-[#4988c4]"
+                      : "text-gray-400 group-hover:text-[#4988c4] transition-colors"
+                      }`}
                   />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -171,11 +173,10 @@ export default function AddressesTab() {
               <div className="space-y-2.5">
                 {/* Phone */}
                 <div
-                  className={`flex items-center gap-3 px-4 py-3 rounded-2xl ${
-                    address.isDefault
-                      ? "bg-blue-50/60 border border-blue-100/80"
-                      : "bg-gray-50 border border-gray-100"
-                  }`}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-2xl ${address.isDefault
+                    ? "bg-blue-50/60 border border-blue-100/80"
+                    : "bg-gray-50 border border-gray-100"
+                    }`}
                 >
                   <div className="w-7 h-7 rounded-xl bg-white shadow-sm border border-gray-100 flex items-center justify-center shrink-0">
                     <Phone className="h-3.5 w-3.5 text-[#4988c4]" />
@@ -187,11 +188,10 @@ export default function AddressesTab() {
 
                 {/* Address */}
                 <div
-                  className={`flex items-start gap-3 px-4 py-3 rounded-2xl ${
-                    address.isDefault
-                      ? "bg-blue-50/60 border border-blue-100/80"
-                      : "bg-gray-50 border border-gray-100"
-                  }`}
+                  className={`flex items-start gap-3 px-4 py-3 rounded-2xl ${address.isDefault
+                    ? "bg-blue-50/60 border border-blue-100/80"
+                    : "bg-gray-50 border border-gray-100"
+                    }`}
                 >
                   <div className="w-7 h-7 rounded-xl bg-white shadow-sm border border-gray-100 flex items-center justify-center shrink-0 mt-0.5">
                     <MapPin className="h-3.5 w-3.5 text-[#4988c4]" />
@@ -271,6 +271,7 @@ export default function AddressesTab() {
       )}
 
       <AddressFormDialog
+        key={showForm ? (editingAddress?.addressId || "new") : "closed"}
         open={showForm}
         onOpenChange={setShowForm}
         initialData={editingAddress}
@@ -279,61 +280,52 @@ export default function AddressesTab() {
   );
 }
 
-function AddressFormDialog({ open, onOpenChange, initialData }: any) {
+interface AddressFormDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  initialData: Address | null;
+}
+
+function AddressFormDialog({ open, onOpenChange, initialData }: AddressFormDialogProps) {
   const createMutation = useCreateAddress();
   const updateMutation = useUpdateAddress();
-  const [formData, setFormData] = useState({
-    receiverName: "",
-    phoneNumber: "",
-    street: "",
-    province: "",
-    district: "",
-    ward: "",
-  });
 
-  useEffect(() => {
-    if (open && initialData) {
-      const province =
-        vnAddress.find((p) => p.name === initialData.province)?.code || "";
-      let district = "";
-      let ward = "";
-
-      if (province) {
-        const provinceData = vnAddress.find((p) => p.code === province);
-        if (provinceData) {
-          district =
-            provinceData.districts.find((d) => d.name === initialData.district)
-              ?.code || "";
-          if (district) {
-            const districtData = provinceData.districts.find(
-              (d) => d.code === district,
-            );
-            ward =
-              districtData?.wards.find((w) => w.name === initialData.ward)
-                ?.code || "";
-          }
-        }
-      }
-
-      setFormData({
-        receiverName: initialData.receiverName,
-        phoneNumber: initialData.phoneNumber,
-        street: initialData.street,
-        province,
-        district,
-        ward,
-      });
-    } else if (open) {
-      setFormData({
+  const [formData, setFormData] = useState(() => {
+    if (!initialData) {
+      return {
         receiverName: "",
         phoneNumber: "",
         street: "",
         province: "",
         district: "",
         ward: "",
-      });
+      };
     }
-  }, [open, initialData]);
+
+    const province = vnAddress.find((p) => p.name === initialData.province)?.code || "";
+    let district = "";
+    let ward = "";
+
+    if (province) {
+      const provinceData = vnAddress.find((p) => p.code === province);
+      if (provinceData) {
+        district = provinceData.districts.find((d) => d.name === initialData.district)?.code || "";
+        if (district) {
+          const districtData = provinceData.districts.find((d) => d.code === district);
+          ward = districtData?.wards.find((w) => w.name === initialData.ward)?.code || "";
+        }
+      }
+    }
+
+    return {
+      receiverName: initialData.receiverName,
+      phoneNumber: initialData.phoneNumber,
+      street: initialData.street,
+      province,
+      district,
+      ward,
+    };
+  });
 
   const selectedProv = vnAddress.find((p) => p.code === formData.province);
   const districts = selectedProv?.districts ?? [];
@@ -363,12 +355,6 @@ function AddressFormDialog({ open, onOpenChange, initialData }: any) {
       !formData.ward
     )
       return;
-
-    const provinceName =
-      vnAddress.find((p) => p.code === formData.province)?.name ?? "";
-    const districtName =
-      districts.find((d) => d.code === formData.district)?.name ?? "";
-    const wardName = wards.find((w) => w.code === formData.ward)?.name ?? "";
 
     const payload = {
       receiverName: formData.receiverName,

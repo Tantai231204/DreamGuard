@@ -1,17 +1,21 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
 import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { Layers, Package, ChevronDown } from 'lucide-react';
+import { Layers, Package, ChevronDown, Upload, Trash2, Image as ImageIcon, Loader2 } from 'lucide-react';
 import SectionHeading from '../shared/SectionHeading';
-import { PRESET_COLORS, SIZE_OPTIONS, PRODUCT_STATUSES, PRODUCT_STATUS_COLORS } from '../../types';
+import { PRODUCT_STATUSES, PRODUCT_STATUS_COLORS } from '../../types';
 import { INPUT_CLS, SELECT_TRIGGER_CLS } from './index';
 import type { ComboDialogMode, ComboFormState } from './index';
 import type { ComboResponse } from '@/api/services/comboService';
+import ColorPicker from '../variant-dialog/ColorPicker';
+import { useUploadComboImage, useDeleteComboImage } from '@/hooks/queries/useCombo';
+import { ImageUploadDialog } from '../dialogs';
 import { AGE_GROUPS } from '../../types';
 import {
     DropdownMenu,
@@ -31,15 +35,31 @@ interface ComboFormFieldsProps {
     /** Available parent combos for variant mode */
     comboParents?: ComboResponse[];
     isLoadingParents?: boolean;
+    /** ID of current combo for image upload */
+    comboId?: string;
 }
 
 // ── Component ────────────────────────────────────────────
 const ComboFormFields = memo(function ComboFormFields({
     form, setField, onNameChange, isLoading,
     mode, comboParents = [], isLoadingParents = false,
+    comboId,
 }: ComboFormFieldsProps) {
     const isVariant = mode === 'variant';
     const isParentLocked = isVariant && !!form.comboParentId;
+
+    const [showUploadDialog, setShowUploadDialog] = useState(false);
+    const uploadMutation = useUploadComboImage();
+    const deleteMutation = useDeleteComboImage();
+
+    const isMediaLoading = uploadMutation.isPending || deleteMutation.isPending;
+
+    const handleDeleteImage = async () => {
+        if (!form.imagePublicId) return;
+        if (window.confirm("Are you sure you want to delete this image?")) {
+            await deleteMutation.mutateAsync(form.imagePublicId);
+        }
+    };
 
     return (
         <div className="p-5 pb-10">
@@ -114,10 +134,97 @@ const ComboFormFields = memo(function ComboFormFields({
                             <Textarea id="c-desc" placeholder="Brief description..."
                                 value={form.description} onChange={e => setField('description', e.target.value)}
                                 disabled={isLoading} rows={4}
-                                className="w-full rounded-xl border border-slate-200 bg-white hover:border-indigo-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all text-sm font-medium text-slate-900 shadow-sm resize-none p-3" />
+                                className="w-full rounded-xl border border-slate-200 bg-white hover:border-[#4988c4]/60 focus:border-[#4988c4] focus:ring-4 focus:ring-[#4988c4]/20 transition-all text-sm font-medium text-slate-900 shadow-sm resize-none p-3" />
                         </div>
                     </div>
                 </section>
+
+                <section className="space-y-4">
+                    <SectionHeading title="Combo Media" />
+
+                    {!comboId ? (
+                        <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50 gap-3 grayscale opacity-60">
+                            <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+                                <Upload className="h-6 w-6" />
+                            </div>
+                            <div className="text-center">
+                                <p className="text-xs font-bold text-slate-600">Uploads locked</p>
+                                <p className="text-[10px] text-slate-400">Save this combo first to enable media management.</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white bg-grid-slate-50 shadow-sm group">
+                            {isMediaLoading && (
+                                <div className="absolute inset-0 z-20 bg-white/60 backdrop-blur-[2px] flex items-center justify-center">
+                                    <Loader2 className="h-6 w-6 animate-spin text-indigo-500" />
+                                </div>
+                            )}
+
+                            <div className="aspect-[16/9] w-full bg-slate-50 flex items-center justify-center overflow-hidden">
+                                {form.imageUrl ? (
+                                    <img
+                                        src={form.imageUrl}
+                                        alt="Main"
+                                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                    />
+                                ) : (
+                                    <div className="flex flex-col items-center gap-2 text-slate-300">
+                                        <ImageIcon className="h-10 w-10 stroke-[1.5]" />
+                                        <span className="text-[10px] font-bold uppercase tracking-widest">No Media Selected</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Actions Overlay */}
+                            <div className="p-4 border-t border-slate-100 flex items-center justify-between gap-3 bg-white">
+                                <div className="flex-1 min-w-0">
+                                    {form.imageUrl ? (
+                                        <p className="text-[10px] text-slate-400 font-mono truncate tracking-tight">{form.imagePublicId}</p>
+                                    ) : (
+                                        <p className="text-[10px] text-slate-400 italic">Select a high-quality photo...</p>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {form.imagePublicId && (
+                                        <Button
+                                            onClick={handleDeleteImage}
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-9 w-9 text-red-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                                            disabled={isMediaLoading}
+                                            type="button"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    )}
+                                    <Button
+                                        onClick={() => setShowUploadDialog(true)}
+                                        className="h-9 px-4 rounded-xl gap-2 text-[11px] font-bold uppercase tracking-wider bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-200 transition-all border-none"
+                                        disabled={isMediaLoading}
+                                        type="button"
+                                    >
+                                        <Upload className="h-3.5 w-3.5" />
+                                        {form.imageUrl ? 'Change' : 'Upload Image'}
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </section>
+
+                {comboId && (
+                    <ImageUploadDialog
+                        open={showUploadDialog}
+                        onOpenChange={setShowUploadDialog}
+                        productId={comboId}
+                        productName={form.name}
+                        onUpload={async (cid, files) => {
+                            await uploadMutation.mutateAsync({ comboId: cid, files });
+                            setShowUploadDialog(false);
+                        }}
+                        isUploading={uploadMutation.isPending}
+                    />
+                )}
             </TabsContent>
 
             {/* ── TAB: CONFIG ── */}
@@ -152,47 +259,28 @@ const ComboFormFields = memo(function ComboFormFields({
                         </div>
 
                         {isVariant && (
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <Label className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2 block">Color</Label>
-                                    <Select value={form.color} onValueChange={v => setField('color', v)} disabled={isLoading}>
-                                        <SelectTrigger className={cn(SELECT_TRIGGER_CLS, "bg-white")}>
-                                            <SelectValue placeholder="Select Color">
-                                                {form.color && (
-                                                    <div className="flex items-center gap-1.5">
-                                                        <div className="h-3 w-3 rounded-full border border-gray-200 shadow-sm" style={{ backgroundColor: form.color }} />
-                                                        <span className="font-bold">{PRESET_COLORS.find(c => c.code === form.color)?.name ?? form.color}</span>
-                                                    </div>
-                                                )}
-                                            </SelectValue>
-                                        </SelectTrigger>
-                                        <SelectContent className="rounded-xl shadow-xl">
-                                            {PRESET_COLORS.map(c => (
-                                                <SelectItem key={c.code} value={c.code}>
-                                                    <div className="flex items-center gap-2 font-medium">
-                                                        <div className="h-3.5 w-3.5 rounded-full border border-gray-200" style={{ backgroundColor: c.code }} />
-                                                        {c.name}
-                                                    </div>
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div>
-                                    <Label className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2 block">Size</Label>
-                                    <Select value={form.size} onValueChange={v => setField('size', v)} disabled={isLoading}>
-                                        <SelectTrigger className={cn(SELECT_TRIGGER_CLS, "bg-white")}>
-                                            <SelectValue placeholder="Select Size" />
-                                        </SelectTrigger>
-                                        <SelectContent className="rounded-xl shadow-xl">
-                                            {SIZE_OPTIONS.map(s => (
-                                                <SelectItem key={s.value} value={s.value}>
-                                                    <span className="font-bold">{s.label}</span>
-                                                    <span className="text-[10px] text-gray-400 ml-2">{s.description}</span>
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-1 gap-4">
+                                    <div className="space-y-3">
+                                        <Label className="text-xs font-black text-slate-500 uppercase tracking-widest block">Variant Color</Label>
+                                        <ColorPicker
+                                            color=""
+                                            colorCode={form.color}
+                                            onColorChange={(_name: string, code: string) => setField('color', code)}
+                                            disabled={isLoading}
+                                        />
+                                    </div>
+                                    <div>
+                                        <Label htmlFor="c-size" className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2 block">Variant Size</Label>
+                                        <Input
+                                            id="c-size"
+                                            placeholder="S, M, L, XL..."
+                                            value={form.size}
+                                            onChange={e => setField('size', e.target.value)}
+                                            disabled={isLoading}
+                                            className={cn(INPUT_CLS, "bg-white")}
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -251,33 +339,6 @@ const ComboFormFields = memo(function ComboFormFields({
                                     </span>
                                 )}
                             </div>
-                        </div>
-                    </div>
-                </section>
-
-                <section className="space-y-4">
-                    <SectionHeading title="Media & Assets" />
-                    <div className="space-y-4">
-                        <div>
-                            <Label htmlFor="c-imgurl" className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2 block">Image URL</Label>
-                            <Input id="c-imgurl" placeholder="https://..." value={form.imageUrl}
-                                onChange={e => setField('imageUrl', e.target.value)}
-                                disabled={isLoading} className={cn(INPUT_CLS, "bg-white")} />
-                        </div>
-                        {form.imageUrl && (
-                            <div className="flex items-center gap-3 p-3 rounded-xl border border-indigo-100 bg-indigo-50/30 shadow-inner">
-                                <img src={form.imageUrl} alt="preview" className="h-14 w-14 object-cover rounded-lg border border-white shadow-md shrink-0" />
-                                <div className="min-w-0 flex-1">
-                                    <p className="text-[10px] font-black text-indigo-400 uppercase tracking-tighter mb-0.5">Live Preview</p>
-                                    <p className="text-[11px] text-slate-500 truncate italic">{form.imageUrl}</p>
-                                </div>
-                            </div>
-                        )}
-                        <div>
-                            <Label htmlFor="c-pubid" className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2 block">Public ID</Label>
-                            <Input id="c-pubid" placeholder="combos/thumb" value={form.imagePublicId}
-                                onChange={e => setField('imagePublicId', e.target.value)}
-                                disabled={isLoading} className={cn(INPUT_CLS, 'font-mono text-[11px] bg-white')} />
                         </div>
                     </div>
                 </section>

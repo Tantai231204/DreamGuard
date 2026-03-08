@@ -1,4 +1,4 @@
-import api, { ApiError } from "@/lib/api"
+import api, { ApiError, type CustomAxiosRequestConfig } from "@/lib/api"
 import type {
   Address,
   CreateAddressPayload,
@@ -12,9 +12,9 @@ export const getAddresses = async (): Promise<Address[]> => {
   try {
     const res = await api.get("/Addresses?pageNumber=1", {
       _suppressToast: true,
-    } as any)
+    } as CustomAxiosRequestConfig)
     return res.data?.items ?? res.data
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof ApiError) {
       // Nếu backend trả 404 vì không có dữ liệu
       if (error.status === 404) {
@@ -35,7 +35,7 @@ export const getAddressById = async (id: string): Promise<Address> => {
   try {
     const res = await api.get(`/Addresses/${id}`)
     return res.data
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof ApiError) {
       console.log("GET ADDRESS ERROR:", error.message)
     }
@@ -54,7 +54,7 @@ export const createAddress = async (
 
     const res = await api.post("/Addresses", payload)
     return res.data
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof ApiError) {
       console.log("CREATE ADDRESS ERROR:", error.message)
     }
@@ -72,7 +72,7 @@ export const updateAddress = async (
 
   try {
     await api.put(`/Addresses/${id}`, data)
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof ApiError) {
       console.log("UPDATE ADDRESS ERROR:", error.message)
     }
@@ -86,7 +86,7 @@ export const updateAddress = async (
 export const deleteAddress = async (id: string): Promise<void> => {
   try {
     await api.delete(`/Addresses/${id}`)
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof ApiError) {
       console.log("DELETE ADDRESS ERROR:", error.message)
     }

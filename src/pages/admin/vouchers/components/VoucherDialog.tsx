@@ -130,7 +130,7 @@ function VoucherDialogInner({
         <>
             <DialogHeader className="pb-5 border-b">
                 <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 flex items-center justify-center shadow-lg">
+                    <div className="w-12 h-12 rounded-xl bg-[#4988c4] flex items-center justify-center shadow-sm">
                         <Sparkles className="w-6 h-6 text-white" />
                     </div>
                     <div>
@@ -200,7 +200,7 @@ function VoucherDialogInner({
                     <Button
                         type="submit"
                         disabled={isLoading || !isFormValid}
-                        className="flex-1 h-11 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 shadow-lg shadow-purple-500/30 font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 h-11 bg-[#4988c4] hover:bg-[#3a6fa0] text-white shadow-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isLoading ? (
                             <>

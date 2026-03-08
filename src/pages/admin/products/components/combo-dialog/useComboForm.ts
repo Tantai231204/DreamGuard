@@ -68,7 +68,7 @@ export function useComboForm({
     // Sync form when detail is loaded
     useEffect(() => {
         if (detail && isEdit) {
-            dispatch({ type: "RESET", payload: getInitialState(detail as any) });
+            dispatch({ type: "RESET", payload: getInitialState(detail) });
         }
     }, [detail, isEdit]);
 

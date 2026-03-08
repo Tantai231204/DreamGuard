@@ -20,12 +20,15 @@ import {
   AlertTriangle,
   ChevronDown,
   Package2,
+  ShoppingCart,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AdminColorGroup, AdminVariantItem } from '@/api/services/variantService';
 import { useAdminProductVariants } from '@/hooks/queries/useProduct';
 import { useStockAdjustment } from './useStockAdjustment';
 import StockAdjustmentDialog from './StockAdjustmentDialog';
+import { useAddToCart } from '@/hooks/queries/useCart';
+import { useToast } from '@/hooks/useToast';
 
 /* ─── Stock Status Config ───────────────────────────────── */
 const stockStatusConfig: Record<string, { label: string; className: string }> = {
@@ -76,6 +79,8 @@ export default function VariantTable({
   onEditVariant,
   onDeleteVariant,
 }: VariantTableProps) {
+  const { success, error } = useToast();
+  const addToCartMutation = useAddToCart();
   const { data, isLoading } = useAdminProductVariants(productId);
   const {
     stockDialog,
@@ -120,6 +125,19 @@ export default function VariantTable({
       return next;
     });
   }, []);
+
+  const handleAddToCart = async (variantId: string) => {
+    try {
+      await addToCartMutation.mutateAsync({
+        productVariantId: variantId,
+        comboId: null,
+        quantity: 1,
+      });
+      success('Added to Cart', 'Product variant has been added to cart.');
+    } catch {
+      error('Add to Cart Failed', 'Could not add variant to cart.');
+    }
+  };
 
   // Groups are collapsed by default per user request
 
@@ -201,6 +219,7 @@ export default function VariantTable({
                     onEditVariant={onEditVariant}
                     onDeleteVariant={onDeleteVariant}
                     onStockAdjust={openDialog}
+                    onAddToCart={handleAddToCart}
                   />
                 ))}
               </div>
@@ -251,6 +270,7 @@ function ColorGroupRow({
   onEditVariant,
   onDeleteVariant,
   onStockAdjust,
+  onAddToCart,
 }: {
   group: AdminColorGroup;
   isExpanded: boolean;
@@ -258,6 +278,7 @@ function ColorGroupRow({
   onEditVariant: (variantId: string) => void;
   onDeleteVariant: (variantId: string) => void;
   onStockAdjust: (type: 'add' | 'reduce', variantId: string, sku: string, currentStock: number) => void;
+  onAddToCart: (variantId: string) => void;
 }) {
   const colorHex = getColorHex(group.color);
 
@@ -329,6 +350,7 @@ function ColorGroupRow({
                   onDelete={() => onDeleteVariant(variant.id)}
                   onAddStock={() => onStockAdjust('add', variant.id, variant.sku, variant.stockQuantity)}
                   onReduceStock={() => onStockAdjust('reduce', variant.id, variant.sku, variant.stockQuantity)}
+                  onAddToCart={() => onAddToCart(variant.id)}
                 />
               ))}
             </div>
@@ -346,6 +368,7 @@ function VariantRow({
   onDelete,
   onAddStock,
   onReduceStock,
+  onAddToCart,
 }: {
   variant: AdminVariantItem;
   isEven: boolean;
@@ -353,6 +376,7 @@ function VariantRow({
   onDelete: () => void;
   onAddStock: () => void;
   onReduceStock: () => void;
+  onAddToCart: () => void;
 }) {
   const hasSale = variant.salePrice < variant.basePrice;
   const statusConfig = stockStatusConfig[variant.stockStatus] || stockStatusConfig['Out of Stock'];
@@ -439,7 +463,16 @@ function VariantRow({
       </div>
 
       {/* Contextual Actions */}
-      <div className="flex justify-end opacity-0 group-hover/vrow:opacity-100 transition-opacity">
+      <div className="flex justify-end gap-1 opacity-0 group-hover/vrow:opacity-100 transition-opacity">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 p-0 rounded-lg hover:bg-white hover:shadow-sm border border-transparent hover:border-slate-100 transition-all text-blue-600"
+          onClick={(e) => { e.stopPropagation(); onAddToCart(); }}
+          title="Add to Cart"
+        >
+          <ShoppingCart className="h-4 w-4" />
+        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -450,24 +483,23 @@ function VariantRow({
               <MoreVertical className="h-4 w-4 text-slate-400" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48 shadow-2xl border-slate-200 rounded-2xl p-1">
-            <DropdownMenuItem className="rounded-xl cursor-pointer py-2.5 font-bold gap-3" onClick={onEdit}>
-              <div className="h-7 w-7 rounded-lg bg-indigo-50 flex items-center justify-center">
-                <Edit className="h-3.5 w-3.5 text-indigo-600" />
-              </div>
-              Modify Info
+          <DropdownMenuContent align="end" className="w-48 shadow-xl border border-slate-200/60 rounded-xl p-1 animate-in fade-in zoom-in-95 duration-100">
+            <DropdownMenuItem
+              className="rounded-lg cursor-pointer py-2 px-3 font-medium text-slate-600 hover:text-blue-600 focus:bg-blue-50 focus:text-blue-700 transition-colors gap-2.5"
+              onClick={onEdit}
+            >
+              <Edit className="h-4 w-4 opacity-70" />
+              <span className="text-[13px]">Edit Variant</span>
             </DropdownMenuItem>
 
-            <DropdownMenuSeparator className="my-1 bg-slate-50" />
+            <DropdownMenuSeparator className="my-1 bg-slate-100" />
 
             <DropdownMenuItem
-              className="rounded-xl cursor-pointer py-2.5 text-red-600 font-black gap-3 focus:bg-red-50 focus:text-red-700"
+              className="rounded-lg cursor-pointer py-2 px-3 font-medium text-red-500 focus:bg-red-50 focus:text-red-600 transition-colors gap-2.5"
               onClick={onDelete}
             >
-              <div className="h-7 w-7 rounded-lg bg-red-50 flex items-center justify-center">
-                <Trash2 className="h-3.5 w-3.5" />
-              </div>
-              Delete Item
+              <Trash2 className="h-4 w-4 opacity-70" />
+              <span className="text-[13px]">Delete Item</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

@@ -100,7 +100,7 @@ export default function ComboItemsInlinePanel({ combo, colSpan }: ComboItemsInli
                                     return (
                                         <div
                                             key={key}
-                                            className="flex items-center gap-4 bg-white rounded-xl border border-indigo-100 px-4 py-3 shadow-sm hover:border-indigo-200 hover:shadow-md transition-all group"
+                                            className="flex items-center gap-4 bg-white rounded-xl border border-indigo-100 px-4 py-3 shadow-sm hover:border-[#4988c4]/60 hover:shadow-md transition-all group"
                                         >
                                             {/* Product Icon */}
                                             <div className="h-8 w-8 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">

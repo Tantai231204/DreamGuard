@@ -15,7 +15,7 @@ export default function LeafItemsView({
     const updateMutation = useUpdateCombo();
 
     const handleUpdateQuantity = async (itemKey: string, newQty: number) => {
-        const [pId, vId] = itemKey.split('-');
+        const [pId, vId] = itemKey.split('|');
         const updatedItems = items.map(i => {
             const matches = i.productId === pId && (i.variantId || 'default') === vId;
             if (matches) return { ...i, quantity: newQty };
@@ -33,7 +33,7 @@ export default function LeafItemsView({
 
     const handleDeleteItem = async (itemKey: string) => {
         if (!confirm('Remove this item from combo?')) return;
-        const [pId, vId] = itemKey.split('-');
+        const [pId, vId] = itemKey.split('|');
         const updatedItems = items.filter(i => {
             const matches = i.productId === pId && (i.variantId || 'default') === vId;
             return !matches;
@@ -65,14 +65,17 @@ export default function LeafItemsView({
                 <div className="text-right">Actions</div>
             </div>
             <div className="divide-y divide-gray-50">
-                {items.map((item, i) => (
-                    <ComboVariantRow
-                        key={`${item.productId}-${item.variantId ?? i}`}
-                        item={item}
-                        onQuantityChange={handleUpdateQuantity}
-                        onDelete={handleDeleteItem}
-                    />
-                ))}
+                {items.map((item) => {
+                    const itemKey = `${item.productId}|${item.variantId ?? 'default'}`;
+                    return (
+                        <ComboVariantRow
+                            key={itemKey}
+                            item={item}
+                            onQuantityChange={handleUpdateQuantity}
+                            onDelete={handleDeleteItem}
+                        />
+                    );
+                })}
             </div>
         </div>
     );

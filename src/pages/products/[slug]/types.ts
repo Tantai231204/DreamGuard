@@ -46,3 +46,14 @@ export interface Review {
 }
 
 export type TabType = "description" | "specs" | "reviews";
+
+export interface TradeInProduct {
+  id: string;
+  orderId: string;
+  name: string;
+  image: string;
+  originalPrice: number;
+  purchaseDate: string;
+  canTradeIn: boolean;
+  reason?: string;
+}

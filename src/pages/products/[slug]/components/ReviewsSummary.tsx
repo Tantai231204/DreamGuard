@@ -10,39 +10,41 @@ interface ReviewsSummaryProps {
 
 export const ReviewsSummary = memo(({ reviews, averageRating }: ReviewsSummaryProps) => {
     return (
-        <div className="flex flex-col items-center gap-6 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 p-6 sm:flex-row">
-            <div className="text-center">
-                <div className="text-5xl font-bold text-gray-900">{averageRating.toFixed(1)}</div>
-                <div className="mt-2 flex items-center justify-center gap-1">
+        <div className="flex flex-col items-center gap-10 rounded-[3rem] bg-gray-50/50 p-10 border border-gray-100 sm:flex-row shadow-sm">
+            <div className="text-center px-6">
+                <div className="text-7xl font-black text-gray-950 tracking-tighter">{averageRating.toFixed(1)}</div>
+                <div className="mt-4 flex items-center justify-center gap-1">
                     {[...Array(5)].map((_, i) => (
                         <Star
                             key={i}
                             className={cn(
                                 "h-5 w-5",
                                 i < Math.floor(averageRating)
-                                    ? "fill-amber-400 text-amber-400"
+                                    ? "fill-gray-950 text-gray-950"
                                     : "fill-gray-200 text-gray-200"
                             )}
                         />
                     ))}
                 </div>
-                <p className="mt-1 text-sm text-gray-500">{reviews.length} reviews</p>
+                <p className="mt-3 text-[10px] font-black uppercase text-gray-400 tracking-widest leading-none">{reviews.length} Validated Stories</p>
             </div>
-            <div className="h-px w-full bg-amber-200 sm:h-20 sm:w-px" />
-            <div className="flex-1 space-y-2">
+
+            <div className="hidden sm:block h-24 w-px bg-gray-200" />
+
+            <div className="flex-1 w-full space-y-3">
                 {[5, 4, 3, 2, 1].map((star) => {
                     const count = reviews.filter(r => Math.floor(r.rating) === star).length;
-                    const percentage = (count / reviews.length) * 100;
+                    const percentage = reviews.length > 0 ? (count / reviews.length) * 100 : 0;
                     return (
-                        <div key={star} className="flex items-center gap-3">
-                            <span className="w-8 text-sm text-gray-600">{star} ★</span>
-                            <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200">
+                        <div key={star} className="flex items-center gap-4">
+                            <span className="w-10 text-[10px] font-black text-gray-950 uppercase tracking-widest">{star} ★</span>
+                            <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200/50">
                                 <div
-                                    className="h-full rounded-full bg-amber-400 transition-all"
+                                    className="h-full rounded-full bg-gray-950 transition-all duration-1000"
                                     style={{ width: `${percentage}%` }}
                                 />
                             </div>
-                            <span className="w-12 text-sm text-gray-500">{count}</span>
+                            <span className="w-8 text-[10px] font-black text-gray-400 text-right">{count}</span>
                         </div>
                     );
                 })}

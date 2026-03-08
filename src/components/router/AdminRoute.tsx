@@ -17,7 +17,7 @@ export default function AdminRoute() {
   }
 
   // Check admin role
-  if (role !== "admin") {
+  if (role?.toLowerCase() !== "admin") {
     return <Navigate to={AppRoute.HOME} replace />;
   }
 

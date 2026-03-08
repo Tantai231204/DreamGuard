@@ -1,21 +1,16 @@
-import api, { ApiError } from "../../lib/api";
+import api, { ApiError, type CustomAxiosRequestConfig } from "../../lib/api";
 import type {
   BabyProfile,
   CreateBabyProfilePayload,
   UpdateBabyProfilePayload,
 } from "../types/babyProfile";
-// import { API_BASE_URL } from "@/lib/constants";
 
 // GET ALL
-// export const getBabyProfiles = async (): Promise<BabyProfile[]> => {
-//   const res = await api.get("/BabyProfiles?pageNumber=1");
-//   return res.data;
-// };
 export const getBabyProfiles = async (): Promise<BabyProfile[]> => {
   try {
     const res = await api.get("/BabyProfiles?pageNumber=1", {
       _suppressToast: true,
-    } as any);
+    } as CustomAxiosRequestConfig);
     return res.data?.items ?? res.data;
   } catch (error: unknown) {
     if (error instanceof ApiError) {
@@ -44,7 +39,7 @@ export const createBabyProfile = async (
   try {
     const res = await api.post("/BabyProfiles", payload)
     return res.data
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof ApiError) {
       console.log("CREATE ERROR:", error.message)
     } else {
@@ -62,7 +57,7 @@ export const updateBabyProfile = async (
 
   try {
     await api.put(`/BabyProfiles/${babyId}`, data)
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof ApiError) {
       console.log("UPDATE ERROR:", error.message)
     } else {

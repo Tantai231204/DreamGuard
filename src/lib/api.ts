@@ -41,11 +41,11 @@ export const api = axios.create({
 /* ======================
    Helpers
 ====================== */
-function extractMessage(data: any, fallback: string): string {
+function extractMessage(data: unknown, fallback: string): string {
   if (!data || typeof data !== "object") return fallback;
-  const d = data as Record<string, any>;
+  const d = data as Record<string, unknown>;
   // Support various backend error formats
-  const raw = d.message ?? d.error ?? (d.data?.message) ?? fallback;
+  const raw = d.message ?? d.error ?? (d.data as Record<string, unknown>)?.message ?? fallback;
   if (Array.isArray(raw)) return raw.join(". ");
   if (typeof raw === "string") return raw;
   return fallback;
@@ -63,14 +63,14 @@ const ERROR_TITLES: Partial<Record<ApiErrorCode, string>> = {
 
 /* ======================
    Refresh-token state management
-====================== */
+   ====================== */
 let isRefreshing = false;
 let failedQueue: {
   resolve: (token: string) => void;
-  reject: (error: any) => void;
+  reject: (error: unknown) => void;
 }[] = [];
 
-const processQueue = (error: any, token: string | null = null) => {
+const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue.forEach((prom) => {
     if (token) {
       prom.resolve(token);

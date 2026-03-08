@@ -68,8 +68,8 @@ const MaterialCombobox = memo(function MaterialCombobox({
                     className={cn(
                         'flex h-11 w-full items-center gap-2 rounded-xl border border-gray-200 bg-gray-50/50',
                         'px-3.5 py-2.5 text-sm ring-offset-white transition-all duration-200',
-                        'hover:border-purple-300 hover:bg-white',
-                        'focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400',
+                        'hover:border-[#4988c4]/60 hover:bg-white',
+                        'focus:outline-none focus:ring-2 focus:ring-[#4988c4]/20 focus:border-[#4988c4]',
                         'disabled:cursor-not-allowed disabled:opacity-50',
                         value ? 'text-gray-900' : 'text-gray-400',
                     )}

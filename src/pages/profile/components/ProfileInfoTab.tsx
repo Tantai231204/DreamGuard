@@ -1,261 +1,243 @@
-import { useState } from "react";
-import { Pencil1Icon, CameraIcon } from "@radix-ui/react-icons";
-import { User, Mail, Calendar, Star, Heart } from "lucide-react";
-import { Button } from "../../../components/ui/button";
-import { Input } from "../../../components/ui/input";
-import { Label } from "../../../components/ui/label";
-import { Badge } from "../../../components/ui/badge";
-import { Card, CardContent } from "../../../components/ui/card";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "../../../components/ui/avatar";
-import {
-  useUserProfile,
-  useUpdateUserProfile,
-} from "../../../hooks/useUserProfile";
+import { useState } from "react"
+import { Pencil1Icon, CameraIcon } from "@radix-ui/react-icons"
+import { User, Mail, Calendar, Star, Heart } from "lucide-react"
+import { Button } from "../../../components/ui/button"
+import { Input } from "../../../components/ui/input"
+import { Label } from "../../../components/ui/label"
+import { Badge } from "../../../components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "../../../components/ui/avatar"
+import { useProfile, useUpdateProfile } from "@/hooks/queries"
+import { toast } from "sonner"
 
 export default function ProfileInfoTab() {
-  const [isEditing, setIsEditing] = useState(false);
-  const { data: profile } = useUserProfile();
-  const updateProfileMutation = useUpdateUserProfile();
+  const { data: profile } = useProfile()
+  const { mutate: updateProfile, isPending: isUpdating } = useUpdateProfile()
+  const [isEditing, setIsEditing] = useState(false)
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    dateOfBirth: "",
+    gender: ""
+  })
 
-  const [formData, setFormData] = useState(() => ({
-    firstName: profile?.firstName ?? "",
-    lastName: profile?.lastName ?? "",
-    email: profile?.email ?? "",
-    dateOfBirth: profile?.dateOfBirth ?? "",
-    gender: profile?.gender ?? "",
-  }));
+  // Initialize form data when entering edit mode
+  const handleEdit = () => {
+    if (!isEditing && profile) {
+      setFormData({
+        firstName: profile.firstName || "",
+        lastName: profile.lastName || "",
+        email: profile.email || "",
+        dateOfBirth: profile.dateOfBirth || "",
+        gender: profile.gender || ""
+      })
+    }
+    setIsEditing(!isEditing)
+  }
 
   const handleSave = () => {
-    updateProfileMutation.mutate(formData, {
+    updateProfile(formData, {
       onSuccess: () => {
-        setIsEditing(false);
+        toast.success("Profile updated successfully")
+        setIsEditing(false)
       },
-    });
-  };
+      onError: () => {
+        toast.error("Failed to update profile")
+      }
+    })
+  }
 
-  const formFields = [
-    {
-      label: "First Name",
-      key: "firstName",
-      type: "text",
-      icon: User,
-      placeholder: "Enter first name",
-    },
-    {
-      label: "Last Name",
-      key: "lastName",
-      type: "text",
-      icon: User,
-      placeholder: "Enter last name",
-    },
-    {
-      label: "Email",
-      key: "email",
-      type: "email",
-      icon: Mail,
-      placeholder: "Enter email",
-    },
-    {
-      label: "Date of Birth",
-      key: "dateOfBirth",
-      type: "date",
-      icon: Calendar,
-      placeholder: "",
-    },
-    {
-      label: "Gender",
-      key: "gender",
-      type: "select",
-      icon: User,
-      placeholder: "",
-    },
-  ];
+  const displayData = isEditing ? formData : {
+    firstName: profile?.firstName || "",
+    lastName: profile?.lastName || "",
+    email: profile?.email || "",
+    dateOfBirth: profile?.dateOfBirth || "",
+    gender: profile?.gender || ""
+  }
 
-  const handleCancel = () => {
-    if (!profile) return;
-
-    setFormData({
-      firstName: profile.firstName ?? "",
-      lastName: profile.lastName ?? "",
-      email: profile.email ?? "",
-      dateOfBirth: profile.dateOfBirth ?? "",
-      gender: profile.gender ?? "",
-    });
-
-    setIsEditing(false);
-  };
-
-  const handleEdit = () => {
-    if (!profile) return;
-
-    setFormData({
-      firstName: profile.firstName ?? "",
-      lastName: profile.lastName ?? "",
-      email: profile.email ?? "",
-      dateOfBirth: profile.dateOfBirth ?? "",
-      gender: profile.gender ?? "",
-    });
-
-    setIsEditing(true);
-  };
+  const fullName = `${displayData.firstName} ${displayData.lastName}`.trim() || "User"
+  const initials = displayData.firstName && displayData.lastName
+    ? `${displayData.firstName[0]}${displayData.lastName[0]}`.toUpperCase()
+    : (displayData.firstName ? displayData.firstName[0].toUpperCase() : "U")
 
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">
-            Personal Information
-          </h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Update your profile information and email address.
-          </p>
+          <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Personal Information</h2>
+          <p className="mt-1 text-sm text-gray-400 font-medium">Update and manage your account details</p>
         </div>
         <Button
-          variant={isEditing ? "secondary" : "outline"}
-          onClick={isEditing ? handleCancel : handleEdit}
-          className="gap-2"
+          variant={isEditing ? "secondary" : "default"}
+          onClick={handleEdit}
+          className={`gap-2 h-11 px-5 rounded-2xl font-semibold transition-all active:scale-95 ${isEditing
+            ? "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            : "bg-[#4988c4] hover:bg-[#3b6fa3] text-white shadow-lg shadow-[#4988c4]/25"
+            }`}
         >
           <Pencil1Icon className="h-4 w-4" />
-          {isEditing ? "Cancel" : "Edit"}
+          {isEditing ? "Cancel" : "Edit Profile"}
         </Button>
       </div>
 
       {/* Profile Card */}
-      <Card className="overflow-hidden">
-        <div className="h-24 bg-gradient-to-r from-[#4988c4]/10 via-[#bde8f5]/30 to-transparent" />
-        <CardContent className="-mt-12 pb-6">
-          <div className="flex flex-col sm:flex-row gap-6">
-            {/* Avatar */}
-            <div className="relative">
-              <Avatar
-                size="xl"
-                className="h-24 w-24 ring-4 ring-white shadow-lg"
-              >
-                <AvatarImage
-                  src="/images/avatar-placeholder.jpg"
-                  alt={`${formData.firstName} ${formData.lastName}`}
-                />
-                <AvatarFallback className="bg-gradient-to-br from-[#4988c4] to-[#3a73a8] text-white text-2xl font-semibold">
-                  {`${formData.firstName || profile?.firstName || ""}${
-                    formData.lastName || profile?.lastName || ""
-                  }`}
-                </AvatarFallback>
-              </Avatar>
-              {isEditing && (
-                <button className="absolute -bottom-1 -right-1 rounded-full bg-[#4988c4] p-2 text-white shadow-lg transition hover:bg-[#3a73a8]">
-                  <CameraIcon className="h-4 w-4" />
-                </button>
-              )}
-            </div>
+      <div
+        className="group relative rounded-3xl bg-white border border-gray-100 shadow-sm transition-all duration-300 overflow-hidden"
+        style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)" }}
+      >
+        {/* Colored accent stripe */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#4988c4] via-[#bde8f5] to-[#4988c4]" />
 
-            {/* Info */}
-            <div className="flex-1 pt-2">
-              <h3 className="text-xl font-bold text-gray-900">
-                {formData.firstName || profile?.firstName}{" "}
-                {formData.lastName || profile?.lastName}
+        <div className="h-24 bg-gradient-to-r from-[#4988c4]/5 via-[#bde8f5]/20 to-transparent" />
+        <div className="px-6 -mt-12 pb-8 flex flex-col sm:flex-row gap-6">
+          {/* Avatar */}
+          <div className="relative">
+            <Avatar className="h-24 w-24 ring-4 ring-white shadow-lg rounded-2xl">
+              <AvatarImage src={profile?.avatarUrl} alt={fullName} />
+              <AvatarFallback className="rounded-2xl bg-gradient-to-br from-[#4988c4] to-[#3a73a8] text-white text-2xl font-semibold">
+                {initials}
+              </AvatarFallback>
+            </Avatar>
+            {isEditing && (
+              <button className="absolute -bottom-1 -right-1 rounded-xl bg-[#4988c4] p-2 text-white shadow-lg transition hover:bg-[#3a73a8] hover:scale-110 active:scale-90">
+                <CameraIcon className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Info */}
+          <div className="flex-1 pt-2">
+            <div className="flex items-center gap-3">
+              <h3 className="text-xl font-bold text-gray-900 leading-tight">
+                {fullName}
               </h3>
-              <p className="mt-0.5 text-sm text-gray-500">
-                {formData.email || profile?.email}
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Badge variant="default" className="gap-1.5">
-                  <Heart className="h-3 w-3" />
-                  Member
-                </Badge>
-                <Badge variant="warning" className="gap-1.5">
-                  <Star className="h-3 w-3" />
-                  150 Points
-                </Badge>
+              <Badge variant="default" className="bg-[#4988c4]/10 text-[#4988c4] border-none font-semibold px-3">
+                Verified User
+              </Badge>
+            </div>
+            <p className="mt-1 text-sm text-gray-500 font-medium">{displayData.email}</p>
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-50 text-[#4988c4] border border-blue-100/50">
+                <Heart className="h-3.5 w-3.5 fill-[#4988c4]" />
+                <span className="text-xs font-bold uppercase tracking-wider">Member</span>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-600 border border-amber-100/50">
+                <Star className="h-3.5 w-3.5 fill-amber-500" />
+                <span className="text-xs font-bold uppercase tracking-wider">150 Points</span>
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Form */}
-      <Card>
-        <CardContent className="pt-6">
+      <div
+        className="rounded-3xl bg-white border border-gray-100 shadow-sm overflow-hidden"
+        style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)" }}
+      >
+        <div className="p-6 md:p-8">
           <div className="grid gap-6 sm:grid-cols-2">
-            {formFields.map((field) => {
-              const Icon = field.icon;
-              return (
-                <div key={field.key} className="space-y-2">
-                  <Label
-                    htmlFor={field.key}
-                    className="flex items-center gap-2 text-gray-700"
-                  >
-                    <Icon className="h-4 w-4 text-gray-400" />
-                    {field.label}
-                  </Label>
-                  {field.type === "select" ? (
-                    <select
-                      id={field.key}
-                      value={
-                        isEditing
-                          ? formData.gender
-                          : (profile?.gender?.toLowerCase() ?? "")
-                      }
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          gender: e.target.value,
-                        })
-                      }
-                      disabled={!isEditing}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    >
-                      <option value="">Choose gender</option>
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
-                      <option value="other">Other</option>
-                    </select>
-                  ) : (
-                    <Input
-                      id={field.key}
-                      type={field.type}
-                      value={
-                        isEditing
-                          ? formData[field.key as keyof typeof formData]
-                          : (profile?.[field.key as keyof typeof profile] ?? "")
-                      }
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          [field.key]: e.target.value,
-                        })
-                      }
-                      disabled={!isEditing}
-                      placeholder={field.placeholder}
-                    />
-                  )}
-                </div>
-              );
-            })}
+            <div className="space-y-1.5">
+              <Label htmlFor="firstName" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <User className="h-4 w-4 text-gray-400" />
+                First Name
+              </Label>
+              <Input
+                id="firstName"
+                value={displayData.firstName}
+                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                disabled={!isEditing}
+                placeholder="Enter first name"
+                className="h-11 rounded-xl border-gray-200 focus:border-[#4988c4]"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="lastName" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <User className="h-4 w-4 text-gray-400" />
+                Last Name
+              </Label>
+              <Input
+                id="lastName"
+                value={displayData.lastName}
+                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                disabled={!isEditing}
+                placeholder="Enter last name"
+                className="h-11 rounded-xl border-gray-200 focus:border-[#4988c4]"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <Mail className="h-4 w-4 text-gray-400" />
+                Email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                value={displayData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                disabled={!isEditing}
+                placeholder="Enter email address"
+                className="h-11 rounded-xl border-gray-200 focus:border-[#4988c4]"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="dateOfBirth" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-gray-400" />
+                Date of Birth
+              </Label>
+              <Input
+                id="dateOfBirth"
+                type="date"
+                value={displayData.dateOfBirth?.split("T")[0] || ""}
+                onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                disabled={!isEditing}
+                className="h-11 rounded-xl border-gray-200 focus:border-[#4988c4]"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="gender" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <User className="h-4 w-4 text-gray-400" />
+                Gender
+              </Label>
+              <select
+                id="gender"
+                value={displayData.gender}
+                onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+                disabled={!isEditing}
+                className="flex h-11 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:border-[#4988c4] focus:ring-[#4988c4]/10 transition-all outline-none disabled:bg-gray-50 disabled:text-gray-500"
+              >
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
           </div>
 
           {/* Actions */}
           {isEditing && (
-            <div className="flex justify-end gap-3 pt-6 mt-6 border-t">
-              <Button variant="outline" onClick={handleCancel}>
+            <div className="flex justify-end gap-3 pt-8 mt-8 border-t border-gray-50">
+              <Button
+                variant="outline"
+                onClick={() => setIsEditing(false)}
+                disabled={isUpdating}
+                className="h-11 px-6 rounded-2xl font-semibold text-gray-500 border-gray-200 hover:bg-gray-50 transition-colors"
+              >
                 Cancel
               </Button>
               <Button
                 onClick={handleSave}
-                disabled={updateProfileMutation.isPending}
+                disabled={isUpdating}
+                className="h-11 px-8 rounded-2xl bg-[#4988c4] hover:bg-[#3b6fa3] text-white font-semibold shadow-lg shadow-[#4988c4]/25 transition-all active:scale-95"
               >
-                {updateProfileMutation.isPending
-                  ? "Saving..."
-                  : "Save Changes"}
+                {isUpdating ? "Saving..." : "Save Changes"}
               </Button>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
-  );
+  )
 }

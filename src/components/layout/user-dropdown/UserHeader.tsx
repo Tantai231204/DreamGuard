@@ -1,51 +1,61 @@
-import { Crown, Gem } from "lucide-react"
+import { Crown } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "../../ui/avatar"
+import { Skeleton } from "../../ui/skeleton"
 import type { UserInfo } from "./types"
 
 interface UserHeaderProps {
     user: UserInfo
+    isLoading?: boolean
 }
 
-export function UserHeader({ user }: UserHeaderProps) {
+export function UserHeader({ user, isLoading }: UserHeaderProps) {
+    if (isLoading) {
+        return (
+            <div className="p-5 pb-4 border-b border-gray-50">
+                <div className="flex items-center gap-3">
+                    <Skeleton className="h-12 w-12 rounded-full" />
+                    <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-3 w-32" />
+                    </div>
+                </div>
+                <div className="mt-6 flex items-center justify-between">
+                    <Skeleton className="h-3 w-16" />
+                    <Skeleton className="h-4 w-12 rounded-full" />
+                </div>
+            </div>
+        )
+    }
+
     const initials = user.name.split(' ').map(n => n[0]).join('').slice(0, 2)
-    
+
     return (
-        <div className="relative overflow-hidden bg-gradient-to-br from-primary/5 via-sky-50 to-primary/10 p-5">
-            {/* Decorative elements */}
-            <div className="absolute -top-12 -right-12 w-32 h-32 bg-primary/10 rounded-full blur-2xl" />
-            <div className="absolute -bottom-8 -left-8 w-24 h-24 bg-sky-200/40 rounded-full blur-xl" />
-            
-            <div className="relative flex items-center gap-4">
-                <Avatar className="h-14 w-14 ring-4 ring-white shadow-lg">
+        <div className="p-5 pb-4 border-b border-gray-50 bg-gradient-to-b from-gray-50/30 to-transparent">
+            <div className="flex items-center gap-3">
+                <Avatar className="h-12 w-12 border-2 border-white shadow-sm ring-1 ring-gray-100">
                     <AvatarImage src="" alt={user.name} />
-                    <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-white text-lg font-semibold">
+                    <AvatarFallback className="bg-gray-100 text-gray-500 font-semibold text-xs">
                         {initials}
                     </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-800 truncate">{user.name}</p>
-                    <p className="text-sm text-gray-500 truncate">{user.email}</p>
+                    <div className="flex items-center gap-2">
+                        <p className="font-bold text-gray-900 leading-none truncate">{user.name}</p>
+                    </div>
+                    <p className="text-[11px] font-medium text-gray-400 mt-1 truncate tracking-tight">{user.email}</p>
                 </div>
             </div>
-            
-            {/* Points badge */}
-            <div className="relative mt-4 flex items-center gap-2">
-                <div className="
-                    inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full
-                    bg-gradient-to-r from-amber-50 to-orange-50
-                    border border-amber-200/60
-                    shadow-sm
-                ">
-                    <Gem className="h-3.5 w-3.5 text-amber-500" />
-                    <span className="text-xs font-semibold text-amber-700">{user.points} pts</span>
+
+            <div className="mt-5 flex items-center justify-between">
+                {/* High-Fidelity Metallic Rank Badge */}
+                <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gradient-to-br from-slate-100 via-gray-300 to-slate-200 border border-slate-300/40 shadow-[inset_0_1px_1px_rgba(255,255,255,0.8),0_1px_2px_rgba(0,0,0,0.05)]">
+                    <Crown className="h-2.5 w-2.5 text-slate-500 fill-slate-400 drop-shadow-[0_1px_0_rgba(255,255,255,0.5)]" />
+                    <span className="text-[9px] font-black text-slate-700 uppercase tracking-wider drop-shadow-[0_1px_0_rgba(255,255,255,0.5)]">Silver Member</span>
                 </div>
-                <span className="
-                    inline-flex items-center gap-1 px-2 py-1 rounded-full
-                    bg-white/80 text-xs text-gray-500
-                ">
-                    <Crown className="h-3 w-3 text-amber-400" />
-                    {user.rank}
-                </span>
+
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/5 text-primary text-[10px] font-black uppercase tracking-tight">
+                    {user.points} Points
+                </div>
             </div>
         </div>
     )

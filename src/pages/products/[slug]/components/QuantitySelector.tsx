@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Minus, Plus, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface QuantitySelectorProps {
     value: number;
@@ -9,53 +10,80 @@ interface QuantitySelectorProps {
     stockLeft?: number;
 }
 
-export const QuantitySelector = memo(({ 
-    value, 
-    onChange, 
+export const QuantitySelector = memo(({
+    value,
+    onChange,
     max = 99,
-    stockLeft 
+    stockLeft
 }: QuantitySelectorProps) => {
     const handleChange = (delta: number) => {
         onChange(Math.max(1, Math.min(max, value + delta)));
     };
 
-    const isLowStock = stockLeft && stockLeft < 10;
+    const isLowStock = stockLeft !== undefined && stockLeft > 0 && stockLeft < 10;
+    const isOutOfStock = stockLeft === 0;
 
     return (
-        <div className="space-y-2">
+        <div className="space-y-3">
             <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-gray-900">Quantity</label>
+                <span className="text-sm font-semibold text-gray-900 uppercase tracking-wider">Quantity</span>
                 {stockLeft !== undefined && (
                     <div className={cn(
-                        "flex items-center gap-1.5 text-sm",
-                        isLowStock ? "text-orange-600" : "text-gray-500"
+                        "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
+                        isOutOfStock
+                            ? "bg-red-50 text-red-600"
+                            : isLowStock
+                                ? "bg-amber-50 text-amber-600 animate-pulse"
+                                : "bg-emerald-50 text-emerald-600"
                     )}>
-                        <Package className="h-3.5 w-3.5" />
-                        <span className="font-medium">{stockLeft} left</span>
+                        <Package className="h-3 w-3" />
+                        <span>{isOutOfStock ? "Sold out" : `${stockLeft} in stock`}</span>
                     </div>
                 )}
             </div>
-            <div className="inline-flex items-center rounded-lg border-2 border-gray-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+
+            <div className="inline-flex items-center bg-gray-50 rounded-2xl p-1 border border-gray-200 shadow-sm transition-all hover:border-[var(--color-primary)]/30 hover:shadow-md">
                 <button
+                    type="button"
                     onClick={() => handleChange(-1)}
-                    disabled={value <= 1}
-                    className="flex h-11 w-11 items-center justify-center text-gray-600 transition-all hover:bg-gray-50 hover:text-[var(--color-primary)] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-600"
+                    disabled={value <= 1 || isOutOfStock}
+                    className={cn(
+                        "flex h-10 w-10 items-center justify-center rounded-xl transition-all",
+                        "text-gray-500 hover:bg-white hover:text-[var(--color-primary)] hover:shadow-sm",
+                        "disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                    )}
                     aria-label="Decrease quantity"
                 >
-                    <Minus className="h-4 w-4" />
+                    <Minus className="h-4 w-4 stroke-[2.5]" />
                 </button>
-                <div className="flex h-11 w-16 items-center justify-center border-x-2 border-gray-200">
-                    <span className="text-base font-semibold text-gray-900">
-                        {value}
-                    </span>
+
+                <div className="relative flex h-10 w-14 items-center justify-center overflow-hidden">
+                    <AnimatePresence mode="wait">
+                        <motion.span
+                            key={value}
+                            initial={{ y: 10, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            exit={{ y: -10, opacity: 0 }}
+                            transition={{ duration: 0.15 }}
+                            className="text-lg font-bold text-gray-900 tabular-nums"
+                        >
+                            {value}
+                        </motion.span>
+                    </AnimatePresence>
                 </div>
+
                 <button
+                    type="button"
                     onClick={() => handleChange(1)}
-                    disabled={value >= max || (stockLeft !== undefined && value >= stockLeft)}
-                    className="flex h-11 w-11 items-center justify-center text-gray-600 transition-all hover:bg-gray-50 hover:text-[var(--color-primary)] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-600"
+                    disabled={value >= max || (stockLeft !== undefined && value >= stockLeft) || isOutOfStock}
+                    className={cn(
+                        "flex h-10 w-10 items-center justify-center rounded-xl transition-all",
+                        "text-gray-500 hover:bg-white hover:text-[var(--color-primary)] hover:shadow-sm",
+                        "disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                    )}
                     aria-label="Increase quantity"
                 >
-                    <Plus className="h-4 w-4" />
+                    <Plus className="h-4 w-4 stroke-[2.5]" />
                 </button>
             </div>
         </div>

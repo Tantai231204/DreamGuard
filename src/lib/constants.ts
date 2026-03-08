@@ -7,7 +7,7 @@ export const AppRoute = {
 
   // Auth Routes
   LOGIN: "/login",
-  // REGISTER: "/register",
+  REGISTER: "/register",
   REGISTER_BASIC: "/register",
   REGISTER_COMPLETE: "/register-complete",
   FORGOT_PASSWORD: "/forgot-password",

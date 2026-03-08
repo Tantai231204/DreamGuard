@@ -60,7 +60,7 @@ function VariantItemsPanel({ variantId }: { variantId: string }) {
             {items.map((item, idx) => (
                 <div
                     key={item.productVariantId ?? idx}
-                    className="flex items-center gap-3 bg-white border border-gray-100 rounded-lg px-3 py-2 hover:border-indigo-200 hover:bg-indigo-50/30 transition-colors"
+                    className="flex items-center gap-3 bg-white border border-gray-100 rounded-lg px-3 py-2 hover:border-[#4988c4]/60 hover:bg-indigo-50/30 transition-colors"
                 >
                     <div className="h-6 w-6 rounded-md bg-indigo-50 flex items-center justify-center flex-shrink-0">
                         <Package className="h-3.5 w-3.5 text-indigo-500" />

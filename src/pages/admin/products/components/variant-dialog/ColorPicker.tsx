@@ -185,8 +185,8 @@ const ColorPicker = memo(function ColorPicker({
                         className={cn(
                             'w-full h-11 px-3 text-sm font-mono uppercase rounded-xl',
                             'border border-gray-200 bg-gray-50/50',
-                            'hover:border-purple-300 hover:bg-white transition-all',
-                            'focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-400'
+                            'hover:border-[#4988c4]/60 hover:bg-white transition-all',
+                            'focus:outline-none focus:ring-2 focus:ring-[#4988c4]/20 focus:border-[#4988c4]'
                         )}
                     />
                 </div>

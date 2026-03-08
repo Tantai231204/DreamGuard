@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { PlusIcon, Pencil1Icon, TrashIcon } from "@radix-ui/react-icons";
 import {
   Baby,
@@ -41,12 +41,23 @@ import {
   DialogTitle,
   DialogDescription,
 } from "../../../components/ui/dialog";
+import type { BabyProfile } from "@/api/types/babyProfile";
+
+interface BabyFormInitialData extends Omit<Partial<BabyProfile>, "dateOfBirth"> {
+  dateOfBirth?: Date;
+}
+
+interface BabyFormDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  initialData?: BabyFormInitialData | null;
+}
 
 export default function BabiesTab() {
   const { data: babies = [], isLoading } = useBabyProfiles();
   const deleteMutation = useDeleteBabyProfile();
   const [showForm, setShowForm] = useState(false);
-  const [editingBaby, setEditingBaby] = useState<any>(null);
+  const [editingBaby, setEditingBaby] = useState<BabyFormDialogProps["initialData"]>(null);
 
   if (isLoading) {
     return (
@@ -331,6 +342,7 @@ export default function BabiesTab() {
       </div>
 
       <BabyFormDialog
+        key={showForm ? (editingBaby?.babyId || "new") : "closed"}
         open={showForm}
         onOpenChange={setShowForm}
         initialData={editingBaby}
@@ -339,42 +351,28 @@ export default function BabiesTab() {
   );
 }
 
-function BabyFormDialog({ open, onOpenChange, initialData }: any) {
+interface BabyFormData {
+  babyId?: string;
+  name: string;
+  gender: string;
+  dateOfBirth?: Date;
+  height: number;
+  weight: number;
+  note: string;
+}
+
+function BabyFormDialog({ open, onOpenChange, initialData }: BabyFormDialogProps) {
   const createMutation = useCreateBabyProfile();
   const updateMutation = useUpdateBabyProfile();
-  const [formData, setFormData] = useState<{
-    babyId?: string;
-    name: string;
-    gender: string;
-    dateOfBirth: Date | undefined;
-    height: number;
-    weight: number;
-    note: string;
-  }>({
-    babyId: undefined,
-    name: "",
-    gender: "male",
-    dateOfBirth: undefined,
-    height: 0,
-    weight: 0,
-    note: "",
-  });
-
-  useEffect(() => {
-    if (open) {
-      setFormData(
-        initialData || {
-          babyId: undefined,
-          name: "",
-          gender: "male",
-          dateOfBirth: undefined,
-          height: 0,
-          weight: 0,
-          note: "",
-        }
-      );
-    }
-  }, [open, initialData]);
+  const [formData, setFormData] = useState<BabyFormData>(() => ({
+    babyId: initialData?.babyId,
+    name: initialData?.name || "",
+    gender: initialData?.gender || "male",
+    dateOfBirth: initialData?.dateOfBirth,
+    height: initialData?.height || 0,
+    weight: initialData?.weight || 0,
+    note: initialData?.note || "",
+  }));
 
   const isBoy = formData.gender === "male";
 
