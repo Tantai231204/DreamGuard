@@ -50,7 +50,15 @@ export const useForgotPassword = () => {
 };
 
 export const useVerifyOtp = () => {
-  return useMutation({
+  return useMutation<
+    { message: string },
+    Error,
+    {
+      email: string;
+      phoneNumber: string;
+      otpCode: string;
+    }
+  >({
     mutationFn: authService.verifyOtp,
   });
 };
@@ -60,3 +68,22 @@ export const useResetPassword = () => {
     mutationFn: authService.resetPassword,
   });
 };
+
+export const useRegister = () => {
+  return useMutation({
+    mutationFn: authService.register,
+  });
+};
+
+export const useResendOtp = () => {
+  return useMutation({
+    mutationFn: authService.resendOtp,
+  });
+};
+
+export const useSendRegisterOtp = () => {
+  return useMutation({
+    mutationFn: authService.sendRegisterOtp
+  })
+}
+

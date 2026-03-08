@@ -1,31 +1,33 @@
 // API Base URL
-export const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || "/api";
 // Route Constants
 export const AppRoute = {
   // Public Routes
   HOME: "/",
-  
+
   // Auth Routes
   LOGIN: "/login",
-  REGISTER: "/register",
+  // REGISTER: "/register",
+  REGISTER_BASIC: "/register",
+  REGISTER_COMPLETE: "/register-complete",
   FORGOT_PASSWORD: "/forgot-password",
   VERIFY_OTP: "/verify-otp",
   RESET_PASSWORD: "/reset-password",
   RESET_PASSWORD_SUCCESS: "/reset-password-success",
-  
+
   // Shop Routes
   PRODUCTS: "/products",
   PRODUCT_DETAIL: "/products/:slug",
   SERVICES: "/services",
   CART: "/cart",
   CHECKOUT: "/checkout",
-  
+
   // User Routes
   PROFILE: "/profile",
-  
+
   // Admin Routes
   ADMIN: "/admin",
-  
+
   // Error Routes
   NOT_FOUND: "*",
 } as const;

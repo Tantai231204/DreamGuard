@@ -17,15 +17,15 @@ export interface ResetPasswordRequest {
   newPassword: string;
 }
 
-export interface RegisterRequest {
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-  phoneNumber: string;
-  gender: "Male" | "Female";
-  dateOfBirth: string;
-}
+// export interface RegisterRequest {
+//   email: string;
+//   password: string;
+//   firstName: string;
+//   lastName: string;
+//   phoneNumber: string;
+//   gender: "Male" | "Female";
+//   dateOfBirth: string;
+// }
 
 export const authService = {
   login: async (data: LoginRequest): Promise<AuthResponse> => {
