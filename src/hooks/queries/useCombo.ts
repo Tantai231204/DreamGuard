@@ -120,3 +120,29 @@ export const useDeleteCombo = () => {
     },
   });
 };
+
+/** Upload ảnh cho combo */
+export const useUploadComboImage = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ comboId, files }: { comboId: string; files: File[] }) =>
+      comboService.uploadImage(comboId, files),
+    onSuccess: (_, { comboId }) => {
+      queryClient.invalidateQueries({ queryKey: comboKeys.detail(comboId) });
+      queryClient.invalidateQueries({ queryKey: comboKeys.all });
+    },
+  });
+};
+
+/** Xóa ảnh của combo */
+export const useDeleteComboImage = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (assetId: string) => comboService.deleteImage(assetId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: comboKeys.all });
+    },
+  });
+};

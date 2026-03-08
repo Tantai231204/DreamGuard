@@ -20,12 +20,15 @@ import {
   AlertTriangle,
   ChevronDown,
   Package2,
+  ShoppingCart,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AdminColorGroup, AdminVariantItem } from '@/api/services/variantService';
 import { useAdminProductVariants } from '@/hooks/queries/useProduct';
 import { useStockAdjustment } from './useStockAdjustment';
 import StockAdjustmentDialog from './StockAdjustmentDialog';
+import { useAddToCart } from '@/hooks/queries/useCart';
+import { useToast } from '@/hooks/useToast';
 
 /* ─── Stock Status Config ───────────────────────────────── */
 const stockStatusConfig: Record<string, { label: string; className: string }> = {
@@ -76,6 +79,8 @@ export default function VariantTable({
   onEditVariant,
   onDeleteVariant,
 }: VariantTableProps) {
+  const { success, error } = useToast();
+  const addToCartMutation = useAddToCart();
   const { data, isLoading } = useAdminProductVariants(productId);
   const {
     stockDialog,
@@ -120,6 +125,19 @@ export default function VariantTable({
       return next;
     });
   }, []);
+
+  const handleAddToCart = async (variantId: string) => {
+    try {
+      await addToCartMutation.mutateAsync({
+        productVariantId: variantId,
+        comboId: null,
+        quantity: 1,
+      });
+      success('Added to Cart', 'Product variant has been added to cart.');
+    } catch {
+      error('Add to Cart Failed', 'Could not add variant to cart.');
+    }
+  };
 
   // Groups are collapsed by default per user request
 
@@ -201,6 +219,7 @@ export default function VariantTable({
                     onEditVariant={onEditVariant}
                     onDeleteVariant={onDeleteVariant}
                     onStockAdjust={openDialog}
+                    onAddToCart={handleAddToCart}
                   />
                 ))}
               </div>
@@ -251,6 +270,7 @@ function ColorGroupRow({
   onEditVariant,
   onDeleteVariant,
   onStockAdjust,
+  onAddToCart,
 }: {
   group: AdminColorGroup;
   isExpanded: boolean;
@@ -258,6 +278,7 @@ function ColorGroupRow({
   onEditVariant: (variantId: string) => void;
   onDeleteVariant: (variantId: string) => void;
   onStockAdjust: (type: 'add' | 'reduce', variantId: string, sku: string, currentStock: number) => void;
+  onAddToCart: (variantId: string) => void;
 }) {
   const colorHex = getColorHex(group.color);
 
@@ -329,6 +350,7 @@ function ColorGroupRow({
                   onDelete={() => onDeleteVariant(variant.id)}
                   onAddStock={() => onStockAdjust('add', variant.id, variant.sku, variant.stockQuantity)}
                   onReduceStock={() => onStockAdjust('reduce', variant.id, variant.sku, variant.stockQuantity)}
+                  onAddToCart={() => onAddToCart(variant.id)}
                 />
               ))}
             </div>
@@ -346,6 +368,7 @@ function VariantRow({
   onDelete,
   onAddStock,
   onReduceStock,
+  onAddToCart,
 }: {
   variant: AdminVariantItem;
   isEven: boolean;
@@ -353,6 +376,7 @@ function VariantRow({
   onDelete: () => void;
   onAddStock: () => void;
   onReduceStock: () => void;
+  onAddToCart: () => void;
 }) {
   const hasSale = variant.salePrice < variant.basePrice;
   const statusConfig = stockStatusConfig[variant.stockStatus] || stockStatusConfig['Out of Stock'];
@@ -439,7 +463,16 @@ function VariantRow({
       </div>
 
       {/* Contextual Actions */}
-      <div className="flex justify-end opacity-0 group-hover/vrow:opacity-100 transition-opacity">
+      <div className="flex justify-end gap-1 opacity-0 group-hover/vrow:opacity-100 transition-opacity">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 p-0 rounded-lg hover:bg-white hover:shadow-sm border border-transparent hover:border-slate-100 transition-all text-blue-600"
+          onClick={(e) => { e.stopPropagation(); onAddToCart(); }}
+          title="Add to Cart"
+        >
+          <ShoppingCart className="h-4 w-4" />
+        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button

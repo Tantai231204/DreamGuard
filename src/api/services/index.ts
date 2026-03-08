@@ -6,6 +6,7 @@ export { default as voucherService } from './voucherService';
 export { default as productService } from './productService';
 export { default as variantService } from './variantService';
 export { default as comboService } from './comboService';
+export { default as cartService } from './cartService';
 export type {
     CreateVariantRequest,
     UpdateVariantRequest,
@@ -21,3 +22,9 @@ export type {
     ComboParams,
 } from './comboService';
 export { isComboParent } from './comboService';
+
+export type {
+    AddCartItemRequest,
+    CartItemResponse,
+    CartResponse,
+} from './cartService';

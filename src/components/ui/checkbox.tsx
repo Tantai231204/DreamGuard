@@ -1,10 +1,17 @@
 import * as React from "react"
 import { twMerge } from "tailwind-merge"
 
-type CheckboxProps = React.InputHTMLAttributes<HTMLInputElement>
+interface CheckboxProps extends React.InputHTMLAttributes<HTMLInputElement> {
+    onCheckedChange?: (checked: boolean) => void
+}
 
 const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
-    ({ className, ...props }, ref) => {
+    ({ className, onChange, onCheckedChange, ...props }, ref) => {
+        const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+            onChange?.(e)
+            onCheckedChange?.(e.target.checked)
+        }
+
         return (
             <input
                 type="checkbox"
@@ -13,6 +20,7 @@ const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
                     className
                 )}
                 ref={ref}
+                onChange={handleChange}
                 {...props}
             />
         )

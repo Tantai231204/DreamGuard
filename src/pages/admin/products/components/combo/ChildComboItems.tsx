@@ -1,15 +1,14 @@
 import { ShoppingBag } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useComboDetail, useUpdateCombo } from '@/hooks/queries/useCombo';
+import { useComboDetail, useUpdateComboItems } from '@/hooks/queries/useCombo';
 import { toComboItems } from './combo-utils';
 import ComboVariantRow from './ComboVariantRow';
-import type { ComboResponse } from '@/api/services/comboService';
-import type { UpdateComboRequest } from '@/api';
+import type { Combo } from '../../types';
 
 interface ChildComboItemsProps {
     childId: string;
     childName: string;
-    parentChildData?: ComboResponse;
+    parentChildData?: Combo;
     isDense?: boolean;
 }
 
@@ -20,43 +19,41 @@ export default function ChildComboItems({
     isDense = false
 }: ChildComboItemsProps) {
     const { data: detail, isLoading } = useComboDetail(childId, true);
-    const updateMutation = useUpdateCombo();
+    const updateItemsMutation = useUpdateComboItems();
 
     const items = toComboItems(detail || parentChildData);
 
     const handleUpdateQuantity = async (itemKey: string, newQty: number) => {
         if (!detail) return;
-        const [pId, vId] = itemKey.split('-');
+        const [pId] = itemKey.split('|'); // pId is productVariantId
+
         const updatedItems = detail.productItems?.map(i => {
-            const matches = i.productVariantId === pId && (i.sku || 'default') === vId;
-            if (matches) return { ...i, quantity: newQty };
+            if (i.productVariantId === pId) {
+                return { ...i, quantity: newQty };
+            }
             return i;
         }) || [];
 
-        const requestData: UpdateComboRequest = {
-            items: updatedItems.map(i => ({
-                productVariantId: i.productVariantId,
-                quantity: i.quantity
-            }))
-        };
-        await updateMutation.mutateAsync({ id: childId, data: requestData });
+        const itemsUpdate = updatedItems.map(i => ({
+            productVariantId: i.productVariantId,
+            quantity: i.quantity
+        }));
+        await updateItemsMutation.mutateAsync({ id: childId, items: itemsUpdate });
     };
 
     const handleDeleteItem = async (itemKey: string) => {
         if (!detail || !confirm('Remove this item from combo?')) return;
-        const [pId, vId] = itemKey.split('-');
-        const updatedItems = detail.productItems?.filter(i => {
-            const matches = i.productVariantId === pId && (i.sku || 'default') === vId;
-            return !matches;
-        }) || [];
+        const [pId] = itemKey.split('|'); // pId is productVariantId
 
-        const requestData: UpdateComboRequest = {
-            items: updatedItems.map(i => ({
-                productVariantId: i.productVariantId,
-                quantity: i.quantity
-            }))
-        };
-        await updateMutation.mutateAsync({ id: childId, data: requestData });
+        const updatedItems = detail.productItems?.filter(i =>
+            i.productVariantId !== pId
+        ) || [];
+
+        const itemsUpdate = updatedItems.map(i => ({
+            productVariantId: i.productVariantId,
+            quantity: i.quantity
+        }));
+        await updateItemsMutation.mutateAsync({ id: childId, items: itemsUpdate });
     };
 
     if (isLoading) {
@@ -93,7 +90,7 @@ export default function ChildComboItems({
             <div className="divide-y divide-gray-50">
                 {items.map((item, i) => (
                     <ComboVariantRow
-                        key={`${item.productId}-${item.variantId ?? i}`}
+                        key={`${item.productId}|${item.variantId ?? i}`}
                         item={item}
                         onQuantityChange={handleUpdateQuantity}
                         onDelete={handleDeleteItem}

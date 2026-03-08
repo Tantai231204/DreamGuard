@@ -148,6 +148,26 @@ const comboService = {
   /** Delete combo */
   delete: (id: string): Promise<void> =>
     apiClient.delete(`/combo/${id}`).then((res) => res.data),
+
+  /** Upload images for combo */
+  uploadImage: (comboId: string, files: File[]): Promise<{ message: string; urls: string[] }> => {
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append('File', file);
+    });
+
+    console.log('[comboService.uploadImage] comboId:', comboId, 'files:', files.length);
+
+    return apiClient
+      .post(`/asset/combo/upload/${comboId}`, formData, {
+        headers: { 'Content-Type': null },
+      })
+      .then((res) => res.data);
+  },
+
+  /** Delete combo image by assetId */
+  deleteImage: (assetId: string): Promise<void> =>
+    apiClient.delete(`/asset/combo/${assetId}`).then((res) => res.data),
 };
 
 export default comboService;

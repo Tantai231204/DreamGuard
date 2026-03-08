@@ -126,8 +126,11 @@ export function toSlug(str: string) {
     .replace(/^-+|-+$/g, "");
 }
 
+import type { Combo } from "../../types";
+import type { ComboResponse } from "@/api/services/comboService";
+
 export function getInitialState(
-  combo?: import("../../types").Combo | null,
+  combo?: Combo | ComboResponse | null,
 ): ComboFormState {
   if (combo) {
     const images = combo.images ?? [];
@@ -140,7 +143,7 @@ export function getInitialState(
       color: combo.color ?? "",
       size: combo.size ?? "",
       basePrice: String(combo.basePrice ?? ""),
-      salePrice: String(combo.salePrice ?? combo.baseSalePrice ?? ""),
+      salePrice: String(combo.salePrice ?? ('baseSalePrice' in combo ? combo.baseSalePrice : "") ?? ""),
       description: combo.description ?? "",
       imageUrl: imageUrl,
       imagePublicId: "", // Currently not available in Combo type, keep empty or map if added

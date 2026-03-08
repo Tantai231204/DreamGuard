@@ -4,149 +4,115 @@ import {
     Star,
     Sparkles,
     Tag,
-    ShoppingCart
+    ArrowUpRight
 } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import type { Product } from '../types'
 import { getProductDetailRoute } from '@/lib/constants'
-import { cn } from '@/lib/utils'
 
 interface ProductCardProps {
     product: Product
-    onAddToCart?: (productId: string) => void
 }
 
 export const ProductCard: FC<ProductCardProps> = ({
     product,
-    onAddToCart,
 }) => {
     const formatPrice = (price: number) =>
-        price > 0 ? `$${price.toFixed(2)}` : null
+        `$${price.toLocaleString()}`
 
     const hasRating = product.rating > 0
 
     return (
-        <Link to={getProductDetailRoute(product.slug)}>
-            <Card className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-[var(--color-gray-200)] bg-white shadow-[var(--shadow-card)] transition-all duration-300 hover:border-[var(--color-primary)]/30 hover:shadow-[var(--shadow-card-hover)]">
-                {/* Image */}
-                <div className="relative p-3">
-                    <div className="relative aspect-square overflow-hidden rounded-xl bg-[var(--color-gray-50)]">
-                        <img
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            whileHover={{ y: -8 }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            className="group"
+        >
+            <Link to={getProductDetailRoute(product.slug)}>
+                <Card className="relative flex flex-col overflow-hidden rounded-[2.5rem] border-0 bg-white transition-all duration-700 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.1)]">
+                    {/* Media Section */}
+                    <div className="relative aspect-[4/5] overflow-hidden m-2 rounded-[2rem] bg-gray-50">
+                        <motion.img
                             src={product.image}
                             alt={product.name}
-                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            className="h-full w-full object-cover transition-transform duration-1000 group-hover:scale-110"
                             onError={(e) => {
                                 e.currentTarget.src = '/images/placeholder-product.svg'
                             }}
                         />
 
-                        {/* Top-left Badges */}
-                        <div className="absolute left-2 top-2 flex flex-col gap-1.5">
+                        {/* Status Badges */}
+                        <div className="absolute left-6 top-6 flex flex-col gap-2 z-10">
                             {product.isNew && (
-                                <Badge variant="success" className="gap-1 px-2.5 py-1 text-[11px] font-semibold shadow-sm">
-                                    <Sparkles className="h-3 w-3" />
-                                    New
+                                <Badge className="bg-white/90 backdrop-blur-md text-emerald-600 border-0 px-4 py-1.5 text-[9px] font-black uppercase tracking-[0.2em] shadow-sm rounded-full">
+                                    <Sparkles className="h-3 w-3 mr-2 fill-emerald-600" />
+                                    New Arrival
                                 </Badge>
                             )}
                             {product.discount && product.discount > 0 && (
-                                <Badge variant="danger" className="gap-1 px-2.5 py-1 text-[11px] font-semibold shadow-sm">
-                                    <Tag className="h-3 w-3" />
+                                <Badge className="bg-gray-950 text-white border-0 px-4 py-1.5 text-[9px] font-black uppercase tracking-[0.2em] rounded-full">
                                     -{product.discount}%
+                                </Badge>
+                            )}
+                            {!product.inStock && (
+                                <Badge className="bg-gray-100 text-gray-400 border-0 px-4 py-1.5 text-[9px] font-black uppercase tracking-[0.2em] rounded-full">
+                                    Sold Out
                                 </Badge>
                             )}
                         </div>
 
-                        {/* Hover action */}
-                        <div className="absolute inset-x-3 bottom-3 translate-y-4 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-                            <Button
-                                size="sm"
-                                className="w-full gap-2 rounded-xl bg-[var(--color-primary)] px-4 py-2.5 text-sm font-medium text-white shadow-md transition-all duration-200 hover:bg-[var(--color-primary-hover)] hover:shadow-lg active:scale-[0.98]"
-                                onClick={(e) => {
-                                    e.preventDefault()
-                                    onAddToCart?.(product.id)
-                                }}
-                            >
-                                <ShoppingCart className="h-4 w-4" />
-                                Add to cart
-                            </Button>
+                        <div className="absolute right-6 top-6 h-10 w-10 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center text-gray-950 opacity-0 group-hover:opacity-100 transition-all duration-500 shadow-xl">
+                            <ArrowUpRight className="h-5 w-5" />
                         </div>
                     </div>
-                </div>
 
-                {/* Info */}
-                <div className="flex flex-1 flex-col px-4 pb-4">
-                    <h3 className="line-clamp-2 text-base font-semibold tracking-tight text-[var(--color-gray-800)] transition-colors group-hover:text-[var(--color-primary-dark)]">
-                        {product.name}
-                    </h3>
-
-                    {/* Summary */}
-                    {product.summary && (
-                        <p className="mt-1 line-clamp-1 text-xs text-[var(--color-gray-400)]">
-                            {product.summary}
-                        </p>
-                    )}
-
-                    {/* Meta: category, material & age */}
-                    {(product.material || product.ageRange || product.category) && (
-                        <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[var(--color-gray-500)]">
+                    {/* Content Section */}
+                    <div className="flex flex-col px-10 pb-10 pt-4">
+                        <div className="space-y-2">
                             {product.category && (
-                                <span className="font-medium text-[var(--color-primary)]/80">{product.category}</span>
+                                <p className="text-[9px] font-black uppercase tracking-[0.3em] text-gray-300">
+                                    {product.category}
+                                </p>
                             )}
-                            {product.category && (product.material || product.ageRange) && (
-                                <span className="text-[var(--color-gray-300)]">•</span>
-                            )}
-                            {product.material && (
-                                <span className="font-medium text-[var(--color-gray-600)]">{product.material}</span>
-                            )}
-                            {product.material && product.ageRange && (
-                                <span className="text-[var(--color-gray-300)]">•</span>
-                            )}
-                            {product.ageRange && (
-                                <span className="font-medium text-[var(--color-gray-600)]">{product.ageRange}</span>
-                            )}
+                            <h3 className="line-clamp-1 text-xl font-black tracking-tighter text-gray-950 uppercase italic leading-tight group-hover:text-emerald-600 transition-colors">
+                                {product.name}
+                            </h3>
                         </div>
-                    )}
 
-                    {/* Rating */}
-                    {hasRating && (
-                        <div className="mt-2.5 flex items-center gap-2">
-                            <div className="flex items-center gap-0.5">
-                                {[...Array(5)].map((_, i) => (
-                                    <Star
-                                        key={i}
-                                        className={cn(
-                                            'h-4 w-4',
-                                            i < Math.round(product.rating)
-                                                ? 'fill-[var(--color-amber)] text-[var(--color-amber)]'
-                                                : 'fill-[var(--color-gray-200)] text-[var(--color-gray-200)]'
-                                        )}
-                                        strokeWidth={1.5}
-                                    />
-                                ))}
+                        <div className="mt-8 flex items-end justify-between">
+                            <div className="flex flex-col gap-1">
+                                <div className="flex items-center gap-3">
+                                    <span className="text-2xl font-black text-gray-950 tracking-tighter">
+                                        {formatPrice(product.price)}
+                                    </span>
+                                    {product.originalPrice && product.originalPrice > product.price && (
+                                        <Tag className="h-4 w-4 text-emerald-500" />
+                                    )}
+                                </div>
+                                {product.originalPrice && product.originalPrice > product.price && (
+                                    <span className="text-xs text-gray-300 line-through font-bold tracking-widest">
+                                        {formatPrice(product.originalPrice)}
+                                    </span>
+                                )}
                             </div>
-                            {product.reviewCount > 0 && (
-                                <span className="text-xs text-[var(--color-gray-400)]">
-                                    ({product.reviewCount})
-                                </span>
+
+                            {hasRating && (
+                                <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
+                                    <Star className="h-3 w-3 fill-gray-950 text-gray-950" />
+                                    <span className="text-[10px] font-black text-gray-950">{product.rating.toFixed(1)}</span>
+                                </div>
                             )}
                         </div>
-                    )}
-
-                    {/* Price */}
-                    <div className="mt-auto flex items-baseline gap-2 pt-3">
-                        <span className="text-xl font-bold text-[var(--color-gray-900)]">
-                            {formatPrice(product.price)}
-                        </span>
-                        {product.originalPrice && product.originalPrice > product.price && (
-                            <span className="text-sm text-[var(--color-gray-400)] line-through">
-                                {formatPrice(product.originalPrice)}
-                            </span>
-                        )}
                     </div>
-                </div>
-            </Card>
-        </Link>
+                </Card>
+            </Link>
+        </motion.div>
     )
 }
+
+ProductCard.displayName = 'ProductCard'

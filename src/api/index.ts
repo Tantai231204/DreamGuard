@@ -10,6 +10,7 @@ export {
   productService,
   variantService,
   comboService,
+  cartService,
 } from "./services";
 
 // Variant Types (exported from service)
@@ -30,6 +31,9 @@ export type {
   ComboItemRequest,
   ComboPageResponse,
   ComboParams,
+  AddCartItemRequest,
+  CartItemResponse,
+  CartResponse,
 } from "./services";
 
 // Types

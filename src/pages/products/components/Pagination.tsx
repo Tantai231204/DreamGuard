@@ -1,4 +1,4 @@
-import type { FC } from 'react';
+import type { FC, ElementType } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
@@ -11,149 +11,100 @@ interface PaginationProps {
   className?: string;
 }
 
+const NavButton = ({
+  icon: Icon,
+  onClick,
+  disabled
+}: {
+  icon: ElementType,
+  onClick: () => void,
+  disabled: boolean
+}) => (
+  <Button
+    variant="outline"
+    size="icon"
+    onClick={onClick}
+    disabled={disabled}
+    className="h-14 w-14 rounded-2xl border-gray-100 bg-white shadow-sm transition-all hover:border-gray-950 hover:bg-gray-950 hover:text-white disabled:opacity-30 active:scale-90 group"
+  >
+    <Icon className="h-5 w-5 group-hover:scale-110 transition-transform" />
+  </Button>
+);
+
 export const Pagination: FC<PaginationProps> = ({
   currentPage,
   totalPages,
   onPageChange,
   className,
 }) => {
-  // Generate page numbers to display
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
     const maxVisible = 5;
 
     if (totalPages <= maxVisible) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
     } else {
       pages.push(1);
-
-      if (currentPage > 3) {
-        pages.push('...');
-      }
-
+      if (currentPage > 3) pages.push('...');
       const start = Math.max(2, currentPage - 1);
       const end = Math.min(totalPages - 1, currentPage + 1);
-
-      for (let i = start; i <= end; i++) {
-        pages.push(i);
-      }
-
-      if (currentPage < totalPages - 2) {
-        pages.push('...');
-      }
-
+      for (let i = start; i <= end; i++) pages.push(i);
+      if (currentPage < totalPages - 2) pages.push('...');
       pages.push(totalPages);
     }
-
     return pages;
   };
 
-  const handleFirst = () => onPageChange(1);
-  const handlePrevious = () => currentPage > 1 && onPageChange(currentPage - 1);
-  const handleNext = () => currentPage < totalPages && onPageChange(currentPage + 1);
-  const handleLast = () => onPageChange(totalPages);
-
-  if (totalPages <= 1) {
-    return null;
-  }
+  if (totalPages <= 1) return null;
 
   return (
-    <motion.div 
-      className={cn('flex items-center justify-center gap-1.5', className)}
+    <motion.div
+      className={cn('flex flex-col sm:flex-row items-center justify-center gap-10', className)}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay: 0.2 }}
+      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
     >
-      {/* First Button */}
-      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handleFirst}
-          disabled={currentPage === 1}
-          className="h-10 w-10 rounded-xl border-gray-200 transition-all hover:border-[var(--color-primary)]/50 hover:bg-[var(--color-primary-light)]/30 disabled:opacity-40"
-        >
-          <ChevronsLeft className="h-4 w-4" />
-        </Button>
-      </motion.div>
+      <div className="flex items-center gap-3">
+        <NavButton icon={ChevronsLeft} onClick={() => onPageChange(1)} disabled={currentPage === 1} />
+        <NavButton icon={ChevronLeft} onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1} />
+      </div>
 
-      {/* Previous Button */}
-      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handlePrevious}
-          disabled={currentPage === 1}
-          className="h-10 w-10 rounded-xl border-gray-200 transition-all hover:border-[var(--color-primary)]/50 hover:bg-[var(--color-primary-light)]/30 disabled:opacity-40"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-      </motion.div>
-
-      {/* Page Numbers */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-3 px-4">
         {getPageNumbers().map((page, index) => {
           if (page === '...') {
-            return (
-              <span key={`ellipsis-${index}`} className="px-2 text-gray-400">
-                •••
-              </span>
-            );
+            return <span key={`ellipsis-${index}`} className="w-12 text-center text-gray-200 font-black tracking-[0.4em]">•••</span>;
           }
 
           const isActive = currentPage === page;
 
           return (
-            <motion.div
+            <Button
               key={page}
-              whileHover={{ scale: isActive ? 1 : 1.08 }}
-              whileTap={{ scale: 0.95 }}
+              variant={isActive ? 'default' : 'outline'}
+              size="icon"
+              onClick={() => onPageChange(page as number)}
+              className={cn(
+                'h-14 w-14 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all duration-500 relative overflow-hidden',
+                isActive
+                  ? 'bg-gray-950 text-white shadow-2xl scale-125 z-10'
+                  : 'border-gray-100 text-gray-400 bg-white hover:border-gray-950 hover:text-gray-950 active:scale-95'
+              )}
             >
-              <Button
-                variant={isActive ? 'default' : 'outline'}
-                size="icon"
-                onClick={() => onPageChange(page as number)}
-                className={cn(
-                  'h-10 w-10 rounded-xl text-sm font-medium transition-all',
-                  isActive
-                    ? 'bg-[var(--color-primary)] text-white shadow-md hover:bg-[var(--color-primary-hover)]'
-                    : 'border-gray-200 text-gray-600 hover:border-[var(--color-primary)]/50 hover:bg-[var(--color-primary-light)]/30 hover:text-[var(--color-primary-dark)]'
-                )}
-              >
-                {page}
-              </Button>
-            </motion.div>
+              {isActive && <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent" />}
+              {page}
+            </Button>
           );
         })}
       </div>
 
-      {/* Next Button */}
-      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handleNext}
-          disabled={currentPage === totalPages}
-          className="h-10 w-10 rounded-xl border-gray-200 transition-all hover:border-[var(--color-primary)]/50 hover:bg-[var(--color-primary-light)]/30 disabled:opacity-40"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      </motion.div>
+      <div className="flex items-center gap-3">
+        <NavButton icon={ChevronRight} onClick={() => onPageChange(currentPage + 1)} disabled={currentPage === totalPages} />
+        <NavButton icon={ChevronsRight} onClick={() => onPageChange(totalPages)} disabled={currentPage === totalPages} />
+      </div>
 
-      {/* Last Button */}
-      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handleLast}
-          disabled={currentPage === totalPages}
-          className="h-10 w-10 rounded-xl border-gray-200 transition-all hover:border-[var(--color-primary)]/50 hover:bg-[var(--color-primary-light)]/30 disabled:opacity-40"
-        >
-          <ChevronsRight className="h-4 w-4" />
-        </Button>
-      </motion.div>
+      <div className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-300 sm:absolute sm:right-0">
+        Page {currentPage} of {totalPages}
+      </div>
     </motion.div>
   );
 };

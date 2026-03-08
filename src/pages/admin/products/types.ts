@@ -199,32 +199,32 @@ export interface Combo {
   slug: string;
   sku: string;
   type?: "combo";
-  category?: string;
-  ageGroup?: number | null;
+  category: string;
+  ageGroup: number | null;
   basePrice: number;
-  baseSalePrice?: number;
-  salePrice?: number;
+  baseSalePrice: number;
+  salePrice: number;
   totalStock: number;
   status: ProductStatus;
-  images?: string[] | null;
-  imageUrl?: string | null;
+  images: string[] | null;
+  imageUrl: string;
+  imagePublicId: string;
   description: string;
-  featured?: boolean;
+  featured: boolean;
   averageRating?: number;
   createdAt: string;
   updatedAt: string;
-  sales?: number;
-  items?: ComboItem[];
+  sales: number;
+  items: import('@/api/services/comboService').ComboItemResponse[];
   productItems?: import('@/api/services/comboService').ProductItemResponse[] | null;
   discount: number;
   comboParentId?: string | null;
   /** Color/size for combo variants (children) */
-  color?: string;
-  size?: string;
+  color: string;
+  size: string;
   /** Virtual: child combos grouped under this parent */
   children?: Combo[];
   childCombos?: Combo[] | null;
   /** TanStack Table sub-rows — populated by mapCombosToSubRows() */
   subRows?: Combo[];
 }
-

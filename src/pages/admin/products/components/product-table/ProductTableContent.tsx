@@ -12,10 +12,12 @@ import VariantTableWrapper from '../variant-table/VariantTableWrapper';
 import ComboItemsTable from '../combo/ComboItemsTable';
 import { cn } from '@/lib/utils';
 import type { Product, ProductVariant, Combo, ComboItem } from '../../types';
+import type { ProductItemResponse } from '@/api/services/comboService';
 
 interface ExtendedRow extends Product {
   items?: ComboItem[];
-  productItems?: unknown[];
+  productItems?: ProductItemResponse[];
+  childCombos?: Combo[];
   type?: string;
   discount?: number;
 }
@@ -158,9 +160,9 @@ export default function ProductTableContent<T = unknown>({
                                 <ComboItemsTable
                                   comboId={item.id}
                                   items={(item.items as ComboItem[]) ?? []}
-                                  childCombos={(item as any).childCombos}
+                                  childCombos={item.childCombos}
                                   comboName={item.name}
-                                  discount={(row.original as unknown as Combo).discount ?? 0}
+                                  discount={item.discount ?? 0}
                                   onAddVariant={onAddComboVariant}
                                   onEditVariant={onEditCombo}
                                   onDeleteVariant={onDeleteCombo}

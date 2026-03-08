@@ -15,7 +15,6 @@ import { VariantListView } from './items-table/VariantListView';
 import { StatsGroup, DiscountBadge, LoadingSkeleton, ErrorState } from './items-table/StatsAndFeedback';
 
 import type { ComboItem, Combo } from '../../types';
-import type { ComboResponse } from '@/api/services/comboService';
 
 /* ──────────────────────────────────────────────────────────
    Main ComboItemsTable Orchestrator
@@ -24,7 +23,7 @@ import type { ComboResponse } from '@/api/services/comboService';
 interface ComboItemsTableProps {
     comboId: string;
     items?: ComboItem[] | null;
-    childCombos?: ComboResponse[] | null;
+    childCombos?: Combo[] | null;
     comboName: string;
     discount: number;
     onAddVariant?: (parent: Combo) => void;
@@ -56,9 +55,9 @@ export default function ComboItemsTable({
 
     /* ── Decide: parent with children, or leaf with own items ── */
     const childCombosFromStore = detail?.childCombos ?? [];
-    const rawChildCombos: ComboResponse[] = (childCombosFromStore.length > 0
-        ? childCombosFromStore
-        : (initialChildCombos ?? [])) as ComboResponse[];
+    const rawChildCombos: Combo[] = (childCombosFromStore.length > 0
+        ? (childCombosFromStore as unknown as Combo[])
+        : (initialChildCombos ?? [])) as Combo[];
 
     const childCombosFiltered = rawChildCombos.filter(c =>
         c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

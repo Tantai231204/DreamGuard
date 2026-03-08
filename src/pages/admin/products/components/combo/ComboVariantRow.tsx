@@ -18,7 +18,7 @@ export default function ComboVariantRow({ item, onQuantityChange, onDelete, isDe
     const [isEditing, setIsEditing] = useState(false);
     const [editQty, setEditQty] = useState(item.quantity);
 
-    const itemKey = `${item.productId}-${item.variantId ?? 'default'}`;
+    const itemKey = `${item.productId}|${item.variantId ?? 'default'}`;
     const { color, size } = item.variantLabel
         ? parseVariantLabel(item.variantLabel)
         : { color: '—', size: null };
@@ -26,8 +26,8 @@ export default function ComboVariantRow({ item, onQuantityChange, onDelete, isDe
     const sku = item.variantId ?? null;
 
     // Use prices if available in the item (they are in productItems from detailed API)
-    const basePrice = (item as any).basePrice || 0;
-    const salePrice = (item as any).salePrice || 0;
+    const basePrice = item.basePrice || 0;
+    const salePrice = item.salePrice || 0;
     const hasSale = salePrice > 0 && salePrice < basePrice;
 
     const handleSave = () => {

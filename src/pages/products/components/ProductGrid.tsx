@@ -1,127 +1,83 @@
-import type { FC } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Package, Search } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import type { Product } from '../types'
-import { ProductCard } from './ProductCard'
+import { memo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { SearchX, RefreshCcw } from 'lucide-react';
+import { ProductCard } from './ProductCard';
+import { ProductCardSkeleton } from './ProductCardSkeleton';
+import { Button } from '@/components/ui/button';
+import type { Product } from '../types';
 
 interface ProductGridProps {
-    products: Product[]
-    isLoading?: boolean
-    onAddToCart?: (productId: string) => void
-    onResetFilters?: () => void
+    products: Product[];
+    isLoading?: boolean;
+    onResetFilters: () => void;
 }
 
-// Container animation
-const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-        opacity: 1,
-        transition: {
-            staggerChildren: 0.05,
-            delayChildren: 0.1
-        }
-    }
-}
-
-export const ProductGrid: FC<ProductGridProps> = ({
+export const ProductGrid = memo(({
     products,
-    isLoading = false,
-    onAddToCart,
+    isLoading,
     onResetFilters,
-}) => {
-    /* ================= Loading ================= */
+}: ProductGridProps) => {
     if (isLoading) {
         return (
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
-                {[...Array(6)].map((_, index) => (
-                    <motion.div
-                        key={index}
-                        className="overflow-hidden rounded-2xl border border-[var(--color-gray-200)] bg-white shadow-[var(--shadow-card)]"
-                        initial={{ opacity: 0.4 }}
-                        animate={{ opacity: [0.4, 0.7, 0.4] }}
-                        transition={{
-                            duration: 1.5,
-                            repeat: Infinity,
-                            delay: index * 0.1
-                        }}
-                    >
-                        <div className="aspect-square bg-gradient-to-br from-[var(--color-gray-100)] to-[var(--color-gray-50)] p-4">
-                            <div className="h-full w-full rounded-xl bg-[var(--color-gray-200)]/50" />
-                        </div>
-                        <div className="space-y-3 p-4">
-                            <div className="h-4 w-3/4 rounded-full bg-[var(--color-gray-200)]" />
-                            <div className="flex gap-2">
-                                <div className="h-3 w-16 rounded-full bg-[var(--color-gray-100)]" />
-                                <div className="h-3 w-12 rounded-full bg-[var(--color-gray-100)]" />
-                            </div>
-                            <div className="flex gap-1">
-                                {[...Array(5)].map((_, i) => (
-                                    <div key={i} className="h-3 w-3 rounded-full bg-[var(--color-gray-200)]" />
-                                ))}
-                            </div>
-                            <div className="h-5 w-20 rounded-full bg-[var(--color-gray-200)]" />
-                        </div>
-                    </motion.div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-10">
+                {[...Array(6)].map((_, i) => (
+                    <ProductCardSkeleton key={i} />
                 ))}
             </div>
-        )
+        );
     }
 
-    /* ================= Empty ================= */
     if (products.length === 0) {
         return (
             <motion.div
-                className="flex min-h-[450px] flex-col items-center justify-center rounded-2xl border-2 border-dashed border-[var(--color-gray-200)] bg-white text-center px-8 shadow-[var(--shadow-sm)]"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.4 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex min-h-[500px] flex-col items-center justify-center rounded-[3rem] bg-gray-50 border-2 border-dashed border-gray-100 px-8 text-center"
             >
-                <motion.div
-                    className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-[var(--color-primary-light)] shadow-md"
-                    initial={{ rotate: -10, scale: 0.9 }}
-                    animate={{ rotate: 0, scale: 1 }}
-                    transition={{ duration: 0.5, ease: "easeOut" }}
-                >
-                    <Package className="h-10 w-10 text-[var(--color-primary)]" />
-                </motion.div>
-                <h3 className="mb-2 text-xl font-semibold text-[var(--color-gray-800)]">
-                    Nothing here yet
-                </h3>
-                <p className="mb-6 max-w-sm text-sm text-[var(--color-gray-500)]">
-                    Can't find what you're looking for? Try changing your filters or search terms.
+                <div className="relative mb-8">
+                    <div className="h-20 w-20 bg-white rounded-3xl shadow-xl flex items-center justify-center relative z-10">
+                        <SearchX className="h-8 w-8 text-gray-950" />
+                    </div>
+                </div>
+
+                <h3 className="text-3xl font-black tracking-tighter text-gray-950 uppercase mb-4">No results found</h3>
+                <p className="max-w-md text-[11px] font-black text-gray-400 uppercase tracking-widest leading-relaxed mb-10">
+                    Try adjusting your filters or search query to find what you're looking for.
                 </p>
-                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                    <Button
-                        onClick={onResetFilters}
-                        className="gap-2 rounded-xl bg-[var(--color-primary)] px-6 py-2.5 font-medium text-white shadow-md transition-all hover:bg-[var(--color-primary-hover)] hover:shadow-lg"
-                    >
-                        <Search className="h-4 w-4" />
-                        Clear Filters
-                    </Button>
-                </motion.div>
+
+                <Button
+                    onClick={onResetFilters}
+                    size="lg"
+                    className="h-16 px-10 rounded-2xl bg-gray-950 text-white font-black uppercase tracking-widest transition-all active:scale-95"
+                >
+                    <RefreshCcw className="mr-3 h-4 w-4" />
+                    Clear all filters
+                </Button>
             </motion.div>
-        )
+        );
     }
 
-    /* ================= Grid ================= */
     return (
-        <AnimatePresence mode="wait">
-            <motion.div
-                className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3"
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-                key="product-grid"
-            >
-                {products.map((product) => (
-                    <ProductCard
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-x-10 gap-y-16">
+            <AnimatePresence mode="popLayout">
+                {products.map((product, index) => (
+                    <motion.div
                         key={product.id}
-                        product={product}
-                        onAddToCart={onAddToCart}
-                    />
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{
+                            duration: 0.5,
+                            delay: index * 0.05,
+                            ease: [0.16, 1, 0.3, 1]
+                        }}
+                    >
+                        <ProductCard product={product} />
+                    </motion.div>
                 ))}
-            </motion.div>
-        </AnimatePresence>
-    )
-}
+            </AnimatePresence>
+        </div>
+    );
+});
+
+ProductGrid.displayName = 'ProductGrid';

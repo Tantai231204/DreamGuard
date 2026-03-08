@@ -1,6 +1,6 @@
 import { memo, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Heart, ChevronLeft, ChevronRight, Share2, Sparkles } from 'lucide-react';
 import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
 import { Badge } from '@/components/ui/badge';
@@ -18,125 +18,130 @@ interface ProductImageGalleryProps {
 }
 
 export const ProductImageGallery = memo(({
-    images,
+    images = [],
     productName,
     selectedImage,
     onSelectImage,
     isWishlisted,
     onToggleWishlist,
     discount,
-    inStock = true
 }: ProductImageGalleryProps) => {
-    const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [Autoplay({ delay: 3000, stopOnInteraction: true })]);
+    const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, skipSnaps: false }, [
+        Autoplay({ delay: 6000, stopOnInteraction: true })
+    ]);
 
-    const scrollPrev = useCallback(() => {
+    const scrollPrev = useCallback((e: React.MouseEvent) => {
+        e.preventDefault();
         if (emblaApi) emblaApi.scrollPrev();
     }, [emblaApi]);
 
-    const scrollNext = useCallback(() => {
+    const scrollNext = useCallback((e: React.MouseEvent) => {
+        e.preventDefault();
         if (emblaApi) emblaApi.scrollNext();
     }, [emblaApi]);
 
     useEffect(() => {
-        if (emblaApi) {
-            emblaApi.scrollTo(selectedImage);
-        }
+        if (emblaApi) emblaApi.scrollTo(selectedImage);
     }, [selectedImage, emblaApi]);
+
+    if (!images.length) return (
+        <div className="aspect-square w-full rounded-[3rem] bg-gray-50 flex items-center justify-center border-2 border-dashed border-gray-100 italic text-gray-400 font-black uppercase tracking-widest text-xs">
+            No Imagery Found
+        </div>
+    );
 
     return (
         <motion.div
-            className="space-y-4"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            className="flex flex-col gap-8"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
         >
-            {/* Main Image with Carousel */}
-            <div className="relative overflow-hidden rounded-2xl bg-white shadow-lg ring-1 ring-gray-100 group">
-                <div className="aspect-square" ref={emblaRef}>
-                    <div className="flex">
+            {/* Main Stage */}
+            <div className="relative aspect-square overflow-hidden rounded-[3rem] bg-white border border-gray-100 group shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)]">
+                <div className="h-full w-full" ref={emblaRef}>
+                    <div className="flex h-full">
                         {images.map((img, index) => (
-                            <div key={index} className="flex-[0_0_100%] min-w-0">
-                                <AnimatePresence mode="wait">
-                                    {selectedImage === index && (
-                                        <motion.img
-                                            key={img}
-                                            src={img}
-                                            alt={`${productName} - ${index + 1}`}
-                                            loading={index === 0 ? 'eager' : 'lazy'}
-                                            className="h-full w-full object-cover"
-                                            initial={{ opacity: 0, scale: 1.1 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            exit={{ opacity: 0, scale: 0.95 }}
-                                            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                                        />
-                                    )}
-                                </AnimatePresence>
+                            <div key={index} className="flex-[0_0_100%] min-w-0 h-full relative cursor-zoom-in">
+                                <motion.img
+                                    src={img}
+                                    alt={`${productName} - View ${index + 1}`}
+                                    className="h-full w-full object-cover transition-transform duration-1000 group-hover:scale-105"
+                                />
+                                <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/5 to-transparent pointer-events-none" />
                             </div>
                         ))}
                     </div>
                 </div>
 
-                {/* Navigation Arrows */}
-                <button
-                    onClick={scrollPrev}
-                    className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 shadow-lg backdrop-blur-sm transition-all hover:bg-white hover:scale-110 opacity-0 group-hover:opacity-100"
-                    aria-label="Previous image"
-                >
-                    <ChevronLeft className="h-5 w-5 text-gray-700" />
-                </button>
-                <button
-                    onClick={scrollNext}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-white/90 p-2 shadow-lg backdrop-blur-sm transition-all hover:bg-white hover:scale-110 opacity-0 group-hover:opacity-100"
-                    aria-label="Next image"
-                >
-                    <ChevronRight className="h-5 w-5 text-gray-700" />
-                </button>
+                {/* Perspective Arrows */}
+                <div className="absolute inset-x-6 top-1/2 -translate-y-1/2 flex justify-between pointer-events-none">
+                    <button
+                        onClick={scrollPrev}
+                        className="pointer-events-auto h-14 w-14 rounded-2xl bg-white/90 shadow-2xl border border-white/50 flex items-center justify-center text-gray-950 transition-all hover:scale-110 active:scale-90 backdrop-blur-xl translate-x-[-20%] opacity-0 group-hover:translate-x-0 group-hover:opacity-100"
+                    >
+                        <ChevronLeft className="h-6 w-6 stroke-[3]" />
+                    </button>
+                    <button
+                        onClick={scrollNext}
+                        className="pointer-events-auto h-14 w-14 rounded-2xl bg-white/90 shadow-2xl border border-white/50 flex items-center justify-center text-gray-950 transition-all hover:scale-110 active:scale-90 backdrop-blur-xl translate-x-[20%] opacity-0 group-hover:translate-x-0 group-hover:opacity-100"
+                    >
+                        <ChevronRight className="h-6 w-6 stroke-[3]" />
+                    </button>
+                </div>
 
-                {/* Badges */}
-                <div className="absolute left-4 top-4 flex flex-col gap-2">
+                {/* Curated Overlays */}
+                <div className="absolute left-8 top-8 flex flex-col gap-3">
                     {discount && (
-                        <Badge className="bg-red-500 px-3 py-1 text-xs font-semibold text-white">
-                            -{discount}%
-                        </Badge>
-                    )}
-                    {inStock && (
-                        <Badge className="bg-green-500 px-3 py-1 text-xs font-semibold text-white">
-                            In Stock
+                        <Badge className="bg-emerald-500 text-white px-4 py-2 text-[10px] font-black tracking-[0.2em] shadow-2xl border-0 rounded-xl">
+                            <Sparkles className="h-3 w-3 mr-2 fill-white" />
+                            -{discount}% EXCLUSIVE
                         </Badge>
                     )}
                 </div>
 
-                {/* Wishlist Button */}
-                <button
-                    onClick={onToggleWishlist}
-                    className={cn(
-                        "absolute right-4 top-4 rounded-full bg-white/90 p-2.5 shadow-md backdrop-blur-sm transition-all hover:scale-110",
-                        isWishlisted ? "text-red-500" : "text-gray-400 hover:text-red-500"
-                    )}
-                    aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
-                >
-                    <Heart className={cn("h-5 w-5", isWishlisted && "fill-current")} />
-                </button>
+                <div className="absolute right-8 top-8 flex flex-col gap-4">
+                    <button
+                        onClick={onToggleWishlist}
+                        className={cn(
+                            "h-14 w-14 rounded-2xl bg-white/90 shadow-2xl border border-white/50 flex items-center justify-center transition-all hover:scale-110 active:scale-90 backdrop-blur-xl group/fav",
+                            isWishlisted ? "text-rose-500" : "text-gray-400 hover:text-rose-500"
+                        )}
+                    >
+                        <Heart className={cn("h-6 w-6 transition-transform group-active/fav:scale-125", isWishlisted && "fill-current")} />
+                    </button>
+                    <button className="h-14 w-14 rounded-2xl bg-white/90 shadow-2xl border border-white/50 flex items-center justify-center text-gray-400 hover:text-gray-950 transition-all hover:scale-110 active:scale-90 backdrop-blur-xl">
+                        <Share2 className="h-5 w-5" />
+                    </button>
+                </div>
             </div>
 
-            {/* Thumbnail Gallery */}
-            <div className="flex gap-3">
+            {/* Cinematic Strip */}
+            <div className="flex flex-wrap gap-5 px-2">
                 {images.map((img, index) => (
                     <button
                         key={index}
                         onClick={() => onSelectImage(index)}
                         className={cn(
-                            "relative overflow-hidden rounded-xl border-2 transition-all duration-200",
+                            "group relative h-24 w-24 overflow-hidden rounded-2xl border-2 transition-all duration-500",
                             selectedImage === index
-                                ? "border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/20"
-                                : "border-gray-200 hover:border-gray-300"
+                                ? "border-gray-950 ring-8 ring-gray-950/5 scale-105"
+                                : "border-transparent bg-gray-50 hover:bg-white hover:border-gray-200 opacity-60 hover:opacity-100"
                         )}
                     >
                         <img
                             src={img}
-                            alt={`${productName} - ${index + 1}`}
-                            className="h-20 w-20 object-cover"
+                            alt={`Gallery Thumb ${index + 1}`}
+                            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                         />
+                        <AnimatePresence>
+                            {selectedImage === index && (
+                                <motion.div
+                                    layoutId="gallery-active-overlay"
+                                    className="absolute inset-0 bg-gray-950/5 pointer-events-none"
+                                />
+                            )}
+                        </AnimatePresence>
                     </button>
                 ))}
             </div>

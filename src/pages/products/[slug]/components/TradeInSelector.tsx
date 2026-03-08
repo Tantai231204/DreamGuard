@@ -1,38 +1,34 @@
-import { memo, useMemo, useCallback, useState } from 'react';
-import { 
-  RefreshCcw, 
-  ChevronDown, 
-  ChevronUp,
+import { memo, useMemo, useState } from 'react';
+import {
+  RefreshCcw,
   Check,
-  Package,
-  Calendar,
   AlertCircle,
+  TrendingDown,
+  History,
+  ArrowRight
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { 
-  calculateTradeInValue, 
+import { motion } from 'framer-motion';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import {
+  calculateTradeInValue,
   formatTradeInPrice,
-  type TradeInProduct 
+  type TradeInProduct
 } from '../utils/tradeIn';
 
 export type { TradeInProduct };
 
-interface TradeInSelectorProps {
-  eligibleProducts: TradeInProduct[];
-  selectedProducts: string[];
-  onToggleProduct: (productId: string) => void;
-  onSelectAll: () => void;
-  onClearAll: () => void;
-  tradeInPercentage?: number;
-  className?: string;
-}
-
 const formatPrice = formatTradeInPrice;
 
-// Single product item - clean, compact design
 const TradeInProductItem = memo(function TradeInProductItem({
   product,
   isSelected,
@@ -44,8 +40,14 @@ const TradeInProductItem = memo(function TradeInProductItem({
   tradeInPercentage: number;
   onToggle: () => void;
 }) {
+  const [imageError, setImageError] = useState(false);
   const tradeInValue = product.tradeInValue || calculateTradeInValue(product.originalPrice, tradeInPercentage);
   const isDisabled = !product.canTradeIn;
+
+  const usageMonths = useMemo(() => {
+    const now = new Date().getTime();
+    return Math.floor((now - new Date(product.purchaseDate).getTime()) / (1000 * 60 * 60 * 24 * 30.5));
+  }, [product.purchaseDate]);
 
   return (
     <button
@@ -53,70 +55,78 @@ const TradeInProductItem = memo(function TradeInProductItem({
       disabled={isDisabled}
       onClick={onToggle}
       className={cn(
-        'w-full flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all duration-200',
-        isDisabled && 'opacity-50 cursor-not-allowed bg-gray-50',
-        !isDisabled && !isSelected && 'border-gray-200 hover:border-emerald-300 hover:bg-emerald-50/30',
-        !isDisabled && isSelected && 'border-emerald-500 bg-emerald-50 shadow-sm'
+        'w-full flex items-center gap-4 p-4 rounded-2xl border-2 transition-all duration-300 relative group',
+        isDisabled && 'opacity-40 cursor-not-allowed grayscale bg-gray-50/50 border-gray-100/50',
+        !isDisabled && !isSelected && 'border-gray-100 bg-white hover:border-gray-950/20',
+        !isDisabled && isSelected && 'border-gray-950 bg-gray-50 shadow-sm'
       )}
     >
-      {/* Selection indicator */}
-      <div className={cn(
-        'w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all',
-        isSelected ? 'bg-emerald-500 border-emerald-500' : 'border-gray-300',
-        isDisabled && 'border-gray-200'
-      )}>
-        {isSelected && <Check className="w-3 h-3 text-white" />}
-      </div>
-
-      {/* Product Image */}
-      <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
-        <img
-          src={product.image}
-          alt={product.name}
-          className="w-full h-full object-cover"
-        />
-        {isSelected && (
-          <div className="absolute inset-0 bg-emerald-500/20 flex items-center justify-center">
-            <Check className="w-5 h-5 text-emerald-600" />
+      <div className="relative w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-white border border-gray-100 p-1 shadow-inner">
+        {!imageError ? (
+          <img
+            src={product.image}
+            alt={product.name}
+            onError={() => setImageError(true)}
+            className="w-full h-full object-contain"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-gray-50">
+            <RefreshCcw className="w-6 h-6 text-gray-200" />
           </div>
         )}
       </div>
 
-      {/* Product Details */}
-      <div className="flex-1 min-w-0">
-        <p className={cn(
-          'font-medium text-sm truncate',
-          isSelected ? 'text-emerald-900' : 'text-gray-900'
+      <div className="flex-1 text-left min-w-0">
+        <h5 className={cn(
+          'font-bold text-xs uppercase tracking-tight leading-tight line-clamp-1',
+          isSelected ? 'text-gray-950' : 'text-gray-600'
         )}>
           {product.name}
-        </p>
-        <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
-          <Calendar className="w-3 h-3" />
-          <span>{new Date(product.purchaseDate).toLocaleDateString('en-US')}</span>
+        </h5>
+
+        <div className="flex items-center gap-2 mt-1.5">
+          <History className="w-2.5 h-2.5 text-gray-400" />
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{usageMonths}M Used</span>
         </div>
+
         {isDisabled && product.reason && (
-          <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
-            <AlertCircle className="w-3 h-3" />
+          <p className="text-[8px] font-black text-rose-500 mt-1 uppercase tracking-widest flex items-center gap-1">
+            <AlertCircle className="w-2.5 h-2.5" />
             {product.reason}
           </p>
         )}
       </div>
 
-      {/* Trade-in Value */}
       {!isDisabled && (
-        <div className="text-right flex-shrink-0">
-          <p className="text-xs text-gray-400 line-through">{formatPrice(product.originalPrice)}</p>
-          <p className={cn(
-            'font-bold text-sm',
-            isSelected ? 'text-emerald-600' : 'text-gray-600'
+        <div className="text-right shrink-0">
+          <div className={cn(
+            'px-3 py-1.5 rounded-lg font-black text-[10px] flex items-center gap-1.5',
+            isSelected ? 'bg-emerald-500 text-white' : 'bg-emerald-50 text-emerald-600'
           )}>
-            -{formatPrice(tradeInValue)}
-          </p>
+            <TrendingDown className="w-3 h-3" />
+            <span>-{formatPrice(tradeInValue)}</span>
+          </div>
+        </div>
+      )}
+
+      {isSelected && (
+        <div className="absolute -top-2 -right-2 h-5 w-5 bg-gray-950 rounded-full flex items-center justify-center text-white shadow-md">
+          <Check className="w-3 h-3 stroke-[4]" />
         </div>
       )}
     </button>
   );
 });
+
+interface TradeInSelectorProps {
+  eligibleProducts: TradeInProduct[];
+  selectedProducts: string[];
+  onToggleProduct: (productId: string) => void;
+  onSelectAll: () => void;
+  onClearAll: () => void;
+  tradeInPercentage?: number;
+  className?: string;
+}
 
 export const TradeInSelector = memo(function TradeInSelector({
   eligibleProducts,
@@ -127,12 +137,7 @@ export const TradeInSelector = memo(function TradeInSelector({
   tradeInPercentage = 30,
   className,
 }: TradeInSelectorProps) {
-  const [isExpanded, setIsExpanded] = useState(true); // Default expanded for better UX
-
-  const tradeableProducts = useMemo(() => 
-    eligibleProducts.filter(p => p.canTradeIn),
-    [eligibleProducts]
-  );
+  const [isOpen, setIsOpen] = useState(false);
 
   const totalTradeInValue = useMemo(() => {
     return selectedProducts.reduce((total, productId) => {
@@ -144,116 +149,93 @@ export const TradeInSelector = memo(function TradeInSelector({
     }, 0);
   }, [selectedProducts, eligibleProducts, tradeInPercentage]);
 
-  const handleToggle = useCallback(() => {
-    setIsExpanded(prev => !prev);
-  }, []);
-
-  const hasEligibleProducts = tradeableProducts.length > 0;
   const selectedCount = selectedProducts.length;
-  const allSelected = selectedCount === tradeableProducts.length && tradeableProducts.length > 0;
 
-  if (!hasEligibleProducts) {
-    return null;
-  }
+  if (eligibleProducts.length === 0) return null;
 
   return (
-    <Card className={cn(
-      'overflow-hidden border-2 transition-all duration-300',
-      selectedCount > 0 
-        ? 'border-emerald-400 bg-gradient-to-br from-emerald-50/80 to-green-50/50 shadow-lg shadow-emerald-100' 
-        : 'border-gray-200 bg-white hover:border-emerald-200',
-      className
-    )}>
-      <CardContent className="p-0">
-        {/* Header */}
-        <button
-          type="button"
-          className="w-full flex items-center justify-between p-4 hover:bg-emerald-50/50 transition-colors"
-          onClick={handleToggle}
-        >
-          <div className="flex items-center gap-3">
-            <div className={cn(
-              'p-2.5 rounded-xl transition-colors',
-              selectedCount > 0 ? 'bg-emerald-500' : 'bg-emerald-100'
-            )}>
-              <RefreshCcw className={cn(
-                'h-5 w-5',
-                selectedCount > 0 ? 'text-white' : 'text-emerald-600'
-              )} />
-            </div>
-            <div className="text-left">
-              <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-gray-900">Trade-in Program</h3>
-                {selectedCount > 0 && (
-                  <Badge className="bg-emerald-500 text-white text-[10px] px-1.5 py-0">
-                    {selectedCount} selected
-                  </Badge>
-                )}
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <Card className={cn(
+        'overflow-hidden rounded-[2rem] border-2 transition-all duration-500',
+        selectedCount > 0 ? 'border-gray-950 bg-gray-50/50 backdrop-blur-md shadow-xl shadow-gray-100/50' : 'border-gray-100 bg-white hover:border-gray-200',
+        className
+      )}>
+        <CardContent className="p-0">
+          <DialogTrigger asChild>
+            <button className="w-full text-left p-6 flex flex-col gap-4 group outline-none">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className={cn(
+                    'h-12 w-12 rounded-2xl flex items-center justify-center transition-all shadow-lg',
+                    selectedCount > 0 ? 'bg-gray-950 text-white shadow-gray-950/20' : 'bg-emerald-50 text-emerald-600 shadow-emerald-100/50'
+                  )}>
+                    <RefreshCcw className={cn('h-6 w-6', selectedCount > 0 && 'animate-spin-slow')} />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-sm uppercase italic tracking-tighter text-gray-950 leading-none">Trade-in Program</h3>
+                    <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-1.5">
+                      Exchange for {tradeInPercentage}% credit
+                    </p>
+                  </div>
+                </div>
+                <div className="h-10 w-10 rounded-full border border-gray-100 flex items-center justify-center group-hover:bg-gray-950 group-hover:text-white transition-all shadow-sm">
+                  <ArrowRight className="w-5 h-5" />
+                </div>
               </div>
-              <p className="text-xs text-gray-500 mt-0.5">
-                {tradeableProducts.length} {tradeableProducts.length === 1 ? 'item' : 'items'} • Up to {tradeInPercentage}% off original price
+
+              {selectedCount > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-4 rounded-2xl bg-white border border-emerald-100 shadow-sm flex items-center justify-between"
+                >
+                  <div className="space-y-0.5">
+                    <p className="text-[9px] font-bold text-gray-300 uppercase tracking-widest">Applied Credit</p>
+                    <p className="text-xl font-black text-emerald-600 tracking-tighter leading-none">-{formatPrice(totalTradeInValue)}</p>
+                  </div>
+                  <Badge variant="secondary" className="bg-gray-950 text-white rounded-lg text-[9px] px-2.5 py-0.5 font-black uppercase tracking-tighter">
+                    {selectedCount} Selected
+                  </Badge>
+                </motion.div>
+              )}
+            </button>
+          </DialogTrigger>
+        </CardContent>
+      </Card>
+
+      <DialogContent className="max-w-2xl p-0 overflow-hidden border-none rounded-[3rem] shadow-2xl bg-white">
+        <div className="flex flex-col h-[85vh] md:h-[600px]">
+          <DialogHeader className="p-10 pb-6 border-b border-gray-50 flex flex-row items-center justify-between space-y-0">
+            <div>
+              <DialogTitle className="text-4xl font-black italic uppercase tracking-tighter text-gray-950 leading-none">
+                Trade-in History
+              </DialogTitle>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2">
+                Eligible items from your past orders
               </p>
             </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {selectedCount > 0 && (
-              <div className="text-right mr-2">
-                <p className="text-xs text-gray-500">Discount</p>
-                <p className="font-bold text-emerald-600">-{formatPrice(totalTradeInValue)}</p>
-              </div>
-            )}
-            <div className={cn(
-              'p-1.5 rounded-lg transition-colors',
-              isExpanded ? 'bg-gray-100' : 'bg-transparent'
-            )}>
-              {isExpanded ? (
-                <ChevronUp className="h-4 w-4 text-gray-600" />
-              ) : (
-                <ChevronDown className="h-4 w-4 text-gray-400" />
-              )}
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onSelectAll}
+                className="text-[10px] font-black uppercase text-gray-400 hover:text-gray-950 no-underline px-3"
+              >
+                Select All
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClearAll}
+                className="text-[10px] font-black uppercase text-gray-400 hover:text-rose-500 no-underline px-3"
+              >
+                Clear
+              </Button>
             </div>
-          </div>
-        </button>
+          </DialogHeader>
 
-        {/* Expandable Content */}
-        <div className={cn(
-          'transition-all duration-300 ease-in-out overflow-hidden',
-          isExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
-        )}>
-          <div className="px-4 pb-4 space-y-3">
-            {/* Quick Actions */}
-            <div className="flex items-center justify-between py-2 border-t border-gray-100">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Package className="w-4 h-4" />
-                <span>Selected {selectedCount}/{tradeableProducts.length}</span>
-              </div>
-              <div className="flex gap-2">
-                {selectedCount > 0 && (
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={onClearAll} 
-                    className="text-xs h-7 text-gray-500 hover:text-red-600 hover:bg-red-50"
-                  >
-                    Clear
-                  </Button>
-                )}
-                {!allSelected && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={onSelectAll} 
-                    className="text-xs h-7 border-emerald-300 text-emerald-700 hover:bg-emerald-50"
-                  >
-                    Select All
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            {/* Product List */}
-            <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-gray-200">
+          <div className="flex-1 overflow-y-auto p-10 scrollbar-hide">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {eligibleProducts.map((product) => (
                 <TradeInProductItem
                   key={product.id}
@@ -264,28 +246,29 @@ export const TradeInSelector = memo(function TradeInSelector({
                 />
               ))}
             </div>
+          </div>
 
-            {/* Summary Banner */}
-            {selectedCount > 0 && (
-              <div className="flex items-center justify-between p-3 bg-gradient-to-r from-emerald-500 to-green-500 rounded-xl text-white">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 bg-white/20 rounded-lg">
-                    <RefreshCcw className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-emerald-100">Trade-in Savings</p>
-                    <p className="font-bold text-lg">-{formatPrice(totalTradeInValue)}</p>
-                  </div>
-                </div>
-                <div className="text-right text-xs text-emerald-100">
-                  <p>Old items will be</p>
-                  <p>collected on delivery</p>
+          <div className="p-10 border-t border-gray-50 bg-gray-50/50">
+            <div className="flex items-center justify-between gap-10">
+              <div className="flex-1">
+                <p className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em] mb-1.5">Estimated Savings Applied</p>
+                <div className="flex items-baseline gap-2">
+                  <h4 className="text-5xl font-black tracking-tighter text-gray-950">-{formatPrice(totalTradeInValue)}</h4>
+                  <div className="mb-1 bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest">verified</div>
                 </div>
               </div>
-            )}
+              <Button
+                onClick={() => setIsOpen(false)}
+                className="rounded-2xl h-16 px-10 bg-gray-950 text-white font-black uppercase text-[11px] tracking-[0.2em] shadow-2xl hover:bg-black transition-all active:scale-95"
+              >
+                Confirm Savings
+              </Button>
+            </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </DialogContent>
+    </Dialog>
   );
 });
+
+TradeInSelector.displayName = 'TradeInSelector';

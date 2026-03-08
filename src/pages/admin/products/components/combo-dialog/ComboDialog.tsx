@@ -155,6 +155,7 @@ export default function ComboDialog({
                                         mode={mode ?? 'parent'}
                                         comboParents={comboParents}
                                         isLoadingParents={isLoadingParents}
+                                        comboId={combo?.id}
                                     />
                                 </form>
                             </Tabs>
