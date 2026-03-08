@@ -60,7 +60,7 @@ export function VariantListView({
                             />
                         </div>
                     </div>
-                    <ChildComboItems childId={child.id} childName={child.name} parentChildData={child} isDense />
+                    <ChildComboItems childId={child.id} childName={child.name} parentChildData={child as unknown as Combo} isDense />
                 </div>
             ))}
         </div>

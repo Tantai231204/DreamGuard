@@ -202,7 +202,7 @@ export interface Combo {
   category: string;
   ageGroup: number | null;
   basePrice: number;
-  baseSalePrice: number;
+  baseSalePrice?: number;
   salePrice: number;
   totalStock: number;
   status: ProductStatus;
