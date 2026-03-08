@@ -17,9 +17,13 @@ export interface AuthResponse {
 }
 
 export interface RegisterRequest {
-  name: string;
   email: string;
   password: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+  gender: "Male" | "Female";
+  dateOfBirth: string;
 }
 
 export interface ForgotPasswordRequest {

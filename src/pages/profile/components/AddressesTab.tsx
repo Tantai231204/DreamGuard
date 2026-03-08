@@ -42,7 +42,9 @@ export default function AddressesTab() {
   };
 
   const handleDelete = (id: string) => {
-    deleteMutation.mutate(id);
+    if (window.confirm("Are you sure you want to delete this address?")) {
+      deleteMutation.mutate(id);
+    }
   };
 
   if (isPending) {
@@ -50,7 +52,7 @@ export default function AddressesTab() {
       <div className="flex items-center justify-center p-12">
         <div className="flex flex-col items-center gap-3">
           <div className="w-10 h-10 rounded-full border-2 border-[#4988c4]/20 border-t-[#4988c4] animate-spin" />
-          <p className="text-sm text-gray-400 font-medium">Loading...</p>
+          <p className="text-sm text-gray-400 font-medium">Loading addresses...</p>
         </div>
       </div>
     );
@@ -61,7 +63,9 @@ export default function AddressesTab() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Address Book</h2>
+          <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
+            Address Book
+          </h2>
           <p className="text-sm text-gray-400 mt-1 font-medium">
             Manage your shipping addresses
           </p>
@@ -89,7 +93,10 @@ export default function AddressesTab() {
               }`}
             style={
               !address.isDefault
-                ? { boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)" }
+                ? {
+                  boxShadow:
+                    "0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)",
+                }
                 : undefined
             }
           >
@@ -121,7 +128,9 @@ export default function AddressesTab() {
                     }`}
                 >
                   <Home
-                    className={`h-5 w-5 ${address.isDefault ? "text-[#4988c4]" : "text-gray-400 group-hover:text-[#4988c4] transition-colors"
+                    className={`h-5 w-5 ${address.isDefault
+                      ? "text-[#4988c4]"
+                      : "text-gray-400 group-hover:text-[#4988c4] transition-colors"
                       }`}
                   />
                 </div>
@@ -164,7 +173,9 @@ export default function AddressesTab() {
               <div className="space-y-2.5">
                 {/* Phone */}
                 <div
-                  className={`flex items-center gap-3 px-4 py-3 rounded-2xl ${address.isDefault ? "bg-blue-50/60 border border-blue-100/80" : "bg-gray-50 border border-gray-100"
+                  className={`flex items-center gap-3 px-4 py-3 rounded-2xl ${address.isDefault
+                    ? "bg-blue-50/60 border border-blue-100/80"
+                    : "bg-gray-50 border border-gray-100"
                     }`}
                 >
                   <div className="w-7 h-7 rounded-xl bg-white shadow-sm border border-gray-100 flex items-center justify-center shrink-0">
@@ -177,7 +188,9 @@ export default function AddressesTab() {
 
                 {/* Address */}
                 <div
-                  className={`flex items-start gap-3 px-4 py-3 rounded-2xl ${address.isDefault ? "bg-blue-50/60 border border-blue-100/80" : "bg-gray-50 border border-gray-100"
+                  className={`flex items-start gap-3 px-4 py-3 rounded-2xl ${address.isDefault
+                    ? "bg-blue-50/60 border border-blue-100/80"
+                    : "bg-gray-50 border border-gray-100"
                     }`}
                 >
                   <div className="w-7 h-7 rounded-xl bg-white shadow-sm border border-gray-100 flex items-center justify-center shrink-0 mt-0.5">
@@ -237,9 +250,12 @@ export default function AddressesTab() {
           <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-blue-50 to-sky-100 flex items-center justify-center mx-auto mb-5 shadow-sm">
             <MapPin className="h-9 w-9 text-[#4988c4]" />
           </div>
-          <h3 className="text-lg font-bold text-gray-800 mb-2">No addresses yet</h3>
+          <h3 className="text-lg font-bold text-gray-800 mb-2">
+            No addresses yet
+          </h3>
           <p className="text-sm text-gray-400 max-w-xs mx-auto leading-relaxed">
-            Add an address to make your shopping checkout experience faster and easier.
+            Add an address to make your shopping checkout experience faster and
+            easier.
           </p>
           <Button
             className="mt-6 bg-[#4988c4] hover:bg-[#3b6fa3] text-white shadow-lg shadow-[#4988c4]/20 transition-all active:scale-95 rounded-2xl h-11 px-6 font-semibold gap-2"
@@ -273,39 +289,41 @@ interface AddressFormDialogProps {
 function AddressFormDialog({ open, onOpenChange, initialData }: AddressFormDialogProps) {
   const createMutation = useCreateAddress();
   const updateMutation = useUpdateAddress();
+
   const [formData, setFormData] = useState(() => {
-    if (initialData) {
-      const province = vnAddress.find(p => p.name === initialData.province)?.code || "";
-      let district = "";
-      let ward = "";
-
-      if (province) {
-        const provinceData = vnAddress.find(p => p.code === province);
-        if (provinceData) {
-          district = provinceData.districts.find(d => d.name === initialData.district)?.code || "";
-          if (district) {
-            const districtData = provinceData.districts.find(d => d.code === district);
-            ward = districtData?.wards.find(w => w.name === initialData.ward)?.code || "";
-          }
-        }
-      }
-
+    if (!initialData) {
       return {
-        receiverName: initialData.receiverName,
-        phoneNumber: initialData.phoneNumber,
-        street: initialData.street,
-        province,
-        district,
-        ward,
+        receiverName: "",
+        phoneNumber: "",
+        street: "",
+        province: "",
+        district: "",
+        ward: "",
       };
     }
+
+    const province = vnAddress.find((p) => p.name === initialData.province)?.code || "";
+    let district = "";
+    let ward = "";
+
+    if (province) {
+      const provinceData = vnAddress.find((p) => p.code === province);
+      if (provinceData) {
+        district = provinceData.districts.find((d) => d.name === initialData.district)?.code || "";
+        if (district) {
+          const districtData = provinceData.districts.find((d) => d.code === district);
+          ward = districtData?.wards.find((w) => w.name === initialData.ward)?.code || "";
+        }
+      }
+    }
+
     return {
-      receiverName: "",
-      phoneNumber: "",
-      street: "",
-      province: "",
-      district: "",
-      ward: "",
+      receiverName: initialData.receiverName,
+      phoneNumber: initialData.phoneNumber,
+      street: initialData.street,
+      province,
+      district,
+      ward,
     };
   });
 
@@ -314,12 +332,29 @@ function AddressFormDialog({ open, onOpenChange, initialData }: AddressFormDialo
   const selectedDist = districts.find((d) => d.code === formData.district);
   const wards = selectedDist?.wards ?? [];
 
-  const handleSubmit = () => {
-    if (!formData.receiverName || !formData.phoneNumber || !formData.street || !formData.province || !formData.district || !formData.ward) return;
+  const provinceName = selectedProv?.name || "";
+  const districtName = selectedDist?.name || "";
+  const wardName = wards.find((w) => w.code === formData.ward)?.name || "";
 
-    const provinceName = vnAddress.find((p) => p.code === formData.province)?.name ?? "";
-    const districtName = districts.find((d) => d.code === formData.district)?.name ?? "";
-    const wardName = wards.find((w) => w.code === formData.ward)?.name ?? "";
+  const fullAddressPreview = [
+    formData.street,
+    wardName,
+    districtName,
+    provinceName,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  const handleSubmit = () => {
+    if (
+      !formData.receiverName ||
+      !formData.phoneNumber ||
+      !formData.street ||
+      !formData.province ||
+      !formData.district ||
+      !formData.ward
+    )
+      return;
 
     const payload = {
       receiverName: formData.receiverName,
@@ -332,7 +367,10 @@ function AddressFormDialog({ open, onOpenChange, initialData }: AddressFormDialo
     };
 
     if (initialData?.addressId) {
-      updateMutation.mutate({ id: initialData.addressId, ...payload }, { onSuccess: () => onOpenChange(false) });
+      updateMutation.mutate(
+        { id: initialData.addressId, ...payload },
+        { onSuccess: () => onOpenChange(false) },
+      );
     } else {
       createMutation.mutate(payload, { onSuccess: () => onOpenChange(false) });
     }
@@ -363,25 +401,35 @@ function AddressFormDialog({ open, onOpenChange, initialData }: AddressFormDialo
           {/* Receiver + Phone */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label htmlFor="recipient" className="text-sm font-semibold text-gray-700">
+              <Label
+                htmlFor="recipient"
+                className="text-sm font-semibold text-gray-700"
+              >
                 Receiver Name <span className="text-red-400">*</span>
               </Label>
               <Input
                 id="recipient"
                 value={formData.receiverName}
-                onChange={(e) => setFormData({ ...formData, receiverName: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, receiverName: e.target.value })
+                }
                 placeholder="Ex: John Doe"
                 className="h-11 rounded-xl border-gray-200 focus:border-[#4988c4]"
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="phone" className="text-sm font-semibold text-gray-700">
+              <Label
+                htmlFor="phone"
+                className="text-sm font-semibold text-gray-700"
+              >
                 Phone Number <span className="text-red-400">*</span>
               </Label>
               <Input
                 id="phone"
                 value={formData.phoneNumber}
-                onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, phoneNumber: e.target.value })
+                }
                 placeholder="0912 345 678"
                 className="h-11 rounded-xl border-gray-200 focus:border-[#4988c4]"
               />
@@ -390,13 +438,18 @@ function AddressFormDialog({ open, onOpenChange, initialData }: AddressFormDialo
 
           {/* Street */}
           <div className="space-y-1.5">
-            <Label htmlFor="address" className="text-sm font-semibold text-gray-700">
+            <Label
+              htmlFor="address"
+              className="text-sm font-semibold text-gray-700"
+            >
               Detailed Address <span className="text-red-400">*</span>
             </Label>
             <Input
               id="address"
               value={formData.street}
-              onChange={(e) => setFormData({ ...formData, street: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, street: e.target.value })
+              }
               placeholder="House number, street name..."
               className="h-11 rounded-xl border-gray-200 focus:border-[#4988c4]"
             />
@@ -404,21 +457,32 @@ function AddressFormDialog({ open, onOpenChange, initialData }: AddressFormDialo
 
           {/* Location selects */}
           <div className="space-y-3 bg-gray-50/70 p-4 rounded-2xl border border-gray-100">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Location</p>
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">
+              Location
+            </p>
             <div className="space-y-1.5">
               <Label className="text-sm font-semibold text-gray-700">
                 Province / City <span className="text-red-400">*</span>
               </Label>
               <Select
                 value={formData.province}
-                onValueChange={(val) => setFormData({ ...formData, province: val, district: "", ward: "" })}
+                onValueChange={(val) =>
+                  setFormData({
+                    ...formData,
+                    province: val,
+                    district: "",
+                    ward: "",
+                  })
+                }
               >
                 <SelectTrigger className="h-11 rounded-xl bg-white border-gray-200">
                   <SelectValue placeholder="Select province/city" />
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl">
                   {vnAddress.map((prov) => (
-                    <SelectItem key={prov.code} value={prov.code}>{prov.name}</SelectItem>
+                    <SelectItem key={prov.code} value={prov.code}>
+                      {prov.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -431,7 +495,9 @@ function AddressFormDialog({ open, onOpenChange, initialData }: AddressFormDialo
                 </Label>
                 <Select
                   value={formData.district}
-                  onValueChange={(val) => setFormData({ ...formData, district: val, ward: "" })}
+                  onValueChange={(val) =>
+                    setFormData({ ...formData, district: val, ward: "" })
+                  }
                   disabled={!formData.province}
                 >
                   <SelectTrigger className="h-11 rounded-xl bg-white border-gray-200">
@@ -439,7 +505,9 @@ function AddressFormDialog({ open, onOpenChange, initialData }: AddressFormDialo
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl">
                     {districts.map((dist) => (
-                      <SelectItem key={dist.code} value={dist.code}>{dist.name}</SelectItem>
+                      <SelectItem key={dist.code} value={dist.code}>
+                        {dist.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -451,7 +519,9 @@ function AddressFormDialog({ open, onOpenChange, initialData }: AddressFormDialo
                 </Label>
                 <Select
                   value={formData.ward}
-                  onValueChange={(val) => setFormData({ ...formData, ward: val })}
+                  onValueChange={(val) =>
+                    setFormData({ ...formData, ward: val })
+                  }
                   disabled={!formData.district}
                 >
                   <SelectTrigger className="h-11 rounded-xl bg-white border-gray-200">
@@ -459,11 +529,31 @@ function AddressFormDialog({ open, onOpenChange, initialData }: AddressFormDialo
                   </SelectTrigger>
                   <SelectContent className="rounded-2xl">
                     {wards.map((w) => (
-                      <SelectItem key={w.code} value={w.code}>{w.name}</SelectItem>
+                      <SelectItem key={w.code} value={w.code}>
+                        {w.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+          </div>
+
+          {/* Address Preview */}
+          <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 space-y-2">
+            <p className="text-xs font-bold text-[#4988c4] uppercase tracking-wide">
+              Address Preview
+            </p>
+
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-xl bg-white border border-blue-100 flex items-center justify-center shrink-0">
+                <MapPin className="h-4 w-4 text-[#4988c4]" />
+              </div>
+
+              <p className="text-sm text-gray-700 font-medium leading-relaxed">
+                {fullAddressPreview ||
+                  "Your complete address will appear here..."}
+              </p>
             </div>
           </div>
 
