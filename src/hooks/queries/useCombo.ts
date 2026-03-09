@@ -12,7 +12,7 @@ import type {
   ComboParams,
 } from '@/api';
 import { isComboParent } from '@/api/services/comboService';
-
+import { toast } from 'sonner';
 // ========================
 // Query Keys
 // ========================
@@ -89,22 +89,63 @@ export const useUpdateCombo = () => {
     mutationFn: ({ id, data }: { id: string; data: UpdateComboRequest }) =>
       comboService.update(id, data),
     onSuccess: (_, variables) => {
+      toast.success('Combo updated successfully');
       queryClient.invalidateQueries({ queryKey: comboKeys.all });
       queryClient.invalidateQueries({ queryKey: comboKeys.detail(variables.id) });
     },
+    onError: (error) => {
+       toast.error('Failed to update combo: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
   });
 };
 
-/** Cập nhật items của combo */
+/** Cập nhật items của combo - Optimistic UI */
 export const useUpdateComboItems = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({ id, items }: { id: string; items: import('@/api').ComboItemRequest[] }) =>
       comboService.updateItems(id, { items }),
-    onSuccess: (_, variables) => {
+    
+    // ── Optimistic Update Logic ──
+    onMutate: async ({ id, items }) => {
+      // 1. Cancel any outgoing refetches (so they don't overwrite our optimistic update)
+      await queryClient.cancelQueries({ queryKey: comboKeys.detail(id) });
+
+      // 2. Snapshot the previous value
+      const previousDetail = queryClient.getQueryData(comboKeys.detail(id)) as any;
+
+      // 3. Optimistically update to the new value
+      if (previousDetail) {
+         const optimisticDetail = {
+           ...previousDetail,
+           productItems: previousDetail.productItems?.map((pi: any) => {
+             const newItem = items.find(ui => ui.productVariantId === pi.productVariantId);
+             return newItem ? { ...pi, quantity: newItem.quantity } : pi;
+           })
+         };
+         queryClient.setQueryData(comboKeys.detail(id), optimisticDetail);
+      }
+
+      return { previousDetail };
+    },
+
+    onSuccess: () => {
+      toast.success('Component quantity synced');
+    },
+
+    onError: (err, { id }, context) => {
+      // 4. If mutation fails, reload previous state
+      if (context?.previousDetail) {
+        queryClient.setQueryData(comboKeys.detail(id), context.previousDetail);
+      }
+      toast.error('Sync failed: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    },
+
+    onSettled: (_data, _error, { id }) => {
+      // 5. Always refetch after error or success to ensure we're in sync with server
+      queryClient.invalidateQueries({ queryKey: comboKeys.detail(id) });
       queryClient.invalidateQueries({ queryKey: comboKeys.all });
-      queryClient.invalidateQueries({ queryKey: comboKeys.detail(variables.id) });
     },
   });
 };

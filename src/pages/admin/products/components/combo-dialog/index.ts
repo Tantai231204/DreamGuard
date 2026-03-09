@@ -150,6 +150,18 @@ export function getInitialState(
       comboParentId: combo.comboParentId ?? "",
       status: combo.status ?? "Published",
       items:
+        (combo as ComboResponse).productItems?.map((pi, idx) => ({
+          id: `existing-${idx}`,
+          productVariantId: pi.productVariantId,
+          quantity: pi.quantity,
+          label: pi.productName,
+          productName: pi.productName,
+          sku: pi.sku,
+          color: undefined,
+          size: undefined,
+          salePrice: pi.salePrice,
+          basePrice: pi.basePrice,
+        })) ||
         combo.items?.map((item, idx) => ({
           id: `existing-${idx}`,
           productVariantId: item.variantId || item.productId,
@@ -161,7 +173,7 @@ export function getInitialState(
           size: undefined,
           salePrice: 0,
           basePrice: 0,
-        })) ?? [],
+        })) || [],
     };
   }
   return {

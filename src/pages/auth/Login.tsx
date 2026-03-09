@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -44,7 +44,9 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export default function Login() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const redirect = searchParams.get("redirect");
+  const from = location.state?.from?.pathname || location.state?.from || redirect;
   const [showPassword, setShowPassword] = useState(false);
 
   const {
@@ -64,8 +66,8 @@ export default function Login() {
   const onSubmit = (data: LoginFormData) => {
     login(data, {
       onSuccess: (res) => {
-        if (redirect) {
-          navigate(redirect);
+        if (from) {
+          navigate(from);
         } else if (res.roleName === "Admin") {
           navigate("/admin");
         } else {

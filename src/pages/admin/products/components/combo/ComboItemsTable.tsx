@@ -54,10 +54,17 @@ export default function ComboItemsTable({
     const [viewMode, setViewMode] = React.useState<'list' | 'tabs'>('tabs');
 
     /* ── Decide: parent with children, or leaf with own items ── */
-    const childCombosFromStore = detail?.childCombos ?? [];
-    const rawChildCombos: Combo[] = (childCombosFromStore.length > 0
-        ? (childCombosFromStore as unknown as Combo[])
-        : (initialChildCombos ?? [])) as Combo[];
+    const rawChildCombos: Combo[] = React.useMemo(() => {
+        const fromStore = (detail?.childCombos || []) as unknown as Combo[];
+        const fromProps = (initialChildCombos || []) as unknown as Combo[];
+        const source = fromStore.length > 0 ? fromStore : fromProps;
+
+        // Ensure children have their parent ID set so Edit modal knows they are variants
+        return source.map(c => ({
+            ...c,
+            comboParentId: c.comboParentId || comboId
+        }));
+    }, [detail?.childCombos, initialChildCombos, comboId]);
 
     const childCombosFiltered = rawChildCombos.filter(c =>
         c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||

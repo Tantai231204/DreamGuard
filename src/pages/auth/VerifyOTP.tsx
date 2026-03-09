@@ -74,7 +74,7 @@ export default function VerifyOTP() {
       const otpValue = otp.join("");
 
       if (otpValue.length !== 5) {
-        setError("Vui lòng nhập đủ 5 số");
+        setError("Please enter the full 5-digit code");
         return;
       }
 
@@ -91,7 +91,7 @@ export default function VerifyOTP() {
             navigate("/reset-password");
           },
           onError: () => {
-            setError("Mã OTP không hợp lệ hoặc đã hết hạn");
+            setError("Invalid or expired OTP code");
           },
         },
       );

@@ -26,7 +26,11 @@ export function OrderSummary({ cart, totalPrice, tradeInDiscount = 0, finalTotal
                 <div className="flex items-center justify-between mb-10 pb-8 border-b border-slate-50">
                     <div className="space-y-1">
                         <h2 className="text-2xl font-black text-slate-900 tracking-tight">Order Summary</h2>
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Review your selections</p>
+                        <div className="flex items-center gap-2">
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Review your selections</p>
+                            <span className="h-1 w-1 rounded-full bg-slate-200" />
+                            <span className="text-[10px] font-black text-[#4988c4] uppercase tracking-widest">{cart.reduce((acc, item) => acc + item.quantity, 0)} Items</span>
+                        </div>
                     </div>
                     <div className="w-12 h-12 rounded-[1.25rem] bg-slate-50 flex items-center justify-center">
                         <ShoppingBag className="w-6 h-6 text-slate-900" />
@@ -34,7 +38,7 @@ export function OrderSummary({ cart, totalPrice, tradeInDiscount = 0, finalTotal
                 </div>
 
                 {/* Items Container */}
-                <div className="space-y-8 mb-10 max-h-[400px] overflow-y-auto pr-4 custom-scrollbar scroll-smooth">
+                <div className="space-y-8 mb-10 max-h-[400px] overflow-y-auto pt-4 pr-6 pl-2 -ml-2 custom-scrollbar scroll-smooth">
                     {/* Trade-in Items Section */}
                     {tradeInItems.length > 0 && (
                         <div className="space-y-4">
@@ -49,9 +53,11 @@ export function OrderSummary({ cart, totalPrice, tradeInDiscount = 0, finalTotal
                                     className="rounded-[1.5rem] border-2 border-emerald-50 bg-emerald-50/20 p-4 space-y-4"
                                 >
                                     <div className="flex gap-4">
-                                        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-emerald-100">
-                                            <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
-                                            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-black text-white ring-2 ring-white">
+                                        <div className="relative h-16 w-16 shrink-0">
+                                            <div className="h-full w-full overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-emerald-100">
+                                                <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
+                                            </div>
+                                            <span className="absolute top-0 right-0 translate-x-1/3 -translate-y-1/3 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-black text-white ring-2 ring-white z-10 shadow-sm">
                                                 {item.quantity}
                                             </span>
                                         </div>
@@ -94,15 +100,21 @@ export function OrderSummary({ cart, totalPrice, tradeInDiscount = 0, finalTotal
                     {/* Regular Items */}
                     {regularItems.map((item) => (
                         <div key={item.id} className="flex gap-4 group/item">
-                            <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-[1.25rem] bg-slate-50 ring-1 ring-slate-100 group-hover/item:ring-[#4988c4] transition-all duration-500">
-                                <img src={item.image} alt={item.name} className="h-full w-full object-cover group-hover/item:scale-110 transition-transform duration-700" />
-                                <span className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 text-[10px] font-black text-white ring-2 ring-white">
+                            <div className="relative h-20 w-20 shrink-0">
+                                <div className="h-full w-full overflow-hidden rounded-[1.25rem] bg-slate-50 ring-1 ring-slate-100 group-hover/item:ring-[#4988c4] transition-all duration-500">
+                                    <img src={item.image} alt={item.name} className="h-full w-full object-cover group-hover/item:scale-110 transition-transform duration-700" />
+                                </div>
+                                <span className="absolute top-0 right-0 translate-x-1/3 -translate-y-1/3 flex h-7 w-7 items-center justify-center rounded-full bg-slate-900 text-[11px] font-black text-white ring-4 ring-white z-10 shadow-lg group-hover/item:scale-110 transition-transform">
                                     {item.quantity}
                                 </span>
                             </div>
                             <div className="flex flex-1 flex-col justify-center min-w-0">
                                 <h4 className="text-sm font-black text-slate-900 truncate group-hover/item:text-[#4988c4] transition-colors">{item.name}</h4>
-                                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">{item.quantity} × ${item.price.toFixed(2)}</p>
+                                <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mt-1">
+                                    <span className="text-[#4988c4] font-black">{item.quantity}</span>
+                                    <span className="mx-1.5 text-slate-300">×</span>
+                                    <span className="text-slate-600">${item.price.toFixed(2)}</span>
+                                </p>
                                 <p className="text-sm font-black text-[#4988c4] mt-2">${item.subtotal.toFixed(2)}</p>
                             </div>
                         </div>

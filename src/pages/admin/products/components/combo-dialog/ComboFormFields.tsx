@@ -1,4 +1,5 @@
 import { memo, useState } from 'react';
+import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -7,7 +8,7 @@ import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { Layers, Package, ChevronDown, Upload, Trash2, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Layers, Package, ChevronDown, Upload, Trash2, Image as ImageIcon, Loader2, Calculator, Sparkles } from 'lucide-react';
 import SectionHeading from '../shared/SectionHeading';
 import { PRODUCT_STATUSES, PRODUCT_STATUS_COLORS } from '../../types';
 import { INPUT_CLS, SELECT_TRIGGER_CLS } from './index';
@@ -37,13 +38,21 @@ interface ComboFormFieldsProps {
     isLoadingParents?: boolean;
     /** ID of current combo for image upload */
     comboId?: string;
+    /** Whether pricing is being auto-calculated */
+    isPriceAutoManaged?: boolean;
+    /** Whether variant base price is auto-calculated from items */
+    isVariantBasePriceAuto?: boolean;
+    /** Source of the auto-calculation (e.g. 'items' or 'children') */
+    priceSource?: 'items' | 'children' | null;
 }
 
 // ── Component ────────────────────────────────────────────
 const ComboFormFields = memo(function ComboFormFields({
     form, setField, onNameChange, isLoading,
     mode, comboParents = [], isLoadingParents = false,
-    comboId,
+    comboId, isPriceAutoManaged = false,
+    isVariantBasePriceAuto = false,
+    priceSource = null,
 }: ComboFormFieldsProps) {
     const isVariant = mode === 'variant';
     const isParentLocked = isVariant && !!form.comboParentId;
@@ -313,33 +322,114 @@ const ComboFormFields = memo(function ComboFormFields({
             {/* ── TAB: PRICING ── */}
             <TabsContent value="pricing" className="mt-0 space-y-6 animate-in fade-in slide-in-from-left-2 duration-300">
                 <section className="space-y-4">
-                    <SectionHeading title="Pricing Economics" />
+                    <div className="flex items-center justify-between">
+                        <SectionHeading title="Pricing Economics" />
+                        {isPriceAutoManaged && (
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-50 border border-indigo-100 rounded-full animate-in zoom-in duration-300">
+                                <Sparkles className="h-3 w-3 text-indigo-500" />
+                                <span className="text-[10px] font-black text-indigo-600 uppercase tracking-wider">
+                                    {priceSource === 'items' ? 'Calculated from Items' : 'Derived from Variants'}
+                                </span>
+                            </div>
+                        )}
+                    </div>
+
                     <div className="grid grid-cols-1 gap-5">
-                        <div>
-                            <Label htmlFor="c-base" className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2 block">
-                                Base Price (VNĐ) {isVariant && <span className="text-red-500">*</span>}
-                            </Label>
-                            <div className="relative">
-                                <Input id="c-base" type="number" placeholder="850000"
-                                    value={form.basePrice} onChange={e => setField('basePrice', e.target.value)}
-                                    disabled={isLoading} className={cn(INPUT_CLS, "bg-white pl-10")} min={0} />
-                                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400">VNĐ</span>
+                        {isPriceAutoManaged ? (
+                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Base Price</p>
+                                        <div className="flex items-baseline gap-1">
+                                            <span className="text-xl font-black text-slate-900">
+                                                {Number(form.basePrice).toLocaleString('en-US')}
+                                            </span>
+                                            <span className="text-[10px] font-bold text-slate-400">VNĐ</span>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sale Price</p>
+                                        <div className="flex items-baseline gap-2">
+                                            <span className="text-xl font-black text-blue-600">
+                                                {Number(form.salePrice).toLocaleString('en-US')}
+                                            </span>
+                                            <span className="text-[10px] font-bold text-blue-400">VNĐ</span>
+                                            {form.basePrice && form.salePrice && Number(form.salePrice) < Number(form.basePrice) && (
+                                                <Badge className="bg-emerald-500 text-white border-0 text-[10px] h-5 px-1.5">
+                                                    -{Math.round(((Number(form.basePrice) - Number(form.salePrice)) / Number(form.basePrice)) * 100)}%
+                                                </Badge>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex items-start gap-2 pt-2 border-t border-slate-200/60 text-slate-500">
+                                    <Calculator className="h-3.5 w-3.5 mt-0.5" />
+                                    <p className="text-[11px] italic leading-relaxed">
+                                        {mode === 'parent'
+                                            ? (Number(form.salePrice) > 0
+                                                ? "This price represents the base/starting value derived from the child variants in this collection."
+                                                : "No variants found yet. Pricing will be automatically determined once variant combos are added to this collection.")
+                                            : "Pricing is calculated based on the sum of individual products and quantities specified in the items list."}
+                                    </p>
+                                </div>
                             </div>
-                        </div>
-                        <div>
-                            <Label htmlFor="c-sale" className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2 block">Sale Price (VNĐ)</Label>
-                            <div className="relative">
-                                <Input id="c-sale" type="number" placeholder="699000"
-                                    value={form.salePrice} onChange={e => setField('salePrice', e.target.value)}
-                                    disabled={isLoading} className={cn(INPUT_CLS, "bg-white pl-10")} min={0} />
-                                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400">VNĐ</span>
-                                {form.basePrice && form.salePrice && Number(form.salePrice) < Number(form.basePrice) && (
-                                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg shadow-sm">
-                                        -{Math.round(((Number(form.basePrice) - Number(form.salePrice)) / Number(form.basePrice)) * 100)}%
-                                    </span>
-                                )}
-                            </div>
-                        </div>
+                        ) : (
+                            <>
+                                <div>
+                                    <Label htmlFor="c-base" className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2 block flex items-center gap-2">
+                                        Base Price (VNĐ) {isVariant && <span className="text-red-500">*</span>}
+                                        {isVariantBasePriceAuto && (
+                                            <span className="flex items-center gap-1 text-[9px] text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100">
+                                                <Calculator className="h-2.5 w-2.5" /> Sum of Items
+                                            </span>
+                                        )}
+                                    </Label>
+                                    <div className="relative group">
+                                        <Input
+                                            id="c-base"
+                                            type="number"
+                                            placeholder="850000"
+                                            value={form.basePrice}
+                                            onChange={e => setField('basePrice', e.target.value)}
+                                            disabled={isLoading || isVariantBasePriceAuto}
+                                            className={cn(
+                                                INPUT_CLS,
+                                                "pl-10",
+                                                isVariantBasePriceAuto ? "bg-slate-50 text-slate-500 border-dashed cursor-not-allowed" : "bg-white"
+                                            )}
+                                            min={0}
+                                        />
+                                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400">VNĐ</span>
+                                    </div>
+                                    {isVariantBasePriceAuto && (
+                                        <p className="text-[10px] text-indigo-400 mt-1.5 italic font-medium px-1">
+                                            Calculated automatically from the items you added on the right.
+                                        </p>
+                                    )}
+                                </div>
+                                <div>
+                                    <Label htmlFor="c-sale" className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2 block">Sale Price (VNĐ)</Label>
+                                    <div className="relative group">
+                                        <Input
+                                            id="c-sale"
+                                            type="number"
+                                            placeholder="699000"
+                                            value={form.salePrice}
+                                            onChange={e => setField('salePrice', e.target.value)}
+                                            disabled={isLoading}
+                                            className={cn(INPUT_CLS, "bg-white pl-10")}
+                                            min={0}
+                                        />
+                                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400">VNĐ</span>
+                                        {form.basePrice && form.salePrice && Number(form.salePrice) < Number(form.basePrice) && (
+                                            <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg shadow-sm">
+                                                -{Math.round(((Number(form.basePrice) - Number(form.salePrice)) / Number(form.basePrice)) * 100)}%
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </section>
             </TabsContent>

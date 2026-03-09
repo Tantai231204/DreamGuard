@@ -50,7 +50,6 @@ import {
   useUpdateComboItems,
   useUploadComboImage,
 } from '@/hooks/queries/useCombo';
-import { useAddToCart } from '@/hooks/queries/useCart';
 import { useCategories } from '@/hooks/queries/useCategory';
 import type {
   Product,
@@ -144,60 +143,58 @@ export default function ProductsPage() {
   const combos: Combo[] = useMemo(() => {
     const rawItems = comboPageData?.items ?? [];
 
-    const mapItem = (item: import('@/api/services/comboService').ComboResponse): Combo => ({
+    const mapItem = (item: import('@/api/services/comboService').ComboResponse, parentId?: string): Combo => ({
       ...item,
       type: 'combo' as const,
       baseSalePrice: item.salePrice,
       status: (item.status as ProductStatus) || 'Draft',
-      comboParentId: item.comboParentId,
+      comboParentId: item.comboParentId || parentId,
       color: item.color,
       size: item.size,
-      // Keep childCombos from API for mapCombosToSubRows
-      childCombos: item.childCombos?.map((child: import('@/api/services/comboService').ComboResponse) => mapItem(child)) ?? [],
+      childCombos: item.childCombos?.map((child: import('@/api/services/comboService').ComboResponse) => mapItem(child, item.id)) ?? [],
     });
 
-    const allMapped = rawItems.map(mapItem);
+    const allMapped = rawItems.map(item => mapItem(item));
 
-    // Build a set of all IDs that are children of other combos in this response
-    // to filter them out from the root level and avoid duplicates
-    const childIdsInResult = new Set<string>();
-    const parentsInResult = new Map<string, Combo>();
+    // 1. Map for quick lookup
+    const idMap = new Map<string, Combo>();
+    allMapped.forEach(c => idMap.set(c.id, c));
 
-    const collectChildIds = (items: Combo[]) => {
+    // 2. Identify all IDs that are already nested as children somewhere in this result set
+    const childIdsNested = new Set<string>();
+    const collectNestedIds = (items: Combo[]) => {
       items.forEach(c => {
         c.childCombos?.forEach((child: Combo) => {
-          childIdsInResult.add(child.id);
-          if (child.childCombos?.length) collectChildIds(child.childCombos);
+          childIdsNested.add(child.id);
+          if (child.childCombos?.length) collectNestedIds(child.childCombos);
         });
       });
     };
+    collectNestedIds(allMapped);
 
-    for (const c of allMapped) {
-      if (!c.comboParentId) parentsInResult.set(c.id, c);
-    }
-    collectChildIds(allMapped);
+    // 3. Build hierarchy: Move orphans to their parents if the parent is present in the list
+    const finalRootItems: Combo[] = [];
+    allMapped.forEach(c => {
+      // If this item is already nested inside another item in the list, skip it as a root item
+      if (childIdsNested.has(c.id)) return;
 
-    // Manual grouping for children that appear at root but have a parentId
-    const rootCombos: Combo[] = [];
-    for (const c of allMapped) {
-      if (childIdsInResult.has(c.id)) continue;
-
+      // If it's a variant but its parent is also in the list, try to attach it 
+      // (This handles cases where the API returns a flat list with duplicates)
       if (c.comboParentId) {
-        const parent = parentsInResult.get(c.comboParentId);
+        const parent = idMap.get(c.comboParentId);
         if (parent) {
-          const already = parent.childCombos?.find((ch: Combo) => ch.id === c.id);
-          if (!already) {
+          const alreadyExists = parent.childCombos?.some(child => child.id === c.id);
+          if (!alreadyExists) {
             parent.childCombos = [...(parent.childCombos || []), c];
           }
-          continue;
+          return; // Don't add to root
         }
       }
 
-      rootCombos.push(c);
-    }
+      finalRootItems.push(c);
+    });
 
-    // Convert childCombos → subRows recursively so TanStack Table can expand them
-    return mapCombosToSubRows(rootCombos);
+    return mapCombosToSubRows(finalRootItems);
   }, [comboPageData?.items]);
 
   const { data: categories = [] } = useCategories();
@@ -219,7 +216,6 @@ export default function ProductsPage() {
   const updateComboMutation = useUpdateCombo();
   const deleteComboMutation = useDeleteCombo();
   const updateComboItemsMutation = useUpdateComboItems();
-  const addToCartMutation = useAddToCart();
   const uploadComboImageMutation = useUploadComboImage();
 
   // Handlers
@@ -527,6 +523,7 @@ export default function ProductsPage() {
           toast.success('Combo updated', 'The combo has been successfully updated.');
         } catch (error) {
           console.error('[UpdateCombo] Update failed', error);
+          toast.error('Update failed', 'There was an error updating the combo. Please check the information and try again.');
         }
       } else {
         createComboMutation.mutate(data, {
@@ -547,21 +544,7 @@ export default function ProductsPage() {
     [editingCombo, createComboMutation, updateComboMutation, updateComboItemsMutation, toast]
   );
 
-  const handleComboAddToCart = useCallback(
-    async (combo: import('@/api').ComboResponse) => {
-      try {
-        await addToCartMutation.mutateAsync({
-          productVariantId: null,
-          comboId: combo.id,
-          quantity: 1,
-        });
-        toast.success('Combo added to cart', `Successfully added ${combo.name} to cart.`);
-      } catch {
-        toast.error('Failed to add combo', 'There was an error while adding to cart.');
-      }
-    },
-    [addToCartMutation, toast]
-  );
+
 
   const productColumns = useProductColumns({ onView: handleViewDetail, onEdit: handleEdit, onDelete: handleDelete, onAddVariant: handleAddVariant });
   const comboColumns = useComboColumns({
@@ -569,7 +552,6 @@ export default function ProductsPage() {
     onEdit: handleEditCombo,
     onDelete: handleDeleteCombo,
     onAddVariant: handleAddComboVariant,
-    onAddToCart: handleComboAddToCart,
   });
 
   // Stats

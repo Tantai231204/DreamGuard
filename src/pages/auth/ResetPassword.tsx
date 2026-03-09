@@ -11,11 +11,11 @@ import { useResetPassword } from "../../hooks/useAuth";
 
 const resetPasswordSchema = z
   .object({
-    newPassword: z.string().min(6, "Mật khẩu phải có ít nhất 6 ký tự"),
-    confirmPassword: z.string().min(6, "Mật khẩu phải có ít nhất 6 ký tự"),
+    newPassword: z.string().min(6, "Password must be at least 6 characters"),
+    confirmPassword: z.string().min(6, "Password must be at least 6 characters"),
   })
   .refine((data) => data.newPassword === data.confirmPassword, {
-    message: "Mật khẩu xác nhận không khớp",
+    message: "Passwords do not match",
     path: ["confirmPassword"],
   });
 

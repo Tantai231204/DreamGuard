@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { authService } from "../api/services";
 import { useAuthStore } from "../store/authStore";
+import { toast } from "sonner";
 
 export const useLogin = () => {
   const setAuth = useAuthStore((s) => s.setAuth);
@@ -22,9 +23,15 @@ export const useLogin = () => {
     //   setAuth(data);
     // },
     onSuccess: (data) => {
-      console.log("🔥 LOGIN SUCCESS:", data);
       setAuth(data);
-      console.log("🔥 AFTER SET AUTH:", useAuthStore.getState());
+      toast.success("Login Successful", {
+        description: "Welcome back to DreamGuard!",
+      });
+    },
+    onError: (error) => {
+      toast.error("Login Failed", {
+        description: error.message || "Please check your credentials and try again.",
+      });
     },
   });
 };
@@ -36,6 +43,9 @@ export const useLogout = () => {
     mutationFn: authService.logout,
     onSuccess: () => {
       clearAuth();
+      toast.success("Logged Out", {
+        description: "You have been successfully logged out. See you soon!",
+      });
     },
     onError: () => {
       clearAuth();

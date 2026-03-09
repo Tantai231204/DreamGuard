@@ -1,7 +1,6 @@
-import { useUpdateCombo } from '@/hooks/queries/useCombo';
+import { useUpdateComboItems } from '@/hooks/queries/useCombo';
 import ComboVariantRow from './ComboVariantRow';
 import type { ComboItem } from '../../types';
-import type { UpdateComboRequest } from '@/api';
 
 interface LeafItemsViewProps {
     comboId: string;
@@ -12,9 +11,10 @@ export default function LeafItemsView({
     comboId,
     items,
 }: LeafItemsViewProps) {
-    const updateMutation = useUpdateCombo();
+    const updateItemsMutation = useUpdateComboItems();
 
     const handleUpdateQuantity = async (itemKey: string, newQty: number) => {
+        if (newQty < 1) return;
         const [pId, vId] = itemKey.split('|');
         const updatedItems = items.map(i => {
             const matches = i.productId === pId && (i.variantId || 'default') === vId;
@@ -22,13 +22,16 @@ export default function LeafItemsView({
             return i;
         });
 
-        const requestData: UpdateComboRequest = {
-            items: updatedItems.map(i => ({
-                productVariantId: i.variantId || i.productId,
-                quantity: i.quantity
-            }))
-        };
-        await updateMutation.mutateAsync({ id: comboId, data: requestData });
+        const itemsUpdate = updatedItems.map(i => ({
+            productVariantId: i.variantId || i.productId,
+            quantity: i.quantity
+        }));
+
+        try {
+            await updateItemsMutation.mutateAsync({ id: comboId, items: itemsUpdate });
+        } catch (e) {
+            // Handled via toast in hook
+        }
     };
 
     const handleDeleteItem = async (itemKey: string) => {
@@ -39,13 +42,16 @@ export default function LeafItemsView({
             return !matches;
         });
 
-        const requestData: UpdateComboRequest = {
-            items: updatedItems.map(i => ({
-                productVariantId: i.variantId || i.productId,
-                quantity: i.quantity
-            }))
-        };
-        await updateMutation.mutateAsync({ id: comboId, data: requestData });
+        const itemsUpdate = updatedItems.map(i => ({
+            productVariantId: i.variantId || i.productId,
+            quantity: i.quantity
+        }));
+
+        try {
+            await updateItemsMutation.mutateAsync({ id: comboId, items: itemsUpdate });
+        } catch (e) {
+            // Handled via toast in hook
+        }
     };
 
     if (!items.length) {
@@ -73,6 +79,7 @@ export default function LeafItemsView({
                             item={item}
                             onQuantityChange={handleUpdateQuantity}
                             onDelete={handleDeleteItem}
+                            isLoading={updateItemsMutation.isPending}
                         />
                     );
                 })}

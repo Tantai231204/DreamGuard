@@ -1,11 +1,12 @@
 import { useForm } from "react-hook-form";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useRegisterStore } from "../../store/registerStore";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Button } from "../../components/ui/button";
 import { useSendRegisterOtp } from "../../hooks/useAuth";
 import type { AxiosError } from "axios";
+import { toast } from "sonner";
 
 type FormData = {
   email: string;
@@ -15,6 +16,8 @@ type FormData = {
 
 export default function RegisterBasic() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirect = searchParams.get("redirect");
   const setRegisterData = useRegisterStore((s) => s.setRegisterData);
   const { mutate: sendOtp, isPending } = useSendRegisterOtp();
 
@@ -31,12 +34,14 @@ export default function RegisterBasic() {
             phoneNumber: data.phoneNumber,
           });
 
-          navigate("/verify-register-otp");
+          navigate(redirect ? `/verify-register-otp?redirect=${encodeURIComponent(redirect)}` : "/verify-register-otp");
         },
 
         onError: (err: Error) => {
           const axiosError = err as AxiosError<{ message: string }>;
-          alert(axiosError.response?.data?.message || "Send OTP failed");
+          toast.error("Process Failed", {
+            description: axiosError.response?.data?.message || "Failed to send OTP. Please try again.",
+          });
         },
       },
     );
@@ -135,7 +140,7 @@ export default function RegisterBasic() {
         <p className="text-center text-sm text-gray-500 mt-3">
           Do you already have an account?{" "}
           <Link
-            to="/login"
+            to={redirect ? `/login?redirect=${encodeURIComponent(redirect)}` : "/login"}
             className="text-[var(--color-auth-link-dark)] font-semibold hover:underline"
           >
             Log in

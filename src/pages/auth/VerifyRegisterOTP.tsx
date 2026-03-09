@@ -1,13 +1,15 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { useRegisterStore } from "../../store/registerStore";
 import { useVerifyOtp, useSendRegisterOtp } from "../../hooks/useAuth";
 import { AppRoute } from "../../lib/constants";
 
 export default function VerifyRegisterOTP() {
-  
+
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirect = searchParams.get("redirect");
 
   const registerData = useRegisterStore((s) => s.registerData);
 
@@ -40,21 +42,21 @@ export default function VerifyRegisterOTP() {
   }, [countdown]);
 
   const handleChange = useCallback(
-  (index: number, value: string) => {
-    if (value && !/^\d+$/.test(value)) return;
+    (index: number, value: string) => {
+      if (value && !/^\d+$/.test(value)) return;
 
-    const newOtp = [...otp];
-    newOtp[index] = value.slice(-1);
+      const newOtp = [...otp];
+      newOtp[index] = value.slice(-1);
 
-    setOtp(newOtp);
-    setError("");
+      setOtp(newOtp);
+      setError("");
 
-    if (value && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
-  },
-  [otp]
-);
+      if (value && index < 5) {
+        inputRefs.current[index + 1]?.focus();
+      }
+    },
+    [otp]
+  );
 
   const handleKeyDown = useCallback(
     (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -66,78 +68,78 @@ export default function VerifyRegisterOTP() {
   );
 
   const handlePaste = useCallback(
-  (e: React.ClipboardEvent) => {
-    e.preventDefault();
+    (e: React.ClipboardEvent) => {
+      e.preventDefault();
 
-    const pasted = e.clipboardData.getData("text").slice(0, 6);
+      const pasted = e.clipboardData.getData("text").slice(0, 6);
 
-    if (!/^\d+$/.test(pasted)) return;
+      if (!/^\d+$/.test(pasted)) return;
 
-    const newOtp = [...otp];
+      const newOtp = [...otp];
 
-    pasted.split("").forEach((char, index) => {
-      if (index < 6) newOtp[index] = char;
-    });
+      pasted.split("").forEach((char, index) => {
+        if (index < 6) newOtp[index] = char;
+      });
 
-    setOtp(newOtp);
+      setOtp(newOtp);
 
-    const nextEmpty = newOtp.findIndex((v) => !v);
-    const focusIndex = nextEmpty === -1 ? 5 : nextEmpty;
+      const nextEmpty = newOtp.findIndex((v) => !v);
+      const focusIndex = nextEmpty === -1 ? 5 : nextEmpty;
 
-    inputRefs.current[focusIndex]?.focus();
-  },
-  [otp]
-);
+      inputRefs.current[focusIndex]?.focus();
+    },
+    [otp]
+  );
 
   const handleSubmit = useCallback(
-  (e: React.FormEvent) => {
-    e.preventDefault();
+    (e: React.FormEvent) => {
+      e.preventDefault();
 
-    const otpValue = otp.join("");
+      const otpValue = otp.join("");
 
-    if (otpValue.length !== 6) {
-      setError("Please enter the full 6-digit code");
-      return;
-    }
-
-    if (!registerData) return;
-
-    verifyOtp(
-      {
-        email: registerData.email,
-        phoneNumber: registerData.phoneNumber,
-        otpCode: otpValue,
-      },
-      {
-        onSuccess: () => {
-          navigate(AppRoute.REGISTER_COMPLETE);
-        },
-        onError: () => {
-          setError("Invalid or expired OTP code");
-        },
+      if (otpValue.length !== 6) {
+        setError("Please enter the full 6-digit code");
+        return;
       }
-    );
-  },
-  [otp, registerData, navigate, verifyOtp]
-);
+
+      if (!registerData) return;
+
+      verifyOtp(
+        {
+          email: registerData.email,
+          phoneNumber: registerData.phoneNumber,
+          otpCode: otpValue,
+        },
+        {
+          onSuccess: () => {
+            navigate(redirect ? `${AppRoute.REGISTER_COMPLETE}?redirect=${encodeURIComponent(redirect)}` : AppRoute.REGISTER_COMPLETE);
+          },
+          onError: () => {
+            setError("Invalid or expired OTP code");
+          },
+        }
+      );
+    },
+    [otp, registerData, navigate, verifyOtp]
+  );
 
   const handleResendOtp = () => {
 
- if (!registerData || countdown > 0) return;
+    if (!registerData || countdown > 0) return;
 
- resendOtp(
-  {
-   email: registerData.email,
-   phone: registerData.phoneNumber
-  },
-  {
-   onSuccess: () => {
-     setCountdown(60);
-   }
-  }
- );
+    resendOtp(
+      {
+        email: registerData.email,
+        phone: registerData.phoneNumber
+      },
+      {
+        onSuccess: () => {
+          setCountdown(60);
+        }
+      }
+    );
 
-};
+  };
 
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-[var(--color-border)] p-8 w-full max-w-md">
@@ -226,7 +228,7 @@ export default function VerifyRegisterOTP() {
 
       {/* Back */}
       <p className="text-center text-sm text-gray-500 mt-3">
-        <Link to={AppRoute.LOGIN} className="hover:underline">
+        <Link to={redirect ? `${AppRoute.LOGIN}?redirect=${encodeURIComponent(redirect)}` : AppRoute.LOGIN} className="hover:underline">
           ← Back to login
         </Link>
       </p>
