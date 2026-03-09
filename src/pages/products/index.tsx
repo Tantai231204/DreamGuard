@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
-import { ChevronDown, Search } from 'lucide-react';
+import { ChevronDown, Search, Sparkles } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 
 import { Input } from '@/components/ui/input';
@@ -20,6 +20,7 @@ import { useProductsByFilter } from '@/hooks/queries/useProduct';
 import { useCategories } from '@/hooks/queries/useCategory';
 import type { ProductResponse } from '@/api/types/product.types';
 import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 
 const ITEMS_PER_PAGE = 9;
 
@@ -40,7 +41,7 @@ function mapToProduct(p: ProductResponse): Product {
             ? Math.round(((originalPrice - price) / originalPrice) * 100)
             : undefined;
 
-    const firstImage = p.assets?.[0]?.url;
+    const firstImage = p.imageUrls?.[0] || p.assets?.[0]?.url;
     const isOutOfStock = p.status === 'OutOfStock';
     const isPublished = p.status === 'Published';
 
@@ -78,6 +79,7 @@ export default function ProductsPage() {
         const params: Record<string, unknown> = {};
         if (urlCateId) params.cateId = Number(urlCateId);
         params.pageNumber = 1;
+        params.pageSize = 1000; // Get all for client-side filtering as per existing logic
         return params;
     }, [urlCateId]);
 
@@ -184,26 +186,35 @@ export default function ProductsPage() {
 
     const pageTitle = useMemo(() => {
         const displayCategory = urlCategoryName || categoryName;
-        if (urlMaterialName && displayCategory) return `${urlMaterialName} – ${displayCategory}`;
+        if (urlMaterialName && displayCategory) return `${urlMaterialName} ${displayCategory}`;
         if (urlMaterialName) return urlMaterialName;
         if (displayCategory) return displayCategory;
-        return 'All Products';
+        return 'Our Collection';
     }, [categoryName, urlCategoryName, urlMaterialName]);
 
     return (
-        <div className="min-h-screen bg-white">
+        <div className="min-h-screen bg-[#FAFBFF]">
             <div className="container mx-auto px-4 py-12 lg:py-20 lg:px-8 xl:max-w-7xl">
-                <div className="flex flex-col lg:flex-row gap-12 lg:gap-20">
-                    <aside className="w-full lg:w-[300px] shrink-0">
-                        <div className="sticky top-10 space-y-12">
-                            <div className="space-y-4">
-                                <h1 className="text-4xl lg:text-6xl font-black text-gray-950 uppercase tracking-tighter leading-none">
+                <div className="flex flex-col lg:flex-row gap-12 lg:gap-16">
+                    {/* Sidebar Area */}
+                    <aside className="w-full lg:w-[320px] shrink-0">
+                        <div className="sticky top-28 space-y-10">
+                            <motion.div
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                className="space-y-4"
+                            >
+                                <div className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-amber-50 text-amber-600 text-[10px] font-bold uppercase tracking-wider">
+                                    <Sparkles className="h-3.5 w-3.5 fill-amber-200" />
+                                    Sweet Dreams Await
+                                </div>
+                                <h1 className="text-4xl lg:text-5xl font-extrabold text-primary-dark tracking-tight">
                                     {pageTitle}
                                 </h1>
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                                    {filteredProducts.length} items found
+                                <p className="text-sm text-primary-light font-medium">
+                                    Discover our curated selection of <span className="text-amber-500 font-bold">{filteredProducts.length}</span> cozy essentials.
                                 </p>
-                            </div>
+                            </motion.div>
 
                             <FilterSidebar
                                 filters={filters}
@@ -213,46 +224,55 @@ export default function ProductsPage() {
                         </div>
                     </aside>
 
-                    <main className="flex-1 min-w-0 space-y-12">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-8 border-b border-gray-100 gap-6">
-                            <div className="relative w-full max-w-sm">
-                                <Search className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-300" />
+                    {/* Main Content Area */}
+                    <main className="flex-1 min-w-0 space-y-10">
+                        <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 bg-white p-4 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.03)] border border-primary-light/40"
+                        >
+                            <div className="relative flex-1 group">
+                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-primary-light group-focus-within:text-amber-400 transition-colors" />
                                 <form onSubmit={handleSearch}>
                                     <Input
                                         type="text"
-                                        placeholder="Search products..."
+                                        placeholder="Search by name, material..."
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="h-10 w-full border-0 bg-transparent pl-8 text-[11px] font-black uppercase tracking-widest focus-visible:ring-0"
+                                        className="h-12 w-full border-0 bg-transparent pl-11 text-sm font-semibold tracking-tight focus-visible:ring-0 placeholder:text-primary-light/50 placeholder:font-medium text-primary-dark"
                                     />
                                 </form>
                             </div>
 
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" className="h-10 gap-4 text-[11px] font-black tracking-widest uppercase hover:bg-transparent px-0">
-                                        Sort by: <span className="text-gray-400">
+                            <div className="flex items-center gap-4 px-2">
+                                <div className="h-8 w-[1px] bg-primary-light/20 hidden sm:block" />
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" className="h-12 gap-3 text-sm font-bold text-primary-dark/80 hover:bg-amber-50 hover:text-amber-600 rounded-2xl px-4 transition-all group">
+                                            <span className="text-primary-light font-medium mr-1 group-hover:text-amber-400 transition-colors">Sort by:</span>
                                             {sortOptions.find((opt) => opt.value === filters.sortBy)?.label || 'Featured'}
-                                        </span>
-                                        <ChevronDown className="h-4 w-4 text-gray-400" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-64 rounded-2xl p-2 shadow-2xl border-gray-100">
-                                    {sortOptions.map((option) => (
-                                        <DropdownMenuItem
-                                            key={option.value}
-                                            onClick={() => handleFilterChange({ ...filters, sortBy: option.value as FilterOptions['sortBy'] })}
-                                            className={cn(
-                                                "rounded-xl px-4 py-3 text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all",
-                                                filters.sortBy === option.value ? "bg-gray-950 text-white" : "text-gray-400 hover:text-gray-950"
-                                            )}
-                                        >
-                                            {option.label}
-                                        </DropdownMenuItem>
-                                    ))}
-                                </DropdownMenuContent>
-                            </DropdownMenu>
-                        </div>
+                                            <ChevronDown className="h-4 w-4 text-primary-light transition-transform group-data-[state=open]:rotate-180" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end" className="w-56 rounded-[1.5rem] p-2 shadow-2xl border-primary-light/30 bg-white/95 backdrop-blur-md">
+                                        {sortOptions.map((option) => (
+                                            <DropdownMenuItem
+                                                key={option.value}
+                                                onClick={() => handleFilterChange({ ...filters, sortBy: option.value as FilterOptions['sortBy'] })}
+                                                className={cn(
+                                                    "rounded-xl px-4 py-2.5 text-sm font-semibold cursor-pointer transition-all mb-1 last:mb-0",
+                                                    filters.sortBy === option.value
+                                                        ? "bg-amber-400 text-white"
+                                                        : "text-primary-dark/60 hover:bg-amber-50 hover:text-amber-600"
+                                                )}
+                                            >
+                                                {option.label}
+                                            </DropdownMenuItem>
+                                        ))}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+                        </motion.div>
 
                         <ProductGrid
                             products={paginatedProducts}
@@ -261,7 +281,7 @@ export default function ProductsPage() {
                         />
 
                         {totalPages > 1 && (
-                            <div className="pt-20">
+                            <div className="pt-10">
                                 <Pagination
                                     currentPage={currentPage}
                                     totalPages={totalPages}

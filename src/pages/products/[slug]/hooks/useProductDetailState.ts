@@ -8,10 +8,11 @@ import type { TabType, TradeInProduct } from "../types";
 
 interface UseProductDetailStateProps {
     product: ProductResponse | undefined;
+    variants?: ProductVariantResponse[] | undefined;
     productImageRef: React.RefObject<HTMLDivElement | null>;
 }
 
-export function useProductDetailState({ product, productImageRef }: UseProductDetailStateProps) {
+export function useProductDetailState({ product, variants, productImageRef }: UseProductDetailStateProps) {
     const { addItem } = useCart();
     const { triggerFlyToCart } = useCartAnimation();
 
@@ -24,7 +25,7 @@ export function useProductDetailState({ product, productImageRef }: UseProductDe
     const [activeTab, setActiveTab] = useState<TabType>("description");
     const [selectedTradeInProducts, setSelectedTradeInProducts] = useState<string[]>([]);
 
-    const allVariants = useMemo(() => product?.variants ?? [], [product]);
+    const allVariants = useMemo(() => variants ?? product?.variants ?? [], [product, variants]);
 
     const getVariantSize = useCallback((v: ProductVariantResponse) => {
         if (!v) return "";
@@ -180,6 +181,7 @@ export function useProductDetailState({ product, productImageRef }: UseProductDe
 
         addItem({
             id: product.id,
+            variantId: currentVariant?.id,
             name: product.name,
             image: productImages[0] || "/images/placeholder-product.svg",
             price,
@@ -189,7 +191,7 @@ export function useProductDetailState({ product, productImageRef }: UseProductDe
             tradeIn: tradeInInfo,
         });
         setSelectedTradeInProducts([]);
-    }, [product, quantity, selectedColor, selectedSize, addItem, triggerFlyToCart, currentPriceInfo, productImages, productImageRef, selectedTradeInProducts, tradeInValue]);
+    }, [product, quantity, selectedColor, selectedSize, addItem, triggerFlyToCart, currentPriceInfo, productImages, productImageRef, selectedTradeInProducts, tradeInValue, currentVariant]);
 
     const disabledColors = useMemo(() =>
         dynamicColorOptions.map(c => c.value).filter(val => !colorsWithStock.has(val.toLowerCase())),

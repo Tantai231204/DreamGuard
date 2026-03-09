@@ -25,9 +25,9 @@ const NavButton = ({
     size="icon"
     onClick={onClick}
     disabled={disabled}
-    className="h-14 w-14 rounded-2xl border-gray-100 bg-white shadow-sm transition-all hover:border-gray-950 hover:bg-gray-950 hover:text-white disabled:opacity-30 active:scale-90 group"
+    className="h-12 w-12 rounded-2xl border-primary-light/40 bg-white shadow-sm transition-all hover:border-primary hover:text-primary disabled:opacity-30 active:scale-95 group"
   >
-    <Icon className="h-5 w-5 group-hover:scale-110 transition-transform" />
+    <Icon className="h-4 w-4 group-hover:scale-110 transition-transform" />
   </Button>
 );
 
@@ -59,20 +59,25 @@ export const Pagination: FC<PaginationProps> = ({
 
   return (
     <motion.div
-      className={cn('flex flex-col sm:flex-row items-center justify-center gap-10', className)}
+      className={cn('flex flex-col sm:flex-row items-center justify-center gap-8 py-8', className)}
       initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
     >
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         <NavButton icon={ChevronsLeft} onClick={() => onPageChange(1)} disabled={currentPage === 1} />
         <NavButton icon={ChevronLeft} onClick={() => onPageChange(currentPage - 1)} disabled={currentPage === 1} />
       </div>
 
-      <div className="flex items-center gap-3 px-4">
+      <div className="flex items-center gap-2 px-2">
         {getPageNumbers().map((page, index) => {
           if (page === '...') {
-            return <span key={`ellipsis-${index}`} className="w-12 text-center text-gray-200 font-black tracking-[0.4em]">•••</span>;
+            return (
+              <span key={`ellipsis-${index}`} className="w-8 text-center text-primary-light font-bold tracking-widest text-xs">
+                ...
+              </span>
+            );
           }
 
           const isActive = currentPage === page;
@@ -84,26 +89,25 @@ export const Pagination: FC<PaginationProps> = ({
               size="icon"
               onClick={() => onPageChange(page as number)}
               className={cn(
-                'h-14 w-14 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all duration-500 relative overflow-hidden',
+                'h-12 w-12 rounded-2xl text-sm font-bold transition-all duration-300 relative overflow-hidden',
                 isActive
-                  ? 'bg-gray-950 text-white shadow-2xl scale-125 z-10'
-                  : 'border-gray-100 text-gray-400 bg-white hover:border-gray-950 hover:text-gray-950 active:scale-95'
+                  ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-110 z-10'
+                  : 'border-primary-light/40 text-primary-light bg-white hover:border-primary hover:text-primary active:scale-95'
               )}
             >
-              {isActive && <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent" />}
               {page}
             </Button>
           );
         })}
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         <NavButton icon={ChevronRight} onClick={() => onPageChange(currentPage + 1)} disabled={currentPage === totalPages} />
         <NavButton icon={ChevronsRight} onClick={() => onPageChange(totalPages)} disabled={currentPage === totalPages} />
       </div>
 
-      <div className="text-[10px] font-black uppercase tracking-[0.4em] text-gray-300 sm:absolute sm:right-0">
-        Page {currentPage} of {totalPages}
+      <div className="text-[11px] font-bold text-primary-light sm:absolute sm:right-0 tracking-wide">
+        Page <span className="text-primary-dark font-extrabold">{currentPage}</span> of {totalPages}
       </div>
     </motion.div>
   );

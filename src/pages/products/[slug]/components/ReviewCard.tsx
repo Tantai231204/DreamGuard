@@ -18,7 +18,7 @@ export const ReviewCard = memo(({ review }: ReviewCardProps) => {
                         <img
                             src={review.avatar}
                             alt={review.name}
-                            className="h-16 w-16 rounded-[1.25rem] object-cover border border-gray-100 shadow-sm transition-transform group-hover:scale-105"
+                            className="h-16 w-16 rounded-[1.25rem] object-cover border border-primary-light/40 shadow-sm transition-transform group-hover:scale-105"
                         />
                         {review.verified && (
                             <div className="absolute -bottom-1 -right-1 h-6 w-6 bg-emerald-500 rounded-lg flex items-center justify-center text-white border-2 border-white shadow-md">
@@ -30,7 +30,7 @@ export const ReviewCard = memo(({ review }: ReviewCardProps) => {
                     <div className="flex-1 space-y-4">
                         <div className="flex flex-wrap items-center justify-between gap-4">
                             <div>
-                                <h4 className="text-sm font-black text-gray-950 uppercase tracking-widest">{review.name}</h4>
+                                <h4 className="text-sm font-black text-primary-dark uppercase tracking-widest">{review.name}</h4>
                                 <div className="mt-2 flex items-center gap-4">
                                     <div className="flex items-center gap-0.5">
                                         {[...Array(5)].map((_, i) => (
@@ -39,13 +39,13 @@ export const ReviewCard = memo(({ review }: ReviewCardProps) => {
                                                 className={cn(
                                                     "h-3 w-3",
                                                     i < review.rating
-                                                        ? "fill-gray-950 text-gray-950"
-                                                        : "fill-gray-200 text-gray-200"
+                                                        ? "fill-amber-400 text-amber-400"
+                                                        : "fill-primary-light/50 text-primary-light/50"
                                                 )}
                                             />
                                         ))}
                                     </div>
-                                    <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest leading-none">{review.date}</span>
+                                    <span className="text-[10px] font-black text-primary-light uppercase tracking-widest leading-none">{review.date}</span>
                                 </div>
                             </div>
 
@@ -56,12 +56,12 @@ export const ReviewCard = memo(({ review }: ReviewCardProps) => {
                             )}
                         </div>
 
-                        <p className="text-gray-600 text-sm leading-relaxed font-medium">
+                        <p className="text-primary-dark/80 text-sm leading-relaxed font-medium">
                             {review.comment}
                         </p>
 
                         <div className="pt-2">
-                            <button className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-950 transition-colors">
+                            <button className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary-light hover:text-amber-500 transition-colors">
                                 <ThumbsUp className="h-4 w-4" />
                                 <span>Validate Feedback ({review.helpful})</span>
                             </button>

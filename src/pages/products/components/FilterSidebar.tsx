@@ -61,21 +61,21 @@ function FilterSection({
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex w-full items-center justify-between py-6 group"
+                className="flex w-full items-center justify-between py-5 group"
             >
                 <div className="flex items-center gap-4">
                     <div className={cn(
                         "flex h-10 w-10 items-center justify-center rounded-2xl transition-all duration-300",
-                        isOpen ? "bg-gray-950 text-white" : "bg-gray-50 text-gray-400 group-hover:bg-gray-100 group-hover:text-gray-950"
+                        isOpen ? "bg-amber-100 text-amber-600 shadow-sm shadow-amber-100" : "bg-primary-light/50 text-primary group-hover:bg-amber-50 group-hover:text-amber-500"
                     )}>
-                        <Icon className="h-4 w-4" />
+                        <Icon className="h-5 w-5" />
                     </div>
-                    <span className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-950">{title}</span>
+                    <span className="text-sm font-bold text-primary-dark tracking-tight">{title}</span>
                 </div>
                 <ChevronDown
                     className={cn(
-                        "h-4 w-4 text-gray-300 transition-transform duration-500",
-                        isOpen && "rotate-180"
+                        "h-4 w-4 text-primary-light transition-transform duration-500",
+                        isOpen && "rotate-180 text-amber-500"
                     )}
                 />
             </button>
@@ -85,7 +85,7 @@ function FilterSection({
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+                        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                         className="overflow-hidden"
                     >
                         <div className="pb-8 pt-2">{children}</div>
@@ -110,9 +110,11 @@ export const FilterSidebar: FC<FilterSidebarProps> = ({
     const priceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
+        const filterTimer = filterTimerRef.current;
+        const priceTimer = priceTimerRef.current;
         return () => {
-            if (filterTimerRef.current) clearTimeout(filterTimerRef.current);
-            if (priceTimerRef.current) clearTimeout(priceTimerRef.current);
+            if (filterTimer) clearTimeout(filterTimer);
+            if (priceTimer) clearTimeout(priceTimer);
         };
     }, []);
 
@@ -130,10 +132,7 @@ export const FilterSidebar: FC<FilterSidebarProps> = ({
                 ? currentArray.filter((item) => item !== value)
                 : [...currentArray, value];
 
-            if (filterTimerRef.current) clearTimeout(filterTimerRef.current);
-            filterTimerRef.current = setTimeout(() => {
-                onFilterChange({ ...filters, [key]: newArray });
-            }, 100);
+            onFilterChange({ ...filters, [key]: newArray });
         },
         [filters, onFilterChange]
     );
@@ -147,36 +146,30 @@ export const FilterSidebar: FC<FilterSidebarProps> = ({
                     ...filters,
                     priceRange: { min: value[0], max: value[1] },
                 });
-            }, 150);
+            }, 500);
         },
         [filters, onFilterChange]
     );
 
-    const handleMinInput = useCallback(
-        (e: React.ChangeEvent<HTMLInputElement>) => {
-            const val = parseInt(e.target.value) || 0;
-            const clamped = Math.min(Math.max(val, 0), priceRange[1] - 10);
-            setPriceRange([clamped, priceRange[1]]);
-            if (priceTimerRef.current) clearTimeout(priceTimerRef.current);
-            priceTimerRef.current = setTimeout(() => {
-                onFilterChange({ ...filters, priceRange: { min: clamped, max: priceRange[1] } });
-            }, 300);
-        },
-        [filters, onFilterChange, priceRange]
-    );
+    const handleMinInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = parseInt(e.target.value) || 0;
+        const clamped = Math.min(Math.max(val, 0), priceRange[1] - 10);
+        setPriceRange([clamped, priceRange[1]]);
+        if (priceTimerRef.current) clearTimeout(priceTimerRef.current);
+        priceTimerRef.current = setTimeout(() => {
+            onFilterChange({ ...filters, priceRange: { min: clamped, max: priceRange[1] } });
+        }, 500);
+    };
 
-    const handleMaxInput = useCallback(
-        (e: React.ChangeEvent<HTMLInputElement>) => {
-            const val = parseInt(e.target.value) || 1000;
-            const clamped = Math.max(Math.min(val, 1000), priceRange[0] + 10);
-            setPriceRange([priceRange[0], clamped]);
-            if (priceTimerRef.current) clearTimeout(priceTimerRef.current);
-            priceTimerRef.current = setTimeout(() => {
-                onFilterChange({ ...filters, priceRange: { min: priceRange[0], max: clamped } });
-            }, 300);
-        },
-        [filters, onFilterChange, priceRange]
-    );
+    const handleMaxInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = parseInt(e.target.value) || 1000;
+        const clamped = Math.max(Math.min(val, 1000), priceRange[0] + 10);
+        setPriceRange([priceRange[0], clamped]);
+        if (priceTimerRef.current) clearTimeout(priceTimerRef.current);
+        priceTimerRef.current = setTimeout(() => {
+            onFilterChange({ ...filters, priceRange: { min: priceRange[0], max: clamped } });
+        }, 500);
+    };
 
     const activeFilterCount = filters.ages.length +
         filters.colors.length +
@@ -204,19 +197,24 @@ export const FilterSidebar: FC<FilterSidebarProps> = ({
             animate={{ opacity: 1 }}
             transition={{ duration: 0.6 }}
         >
-            <div className="flex items-center justify-between pb-4">
+            <div className="flex items-center justify-between pb-6">
                 <div className="flex items-center gap-3">
-                    <SlidersHorizontal className="h-5 w-5 text-gray-950" />
-                    <h2 className="text-[12px] font-black uppercase tracking-[0.2em] text-gray-950">Filters</h2>
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-50 text-amber-500 shadow-sm shadow-amber-100/50">
+                        <SlidersHorizontal className="h-6 w-6" />
+                    </div>
+                    <div className="flex flex-col">
+                        <h2 className="text-lg font-bold text-primary-dark tracking-tight leading-none">Filters</h2>
+                        <p className="text-[11px] text-primary-light mt-1 font-medium italic">Tailored for your baby</p>
+                    </div>
                 </div>
                 {activeFilterCount > 0 && (
                     <Button
                         variant="ghost"
                         size="sm"
                         onClick={handleReset}
-                        className="h-8 rounded-lg text-[10px] font-black uppercase tracking-widest text-gray-400 hover:text-gray-950 transition-all p-0"
+                        className="h-9 rounded-full text-xs font-bold text-amber-500 hover:text-amber-600 hover:bg-amber-50 transition-all px-4"
                     >
-                        <RotateCcw className="h-3 w-3 mr-2" />
+                        <RotateCcw className="h-4 w-4 mr-2" />
                         Reset
                     </Button>
                 )}
@@ -224,18 +222,18 @@ export const FilterSidebar: FC<FilterSidebarProps> = ({
 
             <AnimatePresence>
                 {activePills.length > 0 && (
-                    <div className="flex flex-wrap gap-2 pb-6">
+                    <div className="flex flex-wrap gap-2 pb-4 border-b border-primary-light/40">
                         {activePills.map((pill) => (
                             <motion.button
                                 key={`${pill.key}-${pill.value}`}
-                                initial={{ scale: 0.9, opacity: 0 }}
+                                initial={{ scale: 0.8, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
-                                exit={{ scale: 0.9, opacity: 0 }}
+                                exit={{ scale: 0.8, opacity: 0 }}
                                 onClick={() => toggleArrayFilter(pill.key, pill.value)}
-                                className="inline-flex items-center gap-2 rounded-lg bg-gray-50 border border-gray-100 px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-gray-950 hover:bg-gray-100 transition-all"
+                                className="inline-flex items-center gap-2 rounded-full bg-amber-50/70 border border-amber-100/50 px-4 py-2 text-[11px] font-bold text-amber-700 hover:bg-amber-100 transition-all shadow-sm"
                             >
                                 {pill.value}
-                                <X className="h-3 w-3 text-gray-400" />
+                                <X className="h-3 w-3 text-amber-400" />
                             </motion.button>
                         ))}
                     </div>
@@ -243,8 +241,9 @@ export const FilterSidebar: FC<FilterSidebarProps> = ({
             </AnimatePresence>
 
             <div className="space-y-2">
-                <FilterSection title="Price" icon={Zap}>
-                    <div className="space-y-8 pt-2">
+                {/* Price Section */}
+                <FilterSection title="Price Range" icon={Zap}>
+                    <div className="space-y-8 px-1 pt-2">
                         <Slider
                             min={0}
                             max={1000}
@@ -254,27 +253,34 @@ export const FilterSidebar: FC<FilterSidebarProps> = ({
                             className="w-full"
                         />
                         <div className="flex items-center gap-4">
-                            <Input
-                                type="number"
-                                value={priceRange[0]}
-                                onChange={handleMinInput}
-                                className="h-10 rounded-xl border-gray-100 bg-gray-50 text-center text-[10px] font-black uppercase focus:bg-white focus:ring-0 transition-all"
-                            />
-                            <span className="text-gray-200">—</span>
-                            <Input
-                                type="number"
-                                value={priceRange[1]}
-                                onChange={handleMaxInput}
-                                className="h-10 rounded-xl border-gray-100 bg-gray-50 text-center text-[10px] font-black uppercase focus:bg-white focus:ring-0 transition-all"
-                            />
+                            <div className="relative flex-1">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-light text-xs font-bold">$</span>
+                                <Input
+                                    type="number"
+                                    value={priceRange[0]}
+                                    onChange={handleMinInput}
+                                    className="h-11 pl-7 rounded-2xl border-primary-light/40 bg-primary-light/5 text-sm font-bold text-primary-dark focus:bg-white focus:ring-2 focus:ring-amber-200 focus:border-amber-300 transition-all shadow-inner"
+                                />
+                            </div>
+                            <span className="text-primary-light">—</span>
+                            <div className="relative flex-1">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-light text-xs font-bold">$</span>
+                                <Input
+                                    type="number"
+                                    value={priceRange[1]}
+                                    onChange={handleMaxInput}
+                                    className="h-11 pl-7 rounded-2xl border-primary-light/40 bg-primary-light/5 text-sm font-bold text-primary-dark focus:bg-white focus:ring-2 focus:ring-amber-200 focus:border-amber-300 transition-all shadow-inner"
+                                />
+                            </div>
                         </div>
                     </div>
                 </FilterSection>
 
-                <Separator className="bg-gray-100/50" />
+                <Separator className="bg-primary-light/30 my-2" />
 
-                <FilterSection title="Colors" icon={Palette}>
-                    <div className="grid grid-cols-3 gap-3">
+                {/* Colors Section */}
+                <FilterSection title="Color Palette" icon={Palette}>
+                    <div className="grid grid-cols-2 gap-3">
                         {colorOptions.map((color) => {
                             const selected = isSelected('colors', color.value);
                             return (
@@ -282,55 +288,63 @@ export const FilterSidebar: FC<FilterSidebarProps> = ({
                                     key={color.value}
                                     onClick={() => toggleArrayFilter('colors', color.value)}
                                     className={cn(
-                                        "flex flex-col items-center gap-2 rounded-xl border p-3 transition-all",
+                                        "flex items-center gap-3 rounded-[1.2rem] border px-4 py-3 transition-all text-left group",
                                         selected
-                                            ? "border-gray-950 bg-gray-950 text-white"
-                                            : "border-gray-50 bg-gray-50/50 hover:border-gray-200"
+                                            ? "border-amber-400 bg-amber-50/50 text-amber-700 shadow-[0_4px_12px_rgba(251,191,36,0.1)]"
+                                            : "border-primary-light/40 bg-primary-light/5 hover:border-amber-200 hover:bg-amber-50/20"
                                     )}
                                 >
                                     <div
-                                        className={cn("h-6 w-6 rounded-full border border-white/20", color.border && "border-gray-200")}
+                                        className={cn(
+                                            "h-7 w-7 rounded-full border-2 border-white shadow-sm ring-1 ring-primary-light/30 transition-transform group-hover:scale-110",
+                                            selected && "ring-amber-300"
+                                        )}
                                         style={{ backgroundColor: color.color }}
                                     />
-                                    <span className="text-[8px] font-black uppercase tracking-widest">{color.label}</span>
+                                    <span className="text-xs font-bold text-primary-dark">{color.label}</span>
                                 </button>
                             );
                         })}
                     </div>
                 </FilterSection>
 
-                <Separator className="bg-gray-100/50" />
+                <Separator className="bg-primary-light/30 my-2" />
 
-                <FilterSection title="Age" icon={Baby}>
-                    <div className="grid gap-2">
+                {/* Age Section */}
+                <FilterSection title="Baby Age" icon={Baby}>
+                    <div className="space-y-2.5">
                         {filteredAgeRanges.map((age) => {
                             const selected = isSelected('ages', age);
                             return (
                                 <label
                                     key={age}
                                     className={cn(
-                                        "flex items-center gap-3 rounded-xl border px-4 py-3 cursor-pointer transition-all",
+                                        "flex items-center gap-4 rounded-[1.2rem] border px-4 py-4 cursor-pointer transition-all group",
                                         selected
-                                            ? "border-gray-950 bg-gray-950 text-white"
-                                            : "border-gray-50 bg-gray-50/50 hover:border-gray-100"
+                                            ? "border-amber-100 bg-amber-50/30 text-amber-700"
+                                            : "border-transparent bg-transparent hover:bg-primary-light/5"
                                     )}
                                 >
                                     <Checkbox
                                         checked={selected}
                                         onCheckedChange={() => toggleArrayFilter('ages', age)}
-                                        className={cn("h-4 w-4 border-2", selected ? "border-white bg-white text-gray-950" : "border-gray-200")}
+                                        className={cn(
+                                            "h-6 w-6 rounded-lg",
+                                            selected ? "border-amber-400 bg-amber-400" : "border-primary-light group-hover:border-amber-300"
+                                        )}
                                     />
-                                    <span className="text-[10px] font-black uppercase tracking-widest">{age}</span>
+                                    <span className="text-sm font-bold text-primary-dark">{age}</span>
                                 </label>
                             );
                         })}
                     </div>
                 </FilterSection>
 
-                <Separator className="bg-gray-100/50" />
+                <Separator className="bg-primary-light/30 my-2" />
 
-                <FilterSection title="Sizes" icon={Ruler}>
-                    <div className="grid grid-cols-2 gap-2">
+                {/* Sizes Section */}
+                <FilterSection title="Comfort Sizes" icon={Ruler}>
+                    <div className="grid grid-cols-2 gap-2.5">
                         {sizeOptions.map((size) => {
                             const selected = isSelected('sizes', size);
                             return (
@@ -338,10 +352,10 @@ export const FilterSidebar: FC<FilterSidebarProps> = ({
                                     key={size}
                                     onClick={() => toggleArrayFilter('sizes', size)}
                                     className={cn(
-                                        "h-12 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all",
+                                        "h-12 rounded-[1.2rem] border text-xs font-bold transition-all",
                                         selected
-                                            ? "border-gray-950 bg-gray-950 text-white"
-                                            : "border-gray-50 bg-white hover:border-gray-950"
+                                            ? "border-amber-400 bg-amber-400 text-amber-900 shadow-lg shadow-amber-100"
+                                            : "border-primary-light/40 bg-white hover:border-amber-200 hover:text-amber-600 text-primary-light shadow-sm"
                                     )}
                                 >
                                     {size}

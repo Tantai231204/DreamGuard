@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -35,7 +35,7 @@ const GoogleIcon = () => (
 
 const loginSchema = z.object({
   phoneNumber: z.string().min(9, "Invalid phone number"),
-//   const setAuth = useAuthStore((state) => state.setAuth);
+  //   const setAuth = useAuthStore((state) => state.setAuth);
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
@@ -43,6 +43,8 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function Login() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirect = searchParams.get("redirect");
   const [showPassword, setShowPassword] = useState(false);
 
   const {
@@ -59,18 +61,12 @@ export default function Login() {
 
   const { mutate: login, isPending, error } = useLogin();
 
-  // const onSubmit = useCallback((data: LoginFormData) => {
-  //     console.log(data);
-  //     const token = `demo-token-${Date.now()}`;
-  //     setToken(token, 'user');
-  //     navigate(AppRoute.PROFILE);
-  // }, [setToken, navigate]);
-
-
   const onSubmit = (data: LoginFormData) => {
     login(data, {
       onSuccess: (res) => {
-        if (res.roleName === "Admin") {
+        if (redirect) {
+          navigate(redirect);
+        } else if (res.roleName === "Admin") {
           navigate("/admin");
         } else {
           navigate("/profile");
@@ -79,15 +75,15 @@ export default function Login() {
     });
   };
 
-//   const handleGoogleLogin = useCallback(() => {
-//   setAuth({
-//     accessToken: `google-token-${Date.now()}`,
-//     refreshToken: "",
-//     roleName: "User",
-//   });
+  //   const handleGoogleLogin = useCallback(() => {
+  //   setAuth({
+  //     accessToken: `google-token-${Date.now()}`,
+  //     refreshToken: "",
+  //     roleName: "User",
+  //   });
 
-//   navigate(AppRoute.PROFILE);
-// }, [navigate]);
+  //   navigate(AppRoute.PROFILE);
+  // }, [navigate]);
 
   const togglePassword = useCallback(() => {
     setShowPassword((prev) => !prev);
@@ -184,7 +180,7 @@ export default function Login() {
         <Button
           type="button"
           variant="outline"
-        //   onClick={handleGoogleLogin}
+          //   onClick={handleGoogleLogin}
           className="w-full h-11 bg-[var(--color-auth-btn-outline-bg)] text-[var(--color-auth-btn-outline-text)] border-2 border-[var(--color-auth-btn-border)] rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-[var(--color-auth-btn-outline-hover-bg)] shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98]"
         >
           <GoogleIcon />
@@ -196,7 +192,7 @@ export default function Login() {
       <p className="text-center text-sm text-gray-600 mt-6">
         Don't have an account yet?{" "}
         <Link
-          to="/register"
+          to={redirect ? `/register?redirect=${encodeURIComponent(redirect)}` : "/register"}
           className="text-[var(--color-auth-link-dark)] font-semibold hover:underline"
         >
           Sign In

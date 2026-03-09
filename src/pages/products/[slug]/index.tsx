@@ -1,6 +1,6 @@
 import { useRef, useMemo } from "react";
 import { useParams } from "react-router-dom";
-import { useProductDetail } from "@/hooks/queries/useProduct";
+import { useProductDetail, useProductVariants } from "@/hooks/queries/useProduct";
 import { Breadcrumb } from "./components/Breadcrumb";
 import { SEO } from "@/components/common";
 import { ProductImageGallery } from "./components/ProductImageGallery";
@@ -27,13 +27,21 @@ export default function ProductDetail() {
   // 1. Fetch data
   const {
     data: product,
-    isLoading,
+    isLoading: isProductLoading,
     isError: isProductError,
   } = useProductDetail(slug || "", !!slug);
+
+  const {
+    data: variants,
+    isLoading: isVariantsLoading,
+  } = useProductVariants(product?.id || "", !!product?.id);
+
+  const isLoading = isProductLoading || (!!product && isVariantsLoading);
 
   // 2. Manage state via custom hook
   const { state, actions, getVariantSize } = useProductDetailState({
     product,
+    variants,
     productImageRef,
   });
 

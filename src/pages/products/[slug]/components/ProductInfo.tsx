@@ -90,13 +90,13 @@ export const ProductInfo = memo(({
             <div className="space-y-6">
                 <div className="flex items-center gap-3">
                     {product.category && (
-                        <Badge className="bg-gray-100 text-gray-400 border-0 px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-full">
+                        <Badge className="bg-slate-100 text-slate-800 border-0 px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-full">
                             {product.category}
                         </Badge>
                     )}
                     <div className={cn(
                         "flex items-center gap-2 px-3 py-1 rounded-full",
-                        isActuallyOutOfStock ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-600"
+                        isActuallyOutOfStock ? "bg-rose-50 text-rose-600" : "bg-emerald-50 text-emerald-600"
                     )}>
                         <Zap className={cn("w-3 h-3", !isActuallyOutOfStock && "fill-emerald-600")} />
                         <span className="text-[9px] font-black uppercase tracking-widest">
@@ -104,23 +104,23 @@ export const ProductInfo = memo(({
                         </span>
                     </div>
                     {isNewVariant && (
-                        <Badge className="bg-black text-white border-0 px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-full">
-                            New
+                        <Badge className="bg-slate-900 text-white border-0 px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-full shadow-sm">
+                            New Arrival
                         </Badge>
                     )}
                     {product.ageLabel && (
-                        <Badge className="bg-blue-50 text-blue-600 border-0 px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-full">
+                        <Badge className="bg-sky-50 text-sky-700 border-0 px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-full">
                             Age: {product.ageLabel}
                         </Badge>
                     )}
                 </div>
 
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-4xl lg:text-5xl font-black tracking-tighter text-gray-950 uppercase italic leading-tight">
+                    <h1 className="text-4xl lg:text-5xl font-black tracking-tighter text-slate-900 uppercase italic leading-tight">
                         {product.name}
                     </h1>
                     {variantLabel && (
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-tighter italic">
+                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tight italic">
                             {variantLabel}
                         </p>
                     )}
@@ -128,39 +128,39 @@ export const ProductInfo = memo(({
 
                 <div className="flex items-center gap-6">
                     <div className="flex items-center gap-2">
-                        <Star className="h-4 w-4 fill-gray-950 text-gray-950" />
-                        <span className="text-sm font-black text-gray-950">{averageRating.toFixed(1)}</span>
-                        <span className="text-xs text-gray-300 font-bold uppercase tracking-widest">({reviewCount})</span>
+                        <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                        <span className="text-sm font-black text-slate-900">{averageRating.toFixed(1)}</span>
+                        <span className="text-[11px] text-slate-500 font-bold uppercase tracking-widest">({reviewCount} reviews)</span>
                     </div>
-                    <Separator orientation="vertical" className="h-4 bg-gray-100" />
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">SKU: {sku || product.sku || 'N/A'}</p>
+                    <Separator orientation="vertical" className="h-4 bg-slate-200" />
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">SKU: {sku || product.sku || 'N/A'}</p>
                 </div>
             </div>
 
             <div className="flex flex-col gap-2">
                 <div className="flex items-baseline gap-4 flex-wrap">
-                    <span className="text-5xl font-black text-gray-950 tracking-tighter">
+                    <span className="text-5xl font-black text-slate-900 tracking-tighter">
                         {formatPrice(product.price)}
                     </span>
                     {product.originalPrice && product.originalPrice > product.price && (
-                        <span className="text-2xl text-gray-200 line-through font-bold tracking-tighter">
+                        <span className="text-2xl text-slate-400 line-through font-bold tracking-tighter">
                             {formatPrice(product.originalPrice)}
                         </span>
                     )}
                     {tradeInValue !== undefined && tradeInValue > 0 && (
-                        <div className="px-3 py-1 bg-emerald-50 rounded-lg flex items-center gap-2">
+                        <div className="px-3 py-1 bg-emerald-50 rounded-lg flex items-center gap-2 border border-emerald-100">
                             <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">
                                 Save {formatPrice(tradeInValue)} with Trade-in
                             </span>
                         </div>
                     )}
                 </div>
-                <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest leading-relaxed max-w-md">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-relaxed max-w-md italic">
                     Tax included. Shipping calculated at checkout.
                 </p>
             </div>
 
-            <Separator className="bg-gray-50" />
+            <Separator className="bg-slate-100" />
 
             <section className="space-y-12">
                 <ColorSelector
@@ -190,10 +190,10 @@ export const ProductInfo = memo(({
                     disabled={isActuallyOutOfStock}
                     onClick={onAddToCart}
                     className={cn(
-                        "w-full h-16 rounded-2xl text-[11px] font-black uppercase tracking-[0.25em] transition-all active:scale-[0.98] shadow-lg",
+                        "w-full h-16 rounded-2xl text-[11px] font-black uppercase tracking-[0.25em] transition-all active:scale-[0.98] shadow-lg shadow-primary/20",
                         isActuallyOutOfStock
-                            ? "bg-gray-100 text-gray-400"
-                            : "bg-gray-950 text-white hover:bg-black"
+                            ? "bg-primary-light/50 text-primary-dark/40 border-0"
+                            : "bg-primary text-white hover:bg-primary-dark hover:shadow-xl hover:shadow-primary/30 border-0"
                     )}
                 >
                     {isActuallyOutOfStock ? (
@@ -209,15 +209,15 @@ export const ProductInfo = memo(({
                     )}
                 </Button>
 
-                <div className="grid grid-cols-3 gap-8 bg-gray-50/50 rounded-2xl p-6">
+                <div className="grid grid-cols-3 gap-8 bg-slate-50 rounded-2xl p-6 border border-slate-100">
                     {[
                         { icon: Truck, label: 'Free Shipping' },
                         { icon: RotateCcw, label: product.returnPolicyDay ? `${product.returnPolicyDay}-Day Return` : '30-Day Return' },
                         { icon: ShieldCheck, label: 'Secure Pay' }
                     ].map((item, i) => (
                         <div key={i} className="flex flex-col items-center gap-2 text-center">
-                            <item.icon className="w-5 h-5 text-gray-950" />
-                            <span className="text-[8px] font-black uppercase text-gray-950 tracking-widest">{item.label}</span>
+                            <item.icon className="w-5 h-5 text-slate-800" />
+                            <span className="text-[8px] font-black uppercase text-slate-500 tracking-widest leading-tight">{item.label}</span>
                         </div>
                     ))}
                 </div>

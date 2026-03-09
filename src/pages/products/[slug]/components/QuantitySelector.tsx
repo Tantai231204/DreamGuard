@@ -26,10 +26,10 @@ export const QuantitySelector = memo(({
     return (
         <div className="space-y-3">
             <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-gray-900 uppercase tracking-wider">Quantity</span>
+                <span className="text-sm font-black text-primary-dark uppercase tracking-widest leading-none">Quantity</span>
                 {stockLeft !== undefined && (
                     <div className={cn(
-                        "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
+                        "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest transition-colors",
                         isOutOfStock
                             ? "bg-red-50 text-red-600"
                             : isLowStock
@@ -42,14 +42,14 @@ export const QuantitySelector = memo(({
                 )}
             </div>
 
-            <div className="inline-flex items-center bg-gray-50 rounded-2xl p-1 border border-gray-200 shadow-sm transition-all hover:border-[var(--color-primary)]/30 hover:shadow-md">
+            <div className="inline-flex items-center bg-slate-50 rounded-2xl p-1 border border-slate-100 shadow-sm transition-all hover:border-slate-200">
                 <button
                     type="button"
                     onClick={() => handleChange(-1)}
                     disabled={value <= 1 || isOutOfStock}
                     className={cn(
                         "flex h-10 w-10 items-center justify-center rounded-xl transition-all",
-                        "text-gray-500 hover:bg-white hover:text-[var(--color-primary)] hover:shadow-sm",
+                        "text-slate-400 hover:bg-white hover:text-slate-900 hover:shadow-sm",
                         "disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                     )}
                     aria-label="Decrease quantity"
@@ -65,7 +65,7 @@ export const QuantitySelector = memo(({
                             animate={{ y: 0, opacity: 1 }}
                             exit={{ y: -10, opacity: 0 }}
                             transition={{ duration: 0.15 }}
-                            className="text-lg font-bold text-gray-900 tabular-nums"
+                            className="text-lg font-black text-primary-dark tabular-nums"
                         >
                             {value}
                         </motion.span>
@@ -78,7 +78,7 @@ export const QuantitySelector = memo(({
                     disabled={value >= max || (stockLeft !== undefined && value >= stockLeft) || isOutOfStock}
                     className={cn(
                         "flex h-10 w-10 items-center justify-center rounded-xl transition-all",
-                        "text-gray-500 hover:bg-white hover:text-[var(--color-primary)] hover:shadow-sm",
+                        "text-slate-400 hover:bg-white hover:text-slate-900 hover:shadow-sm",
                         "disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                     )}
                     aria-label="Increase quantity"
