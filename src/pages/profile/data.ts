@@ -1,7 +1,6 @@
 import type {
   BabyProfile,
   ProductRecommendation,
-  Order,
   WishlistItem,
   Address,
   Voucher,
@@ -63,60 +62,7 @@ export const mockRecommendations: ProductRecommendation[] = [
   },
 ];
 
-export const mockOrders: Order[] = [
-  {
-    id: "DG-2026-001234",
-    createdAt: "2026-01-20",
-    status: "delivered",
-    total: 2450000,
-    items: [
-      {
-        name: "Bộ chăn ga gối cotton cho bé",
-        quantity: 1,
-        price: 1500000,
-        image:
-          "https://i.pinimg.com/1200x/78/47/1d/78471d920e63312ee215e0f328a67b37.jpg",
-      },
-      {
-        name: "Gối chống trào ngược",
-        quantity: 2,
-        price: 475000,
-        image:
-          "https://i.pinimg.com/1200x/78/47/1d/78471d920e63312ee215e0f328a67b37.jpg",
-      },
-    ],
-  },
-  {
-    id: "DG-2026-001189",
-    createdAt: "2026-01-15",
-    status: "shipping",
-    total: 890000,
-    items: [
-      {
-        name: "Nệm cao su non cho bé",
-        quantity: 1,
-        price: 890000,
-        image:
-          "https://i.pinimg.com/1200x/78/47/1d/78471d920e63312ee215e0f328a67b37.jpg",
-      },
-    ],
-  },
-  {
-    id: "DG-2026-001150",
-    createdAt: "2026-01-10",
-    status: "pending",
-    total: 1590000,
-    items: [
-      {
-        name: "Bộ ra trải giường cho bé",
-        quantity: 1,
-        price: 1590000,
-        image:
-          "https://i.pinimg.com/1200x/78/47/1d/78471d920e63312ee215e0f328a67b37.jpg",
-      },
-    ],
-  },
-];
+
 
 export const mockWishlist: WishlistItem[] = [
   {
@@ -173,13 +119,7 @@ export const mockAddresses: Address[] = [
   },
 ];
 
-export const ORDER_STATUS_COLORS: Record<string, string> = {
-  pending: "warning",
-  processing: "default",
-  shipping: "secondary",
-  delivered: "success",
-  cancelled: "danger",
-};
+
 
 export const mockVouchers: Voucher[] = [
   {

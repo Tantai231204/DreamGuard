@@ -7,6 +7,9 @@ export { default as productService } from './productService';
 export { default as variantService } from './variantService';
 export { default as comboService } from './comboService';
 export { default as cartService } from './cartService';
+export { default as orderService } from './orderService';
+export * as addressService from './address.service';
+
 export type {
     CreateVariantRequest,
     UpdateVariantRequest,

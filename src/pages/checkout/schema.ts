@@ -16,42 +16,14 @@ export const checkoutSchema = z.object({
     city: z.string().min(2, "City is required"),
     district: z.string().min(2, "District is required"),
     ward: z.string().min(2, "Ward is required"),
-    zipCode: z.string().optional(),
 
     // Optional
     orderNotes: z.string().optional(),
 
     // Payment
-    paymentMethod: z.enum(["card", "paypal"], {
+    paymentMethod: z.enum(["VnPay", "COD"], {
         required_error: "Please select a payment method",
     }),
-
-    // Credit Card (conditional)
-    cardNumber: z.string().optional(),
-    cardName: z.string().optional(),
-    expiryDate: z.string().optional(),
-    cvv: z.string().optional(),
-
-    // Shipping address checkbox
-    saveAddress: z.boolean().optional(),
-}).refine((data) => {
-    // If payment method is card, validate card fields
-    if (data.paymentMethod === "card") {
-        return (
-            data.cardNumber &&
-            data.cardNumber.replace(/\s/g, "").length === 16 &&
-            data.cardName &&
-            data.cardName.length >= 3 &&
-            data.expiryDate &&
-            data.expiryDate.length === 5 &&
-            data.cvv &&
-            data.cvv.length === 3
-        )
-    }
-    return true
-}, {
-    message: "Please fill in all credit card details",
-    path: ["cardNumber"],
 })
 
 export type CheckoutFormData = z.infer<typeof checkoutSchema>

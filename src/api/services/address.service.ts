@@ -10,31 +10,27 @@ import type {
  */
 export const getAddresses = async (): Promise<Address[]> => {
   try {
-    const res = await api.get("/Addresses?pageNumber=1", {
+    const res = await api.get("/Addresses", {
+      params: { pageNumber: 1 },
       _suppressToast: true,
     } as CustomAxiosRequestConfig)
-    return res.data?.items ?? res.data
+    const data = res.data?.data ?? res.data
+    return data?.items ?? data
   } catch (error: unknown) {
     if (error instanceof ApiError) {
-      // Nếu backend trả 404 vì không có dữ liệu
       if (error.status === 404) {
         return []
       }
-
       console.log("GET ADDRESSES ERROR:", error.message)
     }
-
     throw error
   }
 }
 
-/* 
-   GET BY ID
- */
 export const getAddressById = async (id: string): Promise<Address> => {
   try {
     const res = await api.get(`/Addresses/${id}`)
-    return res.data
+    return res.data?.data ?? res.data
   } catch (error: unknown) {
     if (error instanceof ApiError) {
       console.log("GET ADDRESS ERROR:", error.message)
@@ -43,9 +39,6 @@ export const getAddressById = async (id: string): Promise<Address> => {
   }
 }
 
-/* 
-   CREATE
- */
 export const createAddress = async (
   payload: CreateAddressPayload,
 ): Promise<string> => {
@@ -53,7 +46,8 @@ export const createAddress = async (
     console.log("CREATE ADDRESS PAYLOAD:", payload)
 
     const res = await api.post("/Addresses", payload)
-    return res.data
+    const data = res.data?.data ?? res.data
+    return data?.addressId ?? data?.id ?? data
   } catch (error: unknown) {
     if (error instanceof ApiError) {
       console.log("CREATE ADDRESS ERROR:", error.message)

@@ -38,20 +38,7 @@ export interface ProductRecommendation {
     discount?: number
 }
 
-export interface Order {
-    id: string
-    createdAt: string
-    status: "pending" | "processing" | "shipping" | "delivered" | "cancelled"
-    total: number
-    items: OrderItem[]
-}
 
-export interface OrderItem {
-    name: string
-    quantity: number
-    price: number
-    image: string
-}
 
 export interface WishlistItem {
     id: number

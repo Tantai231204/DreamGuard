@@ -7,14 +7,18 @@ import {
   deleteAddress,
 } from "@/api/services/address.service"
 
+export const addressKeys = {
+  all: ["addresses"] as const,
+  detail: (id: string) => [...addressKeys.all, id] as const,
+};
+
 /* 
    GET ALL
  */
 export const useAddresses = () => {
   return useQuery({
-    queryKey: ["addresses"],
+    queryKey: addressKeys.all,
     queryFn: getAddresses,
-    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -23,7 +27,7 @@ export const useAddresses = () => {
  */
 export const useAddress = (id: string) => {
   return useQuery({
-    queryKey: ["address", id],
+    queryKey: addressKeys.detail(id),
     queryFn: () => getAddressById(id),
     enabled: !!id,
   })
@@ -38,7 +42,7 @@ export const useCreateAddress = () => {
   return useMutation({
     mutationFn: createAddress,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["addresses"] })
+      queryClient.invalidateQueries({ queryKey: addressKeys.all })
     },
   })
 }
@@ -52,7 +56,7 @@ export const useUpdateAddress = () => {
   return useMutation({
     mutationFn: updateAddress,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["addresses"] })
+      queryClient.invalidateQueries({ queryKey: addressKeys.all })
     },
   })
 }
@@ -66,7 +70,7 @@ export const useDeleteAddress = () => {
   return useMutation({
     mutationFn: deleteAddress,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["addresses"] })
+      queryClient.invalidateQueries({ queryKey: addressKeys.all })
     },
   })
 }

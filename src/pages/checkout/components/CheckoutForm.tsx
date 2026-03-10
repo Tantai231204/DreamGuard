@@ -1,19 +1,33 @@
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useState } from "react"
+import { useEffect } from "react"
 import type { CheckoutFormData } from "../schema"
 import { checkoutSchema } from "../schema"
 import { Button } from "@/components/ui/button"
 import { DeliveryInfoSection } from "./DeliveryInfoSection"
 import { PaymentSection } from "./PaymentSection"
 import { Loader2, ArrowRight, ShieldCheck, RefreshCcw } from "lucide-react"
+import { useNavigate } from "react-router-dom"
+import { AppRoute } from "@/lib/constants"
+import { useToast } from "@/hooks/useToast"
+import { useCart } from "@/store/useCart"
+import vnAddress from "@/shared/data/vnAddress.json"
+import type { CreateAddressPayload } from "@/api/types/address"
+import { useCreateOrder, useCreateAddress } from "@/hooks/queries"
 
 interface CheckoutFormProps {
     totalPrice: number
 }
 
 export function CheckoutForm({ totalPrice }: CheckoutFormProps) {
-    const [isSubmitting, setIsSubmitting] = useState(false)
+    const { clearCart } = useCart()
+    const navigate = useNavigate()
+    const { success, error: toastError } = useToast()
+
+    const { mutateAsync: createOrder, isPending: isOrderSubmitting } = useCreateOrder()
+    const { mutateAsync: createAddress, isPending: isAddressCreating } = useCreateAddress()
+
+    const isSubmitting = isOrderSubmitting || isAddressCreating;
 
     const form = useForm<CheckoutFormData>({
         resolver: zodResolver(checkoutSchema),
@@ -28,33 +42,71 @@ export function CheckoutForm({ totalPrice }: CheckoutFormProps) {
             city: "",
             district: "",
             ward: "",
-            zipCode: "",
             orderNotes: "",
-            paymentMethod: "card",
-            cardNumber: "",
-            cardName: "",
-            expiryDate: "",
-            cvv: "",
-            saveAddress: false,
+            paymentMethod: "VnPay",
         },
     })
 
+    const { formState: { errors, isSubmitted } } = form
+
+    // Production Optimization: Auto-scroll to first error
+    useEffect(() => {
+        if (isSubmitted && Object.keys(errors).length > 0) {
+            const firstErrorField = Object.keys(errors)[0]
+            const element = document.getElementById(firstErrorField) || document.getElementsByName(firstErrorField)[0]
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            }
+        }
+    }, [isSubmitted, errors])
+
     const onSubmit = async (data: CheckoutFormData) => {
-        setIsSubmitting(true)
         try {
-            const orderPayload = {
-                addressId: data.addressId,
-                userVoucherId: data.userVoucherId,
-                note: data.orderNotes || ""
+            let addressId = data.addressId
+
+            // If manual entry (no addressId), create address first
+            if (!addressId) {
+                const cityObj = vnAddress.find(p => p.code === data.city)
+                const districtObj = cityObj?.districts.find(d => d.code === data.district)
+                const wardObj = districtObj?.wards.find(w => w.code === data.ward)
+
+                if (!cityObj || !districtObj || !wardObj) {
+                    toastError("Invalid Address", "Please select a valid city, district, and ward.")
+                    return
+                }
+
+                const addressPayload: CreateAddressPayload = {
+                    receiverName: `${data.firstName} ${data.lastName}`,
+                    phoneNumber: data.phone,
+                    street: data.streetAddress,
+                    province: cityObj.name,
+                    city: cityObj.name,
+                    district: districtObj.name,
+                    ward: wardObj.name
+                }
+
+                console.log("Creating new address:", addressPayload)
+                addressId = await createAddress(addressPayload)
             }
 
-            console.log("Submitting Order Payload:", orderPayload)
-            await new Promise((resolve) => setTimeout(resolve, 2000))
-            alert("Order placed successfully!")
-        } catch (error) {
-            console.error("Order submission failed:", error)
-        } finally {
-            setIsSubmitting(false)
+            console.log("Submitting Order:", { addressId, ...data })
+            const response = await createOrder({
+                addressId: addressId!,
+                userVoucherId: data.userVoucherId,
+                note: data.orderNotes || "",
+                paymentMethod: data.paymentMethod
+            })
+
+            if (response.paymentUrl) {
+                window.location.assign(response.paymentUrl)
+            } else {
+                clearCart()
+                success("Order Successful", `Your order ${response.orderCode} has been placed.`)
+                navigate(AppRoute.HOME)
+            }
+        } catch (err: unknown) {
+            console.error("Checkout process failed:", err)
+            // Error toast is already handled by axios interceptor and useToast hook fallback
         }
     }
 

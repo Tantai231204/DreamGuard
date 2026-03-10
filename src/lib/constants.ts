@@ -21,6 +21,7 @@ export const AppRoute = {
   SERVICES: "/services",
   CART: "/cart",
   CHECKOUT: "/checkout",
+  CHECKOUT_RESULT: "/checkout/result",
 
   // User Routes
   PROFILE: "/profile",

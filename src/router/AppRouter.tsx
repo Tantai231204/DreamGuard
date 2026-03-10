@@ -22,6 +22,7 @@ const Products = lazy(() => import("../pages/products"));
 const ProductDetail = lazy(() => import("../pages/products/[slug]"));
 const CartPage = lazy(() => import("../pages/cart"));
 const CheckoutPage = lazy(() => import("../pages/checkout"));
+const CheckoutResult = lazy(() => import("../pages/checkout/CheckoutResult"));
 
 // Auth
 const Login = lazy(() => import("../pages/auth/Login"));
@@ -91,6 +92,7 @@ export default function AppRouter() {
                         <Route element={<AppLayout variant="home" />}>
                             <Route path={AppRoute.PROFILE} element={<Profile />} />
                             <Route path={AppRoute.CHECKOUT} element={<CheckoutPage />} />
+                            <Route path={AppRoute.CHECKOUT_RESULT} element={<CheckoutResult />} />
                         </Route>
                     </Route>
                 </Route>
