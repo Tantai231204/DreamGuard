@@ -52,6 +52,7 @@ const VoucherManagement = lazy(() => import("../pages/admin/vouchers"));
 const ResellManagement = lazy(() => import("../pages/admin/resell"));
 const TradeInDetail = lazy(() => import("../pages/admin/resell/[id]"));
 const UserManagement = lazy(() => import("../pages/admin/users"));
+const PaymentManagement = lazy(() => import("../pages/admin/payments"));
 
 /* =======================
    Router
@@ -112,6 +113,7 @@ export default function AppRouter() {
                         <Route path="/admin/resell" element={<ResellManagement />} />
                         <Route path="/admin/resell/:id" element={<TradeInDetail />} />
                         <Route path="/admin/users" element={<UserManagement />} />
+                        <Route path="/admin/payments" element={<PaymentManagement />} />
                     </Route>
                 </Route>
 

@@ -2,7 +2,8 @@ import type { UseFormReturn } from "react-hook-form"
 import type { CheckoutFormData } from "../schema"
 import { Label } from "@/components/ui/label"
 import * as RadioGroup from "@radix-ui/react-radio-group"
-import { DollarSign, ShieldCheck, Wallet, CheckCircle2 } from "lucide-react"
+import { Separator } from "@/components/ui/separator"
+import { Truck, ShieldCheck, Wallet, CheckCircle2 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 
@@ -50,10 +51,14 @@ export function PaymentSection({ form }: PaymentSectionProps) {
                     >
                         <div className="flex items-center justify-between mb-8">
                             <div className={cn(
-                                "p-4 rounded-2xl transition-colors duration-500",
-                                paymentMethod === "VnPay" ? "bg-white/20" : "bg-slate-100"
+                                "p-1 rounded-xl transition-colors duration-500 overflow-hidden",
+                                paymentMethod === "VnPay" ? "bg-white" : "bg-white shadow-sm border border-slate-100"
                             )}>
-                                <Wallet className={cn("h-6 w-6", paymentMethod === "VnPay" ? "text-white" : "text-slate-600")} />
+                                <img
+                                    src="https://vnpay.vn/wp-content/uploads/2020/07/vnpay-logo.png"
+                                    alt="VnPay"
+                                    className="h-10 w-24 object-contain p-1"
+                                />
                             </div>
                             {paymentMethod === "VnPay" && (
                                 <div className="bg-white rounded-full p-1.5 shadow-lg">
@@ -66,10 +71,7 @@ export function PaymentSection({ form }: PaymentSectionProps) {
                             <span className={cn(
                                 "text-xs font-bold uppercase tracking-widest block opacity-60",
                                 paymentMethod === "VnPay" ? "text-white" : "text-slate-400"
-                            )}>Fast & Secure Payment</span>
-                        </div>
-                        <div className="mt-8 flex gap-3">
-                            <img src="https://vnpay.vn/s1/statics.vnpay.vn/2023/6/0ox Nolan_638210334860000000.svg" alt="VnPay" className={cn("h-8 transition-all duration-500", paymentMethod === "VnPay" ? "brightness-0 invert opacity-100" : "opacity-100")} />
+                            )}>Safe & Secure Wallet</span>
                         </div>
                     </Label>
                 </div>
@@ -83,10 +85,14 @@ export function PaymentSection({ form }: PaymentSectionProps) {
                     >
                         <div className="flex items-center justify-between mb-8">
                             <div className={cn(
-                                "p-4 rounded-2xl transition-colors duration-500",
-                                paymentMethod === "COD" ? "bg-white/20" : "bg-slate-100"
+                                "p-3 rounded-2xl transition-colors duration-500",
+                                paymentMethod === "COD" ? "bg-white/20" : "bg-white shadow-sm border border-slate-100"
                             )}>
-                                <DollarSign className={cn("h-6 w-6", paymentMethod === "COD" ? "text-white" : "text-slate-600")} />
+                                <div className="flex items-center gap-2">
+                                    <Truck className={cn("h-6 w-6", paymentMethod === "COD" ? "text-white" : "text-[#4988c4]")} />
+                                    <Separator orientation="vertical" className={cn("h-4", paymentMethod === "COD" ? "bg-white/40" : "bg-slate-200")} />
+                                    <Wallet className={cn("h-6 w-6", paymentMethod === "COD" ? "text-white" : "text-[#4988c4]")} />
+                                </div>
                             </div>
                             {paymentMethod === "COD" && (
                                 <div className="bg-white rounded-full p-1.5 shadow-lg">
@@ -100,9 +106,6 @@ export function PaymentSection({ form }: PaymentSectionProps) {
                                 "text-xs font-bold uppercase tracking-widest block opacity-60",
                                 paymentMethod === "COD" ? "text-white" : "text-slate-400"
                             )}>Cash on Delivery</span>
-                        </div>
-                        <div className="mt-8 flex items-center gap-2">
-                            <span className={cn("text-xs font-bold", paymentMethod === "COD" ? "text-white/80" : "text-slate-400")}>Pay at your doorstep</span>
                         </div>
                     </Label>
                 </div>

@@ -1,11 +1,13 @@
 import { useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Printer } from 'lucide-react';
+import { Printer, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import AdminPageHeader from '@/components/layout/AdminPageHeader';
-import { mockOrderDetails } from '../data';
-import type { OrderDetail } from '../types';
+import { useOrderDetail, useUpdateOrderStatus, useCancelOrder } from '@/hooks/queries';
+import { STATUS_THEME } from '@/pages/profile/components/order-constants';
+import { formatPrice } from '@/pages/profile/utils';
+import { toast } from 'sonner';
 import {
   OrderItemsList,
   OrderSummary,
@@ -17,29 +19,23 @@ import {
   OrderNotFound,
 } from './components';
 
-const statusColors = {
-  pending: 'bg-amber-100 text-amber-800 border-amber-200',
-  processing: 'bg-blue-100 text-blue-800 border-blue-200',
-  shipped: 'bg-purple-100 text-purple-800 border-purple-200',
-  delivered: 'bg-green-100 text-green-800 border-green-200',
-  cancelled: 'bg-red-100 text-red-800 border-red-200',
-};
-
-const statusLabels = {
-  pending: 'Pending',
-  processing: 'Processing',
-  shipped: 'Shipped',
-  delivered: 'Delivered',
-  cancelled: 'Cancelled',
-};
 
 export default function OrderDetail() {
   const { id } = useParams<{ id: string }>();
 
-  // In a real app, fetch order by ID
-  const order: OrderDetail | undefined = mockOrderDetails;
+  const { data: order, isLoading, isError } = useOrderDetail(id!);
+  const updateStatus = useUpdateOrderStatus();
+  const cancelOrder = useCancelOrder();
 
-  if (!order || order.id !== id) {
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="h-10 w-10 text-[var(--color-primary)] animate-spin" />
+      </div>
+    );
+  }
+
+  if (isError || !order) {
     return <OrderNotFound orderId={id} />;
   }
 
@@ -48,35 +44,48 @@ export default function OrderDetail() {
   };
 
   const handleMarkDelivered = () => {
-    console.log('Mark as delivered');
+    updateStatus.mutate({ id: order.id, status: 'Delivered' }, {
+      onSuccess: () => toast.success('Order marked as delivered'),
+      onError: (err) => {
+        const message = err instanceof Error ? err.message : 'Failed to update status';
+        toast.error(message);
+      }
+    });
   };
 
-  const handleUpdateTracking = () => {
-    console.log('Update tracking');
+  const handleUpdateStatus = (newStatus: string) => {
+    updateStatus.mutate({ id: order.id, status: newStatus }, {
+      onSuccess: () => toast.success(`Order status updated to ${newStatus}`),
+    });
   };
 
   const handleCancelOrder = () => {
-    console.log('Cancel order');
+    cancelOrder.mutate(order.id, {
+      onSuccess: () => toast.success('Order cancelled successfully'),
+    });
   };
+
+  const theme = STATUS_THEME[order.status] || STATUS_THEME["Pending"];
 
   return (
     <div className="flex flex-col h-full">
       <AdminPageHeader
-        title={`Order #${order.id}`}
-        description={order.customerName}
+        title={`Order #${order.orderCode}`}
+        description={`Customer ID: ${order.id.substring(0, 8)}...`}
         actions={
           <div className="flex items-center gap-2">
             <Badge
               variant="outline"
-              className={`${statusColors[order.status]} text-sm px-3 py-1 font-semibold`}
+              className="font-bold border-none shadow-sm capitalize px-3 py-1 text-sm"
+              style={{ backgroundColor: `${theme.color}15`, color: theme.color }}
             >
-              {statusLabels[order.status]}
+              {theme.label}
             </Badge>
             <Button
               variant="outline"
               onClick={handlePrint}
               size="sm"
-              className="gap-2 hover:bg-gray-50"
+              className="gap-2 hover:bg-gray-50 border-2"
             >
               <Printer className="h-4 w-4" />
               Print
@@ -86,13 +95,13 @@ export default function OrderDetail() {
         stats={[
           {
             label: 'Order Date',
-            value: new Date(order.date).toLocaleDateString('en-US', {
+            value: new Date(order.createdAt).toLocaleDateString('en-US', {
               month: 'short',
               day: 'numeric',
               year: 'numeric',
             }),
           },
-          { label: 'Total Amount', value: `₫${order.total.toLocaleString('vi-VN')}` },
+          { label: 'Total Amount', value: formatPrice(order.totalAmount) },
           { label: 'Items', value: order.items.length },
         ]}
       />
@@ -111,38 +120,45 @@ export default function OrderDetail() {
                 <OrderItemsList items={order.items} />
                 <div className="mt-4">
                   <OrderSummary
-                    subtotal={order.subtotal}
-                    shipping={order.shipping}
-                    tax={order.tax}
-                    total={order.total}
+                    subTotal={order.subTotal}
+                    discountAmount={order.discountAmount}
+                    totalAmount={order.totalAmount}
                   />
                 </div>
               </motion.div>
 
-              {/* Timeline */}
-              <OrderTimeline timeline={order.timeline} />
+              {/* Timeline (Hidden if not available in API yet) */}
+              <OrderTimeline timeline={[]} />
             </div>
 
             {/* Sidebar */}
             <div className="space-y-4">
               <CustomerInfoCard
-                name={order.customerName}
-                email={order.email}
-                phone={order.phone}
+                name={order.receiverName}
+                email="N/A"
+                phone={order.phoneNumber}
                 delay={0.1}
               />
 
-              <ShippingAddressCard address={order.shippingAddress} delay={0.15} />
+              <ShippingAddressCard
+                fullName={order.receiverName}
+                phone={order.phoneNumber}
+                street={order.street}
+                ward={order.ward}
+                district={order.district}
+                city={order.city}
+                delay={0.15}
+              />
 
               <PaymentInfoCard
-                paymentMethod={order.paymentMethod}
-                total={order.total}
+                paymentMethod={order.paymentMethod || 'COD'}
+                total={order.totalAmount}
                 delay={0.2}
               />
 
               <QuickActionsCard
                 onMarkDelivered={handleMarkDelivered}
-                onUpdateTracking={handleUpdateTracking}
+                onUpdateTracking={() => handleUpdateStatus('Shipping')}
                 onCancelOrder={handleCancelOrder}
                 delay={0.25}
               />

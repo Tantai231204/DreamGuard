@@ -1,14 +1,25 @@
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Separator } from '@radix-ui/react-separator';
-import type { Address } from '../../types';
-
 interface ShippingAddressCardProps {
-  address: Address;
+  fullName: string;
+  phone: string;
+  street: string;
+  ward: string;
+  district: string;
+  city: string;
   delay?: number;
 }
 
-export function ShippingAddressCard({ address, delay = 0 }: ShippingAddressCardProps) {
+export function ShippingAddressCard({
+  fullName,
+  phone,
+  street,
+  ward,
+  district,
+  city,
+  delay = 0
+}: ShippingAddressCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -23,14 +34,14 @@ export function ShippingAddressCard({ address, delay = 0 }: ShippingAddressCardP
           </h2>
         </div>
         <div className="text-sm text-gray-700 space-y-1.5 bg-gray-50 p-4 rounded-lg">
-          <div className="font-semibold text-gray-900">{address.fullName}</div>
-          <div>{address.phone}</div>
+          <div className="font-semibold text-gray-900">{fullName}</div>
+          <div>{phone}</div>
           <Separator className="my-2 h-px bg-gray-200" />
-          <div>{address.street}</div>
+          <div>{street}</div>
           <div>
-            {address.ward}, {address.district}
+            {ward}, {district}
           </div>
-          <div className="font-medium text-gray-900 pt-1">{address.city}</div>
+          <div className="font-medium text-gray-900 pt-1">{city}</div>
         </div>
       </Card>
     </motion.div>

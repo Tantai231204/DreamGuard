@@ -29,3 +29,29 @@ export interface OrderResponse {
     paymentUrl?: string;
     createdAt: string;
 }
+
+export interface OrderItem {
+    id: string;
+    productVariantId: string;
+    comboId: string | null;
+    itemName: string;
+    quantity: number;
+    unitPrice: number;
+    totalPrice: number;
+    image?: string; // Optional image URL if available later
+}
+
+export interface OrderDetailResponse extends OrderResponse {
+    receiverName: string;
+    phoneNumber: string;
+    street: string;
+    ward: string;
+    district: string;
+    city: string;
+    province: string;
+    items: OrderItem[];
+    voucherCode: string | null;
+    voucherDiscountValue: number | null;
+    note: string;
+    updatedAt: string;
+}

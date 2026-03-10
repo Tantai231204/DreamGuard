@@ -32,3 +32,4 @@ export type {
   ProductParams,
   UpdateProductStatusParams,
 } from "./product.types";
+export type { PaymentResponse, PaymentDetailResponse } from "./payment";

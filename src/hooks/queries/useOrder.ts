@@ -32,3 +32,40 @@ export const useCreateOrder = () => {
         }
     });
 };
+export const useOrderDetail = (id: string) => {
+    return useQuery({
+        queryKey: orderKeys.detail(id),
+        queryFn: () => orderService.getOrderDetail(id),
+        enabled: !!id,
+    });
+};
+
+export const useCancelOrder = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (id: string) => orderService.cancelOrder(id),
+        onSuccess: (_, id) => {
+            queryClient.invalidateQueries({ queryKey: orderKeys.all });
+            queryClient.invalidateQueries({ queryKey: orderKeys.detail(id) });
+        }
+    });
+};
+export const useAdminOrders = (params?: { pageNumber?: number; pageSize?: number }) => {
+    return useQuery({
+        queryKey: [...orderKeys.all, 'admin', params],
+        queryFn: () => orderService.getAdminOrders(params),
+    });
+};
+
+export const useUpdateOrderStatus = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ id, status }: { id: string, status: string }) =>
+            orderService.updateStatus(id, status),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: orderKeys.all });
+        }
+    });
+};

@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
+import { formatPrice } from '@/pages/profile/utils';
 
 interface PaymentInfoCardProps {
   paymentMethod: string;
@@ -26,7 +27,7 @@ export function PaymentInfoCard({ paymentMethod, total, delay = 0 }: PaymentInfo
           <div className="flex items-center justify-between pt-3 border-t border-gray-200">
             <span className="text-sm text-gray-600">Amount Paid</span>
             <span className="text-lg font-bold bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-hover)] bg-clip-text text-transparent">
-              ${total.toFixed(2)}
+              {formatPrice(total)}
             </span>
           </div>
         </div>

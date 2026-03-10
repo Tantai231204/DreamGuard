@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
-import type { OrderItem } from '../../types';
+import type { OrderItem } from '@/api/types/order';
+import { formatPrice } from '@/pages/profile/utils';
 
 interface OrderItemsListProps {
   items: OrderItem[];
@@ -27,7 +28,7 @@ export function OrderItemsList({ items }: OrderItemsListProps) {
             <div className="relative flex-shrink-0">
               <img
                 src={item.image}
-                alt={item.name}
+                alt={item.itemName}
                 className="w-16 h-16 object-cover rounded-lg"
               />
               <div className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-semibold rounded-full flex items-center justify-center shadow-sm">
@@ -35,14 +36,14 @@ export function OrderItemsList({ items }: OrderItemsListProps) {
               </div>
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="font-medium text-gray-900 truncate">{item.name}</h3>
+              <h3 className="font-medium text-gray-900 truncate">{item.itemName}</h3>
               <p className="text-sm text-gray-500 mt-0.5">
-                ${item.price.toFixed(2)} × {item.quantity}
+                {formatPrice(item.unitPrice)} × {item.quantity}
               </p>
             </div>
             <div className="text-right flex-shrink-0">
               <div className="text-base font-semibold text-[var(--color-primary)]">
-                ${(item.price * item.quantity).toFixed(2)}
+                {formatPrice(item.unitPrice * item.quantity)}
               </div>
             </div>
           </motion.div>

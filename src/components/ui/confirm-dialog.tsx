@@ -8,7 +8,8 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { AlertTriangle, Info } from 'lucide-react';
+import { AlertCircle, Info, Trash2, HelpCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface ConfirmDialogProps {
     open: boolean;
@@ -18,7 +19,7 @@ interface ConfirmDialogProps {
     confirmText?: string;
     cancelText?: string;
     onConfirm: () => void;
-    variant?: 'danger' | 'warning' | 'info';
+    variant?: 'danger' | 'warning' | 'info' | 'primary';
     isLoading?: boolean;
 }
 
@@ -33,66 +34,78 @@ export function ConfirmDialog({
     variant = 'warning',
     isLoading = false,
 }: ConfirmDialogProps) {
-    const icons = {
-        danger: <AlertTriangle className="w-6 h-6 text-red-600" />,
-        warning: <AlertTriangle className="w-6 h-6 text-amber-600" />,
-        info: <Info className="w-6 h-6 text-blue-600" />,
-    };
-
-    const colors = {
+    const configs = {
         danger: {
-            bg: 'bg-red-50',
-            border: 'border-red-200',
-            button: 'bg-red-600 hover:bg-red-700 shadow-red-500/30',
+            icon: <Trash2 className="w-5 h-5 text-rose-500" />,
+            bg: 'bg-rose-50',
+            button: 'bg-rose-500 hover:bg-rose-600 text-white shadow-sm',
+            title: 'text-rose-950 text-xl font-bold font-sans'
         },
         warning: {
+            icon: <AlertCircle className="w-5 h-5 text-amber-500" />,
             bg: 'bg-amber-50',
-            border: 'border-amber-200',
-            button: 'bg-amber-600 hover:bg-amber-700 shadow-amber-500/30',
+            button: 'bg-amber-500 hover:bg-amber-600 text-white shadow-sm',
+            title: 'text-amber-950 text-xl font-bold font-sans'
         },
         info: {
+            icon: <Info className="w-5 h-5 text-blue-500" />,
             bg: 'bg-blue-50',
-            border: 'border-blue-200',
-            button: 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/30',
+            button: 'bg-blue-500 hover:bg-blue-600 text-white shadow-sm',
+            title: 'text-blue-950 text-xl font-bold font-sans'
         },
+        primary: {
+            icon: <HelpCircle className="w-5 h-5 text-[#4988c4]" />,
+            bg: 'bg-blue-50',
+            button: 'bg-[#4988c4] hover:bg-[#3b6fa3] text-white shadow-sm',
+            title: 'text-[#4988c4] text-xl font-bold font-sans'
+        }
     };
 
-    const handleConfirm = () => {
-        onConfirm();
-        onOpenChange(false);
-    };
+    const config = configs[variant];
 
     return (
         <AlertDialog open={open} onOpenChange={onOpenChange}>
-            <AlertDialogContent className="sm:max-w-[480px]">
-                <AlertDialogHeader>
-                    <div className="flex items-start gap-4">
-                        <div className={`w-12 h-12 rounded-full ${colors[variant].bg} ${colors[variant].border} border-2 flex items-center justify-center flex-shrink-0`}>
-                            {icons[variant]}
-                        </div>
-                        <div className="flex-1 pt-1">
-                            <AlertDialogTitle className="text-xl font-bold text-gray-900 mb-2">
-                                {title}
-                            </AlertDialogTitle>
-                            <AlertDialogDescription className="text-sm text-gray-600 leading-relaxed">
-                                {description}
-                            </AlertDialogDescription>
-                        </div>
+            <AlertDialogContent className="max-w-[400px] p-6 overflow-hidden rounded-xl border border-gray-100 shadow-md bg-white">
+                <AlertDialogHeader className="space-y-4 text-left">
+                    <div className={cn(
+                        "w-10 h-10 rounded-lg flex items-center justify-center shrink-0 shadow-sm transition-none border border-black/5",
+                        config.bg
+                    )}>
+                        {config.icon}
+                    </div>
+                    <div className="space-y-1">
+                        <AlertDialogTitle className={cn(config.title, "m-0 leading-tight")}>
+                            {title}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-[14px] text-gray-500 leading-normal font-medium">
+                            {description}
+                        </AlertDialogDescription>
                     </div>
                 </AlertDialogHeader>
-                <AlertDialogFooter className="mt-6 gap-2">
-                    <AlertDialogCancel 
+                <AlertDialogFooter className="mt-6 gap-2 sm:space-x-0">
+                    <AlertDialogCancel
+                        className="flex-1 h-10 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900 font-bold text-[13px] transition-none"
                         disabled={isLoading}
-                        className="flex-1 h-11 border-2 font-semibold"
                     >
                         {cancelText}
                     </AlertDialogCancel>
                     <AlertDialogAction
-                        onClick={handleConfirm}
+                        onClick={(e) => {
+                            e.preventDefault();
+                            onConfirm();
+                        }}
                         disabled={isLoading}
-                        className={`flex-1 h-11 ${colors[variant].button} shadow-lg font-semibold`}
+                        className={cn(
+                            "flex-1 h-10 rounded-lg font-bold text-[13px] border-none shadow-sm transition-none active:opacity-90",
+                            config.button
+                        )}
                     >
-                        {confirmText}
+                        {isLoading ? (
+                            <div className="flex items-center gap-2">
+                                <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                <span>Wait...</span>
+                            </div>
+                        ) : confirmText}
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>

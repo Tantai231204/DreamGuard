@@ -1,11 +1,18 @@
-import React, { useMemo, useState } from "react"
-import { Package, Search, ShoppingBag, Truck, CheckCircle2, AlertCircle, Clock3, ChevronRight, Calendar as CalendarIcon, X } from "lucide-react"
+import { useMemo, useState } from "react"
+import {
+    Search,
+    ShoppingBag,
+    Truck,
+    Store,
+    Package,
+    Calendar as CalendarIcon,
+    X
+} from "lucide-react"
 import { Button } from "../../../components/ui/button"
 import { Input } from "../../../components/ui/input"
+import { Card } from "../../../components/ui/card"
 import { Badge } from "../../../components/ui/badge"
-import { Card, CardContent, CardTitle, CardDescription } from "../../../components/ui/card"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../../components/ui/tabs"
-import { Separator } from "../../../components/ui/separator"
 import { Popover, PopoverContent, PopoverTrigger } from "../../../components/ui/popover"
 import { Calendar } from "../../../components/ui/calendar"
 import { cn } from "@/lib/utils"
@@ -13,41 +20,21 @@ import { format, isWithinInterval, startOfDay, endOfDay } from "date-fns"
 import type { DateRange } from "react-day-picker"
 import { formatPrice, formatDate } from "../utils"
 import { useOrders } from "@/hooks/queries"
-import { OrderStatusValue } from "@/api/types/order"
 import type { OrderResponse } from "@/api/types/order"
 import { Skeleton } from "@/components/ui/skeleton"
-import { motion, AnimatePresence } from "framer-motion"
-
-type BadgeVariant = "default" | "secondary" | "success" | "warning" | "danger" | "outline"
-
-const STATUS_THEME: Record<string | number, { label: string, variant: BadgeVariant, icon: React.ReactNode }> = {
-    [OrderStatusValue.Pending]: { label: "Pending", variant: "warning", icon: <Clock3 className="h-3.5 w-3.5" /> },
-    [OrderStatusValue.Confirmed]: { label: "Confirmed", variant: "default", icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
-    [OrderStatusValue.Processing]: { label: "Processing", variant: "secondary", icon: <Package className="h-3.5 w-3.5" /> },
-    [OrderStatusValue.Shipping]: { label: "Shipping", variant: "secondary", icon: <Truck className="h-3.5 w-3.5" /> },
-    [OrderStatusValue.Delivered]: { label: "Delivered", variant: "success", icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
-    [OrderStatusValue.Completed]: { label: "Completed", variant: "success", icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
-    [OrderStatusValue.Cancelled]: { label: "Cancelled", variant: "danger", icon: <AlertCircle className="h-3.5 w-3.5" /> },
-    "Pending": { label: "Pending", variant: "warning", icon: <Clock3 className="h-3.5 w-3.5" /> },
-    "Confirmed": { label: "Confirmed", variant: "default", icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
-    "Processing": { label: "Processing", variant: "secondary", icon: <Package className="h-3.5 w-3.5" /> },
-    "Shipping": { label: "Shipping", variant: "secondary", icon: <Truck className="h-3.5 w-3.5" /> },
-    "Delivered": { label: "Delivered", variant: "success", icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
-    "Completed": { label: "Completed", variant: "success", icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
-    "Cancelled": { label: "Cancelled", variant: "danger", icon: <AlertCircle className="h-3.5 w-3.5" /> },
-}
+import { STATUS_THEME } from "./order-constants"
+import { OrderDetailDialog } from "./OrderDetailDialog"
+import { Separator } from "@/components/ui/separator"
 
 export default function OrdersTab() {
     const { data, isPending } = useOrders()
     const [search, setSearch] = useState("")
     const [date, setDate] = useState<DateRange | undefined>(undefined)
 
-    // Advanced Filtering Logic
     const filteredOrders = useMemo(() => {
         const orders = data?.items ?? []
         return orders.filter(order => {
             const matchesSearch = order.orderCode.toLowerCase().includes(search.toLowerCase())
-
             let matchesDate = true
             if (date?.from) {
                 const orderDate = new Date(order.createdAt)
@@ -55,247 +42,220 @@ export default function OrdersTab() {
                 const end = date.to ? endOfDay(date.to) : endOfDay(date.from)
                 matchesDate = isWithinInterval(orderDate, { start, end })
             }
-
             return matchesSearch && matchesDate
         })
     }, [data?.items, search, date])
 
-    const countStatus = (statuses: (string | number)[]) =>
-        filteredOrders.filter(o => statuses.includes(o.status)).length
-
-    const activeCount = countStatus(["Pending", "Confirmed", "Processing", "Shipping", 0, 1, 2, 3])
-    const pastCount = countStatus(["Delivered", "Completed", 4, 5])
-    const cancelledCount = countStatus(["Cancelled", 6])
-
     return (
-        <div className="mx-auto space-y-8">
-            {/* Page Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2">
-                <div className="space-y-1.5">
-                    <h2 className="text-3xl font-bold tracking-tight text-slate-900">Order History</h2>
-                    <p className="text-slate-500 font-medium">Manage and track your little one's dream collection</p>
+        <div className="max-w-5xl mx-auto space-y-6 px-2">
+            {/* Header with improved aesthetics */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                    <h2 className="text-2xl font-black text-slate-900 tracking-tight">Order Journey</h2>
+                    <p className="text-sm text-slate-500 font-medium">Manage and track your premium collections.</p>
                 </div>
-                {(search || date) && (
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => { setSearch(""); setDate(undefined); }}
-                        className="text-slate-400 hover:text-rose-500 px-2 h-8 gap-1.5 font-bold uppercase tracking-widest transition-colors"
-                    >
-                        <X className="h-3.5 w-3.5" />
-                        Clear Filters
-                    </Button>
-                )}
+
+                <div className="flex flex-wrap items-center gap-3">
+                    <div className="relative group flex-1 min-w-[200px] md:w-64">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-600 transition-colors" />
+                        <Input
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            placeholder="Track Order ID..."
+                            className="pl-9 h-11 border-slate-200 bg-white shadow-sm rounded-xl focus:ring-4 focus:ring-blue-50 transition-all font-medium"
+                        />
+                    </div>
+
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                variant="outline"
+                                className={cn(
+                                    "h-11 justify-start text-left font-semibold text-xs uppercase tracking-wider rounded-xl border-slate-200 shadow-sm px-4 min-w-[180px]",
+                                    !date && "text-slate-500"
+                                )}
+                            >
+                                <CalendarIcon className="mr-2 h-4 w-4 text-blue-500" />
+                                {date?.from ? (
+                                    date.to ? <>{format(date.from, "LLL dd")} - {format(date.to, "LLL dd")}</> : format(date.from, "LLL dd, y")
+                                ) : "Filter by Date"}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0 rounded-2xl border-slate-200 shadow-xl" align="end">
+                            <Calendar
+                                initialFocus
+                                mode="range"
+                                defaultMonth={date?.from}
+                                selected={date}
+                                onSelect={setDate}
+                                numberOfMonths={2}
+                                className="p-3"
+                            />
+                        </PopoverContent>
+                    </Popover>
+
+                    {(search || date) && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => { setSearch(""); setDate(undefined); }}
+                            className="h-11 w-11 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-all"
+                        >
+                            <X className="h-5 w-5" />
+                        </Button>
+                    )}
+                </div>
             </div>
 
-            <Tabs defaultValue="all" className="w-full">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8">
-                    <TabsList className="bg-slate-100/50 p-1.5 h-12 rounded-xl backdrop-blur-sm border border-slate-200/50 shadow-sm w-fit">
-                        <TabsTrigger value="all" className="rounded-lg px-6 font-semibold data-[state=active]:bg-white data-[state=active]:text-[#4988c4] data-[state=active]:shadow-sm">
-                            All <span className="ml-2 text-[10px] bg-slate-200 px-1.5 rounded-full text-slate-600">{filteredOrders.length}</span>
+            <Tabs defaultValue="all" className="w-full space-y-6">
+                <TabsList className="w-full bg-slate-100/50 p-1 rounded-2xl h-14 border border-slate-200/60 shadow-inner flex overflow-x-auto no-scrollbar">
+                    {[
+                        { id: "all", label: "All Items" },
+                        { id: "processing", label: "Processing" },
+                        { id: "shipping", label: "Shipping" },
+                        { id: "completed", label: "Completed" },
+                        { id: "cancelled", label: "Cancelled" }
+                    ].map((tab) => (
+                        <TabsTrigger
+                            key={tab.id}
+                            value={tab.id}
+                            className="flex-1 rounded-xl data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-blue-100 font-bold text-[11px] uppercase tracking-wider h-full transition-all px-4"
+                        >
+                            {tab.label}
                         </TabsTrigger>
-                        <TabsTrigger value="active" className="rounded-lg px-6 font-semibold data-[state=active]:bg-white data-[state=active]:text-amber-600 data-[state=active]:shadow-sm">
-                            Active <span className="ml-2 text-[10px] bg-amber-100 px-1.5 rounded-full text-amber-600">{activeCount}</span>
-                        </TabsTrigger>
-                        <TabsTrigger value="completed" className="rounded-lg px-6 font-semibold data-[state=active]:bg-white data-[state=active]:text-emerald-600 data-[state=active]:shadow-sm">
-                            Completed <span className="ml-2 text-[10px] bg-emerald-100 px-1.5 rounded-full text-emerald-600">{pastCount}</span>
-                        </TabsTrigger>
-                        <TabsTrigger value="cancelled" className="rounded-lg px-6 font-semibold data-[state=active]:bg-white data-[state=active]:text-rose-600 data-[state=active]:shadow-sm">
-                            Cancelled <span className="ml-2 text-[10px] bg-rose-100 px-1.5 rounded-full text-rose-600">{cancelledCount}</span>
-                        </TabsTrigger>
-                    </TabsList>
+                    ))}
+                </TabsList>
 
-                    <div className="flex flex-col sm:flex-row items-center gap-3">
-                        <div className="relative group w-full sm:w-[260px]">
-                            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#4988c4] transition-colors" />
-                            <Input
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Order ID..."
-                                className="pl-10 h-11 bg-white border-slate-200 rounded-xl focus:ring-[#4988c4]/20 focus:border-[#4988c4] transition-all"
-                            />
-                        </div>
-
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    variant="outline"
-                                    className={cn(
-                                        "h-11 w-full sm:w-[260px] justify-start text-left font-semibold rounded-xl border-slate-200 hover:bg-slate-50 transition-all",
-                                        !date && "text-slate-500"
-                                    )}
-                                >
-                                    <CalendarIcon className="mr-2 h-4 w-4 text-[#4988c4]" />
-                                    {date?.from ? (
-                                        date.to ? (
-                                            <>
-                                                {format(date.from, "LLL dd")} - {format(date.to, "LLL dd, y")}
-                                            </>
-                                        ) : (
-                                            format(date.from, "LLL dd, y")
-                                        )
-                                    ) : (
-                                        <span>Pick a date range</span>
-                                    )}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0 rounded-2xl border-slate-200 shadow-2xl" align="end">
-                                <Calendar
-                                    initialFocus
-                                    mode="range"
-                                    defaultMonth={date?.from}
-                                    selected={date}
-                                    onSelect={setDate}
-                                    numberOfMonths={2}
-                                />
-                            </PopoverContent>
-                        </Popover>
-                    </div>
-                </div>
-
-                <AnimatePresence mode="wait">
+                <div className="w-full">
                     {isPending ? (
-                        <div className="space-y-6">
-                            {Array(3).fill(0).map((_, i) => (
-                                <Skeleton key={i} className="h-48 w-full rounded-[2rem]" />
-                            ))}
+                        <div className="space-y-4">
+                            {Array(3).fill(0).map((_, i) => <Skeleton key={i} className="h-44 w-full rounded-2xl" />)}
                         </div>
                     ) : (
-                        <>
-                            <TabsContent value="all" className="m-0 focus-visible:ring-0">
-                                <OrderList orders={filteredOrders} />
-                            </TabsContent>
-                            <TabsContent value="active" className="m-0 focus-visible:ring-0">
-                                <OrderList orders={filteredOrders.filter(o => ["Pending", "Confirmed", "Processing", "Shipping", 0, 1, 2, 3].includes(o.status))} active />
-                            </TabsContent>
-                            <TabsContent value="completed" className="m-0 focus-visible:ring-0">
-                                <OrderList orders={filteredOrders.filter(o => ["Delivered", "Completed", 4, 5].includes(o.status))} />
-                            </TabsContent>
-                            <TabsContent value="cancelled" className="m-0 focus-visible:ring-0">
-                                <OrderList orders={filteredOrders.filter(o => ["Cancelled", 6].includes(o.status))} />
-                            </TabsContent>
-                        </>
+                        <div className="min-h-[400px]">
+                            <TabsContent value="all" className="m-0"><OrderList orders={filteredOrders} /></TabsContent>
+                            <TabsContent value="processing" className="m-0"><OrderList orders={filteredOrders.filter(o => ["Pending", "Confirmed", "Processing", 0, 1, 2].includes(o.status))} /></TabsContent>
+                            <TabsContent value="shipping" className="m-0"><OrderList orders={filteredOrders.filter(o => ["Shipping", 3].includes(o.status))} /></TabsContent>
+                            <TabsContent value="completed" className="m-0"><OrderList orders={filteredOrders.filter(o => ["Delivered", "Completed", 4, 5].includes(o.status))} /></TabsContent>
+                            <TabsContent value="cancelled" className="m-0"><OrderList orders={filteredOrders.filter(o => ["Cancelled", 6].includes(o.status))} /></TabsContent>
+                        </div>
                     )}
-                </AnimatePresence>
+                </div>
             </Tabs>
         </div>
     )
 }
 
-function OrderList({ orders, active }: { orders: OrderResponse[], active?: boolean }) {
+function OrderList({ orders }: { orders: OrderResponse[] }) {
     if (orders.length === 0) return <EmptyState />
-
     return (
-        <div className="space-y-6">
-            {orders.map((order, i) => (
-                <OrderCard key={order.id} order={order} delay={i * 0.05} active={active} />
+        <div className="space-y-4">
+            {orders.map((order) => (
+                <OrderCard key={order.id} order={order} />
             ))}
         </div>
     )
 }
 
-function OrderCard({ order, delay, active }: { order: OrderResponse, delay: number, active?: boolean }) {
+function OrderCard({ order }: { order: OrderResponse }) {
     const theme = STATUS_THEME[order.status] || STATUS_THEME["Pending"]
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay, duration: 0.3 }}
-        >
-            <Card className={`group overflow-hidden rounded-[1.5rem] border-slate-200 hover:border-[#4988c4]/50 transition-all duration-300 shadow-sm hover:shadow-md bg-white ${active ? 'ring-1 ring-blue-50/50' : ''}`}>
-                <div className="p-0">
-                    <div className="flex flex-col lg:flex-row">
-                        {/* Header Info - Side column on Desktop, top on Mobile */}
-                        <div className={`p-6 bg-slate-50/50 lg:w-72 border-b lg:border-b-0 lg:border-r border-slate-100 flex flex-col justify-between ${active ? 'bg-blue-50/20' : ''}`}>
-                            <div className="space-y-4">
-                                <div>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Reference</p>
-                                    <p className="text-sm font-bold text-slate-900 tracking-tight flex items-center gap-1.5">
-                                        #{order.orderCode}
-                                        <ChevronRight className="h-3 w-3 text-slate-300" />
-                                    </p>
-                                </div>
-                                <div className="space-y-2">
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Status</p>
-                                    <Badge variant={theme.variant} className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm">
-                                        {theme.icon}
-                                        {theme.label}
-                                    </Badge>
-                                </div>
-                            </div>
-                            <div className="hidden lg:block pt-4">
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Created on</p>
-                                <p className="text-xs font-semibold text-slate-700">{formatDate(order.createdAt)}</p>
-                            </div>
-                        </div>
-
-                        {/* Content Area */}
-                        <div className="flex-1 p-6 flex flex-col md:flex-row items-center justify-between gap-8 bg-white">
-                            <div className="flex items-center gap-6">
-                                <div className="relative">
-                                    <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center border border-slate-200 group-hover:border-[#4988c4]/30 shadow-subtle group-hover:scale-105 transition-all duration-300">
-                                        <Package className="w-7 h-7 text-slate-300 group-hover:text-[#4988c4]/40" />
-                                    </div>
-                                    <div className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center text-[10px] font-bold border-2 border-white shadow-sm font-black">
-                                        {order.itemCount}
-                                    </div>
-                                </div>
-                                <div>
-                                    <h4 className="text-base font-bold text-slate-900 tracking-tight leading-none mb-1.5 group-hover:text-[#4988c4] transition-colors">{order.itemCount === 1 ? 'Individual Essential' : 'Essential Selection Group'}</h4>
-                                    <p className="text-xs font-medium text-slate-500 flex items-center gap-1.5">
-                                        <span className="w-1 h-1 rounded-full bg-slate-300" />
-                                        Standard Packaging Included
-                                    </p>
-                                </div>
-                            </div>
-
-                            <Separator orientation="vertical" className="hidden md:block h-12 bg-slate-100" />
-
-                            <div className="flex flex-col sm:flex-row items-center gap-8 w-full md:w-auto">
-                                <div className="md:text-right">
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Valuation</p>
-                                    <p className="text-2xl font-black text-[#4988c4] tracking-tight">{formatPrice(order.totalAmount)}</p>
-                                </div>
-                                <div className="flex gap-2 w-full sm:w-auto">
-                                    <Button
-                                        variant="outline"
-                                        className="flex-1 sm:flex-none h-10 px-5 rounded-xl border-slate-200 font-bold text-[10px] uppercase tracking-widest text-slate-600 hover:bg-slate-50 transition-all gap-2"
-                                    >
-                                        Details
-                                    </Button>
-                                    {["Delivered", "Completed", 4, 5].includes(order.status) && (
-                                        <Button
-                                            className="flex-1 sm:flex-none h-10 px-5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-black/10 active:scale-95 transition-all"
-                                        >
-                                            Buy Again
-                                        </Button>
-                                    )}
-                                </div>
-                            </div>
+        <Card className="rounded-2xl border-slate-100 shadow-sm overflow-hidden bg-white hover:shadow-md transition-all duration-300 group ring-1 ring-slate-100">
+            {/* Header: Store Identity & Status */}
+            <div className="px-5 py-4 border-b bg-slate-50/30 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-white border border-slate-100 flex items-center justify-center shadow-sm">
+                        <Store className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div>
+                        <span className="text-sm font-black text-slate-800 tracking-tight">DreamGuard Official</span>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Active Partner</span>
                         </div>
                     </div>
                 </div>
-            </Card>
-        </motion.div>
+                <div className="flex items-center gap-3">
+                    <Badge
+                        variant="secondary"
+                        className="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border-none shadow-sm"
+                        style={{ backgroundColor: `${theme.color}15`, color: theme.color }}
+                    >
+                        {theme.label}
+                    </Badge>
+                </div>
+            </div>
+
+            {/* Content: Item Preview */}
+            <div className="p-5 flex gap-5">
+                <div className="w-24 h-24 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform duration-300 overflow-hidden">
+                    <Package className="w-10 h-10 text-slate-200" />
+                </div>
+                <div className="flex-1 min-w-0 flex flex-col justify-center">
+                    <div className="flex items-center justify-between gap-4">
+                        <h4 className="text-base font-black text-slate-900 truncate tracking-tight">Order #{order.orderCode}</h4>
+                        <p className="text-sm font-black text-slate-900">{formatPrice(order.totalAmount)}</p>
+                    </div>
+                    <div className="flex items-center gap-4 mt-2">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500 uppercase tracking-tight">
+                            <ShoppingBag className="w-3.5 h-3.5 text-slate-300" />
+                            {order.itemCount} Items
+                        </div>
+                        <Separator orientation="vertical" className="h-3 bg-slate-200" />
+                        <div className="text-xs font-bold text-slate-400">
+                            {formatDate(order.createdAt)}
+                        </div>
+                    </div>
+                    {["Shipping", "Delivered", 3, 4].includes(order.status) && (
+                        <div className="mt-3 flex items-center gap-2 text-[10px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 w-fit px-2 py-1 rounded-md">
+                            <Truck className="w-3.5 h-3.5" />
+                            Package in Transit
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Footer: Summary & Details Trigger */}
+            <div className="px-5 py-4 bg-slate-50/50 border-t flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                    <div className="text-left">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-0.5">Final Settlement</p>
+                        <p className="text-xl font-black text-rose-600 tracking-tighter">{formatPrice(order.totalAmount)}</p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-3">
+                    <OrderDetailDialog
+                        orderId={order.id}
+                        orderCode={order.orderCode}
+                        trigger={
+                            <Button variant="outline" className="h-11 px-8 rounded-xl text-xs font-bold border-slate-200 hover:border-blue-200 hover:bg-blue-50 transition-all shadow-sm">
+                                ORDER DETAILS
+                            </Button>
+                        }
+                    />
+                    {["Delivered", "Completed", 4, 5].includes(order.status) && (
+                        <Button className="h-11 px-8 rounded-xl text-xs font-bold bg-[#4988c4] hover:bg-[#3b6fa3] shadow-lg shadow-blue-100 transition-all active:scale-95 text-white">
+                            BUY AGAIN
+                        </Button>
+                    )}
+                </div>
+            </div>
+        </Card>
     )
 }
 
 function EmptyState() {
     return (
-        <Card className="border-dashed border-2 bg-slate-50/30">
-            <CardContent className="py-20 text-center flex flex-col items-center">
-                <div className="w-16 h-16 rounded-3xl bg-white border border-slate-100 shadow-sm flex items-center justify-center mb-6">
-                    <ShoppingBag className="h-8 w-8 text-slate-200" />
-                </div>
-                <CardTitle className="text-xl font-bold text-slate-900 mb-2">Your collection is empty</CardTitle>
-                <CardDescription className="max-w-xs mx-auto text-slate-500 font-medium leading-relaxed">
-                    Start exploring our premium baby essentials and create your first memory today.
-                </CardDescription>
-                <Button className="mt-8 rounded-full px-8 bg-[#4988c4] hover:bg-[#3b6fa3] font-bold tracking-widest text-[10px] uppercase h-11 shadow-lg shadow-[#4988c4]/20 transition-all active:scale-95">
-                    Discover Collection
-                </Button>
-            </CardContent>
+        <Card className="py-24 text-center bg-slate-50/50 border-dashed border-2 rounded-[2rem] flex flex-col items-center">
+            <div className="w-20 h-20 rounded-full bg-white shadow-sm flex items-center justify-center mb-6">
+                <ShoppingBag className="h-10 w-10 text-slate-200" />
+            </div>
+            <h3 className="text-lg font-bold text-slate-900 uppercase tracking-tight">Your cart is quiet</h3>
+            <p className="text-sm text-slate-500 font-medium max-w-xs mx-auto mt-2">Explore our premium collections to start your journey.</p>
+            <Button className="mt-8 h-12 px-10 rounded-xl bg-slate-900 hover:bg-slate-800 text-xs font-bold uppercase tracking-widest transition-all">
+                Start Shopping
+            </Button>
         </Card>
     )
 }
