@@ -5,7 +5,8 @@ export interface VariantAttributes {
   width?: number;
   length?: number;
   thickness?: number;
-  color?: string;
+  color?: string;    // Color Name (e.g. "Crimson")
+  hexColor?: string; // Hex Code (e.g. "#DC143C")
   [key: string]: unknown;
 }
 
@@ -62,7 +63,8 @@ export interface AdminVariantItem {
 }
 
 export interface AdminColorGroup {
-  color: string;
+  color: string;    // Color Name
+  hexColor?: string; // Hex Code
   variants: AdminVariantItem[];
 }
 

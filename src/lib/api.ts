@@ -1,6 +1,5 @@
 // src/lib/api.ts
 import axios, { type AxiosRequestConfig } from "axios";
-import { toast } from "sonner";
 import { useAuthStore } from "../store/authStore";
 import { ApiErrorCode } from "./constants";
 
@@ -24,7 +23,6 @@ export class ApiError extends Error {
 ====================== */
 export interface CustomAxiosRequestConfig extends AxiosRequestConfig {
   _retry?: boolean;
-  _suppressToast?: boolean;
 }
 
 /* ======================
@@ -51,9 +49,9 @@ function extractMessage(data: unknown, fallback: string): string {
   return fallback;
 }
 
-const ERROR_TITLES: Partial<Record<ApiErrorCode, string>> = {
+export const ERROR_TITLES: Partial<Record<ApiErrorCode, string>> = {
   [ApiErrorCode.VALIDATION]: "Invalid Data",
-  [ApiErrorCode.UNAUTHORIZED]: "Session Expired",
+  [ApiErrorCode.UNAUTHORIZED]: "Unauthorized",
   [ApiErrorCode.FORBIDDEN]: "Access Denied",
   [ApiErrorCode.NOT_FOUND]: "Not Found",
   [ApiErrorCode.SERVER_ERROR]: "Internal Server Error",
@@ -110,8 +108,8 @@ api.interceptors.response.use(
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&
-      !originalRequest.url?.includes('/auth/refresh-token') &&
-      !originalRequest.url?.includes('/auth') // Avoid loops in login/register
+      !originalRequest.url?.includes('/auths/refresh-token') &&
+      !originalRequest.url?.includes('/auths') // Avoid loops in login/register
     ) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
@@ -140,7 +138,7 @@ api.interceptors.response.use(
       try {
         // Use a clean axios instance to avoid interceptor loops if needed, 
         // but here we just use the relative path
-        const response = await api.post("/auth/refresh-token", {
+        const response = await api.post("/auths/refresh-token", {
           refreshToken,
         });
 
@@ -162,7 +160,6 @@ api.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null);
         useAuthStore.getState().clearAuth();
-        toast.error("Your session has expired. Please log in again.");
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
@@ -183,17 +180,10 @@ api.interceptors.response.use(
       else if (status === 404) code = ApiErrorCode.NOT_FOUND;
       else if (status >= 500) code = ApiErrorCode.SERVER_ERROR;
 
-      if (!originalRequest._suppressToast) {
-        toast.error(ERROR_TITLES[code] || "Error", {
-          description: message,
-        });
-      }
-
       return Promise.reject(new ApiError(message, code, status));
     } else if (error.request) {
       // Network/Timeout error
       const message = "Unable to connect to the server. Please check your network.";
-      toast.error("Connection Error", { description: message });
       return Promise.reject(new ApiError(message, ApiErrorCode.NETWORK_ERROR));
     }
 

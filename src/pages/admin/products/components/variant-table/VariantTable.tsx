@@ -55,6 +55,8 @@ const colorMap: Record<string, string> = {
 function getColorHex(colorValue: string | undefined): string {
   if (!colorValue) return '#e5e7eb';
   if (colorValue.startsWith('#')) return colorValue;
+  // If it's a 6-digit hex without #
+  if (/^[0-9A-Fa-f]{6}$/.test(colorValue)) return `#${colorValue}`;
   const normalized = colorValue.toLowerCase().trim();
   return colorMap[normalized] || '#e5e7eb';
 }
@@ -261,7 +263,7 @@ function ColorGroupRow({
   onDeleteVariant: (variantId: string) => void;
   onStockAdjust: (type: 'add' | 'reduce', variantId: string, sku: string, currentStock: number) => void;
 }) {
-  const colorHex = getColorHex(group.color);
+  const colorHex = getColorHex(group.hexColor || group.color);
 
   return (
     <div className="group/grouprow">
@@ -286,6 +288,7 @@ function ColorGroupRow({
           <span
             className="w-5 h-5 rounded-full border border-slate-200 shadow-sm block ring-4 ring-transparent group-hover/grouprow:ring-slate-100 transition-all"
             style={{ backgroundColor: colorHex }}
+            title={group.color}
           />
           {isExpanded && (
             <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-0.5 h-8 bg-gradient-to-b from-indigo-200 to-transparent" />

@@ -19,9 +19,7 @@ export const useLogin = () => {
     }
   >({
     mutationFn: authService.login,
-    // onSuccess: (data) => {
-    //   setAuth(data);
-    // },
+    meta: { hideToast: true },
     onSuccess: (data) => {
       setAuth(data);
       toast.success("Login Successful", {

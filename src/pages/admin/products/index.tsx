@@ -39,7 +39,6 @@ import {
   useUploadProductImages,
   useCreateVariant,
   useUpdateVariant,
-  useUpdateVariantStatus,
   useDeleteVariant,
 } from '@/hooks/queries/useProduct';
 import {
@@ -282,41 +281,23 @@ export default function ProductsPage() {
     });
   }, [deleteVariantMutation, toast]);
 
-  const updateVariantStatusMutation = useUpdateVariantStatus();
+  // Removed unused updateVariantStatusMutation
 
   const handleVariantSubmit = useCallback(
     async (formData: VariantFormData & { status: VariantStatus; stockStatus: string }) => {
-      // Destructure to separate core data from status fields
-      const { status, ...bodyData } = formData;
+      // We ignore status/stockStatus here since the backend handles status implicitly or via inventory
+      const { status, stockStatus, ...bodyData } = formData;
 
       try {
         if (editingVariant) {
           // 1. Update core info (sku, prices, weight, attributes, productid)
           await updateVariantMutation.mutateAsync({ id: editingVariant.id, data: bodyData });
 
-          // 2. Parallel status updates if changed
-          const statusPromises: Promise<unknown>[] = [];
-
-          if (status !== editingVariant.status) {
-            statusPromises.push(updateVariantStatusMutation.mutateAsync({ variantId: editingVariant.id, status }));
-          }
-
-          if (statusPromises.length > 0) {
-            await Promise.all(statusPromises);
-          }
-
           setVariantDialogOpen(false);
-          toast.success('Variant updated', 'The variant and its status have been updated.');
+          toast.success('Variant updated', 'The variant details have been updated.');
         } else {
-          // 3. Create new variant
-          const newVariant = await createVariantMutation.mutateAsync(bodyData);
-
-          // 4. Update status for the newly created variant if it's not default
-          // (Assuming create doesn't set status based on screenshots)
-          const statusPromises: Promise<unknown>[] = [];
-          statusPromises.push(updateVariantStatusMutation.mutateAsync({ variantId: newVariant.id, status }));
-
-          await Promise.all(statusPromises);
+          // 2. Create new variant
+          await createVariantMutation.mutateAsync(bodyData);
 
           setVariantDialogOpen(false);
           toast.success('Variant created', 'The new variant has been successfully created.');
@@ -325,7 +306,7 @@ export default function ProductsPage() {
         console.error('Variant submission failed:', error);
       }
     },
-    [editingVariant, createVariantMutation, updateVariantMutation, updateVariantStatusMutation, toast]
+    [editingVariant, createVariantMutation, updateVariantMutation, toast]
   );
 
   const handleSubmit = useCallback(

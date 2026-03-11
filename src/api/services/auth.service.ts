@@ -22,6 +22,7 @@ export interface ResetPasswordRequest {
   newPassword: string;
 }
 
+
 // export interface RegisterRequest {
 //   email: string;
 //   password: string;

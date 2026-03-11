@@ -146,7 +146,8 @@ export interface VariantAttributes {
   width?: number;      // Width in cm
   length?: number;     // Length in cm  
   thickness?: number;  // Thickness in cm
-  color?: string;      // Color (hex code like "#ff0000" or name like "red")
+  color?: string;      // Color Name (e.g. "Crimson")
+  hexColor?: string;   // Hex Code (e.g. "#DC143C")
   [key: string]: unknown;
 }
 

@@ -30,6 +30,7 @@ const colorMap: Record<string, string> = {
 function getColorHex(colorValue: string | undefined): string {
   if (!colorValue) return '#e5e7eb';
   if (colorValue.startsWith('#')) return colorValue;
+  if (/^[0-9A-Fa-f]{6}$/.test(colorValue)) return `#${colorValue}`;
   const normalized = colorValue.toLowerCase().trim();
   return colorMap[normalized] || '#e5e7eb';
 }
@@ -46,7 +47,7 @@ export default function VariantSummaryDisplay({ variants, isLoading }: VariantSu
     // Get unique colors (max 3 to display)
     const colors = colorGroups.slice(0, 3).map((group) => ({
       name: group.color,
-      hex: getColorHex(group.color),
+      hex: group.hexColor || group.color,
     }));
 
     // Count unique sizes
@@ -101,7 +102,7 @@ export default function VariantSummaryDisplay({ variants, isLoading }: VariantSu
           <div
             key={index}
             className="w-3.5 h-3.5 rounded-full border border-gray-300 shadow-sm"
-            style={{ backgroundColor: color.hex }}
+            style={{ backgroundColor: getColorHex(color.hex) }}
             title={color.name}
           />
         ))}

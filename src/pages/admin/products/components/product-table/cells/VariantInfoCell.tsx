@@ -31,6 +31,8 @@ const colorMap: Record<string, string> = {
 function getColorHex(colorValue?: string) {
   if (!colorValue) return colorMap.default;
   if (colorValue.startsWith('#')) return colorValue;
+  // If it's a 6-digit hex without #
+  if (/^[0-9A-Fa-f]{6}$/.test(colorValue)) return `#${colorValue}`;
   return colorMap[colorValue.toLowerCase().trim()] || colorMap.default;
 }
 
@@ -40,7 +42,10 @@ export default function VariantInfoCell({ productId, variantCount }: VariantInfo
   const summary = useMemo(() => {
     if (!data?.colorGroups?.length) return null;
 
-    const colors = data.colorGroups.slice(0, MAX_DOTS).map((g) => g.color);
+    const colors = data.colorGroups.slice(0, MAX_DOTS).map((g) => ({
+      name: g.color,
+      hex: g.hexColor || g.color
+    }));
     const moreColors = data.colorGroups.length > MAX_DOTS ? data.colorGroups.length - MAX_DOTS : 0;
 
     const sizeSet = new Set<string>();
@@ -76,8 +81,8 @@ export default function VariantInfoCell({ productId, variantCount }: VariantInfo
               <div
                 key={idx}
                 className="h-3.5 w-3.5 rounded-full border border-slate-100 shadow-[0_0_0_1px_rgba(0,0,0,0.05)]"
-                style={{ backgroundColor: getColorHex(color) }}
-                title={color}
+                style={{ backgroundColor: getColorHex(color.hex) }}
+                title={color.name}
               />
             ))}
             {summary.moreColors > 0 && (

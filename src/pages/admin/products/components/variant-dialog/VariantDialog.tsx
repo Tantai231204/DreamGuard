@@ -1,7 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,14 +17,13 @@ import {
     Move3D,
 } from 'lucide-react';
 import type { ProductVariant, VariantStatus, VariantAttributes } from '../../types';
-import { PRODUCT_STATUS_COLORS, VARIANT_STATUS_OPTIONS } from '../../types';
+import { PRODUCT_STATUS_COLORS } from '../../types';
 import ColorPicker from './ColorPicker';
 import SectionHeading from '../shared/SectionHeading';
 
 const INPUT_CLS =
     'h-11 rounded-xl border-gray-200 bg-gray-50/50 hover:border-[#4988c4]/60 hover:bg-white focus:border-[#4988c4] focus:ring-2 focus:ring-[#4988c4]/20 transition-all';
 
-const SELECT_CLS = cn(INPUT_CLS, 'px-3.5 [&>span]:flex [&>span]:items-center [&>span]:gap-2');
 
 /* ─── Helper: Generate SKU ────────────────────────────── */
 const generateSku = (productSlug: string, variantIndex: number): string => {
@@ -95,8 +93,20 @@ function VariantDialogInner({
         variant?.attributes?.thickness != null ? String(variant.attributes.thickness) : ''
     );
 
-    // Color (hex code stored in attributes)
-    const [color, setColor] = useState(variant?.attributes?.color ?? '#f5f5f5');
+    // Color (stored in attributes as color (name) and hexColor (code))
+    const [colorHex, setColorHex] = useState(() => {
+        const attr = variant?.attributes;
+        // Case 1: hexColor exists
+        if (attr?.hexColor && typeof attr.hexColor === 'string') return attr.hexColor;
+        // Case 2: color exists and is a hex
+        if (attr?.color && typeof attr.color === 'string' && attr.color.startsWith('#')) return attr.color;
+        return '#f5f5f5';
+    });
+    const [colorName, setColorName] = useState(() => {
+        const attr = variant?.attributes;
+        if (attr?.color && typeof attr.color === 'string' && !attr.color.startsWith('#')) return attr.color;
+        return 'Custom';
+    });
 
     // Pricing
     const [basePrice, setBasePrice] = useState(
@@ -111,11 +121,11 @@ function VariantDialogInner({
 
     // Other
     const [isNew, setIsNew] = useState(variant?.isNew ?? false);
-    const [status, setStatus] = useState<VariantStatus>(variant?.status || 'Published');
     const stockStatus = variant?.stockStatus || 'In Stock';
 
-    const handleColorChange = useCallback((_name: string, code: string) => {
-        setColor(code);
+    const handleColorChange = useCallback((name: string, code: string) => {
+        setColorHex(code);
+        setColorName(name);
     }, []);
 
     const handleRegenerateSku = useCallback(() => {
@@ -137,8 +147,9 @@ function VariantDialogInner({
             if (length) finalAttributes.length = Number(length);
             if (thickness) finalAttributes.thickness = Number(thickness);
 
-            // Add color (hex)
-            if (color) finalAttributes.color = color;
+            // Add color info
+            if (colorName) finalAttributes.color = colorName;
+            if (colorHex) finalAttributes.hexColor = colorHex;
 
             onSubmit({
                 productid: productId, // Internal remains productId, but API wants productid
@@ -146,15 +157,13 @@ function VariantDialogInner({
                 baseprice: Number(basePrice),
                 saleprice: salePrice ? Number(salePrice) : Number(basePrice),
                 weight: weight ? Number(weight) : 0, // Ensure number
-                status: status,
+                status: (variant?.status || 'Published') as VariantStatus, // Pass existing or default
                 stockStatus: stockStatus,
                 attributes: Object.keys(finalAttributes).length > 0 ? finalAttributes : null,
             });
         },
-        [productId, sku, width, length, thickness, color, basePrice, salePrice, weight, status, stockStatus, onSubmit]
+        [productId, sku, width, length, thickness, colorName, colorHex, basePrice, salePrice, weight, stockStatus, onSubmit, variant?.status]
     );
-
-    const handleStatusChange = useCallback((v: string) => setStatus(v as VariantStatus), []);
 
     const isValid = sku.trim() !== '' && basePrice.trim() !== '';
 
@@ -170,12 +179,6 @@ function VariantDialogInner({
                         <DialogTitle className="text-xl font-bold text-gray-900">
                             {isEdit ? 'Edit Variant' : 'Add Variant'}
                         </DialogTitle>
-                        {isEdit && (
-                            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-gray-100 border border-gray-200">
-                                <span className={cn('h-2 w-2 rounded-full', PRODUCT_STATUS_COLORS[status])} />
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-600">{status}</span>
-                            </div>
-                        )}
                     </div>
                     <DialogDescription className="text-sm text-gray-500 mt-0.5">
                         {isEdit ? 'Update variant details' : `Add a new variant for "${productName}"`}
@@ -295,8 +298,8 @@ function VariantDialogInner({
                 <section className="space-y-4">
                     <SectionHeading title="Color" />
                     <ColorPicker
-                        color=""
-                        colorCode={color}
+                        color={colorName}
+                        colorCode={colorHex}
                         onColorChange={handleColorChange}
                         disabled={isLoading}
                     />
@@ -373,33 +376,6 @@ function VariantDialogInner({
                                 <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">kg</span>
                             </div>
                         </div>
-
-                        <div className="space-y-2">
-                            <Label className="text-sm font-medium text-gray-700">
-                                Variant Status
-                            </Label>
-
-                            <Select value={status} onValueChange={handleStatusChange} disabled={isLoading}>
-                                <SelectTrigger className={SELECT_CLS}>
-                                    <SelectValue placeholder="Select status" />
-                                </SelectTrigger>
-
-                                <SelectContent className="rounded-xl shadow-xl z-[200]">
-                                    {VARIANT_STATUS_OPTIONS.map((s, index) => (
-                                        <SelectItem
-                                            key={`status-${index}`}
-                                            value={s.value}
-                                            className="rounded-lg hover:bg-purple-50 hover:text-purple-900"
-                                        >
-                                            <span className="flex items-center gap-2">
-                                                <span className={cn('h-2 w-2 rounded-full', PRODUCT_STATUS_COLORS[s.value])} />
-                                                {s.label}
-                                            </span>
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
                     </div>
 
                     <div className="grid grid-cols-2 gap-5">
@@ -434,6 +410,7 @@ function VariantDialogInner({
                 </Button>
                 <Button
                     type="submit"
+                    form="variant-form"
                     disabled={isLoading || !isValid}
                     className={cn(
                         'flex-1 h-11 rounded-xl font-medium transition-all text-white',

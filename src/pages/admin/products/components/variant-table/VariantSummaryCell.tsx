@@ -31,6 +31,8 @@ const colorMap: Record<string, string> = {
 function getColorHex(colorValue?: string) {
     if (!colorValue) return colorMap.default;
     if (colorValue.startsWith('#')) return colorValue;
+    // If it's a 6-digit hex without #
+    if (/^[0-9A-Fa-f]{6}$/.test(colorValue)) return `#${colorValue}`;
     return colorMap[colorValue.toLowerCase().trim()] || colorMap.default;
 }
 
@@ -44,7 +46,10 @@ export default function VariantSummaryCell({
         if (!data?.colorGroups?.length) return null;
 
         const totalColors = data.colorGroups.length;
-        const colors = data.colorGroups.slice(0, MAX_DOTS).map((g) => g.color);
+        const colors = data.colorGroups.slice(0, MAX_DOTS).map((g) => ({
+            name: g.color,
+            hex: g.hexColor || g.color
+        }));
         const moreColors = totalColors > MAX_DOTS ? totalColors - MAX_DOTS : 0;
 
         const sizeSet = new Set<string>();
@@ -106,8 +111,8 @@ export default function VariantSummaryCell({
                             <div
                                 key={idx}
                                 className="h-4 w-4 rounded-full border-2 border-white shadow-sm"
-                                style={{ backgroundColor: getColorHex(color) }}
-                                title={color}
+                                style={{ backgroundColor: getColorHex(color.hex) }}
+                                title={color.name}
                             />
                         ))}
 
