@@ -97,6 +97,12 @@ export interface ComboParams {
 // ── Service ──────────────────────────────────────────────
 
 const comboService = {
+  /** Get public paginated combos */
+  getAllPublic: (params: ComboParams = {}): Promise<ComboPageResponse> =>
+    apiClient
+      .get<ComboPageResponse>('/combo', { params, _suppressToast: true } as CustomAxiosRequestConfig)
+      .then((res) => res.data),
+
   /** Get paginated combos for admin */
   getAll: (params: ComboParams = {}): Promise<ComboPageResponse> =>
     apiClient

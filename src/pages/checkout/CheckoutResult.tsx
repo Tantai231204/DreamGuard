@@ -13,7 +13,8 @@ export default function CheckoutResult() {
     const responseCode = searchParams.get("vnp_ResponseCode")
     const transactionStatus = searchParams.get("vnp_TransactionStatus")
     const orderCode = searchParams.get("vnp_TxnRef") || searchParams.get("orderCode")
-    const isSuccess = responseCode === "00" || transactionStatus === "00"
+    const isCODSuccess = !responseCode && !transactionStatus && !!orderCode;
+    const isSuccess = responseCode === "00" || transactionStatus === "00" || isCODSuccess;
 
     useEffect(() => {
         if (isSuccess) {
@@ -21,7 +22,7 @@ export default function CheckoutResult() {
         }
     }, [isSuccess, clearCart])
 
-    if (responseCode === null && transactionStatus === null && !orderCode) return null
+    if (!responseCode && !transactionStatus && !orderCode) return null
 
     return (
         <div className="min-h-[80vh] flex items-center justify-center p-6">

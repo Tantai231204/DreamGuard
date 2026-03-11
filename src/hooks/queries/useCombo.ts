@@ -19,12 +19,22 @@ import { toast } from 'sonner';
 export const comboKeys = {
   all: ['combos'] as const,
   admin: (params: ComboParams) => ['combos', 'admin', params] as const,
+  public: (params: ComboParams) => ['combos', 'public', params] as const,
   detail: (id: string) => ['combos', id] as const,
 };
 
 // ========================
 // Queries
 // ========================
+
+/** Fetch public paginated combos list */
+export const usePublicCombos = (params: ComboParams = {}) => {
+  return useQuery({
+    queryKey: comboKeys.public(params),
+    queryFn: () => comboService.getAllPublic(params),
+    placeholderData: keepPreviousData,
+  });
+};
 
 /** Fetch admin paginated combos list */
 export const useAdminCombos = (params: ComboParams = {}) => {

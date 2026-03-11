@@ -40,7 +40,6 @@ export function NavDropdown({
     return (
         <>
             {/* Desktop trigger */}
-            {/* Desktop trigger */}
             <div
                 className={`relative hidden md:block ${isSimpleMenu ? 'group' : ''}`}
                 onMouseEnter={isSimpleMenu ? undefined : onOpen}
@@ -51,9 +50,9 @@ export function NavDropdown({
                     <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${(!isSimpleMenu && isActive) ? 'rotate-180' : 'group-hover:rotate-180'}`} />
                 </button>
                 {isSimpleMenu && (
-                    <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-48 rounded-xl bg-white p-2 shadow-lg ring-1 ring-black/5 group-hover:block z-50">
+                    <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-48 rounded-xl bg-white/95 backdrop-blur-md p-2 shadow-2xl ring-1 ring-black/5 group-hover:block z-50 border border-[var(--color-gray-100)] animate-in fade-in zoom-in-95 duration-200">
                         {items.map(item => (
-                            <a key={item.label} href={item.href} className="block rounded-lg px-4 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-indigo-600">
+                            <a key={item.label} href={item.href} className="block rounded-lg px-4 py-2.5 text-sm font-semibold text-[var(--color-gray-700)] transition-all hover:bg-[var(--color-gray-50)] hover:text-[var(--color-primary)]">
                                 {item.label}
                             </a>
                         ))}

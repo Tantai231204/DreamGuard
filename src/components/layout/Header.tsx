@@ -12,10 +12,11 @@ import {
     type DropdownLink,
     type HighlightCard,
 } from "./NavDropdown"
-import { MegaMenu } from "./MegaMenu.tsx"
-import UserDropdown from "./UserDropdown.tsx"
+import { MegaMenu } from "./MegaMenu"
+import UserDropdown from "./UserDropdown"
 import { CartDrawer } from "./CartDrawer"
 import type { CategoryResponse } from "@/api/types/category.types"
+import { usePublicCombos } from "@/hooks/queries/useCombo"
 
 // --- Material Data Store ---
 const MATERIAL_ASSETS: Record<string, { image: string, description: string }> = {
@@ -56,6 +57,8 @@ type NavItem = {
     items?: DropdownLink[]
     highlight?: HighlightCard
     isSimpleMenu?: boolean
+    categoryId?: number
+    categoryName?: string
 }
 
 /* ================= Icon Button ================= */
@@ -82,10 +85,14 @@ export default function Header() {
         label: string
         items: DropdownLink[]
         highlight?: HighlightCard
+        categoryName?: string
+        menuIndex?: number
     } | null>(null)
     const [isScrolled, setIsScrolled] = useState(false)
 
     const { data: categories = [] } = useCategories()
+    const { data: comboPage } = usePublicCombos({ pageSize: 12 })
+    const combos = comboPage?.items || []
 
     const navItems: NavItem[] = useMemo(() => {
         const topCategories = categories.slice(0, 3);
@@ -111,21 +118,34 @@ export default function Header() {
                     ctaLabel: "Shop Now",
                     href: `/products?cateId=${cat.cateId}`,
                     image: "https://i.pinimg.com/1200x/78/47/1d/78471d920e63312ee215e0f328a67b37.jpg",
-                }
+                },
+                categoryId: cat.cateId,
+                categoryName: cat.name
             }
         });
 
         if (restCategories.length > 0) {
-            const restDropdownItems: DropdownLink[] = restCategories.map((cat: CategoryResponse) => ({
-                label: cat.name,
-                href: `/products?cateId=${cat.cateId}`,
-                description: `Explore all ${cat.name}`
-            }));
+            const restDropdownItems: DropdownLink[] = restCategories.map((cat: CategoryResponse) => {
+                const asset = MATERIAL_ASSETS[cat.name] || MATERIAL_ASSETS['default'];
+                return {
+                    label: cat.name,
+                    href: `/products?cateId=${cat.cateId}`,
+                    description: `Explore our collection of ${cat.name}`,
+                    image: asset.image
+                };
+            });
 
             items.push({
                 label: "Categories",
                 items: restDropdownItems,
-                isSimpleMenu: true
+                isSimpleMenu: false,
+                highlight: {
+                    title: "Special Collections",
+                    description: "Discover our full range of curated products.",
+                    ctaLabel: "Shop All",
+                    href: "/products",
+                    image: "https://i.pinimg.com/1200x/78/47/1d/78471d920e63312ee215e0f328a67b37.jpg",
+                }
             });
         }
 
@@ -228,8 +248,8 @@ export default function Header() {
             >
                 <div className="container mx-auto max-w-7xl px-4">
                     <ul className="flex h-12 items-center justify-center gap-8 text-sm font-medium">
-                        {navItems.map(({ label, items, highlight, isSimpleMenu, href }) => (
-                            <li key={label}>
+                        {navItems.map(({ label, items, highlight, isSimpleMenu, href }, idx) => (
+                            <li key={label} className="h-full flex items-center">
                                 {items ? (
                                     <NavDropdown
                                         label={label}
@@ -242,6 +262,8 @@ export default function Header() {
                                                 label,
                                                 items,
                                                 highlight,
+                                                categoryName: navItems.find(n => n.label === label)?.categoryName,
+                                                menuIndex: idx
                                             })
                                         }
                                         onClose={() => { }}
@@ -249,7 +271,7 @@ export default function Header() {
                                 ) : (
                                     <Link
                                         to={href ?? "#"}
-                                        className="text-foreground/60 hover:text-primary"
+                                        className="text-foreground/60 transition-colors hover:text-primary"
                                     >
                                         {label}
                                     </Link>
@@ -264,6 +286,22 @@ export default function Header() {
                     open={!!activeMenu && !!activeMenu.items}
                     items={activeMenu?.items ?? null}
                     highlight={activeMenu?.highlight}
+                    combos={(() => {
+                        if (!combos.length) return [];
+                        
+                        // 1. Try to find combos specifically for this category
+                        if (activeMenu?.categoryName) {
+                            const filtered = combos.filter(c =>
+                                c.category?.toLowerCase().includes(activeMenu.categoryName?.toLowerCase() || "")
+                            );
+                            if (filtered.length > 0) return filtered;
+                        }
+
+                        // 2. If no specific match, rotate based on menu index to show different combos
+                        const rotIdx = activeMenu?.menuIndex ?? 0;
+                        const start = rotIdx % combos.length;
+                        return [...combos.slice(start), ...combos.slice(0, start)];
+                    })()}
                     onMouseEnter={() => {
                         if (activeMenu) setActiveMenu(activeMenu)
                     }}
