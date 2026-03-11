@@ -23,6 +23,7 @@ export class ApiError extends Error {
 ====================== */
 export interface CustomAxiosRequestConfig extends AxiosRequestConfig {
   _retry?: boolean;
+  _suppressToast?: boolean;
 }
 
 /* ======================

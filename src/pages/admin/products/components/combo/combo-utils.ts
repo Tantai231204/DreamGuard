@@ -17,7 +17,7 @@ export function parseVariantLabel(label: string): { color: string; size: string 
 /**
  * Maps raw combo data from various API formats to the internal ComboItem interface.
  */
-export function toComboItems(combo: ComboResponse): ComboItem[] {
+export function toComboItems(combo?: ComboResponse | null): ComboItem[] {
     if (!combo) return [];
 
     // Prioritize productItems (returned by detailed getById API)

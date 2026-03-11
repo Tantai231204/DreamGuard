@@ -17,7 +17,6 @@ import {
     Move3D,
 } from 'lucide-react';
 import type { ProductVariant, VariantStatus, VariantAttributes } from '../../types';
-import { PRODUCT_STATUS_COLORS } from '../../types';
 import ColorPicker from './ColorPicker';
 import SectionHeading from '../shared/SectionHeading';
 
