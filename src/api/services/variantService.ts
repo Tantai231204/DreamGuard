@@ -60,6 +60,7 @@ export interface AdminVariantItem {
   stockQuantity: number;
   stockStatus: string;
   status: string;
+  attributes: VariantAttributes | null;
 }
 
 export interface AdminColorGroup {

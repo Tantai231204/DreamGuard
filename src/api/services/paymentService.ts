@@ -20,6 +20,11 @@ const paymentService = {
 
     updatePaymentStatus: async (id: string, status: string): Promise<void> => {
         await apiClient.patch(`/payment/admin/${id}/${status}`);
+    },
+
+    getPaymentByOrderId: async (orderId: string): Promise<PaymentDetailResponse> => {
+        const res = await apiClient.get(`/payment/order/${orderId}`);
+        return res.data?.data ?? res.data;
     }
 };
 

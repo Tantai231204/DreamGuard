@@ -1,19 +1,13 @@
 import { useState, useCallback, useRef, useEffect, type FC } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import {
     SlidersHorizontal,
-    RotateCcw,
     X,
-    Palette,
-    Baby,
-    Ruler,
     ChevronDown,
-    Zap
+    AlertCircle
 } from 'lucide-react';
 import type { FilterOptions } from '../types';
 import { ageRanges } from '../data';
@@ -45,37 +39,27 @@ const sizeOptions = ['Newborn', 'S (0-6M)', 'M (6-12M)', 'L (1-2Y)', 'XL (2Y+)']
 
 function FilterSection({
     title,
-    icon: Icon,
     children,
     defaultOpen = true,
 }: {
     title: string;
-    icon: React.ElementType;
     children: React.ReactNode;
     defaultOpen?: boolean;
 }) {
     const [isOpen, setIsOpen] = useState(defaultOpen);
 
     return (
-        <div className="py-2">
+        <div className="border-b border-slate-100 last:border-0 last:pb-0">
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex w-full items-center justify-between py-5 group"
+                className="flex w-full items-center justify-between py-6 group"
             >
-                <div className="flex items-center gap-4">
-                    <div className={cn(
-                        "flex h-10 w-10 items-center justify-center rounded-2xl transition-all duration-300",
-                        isOpen ? "bg-amber-100 text-amber-600 shadow-sm shadow-amber-100" : "bg-primary-light/50 text-primary group-hover:bg-amber-50 group-hover:text-amber-500"
-                    )}>
-                        <Icon className="h-5 w-5" />
-                    </div>
-                    <span className="text-sm font-bold text-primary-dark tracking-tight">{title}</span>
-                </div>
+                <span className="text-sm font-black text-slate-800 uppercase tracking-[0.15em]">{title}</span>
                 <ChevronDown
                     className={cn(
-                        "h-4 w-4 text-primary-light transition-transform duration-500",
-                        isOpen && "rotate-180 text-amber-500"
+                        "h-4 w-4 text-slate-300 transition-transform duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]",
+                        isOpen && "rotate-180 text-primary"
                     )}
                 />
             </button>
@@ -85,10 +69,10 @@ function FilterSection({
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                        transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
                         className="overflow-hidden"
                     >
-                        <div className="pb-8 pt-2">{children}</div>
+                        <div className="pb-8 pt-1">{children}</div>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -106,15 +90,11 @@ export const FilterSidebar: FC<FilterSidebarProps> = ({
         filters.priceRange.max ?? 1000,
     ]);
 
-    const filterTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const priceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
-        const filterTimer = filterTimerRef.current;
-        const priceTimer = priceTimerRef.current;
         return () => {
-            if (filterTimer) clearTimeout(filterTimer);
-            if (priceTimer) clearTimeout(priceTimer);
+            if (priceTimerRef.current) clearTimeout(priceTimerRef.current);
         };
     }, []);
 
@@ -137,39 +117,16 @@ export const FilterSidebar: FC<FilterSidebarProps> = ({
         [filters, onFilterChange]
     );
 
-    const handlePriceChange = useCallback(
-        (value: number[]) => {
-            setPriceRange([value[0], value[1]]);
-            if (priceTimerRef.current) clearTimeout(priceTimerRef.current);
-            priceTimerRef.current = setTimeout(() => {
-                onFilterChange({
-                    ...filters,
-                    priceRange: { min: value[0], max: value[1] },
-                });
-            }, 500);
-        },
-        [filters, onFilterChange]
-    );
-
-    const handleMinInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const val = parseInt(e.target.value) || 0;
-        const clamped = Math.min(Math.max(val, 0), priceRange[1] - 10);
-        setPriceRange([clamped, priceRange[1]]);
+    const handlePriceChange = useCallback((value: number[]) => {
+        setPriceRange([value[0], value[1]]);
         if (priceTimerRef.current) clearTimeout(priceTimerRef.current);
         priceTimerRef.current = setTimeout(() => {
-            onFilterChange({ ...filters, priceRange: { min: clamped, max: priceRange[1] } });
-        }, 500);
-    };
-
-    const handleMaxInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const val = parseInt(e.target.value) || 1000;
-        const clamped = Math.max(Math.min(val, 1000), priceRange[0] + 10);
-        setPriceRange([priceRange[0], clamped]);
-        if (priceTimerRef.current) clearTimeout(priceTimerRef.current);
-        priceTimerRef.current = setTimeout(() => {
-            onFilterChange({ ...filters, priceRange: { min: priceRange[0], max: clamped } });
-        }, 500);
-    };
+            onFilterChange({
+                ...filters,
+                priceRange: { min: value[0], max: value[1] },
+            });
+        }, 300);
+    }, [filters, onFilterChange]);
 
     const activeFilterCount = filters.ages.length +
         filters.colors.length +
@@ -184,167 +141,136 @@ export const FilterSidebar: FC<FilterSidebarProps> = ({
         onReset();
     };
 
-    const activePills = [
-        ...filters.ages.map(v => ({ key: 'ages' as const, value: v })),
-        ...filters.colors.map(v => ({ key: 'colors' as const, value: v })),
-        ...filters.sizes.map(v => ({ key: 'sizes' as const, value: v })),
-    ];
-
     return (
-        <motion.aside
-            className="w-full space-y-6"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6 }}
-        >
-            <div className="flex items-center justify-between pb-6">
+        <aside className="w-full bg-white rounded-[2rem] border border-slate-100 p-8 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
+            {/* Header Area */}
+            <div className="flex items-center justify-between mb-10">
                 <div className="flex items-center gap-3">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-50 text-amber-500 shadow-sm shadow-amber-100/50">
-                        <SlidersHorizontal className="h-6 w-6" />
+                    <div className="h-10 w-10 bg-primary/5 rounded-2xl flex items-center justify-center">
+                        <SlidersHorizontal className="h-5 w-5 text-primary" />
                     </div>
-                    <div className="flex flex-col">
-                        <h2 className="text-lg font-bold text-primary-dark tracking-tight leading-none">Filters</h2>
-                        <p className="text-[11px] text-primary-light mt-1 font-medium italic">Tailored for your baby</p>
-                    </div>
+                    <h2 className="text-xl font-black text-slate-900 tracking-tight">FILTER BY</h2>
                 </div>
                 {activeFilterCount > 0 && (
-                    <Button
-                        variant="ghost"
-                        size="sm"
+                    <button
                         onClick={handleReset}
-                        className="h-9 rounded-full text-xs font-bold text-amber-500 hover:text-amber-600 hover:bg-amber-50 transition-all px-4"
+                        className="text-[10px] font-black uppercase text-rose-500 hover:bg-rose-50 px-3 py-1.5 rounded-full transition-all border border-rose-100"
                     >
-                        <RotateCcw className="h-4 w-4 mr-2" />
                         Reset
-                    </Button>
+                    </button>
                 )}
             </div>
 
-            <AnimatePresence>
-                {activePills.length > 0 && (
-                    <div className="flex flex-wrap gap-2 pb-4 border-b border-primary-light/40">
-                        {activePills.map((pill) => (
-                            <motion.button
-                                key={`${pill.key}-${pill.value}`}
-                                initial={{ scale: 0.8, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                exit={{ scale: 0.8, opacity: 0 }}
-                                onClick={() => toggleArrayFilter(pill.key, pill.value)}
-                                className="inline-flex items-center gap-2 rounded-full bg-amber-50/70 border border-amber-100/50 px-4 py-2 text-[11px] font-bold text-amber-700 hover:bg-amber-100 transition-all shadow-sm"
-                            >
-                                {pill.value}
-                                <X className="h-3 w-3 text-amber-400" />
-                            </motion.button>
-                        ))}
-                    </div>
-                )}
-            </AnimatePresence>
-
             <div className="space-y-2">
-                {/* Price Section */}
-                <FilterSection title="Price Range" icon={Zap}>
-                    <div className="space-y-8 px-1 pt-2">
+                {/* Price Range */}
+                <FilterSection title="Price Range">
+                    <div className="space-y-8 px-1">
                         <Slider
                             min={0}
                             max={1000}
                             step={10}
                             value={priceRange}
                             onValueChange={handlePriceChange}
-                            className="w-full"
+                            className="w-full py-4 [&_[role=slider]]:h-6 [&_[role=slider]]:w-6 [&_[role=slider]]:border-4 [&_[role=slider]]:border-white [&_[role=slider]]:shadow-xl [&_[role=slider]]:bg-primary"
                         />
-                        <div className="flex items-center gap-4">
-                            <div className="relative flex-1">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-light text-xs font-bold">$</span>
+                        <div className="grid grid-cols-[1fr_20px_1fr] items-center gap-2">
+                            <div className="relative">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black text-slate-300">$</span>
                                 <Input
                                     type="number"
                                     value={priceRange[0]}
-                                    onChange={handleMinInput}
-                                    className="h-11 pl-7 rounded-2xl border-primary-light/40 bg-primary-light/5 text-sm font-bold text-primary-dark focus:bg-white focus:ring-2 focus:ring-amber-200 focus:border-amber-300 transition-all shadow-inner"
+                                    readOnly
+                                    className="h-12 pl-8 pr-4 rounded-xl border-none bg-slate-50 text-sm font-black text-slate-600 shadow-inner"
                                 />
                             </div>
-                            <span className="text-primary-light">—</span>
-                            <div className="relative flex-1">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-primary-light text-xs font-bold">$</span>
+                            <Separator className="w-4 bg-slate-200 justify-self-center" />
+                            <div className="relative">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black text-slate-300">$</span>
                                 <Input
                                     type="number"
                                     value={priceRange[1]}
-                                    onChange={handleMaxInput}
-                                    className="h-11 pl-7 rounded-2xl border-primary-light/40 bg-primary-light/5 text-sm font-bold text-primary-dark focus:bg-white focus:ring-2 focus:ring-amber-200 focus:border-amber-300 transition-all shadow-inner"
+                                    readOnly
+                                    className="h-12 pl-8 pr-4 rounded-xl border-none bg-slate-50 text-sm font-black text-slate-600 shadow-inner"
                                 />
                             </div>
                         </div>
                     </div>
                 </FilterSection>
 
-                <Separator className="bg-primary-light/30 my-2" />
-
-                {/* Colors Section */}
-                <FilterSection title="Color Palette" icon={Palette}>
-                    <div className="grid grid-cols-2 gap-3">
-                        {colorOptions.map((color) => {
-                            const selected = isSelected('colors', color.value);
+                {/* Categories / Age Section */}
+                <FilterSection title="Baby Age">
+                    <div className="space-y-2">
+                        {filteredAgeRanges.map((age) => {
+                            const selected = isSelected('ages', age);
                             return (
                                 <button
-                                    key={color.value}
-                                    onClick={() => toggleArrayFilter('colors', color.value)}
+                                    key={age}
+                                    onClick={() => toggleArrayFilter('ages', age)}
                                     className={cn(
-                                        "flex items-center gap-3 rounded-[1.2rem] border px-4 py-3 transition-all text-left group",
+                                        "flex w-full items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group",
                                         selected
-                                            ? "border-amber-400 bg-amber-50/50 text-amber-700 shadow-[0_4px_12px_rgba(251,191,36,0.1)]"
-                                            : "border-primary-light/40 bg-primary-light/5 hover:border-amber-200 hover:bg-amber-50/20"
+                                            ? "bg-slate-900 text-white shadow-xl translate-x-1"
+                                            : "text-slate-500 hover:bg-slate-50 hover:text-slate-900 hover:translate-x-1"
                                     )}
                                 >
-                                    <div
-                                        className={cn(
-                                            "h-7 w-7 rounded-full border-2 border-white shadow-sm ring-1 ring-primary-light/30 transition-transform group-hover:scale-110",
-                                            selected && "ring-amber-300"
-                                        )}
-                                        style={{ backgroundColor: color.color }}
-                                    />
-                                    <span className="text-xs font-bold text-primary-dark">{color.label}</span>
+                                    <div className={cn(
+                                        "h-2 w-2 rounded-full transition-all duration-500",
+                                        selected ? "bg-primary scale-150 ring-4 ring-primary/20" : "bg-slate-200 group-hover:bg-primary/40"
+                                    )} />
+                                    <span className="text-[13px] font-bold tracking-tight">{age}</span>
+                                    {selected && <X className="ml-auto h-3 w-3 text-slate-400" />}
                                 </button>
                             );
                         })}
                     </div>
                 </FilterSection>
 
-                <Separator className="bg-primary-light/30 my-2" />
-
-                {/* Age Section */}
-                <FilterSection title="Baby Age" icon={Baby}>
-                    <div className="space-y-2.5">
-                        {filteredAgeRanges.map((age) => {
-                            const selected = isSelected('ages', age);
+                {/* Colors Section */}
+                <FilterSection title="Colors">
+                    <div className="grid grid-cols-4 gap-3">
+                        {colorOptions.map((color) => {
+                            const selected = isSelected('colors', color.value);
                             return (
-                                <label
-                                    key={age}
+                                <button
+                                    key={color.value}
+                                    onClick={() => toggleArrayFilter('colors', color.value)}
+                                    title={color.label}
                                     className={cn(
-                                        "flex items-center gap-4 rounded-[1.2rem] border px-4 py-4 cursor-pointer transition-all group",
-                                        selected
-                                            ? "border-amber-100 bg-amber-50/30 text-amber-700"
-                                            : "border-transparent bg-transparent hover:bg-primary-light/5"
+                                        "group flex flex-col items-center gap-2 p-1 transition-all",
+                                        selected ? "scale-105" : "hover:scale-105"
                                     )}
                                 >
-                                    <Checkbox
-                                        checked={selected}
-                                        onCheckedChange={() => toggleArrayFilter('ages', age)}
+                                    <div
                                         className={cn(
-                                            "h-6 w-6 rounded-lg",
-                                            selected ? "border-amber-400 bg-amber-400" : "border-primary-light group-hover:border-amber-300"
+                                            "h-10 w-10 rounded-2xl border-4 transition-all flex items-center justify-center relative",
+                                            selected
+                                                ? "border-primary shadow-lg ring-4 ring-primary/5"
+                                                : "border-white shadow-md hover:border-slate-50 shadow-slate-200/50"
                                         )}
-                                    />
-                                    <span className="text-sm font-bold text-primary-dark">{age}</span>
-                                </label>
+                                        style={{ backgroundColor: color.color }}
+                                    >
+                                        {selected && (
+                                            <div className={cn(
+                                                "h-2 w-2 rounded-full",
+                                                color.value === 'white' ? "bg-slate-900" : "bg-white"
+                                            )} />
+                                        )}
+                                    </div>
+                                    <span className={cn(
+                                        "text-[10px] font-black uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-opacity",
+                                        selected ? "opacity-100 text-primary" : "text-slate-400"
+                                    )}>
+                                        {color.value}
+                                    </span>
+                                </button>
                             );
                         })}
                     </div>
                 </FilterSection>
 
-                <Separator className="bg-primary-light/30 my-2" />
-
                 {/* Sizes Section */}
-                <FilterSection title="Comfort Sizes" icon={Ruler}>
-                    <div className="grid grid-cols-2 gap-2.5">
+                <FilterSection title="Comfort Sizes">
+                    <div className="grid grid-cols-2 gap-2">
                         {sizeOptions.map((size) => {
                             const selected = isSelected('sizes', size);
                             return (
@@ -352,10 +278,10 @@ export const FilterSidebar: FC<FilterSidebarProps> = ({
                                     key={size}
                                     onClick={() => toggleArrayFilter('sizes', size)}
                                     className={cn(
-                                        "h-12 rounded-[1.2rem] border text-xs font-bold transition-all",
+                                        "px-4 py-3 rounded-2xl border-2 text-[11px] font-black transition-all text-center leading-tight",
                                         selected
-                                            ? "border-amber-400 bg-amber-400 text-amber-900 shadow-lg shadow-amber-100"
-                                            : "border-primary-light/40 bg-white hover:border-amber-200 hover:text-amber-600 text-primary-light shadow-sm"
+                                            ? "bg-slate-900 border-slate-900 text-white shadow-xl"
+                                            : "bg-white border-slate-50 text-slate-400 hover:border-slate-200 hover:text-slate-900 shadow-sm"
                                     )}
                                 >
                                     {size}
@@ -365,6 +291,20 @@ export const FilterSidebar: FC<FilterSidebarProps> = ({
                     </div>
                 </FilterSection>
             </div>
-        </motion.aside>
+
+            {/* Price Alert / Warning */}
+            {priceRange[0] >= priceRange[1] && (
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mt-6 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-start gap-3"
+                >
+                    <AlertCircle className="h-4 w-4 text-rose-500 mt-0.5 flex-shrink-0" />
+                    <p className="text-[11px] font-bold text-rose-600 leading-relaxed">
+                        Invalid price range. Minimum cannot exceed maximum.
+                    </p>
+                </motion.div>
+            )}
+        </aside>
     );
 };

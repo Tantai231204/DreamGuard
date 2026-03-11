@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,10 +22,10 @@ import {
   Package2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { AdminColorGroup, AdminVariantItem } from '@/api/services/variantService';
-import { useAdminProductVariants } from '@/hooks/queries/useProduct';
+import { useRichAdminVariants } from '@/hooks/queries/useProduct';
 import { useStockAdjustment } from './useStockAdjustment';
 import StockAdjustmentDialog from './StockAdjustmentDialog';
+import type { TransformedAdminVariants } from '@/pages/admin/products/utils/variant-utils';
 
 /* ─── Stock Status Config ───────────────────────────────── */
 const stockStatusConfig: Record<string, { label: string; className: string }> = {
@@ -34,32 +34,6 @@ const stockStatusConfig: Record<string, { label: string; className: string }> = 
   'Out of Stock': { label: 'Out of Stock', className: 'bg-red-50 text-red-600 border-red-200' },
 };
 
-/* ─── Color Helpers ────────────────────────────────────── */
-const colorMap: Record<string, string> = {
-  white: '#f5f5f5',
-  pink: '#ffc0cb',
-  blue: '#add8e6',
-  red: '#ff6b6b',
-  green: '#90ee90',
-  yellow: '#ffeb3b',
-  orange: '#ffa500',
-  purple: '#dda0dd',
-  black: '#333333',
-  gray: '#9e9e9e',
-  grey: '#9e9e9e',
-  brown: '#a0522d',
-  beige: '#f5f5dc', mint: '#98ff98', unknown: '#e5e7eb',
-  default: '#e5e7eb',
-};
-
-function getColorHex(colorValue: string | undefined): string {
-  if (!colorValue) return '#e5e7eb';
-  if (colorValue.startsWith('#')) return colorValue;
-  // If it's a 6-digit hex without #
-  if (/^[0-9A-Fa-f]{6}$/.test(colorValue)) return `#${colorValue}`;
-  const normalized = colorValue.toLowerCase().trim();
-  return colorMap[normalized] || '#e5e7eb';
-}
 
 /* ─── Types ────────────────────────────────────────────── */
 interface VariantTableProps {
@@ -78,7 +52,7 @@ export default function VariantTable({
   onEditVariant,
   onDeleteVariant,
 }: VariantTableProps) {
-  const { data, isLoading } = useAdminProductVariants(productId);
+  const { data, isLoading } = useRichAdminVariants(productId);
   const {
     stockDialog,
     stockQuantity,
@@ -91,24 +65,9 @@ export default function VariantTable({
 
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set());
 
-  const colorGroups = useMemo(() => data?.colorGroups ?? [], [data?.colorGroups]);
+  const colorGroups = data?.colorGroups ?? [];
   const totalVariants = data?.totalVariants ?? 0;
-
-  // Memoized stock stats
-  const stockStats = useMemo(() => {
-    return colorGroups.reduce(
-      (acc, group) => {
-        group.variants.forEach((v) => {
-          acc.total += v.stockQuantity ?? 0;
-          if (v.stockStatus === 'In Stock') acc.inStock++;
-          else if (v.stockStatus === 'Low Stock') acc.lowStock++;
-          else acc.outOfStock++;
-        });
-        return acc;
-      },
-      { total: 0, inStock: 0, lowStock: 0, outOfStock: 0 }
-    );
-  }, [colorGroups]);
+  const stats = data?.stats;
 
   // Toggle expand/collapse
   const toggleGroup = useCallback((color: string) => {
@@ -213,22 +172,22 @@ export default function VariantTable({
         </div>
 
         {/* Footer Stats */}
-        {totalVariants > 0 && (
+        {stats && totalVariants > 0 && (
           <div className="mt-4 flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-gray-500">
             <span>
-              Total stock: <span className="font-bold text-gray-700">{stockStats.total}</span>
+              Total stock: <span className="font-bold text-gray-700">{stats.totalStock}</span>
             </span>
             <span className="text-gray-300">|</span>
             <span>
-              In stock: <span className="font-bold text-green-600">{stockStats.inStock}</span>
+              In stock: <span className="font-bold text-green-600">{stats.inStock}</span>
             </span>
             <span className="text-gray-300">|</span>
             <span>
-              Low: <span className="font-bold text-orange-500">{stockStats.lowStock}</span>
+              Low: <span className="font-bold text-orange-500">{stats.lowStock}</span>
             </span>
             <span className="text-gray-300">|</span>
             <span>
-              OOS: <span className="font-bold text-red-500">{stockStats.outOfStock}</span>
+              OOS: <span className="font-bold text-red-500">{stats.outOfStock}</span>
             </span>
           </div>
         )}
@@ -256,15 +215,13 @@ function ColorGroupRow({
   onDeleteVariant,
   onStockAdjust,
 }: {
-  group: AdminColorGroup;
+  group: NonNullable<TransformedAdminVariants>['colorGroups'][number];
   isExpanded: boolean;
   onToggle: () => void;
   onEditVariant: (variantId: string) => void;
   onDeleteVariant: (variantId: string) => void;
   onStockAdjust: (type: 'add' | 'reduce', variantId: string, sku: string, currentStock: number) => void;
 }) {
-  const colorHex = getColorHex(group.hexColor || group.color);
-
   return (
     <div className="group/grouprow">
       {/* Color Group Header - Clickable to expand/collapse */}
@@ -287,7 +244,7 @@ function ColorGroupRow({
         <div className="relative">
           <span
             className="w-5 h-5 rounded-full border border-slate-200 shadow-sm block ring-4 ring-transparent group-hover/grouprow:ring-slate-100 transition-all"
-            style={{ backgroundColor: colorHex }}
+            style={{ backgroundColor: group.colorHex }}
             title={group.color}
           />
           {isExpanded && (
@@ -308,7 +265,7 @@ function ColorGroupRow({
               Inventory
             </div>
             <div className="text-sm font-black text-slate-900">
-              {group.variants.reduce((sum, v) => sum + v.stockQuantity, 0)} <span className="text-[10px] text-slate-400 font-medium">units</span>
+              {group.groupStock} <span className="text-[10px] text-slate-400 font-medium">units</span>
             </div>
           </div>
         </div>
@@ -325,11 +282,10 @@ function ColorGroupRow({
             className="overflow-hidden"
           >
             <div className="divide-y divide-slate-50 bg-white">
-              {group.variants.map((variant, index) => (
+              {group.variants.map((variant) => (
                 <VariantRow
                   key={variant.id}
                   variant={variant}
-                  isEven={index % 2 === 0}
                   onEdit={() => onEditVariant(variant.id)}
                   onDelete={() => onDeleteVariant(variant.id)}
                   onAddStock={() => onStockAdjust('add', variant.id, variant.sku, variant.stockQuantity)}
@@ -352,17 +308,14 @@ function VariantRow({
   onAddStock,
   onReduceStock,
 }: {
-  variant: AdminVariantItem;
-  isEven: boolean;
+  variant: NonNullable<TransformedAdminVariants>['colorGroups'][number]['variants'][number];
   onEdit: () => void;
   onDelete: () => void;
   onAddStock: () => void;
   onReduceStock: () => void;
 }) {
   const hasSale = variant.salePrice < variant.basePrice;
-  const statusConfig = stockStatusConfig[variant.stockStatus] || stockStatusConfig['Out of Stock'];
-  const isLowStock = variant.stockStatus === 'Low Stock';
-  const isOutOfStock = variant.stockStatus === 'Out of Stock';
+  const statusConfig = stockStatusConfig[variant.stockStatus] || stockStatusConfig[variant.status] || stockStatusConfig['Out of Stock'];
 
   return (
     <div className="grid grid-cols-[80px_100px_1fr_120px_140px_120px_60px] gap-4 items-center px-10 py-3.5 hover:bg-slate-50/50 transition-all group/vrow relative">
@@ -373,7 +326,7 @@ function VariantRow({
       {/* Size badge */}
       <div>
         <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-black text-slate-700 shadow-sm leading-none group-hover/vrow:border-indigo-200 group-hover/vrow:bg-indigo-50/30 transition-colors">
-          {variant.size || 'N/A'}
+          {variant.dimensions}
         </span>
       </div>
 
@@ -403,17 +356,22 @@ function VariantRow({
             variant="ghost"
             size="sm"
             onClick={(e) => { e.stopPropagation(); onReduceStock(); }}
-            disabled={variant.stockQuantity <= 0}
-            className="h-7 w-7 p-0 rounded-lg hover:bg-red-50 hover:text-red-600 disabled:opacity-30 opacity-0 group-hover/vrow:opacity-100 transition-all scale-90"
+            disabled={variant.isOutOfStock}
+            className={cn(
+              "h-7 w-7 p-0 rounded-lg transition-all scale-90",
+              variant.isOutOfStock 
+                ? "invisible opacity-0 pointer-events-none" // Hard hide when OOS
+                : "opacity-0 group-hover/vrow:opacity-100 hover:bg-red-50 hover:text-red-600"
+            )}
           >
             <Minus className="h-3.5 w-3.5" />
           </Button>
 
           <div className="min-w-[40px] flex items-center justify-center gap-1 px-1">
-            {isLowStock && <AlertTriangle className="h-3 w-3 text-amber-500 animate-pulse" />}
+            {variant.isLowStock && <AlertTriangle className="h-3 w-3 text-amber-500 animate-pulse" />}
             <span className={cn(
               "text-sm font-black tracking-tight",
-              isLowStock ? "text-amber-500" : isOutOfStock ? "text-red-500" : "text-slate-900"
+              variant.isLowStock ? "text-amber-500" : variant.isOutOfStock ? "text-red-500" : "text-slate-900"
             )}>
               {variant.stockQuantity}
             </span>
@@ -423,7 +381,12 @@ function VariantRow({
             variant="ghost"
             size="sm"
             onClick={(e) => { e.stopPropagation(); onAddStock(); }}
-            className="h-7 w-7 p-0 rounded-lg hover:bg-emerald-50 hover:text-emerald-600 opacity-0 group-hover/vrow:opacity-100 transition-all scale-90"
+            className={cn(
+              "h-7 w-7 p-0 rounded-lg transition-all scale-90",
+              variant.isOutOfStock
+                ? "opacity-100 text-emerald-600 hover:bg-emerald-50" // ALWAYS visible when OOS
+                : "opacity-0 group-hover/vrow:opacity-100 hover:bg-emerald-50 hover:text-emerald-600"
+            )}
           >
             <Plus className="h-3.5 w-3.5" />
           </Button>

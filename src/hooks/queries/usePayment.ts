@@ -5,6 +5,7 @@ export const paymentKeys = {
     all: ['payments'] as const,
     list: (params?: Record<string, unknown>) => [...paymentKeys.all, 'list', params] as const,
     detail: (id: string) => [...paymentKeys.all, 'detail', id] as const,
+    byOrder: (orderId: string) => [...paymentKeys.all, 'byOrder', orderId] as const,
 };
 
 export const useAdminPayments = (params?: { pageNumber?: number; pageSize?: number }) => {
@@ -20,6 +21,14 @@ export const usePaymentDetail = (id: string) => {
         queryKey: paymentKeys.detail(id),
         queryFn: () => paymentService.getPaymentDetail(id),
         enabled: !!id,
+    });
+};
+
+export const usePaymentByOrderId = (orderId: string) => {
+    return useQuery({
+        queryKey: paymentKeys.byOrder(orderId),
+        queryFn: () => paymentService.getPaymentByOrderId(orderId),
+        enabled: !!orderId,
     });
 };
 

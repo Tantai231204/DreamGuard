@@ -40,11 +40,12 @@ export const useOrderDetail = (id: string) => {
     });
 };
 
-export const useCancelOrder = () => {
+export const useCancelOrder = (options?: { meta?: Record<string, unknown> }) => {
     const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: (id: string) => orderService.cancelOrder(id),
+        meta: options?.meta,
         onSuccess: (_, id) => {
             queryClient.invalidateQueries({ queryKey: orderKeys.all });
             queryClient.invalidateQueries({ queryKey: orderKeys.detail(id) });
