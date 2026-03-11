@@ -1,11 +1,9 @@
 import { useMemo } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
-  MoreVertical,
   Edit,
   Trash2,
   Eye,
@@ -15,14 +13,7 @@ import {
   Mail,
   Phone,
 } from 'lucide-react';
-import { SortableHeader } from '@/components/admin';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { SortableHeader, AdminRowActions } from '@/components/admin';
 import type { User } from '../types';
 
 const columnHelper = createColumnHelper<User>();
@@ -217,48 +208,27 @@ export function useUserColumns() {
           const isAdmin = user.role === 'admin';
 
           return (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem className="gap-2 cursor-pointer text-sm">
-                  <Eye className="h-4 w-4" />
-                  View Details
-                </DropdownMenuItem>
-                <DropdownMenuItem className="gap-2 cursor-pointer text-sm">
-                  <Edit className="h-4 w-4" />
-                  Edit User
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                {!isAdmin && (
-                  <>
-                    {isBanned ? (
-                      <DropdownMenuItem className="gap-2 cursor-pointer text-sm text-green-600">
-                        <CheckCircle className="h-4 w-4" />
-                        Unban User
-                      </DropdownMenuItem>
-                    ) : (
-                      <DropdownMenuItem className="gap-2 cursor-pointer text-sm text-orange-600">
-                        <Ban className="h-4 w-4" />
-                        Ban User
-                      </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem className="gap-2 cursor-pointer text-sm text-blue-600">
-                      <ShieldCheck className="h-4 w-4" />
-                      Change Role
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem className="gap-2 cursor-pointer text-sm text-red-600">
-                      <Trash2 className="h-4 w-4" />
-                      Delete User
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex justify-end">
+              <AdminRowActions
+                sections={[
+                  [
+                    { label: 'View Details', icon: <Eye className="h-4 w-4" />, onClick: () => console.log('View', user.id) },
+                    { label: 'Edit User', icon: <Edit className="h-4 w-4" />, onClick: () => console.log('Edit', user.id) },
+                  ],
+                  ...(!isAdmin ? [
+                    [
+                      isBanned 
+                        ? { label: 'Unban User', icon: <CheckCircle className="h-4 w-4" />, variant: 'success' as const, onClick: () => console.log('Unban', user.id) }
+                        : { label: 'Ban User', icon: <Ban className="h-4 w-4" />, variant: 'warning' as const, onClick: () => console.log('Ban', user.id) },
+                      { label: 'Change Role', icon: <ShieldCheck className="h-4 w-4" />, variant: 'info' as const, onClick: () => console.log('Role', user.id) },
+                    ],
+                    [
+                      { label: 'Delete User', icon: <Trash2 className="h-4 w-4" />, variant: 'danger' as const, onClick: () => console.log('Delete', user.id) }
+                    ]
+                  ] : [])
+                ]}
+              />
+            </div>
           );
         },
         size: 60,

@@ -3,13 +3,10 @@ import { motion } from 'framer-motion'
 import {
     useReactTable,
     getCoreRowModel,
-    getFilteredRowModel,
     getPaginationRowModel,
-    getSortedRowModel,
     type SortingState,
     type ColumnFiltersState,
     type RowSelectionState,
-    type Row,
 } from '@tanstack/react-table'
 import { ShoppingCart } from 'lucide-react'
 
@@ -18,31 +15,20 @@ import { AdminTableSearch, AdminTableContent, AdminTablePagination, AdminActions
 
 import { useOrderColumns } from './components'
 import { useAdminOrders } from '@/hooks/queries'
-import type { OrderResponse } from '@/api/types/order'
-
-/* =======================
-   Global Search Function
-======================= */
-const globalFilterFn = (
-    row: Row<OrderResponse>,
-    _columnId: string,
-    filterValue: string
-): boolean => {
-    if (!filterValue?.trim()) return true
-
-    const search = filterValue.toLowerCase().trim()
-    const { id, orderCode } = row.original
-
-    return (
-        id.toLowerCase().includes(search) ||
-        orderCode?.toLowerCase().includes(search)
-    )
-}
+import { useDebounce } from '@/hooks/useDebounce'
 
 export default function OrderManagement() {
     const [sorting, setSorting] = useState<SortingState>([])
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
     const [globalFilter, setGlobalFilter] = useState('')
+    const debouncedSearch = useDebounce(globalFilter, 500)
+
+    // Extract status filters for API
+    const statusFilter = useMemo(() => {
+        const filter = columnFilters.find(f => f.id === 'status')
+        return filter ? (filter.value as string[]) : undefined
+    }, [columnFilters])
+
     const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
     const [pagination, setPagination] = useState({
         pageIndex: 0,
@@ -54,6 +40,10 @@ export default function OrderManagement() {
     const { data: orderData, isPending } = useAdminOrders({
         pageNumber: pagination.pageIndex + 1,
         pageSize: pagination.pageSize,
+        search: debouncedSearch,
+        status: statusFilter,
+        sortBy: sorting[0]?.id,
+        sortOrder: sorting[0]?.desc ? 'desc' : 'asc'
     })
 
     const data = useMemo(() => orderData?.items ?? [], [orderData])
@@ -77,16 +67,15 @@ export default function OrderManagement() {
 
         /* Sorting */
         onSortingChange: setSorting,
-        getSortedRowModel: getSortedRowModel(),
+        manualSorting: true, // Server-side sorting
         enableSorting: true,
 
         /* Column filter */
         onColumnFiltersChange: setColumnFilters,
-        getFilteredRowModel: getFilteredRowModel(),
+        manualFiltering: true, // Server-side filtering
 
         /* Global search */
         onGlobalFilterChange: setGlobalFilter,
-        globalFilterFn: globalFilterFn,
         enableGlobalFilter: true,
 
         /* Row selection */
@@ -136,8 +125,6 @@ export default function OrderManagement() {
                         onFilter={() => console.log('Filter')}
                         onExport={() => console.log('Export')}
                         onImport={() => console.log('Import')}
-                        onAdd={() => console.log('Add order')}
-                        addLabel="Add Order"
                     />
 
                     <AdminTableSearch

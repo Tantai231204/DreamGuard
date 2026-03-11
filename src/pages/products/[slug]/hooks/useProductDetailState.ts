@@ -8,11 +8,10 @@ import type { TabType, TradeInProduct } from "../types";
 
 interface UseProductDetailStateProps {
     product: ProductResponse | undefined;
-    variants?: ProductVariantResponse[] | undefined;
     productImageRef: React.RefObject<HTMLDivElement | null>;
 }
 
-export function useProductDetailState({ product, variants, productImageRef }: UseProductDetailStateProps) {
+export function useProductDetailState({ product, productImageRef }: UseProductDetailStateProps) {
     const { addItem } = useCart();
     const { triggerFlyToCart } = useCartAnimation();
 
@@ -25,7 +24,8 @@ export function useProductDetailState({ product, variants, productImageRef }: Us
     const [activeTab, setActiveTab] = useState<TabType>("description");
     const [selectedTradeInProducts, setSelectedTradeInProducts] = useState<string[]>([]);
 
-    const allVariants = useMemo(() => variants ?? product?.variants ?? [], [product, variants]);
+    // Variants come directly from the product response (getBySlug includes them)
+    const allVariants = useMemo(() => product?.variants ?? [], [product]);
 
     const getVariantSize = useCallback((v: ProductVariantResponse) => {
         if (!v) return "";
@@ -51,27 +51,32 @@ export function useProductDetailState({ product, variants, productImageRef }: Us
     }, [allVariants, userSelectedSize, getVariantSize]);
 
     const dynamicColorOptions = useMemo(() => {
-        const colorHexMap: Record<string, string> = {
+        const colorHexFallback: Record<string, string> = {
             cream: "#F5F5DC", pink: "#FFB6C1", blue: "#87CEEB",
             mint: "#98FB98", white: "#FFFFFF", gray: "#D1D5DB",
+            peru: "#CD853F", red: "#EF4444", green: "#22C55E",
+            yellow: "#EAB308", purple: "#A855F7", black: "#1E293B",
         };
         const aggregate = new Map<string, { label: string; hex?: string }>();
         for (const v of allVariants) {
-            const attrs = (v.attributes || {}) as { color?: string };
+            const attrs = (v.attributes || {}) as { color?: string; hexColor?: string };
             const rawColor = attrs.color?.trim();
             if (!rawColor) continue;
             const key = rawColor.toLowerCase();
-            const isHex = /^#(?:[0-9a-fA-F]{3}){1,2}$/.test(rawColor);
+            // Prefer hexColor from API attributes, then check if color itself is a hex
+            const apiHex = attrs.hexColor?.trim();
+            const isHex = (s: string) => /^#(?:[0-9a-fA-F]{3}){1,2}$/.test(s);
+            const hex = apiHex && isHex(apiHex) ? apiHex : isHex(rawColor) ? rawColor : undefined;
             if (!aggregate.has(key)) {
-                aggregate.set(key, { label: rawColor, hex: isHex ? rawColor : undefined });
-            } else if (isHex && !aggregate.get(key)!.hex) {
-                aggregate.get(key)!.hex = rawColor;
+                aggregate.set(key, { label: rawColor, hex });
+            } else if (hex && !aggregate.get(key)!.hex) {
+                aggregate.get(key)!.hex = hex;
             }
         }
         return Array.from(aggregate.entries()).map(([value, meta]) => ({
             value,
             label: meta.label,
-            color: meta.hex ?? colorHexMap[value] ?? "#F3F4F6",
+            color: meta.hex ?? colorHexFallback[value] ?? "#F3F4F6",
         }));
     }, [allVariants]);
 

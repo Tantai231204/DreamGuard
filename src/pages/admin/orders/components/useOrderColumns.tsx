@@ -1,24 +1,21 @@
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { MoreVertical, Eye, Trash2 } from 'lucide-react';
-import { SortableHeader } from '@/components/admin';
+import { Eye, Trash2 } from 'lucide-react';
+import { SortableHeader, AdminRowActions } from '@/components/admin';
 import { type ColumnDef } from '@tanstack/react-table';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import type { OrderResponse } from '@/api/types/order';
-import { STATUS_THEME } from '@/pages/profile/components/order-constants';
+import { cn } from '@/lib/utils';
 import { formatPrice } from '@/pages/profile/utils';
+import { useCancelOrder } from '@/hooks/queries';
+import { toast } from 'sonner';
+import { OrderStatus, ORDER_STATUS_MAP, ADMIN_ORDER_STATUS_THEME } from '../constants';
 
 export const useOrderColumns = () => {
+    const cancelOrder = useCancelOrder();
+
     const columns: ColumnDef<OrderResponse>[] = useMemo(
         () => [
             {
@@ -95,13 +92,15 @@ export const useOrderColumns = () => {
                 accessorKey: 'status',
                 header: () => <span className="font-semibold">Status</span>,
                 cell: ({ row }) => {
-                    const status = row.original.status;
-                    const theme = STATUS_THEME[status] || STATUS_THEME["Pending"];
+                    const status = row.original.status.toString();
+                    const theme = ADMIN_ORDER_STATUS_THEME[status] || ADMIN_ORDER_STATUS_THEME["1"];
                     return (
                         <Badge
                             variant="outline"
-                            className="font-bold border-none shadow-sm capitalize"
-                            style={{ backgroundColor: `${theme.color}15`, color: theme.color }}
+                            className={cn(
+                                "px-2.5 py-1 rounded-full font-bold text-[10px] uppercase tracking-wider border",
+                                theme.className
+                            )}
                         >
                             {theme.label}
                         </Badge>
@@ -117,14 +116,18 @@ export const useOrderColumns = () => {
                     return (
                         <div className="text-sm text-gray-600 flex flex-col">
                             <span className="font-semibold text-gray-900">
-                                {date.toLocaleDateString('en-US', {
-                                    month: 'short',
-                                    day: 'numeric',
+                                {date.toLocaleDateString('vi-VN', {
+                                    day: '2-digit',
+                                    month: '2-digit',
                                     year: 'numeric'
                                 })}
                             </span>
                             <span className="text-[10px] text-gray-400">
-                                {date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                                {date.toLocaleTimeString('vi-VN', { 
+                                    hour: '2-digit', 
+                                    minute: '2-digit',
+                                    hour12: false 
+                                })}
                             </span>
                         </div>
                     );
@@ -135,38 +138,48 @@ export const useOrderColumns = () => {
                 enableSorting: false,
                 header: () => <div className="text-right">Actions</div>,
                 cell: ({ row }) => {
+                    const currentStatusEnum = ORDER_STATUS_MAP[row.original.status.toString()];
+                    const canCancel = currentStatusEnum === OrderStatus.Pending || currentStatusEnum === OrderStatus.Confirmed;
+
+                    const handleCancel = () => {
+                        if (confirm('Are you sure you want to cancel this order?')) {
+                            cancelOrder.mutate(row.original.id, {
+                                onSuccess: () => toast.success('Order cancelled successfully')
+                            });
+                        }
+                    };
+
+                    const actions: React.ComponentProps<typeof AdminRowActions>['actions'] = [
+                        {
+                            label: 'View Details',
+                            icon: <Eye className="h-4 w-4" />,
+                            component: (
+                                <Link to={`/admin/orders/${row.original.id}`} className="flex items-center gap-2.5 w-full">
+                                    <Eye className="h-4 w-4 opacity-70" />
+                                    <span className="text-[13px]">View Details</span>
+                                </Link>
+                            )
+                        }
+                    ];
+
+                    if (canCancel) {
+                        actions.push({
+                            label: 'Cancel Order',
+                            icon: <Trash2 className="h-4 w-4" />,
+                            variant: 'danger',
+                            onClick: handleCancel
+                        });
+                    }
+
                     return (
                         <div className="flex justify-end">
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-9 w-9 p-0 rounded-lg hover:bg-gray-100 hover:shadow-md transition-all"
-                                    >
-                                        <MoreVertical className="h-5 w-5" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-52 shadow-xl border-2 rounded-xl">
-                                    <Link to={`/admin/orders/${row.original.id}`}>
-                                        <DropdownMenuItem className="cursor-pointer py-2.5 font-medium">
-                                            <Eye className="h-4 w-4 mr-3 text-blue-600" />
-                                            View Details
-                                        </DropdownMenuItem>
-                                    </Link>
-                                    <DropdownMenuSeparator className="my-1" />
-                                    <DropdownMenuItem className="cursor-pointer py-2.5 text-red-600 font-semibold focus:bg-red-50 focus:text-red-700">
-                                        <Trash2 className="h-4 w-4 mr-3" />
-                                        Cancel Order
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                            <AdminRowActions actions={actions} />
                         </div>
                     );
                 },
             },
         ],
-        []
+        [cancelOrder]
     );
 
     return columns;

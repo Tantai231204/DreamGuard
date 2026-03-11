@@ -377,7 +377,7 @@ const ComboFormFields = memo(function ComboFormFields({
                             <>
                                 <div>
                                     <Label htmlFor="c-base" className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2 block flex items-center gap-2">
-                                        Base Price (VNĐ) {isVariant && <span className="text-red-500">*</span>}
+                                        Base Price (VNĐ)
                                         {isVariantBasePriceAuto && (
                                             <span className="flex items-center gap-1 text-[9px] text-indigo-500 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100">
                                                 <Calculator className="h-2.5 w-2.5" /> Sum of Items

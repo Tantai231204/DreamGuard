@@ -40,6 +40,7 @@ import {
   useCreateVariant,
   useUpdateVariant,
   useDeleteVariant,
+  useUpdateVariantStatus,
 } from '@/hooks/queries/useProduct';
 import {
   useAdminCombos,
@@ -209,6 +210,7 @@ export default function ProductsPage() {
   const createVariantMutation = useCreateVariant();
   const updateVariantMutation = useUpdateVariant();
   const deleteVariantMutation = useDeleteVariant();
+  const updateVariantStatusMutation = useUpdateVariantStatus();
 
   // Combo Mutations
   const createComboMutation = useCreateCombo();
@@ -284,39 +286,53 @@ export default function ProductsPage() {
   // Removed unused updateVariantStatusMutation
 
   const handleVariantSubmit = useCallback(
-    async (formData: VariantFormData & { status: VariantStatus; stockStatus: string }) => {
-      // We ignore status/stockStatus here since the backend handles status implicitly or via inventory
-      const { status, stockStatus, ...bodyData } = formData;
+    async (formData: VariantFormData) => {
+      const { status, stockStatus: _stockStatus, isNew, ...coreBody } = formData;
+      void _stockStatus;
 
       try {
         if (editingVariant) {
-          // 1. Update core info (sku, prices, weight, attributes, productid)
-          await updateVariantMutation.mutateAsync({ id: editingVariant.id, data: bodyData });
+          // 1️⃣ Update variant info FIRST (include isNew for updates)
+          await updateVariantMutation.mutateAsync({
+            id: editingVariant.id,
+            data: { ...coreBody, isNew },
+          });
+
+          // 2️⃣ THEN update status (sequential to avoid race condition)
+          if (status !== editingVariant.status) {
+            await updateVariantStatusMutation.mutateAsync({
+              variantId: editingVariant.id,
+              status,
+            });
+          }
 
           setVariantDialogOpen(false);
-          toast.success('Variant updated', 'The variant details have been updated.');
+          toast.success("Variant updated", "The variant details have been updated.");
         } else {
-          // 2. Create new variant
-          await createVariantMutation.mutateAsync(bodyData);
+          // Create: send only fields the API expects (no isNew)
+          await createVariantMutation.mutateAsync(coreBody);
 
           setVariantDialogOpen(false);
-          toast.success('Variant created', 'The new variant has been successfully created.');
+          toast.success("Variant created", "The new variant has been successfully created.");
         }
       } catch (error) {
-        console.error('Variant submission failed:', error);
+        console.error("Variant submission failed:", error);
       }
     },
-    [editingVariant, createVariantMutation, updateVariantMutation, toast]
+    [
+      editingVariant,
+      createVariantMutation,
+      updateVariantMutation,
+      updateVariantStatusMutation,
+      toast,
+    ]
   );
 
   const handleSubmit = useCallback(
     async (data: CreateProductRequest) => {
       if (editingProduct) {
         try {
-          // Prepare parallel updates
-          const promises: Promise<unknown>[] = [];
-
-          // 1. General info update (matches PUT /api/product body in screenshot)
+          // 1. Update product info FIRST
           const updatePayload: UpdateProductRequest = {
             id: editingProduct.id,
             name: data.name,
@@ -324,30 +340,25 @@ export default function ProductsPage() {
             summary: data.summary,
             description: data.description,
             material: data.material,
-            // status is handled by a separate API if changed
             ageGroup: data.ageGroup || null,
             warrantyPolicyDay: data.warrantyPolicyDay ? Number(data.warrantyPolicyDay) : null,
             returnPolicyDay: data.returnPolicyDay ? Number(data.returnPolicyDay) : null,
             cateId: data.cateId ? Number(data.cateId) : null,
           };
-          promises.push(updateMutation.mutateAsync(updatePayload));
+          await updateMutation.mutateAsync(updatePayload);
 
-          // 2. Status update if changed (matches PUT /api/product/{id}?status=Value)
+          // 2. THEN update status (sequential to avoid race condition)
           if (data.status !== editingProduct.status) {
-            promises.push(
-              updateProductStatusMutation.mutateAsync({
-                productId: editingProduct.id,
-                status: data.status,
-              })
-            );
+            await updateProductStatusMutation.mutateAsync({
+              productId: editingProduct.id,
+              status: data.status,
+            });
           }
-
-          await Promise.all(promises);
 
           setDialogOpen(false);
           toast.success('Product updated', 'The product has been successfully updated.');
         } catch (error) {
-          console.error('[UpdateProduct] parallel error:', error);
+          console.error('[UpdateProduct] sequential error:', error);
         }
       } else {
         try {
@@ -593,8 +604,9 @@ export default function ProductsPage() {
     manualFiltering: true,
     enableRowSelection: true,
     enableExpanding: true,
-    // All combos can expand to show their ComboItemsTable
+    // All combos can expand to show their ComboItemsTable or SubRows
     getRowCanExpand: () => true,
+    getSubRows: row => row.subRows,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),

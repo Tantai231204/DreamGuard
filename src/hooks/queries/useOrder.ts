@@ -52,7 +52,14 @@ export const useCancelOrder = (options?: { meta?: Record<string, unknown> }) => 
         }
     });
 };
-export const useAdminOrders = (params?: { pageNumber?: number; pageSize?: number }) => {
+export const useAdminOrders = (params?: {
+    pageNumber?: number;
+    pageSize?: number;
+    search?: string;
+    status?: string[];
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+}) => {
     return useQuery({
         queryKey: [...orderKeys.all, 'admin', params],
         queryFn: () => orderService.getAdminOrders(params),

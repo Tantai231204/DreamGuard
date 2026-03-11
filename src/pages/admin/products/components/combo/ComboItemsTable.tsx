@@ -57,7 +57,11 @@ export default function ComboItemsTable({
     const rawChildCombos: Combo[] = React.useMemo(() => {
         const fromStore = (detail?.childCombos || []) as unknown as Combo[];
         const fromProps = (initialChildCombos || []) as unknown as Combo[];
-        const source = fromStore.length > 0 ? fromStore : fromProps;
+        
+        // Admin list passes initialChildCombos with ALL variants including Drafts.
+        // Public getById endpoint (detail) only returns Published ones. 
+        // Thus, prefer fromProps if available.
+        const source = fromProps.length > 0 ? fromProps : fromStore;
 
         // Ensure children have their parent ID set so Edit modal knows they are variants
         return source.map(c => ({
@@ -67,8 +71,8 @@ export default function ComboItemsTable({
     }, [detail?.childCombos, initialChildCombos, comboId]);
 
     const childCombosFiltered = rawChildCombos.filter(c =>
-        c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (c.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (c.sku || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
         (c.color || '').toLowerCase().includes(searchQuery.toLowerCase())
     );
 

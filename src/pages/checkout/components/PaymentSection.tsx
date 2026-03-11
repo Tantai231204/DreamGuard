@@ -2,8 +2,7 @@ import type { UseFormReturn } from "react-hook-form"
 import type { CheckoutFormData } from "../schema"
 import { Label } from "@/components/ui/label"
 import * as RadioGroup from "@radix-ui/react-radio-group"
-import { Separator } from "@/components/ui/separator"
-import { Truck, ShieldCheck, Wallet, CheckCircle2 } from "lucide-react"
+import { ShieldCheck, Wallet, CheckCircle2 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 
@@ -55,7 +54,7 @@ export function PaymentSection({ form }: PaymentSectionProps) {
                                 paymentMethod === "VnPay" ? "bg-white" : "bg-white shadow-sm border border-slate-100"
                             )}>
                                 <img
-                                    src="https://vnpay.vn/wp-content/uploads/2020/07/vnpay-logo.png"
+                                    src={`${import.meta.env.BASE_URL}images/vnpay.svg`}
                                     alt="VnPay"
                                     className="h-10 w-24 object-contain p-1"
                                 />
@@ -85,14 +84,14 @@ export function PaymentSection({ form }: PaymentSectionProps) {
                     >
                         <div className="flex items-center justify-between mb-8">
                             <div className={cn(
-                                "p-3 rounded-2xl transition-colors duration-500",
-                                paymentMethod === "COD" ? "bg-white/20" : "bg-white shadow-sm border border-slate-100"
+                                "p-1 rounded-xl transition-colors duration-500 overflow-hidden",
+                                paymentMethod === "COD" ? "bg-white" : "bg-white shadow-sm border border-slate-100"
                             )}>
-                                <div className="flex items-center gap-2">
-                                    <Truck className={cn("h-6 w-6", paymentMethod === "COD" ? "text-white" : "text-[#4988c4]")} />
-                                    <Separator orientation="vertical" className={cn("h-4", paymentMethod === "COD" ? "bg-white/40" : "bg-slate-200")} />
-                                    <Wallet className={cn("h-6 w-6", paymentMethod === "COD" ? "text-white" : "text-[#4988c4]")} />
-                                </div>
+                                <img
+                                    src={`${import.meta.env.BASE_URL}images/cod.svg`}
+                                    alt="COD"
+                                    className="h-10 w-24 object-contain p-1"
+                                />
                             </div>
                             {paymentMethod === "COD" && (
                                 <div className="bg-white rounded-full p-1.5 shadow-lg">

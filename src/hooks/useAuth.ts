@@ -1,6 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { authService } from "../api/services";
 import { useAuthStore } from "../store/authStore";
+import { useCart } from "@/store/useCart";
 import { toast } from "sonner";
 
 export const useLogin = () => {
@@ -36,17 +37,20 @@ export const useLogin = () => {
 
 export const useLogout = () => {
   const clearAuth = useAuthStore((s) => s.clearAuth);
+  const { clearCart } = useCart();
 
   return useMutation({
     mutationFn: authService.logout,
     onSuccess: () => {
       clearAuth();
+      clearCart();
       toast.success("Logged Out", {
         description: "You have been successfully logged out. See you soon!",
       });
     },
     onError: () => {
       clearAuth();
+      clearCart();
     },
   });
 };

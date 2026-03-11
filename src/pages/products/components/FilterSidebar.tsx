@@ -1,14 +1,6 @@
 import { useState, useCallback, useRef, useEffect, type FC } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Slider } from '@/components/ui/slider';
-import { Input } from '@/components/ui/input';
-import { Separator } from '@/components/ui/separator';
-import {
-    SlidersHorizontal,
-    X,
-    ChevronDown,
-    AlertCircle
-} from 'lucide-react';
+import { SlidersHorizontal, ChevronDown, Check } from 'lucide-react';
 import type { FilterOptions } from '../types';
 import { ageRanges } from '../data';
 import { cn } from '@/lib/utils';
@@ -19,268 +11,240 @@ interface FilterSidebarProps {
     onReset: () => void;
 }
 
-interface ColorOption {
-    value: string;
-    label: string;
-    color: string;
-    border?: boolean;
-}
-
-const colorOptions: ColorOption[] = [
-    { value: 'white', label: 'White', color: '#FFFFFF', border: true },
-    { value: 'pink', label: 'Pink', color: '#F9A8D4' },
-    { value: 'blue', label: 'Blue', color: '#93C5FD' },
-    { value: 'cream', label: 'Cream', color: '#FEF3C7' },
-    { value: 'mint', label: 'Mint', color: '#A7F3D0' },
-    { value: 'grey', label: 'Grey', color: '#D1D5DB' },
+const colorOptions = [
+    { value: 'white', label: 'White', hex: '#FFFFFF', border: true },
+    { value: 'pink', label: 'Pink', hex: '#F9A8D4' },
+    { value: 'blue', label: 'Blue', hex: '#93C5FD' },
+    { value: 'cream', label: 'Cream', hex: '#FEF3C7' },
+    { value: 'mint', label: 'Mint', hex: '#A7F3D0' },
+    { value: 'grey', label: 'Grey', hex: '#D1D5DB' },
 ];
 
 const sizeOptions = ['Newborn', 'S (0-6M)', 'M (6-12M)', 'L (1-2Y)', 'XL (2Y+)'];
 
-function FilterSection({
-    title,
-    children,
-    defaultOpen = true,
-}: {
+// Collapsible section
+function Section({ title, children, defaultOpen = true }: {
     title: string;
     children: React.ReactNode;
     defaultOpen?: boolean;
 }) {
-    const [isOpen, setIsOpen] = useState(defaultOpen);
+    const [open, setOpen] = useState(defaultOpen);
 
     return (
-        <div className="border-b border-slate-100 last:border-0 last:pb-0">
+        <div className="py-2">
             <button
                 type="button"
-                onClick={() => setIsOpen(!isOpen)}
-                className="flex w-full items-center justify-between py-6 group"
+                onClick={() => setOpen(!open)}
+                className="flex w-full items-center justify-between py-3 text-left group"
             >
-                <span className="text-sm font-black text-slate-800 uppercase tracking-[0.15em]">{title}</span>
+                <span className="text-[12px] font-bold text-slate-800 uppercase tracking-wider group-hover:text-[#4988c4] transition-colors">
+                    {title}
+                </span>
                 <ChevronDown
                     className={cn(
-                        "h-4 w-4 text-slate-300 transition-transform duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]",
-                        isOpen && "rotate-180 text-primary"
+                        "h-4 w-4 text-slate-300 transition-transform duration-300 ease-in-out",
+                        open && "rotate-180 text-[#4988c4]"
                     )}
                 />
             </button>
-            <AnimatePresence initial={false}>
-                {isOpen && (
-                    <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
-                        className="overflow-hidden"
-                    >
-                        <div className="pb-8 pt-1">{children}</div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {open && (
+                <div className="pb-4 animate-in fade-in slide-in-from-top-1 duration-300">
+                    {children}
+                </div>
+            )}
         </div>
     );
 }
 
-export const FilterSidebar: FC<FilterSidebarProps> = ({
-    filters,
-    onFilterChange,
-    onReset,
-}) => {
+export const FilterSidebar: FC<FilterSidebarProps> = ({ filters, onFilterChange, onReset }) => {
     const [priceRange, setPriceRange] = useState<[number, number]>([
         filters.priceRange.min ?? 0,
-        filters.priceRange.max ?? 1000,
+        filters.priceRange.max ?? 500,
     ]);
 
-    const priceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    useEffect(() => {
-        return () => {
-            if (priceTimerRef.current) clearTimeout(priceTimerRef.current);
-        };
-    }, []);
+    useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
     const isSelected = useCallback(
-        (key: 'ages' | 'colors' | 'sizes', value: string) => {
-            return filters[key].includes(value);
-        },
+        (key: 'ages' | 'colors' | 'sizes', value: string) => filters[key].includes(value),
         [filters]
     );
 
-    const toggleArrayFilter = useCallback(
+    const toggle = useCallback(
         (key: 'ages' | 'colors' | 'sizes', value: string) => {
-            const currentArray = filters[key];
-            const newArray = currentArray.includes(value)
-                ? currentArray.filter((item) => item !== value)
-                : [...currentArray, value];
-
-            onFilterChange({ ...filters, [key]: newArray });
+            const arr = filters[key];
+            onFilterChange({
+                ...filters,
+                [key]: arr.includes(value) ? arr.filter(v => v !== value) : [...arr, value],
+            });
         },
         [filters, onFilterChange]
     );
 
-    const handlePriceChange = useCallback((value: number[]) => {
+    const handlePrice = useCallback((value: number[]) => {
         setPriceRange([value[0], value[1]]);
-        if (priceTimerRef.current) clearTimeout(priceTimerRef.current);
-        priceTimerRef.current = setTimeout(() => {
-            onFilterChange({
-                ...filters,
-                priceRange: { min: value[0], max: value[1] },
-            });
-        }, 300);
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => {
+            onFilterChange({ ...filters, priceRange: { min: value[0], max: value[1] } });
+        }, 250);
     }, [filters, onFilterChange]);
 
-    const activeFilterCount = filters.ages.length +
+    const handleReset = () => { setPriceRange([0, 500]); onReset(); };
+
+    const activeCount =
+        filters.ages.length +
         filters.colors.length +
         filters.sizes.length +
-        (filters.priceRange.min !== null && filters.priceRange.min !== 0 ? 1 : 0) +
-        (filters.priceRange.max !== null && filters.priceRange.max !== 1000 ? 1 : 0);
+        (filters.priceRange.min ? 1 : 0) +
+        (filters.priceRange.max && filters.priceRange.max !== 500 ? 1 : 0);
 
-    const filteredAgeRanges = ageRanges.filter((a) => a !== 'All');
-
-    const handleReset = () => {
-        setPriceRange([0, 1000]);
-        onReset();
-    };
+    const filteredAges = ageRanges.filter(a => a !== 'All');
 
     return (
-        <aside className="w-full bg-white rounded-[2rem] border border-slate-100 p-8 shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
-            {/* Header Area */}
-            <div className="flex items-center justify-between mb-10">
-                <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 bg-primary/5 rounded-2xl flex items-center justify-center">
-                        <SlidersHorizontal className="h-5 w-5 text-primary" />
+        <aside className="w-full space-y-6">
+            {/* Header Section - Modern & Clean */}
+            <div className="flex flex-col gap-1 px-1">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <div className="p-2 bg-[#4988c4]/10 rounded-lg">
+                            <SlidersHorizontal className="h-4 w-4 text-[#4988c4]" />
+                        </div>
+                        <h2 className="text-[14px] font-black text-slate-900 uppercase tracking-widest">
+                            Refine Your Search
+                        </h2>
                     </div>
-                    <h2 className="text-xl font-black text-slate-900 tracking-tight">FILTER BY</h2>
+                    {activeCount > 0 && (
+                        <button
+                            onClick={handleReset}
+                            className="text-[10px] font-bold text-rose-500 hover:text-rose-600 uppercase tracking-tighter px-2 py-1 bg-rose-50 rounded-md transition-colors"
+                        >
+                            Reset ({activeCount})
+                        </button>
+                    )}
                 </div>
-                {activeFilterCount > 0 && (
-                    <button
-                        onClick={handleReset}
-                        className="text-[10px] font-black uppercase text-rose-500 hover:bg-rose-50 px-3 py-1.5 rounded-full transition-all border border-rose-100"
-                    >
-                        Reset
-                    </button>
-                )}
+                <p className="text-[11px] text-slate-400 font-medium pl-10">
+                    Showing results for your preferences
+                </p>
             </div>
 
-            <div className="space-y-2">
+            <div className="bg-white rounded-[2rem] border border-slate-100 p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] space-y-2 divide-y divide-slate-50">
                 {/* Price Range */}
-                <FilterSection title="Price Range">
-                    <div className="space-y-8 px-1">
+                <Section title="Price Range">
+                    <div className="space-y-6 px-1 pt-2">
                         <Slider
                             min={0}
-                            max={1000}
-                            step={10}
+                            max={500}
+                            step={5}
                             value={priceRange}
-                            onValueChange={handlePriceChange}
-                            className="w-full py-4 [&_[role=slider]]:h-6 [&_[role=slider]]:w-6 [&_[role=slider]]:border-4 [&_[role=slider]]:border-white [&_[role=slider]]:shadow-xl [&_[role=slider]]:bg-primary"
+                            onValueChange={handlePrice}
+                            className="w-full [&_[role=slider]]:h-5 [&_[role=slider]]:w-5 [&_[role=slider]]:border-4 [&_[role=slider]]:border-white [&_[role=slider]]:bg-[#4988c4] [&_[role=slider]]:shadow-lg [&_[role=slider]]:transition-transform active:[&_[role=slider]]:scale-90"
                         />
-                        <div className="grid grid-cols-[1fr_20px_1fr] items-center gap-2">
-                            <div className="relative">
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black text-slate-300">$</span>
-                                <Input
-                                    type="number"
-                                    value={priceRange[0]}
-                                    readOnly
-                                    className="h-12 pl-8 pr-4 rounded-xl border-none bg-slate-50 text-sm font-black text-slate-600 shadow-inner"
-                                />
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="flex-1 flex flex-col gap-1">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase pl-1">Min</span>
+                                <div className="bg-slate-50 rounded-xl px-4 py-2 border border-slate-100 flex items-baseline gap-1">
+                                    <span className="text-[10px] text-slate-300 font-bold">$</span>
+                                    <span className="text-[14px] font-black text-slate-700 tabular-nums">{priceRange[0]}</span>
+                                </div>
                             </div>
-                            <Separator className="w-4 bg-slate-200 justify-self-center" />
-                            <div className="relative">
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black text-slate-300">$</span>
-                                <Input
-                                    type="number"
-                                    value={priceRange[1]}
-                                    readOnly
-                                    className="h-12 pl-8 pr-4 rounded-xl border-none bg-slate-50 text-sm font-black text-slate-600 shadow-inner"
-                                />
+                            <div className="pt-4 text-slate-200">—</div>
+                            <div className="flex-1 flex flex-col gap-1">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase pl-1">Max</span>
+                                <div className="bg-slate-50 rounded-xl px-4 py-2 border border-slate-100 flex items-baseline gap-1">
+                                    <span className="text-[10px] text-slate-300 font-bold">$</span>
+                                    <span className="text-[14px] font-black text-slate-700 tabular-nums">{priceRange[1]}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </FilterSection>
+                </Section>
 
-                {/* Categories / Age Section */}
-                <FilterSection title="Baby Age">
-                    <div className="space-y-2">
-                        {filteredAgeRanges.map((age) => {
+                {/* Baby Age */}
+                <Section title="Baby Age">
+                    <div className="grid grid-cols-1 gap-1 pt-1">
+                        {filteredAges.map((age) => {
                             const selected = isSelected('ages', age);
                             return (
                                 <button
                                     key={age}
-                                    onClick={() => toggleArrayFilter('ages', age)}
+                                    onClick={() => toggle('ages', age)}
                                     className={cn(
-                                        "flex w-full items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 group",
+                                        "flex w-full items-center justify-between px-3 py-2.5 rounded-xl text-[13px] transition-all group",
                                         selected
-                                            ? "bg-slate-900 text-white shadow-xl translate-x-1"
-                                            : "text-slate-500 hover:bg-slate-50 hover:text-slate-900 hover:translate-x-1"
+                                            ? "text-[#4988c4] bg-[#4988c4]/5 font-bold translate-x-1"
+                                            : "text-slate-600 hover:bg-slate-50 hover:translate-x-1 font-medium"
                                     )}
                                 >
-                                    <div className={cn(
-                                        "h-2 w-2 rounded-full transition-all duration-500",
-                                        selected ? "bg-primary scale-150 ring-4 ring-primary/20" : "bg-slate-200 group-hover:bg-primary/40"
-                                    )} />
-                                    <span className="text-[13px] font-bold tracking-tight">{age}</span>
-                                    {selected && <X className="ml-auto h-3 w-3 text-slate-400" />}
+                                    <div className="flex items-center gap-3">
+                                        <div className={cn(
+                                            "h-1.5 w-1.5 rounded-full transition-all",
+                                            selected ? "bg-[#4988c4] scale-150 shadow-[0_0_8px_rgba(73,136,196,0.5)]" : "bg-slate-200 group-hover:bg-slate-300"
+                                        )} />
+                                        <span>{age}</span>
+                                    </div>
+                                    {selected && <Check className="h-3.5 w-3.5 text-[#4988c4] animate-in zoom-in-50 duration-200" />}
                                 </button>
                             );
                         })}
                     </div>
-                </FilterSection>
+                </Section>
 
-                {/* Colors Section */}
-                <FilterSection title="Colors">
-                    <div className="grid grid-cols-4 gap-3">
+                {/* Colors */}
+                <Section title="Color Palette">
+                    <div className="grid grid-cols-3 gap-2 pt-2">
                         {colorOptions.map((color) => {
                             const selected = isSelected('colors', color.value);
                             return (
                                 <button
                                     key={color.value}
-                                    onClick={() => toggleArrayFilter('colors', color.value)}
-                                    title={color.label}
+                                    onClick={() => toggle('colors', color.value)}
                                     className={cn(
-                                        "group flex flex-col items-center gap-2 p-1 transition-all",
-                                        selected ? "scale-105" : "hover:scale-105"
+                                        "flex items-center gap-2 p-1.5 rounded-xl border transition-all",
+                                        selected
+                                            ? "border-[#4988c4] bg-[#4988c4]/5 shadow-sm"
+                                            : "border-slate-50 hover:border-slate-200 bg-white"
                                     )}
                                 >
                                     <div
                                         className={cn(
-                                            "h-10 w-10 rounded-2xl border-4 transition-all flex items-center justify-center relative",
-                                            selected
-                                                ? "border-primary shadow-lg ring-4 ring-primary/5"
-                                                : "border-white shadow-md hover:border-slate-50 shadow-slate-200/50"
+                                            "h-5 w-5 rounded-full shadow-sm flex items-center justify-center",
+                                            color.border && "border border-slate-100"
                                         )}
-                                        style={{ backgroundColor: color.color }}
+                                        style={{ backgroundColor: color.hex }}
                                     >
                                         {selected && (
-                                            <div className={cn(
-                                                "h-2 w-2 rounded-full",
-                                                color.value === 'white' ? "bg-slate-900" : "bg-white"
-                                            )} />
+                                            <Check className={cn(
+                                                "h-2.5 w-2.5",
+                                                color.value === 'white' || color.value === 'cream' ? "text-slate-800" : "text-white"
+                                            )} strokeWidth={4} />
                                         )}
                                     </div>
                                     <span className={cn(
-                                        "text-[10px] font-black uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-opacity",
-                                        selected ? "opacity-100 text-primary" : "text-slate-400"
+                                        "text-[10px] font-bold uppercase tracking-tighter truncate",
+                                        selected ? "text-[#4988c4]" : "text-slate-400"
                                     )}>
-                                        {color.value}
+                                        {color.label}
                                     </span>
                                 </button>
                             );
                         })}
                     </div>
-                </FilterSection>
+                </Section>
 
-                {/* Sizes Section */}
-                <FilterSection title="Comfort Sizes">
-                    <div className="grid grid-cols-2 gap-2">
+                {/* Sizes */}
+                <Section title="Sizes">
+                    <div className="grid grid-cols-2 gap-2 pt-2">
                         {sizeOptions.map((size) => {
                             const selected = isSelected('sizes', size);
                             return (
                                 <button
                                     key={size}
-                                    onClick={() => toggleArrayFilter('sizes', size)}
+                                    onClick={() => toggle('sizes', size)}
                                     className={cn(
-                                        "px-4 py-3 rounded-2xl border-2 text-[11px] font-black transition-all text-center leading-tight",
+                                        "py-2.5 px-2 rounded-xl border-2 text-[11px] font-black tracking-tight text-center transition-all",
                                         selected
-                                            ? "bg-slate-900 border-slate-900 text-white shadow-xl"
+                                            ? "bg-slate-950 border-slate-950 text-white shadow-lg -translate-y-0.5"
                                             : "bg-white border-slate-50 text-slate-400 hover:border-slate-200 hover:text-slate-900 shadow-sm"
                                     )}
                                 >
@@ -289,22 +253,8 @@ export const FilterSidebar: FC<FilterSidebarProps> = ({
                             );
                         })}
                     </div>
-                </FilterSection>
+                </Section>
             </div>
-
-            {/* Price Alert / Warning */}
-            {priceRange[0] >= priceRange[1] && (
-                <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mt-6 p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-start gap-3"
-                >
-                    <AlertCircle className="h-4 w-4 text-rose-500 mt-0.5 flex-shrink-0" />
-                    <p className="text-[11px] font-bold text-rose-600 leading-relaxed">
-                        Invalid price range. Minimum cannot exceed maximum.
-                    </p>
-                </motion.div>
-            )}
         </aside>
     );
 };

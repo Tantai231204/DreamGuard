@@ -20,27 +20,27 @@ import type { CategoryResponse } from "@/api/types/category.types"
 // --- Material Data Store ---
 const MATERIAL_ASSETS: Record<string, { image: string, description: string }> = {
     'Polyester': {
-        image: 'https://i.pinimg.com/736x/d1/d5/db/d1d5db8e4a3b0b4c3e5e2d9a7e8fa06f.jpg',
+        image: 'https://i.pinimg.com/1200x/16/67/bd/1667bd49ceb38179d8b9071842fd7bd0.jpg',
         description: 'Durable, lightweight and wrinkle-resistant.',
     },
     'Cotton': {
-        image: 'https://i.pinimg.com/736x/7c/aa/33/7caa33bf8eca070ee8a1dd20f86723ec.jpg',
+        image: 'https://i.pinimg.com/1200x/91/4e/cc/914eccc7214c72e9bea452fd1d536c72.jpg',
         description: 'Soft, breathable and perfect for everyday comfort.',
     },
     'Organic Cotton': {
-        image: 'https://i.pinimg.com/736x/fe/f3/c7/fef3c7a06f596cd15e4a3b0b4c3e5e2d.jpg',
+        image: 'https://i.pinimg.com/1200x/56/ce/81/56ce813f1037f4f7d978c2d7f362adf3.jpg',
         description: '100% organic, hypoallergenic and eco-friendly.',
     },
     'Bamboo Fiber': {
-        image: 'https://i.pinimg.com/736x/39/59/09/39590918cf5dc918f6734fbdbfcc8cf0.jpg',
+        image: 'https://i.pinimg.com/736x/01/95/44/0195446c9411868e9efe734ef4b5151b.jpg',
         description: 'Naturally antibacterial and highly absorbent.',
     },
     'Fleece': {
-        image: 'https://i.pinimg.com/736x/d1/d5/db/d1d5db8e4a3b0b4c3e5e2d9a7e8fa06f.jpg',
+        image: 'https://i.pinimg.com/736x/91/7e/86/917e8695f0744371d42e59ef0081c6d3.jpg',
         description: 'Warm, cozy, and ideal for chilly nights.',
     },
     'Memory Foam': {
-        image: 'https://i.pinimg.com/736x/a0/6f/59/a06f596cd15e4a3b0b4c3e5e2d9a7e8f.jpg',
+        image: 'https://i.pinimg.com/736x/40/9f/88/409f887e5436ee1c5d6f0739b08bbf04.jpg',
         description: 'Contouring support that adapts to your shape.',
     },
     'default': {

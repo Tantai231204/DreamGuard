@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { Package, Clock, CheckCircle2, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
+import { formatPrice } from '@/pages/profile/utils';
 
 interface OrderStatsProps {
     total: number;
@@ -93,7 +94,7 @@ export const OrderStats = memo(({ total, revenue, pending, delivered }: OrderSta
             />
             <StatCard
                 title="Revenue"
-                value={`$${revenue.toFixed(2)}`}
+                value={formatPrice(revenue)}
                 icon={DollarSign}
                 iconBg="bg-gray-100"
                 trend="up"

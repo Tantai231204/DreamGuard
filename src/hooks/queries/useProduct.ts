@@ -113,6 +113,15 @@ export const useAdminProductVariants = <T = AdminVariantsByProductResponse>(
   });
 };
 
+/** Fetch individual variant detail by ID */
+export const useVariantDetail = (variantId: string, enabled = true) => {
+  return useQuery({
+    queryKey: variantKeys.detail(variantId),
+    queryFn: () => variantService.getById(variantId),
+    enabled: !!variantId && enabled,
+  });
+};
+
 /** 
  * Senior-optimized hook: Returns fully transformed and memoized variant data 
  * mapped specifically for UI components.

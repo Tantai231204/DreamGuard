@@ -1,17 +1,9 @@
 import { useMemo } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { MoreVertical, Pencil, Trash2, Eye, Copy, Percent, DollarSign } from 'lucide-react';
-import { SortableHeader } from '@/components/admin';
+import { Pencil, Trash2, Eye, Copy, Percent, DollarSign } from 'lucide-react';
+import { SortableHeader, AdminRowActions } from '@/components/admin';
 import type { Voucher } from '../types';
 
 const columnHelper = createColumnHelper<Voucher>();
@@ -160,48 +152,18 @@ export function useVoucherColumns(options?: {
                     const voucher = row.original;
                     return (
                         <div className="flex justify-end">
-                            <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-9 w-9 p-0 rounded-lg hover:bg-gray-100 hover:shadow-md transition-all"
-                                    >
-                                        <MoreVertical className="h-5 w-5" />
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-52 shadow-xl border-2 rounded-xl">
-                                    <DropdownMenuItem
-                                        onClick={() => console.log('View', voucher.voucherId)}
-                                        className="cursor-pointer py-2.5 font-medium"
-                                    >
-                                        <Eye className="h-4 w-4 mr-3 text-blue-600" />
-                                        View Details
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                        onClick={() => options?.onEdit?.(voucher)}
-                                        className="cursor-pointer py-2.5 font-medium"
-                                    >
-                                        <Pencil className="h-4 w-4 mr-3 text-gray-700" />
-                                        Edit Voucher
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                        onClick={() => console.log('Duplicate', voucher.voucherId)}
-                                        className="cursor-pointer py-2.5 font-medium"
-                                    >
-                                        <Copy className="h-4 w-4 mr-3 text-gray-700" />
-                                        Duplicate
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator className="my-1" />
-                                    <DropdownMenuItem
-                                        onClick={() => options?.onDelete?.(voucher.voucherId)}
-                                        className="cursor-pointer py-2.5 text-red-600 font-semibold focus:bg-red-50 focus:text-red-700"
-                                    >
-                                        <Trash2 className="h-4 w-4 mr-3" />
-                                        Delete
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                            <AdminRowActions
+                                sections={[
+                                    [
+                                        { label: 'View Details', icon: <Eye className="h-4 w-4" />, onClick: () => console.log('View', voucher.voucherId) },
+                                        { label: 'Edit Voucher', icon: <Pencil className="h-4 w-4" />, onClick: () => options?.onEdit?.(voucher) },
+                                        { label: 'Duplicate', icon: <Copy className="h-4 w-4" />, onClick: () => console.log('Duplicate', voucher.voucherId) },
+                                    ],
+                                    [
+                                        { label: 'Delete', icon: <Trash2 className="h-4 w-4" />, variant: 'danger', onClick: () => options?.onDelete?.(voucher.voucherId) }
+                                    ]
+                                ]}
+                            />
                         </div>
                     );
                 },

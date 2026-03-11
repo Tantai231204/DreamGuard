@@ -1,49 +1,48 @@
-import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
-import { Separator } from '@radix-ui/react-separator';
+import { User, ShieldCheck } from 'lucide-react';
 
 interface CustomerInfoCardProps {
   name: string;
   email: string;
-  phone?: string;
-  delay?: number;
+  phone: string;
 }
 
-export function CustomerInfoCard({ name, email, phone, delay = 0 }: CustomerInfoCardProps) {
+export function CustomerInfoCard({ name, email, phone }: CustomerInfoCardProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay }}
-    >
-      <Card className="p-5 border border-gray-200 rounded-xl">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-1 h-5 bg-gradient-to-b from-[var(--color-primary)] to-[var(--color-primary-hover)] rounded-full"></div>
-          <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">
-            Customer Info
-          </h2>
-        </div>
-        <div className="space-y-3">
-          <div>
-            <div className="text-xs text-gray-500 mb-1">Name</div>
-            <div className="font-medium text-gray-900">{name}</div>
+    <Card className="border border-blue-100/50 bg-blue-50/10 rounded-2xl shadow-sm overflow-hidden relative group">
+       <div className="p-5 flex flex-col gap-4">
+          <div className="flex items-start justify-between">
+             <div className="flex flex-col">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Customer Profile</span>
+                <h3 className="text-sm font-black text-slate-900 leading-tight uppercase tracking-tight">{name}</h3>
+             </div>
+             <div className="p-2 rounded-lg bg-white border border-blue-50 shadow-sm">
+                <User className="w-3.5 h-3.5 text-primary" />
+             </div>
           </div>
-          <Separator className="h-px bg-gray-200" />
-          <div>
-            <div className="text-xs text-gray-500 mb-1">Email</div>
-            <div className="text-sm text-gray-700 break-all">{email}</div>
+
+          <div className="grid grid-cols-2 gap-4">
+             <div className="space-y-1">
+                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Email</span>
+                <div className="flex items-center gap-1.5">
+                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                   <p className="text-[10px] font-bold text-slate-600 truncate">{email}</p>
+                </div>
+             </div>
+             <div className="space-y-1 text-right">
+                <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Phone</span>
+                <p className="text-[10px] font-bold text-slate-900 font-mono tracking-tighter">{phone}</p>
+             </div>
           </div>
-          {phone && (
-            <>
-              <Separator className="h-px bg-gray-200" />
-              <div>
-                <div className="text-xs text-gray-500 mb-1">Phone</div>
-                <div className="text-sm text-gray-700">{phone}</div>
-              </div>
-            </>
-          )}
-        </div>
-      </Card>
-    </motion.div>
+
+          <div className="pt-3 border-t border-blue-50/50 flex items-center justify-between mt-1">
+             <div className="flex items-center gap-1.5">
+                <ShieldCheck className="w-3 h-3 text-primary/40" />
+                <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Verified Customer</span>
+             </div>
+             <div className="w-2 h-2 rounded-full border-2 border-primary/20" />
+          </div>
+       </div>
+    </Card>
   );
 }

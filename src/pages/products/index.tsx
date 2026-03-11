@@ -200,20 +200,24 @@ export default function ProductsPage() {
                     <aside className="w-full lg:w-[320px] shrink-0">
                         <div className="sticky top-28 space-y-10">
                             <motion.div
-                                initial={{ opacity: 0, x: -20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                className="space-y-4"
+                                initial={{ opacity: 0, y: 15 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="space-y-4 px-1"
                             >
-                                <div className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-amber-50 text-amber-600 text-[10px] font-bold uppercase tracking-wider">
-                                    <Sparkles className="h-3.5 w-3.5 fill-amber-200" />
+                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#4988c4]/10 text-[#4988c4] text-[10px] font-black uppercase tracking-widest shadow-sm">
+                                    <Sparkles className="h-3 w-3" />
                                     Sweet Dreams Await
                                 </div>
-                                <h1 className="text-4xl lg:text-5xl font-extrabold text-primary-dark tracking-tight">
-                                    {pageTitle}
-                                </h1>
-                                <p className="text-sm text-primary-light font-medium">
-                                    Discover our curated selection of <span className="text-amber-500 font-bold">{filteredProducts.length}</span> cozy essentials.
-                                </p>
+                                <div className="space-y-2">
+                                    <h1 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-tight leading-[1.1]">
+                                        {pageTitle}
+                                    </h1>
+                                    <div className="flex items-center gap-2 text-[13px] text-slate-400 font-medium">
+                                        <span>Discover</span>
+                                        <div className="h-1 w-1 rounded-full bg-slate-300" />
+                                        <span>{filteredProducts.length} items found</span>
+                                    </div>
+                                </div>
                             </motion.div>
 
                             <FilterSidebar
@@ -229,7 +233,7 @@ export default function ProductsPage() {
                         <motion.div
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 bg-white p-4 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.03)] border border-primary-light/40"
+                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 bg-white p-2 sm:p-3 rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-slate-100"
                         >
                             <div className="relative flex-1 group">
                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-primary-light group-focus-within:text-amber-400 transition-colors" />
@@ -248,22 +252,22 @@ export default function ProductsPage() {
                                 <div className="h-8 w-[1px] bg-primary-light/20 hidden sm:block" />
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" className="h-12 gap-3 text-sm font-bold text-primary-dark/80 hover:bg-amber-50 hover:text-amber-600 rounded-2xl px-4 transition-all group">
-                                            <span className="text-primary-light font-medium mr-1 group-hover:text-amber-400 transition-colors">Sort by:</span>
+                                        <Button variant="ghost" className="h-12 gap-3 text-sm font-bold text-slate-700 hover:bg-blue-50 hover:text-[#4988c4] rounded-xl px-4 transition-all group">
+                                            <span className="text-slate-400 font-medium mr-1 group-hover:text-[#4988c4] transition-colors">Sort by:</span>
                                             {sortOptions.find((opt) => opt.value === filters.sortBy)?.label || 'Featured'}
-                                            <ChevronDown className="h-4 w-4 text-primary-light transition-transform group-data-[state=open]:rotate-180" />
+                                            <ChevronDown className="h-4 w-4 text-slate-400 transition-transform group-data-[state=open]:rotate-180" />
                                         </Button>
                                     </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="w-56 rounded-[1.5rem] p-2 shadow-2xl border-primary-light/30 bg-white/95 backdrop-blur-md">
+                                    <DropdownMenuContent align="end" className="w-56 rounded-xl p-2 shadow-2xl border-slate-100 bg-white/95 backdrop-blur-md">
                                         {sortOptions.map((option) => (
                                             <DropdownMenuItem
                                                 key={option.value}
                                                 onClick={() => handleFilterChange({ ...filters, sortBy: option.value as FilterOptions['sortBy'] })}
                                                 className={cn(
-                                                    "rounded-xl px-4 py-2.5 text-sm font-semibold cursor-pointer transition-all mb-1 last:mb-0",
+                                                    "rounded-lg px-4 py-2.5 text-sm font-semibold cursor-pointer transition-all mb-1 last:mb-0",
                                                     filters.sortBy === option.value
-                                                        ? "bg-amber-400 text-white"
-                                                        : "text-primary-dark/60 hover:bg-amber-50 hover:text-amber-600"
+                                                        ? "bg-[#4988c4] text-white"
+                                                        : "text-slate-600 hover:bg-blue-50 hover:text-[#4988c4]"
                                                 )}
                                             >
                                                 {option.label}

@@ -126,11 +126,11 @@ export function CheckoutForm({ totalPrice }: CheckoutFormProps) {
                     <Button
                         type="submit"
                         disabled={isSubmitting}
-                        className="w-full h-20 text-xl font-black rounded-[1.5rem] bg-slate-900 text-white hover:bg-slate-800 shadow-xl shadow-slate-200 transition-all duration-300 transform hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 group"
+                        className="w-full h-20 text-xl font-black rounded-[1.5rem] bg-gradient-to-r from-[#4988c4] to-[#3a73a8] text-white hover:to-[#2d5d8a] shadow-2xl shadow-[#4988c4]/30 transition-all duration-300 transform hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 group border-none"
                     >
                         {isSubmitting ? (
                             <div className="flex items-center gap-3">
-                                <Loader2 className="h-6 w-6 animate-spin text-[#4988c4]" />
+                                <Loader2 className="h-6 w-6 animate-spin text-white" />
                                 <span className="uppercase tracking-widest text-sm">Validating Security...</span>
                             </div>
                         ) : (
@@ -138,7 +138,7 @@ export function CheckoutForm({ totalPrice }: CheckoutFormProps) {
                                 <span className="uppercase tracking-widest text-sm">Confirm Order</span>
                                 <div className="flex items-center gap-4">
                                     <span className="text-2xl tracking-tighter">${currentTotal}</span>
-                                    <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center group-hover:translate-x-1 transition-transform">
+                                    <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center group-hover:translate-x-1 transition-transform">
                                         <ArrowRight className="w-5 h-5" />
                                     </div>
                                 </div>

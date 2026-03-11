@@ -7,6 +7,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -20,12 +23,16 @@ import {
   AlertTriangle,
   ChevronDown,
   Package2,
+  CircleDot,
+  Sparkles,
+  Check,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useRichAdminVariants } from '@/hooks/queries/useProduct';
+import { useRichAdminVariants, useUpdateVariantStatus } from '@/hooks/queries/useProduct';
 import { useStockAdjustment } from './useStockAdjustment';
 import StockAdjustmentDialog from './StockAdjustmentDialog';
 import type { TransformedAdminVariants } from '@/pages/admin/products/utils/variant-utils';
+import { useToast } from '@/hooks/useToast';
 
 /* ─── Stock Status Config ───────────────────────────────── */
 const stockStatusConfig: Record<string, { label: string; className: string }> = {
@@ -300,6 +307,13 @@ function ColorGroupRow({
   );
 }
 
+/* ─── Variant Status Config ─────────────────────────────── */
+const variantStatusStyles: Record<string, { dot: string; label: string }> = {
+  Published: { dot: 'bg-emerald-500', label: 'Published' },
+  Draft: { dot: 'bg-amber-400', label: 'Draft' },
+  Hidden: { dot: 'bg-gray-400', label: 'Hidden' },
+};
+
 /* ─── Variant Row ──────────────────────────────────────── */
 function VariantRow({
   variant,
@@ -316,6 +330,31 @@ function VariantRow({
 }) {
   const hasSale = variant.salePrice < variant.basePrice;
   const statusConfig = stockStatusConfig[variant.stockStatus] || stockStatusConfig[variant.status] || stockStatusConfig['Out of Stock'];
+  const toast = useToast();
+  const hasZeroStock = !variant.stockQuantity || variant.stockQuantity <= 0;
+
+  // Quick action mutations
+  const updateStatusMutation = useUpdateVariantStatus();
+
+  const handleQuickStatus = useCallback((newStatus: string) => {
+    if (newStatus === variant.status) return;
+
+    if (hasZeroStock && (newStatus === 'Published' || newStatus === 'Hidden')) {
+        toast.error('Invalid Status', 'Cannot activate or hide variant with zero stock.');
+        return;
+    }
+
+    updateStatusMutation.mutate(
+      { variantId: variant.id, status: newStatus },
+      {
+        onSuccess: () => toast.success('Status updated', `Variant is now ${newStatus}.`),
+        onError: () => toast.error('Failed', 'Could not update variant status.'),
+      }
+    );
+  }, [variant.id, variant.status, hasZeroStock, updateStatusMutation, toast]);
+
+  const currentStatus = variant.status || 'Draft';
+  const statusStyle = variantStatusStyles[currentStatus] || variantStatusStyles.Draft;
 
   return (
     <div className="grid grid-cols-[80px_100px_1fr_120px_140px_120px_60px] gap-4 items-center px-10 py-3.5 hover:bg-slate-50/50 transition-all group/vrow relative">
@@ -360,7 +399,7 @@ function VariantRow({
             className={cn(
               "h-7 w-7 p-0 rounded-lg transition-all scale-90",
               variant.isOutOfStock 
-                ? "invisible opacity-0 pointer-events-none" // Hard hide when OOS
+                ? "invisible opacity-0 pointer-events-none"
                 : "opacity-0 group-hover/vrow:opacity-100 hover:bg-red-50 hover:text-red-600"
             )}
           >
@@ -384,7 +423,7 @@ function VariantRow({
             className={cn(
               "h-7 w-7 p-0 rounded-lg transition-all scale-90",
               variant.isOutOfStock
-                ? "opacity-100 text-emerald-600 hover:bg-emerald-50" // ALWAYS visible when OOS
+                ? "opacity-100 text-emerald-600 hover:bg-emerald-50"
                 : "opacity-0 group-hover/vrow:opacity-100 hover:bg-emerald-50 hover:text-emerald-600"
             )}
           >
@@ -393,8 +432,8 @@ function VariantRow({
         </div>
       </div>
 
-      {/* Stock Status Badge */}
-      <div className="text-center">
+      {/* Stock + Variant Status Badges */}
+      <div className="flex flex-col items-center gap-1">
         <Badge
           variant="outline"
           className={cn(
@@ -404,11 +443,14 @@ function VariantRow({
         >
           {statusConfig.label}
         </Badge>
+        <span className="flex items-center gap-1 text-[10px] text-slate-400 font-medium">
+          <span className={cn('w-1.5 h-1.5 rounded-full', statusStyle.dot)} />
+          {statusStyle.label}
+        </span>
       </div>
 
-      {/* Contextual Actions */}
+      {/* Contextual Actions + Quick Actions */}
       <div className="flex justify-end gap-1 opacity-0 group-hover/vrow:opacity-100 transition-opacity">
-
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -419,7 +461,8 @@ function VariantRow({
               <MoreVertical className="h-4 w-4 text-slate-400" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48 shadow-xl border border-slate-200/60 rounded-xl p-1 animate-in fade-in zoom-in-95 duration-100">
+          <DropdownMenuContent align="end" className="w-52 shadow-xl border border-slate-200/60 rounded-xl p-1 animate-in fade-in zoom-in-95 duration-100">
+            {/* Edit */}
             <DropdownMenuItem
               className="rounded-lg cursor-pointer py-2 px-3 font-medium text-slate-600 hover:text-blue-600 focus:bg-blue-50 focus:text-blue-700 transition-colors gap-2.5"
               onClick={onEdit}
@@ -430,6 +473,52 @@ function VariantRow({
 
             <DropdownMenuSeparator className="my-1 bg-slate-100" />
 
+            {/* Quick Status Change */}
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger className="rounded-lg cursor-pointer py-2 px-3 font-medium text-slate-600 gap-2.5">
+                <CircleDot className="h-4 w-4 opacity-70" />
+                <span className="text-[13px]">Change Status</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="w-44 rounded-xl shadow-xl border border-slate-200/60 p-1">
+                {Object.entries(variantStatusStyles).map(([value, style]) => {
+                  const isDisabled = hasZeroStock && (value === 'Published' || value === 'Hidden');
+                  return (
+                    <DropdownMenuItem
+                      key={value}
+                      onClick={() => !isDisabled && handleQuickStatus(value)}
+                      disabled={isDisabled}
+                      className={cn(
+                        "rounded-lg cursor-pointer py-2 px-3 font-medium text-slate-600 gap-2.5",
+                        currentStatus === value && "bg-slate-50"
+                      )}
+                      title={isDisabled ? "Cannot activate or hide variant with zero stock." : undefined}
+                    >
+                      <span className={cn('w-2.5 h-2.5 rounded-full', style.dot)} />
+                      <span className={cn("text-[13px] flex-1", isDisabled && "text-gray-400")}>{style.label}</span>
+                      {currentStatus === value && <Check className="h-3.5 w-3.5 text-emerald-500" />}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+
+            {/* Quick New Arrival Toggle */}
+            <DropdownMenuItem
+              className="rounded-lg cursor-pointer py-2 px-3 font-medium text-slate-600 gap-2.5"
+              onClick={() => {
+                // isNew toggle is not a separate endpoint — covered by the edit dialog
+                onEdit();
+              }}
+            >
+              <Sparkles className={cn('h-4 w-4', variant.isNew ? 'text-orange-500' : 'opacity-70')} />
+              <span className="text-[13px]">
+                {variant.isNew ? 'Remove New Badge' : 'Mark as New'}
+              </span>
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator className="my-1 bg-slate-100" />
+
+            {/* Delete */}
             <DropdownMenuItem
               className="rounded-lg cursor-pointer py-2 px-3 font-medium text-red-500 focus:bg-red-50 focus:text-red-600 transition-colors gap-2.5"
               onClick={onDelete}

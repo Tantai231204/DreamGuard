@@ -17,6 +17,7 @@ export interface CreateVariantRequest {
   weight: number;
   attributes: VariantAttributes | null;
   productid: string;
+  isNew?: boolean;
 }
 
 export interface UpdateVariantRequest {
@@ -26,6 +27,7 @@ export interface UpdateVariantRequest {
   weight: number;
   attributes: VariantAttributes | null;
   productid: string;
+  isNew?: boolean;
 }
 
 export interface UpdateVariantStatusParams {
@@ -60,7 +62,10 @@ export interface AdminVariantItem {
   stockQuantity: number;
   stockStatus: string;
   status: string;
+  weight: number | null;
   attributes: VariantAttributes | null;
+  isNew?: boolean;
+  createdAt?: string;
 }
 
 export interface AdminColorGroup {
@@ -87,7 +92,7 @@ const variantService = {
 
   /** Update variant status */
   updateStatus: ({ variantId, status }: UpdateVariantStatusParams): Promise<void> =>
-    apiClient.patch(`/variants/${variantId}/status`, null, { params: { status } }).then((res) => res.data),
+    apiClient.patch(`/variants/${variantId}/status`, {}, { params: { status } }).then((res) => res.data),
 
 
   /** Delete variant */

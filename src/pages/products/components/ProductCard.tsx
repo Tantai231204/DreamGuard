@@ -1,10 +1,8 @@
 import type { FC } from "react"
 import { Link } from "react-router-dom"
-import { Star, Heart } from "lucide-react"
 import { motion } from "framer-motion"
-
-import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Star, Heart, Plus } from "lucide-react"
 
 import type { Product } from "../types"
 import { getProductDetailRoute } from "@/lib/constants"
@@ -13,105 +11,133 @@ interface ProductCardProps {
     product: Product
 }
 
-export const ProductCard: FC<ProductCardProps> = ({ product }) => {
-    const formatPrice = (price: number) =>
-        `$${price.toLocaleString()}`
+const formatPrice = (price: number) =>
+    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(price)
 
+export const ProductCard: FC<ProductCardProps> = ({ product }) => {
     const handleLike = (e: React.MouseEvent) => {
         e.preventDefault()
         e.stopPropagation()
     }
 
+    const discountPercent = product.discount
+        ? product.discount
+        : product.originalPrice && product.originalPrice > product.price
+            ? Math.round((1 - product.price / product.originalPrice) * 100)
+            : null
+
+    const ratingValue = product.rating || 4.8
+    const reviewCount = product.reviewCount || 0
+
     return (
         <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, scale: 0.98 }}
+            whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            whileHover={{ y: -8 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            whileHover={{ y: -6 }}
+            transition={{ type: "spring", stiffness: 260, damping: 22 }}
             className="group"
         >
             <Link to={getProductDetailRoute(product.slug)}>
-                <Card className="relative flex flex-col overflow-hidden rounded-[2.5rem] border-0 bg-white shadow-[0_2px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.08)] transition-all duration-500">
+                <div className="flex flex-col">
 
                     {/* IMAGE SECTION */}
-                    <div className="relative aspect-square overflow-hidden rounded-[2.5rem] m-2 bg-slate-50">
-                        <motion.img
+                    <div className="relative aspect-[4/3] overflow-hidden rounded-[2.5rem] bg-slate-50 border border-slate-100/50">
+                        <img
                             src={product.image}
                             alt={product.name}
-                            className="h-full w-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                            loading="lazy"
+                            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
                             onError={(e) => {
                                 e.currentTarget.src = "/images/placeholder-product.svg"
                             }}
                         />
 
-                        {/* TOP BADGES */}
-                        <div className="absolute left-4 top-4 flex flex-wrap gap-2 z-10">
-                            {product.isNew && (
-                                <Badge className="bg-slate-900 hover:bg-slate-800 text-white border-0 px-3 py-1 text-[10px] font-bold rounded-full tracking-wider uppercase">
-                                    New Arrival
+                        {/* Badges */}
+                        <div className="absolute left-4 top-4 flex flex-col gap-1.5 z-10">
+                            {discountPercent && discountPercent > 0 && (
+                                <Badge className="bg-rose-500 text-white border-0 px-3 py-1 text-[10px] font-bold rounded-full tracking-widest uppercase shadow-sm">
+                                    -{discountPercent}%
                                 </Badge>
                             )}
-                            {product.inStock && (
-                                <Badge className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-0 px-3 py-1 text-[10px] font-bold rounded-full tracking-wider flex items-center gap-1">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                                    In Stock
+                            {product.isNew && !discountPercent && (
+                                <Badge className="bg-slate-900 text-white border-0 px-3 py-1 text-[10px] font-bold rounded-full tracking-widest uppercase shadow-sm">
+                                    New
                                 </Badge>
                             )}
                         </div>
 
-                        {/* WISHLIST BUTTON */}
-                        <div className="absolute right-4 top-4 opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 transition-all duration-300">
+                        {/* Wishlist */}
+                        <div className="absolute right-4 top-4 opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 transition-all duration-400 z-10">
                             <button
                                 onClick={handleLike}
-                                className="h-10 w-10 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center text-rose-500 shadow-lg hover:bg-rose-500 hover:text-white transition-colors"
+                                className="h-9 w-9 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-slate-400 shadow-xl hover:text-rose-500 hover:bg-white transition-all"
                             >
-                                <Heart className="h-5 w-5" />
+                                <Heart className="h-4.5 w-4.5" />
                             </button>
                         </div>
+
+                        {/* Out of Stock Overlay */}
+                        {!product.inStock && (
+                            <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center">
+                                <span className="text-[11px] font-bold text-slate-500 bg-white border border-slate-200 px-3 py-1 rounded-full shadow-sm tracking-wider uppercase">
+                                    Out of Stock
+                                </span>
+                            </div>
+                        )}
                     </div>
 
                     {/* CONTENT SECTION */}
-                    <div className="flex flex-col pt-4 pb-7 px-6">
+                    <div className="pt-5 px-3 flex flex-col flex-1">
+                        
                         {/* Rating & Secondary Info */}
-                        <div className="flex items-center justify-between mb-3 text-[11px] font-semibold tracking-wide">
-                            <div className="flex items-center gap-1 text-slate-400">
-                                <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                                <span className="text-slate-900">{product.rating || '4.8'}</span>
-                                <span>({product.reviewCount || '0'})</span>
+                        <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-1.5">
+                                <span className="flex items-center gap-0.5 text-[12px] font-bold text-slate-900">
+                                    <Star className="h-3 w-3 fill-amber-400 text-amber-400" strokeWidth={0} />
+                                    {ratingValue.toFixed(1)}
+                                </span>
+                                {reviewCount > 0 && (
+                                    <span className="text-[11px] text-slate-400 font-medium">
+                                        ({reviewCount >= 1000 ? `${(reviewCount / 1000).toFixed(1)}k` : reviewCount})
+                                    </span>
+                                )}
                             </div>
+                            
                             {product.ageRange && (
-                                <span className="text-slate-400 uppercase tracking-widest">{product.ageRange} YOs</span>
+                                <div className="px-2.5 py-0.5 rounded-full bg-[#4988c4]/5 border border-[#4988c4]/10">
+                                    <span className="text-[9px] font-bold uppercase tracking-widest text-[#4988c4]">
+                                        {product.ageRange}
+                                    </span>
+                                </div>
                             )}
                         </div>
 
                         {/* Name */}
-                        <h3 className="line-clamp-1 text-[16px] font-bold text-slate-800 tracking-tight leading-snug group-hover:text-amber-500 transition-colors mb-4">
+                        <h3 className="text-[17px] font-bold text-slate-800 line-clamp-1 group-hover:text-slate-950 transition-colors leading-snug mb-4">
                             {product.name}
                         </h3>
 
-                        {/* Footer: Price */}
-                        <div className="flex items-center justify-between mt-auto pt-2 border-t border-slate-50">
+                        {/* Price & Action */}
+                        <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-between">
                             <div className="flex flex-col">
-                                <span className="text-[20px] font-black text-slate-900 tracking-tighter">
+                                <span className="text-[22px] font-black text-slate-900 tracking-tighter leading-none">
                                     {formatPrice(product.price)}
                                 </span>
-                                {product.discount && (
-                                    <span className="text-[10px] text-rose-500 font-bold tracking-wider uppercase">
-                                        Save {product.discount}%
+                                {product.originalPrice && product.originalPrice > product.price && (
+                                    <span className="text-[11px] text-slate-400 line-through mt-1.5 font-medium">
+                                        {formatPrice(product.originalPrice)}
                                     </span>
                                 )}
                             </div>
 
-                            <div className="h-8 w-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 group-hover:border-slate-800 group-hover:text-slate-800 transition-all duration-300">
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                                </svg>
+                            <div className="h-9 w-9 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-900 group-hover:bg-slate-900 group-hover:text-white group-hover:border-slate-900 transition-all duration-500">
+                                <Plus className="w-4 h-4" strokeWidth={2.5} />
                             </div>
                         </div>
                     </div>
 
-                </Card>
+                </div>
             </Link>
         </motion.div>
     )

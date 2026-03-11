@@ -14,6 +14,7 @@ interface PolicyStatusSectionProps {
     returnPolicyDay: string;
     status: ProductStatus;
     isLoading: boolean;
+    isEdit?: boolean;
     onWarrantyChange: (value: string) => void;
     onReturnChange: (value: string) => void;
     onStatusChange: (value: string) => void;
@@ -21,14 +22,14 @@ interface PolicyStatusSectionProps {
 
 const PolicyStatusSection = memo(function PolicyStatusSection({
     warrantyPolicyDay, returnPolicyDay, status,
-    isLoading,
+    isLoading, isEdit = false,
     onWarrantyChange, onReturnChange, onStatusChange,
 }: PolicyStatusSectionProps) {
     return (
         <section className="space-y-4">
             <SectionHeading title="Policy & Status" />
 
-            <div className="grid grid-cols-3 gap-5">
+            <div className={`grid ${isEdit ? 'grid-cols-3' : 'grid-cols-2'} gap-5`}>
                 {/* Warranty */}
                 <div className="space-y-2">
                     <Label htmlFor="warrantyPolicyDay" className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
@@ -69,31 +70,33 @@ const PolicyStatusSection = memo(function PolicyStatusSection({
                     </div>
                 </div>
 
-                {/* Status */}
-                <div className="space-y-2">
-                    <Label className="text-sm font-medium text-gray-700">
-                        Status
-                    </Label>
-                    <Select value={status} onValueChange={onStatusChange} disabled={isLoading}>
-                        <SelectTrigger className={SELECT_CLS}>
-                            <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl shadow-xl z-[200]">
-                            {PRODUCT_STATUSES.map((s, index) => (
-                                <SelectItem
-                                    key={s.value ?? `status-${index}`}
-                                    value={s.value}
-                                    className="rounded-lg hover:bg-purple-50 hover:text-purple-900"
-                                >
-                                    <span className="flex items-center gap-2">
-                                        <span className={cn('h-2 w-2 rounded-full', PRODUCT_STATUS_COLORS[s.value])} />
-                                        {s.label}
-                                    </span>
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
+                {/* Status — only shown when editing */}
+                {isEdit && (
+                    <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700">
+                            Status
+                        </Label>
+                        <Select value={status} onValueChange={onStatusChange} disabled={isLoading}>
+                            <SelectTrigger className={SELECT_CLS}>
+                                <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl shadow-xl z-[200]">
+                                {PRODUCT_STATUSES.map((s, index) => (
+                                    <SelectItem
+                                        key={s.value ?? `status-${index}`}
+                                        value={s.value}
+                                        className="rounded-lg hover:bg-purple-50 hover:text-purple-900"
+                                    >
+                                        <span className="flex items-center gap-2">
+                                            <span className={cn('h-2 w-2 rounded-full', PRODUCT_STATUS_COLORS[s.value])} />
+                                            {s.label}
+                                        </span>
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                )}
             </div>
         </section>
     );

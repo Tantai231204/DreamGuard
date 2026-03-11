@@ -220,22 +220,38 @@ export const useCartStore = create<CartState>()(
             syncWithServer: async () => {
                 const { cart } = get()
                 const { isAuthenticated } = useAuthStore.getState()
-                if (!isAuthenticated || cart.length === 0) {
-                    if (isAuthenticated) await get().fetchCart()
+
+                // If not logged in, we can't sync
+                if (!isAuthenticated) return
+
+                // If no local items, just fetch the existing server cart
+                if (cart.length === 0) {
+                    await get().fetchCart()
                     return
                 }
 
                 try {
+                    set({ loadingIds: ['syncing-all'] })
                     const syncData = cart.map(item => ({
                         productVariantId: item.productVariantId || null,
                         comboId: item.comboId || null,
                         quantity: item.quantity,
                     }))
+
+                    // Sync guest items to server
                     await cartService.syncCart(syncData)
+
+                    // Crucial: Only AFTER successful sync do we fetch the merged state
+                    // This prevents the "empty server cart" from overwriting our guest items
                     await get().fetchCart()
+
                     toast.success("Guest cart merged with account")
-                } catch {
+                } catch (error) {
+                    console.error("[CartStore] Sync failed:", error)
+                    // If sync fails, fallback to server cart to prevent inconsistent state
                     await get().fetchCart()
+                } finally {
+                    set({ loadingIds: [] })
                 }
             }
         }),

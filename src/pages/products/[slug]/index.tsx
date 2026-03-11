@@ -1,6 +1,6 @@
 import { useRef, useMemo } from "react";
 import { useParams } from "react-router-dom";
-import { useProductDetail, useProductVariants } from "@/hooks/queries/useProduct";
+import { useProductDetail } from "@/hooks/queries/useProduct";
 import { Breadcrumb } from "./components/Breadcrumb";
 import { SEO } from "@/components/common";
 import { ProductImageGallery } from "./components/ProductImageGallery";
@@ -24,24 +24,16 @@ export default function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
   const productImageRef = useRef<HTMLDivElement | null>(null);
 
-  // 1. Fetch data
+  // 1. Fetch product (getBySlug already includes variants — no separate call needed)
   const {
     data: product,
-    isLoading: isProductLoading,
+    isLoading,
     isError: isProductError,
   } = useProductDetail(slug || "", !!slug);
 
-  const {
-    data: variants,
-    isLoading: isVariantsLoading,
-  } = useProductVariants(product?.id || "", !!product?.id);
-
-  const isLoading = isProductLoading || (!!product && isVariantsLoading);
-
-  // 2. Manage state via custom hook
+  // 2. Manage state via custom hook (variants come from product.variants)
   const { state, actions, getVariantSize } = useProductDetailState({
     product,
-    variants,
     productImageRef,
   });
 
@@ -50,7 +42,9 @@ export default function ProductDetail() {
     if (!product) return [];
     const specs: ProductSpec[] = [];
     if (product.material) specs.push({ label: "Material", value: product.material });
-    if (product.ageGroup) specs.push({ label: "Age Range", value: String(product.ageGroup) });
+    if (product.ageGroup !== null && product.ageGroup !== undefined) {
+      specs.push({ label: "Age Group", value: `${product.ageGroup} months` });
+    }
     if (product.categoryName) specs.push({ label: "Category", value: product.categoryName });
     if (typeof product.warrantyPolicyDay === "number") {
       specs.push({ label: "Warranty", value: `${product.warrantyPolicyDay} days` });
@@ -58,6 +52,7 @@ export default function ProductDetail() {
     if (typeof product.returnPolicyDay === "number") {
       specs.push({ label: "Return Policy", value: `${product.returnPolicyDay} days` });
     }
+    if (product.status) specs.push({ label: "Status", value: product.status });
     return specs;
   }, [product]);
 
@@ -72,8 +67,10 @@ export default function ProductDetail() {
     return Math.round(((originalPrice - price) / originalPrice) * 100);
   })();
 
-  const averageRating =
-    mockReviews.reduce((acc, r) => acc + r.rating, 0) / mockReviews.length;
+  // Use real average rating from API, fallback to mock reviews
+  const averageRating = product.averageRating > 0
+    ? product.averageRating
+    : mockReviews.reduce((acc, r) => acc + r.rating, 0) / mockReviews.length;
 
   return (
     <div className="min-h-screen bg-white selection:bg-[var(--color-primary)]/10">

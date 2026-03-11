@@ -1,55 +1,64 @@
 import type { AdminVariantsByProductResponse, AdminVariantItem } from '@/api/services/variantService';
 
-/* ─── Shared Color Map ──────────────────────────────────── */
-export const COLOR_MAP: Record<string, string> = {
-  white: '#ffffff',
-  pink: '#ffc0cb',
-  blue: '#2196f3',
-  red: '#f44336',
-  green: '#4caf50',
-  yellow: '#ffeb3b',
-  orange: '#ff9800',
-  purple: '#9c27b0',
-  black: '#000000',
-  gray: '#9e9e9e',
-  grey: '#9e9e9e',
-  brown: '#795548',
-  beige: '#f5f5dc',
-  mint: '#98ff98',
-  peru: '#cd853f',
-  firebrick: '#b22222',
-  palevioletred: '#db7093',
-  crimson: '#dc143c',
-  lavender: '#e6e6fa',
-  salmon: '#fa8072',
-  teal: '#008080',
-  navy: '#000080',
-  gold: '#ffd700',
-  silver: '#c0c0c0',
-  default: '#e5e7eb',
-};
+/* ─── Browser-native Color Resolver ─────────────────────── */
+
+// Reuse a single off-screen canvas for color resolution
+let _ctx: CanvasRenderingContext2D | null = null;
+function getCanvasCtx(): CanvasRenderingContext2D | null {
+  if (!_ctx) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1;
+    canvas.height = 1;
+    _ctx = canvas.getContext('2d');
+  }
+  return _ctx;
+}
+
+/**
+ * Use the browser's CSS engine to convert ANY valid color (name, hex, rgb, hsl…)
+ * to a 6-digit hex string.  e.g. "Saddle Brown" → "#8b4513"
+ */
+function cssColorToHex(color: string): string | null {
+  const ctx = getCanvasCtx();
+  if (!ctx) return null;
+
+  ctx.fillStyle = '#000000';       // reset to known value
+  ctx.fillStyle = color;           // let the browser parse
+  const parsed = ctx.fillStyle;    // returns "#rrggbb" if valid
+
+  // If browser couldn't parse, fillStyle stays "#000000"
+  if (parsed === '#000000' && color.toLowerCase().replace(/\s/g, '') !== 'black') {
+    return null;
+  }
+  return parsed;
+}
+
+const DEFAULT_HEX = '#e5e7eb';
 
 export function getColorHex(colorValue?: string): string {
-  if (!colorValue) return COLOR_MAP.default;
+  if (!colorValue) return DEFAULT_HEX;
   const trimmed = colorValue.trim();
-  
-  // 1. Direct Hex matches
+
+  // 1. Already a hex value → return as-is
   if (trimmed.startsWith('#')) return trimmed;
   if (/^[0-9A-Fa-f]{3}$|^[0-9A-Fa-f]{6}$/.test(trimmed)) return `#${trimmed}`;
 
-  // 2. Normalized match in our map
-  const normalized = trimmed.toLowerCase();
-  if (COLOR_MAP[normalized]) return COLOR_MAP[normalized];
+  // 2. Let the browser resolve the color name (handles "Saddle Brown", "rebeccapurple", etc.)
+  //    CSS named colors have no spaces, so try both original and slugified versions
+  const slugified = trimmed.toLowerCase().replace(/[^a-z]/g, '');
+  const resolved = cssColorToHex(slugified) ?? cssColorToHex(trimmed);
+  if (resolved) return resolved;
 
-  // 3. Remove all spaces and special chars (e.g. "Pale Violet Red" -> "palevioletred")
-  const slugified = normalized.replace(/[^a-z]/g, '');
-  if (COLOR_MAP[slugified]) return COLOR_MAP[slugified];
-
-  // 4. If it's just letters/spaces, a browser might know it (like "RebeccaPurple")
-  if (/^[a-z\s-]+$/i.test(trimmed)) return normalized;
-
-  return COLOR_MAP.default;
+  return DEFAULT_HEX;
 }
+
+// Keep backward-compat export for any code that imports COLOR_MAP
+export const COLOR_MAP: Record<string, string> = new Proxy({} as Record<string, string>, {
+  get(_target, prop: string) {
+    if (prop === 'default') return DEFAULT_HEX;
+    return getColorHex(prop);
+  },
+});
 
 /**
  * Formats dimensions from variant attributes or size string.
@@ -74,10 +83,10 @@ export function transformAdminVariants(data: AdminVariantsByProductResponse) {
 
   const colorGroups = data.colorGroups;
   const totalVariants = data.totalVariants || 0;
-  
+
   const sizeSet = new Set<string>();
   const prices: number[] = [];
-  
+
   let totalStock = 0;
   let inStock = 0;
   let lowStock = 0;
@@ -109,7 +118,7 @@ export function transformAdminVariants(data: AdminVariantsByProductResponse) {
       const dim = formatVariantDimensions(v);
       sizeSet.add(dim);
       prices.push(v.salePrice);
-      
+
       const stock = v.stockQuantity ?? 0;
       totalStock += stock;
 

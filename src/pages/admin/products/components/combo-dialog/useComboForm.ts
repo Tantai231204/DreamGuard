@@ -50,6 +50,11 @@ export function useComboForm({
     }
     const [form, dispatch] = useReducer(formReducer, initial);
 
+    // ── Local refs for sync control (Compiler-safe patterns) ──
+    const syncedParentRef = useRef<string | null>(null);
+    const enrichedRef = useRef(false);
+
+
     // ── Data fetching ────────────────────────────────────
     const isVariantMode = mode === 'variant';
     const { data: variantOptions = [], isLoading: isLoadingVariants } =
@@ -69,22 +74,22 @@ export function useComboForm({
     useEffect(() => {
         if (detail && isEdit) {
             dispatch({ type: "RESET", payload: getInitialState(detail) });
-            enrichedRef.current = false; // Allow re-enrichment for newly loaded detail
+            // Allow re-enrichment when new data arrives
+            enrichedRef.current = false;
         }
     }, [detail, isEdit]);
 
     // ── Auto-generate variant name & Sync Age Group ─────
-    const autoParentSyncRef = useRef<string | null>(null);
     useEffect(() => {
+        if (!open) {
+            syncedParentRef.current = null;
+            return;
+        }
         if (isEdit || mode !== 'variant') return;
-        const parentId = form.comboParentId;
-        if (!parentId) return;
-        // Only auto-generate once per parentId change
-        if (autoParentSyncRef.current === parentId) return;
-        // Wait until allCombos is loaded
-        if (allCombos.length === 0) return;
 
-        // Find parent from allCombos (contains both parents and variants)
+        const parentId = form.comboParentId;
+        if (!parentId || syncedParentRef.current === parentId || allCombos.length === 0) return;
+
         const parent = allCombos.find(c => c.id === parentId);
         if (!parent) return;
 
@@ -94,23 +99,24 @@ export function useComboForm({
         }
 
         // 2. Auto-generate Name
-        // Count existing variants for this parent
         const existingVariantCount = parent.childCombos?.length ?? allCombos.filter(
             c => c.comboParentId === parentId
         ).length;
         const nextNumber = existingVariantCount + 1;
-
         const generatedName = `${parent.name} #${nextNumber}`;
-        autoParentSyncRef.current = parentId;
+
+        syncedParentRef.current = parentId;
         dispatch({ type: 'SET_FIELD', field: 'name', payload: generatedName });
         dispatch({ type: 'SET_FIELD', field: 'slug', payload: toSlug(generatedName) });
-    }, [isEdit, mode, form.comboParentId, allCombos, form.ageGroup]);
+    }, [isEdit, mode, form.comboParentId, allCombos, form.ageGroup, open]);
 
     // ── Enrich existing items with live variant data ─────
-    const enrichedRef = useRef(false);
     useEffect(() => {
-        if (!open || enrichedRef.current || variantOptions.length === 0) return;
-        if (form.items.length === 0) return;
+        if (!open) {
+            enrichedRef.current = false;
+            return;
+        }
+        if (enrichedRef.current || variantOptions.length === 0 || form.items.length === 0) return;
 
         let changed = false;
         const enriched = form.items.map((item) => {
@@ -134,11 +140,12 @@ export function useComboForm({
             };
         });
 
-        enrichedRef.current = true;
         if (changed) {
+            enrichedRef.current = true;
             dispatch({ type: "SET_ITEMS", payload: enriched });
         }
     }, [open, variantOptions, form.items]);
+
 
     // ── Auto-calculate Prices ───────────────────────────
     useEffect(() => {
@@ -275,7 +282,7 @@ export function useComboForm({
     const isPriceAutoManaged = mode === 'parent';
     // Variant base price is auto-managed from items, but sale price remains manual
     const isVariantBasePriceAuto = mode === 'variant' && form.items.length > 0;
-    
+
     const priceSource = (mode === 'variant' ? 'items' : 'children') as 'items' | 'children';
 
     return {

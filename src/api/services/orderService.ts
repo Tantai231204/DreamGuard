@@ -29,7 +29,14 @@ const orderService = {
         await apiClient.put(`/order/${id}/cancel`, {}, config);
     },
 
-    getAdminOrders: async (params?: { pageNumber?: number; pageSize?: number }): Promise<{
+    getAdminOrders: async (params?: { 
+        pageNumber?: number; 
+        pageSize?: number;
+        search?: string;
+        status?: string[];
+        sortBy?: string;
+        sortOrder?: 'asc' | 'desc';
+    }): Promise<{
         items: OrderResponse[];
         pageNumber: number;
         pageSize: number;
@@ -41,7 +48,7 @@ const orderService = {
     },
 
     updateStatus: async (id: string, status: string): Promise<void> => {
-        await apiClient.put(`/order/${id}/status`, { status });
+        await apiClient.put(`/order/${id}/status`, undefined, { params: { status } });
     }
 };
 

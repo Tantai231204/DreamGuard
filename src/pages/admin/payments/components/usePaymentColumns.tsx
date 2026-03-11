@@ -18,7 +18,6 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
     DropdownMenuSeparator,
-    DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import { useQueryClient } from '@tanstack/react-query';
 import paymentService from '@/api/services/paymentService';
@@ -149,52 +148,52 @@ export const usePaymentColumns = ({ onView }: usePaymentColumnsProps) => {
                     <div className="flex justify-end pr-2 text-right">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-slate-100 rounded-full text-slate-400 focus-visible:ring-0">
-                                    <MoreVertical className="h-4 w-4" />
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded hover:bg-slate-100 dropdown-trigger transition-colors">
+                                    <MoreVertical className="h-4 w-4 text-slate-400" />
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-60 shadow-2xl border-2 rounded-2xl p-1.5 animate-in fade-in zoom-in-95 duration-150">
-                                <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 py-2">
-                                    General Actions
-                                </DropdownMenuLabel>
+                            <DropdownMenuContent align="end" className="w-56 shadow-xl border border-slate-200/60 rounded-xl p-1 animate-in fade-in zoom-in-95 duration-100">
+                                <div className="px-3 py-2 border-b border-slate-50 mb-1">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">General Audit</span>
+                                </div>
                                 <DropdownMenuItem
-                                    className="cursor-pointer py-2.5 rounded-xl font-bold text-slate-600 hover:text-blue-600 focus:bg-blue-50 focus:text-blue-700 transition-all gap-3"
+                                    className="rounded-lg cursor-pointer py-2 px-3 font-medium text-slate-600 hover:text-blue-600 focus:bg-blue-50 focus:text-blue-700 transition-colors gap-2.5"
                                     onClick={() => onView(row.original.id)}
                                     onMouseEnter={() => prefetchPayment(row.original.id)}
                                 >
                                     <Eye className="h-4 w-4 opacity-70" />
-                                    <span>View Transaction</span>
+                                    <span className="text-[13px]">View Transaction</span>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="cursor-pointer py-2.5 rounded-xl font-bold text-slate-400 hover:text-slate-900 focus:bg-slate-50 transition-all gap-3">
+                                <DropdownMenuItem className="rounded-lg cursor-pointer py-2 px-3 font-medium text-slate-600 hover:text-slate-900 focus:bg-slate-50 transition-colors gap-2.5">
                                     <FileText className="h-4 w-4 opacity-70" />
-                                    <span>Print Receipt</span>
+                                    <span className="text-[13px]">Print Receipt</span>
                                 </DropdownMenuItem>
 
-                                <DropdownMenuSeparator className="my-1.5" />
+                                <DropdownMenuSeparator className="my-1 bg-slate-100" />
 
-                                <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-3 py-2">
-                                    Update Status
-                                </DropdownMenuLabel>
+                                <div className="px-3 py-2 border-b border-slate-50 mb-1">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">State Logic</span>
+                                </div>
                                 <DropdownMenuItem
-                                    className="cursor-pointer py-2.5 rounded-xl font-bold text-emerald-600 hover:text-emerald-700 focus:bg-emerald-50 transition-all gap-3"
+                                    className="rounded-lg cursor-pointer py-2 px-3 font-medium text-emerald-600 hover:text-emerald-700 focus:bg-emerald-50 focus:text-emerald-800 transition-colors gap-2.5"
                                     onClick={() => handleUpdateStatus(row.original.id, 'Paid')}
                                 >
                                     <CheckCircle2 className="h-4 w-4 opacity-70" />
-                                    <span>Set as Paid</span>
+                                    <span className="text-[13px]">Authorize as Paid</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                                    className="cursor-pointer py-2.5 rounded-xl font-bold text-rose-600 hover:text-rose-700 focus:bg-rose-50 transition-all gap-3"
+                                    className="rounded-lg cursor-pointer py-2 px-3 font-medium text-rose-500 hover:text-rose-600 focus:bg-rose-50 focus:text-rose-700 transition-colors gap-2.5"
                                     onClick={() => handleUpdateStatus(row.original.id, 'Failed')}
                                 >
                                     <XCircle className="h-4 w-4 opacity-70" />
-                                    <span>Set as Failed</span>
+                                    <span className="text-[13px]">Mark as Void/Failed</span>
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
-                                    className="cursor-pointer py-2.5 rounded-xl font-bold text-blue-600 hover:text-blue-700 focus:bg-blue-50 transition-all gap-3"
+                                    className="rounded-lg cursor-pointer py-2 px-3 font-medium text-blue-600 hover:text-blue-700 focus:bg-blue-50 focus:text-blue-800 transition-colors gap-2.5"
                                     onClick={() => handleUpdateStatus(row.original.id, 'Refunded')}
                                 >
                                     <RotateCcw className="h-4 w-4 opacity-70" />
-                                    <span>Set as Refunded</span>
+                                    <span className="text-[13px]">Execute Refund</span>
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
