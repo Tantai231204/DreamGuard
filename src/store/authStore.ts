@@ -1,16 +1,14 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
 
 interface AuthState {
-  token: string | null;
-  refreshToken: string | null;
   role: string | null;
   isAuthenticated: boolean;
 
   setAuth: (data: {
-    accessToken: string;
-    refreshToken: string;
-    roleName: string;
+    roleName?: string;
+    role?: string;
+    [key: string]: any;
   }) => void;
 
   clearAuth: () => void;
@@ -19,29 +17,32 @@ interface AuthState {
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
-      token: null,
-      refreshToken: null,
       role: null,
       isAuthenticated: false,
 
-      setAuth: (data) =>
+      setAuth: (data: any) => {
+        const roleName = data.roleName || data.role || data.RoleName || data.Role || "";
         set({
-          token: data.accessToken,
-          refreshToken: data.refreshToken,
-          role: data.roleName,
+          role: roleName,
           isAuthenticated: true,
-        }),
+        });
+      },
 
-      clearAuth: () =>
+      clearAuth: () => {
         set({
-          token: null,
-          refreshToken: null,
           role: null,
           isAuthenticated: false,
-        }),
+        });
+      },
     }),
     {
-      name: "auth-storage",
+      name: "dreamguard-auth-storage",
+      storage: createJSONStorage(() => localStorage),
+      // Security: ONLY persist UI-related state. 
+      partialize: (state) => ({
+        role: state.role,
+        isAuthenticated: state.isAuthenticated,
+      }),
     }
   )
 );

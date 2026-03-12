@@ -284,8 +284,8 @@ export const useCartStore = create<CartState>()(
             },
 
             syncWithServer: async () => {
-                const { isAuthenticated, token } = useAuthStore.getState()
-                if (!isAuthenticated || !token) return
+                const { isAuthenticated } = useAuthStore.getState()
+                if (!isAuthenticated) return
                 if (get().isSyncing) return
 
                 // CAPTURE guest items

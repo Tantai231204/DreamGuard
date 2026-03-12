@@ -13,8 +13,7 @@ interface AppLayoutProps {
 }
 
 export default function AppLayout({ variant = "main" }: AppLayoutProps) {
-  // const { token, role, logout } = useAuthStore();
-  const { token, role } = useAuthStore();
+  const { isAuthenticated, role } = useAuthStore();
   const { mutate: logoutMutation, isPending } = useLogout(); // disable nút logout khi đã logout gòi
   const navigate = useNavigate();;
   const { items: breadcrumbItems } = useBreadcrumb();
@@ -65,7 +64,7 @@ export default function AppLayout({ variant = "main" }: AppLayoutProps) {
               <Link to={AppRoute.HOME} className="text-sm hover:text-blue-600">
                 Home
               </Link>
-              {token && (
+              {isAuthenticated && (
                 <>
                   <Link
                     to={AppRoute.PROFILE}
@@ -73,7 +72,7 @@ export default function AppLayout({ variant = "main" }: AppLayoutProps) {
                   >
                     Profile
                   </Link>
-                  {role === "admin" && (
+                  {role?.toLowerCase() === "admin" && (
                     <Link
                       to={AppRoute.ADMIN}
                       className="text-sm hover:text-blue-600"
@@ -87,7 +86,7 @@ export default function AppLayout({ variant = "main" }: AppLayoutProps) {
           </div>
 
           <div className="flex items-center gap-2">
-            {token ? (
+            {isAuthenticated ? (
               <>
                 <span className="text-sm text-gray-500 hidden md:inline capitalize">
                   {role}

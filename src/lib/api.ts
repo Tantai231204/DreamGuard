@@ -32,6 +32,7 @@ export interface CustomAxiosRequestConfig extends AxiosRequestConfig {
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "/api",
   timeout: 30000,
+  withCredentials: true, // Crucial for cookie-based auth
   headers: {
     "Content-Type": "application/json",
   },
@@ -65,14 +66,14 @@ export const ERROR_TITLES: Partial<Record<ApiErrorCode, string>> = {
    ====================== */
 let isRefreshing = false;
 let failedQueue: {
-  resolve: (token: string) => void;
+  resolve: () => void;
   reject: (error: unknown) => void;
 }[] = [];
 
-const processQueue = (error: unknown, token: string | null = null) => {
+const processQueue = (error: unknown) => {
   failedQueue.forEach((prom) => {
-    if (token) {
-      prom.resolve(token);
+    if (!error) {
+      prom.resolve();
     } else {
       prom.reject(error);
     }
@@ -84,12 +85,8 @@ const processQueue = (error: unknown, token: string | null = null) => {
    Request Interceptor
 ====================== */
 api.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().token;
-
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-
+  // Pure Cookie Approach: No manual Authorization header.
+  // Implementation: 'withCredentials: true' handles all token transport.
   return config;
 }, (error) => {
   return Promise.reject(error);
@@ -100,24 +97,25 @@ api.interceptors.request.use((config) => {
 ====================== */
 api.interceptors.response.use(
   (response) => {
+    // console.log("[API Debug] Response Success:", response.config.url);
     return response;
   },
   async (error) => {
     const originalRequest = error.config as CustomAxiosRequestConfig;
+    const status = error.response?.status;
 
     // Handle 401 Unauthorized - Attempt Token Refresh
     if (
-      error.response?.status === 401 &&
+      status === 401 &&
       !originalRequest._retry &&
-      !originalRequest.url?.includes('/auths/refresh-token') &&
-      !originalRequest.url?.includes('/auths') // Avoid loops in login/register
+      !originalRequest.url?.includes('/auths/refreshToken') &&
+      !originalRequest.url?.includes('/auths/login')
     ) {
       if (isRefreshing) {
-        return new Promise((resolve, reject) => {
+        return new Promise<void>((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
-          .then((token) => {
-            originalRequest.headers!.Authorization = `Bearer ${token}`;
+          .then(() => {
             return api(originalRequest);
           })
           .catch((err) => {
@@ -128,38 +126,15 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
 
-      const refreshToken = useAuthStore.getState().refreshToken;
-
-      if (!refreshToken) {
-        useAuthStore.getState().clearAuth();
-        // Skip toast if it's already a clean state
-        return Promise.reject(error);
-      }
-
       try {
-        // Use a clean axios instance to avoid interceptor loops if needed, 
-        // but here we just use the relative path
-        const response = await api.post("/auths/refresh-token", {
-          refreshToken,
-        });
+        // Pure Cookie Refresh:
+        // No body payload needed, server will read HTTP-only RefreshToken cookie.
+        await api.post("/auths/refreshToken");
 
-        // Backend might return { data: { accessToken, refreshToken, ... } } or just { accessToken, ... }
-        const tokenData = response.data?.data ?? response.data;
-        const { accessToken, refreshToken: newRefreshToken, roleName } = tokenData;
-
-        // Update Store
-        useAuthStore.getState().setAuth({
-          accessToken,
-          refreshToken: newRefreshToken || refreshToken,
-          roleName: roleName || useAuthStore.getState().role || "",
-        });
-
-        processQueue(null, accessToken);
-
-        originalRequest.headers!.Authorization = `Bearer ${accessToken}`;
+        processQueue(null);
         return api(originalRequest);
       } catch (refreshError) {
-        processQueue(refreshError, null);
+        processQueue(refreshError);
         useAuthStore.getState().clearAuth();
         return Promise.reject(refreshError);
       } finally {

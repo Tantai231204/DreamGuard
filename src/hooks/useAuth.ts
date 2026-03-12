@@ -9,11 +9,7 @@ export const useLogin = () => {
   const setAuth = useAuthStore((s) => s.setAuth);
 
   return useMutation<
-    {
-      accessToken: string;
-      refreshToken: string;
-      roleName: string;
-    },
+    any,
     Error,
     {
       phoneNumber: string;

@@ -58,7 +58,7 @@ export function UserDropdownContent() {
                     title="Wishlist"
                 />
 
-                {role === "admin" && (
+                {role?.toLowerCase() === "admin" && (
                     <>
                         <DropdownMenuSeparator className="mx-4 my-2 opacity-50" />
                         <MenuItem
