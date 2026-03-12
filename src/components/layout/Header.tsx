@@ -149,6 +149,7 @@ export default function Header() {
             });
         }
 
+        items.push({ label: "Combos", href: "/com-bo" });
         items.push({ label: "Services", href: "/services" });
         items.push({ label: "About", href: "/about" });
 
@@ -271,7 +272,7 @@ export default function Header() {
                                 ) : (
                                     <Link
                                         to={href ?? "#"}
-                                        className="text-foreground/60 transition-colors hover:text-primary"
+                                        className="px-4 py-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] transition-all hover:text-slate-900 hover:bg-slate-50 rounded-xl"
                                     >
                                         {label}
                                     </Link>

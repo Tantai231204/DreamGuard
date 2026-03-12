@@ -19,9 +19,16 @@ export default function CartPage() {
     }, [setBreadcrumb]);
 
     return (
-        <div className="relative min-h-screen bg-gradient-to-b from-[#bde8f5]/10 to-white/80 pb-28">
-            <div className="container mx-auto px-2 sm:px-4 py-6 sm:py-8">
-                <h1 className="text-2xl sm:text-3xl font-bold mb-6 text-primary-dark drop-shadow-sm">Your Cart</h1>
+        <div className="relative min-h-screen bg-[#fafbfc] pb-32">
+            <div className="container mx-auto max-w-[1000px] px-6 pt-3 pb-8">
+                <div className="flex flex-col gap-1 mb-6">
+                    <h1 className="text-5xl font-black text-slate-900 tracking-tight italic uppercase">Shopping Bag</h1>
+                    <div className="flex items-center gap-2">
+                        <div className="h-1 w-8 bg-[#4988c4] rounded-full" />
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Review your selected items</p>
+                    </div>
+                </div>
+
                 <CartTable
                     cart={cart}
                     onQuantity={updateQuantity}

@@ -97,25 +97,39 @@ export function OrderSummary({ cart, totalPrice, tradeInDiscount = 0, finalTotal
                         </div>
                     )}
 
-                    {/* Regular Items */}
+                    {/* Regular Items - Fixed & Sharp Design */}
                     {regularItems.map((item) => (
-                        <div key={item.id} className="flex gap-4 group/item">
-                            <div className="relative h-20 w-20 shrink-0">
-                                <div className="h-full w-full overflow-hidden rounded-[1.25rem] bg-slate-50 ring-1 ring-slate-100 group-hover/item:ring-[#4988c4] transition-all duration-500">
-                                    <img src={item.image} alt={item.name} className="h-full w-full object-cover group-hover/item:scale-110 transition-transform duration-700" />
+                        <div key={item.id} className="flex gap-5 group/item items-center py-4 border-b border-slate-50 last:border-0">
+                            <div className="relative h-16 w-16 shrink-0">
+                                <div className="h-full w-full overflow-hidden rounded-xl bg-slate-50 border border-slate-100">
+                                    <img 
+                                        src={item.image} 
+                                        alt={item.name} 
+                                        className="h-full w-full object-cover"
+                                    />
                                 </div>
-                                <span className="absolute top-0 right-0 translate-x-1/3 -translate-y-1/3 flex h-7 w-7 items-center justify-center rounded-full bg-slate-900 text-[11px] font-black text-white ring-4 ring-white z-10 shadow-lg group-hover/item:scale-110 transition-transform">
-                                    {item.quantity}
-                                </span>
+                                <div className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 border-2 border-white z-10 shadow-sm">
+                                    <span className="text-[10px] font-black text-white leading-none">
+                                        {item.quantity}
+                                    </span>
+                                </div>
                             </div>
-                            <div className="flex flex-1 flex-col justify-center min-w-0">
-                                <h4 className="text-sm font-black text-slate-900 truncate group-hover/item:text-[#4988c4] transition-colors">{item.name}</h4>
-                                <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mt-1">
-                                    <span className="text-[#4988c4] font-black">{item.quantity}</span>
-                                    <span className="mx-1.5 text-slate-300">×</span>
-                                    <span className="text-slate-600">${item.price.toFixed(2)}</span>
-                                </p>
-                                <p className="text-sm font-black text-[#4988c4] mt-2">${item.subtotal.toFixed(2)}</p>
+                            <div className="flex-1 min-w-0 pr-2">
+                                <h4 className="text-[13px] font-black text-slate-900 truncate uppercase tracking-tight">{item.name}</h4>
+                                <div className="flex items-center gap-2 mt-1">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                        Qty: {item.quantity}
+                                    </p>
+                                    <span className="h-1 w-1 rounded-full bg-slate-200" />
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                        ${item.price.toFixed(2)}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <span className="text-sm font-black text-slate-900 tracking-tight">
+                                    ${item.subtotal.toFixed(2)}
+                                </span>
                             </div>
                         </div>
                     ))}

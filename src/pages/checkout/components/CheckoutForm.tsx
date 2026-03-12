@@ -102,7 +102,7 @@ export function CheckoutForm({ totalPrice }: CheckoutFormProps) {
             } else {
                 clearCart()
                 success("Order Successful", `Your order ${response.orderCode} has been placed.`)
-                navigate(AppRoute.HOME)
+                navigate(`${AppRoute.CHECKOUT_RESULT}?orderCode=${response.orderCode}`)
             }
         } catch (err: unknown) {
             console.error("Checkout process failed:", err)
@@ -110,10 +110,15 @@ export function CheckoutForm({ totalPrice }: CheckoutFormProps) {
         }
     }
 
+    const onInvalid = (errors: object) => {
+        console.warn("Checkout Form Validation Failed:", errors)
+        toastError("Incomplete Information", "Please check the highlighted fields and try again.")
+    }
+
     const currentTotal = (totalPrice * 1.1).toLocaleString('en-US', { minimumFractionDigits: 2 })
 
     return (
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-10 pb-20">
+        <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-10 pb-20">
             {/* Delivery Information */}
             <DeliveryInfoSection form={form} />
 

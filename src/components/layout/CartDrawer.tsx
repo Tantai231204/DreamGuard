@@ -1,10 +1,8 @@
 import { useState, useMemo, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import { Drawer } from "vaul"
-import { ShoppingCart, X, Minus, Plus, ShoppingBag, Trash2, RefreshCcw, Info, Loader2 } from "lucide-react"
+import { ShoppingCart, X, Minus, Plus, ShoppingBag, Trash2, RefreshCcw, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useCart } from "@/store/useCart"
 import { useCartAnimation } from "@/store/useCartAnimation"
@@ -12,19 +10,6 @@ import { AppRoute } from "@/lib/constants"
 import "./cart-drawer.css"
 
 
-// Map tên màu thông dụng → hex
-const COLOR_HEX: Record<string, string> = {
-    red: '#ef4444', blue: '#3b82f6', green: '#22c55e', yellow: '#eab308',
-    black: '#111827', white: '#e5e7eb', gray: '#6b7280', grey: '#6b7280',
-    pink: '#ec4899', purple: '#a855f7', orange: '#f97316', brown: '#92400e',
-    navy: '#1e3a5f', teal: '#14b8a6', gold: '#d97706', silver: '#9ca3af',
-    beige: '#d4b896', cream: '#fffdd0', coral: '#ff6b6b', mint: '#98d8c8',
-}
-
-function resolveColor(color: string): string {
-    const key = color.toLowerCase().trim()
-    return COLOR_HEX[key] ?? (key.startsWith('#') ? key : '#9ca3af')
-}
 
 export function CartDrawer() {
     const { cart, updateQuantity, removeItem, totalItems, totalPrice, totalTradeInDiscount, finalTotal, loadingIds, syncingIds } = useCart()
@@ -54,15 +39,20 @@ export function CartDrawer() {
             return (
                 <div
                     key={item.id}
-                    className={`group flex gap-3 py-3.5 border-b border-gray-100 last:border-0 transition-opacity duration-150 ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}
+                    className={`group relative flex gap-3 py-4 transition-opacity duration-150 animate-slide-in-item ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}
+                    style={{ contain: 'content' }}
                 >
+                    {/* Artistic Animated Separator */}
+                    <div className="absolute bottom-0 left-0 right-0 h-px overflow-hidden">
+                        <div className="w-full h-full border-t border-dashed border-slate-100" />
+                        <div className="absolute inset-0 border-t border-dashed border-[#4988c4]/20 scale-x-0 group-hover:scale-x-100 transition-transform duration-700 origin-left" />
+                    </div>
                     {/* Ảnh */}
                     <div className="relative h-[66px] w-[66px] flex-shrink-0 rounded-xl overflow-hidden bg-gray-100">
                         <img
                             src={item.image || '/placeholder.png'}
                             alt={item.name}
                             className="h-full w-full object-cover"
-                            loading="lazy"
                             decoding="async"
                         />
                         {/* Loading overlay trên ảnh - Chỉ dành cho Load (Add/Remove) */}
@@ -95,46 +85,24 @@ export function CartDrawer() {
                             </button>
                         </div>
 
-                        {/* Variants & SKU */}
-                        <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                        {/* Details & Info */}
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
                             {item.sku && (
-                                <span className="text-[10px] font-mono text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">
+                                <span className="text-[10px] font-mono text-gray-400">
                                     {item.sku}
                                 </span>
                             )}
-                            {(item.color || item.size) && (
-                                <div className="flex items-center gap-1">
-                                    {item.color && (
-                                        <Badge
-                                            variant="secondary"
-                                            className="h-[18px] px-1.5 gap-1 text-[10px] font-medium rounded-md bg-[#4988c4]/5 text-[#4988c4] border-0 hover:bg-[#4988c4]/10 select-none"
-                                        >
-                                            <span
-                                                className="w-1.5 h-1.5 rounded-full flex-shrink-0 ring-[1px] ring-black/10"
-                                                style={{ backgroundColor: resolveColor(item.color) }}
-                                            />
-                                            {item.color}
-                                        </Badge>
-                                    )}
-                                    {item.size && (
-                                        <Badge
-                                            variant="outline"
-                                            className="h-[18px] px-1.5 text-[10px] font-semibold rounded-md border-gray-200 text-gray-500 select-none"
-                                        >
-                                            {item.size}
-                                        </Badge>
-                                    )}
-                                </div>
+                            {item.size && (
+                                <span className="text-[10px] font-medium text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded">
+                                    Size: {item.size}
+                                </span>
+                            )}
+                            {item.color && (
+                                <span className="text-[10px] font-medium text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded">
+                                    Color: {item.color}
+                                </span>
                             )}
                         </div>
-
-                        {/* Stock warning */}
-                        {item.availableStock !== undefined && item.availableStock < 5 && item.availableStock > 0 && (
-                            <div className="flex items-center gap-1 text-[10px] text-orange-600 font-medium mb-2">
-                                <Info className="w-3 h-3" />
-                                Chỉ còn {item.availableStock} sản phẩm
-                            </div>
-                        )}
 
                         {/* Trade-in */}
                         {hasTradeIn && (
@@ -212,7 +180,12 @@ export function CartDrawer() {
     ), [cart, loadingIds, syncingIds, handleUpdateQuantity, handleRemoveItem])
 
     return (
-        <Drawer.Root open={open} onOpenChange={setOpen} direction="right">
+        <Drawer.Root
+            open={open}
+            onOpenChange={setOpen}
+            direction="right"
+            shouldScaleBackground={false}
+        >
             <Drawer.Trigger asChild>
                 <button
                     ref={cartIconRef}
@@ -228,45 +201,71 @@ export function CartDrawer() {
             </Drawer.Trigger>
 
             <Drawer.Portal>
-                <Drawer.Overlay className="fixed inset-0 z-50 bg-black/30" />
+                <Drawer.Overlay className="fixed inset-0 z-50 bg-slate-900/10" />
                 <Drawer.Content className="cart-drawer-content fixed right-0 top-0 bottom-0 z-50 flex w-full max-w-md flex-col bg-white shadow-2xl outline-none">
 
-                    {/* Header */}
-                    <div className="flex items-center justify-between border-b border-gray-100 bg-gradient-to-r from-[#bde8f5]/30 to-white px-6 py-4">
-                        <div className="flex items-center gap-3">
-                            <div className="rounded-full bg-[#4988c4]/10 p-2.5">
-                                <ShoppingBag className="h-5 w-5 text-[#4988c4]" />
+                    {/* Header (Premium Refinement) */}
+                    <div className="relative border-b border-slate-100 bg-white px-6 py-6 overflow-hidden">
+                        <div className="absolute top-0 left-0 w-full h-[2px] bg-[#4988c4]" />
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-4">
+                                <div className="relative h-12 w-12 rounded-xl bg-[#4988c4]/5 flex items-center justify-center border border-[#4988c4]/10">
+                                    <ShoppingBag className="h-5 w-5 text-[#4988c4]" />
+                                    <div className="absolute inset-1 border border-dashed border-[#4988c4]/20 rounded-lg" />
+                                </div>
+                                <div>
+                                    <Drawer.Title className="text-lg font-black text-slate-900 uppercase tracking-tight leading-none">
+                                        Your Bag
+                                    </Drawer.Title>
+                                    <div className="flex items-center gap-2 mt-1.5">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.25em]">
+                                            {totalItems} {totalItems === 1 ? 'item' : 'items'}
+                                        </p>
+                                        <div className="h-1 w-1 rounded-full bg-slate-200" />
+                                        <span className="text-[8px] font-black text-[#4988c4] uppercase tracking-tighter">Premium Collection</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div>
-                                <Drawer.Title className="text-base font-semibold text-gray-900">
-                                    Shopping Cart
-                                </Drawer.Title>
-                                <p className="text-xs text-gray-500 mt-0.5">
-                                    {totalItems} {totalItems === 1 ? 'item' : 'items'}
-                                </p>
-                            </div>
+                            <Drawer.Close asChild>
+                                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-slate-50 text-slate-300 hover:text-slate-900 transition-all border border-transparent hover:border-slate-100">
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            </Drawer.Close>
                         </div>
-                        <Drawer.Close asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-gray-100 text-gray-500">
-                                <X className="h-4 w-4" />
-                            </Button>
-                        </Drawer.Close>
                     </div>
 
                     {/* Items */}
                     <div className="cart-drawer-scroll flex-1 overflow-y-auto px-5 overscroll-contain">
                         {cart.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center h-full text-center py-12">
-                                <div className="rounded-full bg-[#bde8f5]/20 p-6 mb-4">
-                                    <ShoppingCart className="h-10 w-10 text-[#4988c4]" />
+                            <div className="flex flex-col items-center justify-center h-full text-center px-8 relative overflow-hidden">
+                                {/* Decorative Background Elements */}
+                                <div className="absolute top-1/4 -right-12 w-32 h-32 bg-slate-50 rounded-full blur-3xl opacity-60" />
+                                <div className="absolute bottom-1/4 -left-12 w-40 h-40 bg-[#4988c4]/5 rounded-full blur-3xl opacity-40" />
+
+                                <div className="relative mb-8 group">
+                                    <div className="absolute inset-0 bg-[#4988c4]/10 rounded-full scale-150 blur-2xl opacity-0 group-hover:opacity-100 transition-all duration-700" />
+                                    <div className="relative w-20 h-20 rounded-[2rem] bg-white border border-slate-100 flex items-center justify-center shadow-sm group-hover:border-[#4988c4]/20 transition-all duration-500">
+                                        <div className="absolute inset-2 border border-dashed border-slate-100 rounded-[1.5rem] group-hover:border-[#4988c4]/30 transition-colors" />
+                                        <ShoppingCart className="w-8 h-8 text-[#4988c4] transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6" />
+                                    </div>
                                 </div>
-                                <h3 className="text-base font-semibold text-gray-900 mb-1.5">Your cart is empty</h3>
-                                <p className="text-sm text-gray-500 mb-6 max-w-[220px]">
-                                    Add some products and they'll appear here
-                                </p>
+
+                                <div className="space-y-4 relative z-10">
+                                    <h3 className="text-xl font-black text-slate-900 tracking-tight uppercase leading-none">
+                                        Your bag is <span className="text-[#4988c4]">empty</span>
+                                    </h3>
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.25em] max-w-[240px] mx-auto leading-relaxed">
+                                        Discover our premium collection and begin your dream journey with us.
+                                    </p>
+                                </div>
+
                                 <Drawer.Close asChild>
-                                    <Button size="default" className="rounded-full px-6 bg-[#4988c4] hover:bg-[#3a73a8] text-white">
-                                        Start Shopping
+                                    <Button
+                                        size="lg"
+                                        className="mt-12 h-12 rounded-xl px-10 bg-white border border-dashed border-slate-200 text-slate-900 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-[#4988c4] hover:text-white hover:border-transparent transition-all duration-500 shadow-sm active:scale-95 group/btn overflow-hidden relative"
+                                    >
+                                        <span className="relative z-10">Explore Now</span>
+                                        <div className="absolute inset-x-0 bottom-0 h-0.5 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform" />
                                     </Button>
                                 </Drawer.Close>
                             </div>
@@ -296,24 +295,26 @@ export function CartDrawer() {
                                     <span className="text-gray-500">Shipping</span>
                                     <span className="font-medium text-emerald-600">Free</span>
                                 </div>
-                                <Separator />
-                                <div className="flex justify-between items-center pt-0.5">
-                                    <span className="font-semibold text-gray-900">Total</span>
-                                    <span className="text-xl font-bold text-[#4988c4]">
-                                        ${finalTotal.toFixed(2)}
-                                    </span>
+                                <div className="relative py-2">
+                                    <div className="absolute inset-x-0 top-0 h-px border-t border-dashed border-slate-100" />
+                                    <div className="flex justify-between items-center pt-2">
+                                        <span className="font-black text-[10px] uppercase tracking-[0.2em] text-slate-400">Total</span>
+                                        <span className="text-xl font-black text-[#4988c4] tracking-tighter tabular-nums">
+                                            ${finalTotal.toFixed(2)}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
 
                             <div className="space-y-2.5">
                                 <Button
                                     onClick={handleCheckout}
-                                    className="w-full h-11 font-semibold rounded-full bg-[#4988c4] hover:bg-[#3a73a8] text-white shadow-md hover:shadow-lg transition-all active:scale-[0.98]"
+                                    className="w-full h-12 font-black text-[10px] uppercase tracking-[0.2em] rounded-xl bg-[#4988c4] hover:bg-slate-900 text-white shadow-lg shadow-blue-500/10 transition-all active:scale-[0.98] btn-press-effect"
                                 >
                                     Proceed to Checkout
                                 </Button>
                                 <Drawer.Close asChild>
-                                    <Button variant="outline" className="w-full h-11 rounded-full border-gray-200 text-gray-600 hover:bg-gray-50 transition-all active:scale-[0.98]">
+                                    <Button variant="outline" className="w-full h-11 rounded-xl border-dashed border-slate-200 text-slate-400 text-[9px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-[0.98]">
                                         Continue Shopping
                                     </Button>
                                 </Drawer.Close>

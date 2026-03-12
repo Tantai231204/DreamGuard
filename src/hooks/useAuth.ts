@@ -1,7 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { authService } from "../api/services";
 import { useAuthStore } from "../store/authStore";
-import { useCart } from "@/store/useCart";
+import { useCartStore } from "@/store/useCart";
 import { toast } from "sonner";
 
 export const useLogin = () => {
@@ -21,8 +22,10 @@ export const useLogin = () => {
   >({
     mutationFn: authService.login,
     meta: { hideToast: true },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       setAuth(data);
+      // Sync is handled by the App root when isAuthenticated becomes true
+
       toast.success("Login Successful", {
         description: "Welcome back to DreamGuard!",
       });
@@ -35,22 +38,28 @@ export const useLogin = () => {
   });
 };
 
+
 export const useLogout = () => {
   const clearAuth = useAuthStore((s) => s.clearAuth);
-  const { clearCart } = useCart();
+  const navigate = useNavigate();
 
   return useMutation({
     mutationFn: authService.logout,
-    onSuccess: () => {
+    onSuccess: async () => {
+      await useCartStore.getState().clearCart();
       clearAuth();
-      clearCart();
+      navigate("/");
       toast.success("Logged Out", {
         description: "You have been successfully logged out. See you soon!",
       });
     },
     onError: () => {
+      useCartStore.getState().clearCart();
       clearAuth();
-      clearCart();
+      navigate("/");
+      toast.success("Logged Out", {
+        description: "Session closed. You have been logged out.",
+      });
     },
   });
 };

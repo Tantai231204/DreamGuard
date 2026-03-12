@@ -1,9 +1,7 @@
-import { Minus, Plus, Trash2, ShoppingBag, AlertCircle, ShieldCheck, RefreshCw, ChevronRight } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingBag, ShieldCheck, RefreshCw, ChevronRight, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { CartItem } from "@/store/cartTypes";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface CartTableProps {
     cart: CartItem[];
@@ -27,20 +25,28 @@ function resolveColor(color: string): string {
     return COLOR_HEX[key] ?? (key.startsWith('#') ? key : '#e2e8f0');
 }
 
-export function CartTable({ cart, onQuantity, onRemove, loadingIds = [], syncingIds = [] }: CartTableProps) {
+export function CartTable({ cart, onQuantity, onRemove, loadingIds = [] }: CartTableProps) {
     if (cart.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center py-24 bg-white/40 backdrop-blur-md rounded-[40px] border-2 border-dashed border-primary/20 transition-all duration-500 hover:border-primary/40">
-                <div className="relative mb-6">
-                    <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full animate-pulse" />
-                    <div className="relative bg-gradient-to-br from-primary/20 to-primary/5 p-8 rounded-full border border-white/50 shadow-inner">
-                        <ShoppingBag className="w-12 h-12 text-primary" />
-                    </div>
+            <div className="flex flex-col items-center justify-center py-20 bg-white rounded-[2rem] border-2 border-dashed border-slate-100 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-full -mr-16 -mt-16 opacity-50" />
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-[#4988c4]/5 rounded-full -ml-12 -mb-12 opacity-50" />
+                
+                <div className="w-16 h-16 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center justify-center mb-6 relative z-10">
+                    <ShoppingBag className="w-6 h-6 text-[#4988c4]" />
                 </div>
-                <h3 className="text-2xl font-black text-gray-900 mb-3 tracking-tight">Your cart is empty</h3>
-                <p className="text-gray-500 max-w-xs text-center leading-relaxed">
-                    Looks like you haven't added anything to your cart yet. Let's find something special!
+                <h3 className="text-xl font-black text-slate-900 mb-2 tracking-tight uppercase relative z-10">Your bag is empty</h3>
+                <p className="text-slate-400 text-[9px] font-black uppercase tracking-[0.2em] max-w-xs text-center leading-relaxed relative z-10">
+                    Discover our premium collection and start your dream journey.
                 </p>
+                <Button 
+                    variant="ghost" 
+                    className="mt-8 px-8 h-10 rounded-xl border border-dashed border-slate-200 font-black text-[10px] uppercase tracking-widest hover:bg-[#4988c4] hover:text-white hover:border-transparent transition-all relative z-10 overflow-hidden group/btn"
+                    onClick={() => window.location.href = '/'}
+                >
+                    <span className="relative z-10">Start Exploring</span>
+                    <div className="absolute inset-x-0 bottom-0 h-[1px] border-t border-dashed border-[#4988c4] scale-x-0 group-hover/btn:scale-x-100 transition-transform duration-500 origin-left" />
+                </Button>
             </div>
         );
     }
@@ -49,7 +55,6 @@ export function CartTable({ cart, onQuantity, onRemove, loadingIds = [], syncing
         <div className="flex flex-col gap-6">
             {cart.map((item) => {
                 const isLoading = loadingIds.includes(item.id);
-                const isSyncing = syncingIds.includes(item.id);
                 const isOutOfStock = item.availableStock !== undefined && item.availableStock < item.quantity;
                 const isLowStock = item.availableStock !== undefined && item.availableStock > 0 && item.availableStock < 5;
                 const hasTradeIn = !!(item.tradeIn?.totalValue && item.tradeIn.totalValue > 0);
@@ -58,13 +63,15 @@ export function CartTable({ cart, onQuantity, onRemove, loadingIds = [], syncing
                     <div
                         key={item.id}
                         className={cn(
-                            "group relative overflow-hidden bg-white/80 backdrop-blur-xl rounded-[32px] border transition-all duration-500 hover:shadow-2xl hover:-translate-y-1",
-                            hasTradeIn
-                                ? "border-emerald-200 shadow-emerald-700/5 bg-gradient-to-br from-white/90 to-emerald-50/30"
-                                : "border-white/60 shadow-black/[0.03] hover:shadow-primary/5",
+                            "group relative overflow-hidden bg-white rounded-2xl border border-slate-100 p-3 sm:p-4 transition-all duration-300 hover:border-[#4988c4]/30",
+                            hasTradeIn && "bg-emerald-50/10 border-emerald-100/50",
                             isLoading && "opacity-70 pointer-events-none"
                         )}
                     >
+                        {/* Artistic Subtle Separator - Sharp Reveal */}
+                        <div className="absolute top-4 bottom-4 right-10 w-px hidden lg:block overflow-hidden">
+                            <div className="h-full w-full border-r border-dashed border-slate-100 scale-y-0 group-hover:scale-y-100 transition-transform duration-1000 origin-top opacity-50" />
+                        </div>
                         {/* Trade-in Indicator Badge */}
                         {hasTradeIn && (
                             <div className="absolute top-0 right-0 pt-3 pr-8">
@@ -74,169 +81,114 @@ export function CartTable({ cart, onQuantity, onRemove, loadingIds = [], syncing
                             </div>
                         )}
 
-                        {/* Loading Overlay */}
+                        {/* Loading State Overlay - Sharp & Clean */}
                         {isLoading && (
-                            <div className="absolute inset-0 z-10 bg-white/40 backdrop-blur-[2px] flex items-center justify-center">
-                                <div className="flex flex-col items-center gap-2">
-                                    <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
-                                    <span className="text-[10px] font-bold text-primary uppercase tracking-widest">Updating</span>
-                                </div>
+                            <div className="absolute inset-0 z-10 bg-white/60 flex items-center justify-center backdrop-blur-[1px]">
+                                <RefreshCw className="w-6 h-6 text-[#4988c4] animate-spin" />
                             </div>
                         )}
 
-                        <div className="p-6 sm:p-8">
-                            <div className="flex flex-col md:flex-row gap-8">
-                                {/* 1. Image Section */}
-                                <div className="relative group/img flex-shrink-0 mx-auto md:mx-0">
-                                    <div className="relative w-40 h-40 md:w-48 md:h-48 rounded-[32px] overflow-hidden bg-gray-50 border-2 border-white shadow-md transition-transform duration-700 group-hover/img:scale-[1.03]">
+                        <div className="p-4 sm:p-5">
+                            <div className="flex flex-col md:flex-row gap-6">
+                                <div className="relative flex-shrink-0">
+                                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-slate-50 border border-slate-100 group-hover:border-[#4988c4]/20 transition-colors">
                                         <img
                                             src={item.image}
                                             alt={item.name}
                                             className={cn(
-                                                "w-full h-full object-cover transition-transform duration-700 group-hover/img:scale-110",
+                                                "w-full h-full object-cover transition-transform duration-500 group-hover:scale-105",
                                                 isLoading && "opacity-30"
                                             )}
                                         />
-                                        {isLoading && (
-                                            <div className="absolute inset-0 flex items-center justify-center">
-                                                <div className="w-8 h-8 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
-                                            </div>
-                                        )}
-                                        {isSyncing && !isLoading && (
-                                            <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm p-1.5 rounded-full shadow-lg border border-primary/20 animate-bounce-subtle">
-                                                <RefreshCw className="w-3 h-3 text-primary animate-spin" />
-                                            </div>
-                                        )}
                                     </div>
                                     {isOutOfStock && (
-                                        <div className="absolute inset-0 z-[1] bg-black/40 backdrop-blur-sm rounded-[32px] flex items-center justify-center">
-                                            <span className="text-white text-[10px] font-black uppercase tracking-widest px-3 py-1 bg-rose-500 rounded-full">Out of Stock</span>
+                                        <div className="absolute inset-0 z-[1] bg-rose-500/10 rounded-2xl flex items-center justify-center border border-rose-200">
+                                            <span className="text-white text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 bg-rose-500 rounded">Sold Out</span>
                                         </div>
                                     )}
                                 </div>
 
-                                {/* 2. Content Section */}
                                 <div className="flex flex-1 flex-col min-w-0">
-                                    <div className="flex justify-between items-start gap-4 mb-4">
-                                        <div className="space-y-1.5">
-                                            <h3 className="text-xl md:text-2xl font-black text-gray-900 group-hover:text-primary transition-colors leading-[1.1] tracking-tight">
+                                    <div className="flex justify-between items-start gap-4 mb-3">
+                                        <div className="space-y-0.5">
+                                            <h3 className="text-sm sm:text-lg font-black text-slate-900 tracking-tight leading-tight uppercase">
                                                 {item.name}
                                             </h3>
-                                            <div className="flex flex-wrap items-center gap-2">
-                                                {item.sku && (
-                                                    <Badge variant="outline" className="bg-gray-100/50 text-gray-400 border-gray-200 text-[10px] py-0 px-2 font-mono">
-                                                        #{item.sku}
-                                                    </Badge>
-                                                )}
-                                                <span className="h-1 w-1 bg-gray-300 rounded-full" />
-                                                <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">DreamGuard Verified</span>
-                                            </div>
+                                            <p className="text-[8px] font-black text-[#4988c4] uppercase tracking-widest flex items-center gap-2">
+                                                ID: <span className="text-slate-300 font-bold">#{item.id.slice(0, 8)}</span>
+                                                <span className="w-1 h-1 bg-slate-200 rounded-full" />
+                                                <span className="text-emerald-500">Verified</span>
+                                            </p>
                                         </div>
 
                                         <button
                                             onClick={() => onRemove(item.id)}
-                                            className="p-3.5 rounded-2xl text-gray-300 hover:text-rose-500 hover:bg-rose-50 border border-transparent transition-all duration-300 group/del"
+                                            className="p-2 rounded-xl text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-colors group/del"
                                             aria-label="Remove item"
                                         >
-                                            <Trash2 className="w-5 h-5 transition-transform duration-300 group-hover/del:scale-110" />
+                                            <Trash2 className="w-4 h-4" />
                                         </button>
                                     </div>
 
-                                    {/* VISUAL VARIANTS - Highly Distinct */}
-                                    <div className="flex flex-wrap items-center gap-3 mb-6">
+                                    <div className="flex flex-wrap items-center gap-2 mb-3">
                                         {item.color && (
-                                            <TooltipProvider>
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <div className="flex items-center gap-2.5 px-3 py-2 bg-white rounded-2xl border border-gray-100 shadow-sm ring-1 ring-black/5 hover:ring-primary/20 transition-all cursor-default">
-                                                            <div
-                                                                className="w-5 h-5 rounded-full border-2 border-white ring-1 ring-black/10 shadow-sm"
-                                                                style={{ backgroundColor: resolveColor(item.color) }}
-                                                            />
-                                                            <div className="flex flex-col leading-none">
-                                                                <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">Color</span>
-                                                                <span className="text-[13px] font-black text-gray-900">{item.color}</span>
-                                                            </div>
-                                                        </div>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                        <p>Color: {item.color}</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
+                                            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-50/50 rounded-lg border border-slate-100">
+                                                <div 
+                                                    className="w-2 h-2 rounded-full border border-white shadow-sm" 
+                                                    style={{ backgroundColor: resolveColor(item.color) }}
+                                                />
+                                                <span className="text-[8px] font-black text-slate-900 uppercase">{item.color}</span>
+                                            </div>
                                         )}
                                         {item.size && (
-                                            <TooltipProvider>
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <div className="flex items-center gap-2.5 px-3 py-2 bg-primary/5 rounded-2xl border border-primary/10 shadow-sm ring-1 ring-primary/5 hover:ring-primary/20 transition-all cursor-default">
-                                                            <div className="w-5 h-5 bg-primary/20 rounded-full flex items-center justify-center">
-                                                                <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-                                                            </div>
-                                                            <div className="flex flex-col leading-none">
-                                                                <span className="text-[9px] font-black text-primary/60 uppercase tracking-tighter">Size</span>
-                                                                <span className="text-[13px] font-black text-primary">{item.size}</span>
-                                                            </div>
-                                                        </div>
-                                                    </TooltipTrigger>
-                                                    <TooltipContent>
-                                                        <p>Size: {item.size}</p>
-                                                    </TooltipContent>
-                                                </Tooltip>
-                                            </TooltipProvider>
+                                            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-[#4988c4]/5 rounded-lg border border-[#4988c4]/10">
+                                                <span className="text-[8px] font-black text-[#4988c4] uppercase tracking-widest">{item.size}</span>
+                                            </div>
                                         )}
-                                        <div className="h-4 w-px bg-gray-200 mx-1" />
-                                        <div className="flex items-center gap-2 text-emerald-600 font-bold text-[11px]">
-                                            <ShieldCheck className="w-4 h-4" />
-                                            <span>Premium Warranty</span>
-                                        </div>
                                     </div>
 
-                                    {/* 3. Business Bar */}
-                                    <div className="mt-auto grid grid-cols-1 sm:grid-cols-3 gap-6 items-center p-5 bg-gray-50/50 rounded-[24px] border border-gray-100/50">
-                                        <div className="flex flex-col">
-                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Unit Price</span>
-                                            <span className="text-xl font-black text-gray-900 tracking-tight">${item.price.toFixed(2)}</span>
+                                    <div className="mt-auto pt-3 relative">
+                                        <div className="absolute top-0 left-0 w-full h-px border-t border-dashed border-slate-50 overflow-hidden">
+                                            <div className="w-full h-full border-t border-dashed border-[#4988c4]/10 scale-x-0 group-hover:scale-x-100 transition-transform duration-700 origin-left" />
                                         </div>
+                                        <div className="flex flex-row items-center justify-between gap-2">
+                                            <div className="flex items-center gap-6">
+                                                <div className="flex flex-col">
+                                                    <span className="text-[7px] font-black text-slate-300 uppercase tracking-widest mb-0.5">Price</span>
+                                                    <span className="text-xs font-black text-slate-900 tracking-tight tabular-nums">${item.price.toFixed(2)}</span>
+                                                </div>
 
-                                        <div className="flex flex-col items-center">
-                                            <div className="flex items-center p-1.5 rounded-2xl bg-white shadow-sm border border-gray-100">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 rounded-xl hover:bg-rose-50 hover:text-rose-500 transition-all"
-                                                    onClick={() => onQuantity(item.id, -1)}
-                                                    disabled={item.quantity <= 1 || isLoading}
-                                                >
-                                                    <Minus className="h-4 w-4" />
-                                                </Button>
-                                                <span className="w-10 text-center text-sm font-black text-gray-900 tabular-nums">{item.quantity}</span>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 rounded-xl hover:bg-emerald-50 hover:text-emerald-500 transition-all"
-                                                    onClick={() => onQuantity(item.id, 1)}
-                                                    disabled={isLoading || (item.availableStock !== undefined && item.quantity >= item.availableStock)}
-                                                >
-                                                    <Plus className="h-4 w-4" />
-                                                </Button>
+                                                <div className="flex items-center gap-1 p-0.5 rounded-lg bg-slate-50 border border-slate-100">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-6 w-6 rounded-md hover:bg-white transition-all p-0 flex items-center justify-center text-slate-400 hover:text-[#4988c4]"
+                                                        onClick={() => onQuantity(item.id, -1)}
+                                                        disabled={item.quantity <= 1 || isLoading}
+                                                    >
+                                                        <Minus className="h-2.5 w-2.5" />
+                                                    </Button>
+                                                    <span className="w-5 text-center text-[10px] font-black text-slate-900">{item.quantity}</span>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-6 w-6 rounded-md hover:bg-white transition-all p-0 flex items-center justify-center text-slate-400 hover:text-[#4988c4]"
+                                                        onClick={() => onQuantity(item.id, 1)}
+                                                        disabled={isLoading || (item.availableStock !== undefined && item.quantity >= item.availableStock)}
+                                                    >
+                                                        <Plus className="h-2.5 w-2.5" />
+                                                    </Button>
+                                                </div>
                                             </div>
-                                        </div>
 
-                                        <div className="flex flex-col items-end">
-                                            <span className="text-[10px] font-black text-primary uppercase tracking-widest mb-1">Subtotal</span>
-                                            <div className="flex flex-col items-end leading-none">
+                                            <div className="flex flex-col items-end">
+                                                <span className="text-[7px] font-black text-[#4988c4] uppercase tracking-widest mb-0.5">Subtotal</span>
                                                 <span className={cn(
-                                                    "text-2xl font-black tracking-tighter",
-                                                    hasTradeIn ? "text-emerald-600" : "text-primary"
+                                                    "text-sm font-black tracking-tight tabular-nums leading-none",
+                                                    hasTradeIn ? "text-emerald-500" : "text-[#4988c4]"
                                                 )}>
                                                     ${item.subtotal.toFixed(2)}
                                                 </span>
-                                                {hasTradeIn && (
-                                                    <span className="text-[10px] font-bold text-emerald-500 line-through opacity-50">
-                                                        ${(item.price * item.quantity).toFixed(2)}
-                                                    </span>
-                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -284,30 +236,30 @@ export function CartTable({ cart, onQuantity, onRemove, loadingIds = [], syncing
                 );
             })}
 
-            {/* Premium Bottom Summary */}
-            <div className="mt-4 px-10 py-6 bg-primary/5 backdrop-blur-md rounded-[32px] border border-primary/10 flex flex-wrap justify-between items-center gap-6">
-                <div className="flex gap-10">
-                    <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-primary/50 uppercase tracking-widest mb-1">Total Grouped</span>
-                        <div className="flex items-center gap-2">
-                            <span className="text-2xl font-black text-primary-dark">{cart.length}</span>
-                            <span className="text-xs font-bold text-primary/60">ITEMS</span>
+            {/* Clean Bottom Summary - Compact Design */}
+            <div className="mt-4 flex flex-wrap justify-between items-center gap-4 p-2 bg-white rounded-2xl border border-slate-100 relative overflow-hidden group/summary">
+                <div className="absolute top-0 left-0 w-full h-0.5 bg-slate-50" />
+                <div className="flex items-center gap-8 px-6 py-2">
+                    <div className="flex items-center gap-3">
+                        <div className="flex flex-col">
+                            <span className="text-[7px] font-black text-[#4988c4] uppercase tracking-widest mb-0.5">Selection</span>
+                            <span className="text-xl font-black text-slate-900 tabular-nums">{cart.length} <span className="text-[9px] text-slate-400">Items</span></span>
                         </div>
                     </div>
-                    <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-primary/50 uppercase tracking-widest mb-1">Gross Units</span>
-                        <div className="flex items-center gap-2">
-                            <span className="text-2xl font-black text-primary-dark">
-                                {cart.reduce((acc, item) => acc + item.quantity, 0)}
+                    <div className="w-px h-6 border-r border-dashed border-slate-100" />
+                    <div className="flex items-center gap-3">
+                        <div className="flex flex-col">
+                            <span className="text-[7px] font-black text-slate-300 uppercase tracking-widest mb-0.5">Units</span>
+                            <span className="text-xl font-black text-slate-900 tabular-nums">
+                                {cart.reduce((acc, item) => acc + item.quantity, 0)} <span className="text-[9px] text-slate-400">Total</span>
                             </span>
-                            <span className="text-xs font-bold text-primary/60">UNITS</span>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3 py-2 px-5 bg-white/60 rounded-2xl border border-white/80 shadow-sm">
-                    <ShieldCheck className="w-5 h-5 text-emerald-500" />
-                    <span className="text-[11px] font-black text-gray-700 uppercase tracking-widest">Secured Checkout by DreamGuard</span>
+                <div className="flex items-center gap-3 py-2 px-4 mr-4 bg-[#4988c4]/5 rounded-xl border border-dashed border-[#4988c4]/10 hover:border-[#4988c4]/30 transition-all duration-500 cursor-default">
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#4988c4]" />
+                    <span className="text-[9px] font-black text-[#4988c4] uppercase tracking-widest">Premium Secure Check</span>
                 </div>
             </div>
         </div>

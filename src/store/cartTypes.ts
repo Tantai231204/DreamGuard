@@ -13,7 +13,7 @@ export interface CartItem {
     price: number
     quantity: number
     subtotal: number
-    productVariantId: string
+    productVariantId: string | null
     tradeIn?: {
         products: TradeInItem[]
         totalValue: number

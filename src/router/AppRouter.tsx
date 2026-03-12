@@ -92,6 +92,8 @@ export default function AppRouter() {
                     <Route element={<PrivateRoute />}>
                         <Route element={<AppLayout variant="home" />}>
                             <Route path={AppRoute.PROFILE} element={<Profile />} />
+                        </Route>
+                        <Route element={<AppLayout variant="checkout" />}>
                             <Route path={AppRoute.CHECKOUT} element={<CheckoutPage />} />
                             <Route path={AppRoute.CHECKOUT_RESULT} element={<CheckoutResult />} />
                         </Route>

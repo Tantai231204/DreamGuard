@@ -41,7 +41,7 @@ const cartService = {
         apiClient.delete(`/cart/items/${itemId}`).then((res) => res.data),
 
     syncCart: (items: AddCartItemRequest[]): Promise<CartResponse> =>
-        apiClient.post('/cart/sync', { request: items }).then((res) => res.data),
+        apiClient.post('/cart/sync', { items }).then((res) => res.data),
 
     clearCart: (): Promise<void> =>
         apiClient.delete('/cart').then((res) => res.data),

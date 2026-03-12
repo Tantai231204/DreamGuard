@@ -7,9 +7,11 @@ import { MenuItem } from "./MenuItem"
 import { LogoutButton } from "./LogoutButton"
 import { mockUser } from "./data"
 import { useProfile } from "@/hooks/queries"
+import { useLogout } from "@/hooks/useAuth"
 
 export function UserDropdownContent() {
-    const { role, clearAuth: logout } = useAuthStore()
+    const { role } = useAuthStore()
+    const { mutate: logout } = useLogout()
     const { data: profile, isLoading } = useProfile()
 
     const userData = {

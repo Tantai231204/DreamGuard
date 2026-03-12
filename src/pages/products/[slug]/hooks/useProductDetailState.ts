@@ -186,7 +186,7 @@ export function useProductDetailState({ product, productImageRef }: UseProductDe
 
         addItem({
             id: product.id,
-            variantId: currentVariant?.id,
+            productVariantId: currentVariant?.id,
             name: product.name,
             image: productImages[0] || "/images/placeholder-product.svg",
             price,

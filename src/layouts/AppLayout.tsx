@@ -9,7 +9,7 @@ import { LegacyBreadcrumb as Breadcrumb } from '../components/common/Breadcrumb'
 import { useBreadcrumb } from '../components/common/breadcrumb/useBreadcrumb';
 
 interface AppLayoutProps {
-  variant?: "home" | "main";
+  variant?: "home" | "main" | "checkout";
 }
 
 export default function AppLayout({ variant = "main" }: AppLayoutProps) {
@@ -17,13 +17,25 @@ export default function AppLayout({ variant = "main" }: AppLayoutProps) {
   const { token, role } = useAuthStore();
   const { mutate: logoutMutation, isPending } = useLogout(); // disable nút logout khi đã logout gòi
   const navigate = useNavigate();;
-    const { items: breadcrumbItems } = useBreadcrumb();
+  const { items: breadcrumbItems } = useBreadcrumb();
 
   // Home variant with Header and Footer
   if (variant === "home") {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
+        <main className="flex-1 w-full mt-[108px]">
+          <Outlet />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Checkout variant with only progress bar and minimalist container
+  if (variant === "checkout") {
+    return (
+      <div className="min-h-screen bg-[#fafbfc] flex flex-col">
         <main className="flex-1 w-full">
           <Outlet />
         </main>
@@ -98,21 +110,21 @@ export default function AppLayout({ variant = "main" }: AppLayoutProps) {
         </div>
       </header>
 
-            <main className="flex-1 w-full">
-                <div className="container max-w-7xl mx-auto px-4 py-6">
-                    {/* Breadcrumb chỉ render nếu có items */}
-                    {breadcrumbItems && breadcrumbItems.length > 0 && (
-                        <Breadcrumb items={breadcrumbItems} className="mb-6" />
-                    )}
-                    <Outlet />
-                </div>
-            </main>
-
-            <footer className="border-t bg-gray-50 w-full">
-                <div className="container max-w-7xl mx-auto px-4 py-4 text-center text-sm text-gray-500">
-                    © 2026 DreamGuard. Built with React + TypeScript + TanStack Query + Zustand.
-                </div>
-            </footer>
+      <main className="flex-1 w-full">
+        <div className="container max-w-7xl mx-auto px-4 py-6">
+          {/* Breadcrumb chỉ render nếu có items */}
+          {breadcrumbItems && breadcrumbItems.length > 0 && (
+            <Breadcrumb items={breadcrumbItems} className="mb-6" />
+          )}
+          <Outlet />
         </div>
-    );
+      </main>
+
+      <footer className="border-t bg-gray-50 w-full">
+        <div className="container max-w-7xl mx-auto px-4 py-4 text-center text-sm text-gray-500">
+          © 2026 DreamGuard. Built with React + TypeScript + TanStack Query + Zustand.
+        </div>
+      </footer>
+    </div>
+  );
 }
