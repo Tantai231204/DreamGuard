@@ -39,6 +39,8 @@ export default function ResetPasswordSuccess() {
                 <p className="text-sm text-gray-500 mt-2">
                     Your password has been successfully reset.
                     <br />
+                    Your new password has been sent to your email.
+                    <br/>
                     Click continue to set up login.
                 </p>
             </div>

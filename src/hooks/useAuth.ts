@@ -87,3 +87,8 @@ export const useSendRegisterOtp = () => {
   })
 }
 
+export const useChangePassword = () => {
+  return useMutation({
+    mutationFn: authService.changePassword,
+  })
+}

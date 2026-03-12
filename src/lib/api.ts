@@ -1,5 +1,5 @@
 // src/lib/api.ts
-import axios, { type AxiosRequestConfig } from "axios";
+import axios, { type AxiosRequestConfig, type InternalAxiosRequestConfig } from "axios";
 import { toast } from "sonner";
 import { useAuthStore } from "../store/authStore";
 import { ApiErrorCode } from "./constants";
@@ -25,6 +25,7 @@ export class ApiError extends Error {
 export interface CustomAxiosRequestConfig extends AxiosRequestConfig {
   _retry?: boolean;
   _suppressToast?: boolean;
+  skipAuth?: boolean; 
 }
 
 /* ======================
@@ -84,16 +85,29 @@ const processQueue = (error: unknown, token: string | null = null) => {
 /* ======================
    Request Interceptor
 ====================== */
-api.interceptors.request.use((config) => {
+// api.interceptors.request.use((config) => {
+//   const token = useAuthStore.getState().token;
+
+//   if (token) {
+//     config.headers.Authorization = `Bearer ${token}`;
+//   }
+
+//   return config;
+// }, (error) => {
+//   return Promise.reject(error);
+// });
+
+api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = useAuthStore.getState().token;
 
-  if (token) {
+  const skipAuth = (config as CustomAxiosRequestConfig).skipAuth;
+
+  if (token && !skipAuth) {
+    config.headers = config.headers || {};
     config.headers.Authorization = `Bearer ${token}`;
   }
 
   return config;
-}, (error) => {
-  return Promise.reject(error);
 });
 
 /* ======================

@@ -64,7 +64,7 @@ export default function AddressesTab() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
-            Address Book
+            Address List
           </h2>
           <p className="text-sm text-gray-400 mt-1 font-medium">
             Manage your shipping addresses
