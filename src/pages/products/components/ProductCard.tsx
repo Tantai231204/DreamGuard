@@ -11,8 +11,7 @@ interface ProductCardProps {
     product: Product
 }
 
-const formatPrice = (price: number) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(price)
+
 
 export const ProductCard: FC<ProductCardProps> = ({ product }) => {
     const handleLike = (e: React.MouseEvent) => {
@@ -61,8 +60,8 @@ export const ProductCard: FC<ProductCardProps> = ({ product }) => {
                                 </Badge>
                             )}
                             {product.isNew && !discountPercent && (
-                                <Badge className="bg-slate-900 text-white border-0 px-3 py-1 text-[10px] font-bold rounded-full tracking-widest uppercase shadow-sm">
-                                    New
+                                <Badge className="bg-indigo-600 text-white border-0 px-3 py-1 text-[10px] font-bold rounded-full tracking-widest uppercase shadow-sm">
+                                    New Arrival
                                 </Badge>
                             )}
                         </div>
@@ -71,25 +70,16 @@ export const ProductCard: FC<ProductCardProps> = ({ product }) => {
                         <div className="absolute right-4 top-4 opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 transition-all duration-400 z-10">
                             <button
                                 onClick={handleLike}
-                                className="h-9 w-9 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-slate-400 shadow-xl hover:text-rose-500 hover:bg-white transition-all"
+                                className="h-9 w-9 rounded-full bg-white/95 backdrop-blur-md flex items-center justify-center text-slate-400 shadow-xl hover:text-rose-500 hover:bg-white transition-all border border-slate-100"
                             >
                                 <Heart className="h-4.5 w-4.5" />
                             </button>
                         </div>
-
-                        {/* Out of Stock Overlay */}
-                        {!product.inStock && (
-                            <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center">
-                                <span className="text-[11px] font-bold text-slate-500 bg-white border border-slate-200 px-3 py-1 rounded-full shadow-sm tracking-wider uppercase">
-                                    Out of Stock
-                                </span>
-                            </div>
-                        )}
                     </div>
 
                     {/* CONTENT SECTION */}
                     <div className="pt-5 px-3 flex flex-col flex-1">
-                        
+
                         {/* Rating & Secondary Info */}
                         <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-1.5">
@@ -103,11 +93,24 @@ export const ProductCard: FC<ProductCardProps> = ({ product }) => {
                                     </span>
                                 )}
                             </div>
-                            
+
                             {product.ageRange && (
-                                <div className="px-2.5 py-0.5 rounded-full bg-[#4988c4]/5 border border-[#4988c4]/10">
-                                    <span className="text-[9px] font-bold uppercase tracking-widest text-[#4988c4]">
-                                        {product.ageRange}
+                                <div className="px-3 py-0.5 rounded-full bg-slate-100 border border-slate-200">
+                                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-600">
+                                        {(() => {
+                                            const ageString = product.ageRange.toString().toLowerCase();
+                                            if (ageString === "0-6" || ageString === "0") return "Newborn";
+                                            if (ageString === "6-12") return "6+ Months";
+                                            if (ageString === "12") return "1 Year";
+                                            if (ageString === "24") return "2 Years";
+                                            // Fallback logic for generic numbers
+                                            const ageNum = parseInt(ageString);
+                                            if (!isNaN(ageNum)) {
+                                                if (ageNum < 12) return `${ageNum} Months`;
+                                                return `${Math.floor(ageNum / 12)} Year${Math.floor(ageNum / 12) > 1 ? 's' : ''}`;
+                                            }
+                                            return product.ageRange;
+                                        })()}
                                     </span>
                                 </div>
                             )}
@@ -118,21 +121,10 @@ export const ProductCard: FC<ProductCardProps> = ({ product }) => {
                             {product.name}
                         </h3>
 
-                        {/* Price & Action */}
-                        <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-between">
-                            <div className="flex flex-col">
-                                <span className="text-[22px] font-black text-slate-900 tracking-tighter leading-none">
-                                    {formatPrice(product.price)}
-                                </span>
-                                {product.originalPrice && product.originalPrice > product.price && (
-                                    <span className="text-[11px] text-slate-400 line-through mt-1.5 font-medium">
-                                        {formatPrice(product.originalPrice)}
-                                    </span>
-                                )}
-                            </div>
-
-                            <div className="h-9 w-9 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-900 group-hover:bg-slate-900 group-hover:text-white group-hover:border-slate-900 transition-all duration-500">
-                                <Plus className="w-4 h-4" strokeWidth={2.5} />
+                        {/* Action Only - Removed Price per API constraints */}
+                        <div className="mt-auto pt-6 flex items-center justify-end border-t border-slate-50">
+                            <div className="h-10 w-10 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-900 group-hover:bg-slate-950 group-hover:text-white group-hover:border-slate-950 transition-all duration-500 shadow-sm">
+                                <Plus className="w-5 h-5" strokeWidth={2.5} />
                             </div>
                         </div>
                     </div>
