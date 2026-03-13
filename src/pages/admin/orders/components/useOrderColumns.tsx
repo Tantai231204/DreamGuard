@@ -1,17 +1,16 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Eye, Trash2 } from 'lucide-react';
-import { SortableHeader, AdminRowActions } from '@/components/admin';
+import { SortableHeader, AdminRowActions, AdminStatusBadge } from '@/components/admin';
 import { type ColumnDef } from '@tanstack/react-table';
-import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import type { OrderResponse } from '@/api/types/order';
-import { cn } from '@/lib/utils';
 import { formatPrice } from '@/pages/profile/utils';
 import { useCancelOrder } from '@/hooks/queries';
 import { toast } from 'sonner';
 import { OrderStatus, ORDER_STATUS_MAP, ADMIN_ORDER_STATUS_THEME } from '../constants';
+import { formatDate, formatTime } from '@/lib/utils';
 
 export const useOrderColumns = () => {
     const cancelOrder = useCancelOrder();
@@ -95,15 +94,7 @@ export const useOrderColumns = () => {
                     const status = row.original.status.toString();
                     const theme = ADMIN_ORDER_STATUS_THEME[status] || ADMIN_ORDER_STATUS_THEME["1"];
                     return (
-                        <Badge
-                            variant="outline"
-                            className={cn(
-                                "px-2.5 py-1 rounded-full font-bold text-[10px] uppercase tracking-wider border",
-                                theme.className
-                            )}
-                        >
-                            {theme.label}
-                        </Badge>
+                        <AdminStatusBadge status={theme.label} />
                     );
                 },
             },
@@ -112,22 +103,13 @@ export const useOrderColumns = () => {
                 enableSorting: true,
                 header: ({ column }) => <SortableHeader column={column} label="Date Created" />,
                 cell: ({ row }) => {
-                    const date = new Date(row.original.createdAt);
                     return (
                         <div className="text-sm text-gray-600 flex flex-col">
                             <span className="font-semibold text-gray-900">
-                                {date.toLocaleDateString('vi-VN', {
-                                    day: '2-digit',
-                                    month: '2-digit',
-                                    year: 'numeric'
-                                })}
+                                {formatDate(row.original.createdAt)}
                             </span>
                             <span className="text-[10px] text-gray-400">
-                                {date.toLocaleTimeString('vi-VN', { 
-                                    hour: '2-digit', 
-                                    minute: '2-digit',
-                                    hour12: false 
-                                })}
+                                {formatTime(row.original.createdAt)}
                             </span>
                         </div>
                     );

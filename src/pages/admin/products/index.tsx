@@ -671,7 +671,7 @@ export default function ProductsPage() {
               <AdminBulkActions
                 table={activeTable}
                 itemLabel={activeTab === 'single' ? 'product' : 'combo'}
-                accentColor={activeTab === 'single' ? 'blue' : 'purple'}
+                accentColor={activeTab === 'single' ? 'blue' : 'black'}
                 onEdit={() => console.log('Edit selected')}
                 onDuplicate={() => console.log('Duplicate selected')}
                 onDelete={() => console.log('Delete selected')}

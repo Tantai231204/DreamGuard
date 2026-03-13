@@ -25,10 +25,11 @@ import {
     CircleDot,
 } from 'lucide-react';
 import type { ProductVariant, VariantStatus, VariantAttributes } from '../../types';
-import { VARIANT_STATUS_OPTIONS } from '../../types';
+import { VARIANT_STATUS_OPTIONS, normalizeStatus, getAllowedStatusTransitions, PRODUCT_STATUS_COLORS } from '../../types';
 import { useVariantDetail } from '@/hooks/queries/useProduct';
 import ColorPicker from './ColorPicker';
 import SectionHeading from '../shared/SectionHeading';
+import { Badge } from '@/components/ui/badge';
 
 const INPUT_CLS =
     'h-11 rounded-xl border-gray-200 bg-gray-50/50 hover:border-[#4988c4]/60 hover:bg-white focus:border-[#4988c4] focus:ring-2 focus:ring-[#4988c4]/20 transition-all';
@@ -135,9 +136,8 @@ function VariantDialogInner({
 
     // Other
     const [isNew, setIsNew] = useState(variant?.isNew ?? false);
-    const [status, setStatus] = useState<VariantStatus>((variant?.status || 'Draft') as VariantStatus); // Edit mode defaults to Draft if no status which means 0 stock, though API usually sends status.
+    const [status, setStatus] = useState<VariantStatus>(() => normalizeStatus(variant?.status || 'Draft') as VariantStatus);
     const stockStatus = variant?.stockStatus || 'In Stock';
-    const hasZeroStock = !variant?.stockQuantity || variant.stockQuantity <= 0;
 
     const handleColorChange = useCallback((name: string, code: string) => {
         setColorHex(code);
@@ -346,14 +346,21 @@ function VariantDialogInner({
                         />
                     </div>
 
-                    {isEdit && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
-                            {/* Status */}
-                            <div className="space-y-2">
-                                <Label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
-                                    <CircleDot className="h-3.5 w-3.5 text-gray-400" />
-                                    Market Status
-                                </Label>
+                    {/* Market & Configuration */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
+                        {/* Status Selection */}
+                        <div className="space-y-2 flex-1">
+                            <Label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+                                <CircleDot className="h-3.5 w-3.5 text-gray-400" />
+                                Market Status
+                            </Label>
+                            {!isEdit ? (
+                                <div className="flex items-center gap-2.5 p-2.5 h-11 rounded-xl bg-amber-50 border border-amber-200/60 shadow-inner-sm">
+                                    <div className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+                                    <span className="text-xs font-bold text-amber-700">Initially <span className="border-b border-amber-400">Draft</span></span>
+                                    <Badge variant="outline" className="ml-auto bg-white text-[10px] font-black uppercase text-amber-600 border-amber-200 shadow-sm">New</Badge>
+                                </div>
+                            ) : (
                                 <Select
                                     value={status}
                                     onValueChange={(val) => setStatus(val as VariantStatus)}
@@ -362,51 +369,42 @@ function VariantDialogInner({
                                     <SelectTrigger className={cn(INPUT_CLS, 'w-full')}>
                                         <SelectValue placeholder="Select status" />
                                     </SelectTrigger>
-                                    <SelectContent className="rounded-xl">
-                                        {VARIANT_STATUS_OPTIONS.map((opt) => {
-                                            const isDisabled = hasZeroStock && (opt.value === 'Published' || opt.value === 'Hidden');
-                                            return (
-                                                <SelectItem
-                                                    key={opt.value}
-                                                    value={opt.value}
-                                                    className="rounded-lg"
-                                                    disabled={isDisabled}
-                                                    title={isDisabled ? "Cannot activate or hide variant with zero stock." : undefined}
-                                                >
-                                                    <div className="flex items-center gap-2">
-                                                        <span className={cn(
+                                    <SelectContent className="rounded-xl shadow-xl z-[400]">
+                                        {VARIANT_STATUS_OPTIONS
+                                            .filter(opt => getAllowedStatusTransitions(status).includes(opt.value))
+                                            .map(opt => (
+                                                <SelectItem key={opt.value} value={opt.value} className="rounded-lg">
+                                                    <div className="flex items-center gap-2 font-bold text-slate-700">
+                                                        <div className={cn(
                                                             'w-2 h-2 rounded-full',
-                                                            opt.value === 'Published' && 'bg-emerald-500',
-                                                            opt.value === 'Draft' && 'bg-amber-400',
-                                                            opt.value === 'Hidden' && 'bg-gray-400',
+                                                            PRODUCT_STATUS_COLORS[opt.value]
                                                         )} />
-                                                        <span className={isDisabled ? 'text-gray-400' : ''}>{opt.label}</span>
+                                                        <span>{opt.label}</span>
                                                     </div>
                                                 </SelectItem>
-                                            );
-                                        })}
+                                            ))}
                                     </SelectContent>
                                 </Select>
-                            </div>
+                            )}
+                        </div>
 
-                            {/* isNew Toggle */}
-                            <div className="flex flex-col justify-end">
-                                <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4 h-11">
-                                    <Label htmlFor="isNew" className="text-sm font-medium text-gray-700 cursor-pointer flex items-center gap-2">
-                                        <Sparkles className="w-3.5 h-3.5 text-orange-500" />
-                                        Mark as New Arrival
-                                    </Label>
-                                    <Switch
-                                        id="isNew"
-                                        checked={isNew}
-                                        onCheckedChange={setIsNew}
-                                        disabled={isLoading}
-                                        className="data-[state=checked]:bg-[#4988c4] scale-75"
-                                    />
-                                </div>
+                        {/* isNew Toggle */}
+                        <div className="flex flex-col justify-end">
+                            <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white p-4 h-11 shadow-sm hover:border-[#4988c4]/40 transition-colors">
+                                <Label htmlFor="isNew" className="text-sm font-medium text-gray-700 cursor-pointer flex items-center gap-2">
+                                    <Sparkles className="w-3.5 h-3.5 text-orange-500" />
+                                    Mark as New Arrival
+                                </Label>
+                                <Switch
+                                    id="isNew"
+                                    checked={isNew}
+                                    onCheckedChange={setIsNew}
+                                    disabled={isLoading}
+                                    className="data-[state=checked]:bg-[#4988c4] scale-75"
+                                />
                             </div>
                         </div>
-                    )}
+                    </div>
                 </div>
             </form>
 

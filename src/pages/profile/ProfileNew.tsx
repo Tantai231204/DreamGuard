@@ -41,6 +41,7 @@ import {
   useUserProfile,
   useUpdateUserProfile,
 } from "../../hooks/useUserProfile";
+import { formatDate } from "@/lib/utils";
 
 /* ================= Types ================= */
 type TabId =
@@ -537,7 +538,7 @@ function BabyDetailView({
             <Calendar className="h-5 w-5 text-primary mx-auto mb-2" />
             <p className="text-xs text-gray-500">Ngày sinh</p>
             <p className="font-semibold text-gray-800">
-              {new Date(baby.birthDate).toLocaleDateString("vi-VN")}
+              {formatDate(baby.birthDate)}
             </p>
           </div>
           <div className="rounded-2xl bg-white/80 backdrop-blur-sm p-4 text-center shadow-sm">

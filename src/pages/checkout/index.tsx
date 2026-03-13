@@ -9,6 +9,7 @@ import { ShieldCheck, ArrowLeft, Lock, RefreshCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useCartStore } from "@/store/useCartStore"
 import { motion } from "framer-motion"
+import { formatDate } from "@/lib/utils"
 
 export default function CheckoutPage() {
     const { setItems } = useBreadcrumb()
@@ -19,7 +20,7 @@ export default function CheckoutPage() {
     const estimatedDate = useMemo(() => {
         const date = new Date()
         date.setDate(date.getDate() + 3) // 3 days shipping
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+        return formatDate(date)
     }, [])
 
     useEffect(() => {

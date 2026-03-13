@@ -5,7 +5,8 @@ import { usePaymentByOrderId } from '@/hooks/queries/usePayment';
 import { CreditCard, AlertCircle, ShieldCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
+import { formatTime, cn } from '@/lib/utils';
+import { AdminStatusBadge } from '@/components/admin';
 
 interface PaymentInfoCardProps {
   orderId: string;
@@ -62,7 +63,11 @@ export function PaymentInfoCard({ orderId, paymentMethod, total, delay = 0 }: Pa
             <div className="flex items-center justify-between">
               <div className="flex flex-col">
                 <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Settlement Method</span>
-                <span className="text-sm font-black text-slate-800">{paymentMethod || payment?.paymentMethod || 'COD'}</span>
+                <AdminStatusBadge 
+                    status={paymentMethod || payment?.paymentMethod || 'COD'} 
+                    type="neutral"
+                    className="group"
+                />
               </div>
               <Badge variant="outline" className={cn(getStatusColor(payment?.status || 'Pending'), "border-none font-bold text-[10px] px-2.5 py-1 rounded-full uppercase tracking-wider")}>
                 {payment?.status || 'UNSETTLED'}
@@ -79,7 +84,7 @@ export function PaymentInfoCard({ orderId, paymentMethod, total, delay = 0 }: Pa
               <div className="space-y-1 text-right">
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Timestamp</p>
                 <p className="text-[10px] font-bold text-slate-700">
-                  {payment?.createdAt ? new Date(payment.createdAt).toLocaleTimeString('vi-VN') : '--:--:--'}
+                  {payment?.createdAt ? formatTime(payment.createdAt) : '--:--:--'}
                 </p>
               </div>
             </div>

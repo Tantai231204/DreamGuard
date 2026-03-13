@@ -1,7 +1,5 @@
 import { useMemo } from 'react';
-import { cn } from '@/lib/utils';
 import { createColumnHelper } from '@tanstack/react-table';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -15,7 +13,6 @@ import {
   Star,
   Plus,
 } from 'lucide-react';
-import { SortableHeader } from '@/components/admin';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,25 +20,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { SortableHeader, AdminStatusBadge } from '@/components/admin';
+import { formatDate } from '@/lib/utils';
 import type { Product } from '../../types';
-import { formatAgeGroup, PRODUCT_STATUS_VARIANT } from '../../types';
+import { formatAgeGroup } from '../../types';
 import { VariantInfoCell, PriceRangeCell, StockCell } from './cells';
 
 const columnHelper = createColumnHelper<Product>();
 
-const statusStyles: Record<string, string> = {
-  Draft: 'bg-amber-50 text-amber-700 border-amber-300',
-  Published: 'bg-emerald-50 text-emerald-700 border-emerald-300',
-  OutOfStock: 'bg-red-50 text-red-700 border-red-300',
-  Hidden: 'bg-gray-50 text-gray-600 border-gray-300',
-};
 
-const statusLabels: Record<string, string> = {
-  Draft: 'Draft',
-  Published: 'Published',
-  OutOfStock: 'Out of Stock',
-  Hidden: 'Hidden',
-};
 
 interface UseProductColumnsProps {
   onView: (product: Product) => void;
@@ -200,12 +187,8 @@ export function useProductColumns({ onView, onEdit, onDelete, onAddVariant }: Us
         header: 'Status',
         cell: (info) => {
           const status = info.getValue();
-          const variant = PRODUCT_STATUS_VARIANT[status] || 'outline';
-          const styles = statusStyles[status] || 'bg-slate-50 text-slate-600 border-slate-200';
           return (
-            <Badge variant={variant} className={cn("px-2.5 py-1 rounded-full font-bold text-[10px] uppercase tracking-wider border", styles)}>
-              {statusLabels[status] || status}
-            </Badge>
+            <AdminStatusBadge status={status} />
           );
         },
       }),
@@ -214,7 +197,7 @@ export function useProductColumns({ onView, onEdit, onDelete, onAddVariant }: Us
         header: ({ column }) => <SortableHeader column={column} label="Created" />,
         cell: (info) => (
           <span className="text-xs text-gray-500">
-            {new Date(info.getValue()).toLocaleDateString('en-US')}
+            {formatDate(info.getValue())}
           </span>
         ),
       }),

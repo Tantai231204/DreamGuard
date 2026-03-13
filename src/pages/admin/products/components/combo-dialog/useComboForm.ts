@@ -11,6 +11,7 @@
  */
 
 import { useCallback, useReducer, useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { useAllVariantOptions } from "@/hooks/queries/useProduct";
 import { useComboParents, useCombos, useComboDetail } from "@/hooks/queries/useCombo";
 import type { CreateComboRequest } from "@/api/services/comboService";
@@ -18,6 +19,7 @@ import type { Combo } from "../../types";
 import {
     formReducer,
     getInitialState,
+    normalizeStatus,
     toSlug,
     type ComboDialogMode,
     type ComboFormState,
@@ -71,13 +73,25 @@ export function useComboForm({
     );
 
     // Sync form when detail is loaded
+    // IMPORTANT: The detail endpoint is PUBLIC (/combo/{id}) and may NOT return
+    // the correct `status` for Draft/Hidden combos. The original `combo` prop
+    // comes from the ADMIN list (/combo/admin) which always has the correct status.
+    // We merge detail data but preserve the authoritative status from the admin list.
     useEffect(() => {
         if (detail && isEdit) {
-            dispatch({ type: "RESET", payload: getInitialState(detail) });
+            const state = getInitialState(detail);
+
+            // Preserve the status from the original combo prop (admin list data)
+            // because the public detail endpoint may not return status correctly.
+            if (combo?.status) {
+                state.status = normalizeStatus(combo.status);
+            }
+
+            dispatch({ type: "RESET", payload: state });
             // Allow re-enrichment when new data arrives
             enrichedRef.current = false;
         }
-    }, [detail, isEdit]);
+    }, [detail, isEdit, combo]);
 
     // ── Auto-generate variant name & Sync Age Group ─────
     useEffect(() => {
@@ -147,9 +161,14 @@ export function useComboForm({
     }, [open, variantOptions, form.items]);
 
 
-    // ── Auto-calculate Prices ───────────────────────────
+    // ── Auto-calculate Prices & Price Change Notification ──
+    const lastCalculatedBaseRef = useRef<number | null>(null);
+
     useEffect(() => {
-        if (!open) return;
+        if (!open) {
+            lastCalculatedBaseRef.current = null;
+            return;
+        }
 
         if (mode === 'parent' && isEdit && combo) {
             // Parent mode: Derive from children (if any)
@@ -168,9 +187,30 @@ export function useComboForm({
         } else if (mode === 'variant') {
             // Variant mode: basePrice = sum of items
             const calculatedBase = form.items.reduce((sum, item) => sum + (item.salePrice * item.quantity), 0);
+            
+            // Detection logic for item changes that affect pricing
+            const prevBase = lastCalculatedBaseRef.current;
+            
             if (calculatedBase > 0 && Number(form.basePrice) !== calculatedBase) {
                 dispatch({ type: "SET_FIELD", field: "basePrice", payload: String(calculatedBase) });
+                
+                // Only show toast if it's a change after initial load/sync
+                if (prevBase !== null && prevBase !== calculatedBase) {
+                    toast.info("Pricing changed!", {
+                        description: "Item quantities updated. Please remember to re-adjust your Selling Price (Sale Price) to maintain desired profit/discount.",
+                        duration: 5000,
+                        action: {
+                            label: "Update Price",
+                            onClick: () => {
+                                document.querySelector<HTMLButtonElement>('button[value="pricing"]')?.click();
+                                setTimeout(() => document.getElementById('c-sale')?.focus(), 300);
+                            }
+                        }
+                    });
+                }
             }
+            
+            lastCalculatedBaseRef.current = calculatedBase;
         }
     }, [open, mode, form.items, allCombos, isEdit, combo, form.basePrice, form.salePrice]);
 

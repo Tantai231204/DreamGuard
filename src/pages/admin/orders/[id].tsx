@@ -1,10 +1,9 @@
 import { useParams } from 'react-router-dom';
 import { Printer, Loader2, Truck, History, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { useOrderDetail, useUpdateOrderStatus, useCancelOrder } from '@/hooks/queries';
-import { cn } from '@/lib/utils';
 import { formatPrice } from '@/pages/profile/utils';
+import { formatDate } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
   DropdownMenu,
@@ -21,6 +20,7 @@ import {
   QuickActionsCard,
   OrderNotFound,
 } from './components';
+import { AdminStatusBadge } from '@/components/admin';
 import { OrderStatus, ORDER_STATUS_MAP, ADMIN_ALLOWED_TRANSITION_STATUSES, ADMIN_ORDER_STATUS_THEME } from './constants';
 
 export default function OrderDetail() {
@@ -79,20 +79,10 @@ export default function OrderDetail() {
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
-                    className="p-0 h-auto hover:bg-transparent"
+                    className="p-0 h-auto hover:bg-transparent flex items-center gap-1 group/badge"
                   >
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "px-2.5 py-1 rounded-full font-bold text-[10px] uppercase tracking-wider border cursor-pointer hover:shadow-md transition-all active:scale-95",
-                        theme.className
-                      )}
-                    >
-                      <span className="flex items-center">
-                        {theme.label}
-                        <ChevronDown className="w-3 h-3 opacity-50 ml-1" />
-                      </span>
-                    </Badge>
+                    <AdminStatusBadge status={theme.label} />
+                    <ChevronDown className="w-3 h-3 text-slate-400 group-hover/badge:text-slate-600 transition-colors" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-48 shadow-xl border border-slate-200/60 rounded-xl p-1 animate-in fade-in zoom-in-95 duration-100 z-50">
@@ -105,10 +95,9 @@ export default function OrderDetail() {
                     <DropdownMenuItem
                       key={status}
                       onClick={() => handleUpdateStatus(status)}
-                      className="rounded-lg cursor-pointer py-2 px-3 font-medium text-slate-600 hover:text-blue-600 focus:bg-blue-50 focus:text-blue-700 transition-colors gap-2.5"
+                      className="rounded-lg cursor-pointer py-1.5 px-2 hover:bg-slate-50 transition-colors"
                     >
-                      <div className={cn("w-2 h-2 rounded-full", style.dotClass)} />
-                      <span className="text-[13px]">{style.label}</span>
+                      <AdminStatusBadge status={style.label} className="w-full justify-start" />
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
@@ -127,7 +116,7 @@ export default function OrderDetail() {
               </div>
               <div className="text-right">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Date Added</p>
-                <p className="text-sm font-bold text-slate-700">{new Date(order.createdAt).toLocaleDateString('vi-VN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                <p className="text-sm font-bold text-slate-700">{formatDate(order.createdAt)}</p>
               </div>
             </div>
 

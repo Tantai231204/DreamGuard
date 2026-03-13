@@ -1,3 +1,5 @@
+import { formatDate } from '@/lib/utils';
+
 export function calculateAge(birthDate: string): string {
     const birth = new Date(birthDate)
     const now = new Date()
@@ -53,9 +55,7 @@ export function getStageInfo(birthDate: string): { name: string; color: string; 
 }
 
 export function formatPrice(price: number): string {
-    return price.toLocaleString("en-US") + "₫"
+    return price.toLocaleString("vi-VN") + "₫"
 }
 
-export function formatDate(dateString: string): string {
-    return new Date(dateString).toLocaleDateString("en-US")
-}
+export { formatDate };

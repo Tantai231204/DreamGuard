@@ -8,10 +8,10 @@ import {
     XCircle,
     RotateCcw
 } from 'lucide-react';
-import { SortableHeader } from '@/components/admin';
+import { SortableHeader, AdminStatusBadge } from '@/components/admin';
+import { formatDate, formatTime } from '@/lib/utils';
 import { type ColumnDef, type CellContext, type HeaderContext } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -24,24 +24,15 @@ import paymentService from '@/api/services/paymentService';
 import { paymentKeys, useUpdatePaymentStatus } from '@/hooks/queries/usePayment';
 import type { PaymentResponse } from '@/api/types/payment';
 import { formatPrice } from '@/pages/profile/utils';
-import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/useToast';
 
 interface usePaymentColumnsProps {
     onView: (id: string) => void;
 }
 
-const statusStyles: Record<string, string> = {
-    Paid: 'bg-emerald-50 text-emerald-700 border-emerald-300',
-    Pending: 'bg-amber-50 text-amber-700 border-amber-300',
-    Failed: 'bg-red-50 text-red-700 border-red-300',
-    Refunded: 'bg-blue-50 text-blue-700 border-blue-300',
-};
 
-const METHOD_STYLES: Record<string, { bg: string; text: string; border: string }> = {
-    VnPay: { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200' },
-    COD: { bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-300' },
-};
+
+
 
 export const usePaymentColumns = ({ onView }: usePaymentColumnsProps) => {
     const queryClient = useQueryClient();
@@ -99,11 +90,12 @@ export const usePaymentColumns = ({ onView }: usePaymentColumnsProps) => {
                 header: ({ column }: HeaderContext<PaymentResponse, unknown>) => <SortableHeader column={column} label="Method" />,
                 cell: ({ row }: CellContext<PaymentResponse, unknown>) => {
                     const method = row.original.paymentMethod;
-                    const style = METHOD_STYLES[method] || { bg: 'bg-slate-50', text: 'text-slate-600', border: 'border-slate-200' };
                     return (
-                        <Badge variant="outline" className={cn("px-2 py-0.5 rounded-md font-bold text-[10px] uppercase border", style.bg, style.text, style.border)}>
-                            {method}
-                        </Badge>
+                        <AdminStatusBadge 
+                            status={method} 
+                            type="neutral" 
+                            className="bg-slate-100/50 border-slate-200" 
+                        />
                     );
                 },
             },
@@ -112,15 +104,10 @@ export const usePaymentColumns = ({ onView }: usePaymentColumnsProps) => {
                 header: ({ column }: HeaderContext<PaymentResponse, unknown>) => <SortableHeader column={column} label="Status" />,
                 cell: ({ row }: CellContext<PaymentResponse, unknown>) => {
                     const status = row.original.status;
-                    const styles = statusStyles[status] || 'bg-slate-50 text-slate-600 border-slate-200';
-
                     return (
-                        <Badge
-                            variant="outline"
-                            className={cn("px-2.5 py-1 rounded-full font-black text-[10px] uppercase tracking-wider border transition-all hover:brightness-95 shadow-sm", styles)}
-                        >
-                            {status}
-                        </Badge>
+                        <AdminStatusBadge 
+                            status={status} 
+                        />
                     );
                 },
             },
@@ -128,14 +115,13 @@ export const usePaymentColumns = ({ onView }: usePaymentColumnsProps) => {
                 accessorKey: 'createdAt',
                 header: ({ column }: HeaderContext<PaymentResponse, unknown>) => <SortableHeader column={column} label="Date" />,
                 cell: ({ row }: CellContext<PaymentResponse, unknown>) => {
-                    const date = new Date(row.original.createdAt);
                     return (
                         <div className="flex flex-col gap-0.5 min-w-[100px]">
                             <span className="text-[13px] font-bold text-slate-700">
-                                {date.toLocaleDateString('vi-VN')}
+                                {formatDate(row.original.createdAt)}
                             </span>
                             <span className="text-[10px] font-medium text-slate-400">
-                                {date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                                {formatTime(row.original.createdAt)}
                             </span>
                         </div>
                     );

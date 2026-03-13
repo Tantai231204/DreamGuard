@@ -1,3 +1,4 @@
+import { normalizeStatus } from '../../types';
 import type { ProductStatus } from '../../types';
 
 export type FormState = {
@@ -33,7 +34,7 @@ export function getInitialFormState(product?: {
         ageGroup: product?.ageGroup != null ? String(product.ageGroup) : '',
         warrantyPolicyDay: product?.warrantyPolicyDay != null ? String(product.warrantyPolicyDay) : '',
         returnPolicyDay: product?.returnPolicyDay != null ? String(product.returnPolicyDay) : '',
-        status: product?.status || 'Draft',
+        status: normalizeStatus(product?.status),
         cateId: product?.cateId != null ? String(product.cateId) : '',
         subCateId: '',
     };

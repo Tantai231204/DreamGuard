@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
-import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -13,34 +12,13 @@ import {
   Mail,
   Phone,
 } from 'lucide-react';
-import { SortableHeader, AdminRowActions } from '@/components/admin';
+import { SortableHeader, AdminRowActions, AdminStatusBadge } from '@/components/admin';
 import type { User } from '../types';
+import { formatDate } from '@/lib/utils';
 
 const columnHelper = createColumnHelper<User>();
 
-const roleStyles = {
-  admin: 'bg-purple-50 text-purple-700 border-purple-200',
-  moderator: 'bg-blue-50 text-blue-700 border-blue-200',
-  customer: 'bg-gray-50 text-gray-700 border-gray-200',
-};
 
-const roleLabels = {
-  admin: 'Admin',
-  moderator: 'Moderator',
-  customer: 'Customer',
-};
-
-const statusStyles = {
-  active: 'bg-green-50 text-green-700 border-green-200',
-  inactive: 'bg-gray-50 text-gray-600 border-gray-300',
-  banned: 'bg-red-50 text-red-700 border-red-200',
-};
-
-const statusLabels = {
-  active: 'Active',
-  inactive: 'Inactive',
-  banned: 'Banned',
-};
 
 export function useUserColumns() {
   const columns = useMemo(
@@ -116,11 +94,12 @@ export function useUserColumns() {
       columnHelper.accessor('role', {
         header: ({ column }) => <SortableHeader column={column} label="Role" />,
         cell: ({ row }) => {
-          const role = row.getValue('role') as User['role'];
+          const role = row.getValue('role') as string;
           return (
-            <Badge variant="outline" className={`text-xs ${roleStyles[role]}`}>
-              {roleLabels[role]}
-            </Badge>
+            <AdminStatusBadge 
+              status={role} 
+              type={role === 'admin' ? 'info' : role === 'moderator' ? 'warning' : 'neutral'} 
+            />
           );
         },
         size: 120,
@@ -128,11 +107,9 @@ export function useUserColumns() {
       columnHelper.accessor('status', {
         header: ({ column }) => <SortableHeader column={column} label="Status" />,
         cell: ({ row }) => {
-          const status = row.getValue('status') as User['status'];
+          const status = row.getValue('status') as string;
           return (
-            <Badge variant="outline" className={`text-xs ${statusStyles[status]}`}>
-              {statusLabels[status]}
-            </Badge>
+            <AdminStatusBadge status={status} />
           );
         },
         size: 110,
@@ -178,10 +155,9 @@ export function useUserColumns() {
         cell: ({ row }) => {
           const lastLogin = row.getValue('lastLogin') as string | undefined;
           if (!lastLogin) return <span className="text-xs text-gray-400">Never</span>;
-          const date = new Date(lastLogin);
           return (
             <span className="text-xs text-gray-600">
-              {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              {formatDate(lastLogin)}
             </span>
           );
         },
@@ -190,10 +166,9 @@ export function useUserColumns() {
       columnHelper.accessor('createdAt', {
         header: ({ column }) => <SortableHeader column={column} label="Joined" />,
         cell: ({ row }) => {
-          const date = new Date(row.getValue('createdAt'));
           return (
             <span className="text-xs text-gray-600">
-              {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              {formatDate(row.getValue('createdAt'))}
             </span>
           );
         },

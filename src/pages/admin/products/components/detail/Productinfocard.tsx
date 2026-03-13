@@ -1,71 +1,19 @@
-import { motion } from 'framer-motion';
 import {
     Package, Tag, Baby, Shirt, Star,
-    Calendar, ShieldCheck, RotateCcw,
-    Check, Copy, FileText, AlignLeft,
+    Calendar, ShieldCheck,
+    Check, Copy, AlignLeft,
 } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { InfoField } from './Infofield';
-import { SectionHeading } from './Sectionheading';
-import { cn } from '@/lib/utils';
+import { formatDateTime } from '@/lib/utils';
 
-/* ─── Animation variants ──────────────────────────────── */
-const stagger = {
-    hidden: { opacity: 0 },
-    show: {
-        opacity: 1,
-        transition: { staggerChildren: 0.08 },
-    },
-};
-
-const fadeUp = {
-    hidden: { opacity: 0, y: 16 },
-    show: {
-        opacity: 1,
-        y: 0,
-        transition: {
-            duration: 0.35,
-            ease: [0.22, 1, 0.36, 1] as const,
-        },
-    },
-};
-
-/* ─── Policy Stat ─────────────────────────────────────── */
-function PolicyStat({
-    icon: Icon,
-    iconBg,
-    iconColor,
-    label,
-    value,
-}: {
-    icon: React.ElementType;
-    iconBg: string;
-    iconColor: string;
-    label: string;
-    value?: number;
-}) {
+/* ─── Simplified Components ────────────────────────────── */
+function SectionTitle({ title, icon: Icon }: { title: string, icon: React.ElementType }) {
     return (
-        <div className="flex items-center gap-3.5 py-3 px-4 rounded-xl bg-gray-50/50 border border-gray-100 hover:border-gray-200 transition-colors">
-            <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border', iconBg)}>
-                <Icon size={18} className={iconColor} />
+        <div className="flex items-center gap-3 mb-8 border-b border-slate-50 pb-4">
+            <div className="w-8 h-8 rounded-lg bg-[var(--color-primary)] flex items-center justify-center shadow-lg shadow-blue-500/20">
+                <Icon size={14} className="text-white" />
             </div>
-            <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400 leading-none mb-1.5">
-                    {label}
-                </p>
-                <p className="text-lg font-bold text-gray-900 leading-none tabular-nums">
-                    {value != null ? (
-                        <>
-                            {value}
-                            <span className="text-xs font-medium text-gray-400 ml-1">days</span>
-                        </>
-                    ) : (
-                        <span className="text-xs font-normal italic text-gray-300">Not set</span>
-                    )}
-                </p>
-            </div>
+            <h3 className="text-[10px] font-black text-slate-900 uppercase tracking-[0.2em]">{title}</h3>
         </div>
     );
 }
@@ -86,157 +34,99 @@ interface ProductInfoCardProps {
     };
     copiedSlug: boolean;
     onCopySlug: () => void;
-    formatDate: (iso: string) => string;
 }
 
-function ProductInfoCard({
+export default function ProductInfoCard({
     product,
     copiedSlug,
     onCopySlug,
-    formatDate,
 }: ProductInfoCardProps) {
     return (
-        <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-5">
-            {/* ── Product Information ── */}
-            <motion.div variants={fadeUp}>
-                <Card className="overflow-hidden border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300">
-                    <div className="h-[2px] bg-gradient-to-r from-[var(--color-primary)] via-blue-500 to-blue-600" />
-                    <div className="p-6">
-                        <SectionHeading label="Product Information" />
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
-                            <InfoField icon={Package} label="Product Name" value={product.name} />
-                            <InfoField
-                                icon={Tag}
-                                label="Slug"
-                                mono
-                                value={
-                                    <TooltipProvider delayDuration={300}>
-                                        <Tooltip>
-                                            <TooltipTrigger asChild>
-                                                <button
-                                                    onClick={onCopySlug}
-                                                    className="inline-flex items-center gap-2 font-mono text-xs text-gray-500 hover:text-[var(--color-primary)] transition-colors group/slug"
-                                                >
-                                                    <span className="truncate max-w-[200px]">{product.slug}</span>
-                                                    {copiedSlug
-                                                        ? <Check size={12} className="text-emerald-500 shrink-0" />
-                                                        : <Copy size={12} className="opacity-0 group-hover/slug:opacity-100 transition-opacity shrink-0" />
-                                                    }
-                                                </button>
-                                            </TooltipTrigger>
-                                            <TooltipContent side="top">
-                                                {copiedSlug ? 'Copied!' : 'Click to copy'}
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
-                                }
-                            />
-                            <InfoField icon={Baby} label="Age Group" value={product.ageGroupLabel} />
-                            <InfoField icon={Shirt} label="Material" value={product.material || null} />
-                            <InfoField
-                                icon={Star}
-                                label="Average Rating"
-                                value={
-                                    <span className="inline-flex items-center gap-2.5">
-                                        <span className="flex gap-0.5">
-                                            {[1, 2, 3, 4, 5].map((s) => (
-                                                <Star
-                                                    key={s}
-                                                    size={13}
-                                                    className={cn(
-                                                        'transition-colors',
-                                                        s <= Math.round(product.averageRating ?? 0)
-                                                            ? 'fill-amber-400 text-amber-400'
-                                                            : 'fill-gray-100 text-gray-200',
-                                                    )}
-                                                />
-                                            ))}
-                                        </span>
-                                        <span className="text-sm font-bold text-gray-700 tabular-nums">
-                                            {product.averageRating?.toFixed(1) ?? '0.0'}
-                                        </span>
-                                    </span>
-                                }
-                            />
-                            <InfoField
-                                icon={Calendar}
-                                label="Created At"
-                                value={product.createdAt ? formatDate(product.createdAt) : null}
-                            />
-                        </div>
-                    </div>
-                </Card>
-            </motion.div>
+        <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            {/* ── Basic Info ── */}
+            <section>
+                <SectionTitle title="Core Specifications" icon={Package} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-10">
+                    <InfoField icon={Package} label="Commercial Name" value={<span className="font-black text-slate-900 text-sm tracking-tight">{product.name}</span>} />
+                    <InfoField
+                        icon={Tag}
+                        label="Resource Slug"
+                        value={
+                            <button
+                                onClick={onCopySlug}
+                                className="flex items-center gap-2 font-mono text-[10px] text-slate-400 hover:text-slate-900 transition-colors uppercase"
+                            >
+                                <span className="truncate max-w-[150px]">{product.slug}</span>
+                                {copiedSlug ? <Check size={10} className="text-emerald-500" /> : <Copy size={10} className="text-slate-300" />}
+                            </button>
+                        }
+                    />
+                    <InfoField icon={Baby} label="Demographic Target" value={<span className="font-black text-slate-700 text-xs uppercase tracking-widest">{product.ageGroupLabel || 'General'}</span>} />
+                    <InfoField icon={Shirt} label="Material Composition" value={<span className="font-black text-slate-700 text-xs uppercase tracking-widest">{product.material || 'Premium'}</span>} />
+                    <InfoField
+                        icon={Star}
+                        label="Quality Index"
+                        value={
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm font-black text-slate-900">{product.averageRating?.toFixed(1) ?? '0.0'}</span>
+                                <div className="flex items-center text-amber-400">
+                                    <Star size={10} className="fill-current" />
+                                </div>
+                            </div>
+                        }
+                    />
+                    <InfoField
+                        icon={Calendar}
+                        label="System Entry"
+                        value={<span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{product.createdAt ? formatDateTime(product.createdAt) : '--'}</span>}
+                    />
+                </div>
+            </section>
 
             {/* ── Policies ── */}
-            <motion.div variants={fadeUp}>
-                <Card className="overflow-hidden border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300">
-                    <div className="h-[2px] bg-gradient-to-r from-emerald-400 via-teal-500 to-[var(--color-primary)]" />
-                    <div className="p-6">
-                        <SectionHeading label="Policies" accent="from-emerald-500 to-teal-500" />
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <PolicyStat
-                                icon={ShieldCheck}
-                                iconBg="bg-emerald-50 border-emerald-100"
-                                iconColor="text-emerald-600"
-                                label="Warranty"
-                                value={product.warrantyPolicyDay}
-                            />
-                            <PolicyStat
-                                icon={RotateCcw}
-                                iconBg="bg-primary-50 border-primary-100"
-                                iconColor="text-[var(--color-primary)]"
-                                label="Return Policy"
-                                value={product.returnPolicyDay}
-                            />
+            <section>
+                <SectionTitle title="Operational Policies" icon={ShieldCheck} />
+                <div className="flex items-center gap-12">
+                    <div className="p-10 rounded-[2.5rem] bg-blue-50/20 border border-blue-100/30 flex flex-col gap-1 border border-transparent hover:border-blue-100 transition-all duration-500 group">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none group-hover:text-[var(--color-primary)] transition-colors">Warranty Assurance</p>
+                        <div className="flex items-baseline gap-1">
+                            <p className="text-4xl font-black text-slate-900 tracking-tighter group-hover:scale-110 transition-transform origin-left duration-500">{product.warrantyPolicyDay ?? 0}</p>
+                            <span className="text-[10px] font-black text-slate-400 uppercase">Days</span>
                         </div>
                     </div>
-                </Card>
-            </motion.div>
-
-            {/* ── Description ── */}
-            {(product.summary || product.description) && (
-                <motion.div variants={fadeUp}>
-                    <Card className="overflow-hidden border border-gray-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300">
-                        <div className="h-[2px] bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400" />
-                        <div className="p-6">
-                            <SectionHeading label="Description" accent="from-amber-500 to-orange-500" />
-
-                            {product.summary && (
-                                <div className="mb-5 rounded-xl bg-gradient-to-br from-amber-50/80 to-orange-50/50 border border-amber-100/80 px-5 py-4">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <FileText size={13} className="text-amber-500" />
-                                        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-amber-500/80">
-                                            Summary
-                                        </p>
-                                    </div>
-                                    <p className="text-sm text-gray-700 leading-relaxed">{product.summary}</p>
-                                </div>
-                            )}
-
-                            {product.summary && product.description && <Separator className="my-5 bg-gray-100" />}
-
-                            {product.description && (
-                                <div>
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <AlignLeft size={13} className="text-gray-400" />
-                                        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400">
-                                            Full Description
-                                        </p>
-                                    </div>
-                                    <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
-                                        {product.description}
-                                    </p>
-                                </div>
-                            )}
+                    <div className="p-10 rounded-[2.5rem] bg-blue-50/20 border border-blue-100/30 flex flex-col gap-1 border border-transparent hover:border-blue-100 transition-all duration-500 group">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none group-hover:text-[var(--color-primary)] transition-colors">Return Window</p>
+                        <div className="flex items-baseline gap-1">
+                            <p className="text-4xl font-black text-slate-900 tracking-tighter group-hover:scale-110 transition-transform origin-left duration-500">{product.returnPolicyDay ?? 0}</p>
+                            <span className="text-[10px] font-black text-slate-400 uppercase">Days</span>
                         </div>
-                    </Card>
-                </motion.div>
+                    </div>
+                </div>
+            </section>
+
+            {/* ── Descriptions ── */}
+            {(product.summary || product.description) && (
+                <section className="space-y-12">
+                    {product.summary && (
+                        <div className="p-10 rounded-[2.5rem] bg-gradient-to-r from-blue-50/30 to-white/0 border border-blue-100/20 text-base font-medium text-slate-600 leading-relaxed italic relative overflow-hidden group">
+                            <div className="absolute top-0 left-0 w-1 h-full bg-[var(--color-primary)] opacity-20 group-hover:opacity-100 transition-opacity" />
+                            "{product.summary}"
+                        </div>
+                    )}
+
+                    {product.description && (
+                        <div className="space-y-6">
+                            <div className="flex items-center gap-3">
+                                <AlignLeft size={14} className="text-slate-900" />
+                                <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-[0.25em]">Master Description</h4>
+                            </div>
+                            <div className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap font-medium">
+                                {product.description}
+                            </div>
+                        </div>
+                    )}
+                </section>
             )}
-        </motion.div>
+        </div>
     );
 }
-
-export default ProductInfoCard;

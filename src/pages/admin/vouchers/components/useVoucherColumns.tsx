@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
-import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Pencil, Trash2, Eye, Copy, Percent, DollarSign } from 'lucide-react';
-import { SortableHeader, AdminRowActions } from '@/components/admin';
+import { SortableHeader, AdminRowActions, AdminStatusBadge } from '@/components/admin';
 import type { Voucher } from '../types';
+import { formatDate } from '@/lib/utils';
 
 const columnHelper = createColumnHelper<Voucher>();
 
@@ -101,11 +101,7 @@ export function useVoucherColumns(options?: {
                 header: ({ column }) => <SortableHeader column={column} label="Start Date" />,
                 cell: (info) => (
                     <span className="text-sm text-gray-600">
-                        {new Date(info.getValue()).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            year: 'numeric',
-                        })}
+                        {formatDate(info.getValue())}
                     </span>
                 ),
             }),
@@ -117,30 +113,21 @@ export function useVoucherColumns(options?: {
                     const isExpired = endDate < new Date();
                     return (
                         <span className={`text-sm ${isExpired ? 'text-red-600 font-semibold' : 'text-gray-600'}`}>
-                            {endDate.toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric',
-                            })}
+                            {formatDate(info.getValue())}
                         </span>
                     );
                 },
             }),
+
 
             columnHelper.accessor('isActive', {
                 header: 'Status',
                 cell: (info) => {
                     const isActive = info.getValue();
                     return (
-                        <Badge
-                            variant="outline"
-                            className={`font-semibold ${isActive
-                                    ? 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border-green-300 shadow-sm'
-                                    : 'bg-gradient-to-r from-gray-50 to-slate-50 text-gray-600 border-gray-300 shadow-sm'
-                                }`}
-                        >
-                            {isActive ? 'Active' : 'Inactive'}
-                        </Badge>
+                        <AdminStatusBadge
+                            status={isActive ? 'Active' : 'Inactive'}
+                        />
                     );
                 },
             }),

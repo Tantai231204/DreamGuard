@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
-import { Badge } from '@/components/ui/badge';
+import { AdminStatusBadge } from '@/components/admin';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Pencil, Trash2, Eye, Copy, ChevronRight, ChevronDown } from 'lucide-react';
@@ -117,15 +117,7 @@ export function useCategoryColumns(options?: {
 
           return (
             <div className={level > 0 ? 'opacity-90' : ''}>
-              <Badge
-                variant="outline"
-                className={`font-semibold ${isActive
-                    ? 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border-green-300 shadow-sm'
-                    : 'bg-gradient-to-r from-gray-50 to-slate-50 text-gray-600 border-gray-300 shadow-sm'
-                  }`}
-              >
-                {isActive ? 'Active' : 'Inactive'}
-              </Badge>
+              <AdminStatusBadge status={isActive ? 'Active' : 'Inactive'} />
             </div>
           );
         },

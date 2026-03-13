@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import type { Table } from '@tanstack/react-table';
 import type { Order } from '../../types';
 import { ADMIN_ORDER_STATUS_THEME } from '../constants';
-import { cn } from '@/lib/utils';
+import { AdminStatusBadge } from '@/components/admin';
 
 interface OrderTableFilterProps {
     table: Table<Order>;
@@ -89,7 +89,6 @@ export function OrderTableFilter({ table }: OrderTableFilterProps) {
                         )}
                     </DropdownMenuLabel>
                     {statusOptions.map((option) => {
-                        const theme = ADMIN_ORDER_STATUS_THEME[option.value];
                         return (
                             <DropdownMenuCheckboxItem
                                 key={option.value}
@@ -98,8 +97,7 @@ export function OrderTableFilter({ table }: OrderTableFilterProps) {
                                 className="rounded-lg cursor-pointer py-2 px-3 font-medium text-slate-600 focus:bg-blue-50 focus:text-blue-700 transition-colors gap-2.5"
                             >
                                 <div className="flex items-center gap-2">
-                                    <div className={cn("w-2 h-2 rounded-full", theme?.dotClass)} />
-                                    <span className="text-[13px]">{option.label}</span>
+                                    <AdminStatusBadge status={option.label} dot={true} />
                                 </div>
                             </DropdownMenuCheckboxItem>
                         );
@@ -112,21 +110,19 @@ export function OrderTableFilter({ table }: OrderTableFilterProps) {
                 <div className="flex items-center gap-2 flex-wrap">
                     {selectedStatuses.map((status) => {
                         const option = statusOptions.find((o) => o.value === status);
-                        const theme = ADMIN_ORDER_STATUS_THEME[status];
                         return (
-                            <Badge
-                                key={status}
-                                variant="outline"
-                                className={cn("border rounded-full px-2.5 py-1 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1 flex-nowrap", theme?.className)}
-                            >
-                                <span className="shrink-0 leading-none">{option?.label}</span>
+                            <div key={status} className="relative group/badge flex items-center">
+                                <AdminStatusBadge
+                                    status={option?.label || status}
+                                    className="pr-6" // Space for the close button
+                                />
                                 <button
                                     onClick={() => handleStatusToggle(status)}
-                                    className="hover:scale-110 rounded-full p-0.5 transition-all shrink-0 ml-0.5 opacity-60 hover:opacity-100"
+                                    className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-black/5 transition-all opacity-40 hover:opacity-100"
                                 >
-                                    <X className="h-3.5 w-3.5" />
+                                    <X className="h-3 w-3" />
                                 </button>
-                            </Badge>
+                            </div>
                         );
                     })}
                 </div>

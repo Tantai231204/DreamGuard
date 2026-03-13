@@ -115,7 +115,7 @@ export function CheckoutForm({ totalPrice }: CheckoutFormProps) {
         toastError("Incomplete Information", "Please check the highlighted fields and try again.")
     }
 
-    const currentTotal = (totalPrice * 1.1).toLocaleString('en-US', { minimumFractionDigits: 2 })
+    const currentTotal = (totalPrice * 1.1).toLocaleString('vi-VN') + "₫"
 
     return (
         <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-10 pb-20">

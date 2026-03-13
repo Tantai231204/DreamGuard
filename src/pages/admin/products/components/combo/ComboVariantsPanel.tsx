@@ -60,10 +60,10 @@ function VariantItemsPanel({ variantId }: { variantId: string }) {
             {items.map((item, idx) => (
                 <div
                     key={item.productVariantId ?? idx}
-                    className="flex items-center gap-3 bg-white border border-gray-100 rounded-lg px-3 py-2 hover:border-[#4988c4]/60 hover:bg-indigo-50/30 transition-colors"
+                    className="flex items-center gap-3 bg-white border border-gray-100 rounded-lg px-3 py-2 hover:border-[var(--color-primary)]/60 hover:bg-primary-50/30 transition-colors"
                 >
-                    <div className="h-6 w-6 rounded-md bg-indigo-50 flex items-center justify-center flex-shrink-0">
-                        <Package className="h-3.5 w-3.5 text-indigo-500" />
+                    <div className="h-6 w-6 rounded-md bg-primary-50 flex items-center justify-center flex-shrink-0">
+                        <Package className="h-3.5 w-3.5 text-primary-500" />
                     </div>
                     <span className="flex-1 text-[13px] font-semibold text-gray-700 truncate">
                         {item.productName}
@@ -77,7 +77,7 @@ function VariantItemsPanel({ variantId }: { variantId: string }) {
                         ×{item.quantity}
                     </span>
                     <div className="text-right flex-shrink-0 min-w-[80px]">
-                        <div className="text-[12px] font-bold text-violet-700">
+                        <div className="text-[12px] font-bold text-primary-700">
                             {item.salePrice.toLocaleString('en-US')}₫
                         </div>
                         {item.salePrice < item.basePrice && (
@@ -128,16 +128,16 @@ function ComboVariantRow({
                 className={[
                     'grid grid-cols-[40px_1fr_140px_120px_100px_60px] gap-4 items-center',
                     'px-6 py-3 transition-colors group cursor-pointer',
-                    isEven ? 'bg-white hover:bg-indigo-50/30' : 'bg-gray-50/40 hover:bg-indigo-50/30',
-                    expanded ? 'bg-indigo-50/40 border-b-0' : '',
+                    isEven ? 'bg-white hover:bg-primary-50/30' : 'bg-gray-50/40 hover:bg-primary-50/30',
+                    expanded ? 'bg-primary-50/40 border-b-0' : '',
                 ].join(' ')}
                 onClick={() => setExpanded((v) => !v)}
             >
                 {/* Expand toggle */}
                 <div className="flex items-center justify-center">
                     {expanded
-                        ? <ChevronDown className="h-4 w-4 text-indigo-500" />
-                        : <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-indigo-500 transition-colors" />
+                        ? <ChevronDown className="h-4 w-4 text-primary-500" />
+                        : <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-primary-500 transition-colors" />
                     }
                 </div>
 
@@ -148,7 +148,7 @@ function ComboVariantRow({
                             {variant.name}
                         </span>
                         {variant.color && (
-                            <Badge variant="outline" className="text-[10px] bg-violet-50 text-violet-600 border-violet-200">
+                            <Badge variant="outline" className="text-[10px] bg-primary-50 text-primary-600 border-primary-200">
                                 🎨 {variant.color}
                             </Badge>
                         )}
@@ -185,7 +185,7 @@ function ComboVariantRow({
 
                 {/* Item count badge */}
                 <div className="text-center">
-                    <span className="inline-flex items-center gap-1 text-[12px] font-bold text-indigo-700">
+                    <span className="inline-flex items-center gap-1 text-[12px] font-bold text-primary-700">
                         <ShoppingBag className="h-3.5 w-3.5" />
                         {itemCount}
                     </span>
@@ -234,7 +234,7 @@ function ComboVariantRow({
                         animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
                         transition={{ duration: 0.2 }}
-                        className="overflow-hidden bg-indigo-50/20 border-t border-indigo-100"
+                        className="overflow-hidden bg-primary-50/20 border-t border-primary-100"
                     >
                         <VariantItemsPanel variantId={variant.id} />
                     </motion.div>
@@ -274,10 +274,10 @@ export default function ComboVariantsPanel({
                 {/* Header — same style as VariantTable header */}
                 <div className="flex items-center justify-between gap-3 mb-4">
                     <div className="flex items-center gap-2 flex-wrap">
-                        <GitBranch className="h-4 w-4 text-indigo-600" />
+                        <GitBranch className="h-4 w-4 text-primary-600" />
                         <span className="text-sm font-semibold text-gray-700">
                             Variants of{' '}
-                            <span className="text-indigo-600">{parentCombo.name}</span>
+                            <span className="text-primary-600">{parentCombo.name}</span>
                         </span>
                         <Badge variant="outline" className="text-xs bg-white border-gray-300 text-gray-600 rounded-full px-3">
                             {variants.length} variant{variants.length !== 1 ? 's' : ''}
@@ -287,7 +287,7 @@ export default function ComboVariantsPanel({
                         <Button
                             size="sm"
                             onClick={() => onAddVariant(parentCombo)}
-                            className="h-8 px-4 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white rounded-lg shadow-sm"
+                            className="h-8 px-4 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white rounded-lg shadow-sm"
                         >
                             <Plus className="h-3.5 w-3.5 mr-1.5" />
                             Add Variant

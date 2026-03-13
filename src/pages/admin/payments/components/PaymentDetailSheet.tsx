@@ -13,37 +13,26 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
+import { AdminStatusBadge } from '@/components/admin';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { usePaymentDetail } from '@/hooks/queries/usePayment';
 import { formatPrice } from '@/pages/profile/utils';
 import { Skeleton } from '@/components/ui/skeleton';
-import { cn } from '@/lib/utils';
+import { cn, formatDateTime } from '@/lib/utils';
 
 interface PaymentDetailSheetProps {
     id: string | null;
     onClose: () => void;
 }
 
-const METHOD_STYLES: Record<string, { bg: string; text: string; border: string }> = {
-    VnPay: { bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200' },
-    COD: { bg: 'bg-slate-100', text: 'text-slate-700', border: 'border-slate-300' },
-};
+
 
 export function PaymentDetailSheet({ id, onClose }: PaymentDetailSheetProps) {
     const { data: payment, isLoading } = usePaymentDetail(id || '');
     const isOpen = !!id;
 
-    const statusConfig: Record<string, { label: string; color: string; bgColor: string }> = {
-        Paid: { label: 'Successful', color: '#10b981', bgColor: '#f0fdf4' },
-        Pending: { label: 'Processing', color: '#f59e0b', bgColor: '#fffbeb' },
-        Failed: { label: 'Failed', color: '#ef4444', bgColor: '#fef2f2' },
-        Refunded: { label: 'Refunded', color: '#3b82f6', bgColor: '#eff6ff' },
-    };
 
-    const theme = payment ? (statusConfig[payment.status] || { label: payment.status, color: '#6b7280', bgColor: '#f9fafb' }) : null;
-    const methodStyle = payment ? (METHOD_STYLES[payment.paymentMethod] || { bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-200' }) : null;
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -67,14 +56,8 @@ export function PaymentDetailSheet({ id, onClose }: PaymentDetailSheetProps) {
                             </DialogHeader>
                         </div>
                         <div className="flex flex-col items-end gap-1.5">
-                            {theme && !isLoading && (
-                                <Badge
-                                    variant="outline"
-                                    className="px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider border transition-all shadow-sm"
-                                    style={{ backgroundColor: theme.bgColor, color: theme.color, borderColor: `${theme.color}40` }}
-                                >
-                                    {theme.label}
-                                </Badge>
+                            {payment && !isLoading && (
+                                <AdminStatusBadge status={payment.status} />
                             )}
                         </div>
                     </div>
@@ -101,7 +84,7 @@ export function PaymentDetailSheet({ id, onClose }: PaymentDetailSheetProps) {
                                                 label="Payment Method"
                                                 value={payment.paymentMethod}
                                                 icon={CreditCard}
-                                                badgeStyle={methodStyle}
+                                                showAsBadge
                                             />
                                             <InfoItem
                                                 label="Order Code"
@@ -117,12 +100,12 @@ export function PaymentDetailSheet({ id, onClose }: PaymentDetailSheetProps) {
                                         <InfoGroup title="Timeline">
                                             <InfoItem
                                                 label="Transaction Time"
-                                                value={new Date(payment.createdAt).toLocaleString('vi-VN')}
+                                                value={formatDateTime(payment.createdAt)}
                                                 icon={Calendar}
                                             />
                                             <InfoItem
                                                 label="Last Modified"
-                                                value={new Date(payment.updatedAt).toLocaleString('vi-VN')}
+                                                value={formatDateTime(payment.updatedAt)}
                                                 icon={Clock}
                                             />
                                         </InfoGroup>
@@ -173,13 +156,13 @@ function InfoGroup({ title, children }: { title: string; children: React.ReactNo
     );
 }
 
-function InfoItem({ label, value, icon: Icon, isLink, onClick, badgeStyle }: {
+function InfoItem({ label, value, icon: Icon, isLink, onClick, showAsBadge }: {
     label: string;
     value: string;
     icon: React.ComponentType<{ className?: string }>;
     isLink?: boolean;
     onClick?: () => void;
-    badgeStyle?: { bg: string; text: string; border: string } | null;
+    showAsBadge?: boolean;
 }) {
     return (
         <div
@@ -196,10 +179,12 @@ function InfoItem({ label, value, icon: Icon, isLink, onClick, badgeStyle }: {
                 <span className="text-[13px] font-bold text-slate-500">{label}</span>
             </div>
             <div className="flex items-center gap-2">
-                {badgeStyle ? (
-                    <Badge variant="outline" className={cn("px-2.5 py-1 rounded-lg font-black text-[10px] uppercase border shadow-sm", badgeStyle.bg, badgeStyle.text, badgeStyle.border)}>
-                        {value}
-                    </Badge>
+                {showAsBadge ? (
+                    <AdminStatusBadge 
+                        status={value} 
+                        type="neutral" 
+                        className="bg-slate-100/50 border-slate-200" 
+                    />
                 ) : (
                     <span className={cn(
                         "text-sm font-black tracking-tight",

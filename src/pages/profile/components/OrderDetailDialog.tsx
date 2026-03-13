@@ -15,6 +15,8 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/useToast"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 import { formatPrice } from "../utils"
+import { formatDateTime, cn } from "@/lib/utils"
+import { AdminStatusBadge } from "@/components/admin"
 import {
     MapPin,
     Package,
@@ -28,7 +30,6 @@ import {
     CreditCard
 } from "lucide-react"
 import { STATUS_THEME } from "./order-constants"
-import { cn } from "@/lib/utils"
 import type { OrderItem, OrderDetailResponse } from "@/api/types/order"
 import { isAxiosError } from "axios"
 
@@ -248,16 +249,18 @@ export function OrderDetailDialog({ orderId, orderCode, trigger }: OrderDetailDi
                                                 </div>
                                                 <div>
                                                     <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1.5">Payment Method</p>
-                                                    <p className="text-[15px] font-bold text-gray-900">
-                                                        {payment?.paymentMethod || order.paymentMethod || 'Standard Checkout'}
-                                                    </p>
+                                                    <AdminStatusBadge
+                                                        status={payment?.paymentMethod || order.paymentMethod || 'Standard Checkout'}
+                                                        type="neutral"
+                                                        className="group"
+                                                    />
                                                 </div>
                                             </div>
                                             {payment && (
                                                 <div className={cn(
                                                     "px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border",
-                                                    payment.status === "Paid" 
-                                                        ? "bg-emerald-50 border-emerald-100 text-emerald-600" 
+                                                    payment.status === "Paid"
+                                                        ? "bg-emerald-50 border-emerald-100 text-emerald-600"
                                                         : payment.status === "Failed"
                                                             ? "bg-rose-50 border-rose-100 text-rose-600"
                                                             : "bg-amber-50 border-amber-100 text-amber-600"
@@ -276,10 +279,10 @@ export function OrderDetailDialog({ orderId, orderCode, trigger }: OrderDetailDi
                                                 <div className="text-right space-y-1">
                                                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Processed At</p>
                                                     <p className="text-[12px] font-bold text-gray-600">
-                                                        {new Date(payment.updatedAt).toLocaleDateString('vi-VN')} {new Date(payment.updatedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                                                        {formatDateTime(payment.updatedAt)}
                                                     </p>
                                                 </div>
-                                                
+
                                                 {extractTxnId(payment.description) && (
                                                     <div className="space-y-1">
                                                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Gateway ID</p>

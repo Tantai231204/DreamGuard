@@ -57,6 +57,59 @@ export const PRODUCT_STATUS_COLORS: Record<ProductStatus, string> = {
   Hidden: 'bg-gray-400',
 };
 
+// ── Status Helpers ─────────────────────────────────────
+
+export function normalizeStatus(status: unknown): ProductStatus {
+    if (status === null || status === undefined) return "Draft";
+
+    // Handle string format (case-insensitive and aliases)
+    if (typeof status === 'string') {
+        const s = status.toLowerCase().trim();
+        if (s === 'draft' || s === '0') return 'Draft';
+        if (s === 'published' || s === 'active' || s === '1') return 'Published';
+        if (s === 'outofstock' || s === '2') return 'OutOfStock';
+        if (s === 'hidden' || s === '3') return 'Hidden';
+
+        // Direct match with PascalCase
+        const validStatuses: ProductStatus[] = ['Draft', 'Published', 'OutOfStock', 'Hidden'];
+        const found = validStatuses.find(vs => vs.toLowerCase() === s);
+        if (found) return found;
+    }
+
+    // Handle number format
+    if (typeof status === 'number') {
+        if (status === 0) return 'Draft';
+        if (status === 1) return 'Published';
+        if (status === 2) return 'OutOfStock';
+        if (status === 3) return 'Hidden';
+    }
+
+    return "Draft" as ProductStatus;
+}
+
+/**
+ * Defines allowed status transitions for products/combos.
+ * Real-world logic: 
+ * - From Draft: Can move to Published or Hidden.
+ * - From Published: Can move to OutOfStock, Hidden, or back to Draft (for rework).
+ * - From Hidden: Can move to Published or Draft.
+ * - From OutOfStock: Can move to Published (restocked) or Hidden.
+ */
+export function getAllowedStatusTransitions(currentStatus: string): ProductStatus[] {
+    switch (currentStatus) {
+        case 'Draft':
+            return ['Draft', 'Published', 'Hidden'];
+        case 'Published':
+            return ['Published', 'OutOfStock', 'Hidden', 'Draft'];
+        case 'Hidden':
+            return ['Hidden', 'Published', 'Draft'];
+        case 'OutOfStock':
+            return ['OutOfStock', 'Published', 'Hidden', 'Draft'];
+        default:
+            return ['Draft', 'Published', 'Hidden', 'OutOfStock'];
+    }
+}
+
 
 // ── Size Options ─────────────────────────────────────────
 export const SIZE_OPTIONS = [

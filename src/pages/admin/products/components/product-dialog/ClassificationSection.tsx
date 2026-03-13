@@ -60,7 +60,7 @@ const ClassificationSection = memo(function ClassificationSection({
                                 <SelectItem
                                     key={cat.cateId ?? `cat-${index}`}
                                     value={String(cat.cateId)}
-                                    className="rounded-lg hover:bg-purple-50 hover:text-purple-900"
+                                    className="rounded-lg hover:bg-primary-50 hover:text-primary-900"
                                 >
                                     <span style={{ paddingLeft: `${cat.depth * 16}px` }} className="flex items-center gap-1.5">
                                         {cat.depth > 0 && <span className="text-gray-300">└</span>}
@@ -86,7 +86,7 @@ const ClassificationSection = memo(function ClassificationSection({
                             onChange={(e) => onAgeGroupChange(e.target.value)}
                             disabled={isLoading}
                             className={cn(
-                                "flex h-11 w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3.5 py-2 text-sm transition-all focus:border-[#4988c4] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#4988c4]/20 disabled:cursor-not-allowed disabled:opacity-50 pr-24",
+                                "flex h-11 w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3.5 py-2 text-sm transition-all focus:border-primary-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-500/20 disabled:cursor-not-allowed disabled:opacity-50 pr-24",
                                 "font-medium text-slate-900"
                             )}
                             min={0}
@@ -144,7 +144,7 @@ const ClassificationSection = memo(function ClassificationSection({
                                 <SelectItem
                                     key={subCat.cateId}
                                     value={String(subCat.cateId)}
-                                    className="rounded-lg hover:bg-purple-50 hover:text-purple-900"
+                                    className="rounded-lg hover:bg-primary-50 hover:text-primary-900"
                                 >
                                     {subCat.name}
                                 </SelectItem>

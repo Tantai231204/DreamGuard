@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { formatDate } from "@/lib/utils";
 import type { Order } from "../../types";
 
 interface RecentOrdersProps {
@@ -68,7 +69,7 @@ export default function RecentOrders({ orders }: RecentOrdersProps) {
                       ${order.total.toFixed(2)}
                     </div>
                     <div className="text-sm text-gray-500">
-                      {new Date(order.date).toLocaleDateString("en-US")}
+                      {formatDate(order.date)}
                     </div>
                   </div>
                   <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-[var(--color-primary)] group-hover:translate-x-1 transition-all" />

@@ -1,4 +1,4 @@
-import { Badge } from '@/components/ui/badge';
+import { AdminStatusBadge } from '@/components/admin';
 import { Separator } from '@/components/ui/separator';
 import ChildComboItems from '../ChildComboItems';
 import { getColorHex } from '../combo-utils';
@@ -11,14 +11,12 @@ interface VariantListViewProps {
     childCombos: ComboResponse[];
     onEditVariant?: (v: Combo) => void;
     onDeleteVariant?: (v: Combo) => void;
-    statusMap: Record<string, { label: string; className: string }>;
 }
 
 export function VariantListView({
     childCombos,
     onEditVariant,
     onDeleteVariant,
-    statusMap,
 }: VariantListViewProps) {
     if (childCombos.length === 0) return <EmptyResults />;
 
@@ -43,9 +41,9 @@ export function VariantListView({
                                 )}
                                 <p className="text-[10px] font-mono text-gray-400 mt-1 uppercase tracking-widest">{child.sku}</p>
                             </div>
-                            <Badge className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${statusMap[child.status]?.className}`}>
-                                {child.status}
-                            </Badge>
+                            <AdminStatusBadge 
+                                status={child.status} 
+                            />
                         </div>
                         <div className="flex items-center gap-4">
                             <div className="text-right">

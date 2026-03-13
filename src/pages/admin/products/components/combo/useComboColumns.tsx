@@ -1,8 +1,8 @@
 import { useMemo } from "react"
 import { createColumnHelper } from "@tanstack/react-table"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { AdminStatusBadge } from "@/components/admin"
 import {
     DropdownMenu,
     DropdownMenuTrigger,
@@ -55,15 +55,6 @@ function formatItemLine(item: ComboItem): string {
     return label ? `${base} — ${label}` : base
 }
 
-/* ─── Status config ─────────────────────────────────────── */
-
-const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-    Draft: { label: "Draft", className: "bg-amber-50 text-amber-600 border-amber-200" },
-    Published: { label: "Published", className: "bg-emerald-50 text-emerald-600 border-emerald-200" },
-    Active: { label: "Active", className: "bg-emerald-50 text-emerald-600 border-emerald-200" },
-    OutOfStock: { label: "Out of Stock", className: "bg-red-50 text-red-600 border-red-200" },
-    Hidden: { label: "Hidden", className: "bg-slate-50 text-slate-500 border-slate-200" },
-}
 
 /* ─── SubRow mapping ────────────────────────────────────── */
 
@@ -165,9 +156,7 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
                                         {info.getValue()}
                                     </span>
                                     {isParent && (
-                                        <Badge className="bg-indigo-100 text-indigo-600 border-indigo-200 text-[9px] font-black uppercase tracking-wider h-4.5 px-1.5 hover:bg-indigo-200 transition-colors">
-                                            Collection
-                                        </Badge>
+                                        <AdminStatusBadge status="Collection" type="info" dot={false} className="h-4.5 px-2 bg-indigo-50 text-indigo-600 border-indigo-100" />
                                     )}
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -225,9 +214,12 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
                             ))}
                             {rest > 0 && (
                                 <div className="ml-3.5 pt-0.5">
-                                    <Badge className="bg-slate-50 text-blue-600 border-slate-200 text-[9px] font-black h-4 px-1.5 shadow-none">
-                                        +{rest} more products
-                                    </Badge>
+                                    <AdminStatusBadge
+                                        status={`+${rest} more`}
+                                        type="neutral"
+                                        dot={false}
+                                        className="h-4.5 px-2"
+                                    />
                                 </div>
                             )}
                         </div>
@@ -245,9 +237,12 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
 
                     return (
                         <div className="flex justify-center">
-                            <Badge className="bg-emerald-500 text-white border-0 font-black text-[10px] px-2 h-5 rounded-md shadow-sm animate-pulse-subtle">
-                                -{discount}%
-                            </Badge>
+                            <AdminStatusBadge
+                                status={`-${discount}%`}
+                                type="success"
+                                dot={false}
+                                className="h-5 px-2 bg-emerald-500 text-white border-none"
+                            />
                         </div>
                     )
                 },
@@ -317,12 +312,8 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
                 header: "Status",
                 cell: (info) => {
                     const status = info.getValue()
-                    const config = STATUS_CONFIG[status]
-                    if (!config) return <Badge variant="outline">Unknown</Badge>
                     return (
-                        <Badge variant="outline" className={config.className}>
-                            {config.label}
-                        </Badge>
+                        <AdminStatusBadge status={status} />
                     )
                 },
             }),

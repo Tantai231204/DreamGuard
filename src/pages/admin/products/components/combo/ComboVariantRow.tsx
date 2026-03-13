@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Save, Trash2, Loader2, Minus, Plus } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+import { AdminStatusBadge } from '@/components/admin';
 import type { ComboItem } from '../../types';
 
 import { getColorHex, parseVariantLabel } from './combo-utils';
@@ -26,12 +26,14 @@ export default function ComboVariantRow({
     const [isEditing, setIsEditing] = useState(false);
     const [editQty, setEditQty] = useState(item.quantity);
 
-    // Sync local quantity if it changes from outside while not editing
-    useEffect(() => {
+    // Sync state during render
+    const [prevQty, setPrevQty] = useState(item.quantity);
+    if (item.quantity !== prevQty) {
+        setPrevQty(item.quantity);
         if (!isEditing) {
             setEditQty(item.quantity);
         }
-    }, [item.quantity, isEditing]);
+    }
 
     const itemKey = `${item.productId}|${item.variantId ?? 'default'}`;
     const { color, size } = item.variantLabel
@@ -62,13 +64,13 @@ export default function ComboVariantRow({
     return (
         <div className={cn(
             "grid grid-cols-[1fr_120px_120px_60px] gap-4 items-center transition-all duration-300 group relative",
-            isDense ? "px-6 py-2.5 hover:bg-white" : "px-8 py-5 hover:bg-slate-50/80",
+            isDense ? "px-4 py-2 hover:bg-slate-50/50" : "px-6 py-3.5 hover:bg-slate-50/50",
             isLoading && "opacity-60 pointer-events-none"
         )}>
             {/* Loading Overlay (Subtle) */}
             {isLoading && (
-                <div className="absolute inset-x-0 bottom-0 h-[2px] bg-blue-100 overflow-hidden">
-                    <div className="h-full bg-blue-600 w-1/2 animate-shimmer-fast" />
+                <div className="absolute inset-x-0 bottom-0 h-[2px] bg-primary-100 overflow-hidden">
+                    <div className="h-full bg-primary-600 w-1/2 animate-shimmer-fast" />
                 </div>
             )}
 
@@ -76,17 +78,17 @@ export default function ComboVariantRow({
             <div className="flex items-center gap-4 min-w-0">
                 <div className="relative flex-shrink-0 group/img">
                     <div
-                        className="h-10 w-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center shadow-sm group-hover/img:border-blue-500/60 group-hover/img:shadow-md transition-all duration-300"
+                        className="h-9 w-9 rounded-lg bg-white border border-slate-200 flex items-center justify-center shadow-sm group-hover/img:border-primary-400 transition-all"
                         title={`Color: ${color}`}
                     >
                         <span
-                            className="h-5 w-5 rounded-full border border-slate-100 shadow-inner"
+                            className="h-4 w-4 rounded-full border border-slate-100 shadow-inner"
                             style={{ backgroundColor: colorHex }}
                         />
                     </div>
                 </div>
                 <div className="min-w-0">
-                    <div className="text-[14px] font-black text-slate-800 truncate leading-tight tracking-tight group-hover:text-slate-900">
+                    <div className="text-[13px] font-bold text-slate-700 truncate leading-tight group-hover:text-primary-700 transition-colors">
                         {item.productName}
                     </div>
                     <div className="flex items-center gap-2 mt-1.5 flex-wrap">
@@ -96,9 +98,12 @@ export default function ComboVariantRow({
                             </span>
                         )}
                         {size && (
-                            <Badge variant="outline" className="text-[9px] font-black h-4.5 px-2 bg-indigo-50 border-indigo-100 text-indigo-600 uppercase shadow-none">
-                                SZ-{size}
-                            </Badge>
+                            <AdminStatusBadge 
+                                status={`SZ-${size}`} 
+                                type="neutral" 
+                                dot={false} 
+                                className="h-4.5 px-2 bg-slate-100 border-slate-200 text-slate-600 shadow-none" 
+                            />
                         )}
                     </div>
                 </div>
@@ -108,9 +113,9 @@ export default function ComboVariantRow({
             <div className="text-right flex flex-col items-end">
                 {salePrice > 0 ? (
                     <>
-                        <div className="text-[14px] font-black text-slate-900 tracking-tight">
+                        <div className="text-[13px] font-bold text-slate-800 tabular-nums">
                             {salePrice.toLocaleString('en-US')}
-                            <span className="text-[10px] ml-0.5 text-slate-400 font-bold uppercase">₫</span>
+                            <span className="text-[9px] ml-0.5 text-slate-400 font-bold uppercase">₫</span>
                         </div>
                         {hasSale && (
                             <div className="flex items-center gap-1.5 mt-0.5">
@@ -140,14 +145,14 @@ export default function ComboVariantRow({
                                 if (e.key === 'Enter') handleSave();
                                 if (e.key === 'Escape') setIsEditing(false);
                             }}
-                            className="h-8 w-14 px-1 text-center text-[13px] font-black border-2 border-blue-600 focus-visible:ring-0 bg-white shadow-md rounded-lg"
+                            className="h-8 w-14 px-1 text-center text-[13px] font-black border-2 border-primary-600 focus-visible:ring-0 bg-white shadow-md rounded-lg"
                             min={1}
                             autoFocus
                         />
                         <Button
                             size="icon"
                             variant="secondary"
-                            className="h-8 w-8 bg-blue-600 hover:bg-blue-700 text-white shadow-sm shrink-0"
+                            className="h-8 w-8 bg-primary-600 hover:bg-primary-700 text-white shadow-sm shrink-0"
                             onClick={handleSave}
                         >
                             <Save className="h-3.5 w-3.5" />
@@ -155,7 +160,7 @@ export default function ComboVariantRow({
                     </div>
                 ) : (
                     <div className="relative group/stepper">
-                        <div className="flex items-center bg-slate-100/80 p-0.5 rounded-xl border border-slate-200 group-hover:bg-white group-hover:border-blue-400/60 shadow-none hover:shadow-sm transition-all duration-300 ring-4 ring-transparent hover:ring-blue-50/50">
+                        <div className="flex items-center bg-slate-100/80 p-0.5 rounded-xl border border-slate-200 group-hover:bg-white group-hover:border-primary-400/60 shadow-none hover:shadow-sm transition-all duration-300 ring-4 ring-transparent hover:ring-primary-50/50">
                             <button
                                 onClick={() => handleQuickChange(-1)}
                                 className="h-7 w-7 flex items-center justify-center rounded-lg hover:bg-slate-100 hover:text-red-500 text-slate-400 disabled:opacity-20 transition-all active:scale-90"
@@ -165,15 +170,15 @@ export default function ComboVariantRow({
                             </button>
 
                             <div
-                                className="px-3 h-7 flex items-center justify-center text-[13px] font-black text-slate-800 tabular-nums cursor-text hover:text-blue-600 min-w-[36px]"
+                                className="px-3 h-7 flex items-center justify-center text-[13px] font-black text-slate-800 tabular-nums cursor-text hover:text-primary-600 min-w-[36px]"
                                 onClick={() => { setIsEditing(true); setEditQty(item.quantity); }}
                             >
-                                {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-500" /> : item.quantity}
+                                {isLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin text-primary-500" /> : item.quantity}
                             </div>
 
                             <button
                                 onClick={() => handleQuickChange(1)}
-                                className="h-7 w-7 flex items-center justify-center rounded-lg hover:bg-slate-100 hover:text-blue-600 text-slate-400 transition-all active:scale-90"
+                                className="h-7 w-7 flex items-center justify-center rounded-lg hover:bg-slate-100 hover:text-primary-600 text-slate-400 transition-all active:scale-90"
                                 disabled={isLoading}
                             >
                                 <Plus className="h-3.5 w-3.5 stroke-[3]" />
