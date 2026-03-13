@@ -121,9 +121,13 @@ export const ProductCard: FC<ProductCardProps> = ({ product }) => {
                             {product.name}
                         </h3>
 
-                        {/* Action Only - Removed Price per API constraints */}
-                        <div className="mt-auto pt-6 flex items-center justify-end border-t border-slate-50">
-                            <div className="h-10 w-10 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-900 group-hover:bg-slate-950 group-hover:text-white group-hover:border-slate-950 transition-all duration-500 shadow-sm">
+                        {/* Action Footer */}
+                        <div className="mt-auto pt-6 flex items-center justify-between border-t border-slate-50">
+                             <div className="flex items-center gap-1.5">
+                                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">In Stock</span>
+                             </div>
+                            <div className="h-10 w-10 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-900 group-hover:bg-[#4988c4] group-hover:text-white group-hover:border-[#4988c4] transition-all duration-500 shadow-sm">
                                 <Plus className="w-5 h-5" strokeWidth={2.5} />
                             </div>
                         </div>

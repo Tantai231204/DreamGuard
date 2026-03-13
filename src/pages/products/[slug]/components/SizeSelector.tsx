@@ -58,12 +58,12 @@ export const SizeSelector = memo(({ options, selected, onChange, disabledValues 
                                                 "group flex min-w-[100px] flex-col items-center rounded-2xl border-2 px-6 py-4 transition-all duration-300",
                                                 "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                                                 isDisabled
-                                                    ? "cursor-not-allowed border-slate-100 bg-slate-50 text-slate-300 opacity-60"
-                                                    : "hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5",
+                                                    ? "cursor-not-allowed border-slate-50 bg-slate-50 text-slate-300"
+                                                    : "hover:border-slate-300",
                                                 !isDisabled && isActive
-                                                    ? "border-primary bg-primary text-white shadow-lg shadow-primary/20 scale-[1.02]"
+                                                    ? "border-slate-900 bg-slate-900 text-white shadow-xl scale-[1.02]"
                                                     : !isDisabled
-                                                        ? "border-slate-200 bg-white text-slate-900"
+                                                        ? "border-slate-100 bg-white text-slate-900"
                                                         : ""
                                             )}
                                             disabled={isDisabled}

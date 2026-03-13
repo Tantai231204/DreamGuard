@@ -2,7 +2,7 @@ import { CartTable } from "./components/CartTable";
 import { CartActions } from "./components/CartActions";
 import { CartCheckoutBar } from "./components/CartCheckoutBar";
 import { useState, useEffect } from "react";
-import { useBreadcrumb } from '@/components/common/breadcrumb/useBreadcrumb';
+import { useBreadcrumb } from '@/components/common/BreadcrumbNav';
 import { useCart } from "@/store/useCart";
 
 export default function CartPage() {

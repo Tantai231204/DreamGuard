@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Copy, Check, Clock } from "lucide-react"
 import type { Voucher } from "../../types"
-import { VOUCHER_STATUS_COLORS } from "../../data"
+import { VOUCHER_STATUS_COLORS } from "../../constants"
 import {
     formatCurrency,
     formatDate,

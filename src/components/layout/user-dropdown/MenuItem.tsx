@@ -10,21 +10,21 @@ export function MenuItem({
 }: MenuItemProps) {
     return (
         <DropdownMenuItem asChild className="
-            px-4 py-3 cursor-pointer outline-none
-            hover:bg-gray-50 transition-colors duration-150
-            group
+            px-3 py-2.5 cursor-pointer outline-none rounded-xl
+            hover:bg-primary/5 transition-all duration-200
+            group mx-1
         ">
-            <Link to={to} className="flex items-center gap-3.5">
-                <div className="text-gray-400 group-hover:text-gray-900 transition-colors">
+            <Link to={to} className="flex items-center gap-3">
+                <div className="text-gray-400 group-hover:text-primary transition-colors">
                     {icon}
                 </div>
 
-                <p className="flex-1 font-medium text-gray-700 text-sm group-hover:text-gray-900 transition-colors">
+                <p className="flex-1 font-semibold text-gray-700 text-[13px] group-hover:text-primary transition-colors tracking-tight">
                     {title}
                 </p>
 
                 {badge !== undefined && (
-                    <span className="text-[11px] font-bold text-gray-400">
+                    <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-400 group-hover:bg-primary/20 group-hover:text-primary transition-all">
                         {badge}
                     </span>
                 )}

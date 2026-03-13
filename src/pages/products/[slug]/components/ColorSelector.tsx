@@ -49,19 +49,19 @@ export const ColorSelector = memo(({ options, selected, onChange, disabledValues
                                                 "group relative h-10 w-10 rounded-full border-2 transition-all duration-300",
                                                 "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                                                 isDisabled
-                                                    ? "cursor-not-allowed border-primary-light/10 opacity-30 hover:scale-100"
-                                                    : "hover:scale-110 hover:shadow-lg",
+                                                    ? "cursor-not-allowed border-slate-100 opacity-30"
+                                                    : "hover:scale-105",
                                                 !isDisabled && isActive
-                                                    ? "border-primary ring-2 ring-primary/20 scale-110 shadow-md shadow-primary/10"
+                                                    ? "border-slate-900 ring-4 ring-slate-900/10 scale-110 shadow-lg"
                                                     : !isDisabled
-                                                        ? "border-white shadow-sm ring-1 ring-primary-light/40"
-                                                        : "border-primary-light/30"
+                                                        ? "border-white shadow-sm ring-1 ring-slate-200"
+                                                        : "border-slate-100"
                                             )}
                                             style={{ backgroundColor: color.color }}
                                             aria-label={color.label}
                                         >
                                             {isActive && (
-                                                <Check className="absolute inset-0 m-auto h-5 w-5 text-white drop-shadow-md" />
+                                                <Check className="absolute inset-0 m-auto h-5 w-5 text-white drop-shadow-md" strokeWidth={3} />
                                             )}
                                         </RadioGroup.Item>
                                     </div>

@@ -15,7 +15,7 @@ import { ProductGrid } from './components/ProductGrid';
 import { Pagination } from './components/Pagination';
 import type { FilterOptions, Product } from './types';
 import { sortOptions } from './data';
-import { useBreadcrumb } from '@/components/common/breadcrumb/useBreadcrumb';
+import { useBreadcrumb } from '@/components/common/BreadcrumbNav';
 import { useProductsByFilter } from '@/hooks/queries/useProduct';
 import { useCategories } from '@/hooks/queries/useCategory';
 import type { ProductResponse } from '@/api/types/product.types';
@@ -194,7 +194,7 @@ export default function ProductsPage() {
 
     return (
         <div className="min-h-screen bg-[#FAFBFF]">
-            <div className="container mx-auto px-4 py-12 lg:py-20 lg:px-8 xl:max-w-7xl">
+            <div className="container mx-auto px-4 py-8 lg:py-12 lg:px-8 xl:max-w-7xl">
                 <div className="flex flex-col lg:flex-row gap-12 lg:gap-16">
                     {/* Sidebar Area */}
                     <aside className="w-full lg:w-[320px] shrink-0">

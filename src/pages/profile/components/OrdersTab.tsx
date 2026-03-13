@@ -22,8 +22,8 @@ import { formatPrice, formatDate } from "../utils"
 import { useOrders } from "@/hooks/queries"
 import type { OrderResponse } from "@/api/types/order"
 import { Skeleton } from "@/components/ui/skeleton"
-import { STATUS_THEME } from "./order-constants"
-import { OrderDetailDialog } from "./OrderDetailDialog"
+import { STATUS_THEME } from "../constants"
+import { OrderDetailDialog } from "./order-detail/OrderDetailDialog"
 import { Separator } from "@/components/ui/separator"
 
 export default function OrdersTab() {

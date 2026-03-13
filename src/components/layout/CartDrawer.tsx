@@ -8,9 +8,6 @@ import { useCart } from "@/store/useCart"
 import { useCartAnimation } from "@/store/useCartAnimation"
 import { AppRoute } from "@/lib/constants"
 import "./cart-drawer.css"
-
-
-
 export function CartDrawer() {
     const { cart, updateQuantity, removeItem, totalItems, totalPrice, totalTradeInDiscount, finalTotal, loadingIds, syncingIds } = useCart()
     const { cartIconRef, isCartBouncing } = useCartAnimation()
@@ -201,8 +198,8 @@ export function CartDrawer() {
             </Drawer.Trigger>
 
             <Drawer.Portal>
-                <Drawer.Overlay className="fixed inset-0 z-50 bg-slate-900/10" />
-                <Drawer.Content className="cart-drawer-content fixed right-0 top-0 bottom-0 z-50 flex w-full max-w-md flex-col bg-white shadow-2xl outline-none">
+                <Drawer.Overlay className="fixed inset-0 z-[999] bg-slate-900/10" />
+                <Drawer.Content className="cart-drawer-content fixed right-0 top-0 bottom-0 z-[1000] flex w-full max-w-md flex-col bg-white shadow-2xl outline-none">
 
                     {/* Header (Premium Refinement) */}
                     <div className="relative border-b border-slate-100 bg-white px-6 py-6 overflow-hidden">
@@ -309,9 +306,12 @@ export function CartDrawer() {
                             <div className="space-y-2.5">
                                 <Button
                                     onClick={handleCheckout}
-                                    className="w-full h-12 font-black text-[10px] uppercase tracking-[0.2em] rounded-xl bg-[#4988c4] hover:bg-slate-900 text-white shadow-lg shadow-blue-500/10 transition-all active:scale-[0.98] btn-press-effect"
+                                    className="relative w-full h-12 font-black text-[10px] uppercase tracking-[0.2em] rounded-xl bg-[#4988c4] text-white shadow-lg shadow-blue-500/10 transition-all duration-300 hover:shadow-blue-500/20 hover:-translate-y-0.5 active:scale-[0.98] group overflow-hidden"
                                 >
-                                    Proceed to Checkout
+                                    <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                                    <span className="relative z-10 flex items-center justify-center gap-2">
+                                        Proceed to Checkout
+                                    </span>
                                 </Button>
                                 <Drawer.Close asChild>
                                     <Button variant="outline" className="w-full h-11 rounded-xl border-dashed border-slate-200 text-slate-400 text-[9px] font-black uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-[0.98]">

@@ -1,8 +1,10 @@
-import { useRef, useMemo } from "react";
+import { useRef, useMemo, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useProductDetail } from "@/hooks/queries/useProduct";
-import { Breadcrumb } from "./components/Breadcrumb";
 import { SEO } from "@/components/common";
+import { useBreadcrumb } from "@/components/common/BreadcrumbNav";
+
+// Components
 import { ProductImageGallery } from "./components/ProductImageGallery";
 import { ProductInfo } from "./components/ProductInfo";
 import { SafetyCertifications } from "./components/SafetyCertifications";
@@ -23,21 +25,34 @@ import { motion } from "framer-motion";
 export default function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
   const productImageRef = useRef<HTMLDivElement | null>(null);
+  const { setItems: setBreadcrumb } = useBreadcrumb();
 
-  // 1. Fetch product (getBySlug already includes variants — no separate call needed)
+  // 1. Fetch product
   const {
     data: product,
     isLoading,
     isError: isProductError,
   } = useProductDetail(slug || "", !!slug);
 
-  // 2. Manage state via custom hook (variants come from product.variants)
+  // 2. Manage state via custom hook
   const { state, actions, getVariantSize } = useProductDetailState({
     product,
     productImageRef,
   });
 
-  // 3. Derived specs for the Specifications tab
+  // 3. Sync Breadcrumbs
+  useEffect(() => {
+    if (product) {
+      setBreadcrumb([
+        { label: "Home", href: "/" },
+        { label: "Products", href: "/products" },
+        { label: product.name, active: true },
+      ]);
+    }
+    return () => setBreadcrumb([]);
+  }, [product, setBreadcrumb]);
+
+  // 4. Derived specs for the Specifications tab
   const apiSpecs: ProductSpec[] = useMemo(() => {
     if (!product) return [];
     const specs: ProductSpec[] = [];
@@ -56,18 +71,16 @@ export default function ProductDetail() {
     return specs;
   }, [product]);
 
-  // 4. Loading & Error States
+  // Loading & Error States
   if (isLoading) return <ProductDetailSkeleton />;
   if (!product || isProductError) return <ProductNotFound />;
 
-  // 5. Normal UI
   const discount = (() => {
     const { price, originalPrice } = state.currentPriceInfo;
     if (!originalPrice || originalPrice <= price) return undefined;
     return Math.round(((originalPrice - price) / originalPrice) * 100);
   })();
 
-  // Use real average rating from API, fallback to mock reviews
   const averageRating = product.averageRating > 0
     ? product.averageRating
     : mockReviews.reduce((acc, r) => acc + r.rating, 0) / mockReviews.length;
@@ -82,10 +95,7 @@ export default function ProductDetail() {
       />
 
       <div className="container mx-auto px-4 py-8 md:py-12 lg:px-12 xl:max-w-7xl">
-        <Breadcrumb productName={product.name} />
-
-        <div className="mt-8 grid gap-12 lg:grid-cols-12 lg:items-start lg:gap-20">
-          {/* Gallery Section - Takes up 7 columns on large screens */}
+        <div className="grid gap-12 lg:grid-cols-12 lg:items-start lg:gap-20">
           <div className="lg:col-span-7" ref={productImageRef}>
             <ProductImageGallery
               images={state.productImages}
@@ -99,7 +109,6 @@ export default function ProductDetail() {
             />
           </div>
 
-          {/* Configuration Section - Takes up 5 columns */}
           <div className="lg:col-span-5 flex flex-col gap-10">
             <ProductInfo
               product={{

@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
-import { useBreadcrumb } from "@/components/common/breadcrumb/useBreadcrumb"
+import { useBreadcrumb } from "@/components/common/BreadcrumbNav"
 import { useCart } from "@/store/useCart"
 import { AppRoute } from "@/lib/constants"
 import { CheckoutForm } from "./components/CheckoutForm"

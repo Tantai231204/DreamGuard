@@ -1,15 +1,12 @@
 import { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
-
 import AppLayout from "../layouts/AppLayout";
 import AuthLayout from "../layouts/AuthLayout";
 import AdminLayout from "../layouts/AdminLayout";
-
 import PrivateRoute from "../components/router/PrivateRoute";
 import AdminRoute from "../components/router/AdminRoute";
 import UserGuard from "../components/router/UserGuard";
 import { PageLoader } from "../components/common";
-
 import { AppRoute } from "../lib/constants";
 
 /* =======================
@@ -20,13 +17,14 @@ import { AppRoute } from "../lib/constants";
 const Home = lazy(() => import("../pages/home"));
 const Products = lazy(() => import("../pages/products"));
 const ProductDetail = lazy(() => import("../pages/products/[slug]"));
+const Combos = lazy(() => import("../pages/combos"));
+const ComboDetail = lazy(() => import("../pages/combos/[id]"));
 const CartPage = lazy(() => import("../pages/cart"));
 const CheckoutPage = lazy(() => import("../pages/checkout"));
 const CheckoutResult = lazy(() => import("../pages/checkout/CheckoutResult"));
 
 // Auth
 const Login = lazy(() => import("../pages/auth/Login"));
-// const Register = lazy(() => import("../pages/auth/Register"));
 const RegisterBasic = lazy(() => import("../pages/auth/RegisterBasic"));
 const VerifyRegisterOTP = lazy(() => import("../pages/auth/VerifyRegisterOTP"));
 const RegisterComplete = lazy(() => import("../pages/auth/RegisterComplete"));
@@ -69,6 +67,8 @@ export default function AppRouter() {
                         <Route path={AppRoute.HOME} element={<Home />} />
                         <Route path={AppRoute.PRODUCTS} element={<Products />} />
                         <Route path={AppRoute.PRODUCT_DETAIL} element={<ProductDetail />} />
+                        <Route path={AppRoute.COMBOS} element={<Combos />} />
+                        <Route path={AppRoute.COMBO_DETAIL} element={<ComboDetail />} />
                         <Route path={AppRoute.SERVICES} element={<Services />} />
                         <Route path={AppRoute.CART} element={<CartPage />} />
                     </Route>

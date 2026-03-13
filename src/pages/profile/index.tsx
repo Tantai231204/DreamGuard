@@ -1,59 +1,98 @@
-import { useState } from "react"
+import { useEffect, useMemo } from 'react';
 import { useSearchParams } from "react-router-dom"
-
-import { HomeIcon } from "@radix-ui/react-icons"
+import { motion, AnimatePresence } from "framer-motion"
 
 import { AppRoute } from "../../lib/constants"
 import type { TabId } from "./types"
-import { AddressesTab, BabiesTab, NotificationsTab, OrdersTab, ProfileInfoTab, ProfileSidebar, ResellTab, SecurityTab, VouchersTab, WishlistTab } from "./components"
-import { useEffect } from 'react';
-import { useBreadcrumb } from '@/components/common/breadcrumb/useBreadcrumb';
+import {
+    AddressesTab,
+    BabiesTab,
+    NotificationsTab,
+    OrdersTab,
+    ProfileInfoTab,
+    ProfileSidebar,
+    ResellTab,
+    SecurityTab,
+    VouchersTab,
+    WishlistTab
+} from "./components"
+import { useBreadcrumb } from '@/components/common/BreadcrumbNav';
+import { SEO, ErrorBoundary } from "@/components/common";
 
-
-
+const TAB_COMPONENTS: Record<TabId, React.ComponentType> = {
+    profile: ProfileInfoTab,
+    babies: BabiesTab,
+    orders: OrdersTab,
+    resell: ResellTab,
+    wishlist: WishlistTab,
+    vouchers: VouchersTab,
+    addresses: AddressesTab,
+    notifications: NotificationsTab,
+    security: SecurityTab,
+};
 export default function Profile() {
-    const [searchParams] = useSearchParams()
-    const tabFromUrl = searchParams.get("tab") as TabId | null
-    const [activeTab, setActiveTab] = useState<TabId>(tabFromUrl || "profile")
+    const [searchParams, setSearchParams] = useSearchParams();
+    const activeTab = (searchParams.get("tab") as TabId) || "profile";
 
-    const renderTabContent = () => {
-        switch (activeTab) {
-            case "profile": return <ProfileInfoTab />
-            case "babies": return <BabiesTab />
-            case "orders": return <OrdersTab />
-            case "resell": return <ResellTab />
-            case "wishlist": return <WishlistTab />
-            case "vouchers": return <VouchersTab />
-            case "addresses": return <AddressesTab />
-            case "notifications": return <NotificationsTab />
-            case "security": return <SecurityTab />
-            default: return <ProfileInfoTab />
-        }
-    }
+    const handleTabChange = (tab: TabId) => {
+        setSearchParams({ tab });
+    };
 
     const { setItems: setBreadcrumb } = useBreadcrumb();
+
     useEffect(() => {
         setBreadcrumb([
-            { label: <span className="flex items-center gap-1"><HomeIcon className="h-4 w-4" /> Home</span>, href: AppRoute.HOME },
+            { label: 'Home', href: AppRoute.HOME },
             { label: 'My Account', active: true },
         ]);
         return () => setBreadcrumb([]);
     }, [setBreadcrumb]);
-    return (
-        <div className="min-h-[calc(100vh-200px)] bg-gray-50/50">
-            <div className="container mx-auto max-w-6xl px-4 py-8">
-                {/* Main Grid */}
-                <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-                    <ProfileSidebar
-                        activeTab={activeTab}
-                        onTabChange={setActiveTab}
-                    />
 
-                    <main className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm min-h-[500px]">
-                        {renderTabContent()}
-                    </main>
+    const ActiveComponent = useMemo(() => TAB_COMPONENTS[activeTab] || ProfileInfoTab, [activeTab]);
+
+    return (
+        <ErrorBoundary>
+            <SEO
+                title={`${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} | My Account`}
+                description="Manage your DreamGuard account, orders, and baby profiles."
+            />
+
+            <div className="min-h-[calc(100vh-200px)] bg-gray-50/50">
+                <div className="container mx-auto max-w-[1300px] px-4 py-12 lg:px-8">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                        className="grid gap-8 lg:grid-cols-[300px_1fr]"
+                    >
+                        {/* Interactive Sidebar */}
+                        <aside className="relative z-10">
+                            <div className="sticky top-28">
+                                <ProfileSidebar
+                                    activeTab={activeTab}
+                                    onTabChange={handleTabChange}
+                                />
+                            </div>
+                        </aside>
+
+                        {/* Main Stage with AnimatePresence */}
+                        <main className="min-w-0">
+                            <AnimatePresence mode="wait">
+                                <motion.div
+                                    key={activeTab}
+                                    initial={{ opacity: 0, x: 10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -10 }}
+                                    transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                                    className="rounded-3xl border border-white bg-white p-8 shadow-[0_8px_30px_rgb(0,0,0,0.02)] min-h-[600px] ring-1 ring-slate-200/50 will-change-transform"
+                                >
+                                    <ActiveComponent />
+                                </motion.div>
+                            </AnimatePresence>
+                        </main>
+                    </motion.div>
                 </div>
             </div>
-        </div>
-    )
+        </ErrorBoundary>
+    );
 }

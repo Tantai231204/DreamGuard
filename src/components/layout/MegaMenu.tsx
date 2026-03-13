@@ -125,7 +125,7 @@ export function MegaMenu({ open, items, highlight, combos = [], onMouseEnter, on
                                                         transition={{ delay: 0.15, duration: 0.5 }}
                                                     >
                                                         <Link
-                                                            to={`/products/${combo.slug}`}
+                                                            to={`/combos/${combo.id}`}
                                                             className="group block"
                                                         >
                                                             <div className="relative aspect-video overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition-all group-hover:shadow-md group-hover:border-[#4988c4]/30">
@@ -147,7 +147,7 @@ export function MegaMenu({ open, items, highlight, combos = [], onMouseEnter, on
                                                                     </div>
                                                                 </div>
                                                                 <div className="absolute top-3 left-3">
-                                                                    <span className="rounded-full bg-white/95 backdrop-blur-sm px-2.5 py-0.5 text-[9px] font-black text-[#4988c4] uppercase tracking-widest shadow-sm">
+                                                                    <span className="rounded-full bg-white px-2.5 py-0.5 text-[9px] font-black text-[#4988c4] uppercase tracking-widest shadow-sm ring-1 ring-slate-100">
                                                                         TOP COMBO
                                                                     </span>
                                                                 </div>
@@ -172,8 +172,8 @@ export function MegaMenu({ open, items, highlight, combos = [], onMouseEnter, on
                                             </div>
                                         </div>
                                     ) : highlight ? (
-                                        <div className="relative overflow-hidden rounded-3xl bg-slate-50 p-6 border border-slate-100">
-                                            <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[#4988c4]/10 blur-3xl" />
+                                        <div className="relative overflow-hidden rounded-3xl bg-slate-50 p-6 border border-slate-200">
+                                            <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-[#4988c4]/5" />
 
                                             <img
                                                 src={highlight.image}

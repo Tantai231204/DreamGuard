@@ -274,15 +274,3 @@ export const mockVouchers: Voucher[] = [
   },
 ];
 
-export const VOUCHER_STATUS_COLORS: Record<
-  string,
-  { bg: string; text: string; border: string }
-> = {
-  active: {
-    bg: "bg-green-50",
-    text: "text-green-700",
-    border: "border-green-200",
-  },
-  used: { bg: "bg-gray-50", text: "text-gray-600", border: "border-gray-200" },
-  expired: { bg: "bg-red-50", text: "text-red-600", border: "border-red-200" },
-};

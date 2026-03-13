@@ -1,3 +1,4 @@
+import { memo } from "react"
 import { Link } from "react-router-dom"
 import { MapPin, Bell, Gift, Baby, Star, User, Heart, Lock, LogOut, RefreshCw, Ticket, ShoppingBag, Crown } from "lucide-react"
 import { useAuthStore } from "../../../store/authStore"
@@ -24,7 +25,7 @@ interface ProfileSidebarProps {
   onTabChange: (tab: TabId) => void;
 }
 
-export default function ProfileSidebar({ activeTab, onTabChange }: ProfileSidebarProps) {
+const ProfileSidebar = ({ activeTab, onTabChange }: ProfileSidebarProps) => {
   const { role } = useAuthStore()
   const { data: profile, isLoading } = useProfile()
   const logoutMutation = useLogout()
@@ -39,7 +40,7 @@ export default function ProfileSidebar({ activeTab, onTabChange }: ProfileSideba
   return (
     <aside className="space-y-6">
       {/* Minimal User Card */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden p-6">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden p-6 hover:shadow-md transition-shadow duration-300">
         {isLoading ? (
           <div className="flex flex-col items-center text-center">
             <Skeleton className="h-20 w-20 rounded-full mb-4" />
@@ -102,7 +103,7 @@ export default function ProfileSidebar({ activeTab, onTabChange }: ProfileSideba
       </div>
 
       {/* Clean Side Navigation */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-2 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-2 overflow-hidden hover:shadow-md transition-shadow duration-300">
         <nav className="space-y-1">
           {TABS.map((tab) => {
             const isActive = activeTab === tab.id
@@ -151,3 +152,5 @@ export default function ProfileSidebar({ activeTab, onTabChange }: ProfileSideba
     </aside>
   )
 }
+
+export default memo(ProfileSidebar);

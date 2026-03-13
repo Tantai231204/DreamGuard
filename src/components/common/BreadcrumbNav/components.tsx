@@ -1,16 +1,15 @@
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { ChevronRight, MoreHorizontal } from "lucide-react"
-
 import { cn } from "@/lib/utils"
 
-const Breadcrumb = React.forwardRef<
+const BreadcrumbRoot = React.forwardRef<
   HTMLElement,
   React.ComponentPropsWithoutRef<"nav"> & {
     separator?: React.ComponentType<{ className?: string }>
   }
 >(({ ...props }, ref) => <nav ref={ref} aria-label="breadcrumb" {...props} />)
-Breadcrumb.displayName = "Breadcrumb"
+BreadcrumbRoot.displayName = "Breadcrumb"
 
 const BreadcrumbList = React.forwardRef<
   HTMLOListElement,
@@ -19,7 +18,7 @@ const BreadcrumbList = React.forwardRef<
   <ol
     ref={ref}
     className={cn(
-      "flex flex-wrap items-center gap-1.5 break-words text-sm text-muted-foreground sm:gap-2.5",
+      "flex flex-wrap items-center gap-1.5 break-words text-[12px] font-medium tracking-tight text-slate-400 sm:gap-2.5",
       className
     )}
     {...props}
@@ -50,7 +49,7 @@ const BreadcrumbLink = React.forwardRef<
   return (
     <Comp
       ref={ref}
-      className={cn("transition-colors hover:text-foreground", className)}
+      className={cn("transition-all hover:text-slate-900 flex items-center gap-1 hover:translate-x-0.5 duration-300", className)}
       {...props}
     />
   )
@@ -66,7 +65,7 @@ const BreadcrumbPage = React.forwardRef<
     role="link"
     aria-disabled="true"
     aria-current="page"
-    className={cn("font-normal text-foreground", className)}
+    className={cn("font-bold text-slate-950", className)}
     {...props}
   />
 ))
@@ -80,10 +79,10 @@ const BreadcrumbSeparator = ({
   <li
     role="presentation"
     aria-hidden="true"
-    className={cn("[&>svg]:h-3.5 [&>svg]:w-3.5", className)}
+    className={cn("[&>svg]:h-3.5 [&>svg]:w-3.5 text-slate-300", className)}
     {...props}
   >
-    {children ?? <ChevronRight />}
+    {children ?? <ChevronRight strokeWidth={2} />}
   </li>
 )
 BreadcrumbSeparator.displayName = "BreadcrumbSeparator"
@@ -104,56 +103,12 @@ const BreadcrumbEllipsis = ({
 )
 BreadcrumbEllipsis.displayName = "BreadcrumbEllipsis"
 
-// Legacy interface for backward compatibility
-export interface BreadcrumbItem {
-    label: React.ReactNode;
-    href?: string;
-    active?: boolean;
-}
-
-export interface BreadcrumbProps {
-    items: BreadcrumbItem[];
-    className?: string;
-}
-
-// Wrapper component for backward compatibility
-export function LegacyBreadcrumb({ items, className = "" }: BreadcrumbProps) {
-    return (
-        <Breadcrumb className={className}>
-            <BreadcrumbList>
-                {items.map((item, idx) => {
-                    const isLast = idx === items.length - 1;
-                    return (
-                        <React.Fragment key={idx}>
-                            <BreadcrumbItem>
-                                {item.href && !isLast ? (
-                                    <BreadcrumbLink href={item.href}>
-                                        {item.label}
-                                    </BreadcrumbLink>
-                                ) : (
-                                    <BreadcrumbPage>
-                                        {item.label}
-                                    </BreadcrumbPage>
-                                )}
-                            </BreadcrumbItem>
-                            {!isLast && <BreadcrumbSeparator />}
-                        </React.Fragment>
-                    );
-                })}
-            </BreadcrumbList>
-        </Breadcrumb>
-    );
-}
-
 export {
-  Breadcrumb,
-  BreadcrumbList,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-  BreadcrumbEllipsis,
+    BreadcrumbRoot as Breadcrumb,
+    BreadcrumbList,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
+    BreadcrumbEllipsis,
 }
-
-// Export legacy as default for backward compatibility
-export default LegacyBreadcrumb;
