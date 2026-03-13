@@ -57,7 +57,7 @@ export default function Profile() {
                 description="Manage your DreamGuard account, orders, and baby profiles."
             />
 
-            <div className="min-h-[calc(100vh-200px)] bg-gray-50/50">
+            <div className="min-h-[calc(100vh-200px)] bg-white">
                 <div className="container mx-auto max-w-[1300px] px-4 py-12 lg:px-8">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}

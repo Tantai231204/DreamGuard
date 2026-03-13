@@ -36,7 +36,7 @@ export const Breadcrumb = ({ items, className = "" }: BreadcrumbProps) => {
                                         </Link>
                                     </BreadcrumbLink>
                                 ) : (
-                                    <BreadcrumbPage className="flex items-center gap-1.5 italic">
+                                    <BreadcrumbPage className="flex items-center gap-1.5 transition-all outline-none">
                                         {isHome && <Home className="h-3.5 w-3.5" />}
                                         {item.label}
                                     </BreadcrumbPage>

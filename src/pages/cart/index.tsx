@@ -19,7 +19,7 @@ export default function CartPage() {
     }, [setBreadcrumb]);
 
     return (
-        <div className="relative min-h-screen bg-[#fafbfc] pb-32">
+        <div className="relative min-h-screen bg-white pb-32">
             <div className="container mx-auto max-w-[1000px] px-6 pt-3 pb-8">
                 <div className="flex flex-col gap-1 mb-6">
                     <h1 className="text-5xl font-black text-slate-900 tracking-tight italic uppercase">Shopping Bag</h1>

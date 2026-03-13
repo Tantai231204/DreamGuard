@@ -8,7 +8,6 @@ import { OrderSummary } from "./components/OrderSummary"
 import { ShieldCheck, ArrowLeft, Lock, RefreshCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useCartStore } from "@/store/useCartStore"
-import { motion } from "framer-motion"
 import { formatDate } from "@/lib/utils"
 
 export default function CheckoutPage() {
@@ -57,17 +56,7 @@ export default function CheckoutPage() {
     }
 
     return (
-        <div className="min-h-screen bg-[#fafbfc]">
-            {/* Ultra-Thin Minimalist Progress Line */}
-            <div className="fixed top-0 left-0 right-0 h-[3px] z-[100] bg-slate-50 overflow-hidden pointer-events-none">
-                <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: "50%" }}
-                    transition={{ duration: 1.5, ease: [0.22, 1, 0.36, 1] }}
-                    className="h-full bg-[#4988c4]"
-                />
-            </div>
-
+        <div className="min-h-screen bg-white">
             {/* Sharp Modern Header */}
             <div className="bg-white/80 backdrop-blur-md sticky top-0 z-[50] border-b border-slate-100">
                 <div className="container mx-auto max-w-[1300px] px-6 h-16 flex items-center justify-between">

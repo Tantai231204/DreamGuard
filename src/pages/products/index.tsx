@@ -193,7 +193,7 @@ export default function ProductsPage() {
     }, [categoryName, urlCategoryName, urlMaterialName]);
 
     return (
-        <div className="min-h-screen bg-[#FAFBFF]">
+        <div className="min-h-screen bg-white">
             <div className="container mx-auto px-4 py-8 lg:py-12 lg:px-8 xl:max-w-7xl">
                 <div className="flex flex-col lg:flex-row gap-12 lg:gap-16">
                     {/* Sidebar Area */}

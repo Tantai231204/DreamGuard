@@ -20,7 +20,7 @@ export default function AppLayout({ variant = "home" }: AppLayoutProps) {
   // Checkout variant with minimalist header
   if (variant === "checkout") {
     return (
-      <div className="min-h-screen bg-[#fafbfc] flex flex-col">
+      <div className="min-h-screen bg-white flex flex-col">
         <header className="border-b bg-white py-4 shadow-sm relative z-50">
           <div className="container mx-auto max-w-7xl px-4 flex items-center justify-between">
             <Link to={AppRoute.HOME} className="hover:opacity-80 transition-opacity">

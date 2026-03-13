@@ -1,4 +1,3 @@
-export { Breadcrumb } from "./Breadcrumb";
 export { ColorSelector } from "./ColorSelector";
 export { SizeSelector } from "./SizeSelector";
 export { QuantitySelector } from "./QuantitySelector";
