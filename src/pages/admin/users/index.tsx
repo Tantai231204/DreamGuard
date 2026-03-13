@@ -72,7 +72,7 @@ export default function UsersPage() {
         <AdminBulkActions
           table={table}
           itemLabel="user"
-          accentColor="purple"
+          accentColor="black"
           onDelete={() => {
             console.log('Bulk delete');
             table.resetRowSelection();

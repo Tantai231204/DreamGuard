@@ -14,7 +14,7 @@ export default function BulkActionsToolbar<T>({
     <AdminBulkActions
       table={table}
       itemLabel={productType === 'single' ? 'product' : 'combo'}
-      accentColor={productType === 'single' ? 'blue' : 'purple'}
+      accentColor={productType === 'single' ? 'blue' : 'black'}
       onEdit={() => console.log('Edit selected')}
       onDuplicate={() => console.log('Duplicate selected')}
       onDelete={() => console.log('Delete selected')}
