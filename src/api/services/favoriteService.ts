@@ -2,9 +2,15 @@ import api from "../../lib/api"
 
 export interface FavoriteProduct {
   id: string
-  name: string
-  price: number
-  image: string
+  productId: string
+  productName: string
+  slug: string
+  basePrice: number
+  salePrice: number
+  averageRating: number
+  status: string
+  imageUrls: string[]
+  createdAt: string
 }
 
 export interface FavoriteListResponse {
