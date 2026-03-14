@@ -54,7 +54,8 @@ export function getStageInfo(birthDate: string): { name: string; color: string; 
     }
 }
 
-export function formatPrice(price: number): string {
+export function formatPrice(price: number | undefined | null): string {
+    if (price === undefined || price === null) return "0₫";
     return price.toLocaleString("vi-VN") + "₫"
 }
 

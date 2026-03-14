@@ -4,12 +4,30 @@ import { getProductDetailRoute } from '@/lib/constants'
 import { Heart, Star, Plus } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import type { Product } from './productData'
+import { useFavoriteProducts, useAddFavorite, useDeleteFavorite } from '@/hooks/useFavorite'
+import { cn } from '@/lib/utils'
 
 interface Props {
     product: Product
 }
 
 export default function ProductCard({ product }: Props) {
+    const { data: favorites } = useFavoriteProducts()
+    const addFavorite = useAddFavorite()
+    const deleteFavorite = useDeleteFavorite()
+
+    const isLiked = favorites?.items?.some(f => String(f.productId) === String(product.id))
+
+    const handleLike = (e: React.MouseEvent) => {
+        e.preventDefault()
+        e.stopPropagation()
+        if (isLiked) {
+            deleteFavorite.mutate(String(product.id))
+        } else {
+            addFavorite.mutate(String(product.id))
+        }
+    }
+
     // Generate slug-safe link fallback if slug is missing in simple test data
     const slug = product.name?.toLowerCase().replace(/\s+/g, '-')
 
@@ -50,9 +68,22 @@ export default function ProductCard({ product }: Props) {
                         </div>
 
                         {/* Quick Action - Wishlist */}
-                        <div className="absolute right-4 top-4 opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 transition-all duration-400">
-                            <button className="h-9 w-9 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-slate-400 shadow-xl hover:text-rose-500 hover:bg-white transition-all">
-                                <Heart className="h-4.5 w-4.5" />
+                        <div className={cn(
+                            "absolute right-4 top-4 transition-all duration-400 z-10",
+                            isLiked 
+                                ? "opacity-100 translate-x-0" 
+                                : "opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0"
+                        )}>
+                            <button
+                                onClick={handleLike}
+                                className={cn(
+                                    "h-9 w-9 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center transition-all shadow-xl",
+                                    isLiked 
+                                        ? "text-rose-500 bg-white" 
+                                        : "text-slate-400 hover:text-rose-500 hover:bg-white"
+                                )}
+                            >
+                                <Heart className={cn("h-4.5 w-4.5", isLiked && "fill-current")} />
                             </button>
                         </div>
                     </div>

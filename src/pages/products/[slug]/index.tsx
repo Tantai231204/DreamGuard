@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { useProductDetail } from "@/hooks/queries/useProduct";
 import { SEO } from "@/components/common";
 import { useBreadcrumb } from "@/components/common/BreadcrumbNav";
+import { useFavoriteProducts, useAddFavorite, useDeleteFavorite } from "@/hooks/useFavorite";
 
 // Components
 import { ProductImageGallery } from "./components/ProductImageGallery";
@@ -39,6 +40,33 @@ export default function ProductDetail() {
     product,
     productImageRef,
   });
+
+  // Favorite Logic
+  const { data: favorites } = useFavoriteProducts();
+  const addFavorite = useAddFavorite();
+  const deleteFavorite = useDeleteFavorite();
+
+  const isWishlisted = useMemo(() => {
+    if (!favorites?.items || !product) return false;
+    return favorites.items.some((f: { productId: string }) => f.productId === product.id);
+  }, [favorites, product]);
+
+  const handleToggleWishlist = () => {
+    if (!product) return;
+    if (isWishlisted) {
+      deleteFavorite.mutate(product.id, {
+        onSuccess: () => {
+          if (actions.setIsWishlisted) actions.setIsWishlisted(false);
+        }
+      });
+    } else {
+      addFavorite.mutate(product.id, {
+        onSuccess: () => {
+          if (actions.setIsWishlisted) actions.setIsWishlisted(true);
+        }
+      });
+    }
+  };
 
   // 3. Sync Breadcrumbs
   useEffect(() => {
@@ -102,8 +130,8 @@ export default function ProductDetail() {
               productName={product.name}
               selectedImage={state.selectedImage}
               onSelectImage={actions.setSelectedImage}
-              isWishlisted={state.isWishlisted}
-              onToggleWishlist={() => actions.setIsWishlisted(p => !p)}
+              isWishlisted={isWishlisted}
+              onToggleWishlist={handleToggleWishlist}
               discount={discount}
               inStock={!state.currentStock.isOutOfStock}
             />

@@ -6,6 +6,8 @@ import { Star, Heart, Plus } from "lucide-react"
 
 import type { Product } from "../types"
 import { getProductDetailRoute } from "@/lib/constants"
+import { useFavoriteProducts, useAddFavorite, useDeleteFavorite } from "@/hooks/useFavorite"
+import { cn } from "@/lib/utils"
 
 interface ProductCardProps {
     product: Product
@@ -14,9 +16,20 @@ interface ProductCardProps {
 
 
 export const ProductCard: FC<ProductCardProps> = ({ product }) => {
+    const { data: favorites } = useFavoriteProducts()
+    const addFavorite = useAddFavorite()
+    const deleteFavorite = useDeleteFavorite()
+
+    const isLiked = favorites?.items?.some(f => String(f.productId) === String(product.id))
+
     const handleLike = (e: React.MouseEvent) => {
         e.preventDefault()
         e.stopPropagation()
+        if (isLiked) {
+            deleteFavorite.mutate(String(product.id))
+        } else {
+            addFavorite.mutate(String(product.id))
+        }
     }
 
     const discountPercent = product.discount
@@ -67,12 +80,22 @@ export const ProductCard: FC<ProductCardProps> = ({ product }) => {
                         </div>
 
                         {/* Wishlist */}
-                        <div className="absolute right-4 top-4 opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 transition-all duration-400 z-10">
+                        <div className={cn(
+                            "absolute right-4 top-4 transition-all duration-400 z-10",
+                            isLiked 
+                                ? "opacity-100 translate-x-0" 
+                                : "opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0"
+                        )}>
                             <button
                                 onClick={handleLike}
-                                className="h-9 w-9 rounded-full bg-white/95 backdrop-blur-md flex items-center justify-center text-slate-400 shadow-xl hover:text-rose-500 hover:bg-white transition-all border border-slate-100"
+                                className={cn(
+                                    "h-9 w-9 rounded-full bg-white/95 backdrop-blur-md flex items-center justify-center transition-all border border-slate-100 shadow-xl",
+                                    isLiked 
+                                        ? "text-rose-500 bg-white" 
+                                        : "text-slate-400 hover:text-rose-500 hover:bg-white"
+                                )}
                             >
-                                <Heart className="h-4.5 w-4.5" />
+                                <Heart className={cn("h-4.5 w-4.5", isLiked && "fill-current")} />
                             </button>
                         </div>
                     </div>
