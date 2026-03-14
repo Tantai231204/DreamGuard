@@ -11,23 +11,24 @@ interface InfoFieldProps {
 
 export function InfoField({ icon: Icon, label, value, mono, className }: InfoFieldProps) {
     return (
-        <div className={cn('flex items-start gap-3 py-3.5 group', className)}>
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-gray-50 to-gray-100/80 border border-gray-100 group-hover:border-primary-200 group-hover:from-primary-50 group-hover:to-secondary-100 transition-all duration-200">
-                <Icon size={15} className="text-gray-400 group-hover:text-[var(--color-primary)] transition-colors duration-200" />
+        <div className={cn('flex items-start gap-5 py-5 group transition-all', className)}>
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[1.25rem] bg-gray-50 border border-gray-100 group-hover:bg-primary/5 group-hover:border-primary/20 transition-all duration-300">
+                <Icon size={16} className="text-gray-400 group-hover:text-primary transition-colors duration-300" />
             </div>
-            <div className="min-w-0 flex-1 pt-0.5">
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-gray-400 leading-none mb-1.5">
+            <div className="min-w-0 flex-1">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-2 leading-none">
                     {label}
                 </p>
                 <div
                     className={cn(
-                        'text-sm font-medium text-gray-800 break-words leading-snug',
-                        mono && 'font-mono text-xs',
+                        'text-[13px] font-black text-gray-900 break-words leading-relaxed tracking-tight',
+                        mono && 'font-mono text-[11px] uppercase text-slate-500 tracking-wider',
                     )}
                 >
-                    {value ?? <span className="text-gray-300 italic font-normal text-xs">Not specified</span>}
+                    {value ?? <span className="text-gray-300 font-medium italic">Undefined</span>}
                 </div>
             </div>
         </div>
     );
 }
+

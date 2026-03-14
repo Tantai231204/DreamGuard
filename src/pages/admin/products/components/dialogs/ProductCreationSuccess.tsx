@@ -27,47 +27,49 @@ export default function ProductCreationSuccess({
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[440px]">
-                <DialogHeader className="pb-4 border-b">
-                    <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-lg bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-md">
-                            <CheckCircle2 className="w-5 h-5 text-white" />
+                <DialogHeader className="pb-6 border-b border-slate-100 bg-slate-50/30 -mx-6 px-6 -mt-6 pt-6 rounded-t-2xl">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-primary-600 flex items-center justify-center shadow-lg shadow-primary-100 shrink-0">
+                            <CheckCircle2 className="w-6 h-6 text-white" />
                         </div>
                         <div>
-                            <DialogTitle className="text-xl font-bold text-gray-900">
-                                Product Created!
+                            <DialogTitle className="text-xl font-black text-slate-900 tracking-tight">
+                                Product Verified
                             </DialogTitle>
-                            <DialogDescription className="text-sm text-gray-500">
-                                "{productName}" has been added
+                            <DialogDescription className="text-xs text-slate-500 font-medium">
+                                "{productName}" is now active in your catalog.
                             </DialogDescription>
                         </div>
                     </div>
                 </DialogHeader>
 
-                <div className="py-5">
-                    <div className="flex items-start gap-3 p-4 rounded-xl bg-blue-50 border border-blue-100">
-                        <ImagePlus className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div className="py-8">
+                    <div className="flex items-start gap-4 p-5 rounded-2xl bg-primary-50/50 border border-primary-100 transition-all hover:bg-primary-50">
+                        <div className="w-10 h-10 rounded-xl bg-white border border-primary-100 flex items-center justify-center shrink-0 shadow-sm">
+                            <ImagePlus className="w-5 h-5 text-primary-600" />
+                        </div>
                         <div>
-                            <p className="text-sm font-medium text-gray-900 mb-1">
-                                Add product images?
+                            <p className="text-[13px] font-bold text-slate-900 mb-1">
+                                Enhance with Media?
                             </p>
-                            <p className="text-xs text-gray-600">
-                                Upload photos to help customers see your product. You can always add images later.
+                            <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
+                                High-quality images significantly increase conversion. Add photos now or manage them later.
                             </p>
                         </div>
                     </div>
                 </div>
 
-                <DialogFooter className="pt-4 border-t gap-3">
+                <DialogFooter className="pt-6 border-t border-slate-100 gap-3">
                     <Button
                         variant="outline"
                         onClick={onSkip}
-                        className="flex-1 h-10 border-2 border-gray-300 hover:border-gray-400 hover:bg-gray-50 font-medium"
+                        className="flex-1 h-11 border-slate-200 text-slate-500 hover:bg-slate-50 font-bold text-xs uppercase tracking-widest rounded-xl transition-all"
                     >
-                        Skip for now
+                        Skip
                     </Button>
                     <Button
                         onClick={onAddImages}
-                        className="flex-1 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/30 font-medium"
+                        className="flex-1 h-11 bg-primary-600 hover:bg-primary-700 text-white shadow-md shadow-primary-200 font-bold text-xs uppercase tracking-widest rounded-xl transition-all active:scale-95"
                     >
                         <ImagePlus className="w-4 h-4 mr-2" />
                         Add Images

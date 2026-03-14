@@ -13,12 +13,12 @@ export default function ComboHeader({ comboName, itemsCount, discount, onAddItem
     return (
         <div className="flex items-center justify-between mb-5 px-1">
             <div className="flex items-center gap-3">
-                <div className="p-1.5 bg-purple-100 rounded-lg">
-                    <Package className="h-4 w-4 text-purple-600" />
+                <div className="p-1.5 bg-primary-50 rounded-lg">
+                    <Package className="h-4 w-4 text-primary-600" />
                 </div>
                 <div className="flex items-center gap-2">
-                    <span className="text-[15px] font-bold text-gray-800">
-                        Items in <span className="text-purple-600 font-extrabold">{comboName}</span>
+                    <span className="text-[15px] font-bold text-slate-800">
+                        Items in <span className="text-primary-600 font-extrabold">{comboName}</span>
                     </span>
                     <Badge variant="outline" className="h-6 px-2 text-[11px] font-medium bg-gray-50 text-gray-600 border-gray-200 rounded-full">
                         {itemsCount} {itemsCount === 1 ? 'item' : 'items'}

@@ -31,13 +31,7 @@ interface ComboItemsTableProps {
     onDeleteVariant?: (variant: Combo) => void;
 }
 
-const STATUS_MAP: Record<string, { label: string; className: string }> = {
-    Published: { label: 'Published', className: 'bg-green-50 text-green-700 border-green-200' },
-    Active: { label: 'Active', className: 'bg-green-50 text-green-700 border-green-200' },
-    Draft: { label: 'Draft', className: 'bg-amber-50 text-amber-700 border-amber-200' },
-    Hidden: { label: 'Hidden', className: 'bg-gray-50 text-gray-500 border-gray-200' },
-    OutOfStock: { label: 'Out of Stock', className: 'bg-red-50 text-red-700 border-red-200' },
-};
+
 
 export default function ComboItemsTable({
     comboId,
@@ -54,14 +48,25 @@ export default function ComboItemsTable({
     const [viewMode, setViewMode] = React.useState<'list' | 'tabs'>('tabs');
 
     /* ── Decide: parent with children, or leaf with own items ── */
-    const childCombosFromStore = detail?.childCombos ?? [];
-    const rawChildCombos: Combo[] = (childCombosFromStore.length > 0
-        ? (childCombosFromStore as unknown as Combo[])
-        : (initialChildCombos ?? [])) as Combo[];
+    const rawChildCombos: Combo[] = React.useMemo(() => {
+        const fromStore = (detail?.childCombos || []) as unknown as Combo[];
+        const fromProps = (initialChildCombos || []) as unknown as Combo[];
+        
+        // Admin list passes initialChildCombos with ALL variants including Drafts.
+        // Public getById endpoint (detail) only returns Published ones. 
+        // Thus, prefer fromProps if available.
+        const source = fromProps.length > 0 ? fromProps : fromStore;
+
+        // Ensure children have their parent ID set so Edit modal knows they are variants
+        return source.map(c => ({
+            ...c,
+            comboParentId: c.comboParentId || comboId
+        }));
+    }, [detail?.childCombos, initialChildCombos, comboId]);
 
     const childCombosFiltered = rawChildCombos.filter(c =>
-        c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (c.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (c.sku || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
         (c.color || '').toLowerCase().includes(searchQuery.toLowerCase())
     );
 
@@ -89,15 +94,15 @@ export default function ComboItemsTable({
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            className="bg-gray-50/50 border-t-2 border-b-2 border-indigo-100/50 px-8 py-10 relative overflow-hidden"
+            className="bg-gray-50/50 border-t-2 border-b-2 border-primary-100/50 px-8 py-10 relative overflow-hidden"
         >
             {/* Background Decoration for "Nested" Feel */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50/50 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
+            <div className="absolute top-0 right-0 w-64 h-64 bg-primary-50/50 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
 
             {/* Header Section - Clean & Focused */}
             <header className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
                 <div className="flex items-center gap-4">
-                    <div className="h-11 w-11 rounded-2xl bg-white border-2 border-indigo-100 flex items-center justify-center shadow-lg shadow-indigo-100/50 text-indigo-600">
+                    <div className="h-11 w-11 rounded-2xl bg-white border-2 border-primary-100 flex items-center justify-center shadow-lg shadow-primary-100/50 text-primary-600">
                         <ShoppingBag className="h-5 w-5" />
                     </div>
                     <div>
@@ -105,7 +110,7 @@ export default function ComboItemsTable({
                             {isParent ? 'Combo Variants Catalog' : 'Constituent Product Items'}
                         </h4>
                         <div className="text-[11px] text-gray-400 mt-2 font-bold flex items-center gap-1.5 uppercase tracking-wider">
-                            Managing structure of <span className="bg-indigo-600/10 text-indigo-600 px-2 py-0.5 rounded-md text-[10px] font-black">{comboName}</span>
+                            Managing structure of <span className="bg-primary-600/10 text-primary-600 px-2 py-0.5 rounded-md text-[10px] font-black">{comboName}</span>
                         </div>
                     </div>
                 </div>
@@ -119,7 +124,7 @@ export default function ComboItemsTable({
 
             {/* Search Bar */}
             {isParent && (
-                <div className="flex items-center gap-2 mb-4 bg-white p-2 rounded-xl border border-gray-200 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
+                <div className="flex items-center gap-2 mb-4 bg-white p-2 rounded-xl border border-gray-200 focus-within:ring-2 focus-within:ring-primary-500/20 transition-all">
                     <Search className="h-4 w-4 text-gray-400 ml-2" />
                     <Input
                         placeholder={`Search through ${rawChildCombos.length} variants...`}
@@ -139,14 +144,12 @@ export default function ComboItemsTable({
                             onAddVariant={() => onAddVariant?.(detail as Combo)}
                             onEditVariant={onEditVariant}
                             onDeleteVariant={onDeleteVariant}
-                            statusMap={STATUS_MAP}
                         />
                     ) : (
                         <VariantListView
                             childCombos={childCombosFiltered}
                             onEditVariant={onEditVariant}
                             onDeleteVariant={onDeleteVariant}
-                            statusMap={STATUS_MAP}
                         />
                     )
                 ) : (

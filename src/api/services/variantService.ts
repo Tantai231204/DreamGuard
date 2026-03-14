@@ -5,7 +5,8 @@ export interface VariantAttributes {
   width?: number;
   length?: number;
   thickness?: number;
-  color?: string;
+  color?: string;    // Color Name (e.g. "Crimson")
+  hexColor?: string; // Hex Code (e.g. "#DC143C")
   [key: string]: unknown;
 }
 
@@ -16,6 +17,7 @@ export interface CreateVariantRequest {
   weight: number;
   attributes: VariantAttributes | null;
   productid: string;
+  isNew?: boolean;
 }
 
 export interface UpdateVariantRequest {
@@ -25,6 +27,7 @@ export interface UpdateVariantRequest {
   weight: number;
   attributes: VariantAttributes | null;
   productid: string;
+  isNew?: boolean;
 }
 
 export interface UpdateVariantStatusParams {
@@ -59,10 +62,15 @@ export interface AdminVariantItem {
   stockQuantity: number;
   stockStatus: string;
   status: string;
+  weight: number | null;
+  attributes: VariantAttributes | null;
+  isNew?: boolean;
+  createdAt?: string;
 }
 
 export interface AdminColorGroup {
-  color: string;
+  color: string;    // Color Name
+  hexColor?: string; // Hex Code
   variants: AdminVariantItem[];
 }
 
@@ -84,7 +92,7 @@ const variantService = {
 
   /** Update variant status */
   updateStatus: ({ variantId, status }: UpdateVariantStatusParams): Promise<void> =>
-    apiClient.patch(`/variants/${variantId}/status`, null, { params: { status } }).then((res) => res.data),
+    apiClient.patch(`/variants/${variantId}/status`, {}, { params: { status } }).then((res) => res.data),
 
 
   /** Delete variant */

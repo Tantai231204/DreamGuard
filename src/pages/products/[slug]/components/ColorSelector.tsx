@@ -23,18 +23,20 @@ export const ColorSelector = memo(({ options, selected, onChange, disabledValues
     return (
         <div className="space-y-3">
             <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-gray-900">Color</label>
-                <span className="text-sm text-gray-500">
+                <label className="text-sm font-black text-primary-dark uppercase tracking-widest leading-none">Color Palette</label>
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 italic">
                     {selectedColor?.label}
                 </span>
             </div>
             <RadioGroup.Root
                 value={selected}
                 onValueChange={onChange}
-                className="flex flex-wrap gap-2.5"
+                className="flex flex-wrap gap-3.5"
             >
                 {options.map((color) => {
                     const isDisabled = disabledValues?.includes(color.value);
+                    const isActive = selected === color.value;
+
                     return (
                         <TooltipProvider key={color.value} delayDuration={300}>
                             <Tooltip>
@@ -44,31 +46,31 @@ export const ColorSelector = memo(({ options, selected, onChange, disabledValues
                                             value={color.value}
                                             disabled={isDisabled}
                                             className={cn(
-                                                "group relative h-12 w-12 rounded-full border-2 transition-all duration-200",
-                                                "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)] focus-visible:ring-offset-2",
+                                                "group relative h-10 w-10 rounded-full border-2 transition-all duration-300",
+                                                "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                                                 isDisabled
-                                                    ? "cursor-not-allowed border-gray-200 opacity-40 hover:scale-100"
+                                                    ? "cursor-not-allowed border-slate-100 opacity-30"
                                                     : "hover:scale-105",
-                                                !isDisabled && selected === color.value
-                                                    ? "border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/20 scale-105"
+                                                !isDisabled && isActive
+                                                    ? "border-slate-900 ring-4 ring-slate-900/10 scale-110 shadow-lg"
                                                     : !isDisabled
-                                                        ? "border-gray-300 hover:border-gray-400"
-                                                        : "border-gray-200"
+                                                        ? "border-white shadow-sm ring-1 ring-slate-200"
+                                                        : "border-slate-100"
                                             )}
                                             style={{ backgroundColor: color.color }}
                                             aria-label={color.label}
                                         >
-                                            {selected === color.value && (
-                                                <Check className="absolute inset-0 m-auto h-5 w-5 text-white drop-shadow-md" />
+                                            {isActive && (
+                                                <Check className="absolute inset-0 m-auto h-5 w-5 text-white drop-shadow-md" strokeWidth={3} />
                                             )}
                                         </RadioGroup.Item>
                                     </div>
                                 </TooltipTrigger>
                                 <TooltipContent side="top" className={cn(
-                                    "px-3 py-1.5 text-xs font-medium border-none",
-                                    isDisabled ? "bg-red-600 text-white" : "bg-gray-900 text-white"
+                                    "px-3 py-1.5 text-[10px] font-black uppercase tracking-widest border-none rounded-lg shadow-xl",
+                                    isDisabled ? "bg-red-600 text-white" : "bg-primary-dark text-white"
                                 )}>
-                                    {color.label} {isDisabled && "(Out of stock)"}
+                                    {color.label} {isDisabled && "(Sold Out)"}
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>

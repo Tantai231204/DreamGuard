@@ -98,11 +98,40 @@ export const useProductVariants = (productId: string, enabled = true) => {
 };
 
 /** Fetch admin variants grouped by color */
-export const useAdminProductVariants = (productId: string, enabled = true) => {
+export const useAdminProductVariants = <T = AdminVariantsByProductResponse>(
+  productId: string, 
+  options?: { 
+    enabled?: boolean; 
+    select?: (data: AdminVariantsByProductResponse) => T 
+  }
+) => {
   return useQuery({
     queryKey: variantKeys.adminByProduct(productId),
     queryFn: () => variantService.getAdminByProductId(productId),
-    enabled: !!productId && enabled,
+    enabled: !!productId && (options?.enabled !== false),
+    select: options?.select,
+  });
+};
+
+/** Fetch individual variant detail by ID */
+export const useVariantDetail = (variantId: string, enabled = true) => {
+  return useQuery({
+    queryKey: variantKeys.detail(variantId),
+    queryFn: () => variantService.getById(variantId),
+    enabled: !!variantId && enabled,
+  });
+};
+
+/** 
+ * Senior-optimized hook: Returns fully transformed and memoized variant data 
+ * mapped specifically for UI components.
+ */
+import { transformAdminVariants } from '@/pages/admin/products/utils/variant-utils';
+
+export const useRichAdminVariants = (productId: string, enabled = true) => {
+  return useAdminProductVariants(productId, {
+    enabled,
+    select: transformAdminVariants,
   });
 };
 

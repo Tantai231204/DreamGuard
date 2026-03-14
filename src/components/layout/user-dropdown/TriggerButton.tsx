@@ -23,7 +23,7 @@ export function TriggerButton({ isAuthenticated, notificationCount = 3 }: Trigge
                 {isAuthenticated && notificationCount > 0 && (
                     <span className="
                         absolute top-2 right-2 flex h-2 w-2 items-center justify-center 
-                        rounded-full bg-rose-500 ring-2 ring-white
+                        rounded-full bg-primary ring-2 ring-white
                     " />
                 )}
             </button>

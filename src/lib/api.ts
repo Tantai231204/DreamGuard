@@ -1,6 +1,5 @@
 // src/lib/api.ts
 import axios, { type AxiosRequestConfig } from "axios";
-import { toast } from "sonner";
 import { useAuthStore } from "../store/authStore";
 import { ApiErrorCode } from "./constants";
 
@@ -25,6 +24,7 @@ export class ApiError extends Error {
 export interface CustomAxiosRequestConfig extends AxiosRequestConfig {
   _retry?: boolean;
   _suppressToast?: boolean;
+  skipAuth?: boolean;
 }
 
 /* ======================
@@ -33,6 +33,7 @@ export interface CustomAxiosRequestConfig extends AxiosRequestConfig {
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "/api",
   timeout: 30000,
+  withCredentials: true, // Crucial for cookie-based auth
   headers: {
     "Content-Type": "application/json",
   },
@@ -51,9 +52,9 @@ function extractMessage(data: unknown, fallback: string): string {
   return fallback;
 }
 
-const ERROR_TITLES: Partial<Record<ApiErrorCode, string>> = {
+export const ERROR_TITLES: Partial<Record<ApiErrorCode, string>> = {
   [ApiErrorCode.VALIDATION]: "Invalid Data",
-  [ApiErrorCode.UNAUTHORIZED]: "Session Expired",
+  [ApiErrorCode.UNAUTHORIZED]: "Unauthorized",
   [ApiErrorCode.FORBIDDEN]: "Access Denied",
   [ApiErrorCode.NOT_FOUND]: "Not Found",
   [ApiErrorCode.SERVER_ERROR]: "Internal Server Error",
@@ -66,14 +67,14 @@ const ERROR_TITLES: Partial<Record<ApiErrorCode, string>> = {
    ====================== */
 let isRefreshing = false;
 let failedQueue: {
-  resolve: (token: string) => void;
+  resolve: () => void;
   reject: (error: unknown) => void;
 }[] = [];
 
-const processQueue = (error: unknown, token: string | null = null) => {
+const processQueue = (error: unknown) => {
   failedQueue.forEach((prom) => {
-    if (token) {
-      prom.resolve(token);
+    if (!error) {
+      prom.resolve();
     } else {
       prom.reject(error);
     }
@@ -85,15 +86,9 @@ const processQueue = (error: unknown, token: string | null = null) => {
    Request Interceptor
 ====================== */
 api.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().token;
-
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-
+  // Pure Cookie Approach: No manual Authorization header.
+  // Implementation: 'withCredentials: true' handles all token transport.
   return config;
-}, (error) => {
-  return Promise.reject(error);
 });
 
 /* ======================
@@ -101,24 +96,25 @@ api.interceptors.request.use((config) => {
 ====================== */
 api.interceptors.response.use(
   (response) => {
+    // console.log("[API Debug] Response Success:", response.config.url);
     return response;
   },
   async (error) => {
     const originalRequest = error.config as CustomAxiosRequestConfig;
+    const status = error.response?.status;
 
     // Handle 401 Unauthorized - Attempt Token Refresh
     if (
-      error.response?.status === 401 &&
+      status === 401 &&
       !originalRequest._retry &&
-      !originalRequest.url?.includes('/auth/refresh-token') &&
-      !originalRequest.url?.includes('/auth') // Avoid loops in login/register
+      !originalRequest.url?.includes('/auths/refreshToken') &&
+      !originalRequest.url?.includes('/auths/login')
     ) {
       if (isRefreshing) {
-        return new Promise((resolve, reject) => {
+        return new Promise<void>((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
-          .then((token) => {
-            originalRequest.headers!.Authorization = `Bearer ${token}`;
+          .then(() => {
             return api(originalRequest);
           })
           .catch((err) => {
@@ -129,40 +125,16 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
 
-      const refreshToken = useAuthStore.getState().refreshToken;
-
-      if (!refreshToken) {
-        useAuthStore.getState().clearAuth();
-        // Skip toast if it's already a clean state
-        return Promise.reject(error);
-      }
-
       try {
-        // Use a clean axios instance to avoid interceptor loops if needed, 
-        // but here we just use the relative path
-        const response = await api.post("/auth/refresh-token", {
-          refreshToken,
-        });
+        // Pure Cookie Refresh:
+        // No body payload needed, server will read HTTP-only RefreshToken cookie.
+        await api.post("/auths/refreshToken");
 
-        // Backend might return { data: { accessToken, refreshToken, ... } } or just { accessToken, ... }
-        const tokenData = response.data?.data ?? response.data;
-        const { accessToken, refreshToken: newRefreshToken, roleName } = tokenData;
-
-        // Update Store
-        useAuthStore.getState().setAuth({
-          accessToken,
-          refreshToken: newRefreshToken || refreshToken,
-          roleName: roleName || useAuthStore.getState().role || "",
-        });
-
-        processQueue(null, accessToken);
-
-        originalRequest.headers!.Authorization = `Bearer ${accessToken}`;
+        processQueue(null);
         return api(originalRequest);
       } catch (refreshError) {
-        processQueue(refreshError, null);
+        processQueue(refreshError);
         useAuthStore.getState().clearAuth();
-        toast.error("Your session has expired. Please log in again.");
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
@@ -183,17 +155,10 @@ api.interceptors.response.use(
       else if (status === 404) code = ApiErrorCode.NOT_FOUND;
       else if (status >= 500) code = ApiErrorCode.SERVER_ERROR;
 
-      if (!originalRequest._suppressToast) {
-        toast.error(ERROR_TITLES[code] || "Error", {
-          description: message,
-        });
-      }
-
       return Promise.reject(new ApiError(message, code, status));
     } else if (error.request) {
       // Network/Timeout error
       const message = "Unable to connect to the server. Please check your network.";
-      toast.error("Connection Error", { description: message });
       return Promise.reject(new ApiError(message, ApiErrorCode.NETWORK_ERROR));
     }
 

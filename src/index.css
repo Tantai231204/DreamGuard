@@ -184,7 +184,7 @@ body {
   min-height: 100vh;
   font-family: "Poppins", sans-serif;
   line-height: 1.5;
-  background-color: #f9fafb;
+  background-color: #ffffff;
   color: #111827;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -192,13 +192,13 @@ body {
   display: flex;
   flex-direction: column;
 }
-.scroll-hidden::-webkit-scrollbar {
-  display: none;
-}
-
-.scroll-hidden {
+.scroll-hidden, .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+.scroll-hidden::-webkit-scrollbar, .no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 #root {
   flex: 1;
@@ -481,4 +481,31 @@ svg {
 
 .cart-icon-container:hover {
   transform: scale(1.05);
+}
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.85;
+    transform: scale(0.98);
+  }
+}
+
+@keyframes float-slow {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-float-slow {
+  animation: float-slow 4s ease-in-out infinite;
 }

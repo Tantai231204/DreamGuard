@@ -10,17 +10,21 @@ export interface CartItemResponse {
     id: string;
     productVariantId: string | null;
     comboId: string | null;
-    productName: string;
-    productImage: string;
-    price: number;
+    itemName: string;
+    sku: string;
+    imageUrl: string;
+    unitPrice: number;
     quantity: number;
-    totalPrice: number;
+    subTotal: number;
+    availableStock: number;
+    isAvailable: boolean;
 }
 
 export interface CartResponse {
+    cartId: string;
     items: CartItemResponse[];
     totalAmount: number;
-    itemCount: number;
+    totalItems: number;
 }
 
 const cartService = {
@@ -35,6 +39,12 @@ const cartService = {
 
     removeItem: (itemId: string): Promise<void> =>
         apiClient.delete(`/cart/items/${itemId}`).then((res) => res.data),
+
+    syncCart: (items: AddCartItemRequest[]): Promise<CartResponse> =>
+        apiClient.post('/cart/sync', { items }).then((res) => res.data),
+
+    clearCart: (): Promise<void> =>
+        apiClient.delete('/cart').then((res) => res.data),
 };
 
 export default cartService;

@@ -182,51 +182,51 @@ export const useResellColumns = () => {
                     return (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                                    <MoreVertical className="h-4 w-4" />
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 rounded hover:bg-slate-100 dropdown-trigger transition-colors">
+                                    <MoreVertical className="h-4 w-4 text-slate-400" />
                                 </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-48">
-                                <DropdownMenuItem asChild className="gap-2 cursor-pointer text-sm">
+                            <DropdownMenuContent align="end" className="w-52 shadow-xl border border-slate-200/60 rounded-xl p-1 animate-in fade-in zoom-in-95 duration-100">
+                                <DropdownMenuItem asChild className="rounded-lg cursor-pointer py-2 px-3 font-medium text-slate-600 hover:text-blue-600 focus:bg-blue-50 focus:text-blue-700 transition-colors gap-2.5">
                                     <Link to={`/admin/resell/${request.id}`} className="flex items-center gap-2">
-                                        <Eye className="h-4 w-4" />
-                                        View Details
+                                        <Eye className="h-4 w-4 opacity-70" />
+                                        <span className="text-[13px]">View Details</span>
                                     </Link>
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="gap-2 cursor-pointer text-sm">
-                                    <Edit className="h-4 w-4" />
-                                    Set Price
+                                <DropdownMenuItem className="rounded-lg cursor-pointer py-2 px-3 font-medium text-slate-600 hover:text-blue-600 focus:bg-blue-50 focus:text-blue-700 transition-colors gap-2.5">
+                                    <Edit className="h-4 w-4 opacity-70" />
+                                    <span className="text-[13px]">Set Price</span>
                                 </DropdownMenuItem>
-                                <DropdownMenuSeparator />
+                                <DropdownMenuSeparator className="my-1 bg-slate-100" />
                                 {canShowApprove && (
                                     <DropdownMenuItem
                                         disabled={!canApprove}
-                                        className={`gap-2 cursor-pointer text-sm ${canApprove
-                                                ? "text-emerald-600"
-                                                : "opacity-50"
+                                        className={`rounded-lg cursor-pointer py-2 px-3 font-medium transition-colors gap-2.5 ${canApprove
+                                                ? "text-emerald-600 hover:text-emerald-700 focus:bg-emerald-50 focus:text-emerald-800"
+                                                : "opacity-50 grayscale pointer-events-none"
                                             }`}
                                     >
-                                        <CheckCircle className="h-4 w-4" />
-                                        <span>Approve</span>
-                                        {!hasPrice && <span className="text-xs ml-auto">(No price)</span>}
+                                        <CheckCircle className="h-4 w-4 opacity-70" />
+                                        <span className="text-[13px]">Approve</span>
+                                        {!hasPrice && <span className="text-[10px] ml-auto font-black uppercase tracking-tighter">(No set price)</span>}
                                     </DropdownMenuItem>
                                 )}
                                 {canComplete && (
-                                    <DropdownMenuItem className="gap-2 cursor-pointer text-sm text-green-600">
-                                        <CheckCircle className="h-4 w-4" />
-                                        Complete
+                                    <DropdownMenuItem className="rounded-lg cursor-pointer py-2 px-3 font-medium text-green-600 hover:text-green-700 focus:bg-green-50 focus:text-green-800 transition-colors gap-2.5">
+                                        <CheckCircle className="h-4 w-4 opacity-70" />
+                                        <span className="text-[13px]">Complete Fulfillment</span>
                                     </DropdownMenuItem>
                                 )}
                                 {canReject && (
-                                    <DropdownMenuItem className="gap-2 cursor-pointer text-sm text-red-600">
-                                        <XCircle className="h-4 w-4" />
-                                        Reject
+                                    <DropdownMenuItem className="rounded-lg cursor-pointer py-2 px-3 font-medium text-rose-500 hover:text-rose-600 focus:bg-rose-50 focus:text-rose-700 transition-colors gap-2.5">
+                                        <XCircle className="h-4 w-4 opacity-70" />
+                                        <span className="text-[13px]">Revoke Request</span>
                                     </DropdownMenuItem>
                                 )}
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem className="gap-2 cursor-pointer text-sm text-red-600">
-                                    <Trash2 className="h-4 w-4" />
-                                    Delete
+                                <DropdownMenuSeparator className="my-1 bg-slate-100" />
+                                <DropdownMenuItem className="rounded-lg cursor-pointer py-2 px-3 font-medium text-red-500 hover:text-red-600 focus:bg-red-50 focus:text-red-700 transition-colors gap-2.5">
+                                    <Trash2 className="h-4 w-4 opacity-70" />
+                                    <span className="text-[13px]">Purge Record</span>
                                 </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>

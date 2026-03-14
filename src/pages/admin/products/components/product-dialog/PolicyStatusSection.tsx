@@ -4,16 +4,18 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Shield, RotateCcw } from 'lucide-react';
-import { PRODUCT_STATUSES, PRODUCT_STATUS_COLORS } from '../../types';
+import { PRODUCT_STATUSES, PRODUCT_STATUS_COLORS, getAllowedStatusTransitions } from '../../types';
 import type { ProductStatus } from '../../types';
 import SectionHeading from '../shared/SectionHeading';
 import { INPUT_CLS, SELECT_CLS } from './constants';
+import { AdminStatusBadge } from '@/components/admin';
 
 interface PolicyStatusSectionProps {
     warrantyPolicyDay: string;
     returnPolicyDay: string;
     status: ProductStatus;
     isLoading: boolean;
+    isEdit?: boolean;
     onWarrantyChange: (value: string) => void;
     onReturnChange: (value: string) => void;
     onStatusChange: (value: string) => void;
@@ -21,14 +23,14 @@ interface PolicyStatusSectionProps {
 
 const PolicyStatusSection = memo(function PolicyStatusSection({
     warrantyPolicyDay, returnPolicyDay, status,
-    isLoading,
+    isLoading, isEdit = false,
     onWarrantyChange, onReturnChange, onStatusChange,
 }: PolicyStatusSectionProps) {
     return (
         <section className="space-y-4">
             <SectionHeading title="Policy & Status" />
 
-            <div className="grid grid-cols-3 gap-5">
+            <div className={`grid ${isEdit ? 'grid-cols-3' : 'grid-cols-2'} gap-5`}>
                 {/* Warranty */}
                 <div className="space-y-2">
                     <Label htmlFor="warrantyPolicyDay" className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
@@ -69,30 +71,40 @@ const PolicyStatusSection = memo(function PolicyStatusSection({
                     </div>
                 </div>
 
-                {/* Status */}
+                {/* Status Selection */}
                 <div className="space-y-2">
                     <Label className="text-sm font-medium text-gray-700">
-                        Status
+                        Status Management
                     </Label>
-                    <Select value={status} onValueChange={onStatusChange} disabled={isLoading}>
-                        <SelectTrigger className={SELECT_CLS}>
-                            <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                        <SelectContent className="rounded-xl shadow-xl z-[200]">
-                            {PRODUCT_STATUSES.map((s, index) => (
-                                <SelectItem
-                                    key={s.value ?? `status-${index}`}
-                                    value={s.value}
-                                    className="rounded-lg hover:bg-purple-50 hover:text-purple-900"
-                                >
-                                    <span className="flex items-center gap-2">
-                                        <span className={cn('h-2 w-2 rounded-full', PRODUCT_STATUS_COLORS[s.value])} />
-                                        {s.label}
-                                    </span>
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    {!isEdit ? (
+                        <div className="flex items-center gap-2.5 p-2.5 h-11 rounded-xl bg-amber-50 border border-amber-200/60">
+                            <div className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+                            <span className="text-xs font-bold text-amber-700">Defaults to <span className="border-b border-amber-400">Draft</span></span>
+                            <AdminStatusBadge status="New Product" type="warning" className="ml-auto bg-white" />
+                        </div>
+                    ) : (
+                        <Select value={status} onValueChange={onStatusChange} disabled={isLoading}>
+                            <SelectTrigger className={SELECT_CLS}>
+                                <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl shadow-xl">
+                                {PRODUCT_STATUSES
+                                    .filter(s => getAllowedStatusTransitions(status).includes(s.value))
+                                    .map((s, index) => (
+                                        <SelectItem
+                                            key={s.value ?? `status-${index}`}
+                                            value={s.value}
+                                            className="rounded-lg hover:bg-primary-50 hover:text-primary-900"
+                                        >
+                                            <span className="flex items-center gap-2 font-bold text-slate-700">
+                                                <span className={cn('h-2 w-2 rounded-full', PRODUCT_STATUS_COLORS[s.value])} />
+                                                {s.label}
+                                            </span>
+                                        </SelectItem>
+                                    ))}
+                            </SelectContent>
+                        </Select>
+                    )}
                 </div>
             </div>
         </section>

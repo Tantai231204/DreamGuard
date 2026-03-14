@@ -39,8 +39,8 @@ import {
   useUploadProductImages,
   useCreateVariant,
   useUpdateVariant,
-  useUpdateVariantStatus,
   useDeleteVariant,
+  useUpdateVariantStatus,
 } from '@/hooks/queries/useProduct';
 import {
   useAdminCombos,
@@ -50,7 +50,6 @@ import {
   useUpdateComboItems,
   useUploadComboImage,
 } from '@/hooks/queries/useCombo';
-import { useAddToCart } from '@/hooks/queries/useCart';
 import { useCategories } from '@/hooks/queries/useCategory';
 import type {
   Product,
@@ -144,60 +143,58 @@ export default function ProductsPage() {
   const combos: Combo[] = useMemo(() => {
     const rawItems = comboPageData?.items ?? [];
 
-    const mapItem = (item: import('@/api/services/comboService').ComboResponse): Combo => ({
+    const mapItem = (item: import('@/api/services/comboService').ComboResponse, parentId?: string): Combo => ({
       ...item,
       type: 'combo' as const,
       baseSalePrice: item.salePrice,
       status: (item.status as ProductStatus) || 'Draft',
-      comboParentId: item.comboParentId,
+      comboParentId: item.comboParentId || parentId,
       color: item.color,
       size: item.size,
-      // Keep childCombos from API for mapCombosToSubRows
-      childCombos: item.childCombos?.map((child: import('@/api/services/comboService').ComboResponse) => mapItem(child)) ?? [],
+      childCombos: item.childCombos?.map((child: import('@/api/services/comboService').ComboResponse) => mapItem(child, item.id)) ?? [],
     });
 
-    const allMapped = rawItems.map(mapItem);
+    const allMapped = rawItems.map(item => mapItem(item));
 
-    // Build a set of all IDs that are children of other combos in this response
-    // to filter them out from the root level and avoid duplicates
-    const childIdsInResult = new Set<string>();
-    const parentsInResult = new Map<string, Combo>();
+    // 1. Map for quick lookup
+    const idMap = new Map<string, Combo>();
+    allMapped.forEach(c => idMap.set(c.id, c));
 
-    const collectChildIds = (items: Combo[]) => {
+    // 2. Identify all IDs that are already nested as children somewhere in this result set
+    const childIdsNested = new Set<string>();
+    const collectNestedIds = (items: Combo[]) => {
       items.forEach(c => {
         c.childCombos?.forEach((child: Combo) => {
-          childIdsInResult.add(child.id);
-          if (child.childCombos?.length) collectChildIds(child.childCombos);
+          childIdsNested.add(child.id);
+          if (child.childCombos?.length) collectNestedIds(child.childCombos);
         });
       });
     };
+    collectNestedIds(allMapped);
 
-    for (const c of allMapped) {
-      if (!c.comboParentId) parentsInResult.set(c.id, c);
-    }
-    collectChildIds(allMapped);
+    // 3. Build hierarchy: Move orphans to their parents if the parent is present in the list
+    const finalRootItems: Combo[] = [];
+    allMapped.forEach(c => {
+      // If this item is already nested inside another item in the list, skip it as a root item
+      if (childIdsNested.has(c.id)) return;
 
-    // Manual grouping for children that appear at root but have a parentId
-    const rootCombos: Combo[] = [];
-    for (const c of allMapped) {
-      if (childIdsInResult.has(c.id)) continue;
-
+      // If it's a variant but its parent is also in the list, try to attach it 
+      // (This handles cases where the API returns a flat list with duplicates)
       if (c.comboParentId) {
-        const parent = parentsInResult.get(c.comboParentId);
+        const parent = idMap.get(c.comboParentId);
         if (parent) {
-          const already = parent.childCombos?.find((ch: Combo) => ch.id === c.id);
-          if (!already) {
+          const alreadyExists = parent.childCombos?.some(child => child.id === c.id);
+          if (!alreadyExists) {
             parent.childCombos = [...(parent.childCombos || []), c];
           }
-          continue;
+          return; // Don't add to root
         }
       }
 
-      rootCombos.push(c);
-    }
+      finalRootItems.push(c);
+    });
 
-    // Convert childCombos → subRows recursively so TanStack Table can expand them
-    return mapCombosToSubRows(rootCombos);
+    return mapCombosToSubRows(finalRootItems);
   }, [comboPageData?.items]);
 
   const { data: categories = [] } = useCategories();
@@ -213,13 +210,13 @@ export default function ProductsPage() {
   const createVariantMutation = useCreateVariant();
   const updateVariantMutation = useUpdateVariant();
   const deleteVariantMutation = useDeleteVariant();
+  const updateVariantStatusMutation = useUpdateVariantStatus();
 
   // Combo Mutations
   const createComboMutation = useCreateCombo();
   const updateComboMutation = useUpdateCombo();
   const deleteComboMutation = useDeleteCombo();
   const updateComboItemsMutation = useUpdateComboItems();
-  const addToCartMutation = useAddToCart();
   const uploadComboImageMutation = useUploadComboImage();
 
   // Handlers
@@ -286,60 +283,56 @@ export default function ProductsPage() {
     });
   }, [deleteVariantMutation, toast]);
 
-  const updateVariantStatusMutation = useUpdateVariantStatus();
+  // Removed unused updateVariantStatusMutation
 
   const handleVariantSubmit = useCallback(
-    async (formData: VariantFormData & { status: VariantStatus; stockStatus: string }) => {
-      // Destructure to separate core data from status fields
-      const { status, ...bodyData } = formData;
+    async (formData: VariantFormData) => {
+      const { status, stockStatus: _stockStatus, isNew, ...coreBody } = formData;
+      void _stockStatus;
 
       try {
         if (editingVariant) {
-          // 1. Update core info (sku, prices, weight, attributes, productid)
-          await updateVariantMutation.mutateAsync({ id: editingVariant.id, data: bodyData });
+          // 1️⃣ Update variant info FIRST (include isNew for updates)
+          await updateVariantMutation.mutateAsync({
+            id: editingVariant.id,
+            data: { ...coreBody, isNew },
+          });
 
-          // 2. Parallel status updates if changed
-          const statusPromises: Promise<unknown>[] = [];
-
+          // 2️⃣ THEN update status (sequential to avoid race condition)
           if (status !== editingVariant.status) {
-            statusPromises.push(updateVariantStatusMutation.mutateAsync({ variantId: editingVariant.id, status }));
-          }
-
-          if (statusPromises.length > 0) {
-            await Promise.all(statusPromises);
+            await updateVariantStatusMutation.mutateAsync({
+              variantId: editingVariant.id,
+              status,
+            });
           }
 
           setVariantDialogOpen(false);
-          toast.success('Variant updated', 'The variant and its status have been updated.');
+          toast.success("Variant updated", "The variant details have been updated.");
         } else {
-          // 3. Create new variant
-          const newVariant = await createVariantMutation.mutateAsync(bodyData);
-
-          // 4. Update status for the newly created variant if it's not default
-          // (Assuming create doesn't set status based on screenshots)
-          const statusPromises: Promise<unknown>[] = [];
-          statusPromises.push(updateVariantStatusMutation.mutateAsync({ variantId: newVariant.id, status }));
-
-          await Promise.all(statusPromises);
+          // Create: send only fields the API expects (no isNew)
+          await createVariantMutation.mutateAsync(coreBody);
 
           setVariantDialogOpen(false);
-          toast.success('Variant created', 'The new variant has been successfully created.');
+          toast.success("Variant created", "The new variant has been successfully created.");
         }
       } catch (error) {
-        console.error('Variant submission failed:', error);
+        console.error("Variant submission failed:", error);
       }
     },
-    [editingVariant, createVariantMutation, updateVariantMutation, updateVariantStatusMutation, toast]
+    [
+      editingVariant,
+      createVariantMutation,
+      updateVariantMutation,
+      updateVariantStatusMutation,
+      toast,
+    ]
   );
 
   const handleSubmit = useCallback(
     async (data: CreateProductRequest) => {
       if (editingProduct) {
         try {
-          // Prepare parallel updates
-          const promises: Promise<unknown>[] = [];
-
-          // 1. General info update (matches PUT /api/product body in screenshot)
+          // 1. Update product info FIRST
           const updatePayload: UpdateProductRequest = {
             id: editingProduct.id,
             name: data.name,
@@ -347,30 +340,25 @@ export default function ProductsPage() {
             summary: data.summary,
             description: data.description,
             material: data.material,
-            // status is handled by a separate API if changed
             ageGroup: data.ageGroup || null,
             warrantyPolicyDay: data.warrantyPolicyDay ? Number(data.warrantyPolicyDay) : null,
             returnPolicyDay: data.returnPolicyDay ? Number(data.returnPolicyDay) : null,
             cateId: data.cateId ? Number(data.cateId) : null,
           };
-          promises.push(updateMutation.mutateAsync(updatePayload));
+          await updateMutation.mutateAsync(updatePayload);
 
-          // 2. Status update if changed (matches PUT /api/product/{id}?status=Value)
+          // 2. THEN update status (sequential to avoid race condition)
           if (data.status !== editingProduct.status) {
-            promises.push(
-              updateProductStatusMutation.mutateAsync({
-                productId: editingProduct.id,
-                status: data.status,
-              })
-            );
+            await updateProductStatusMutation.mutateAsync({
+              productId: editingProduct.id,
+              status: data.status,
+            });
           }
-
-          await Promise.all(promises);
 
           setDialogOpen(false);
           toast.success('Product updated', 'The product has been successfully updated.');
         } catch (error) {
-          console.error('[UpdateProduct] parallel error:', error);
+          console.error('[UpdateProduct] sequential error:', error);
         }
       } else {
         try {
@@ -527,6 +515,7 @@ export default function ProductsPage() {
           toast.success('Combo updated', 'The combo has been successfully updated.');
         } catch (error) {
           console.error('[UpdateCombo] Update failed', error);
+          toast.error('Update failed', 'There was an error updating the combo. Please check the information and try again.');
         }
       } else {
         createComboMutation.mutate(data, {
@@ -547,21 +536,7 @@ export default function ProductsPage() {
     [editingCombo, createComboMutation, updateComboMutation, updateComboItemsMutation, toast]
   );
 
-  const handleComboAddToCart = useCallback(
-    async (combo: import('@/api').ComboResponse) => {
-      try {
-        await addToCartMutation.mutateAsync({
-          productVariantId: null,
-          comboId: combo.id,
-          quantity: 1,
-        });
-        toast.success('Combo added to cart', `Successfully added ${combo.name} to cart.`);
-      } catch {
-        toast.error('Failed to add combo', 'There was an error while adding to cart.');
-      }
-    },
-    [addToCartMutation, toast]
-  );
+
 
   const productColumns = useProductColumns({ onView: handleViewDetail, onEdit: handleEdit, onDelete: handleDelete, onAddVariant: handleAddVariant });
   const comboColumns = useComboColumns({
@@ -569,7 +544,6 @@ export default function ProductsPage() {
     onEdit: handleEditCombo,
     onDelete: handleDeleteCombo,
     onAddVariant: handleAddComboVariant,
-    onAddToCart: handleComboAddToCart,
   });
 
   // Stats
@@ -630,8 +604,9 @@ export default function ProductsPage() {
     manualFiltering: true,
     enableRowSelection: true,
     enableExpanding: true,
-    // All combos can expand to show their ComboItemsTable
+    // All combos can expand to show their ComboItemsTable or SubRows
     getRowCanExpand: () => true,
+    getSubRows: row => row.subRows,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -696,7 +671,7 @@ export default function ProductsPage() {
               <AdminBulkActions
                 table={activeTable}
                 itemLabel={activeTab === 'single' ? 'product' : 'combo'}
-                accentColor={activeTab === 'single' ? 'blue' : 'purple'}
+                accentColor={activeTab === 'single' ? 'blue' : 'black'}
                 onEdit={() => console.log('Edit selected')}
                 onDuplicate={() => console.log('Duplicate selected')}
                 onDelete={() => console.log('Delete selected')}

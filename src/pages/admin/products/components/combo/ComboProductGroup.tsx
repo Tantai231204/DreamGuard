@@ -21,12 +21,12 @@ export default function ComboProductGroup({
     const variantCount = items.length;
 
     return (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden transition-all hover:border-[#4988c4]/60 hover:shadow-sm">
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden transition-all hover:border-primary-500/40 hover:shadow-sm">
             {/* Product header */}
             <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100">
                 <div className="flex items-center gap-2.5">
-                    <div className="h-[22px] w-[22px] rounded-md bg-purple-100 flex items-center justify-center flex-shrink-0">
-                        <Package className="h-3 w-3 text-purple-600" />
+                    <div className="h-[22px] w-[22px] rounded-md bg-primary-50 flex items-center justify-center flex-shrink-0">
+                        <Package className="h-3 w-3 text-primary-600" />
                     </div>
                     <span className="text-[14px] font-bold text-gray-900">
                         {productName}

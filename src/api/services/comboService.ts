@@ -41,6 +41,7 @@ export interface ProductItemResponse {
   basePrice: number;
   salePrice: number;
   quantity: number;
+  imageUrl?: string;
 }
 
 export interface ComboResponse {
@@ -58,6 +59,7 @@ export interface ComboResponse {
   comboParentId?: string | null;
   discount: number;
   totalStock: number;
+  stock?: number | null;
   status: string;
   featured: boolean;
   images: string[] | null;
@@ -97,6 +99,12 @@ export interface ComboParams {
 // ── Service ──────────────────────────────────────────────
 
 const comboService = {
+  /** Get public paginated combos */
+  getAllPublic: (params: ComboParams = {}): Promise<ComboPageResponse> =>
+    apiClient
+      .get<ComboPageResponse>('/combo', { params, _suppressToast: true } as CustomAxiosRequestConfig)
+      .then((res) => res.data),
+
   /** Get paginated combos for admin */
   getAll: (params: ComboParams = {}): Promise<ComboPageResponse> =>
     apiClient

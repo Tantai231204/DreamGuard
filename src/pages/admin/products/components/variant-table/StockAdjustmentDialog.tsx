@@ -4,12 +4,10 @@ import { Input } from '@/components/ui/input';
 import {
     Dialog,
     DialogContent,
-    DialogHeader,
     DialogTitle,
-    DialogFooter,
 } from '@/components/ui/dialog';
-import { Loader2, Package, Plus, Minus, TrendingUp, TrendingDown, Info } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Loader2, Plus, Minus, ArrowRight, AlertCircle, Package, Hash } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface StockDialogState {
     isOpen: boolean;
@@ -36,198 +34,159 @@ export default function StockAdjustmentDialog({
     onClose,
     onSubmit,
 }: StockAdjustmentDialogProps) {
-    const newStock =
-        stockDialog.type === 'add'
-            ? stockDialog.currentStock + stockQuantity
-            : Math.max(0, stockDialog.currentStock - stockQuantity);
-
     const isAdd = stockDialog.type === 'add';
-    const Icon = isAdd ? TrendingUp : TrendingDown;
-    const iconColor = isAdd ? 'text-green-500' : 'text-orange-500';
-    const bgColor = isAdd ? 'bg-green-50' : 'bg-orange-50';
-    const borderColor = isAdd ? 'border-green-200' : 'border-orange-200';
+    const newStock = isAdd
+        ? stockDialog.currentStock + stockQuantity
+        : Math.max(0, stockDialog.currentStock - stockQuantity);
 
-    const quickButtons = [5, 10, 20, 50];
+    const isInvalid = !isAdd && stockQuantity > stockDialog.currentStock;
 
     return (
         <Dialog open={stockDialog.isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="sm:max-w-lg">
-                <DialogHeader>
-                    <div className="flex items-center gap-3">
-                        <div className={`p-3 rounded-xl ${bgColor} ${borderColor} border-2`}>
-                            <Icon className={`h-6 w-6 ${iconColor}`} />
-                        </div>
-                        <div>
-                            <DialogTitle className="text-xl font-bold text-gray-900">
-                                {isAdd ? 'Add Stock' : 'Reduce Stock'}
+            <DialogContent className="sm:max-w-[420px] p-0 border-none shadow-2xl rounded-2xl overflow-hidden bg-white">
+                {/* Clean Header Section */}
+                <div className="px-6 pt-6 pb-4">
+                    <div className="flex items-start justify-between">
+                        <div className="space-y-1">
+                            <DialogTitle className="text-xl font-bold text-slate-900 tracking-tight">
+                                {isAdd ? 'Inventory Add' : 'Inventory Reduce'}
                             </DialogTitle>
-                            <p className="text-xs text-gray-500 mt-1">
-                                {isAdd ? 'Increase inventory quantity' : 'Decrease inventory quantity'}
-                            </p>
+                            <div className="flex items-center gap-2 group">
+                                <div className="p-1 rounded bg-slate-100 group-hover:bg-slate-200 transition-colors">
+                                    <Hash className="h-3 w-3 text-slate-500" />
+                                </div>
+                                <span className="text-xs font-bold text-slate-400 font-mono tracking-tight cursor-default">
+                                    {stockDialog.sku}
+                                </span>
+                            </div>
+                        </div>
+                        <div className={cn(
+                            "px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm",
+                            isAdd ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-rose-50 text-rose-600 border border-rose-100"
+                        )}>
+                            {isAdd ? 'Standard In' : 'Standard Out'}
                         </div>
                     </div>
-                </DialogHeader>
+                </div>
 
-                <div className="space-y-5 py-6">
-                    {/* SKU Info */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.1 }}
-                        className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl border border-gray-200"
-                    >
-                        <Package className="h-5 w-5 text-gray-400" />
-                        <div className="flex-1">
-                            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">SKU</p>
-                            <p className="font-mono text-sm font-semibold text-gray-900 mt-0.5">
-                                {stockDialog.sku}
-                            </p>
-                        </div>
-                    </motion.div>
+                <div className="px-6 py-4 space-y-8">
+                    {/* Visual Transition Card */}
+                    <div className="relative overflow-hidden p-6 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-around">
+                        {/* Background Decoration */}
+                        <Package className="absolute -right-4 -bottom-4 h-24 w-24 text-slate-200/40 rotate-12" />
 
-                    {/* Current Stock */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.15 }}
-                        className="grid grid-cols-2 gap-3"
-                    >
-                        <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
-                            <p className="text-xs font-medium text-blue-600 uppercase tracking-wide">
-                                Current Stock
-                            </p>
-                            <p className="text-2xl font-bold text-blue-700 mt-1">
-                                {stockDialog.currentStock}
-                            </p>
+                        <div className="flex flex-col items-center gap-1.5 relative z-10">
+                            <span className="text-[10px] uppercase font-black text-slate-400 tracking-widest">Available</span>
+                            <span className="text-2xl font-black text-slate-500 tabular-nums">{stockDialog.currentStock}</span>
                         </div>
-                        <div className={`p-4 ${bgColor} rounded-xl border ${borderColor}`}>
-                            <p className={`text-xs font-medium ${iconColor} uppercase tracking-wide`}>
-                                New Stock
-                            </p>
-                            <p className={`text-2xl font-bold ${iconColor} mt-1`}>{newStock}</p>
-                        </div>
-                    </motion.div>
 
-                    {/* Quantity Input */}
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 }}
-                        className="space-y-3"
-                    >
-                        <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                            Quantity to {isAdd ? 'add' : 'reduce'}
-                            <Info className="h-3.5 w-3.5 text-gray-400" />
-                        </label>
+                        <div className="flex flex-col items-center justify-center bg-white h-10 w-10 rounded-full shadow-sm border border-slate-100 relative z-10">
+                            <ArrowRight className="h-5 w-5 text-slate-300" />
+                        </div>
+
+                        <div className="flex flex-col items-center gap-1.5 relative z-10">
+                            <span className="text-[10px] uppercase font-black text-slate-400 tracking-widest">Projected</span>
+                            <span className={cn(
+                                "text-3xl font-black tabular-nums leading-none",
+                                isAdd ? "text-emerald-600" : "text-rose-600"
+                            )}>
+                                {newStock}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Numeric Adjustment Section */}
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between px-1">
+                            <label className="text-[11px] font-black text-slate-900 uppercase tracking-widest">Enter Quantity</label>
+                            {isInvalid && (
+                                <span className="flex items-center gap-1 text-[10px] font-bold text-rose-500 bg-rose-50 px-2 py-0.5 rounded-md animate-pulse">
+                                    <AlertCircle className="h-3 w-3" />
+                                    Insufficient Stock
+                                </span>
+                            )}
+                        </div>
 
                         <div className="flex items-center gap-3">
                             <Button
                                 type="button"
                                 variant="outline"
-                                size="icon"
                                 onClick={() => onQuantityChange(Math.max(1, stockQuantity - 1))}
-                                disabled={stockQuantity <= 1}
-                                className="h-11 w-11 rounded-xl border-2"
+                                disabled={stockQuantity <= 1 || isSubmitting}
+                                className="h-14 w-14 rounded-xl border-slate-200 hover:border-slate-900 hover:bg-slate-900 hover:text-white transition-all shadow-sm group"
                             >
-                                <Minus className="h-4 w-4" />
+                                <Minus className="h-5 w-5 shrink-0" />
                             </Button>
 
-                            <Input
-                                type="number"
-                                min={1}
-                                max={stockDialog.type === 'reduce' ? stockDialog.currentStock : undefined}
-                                value={stockQuantity}
-                                onChange={(e) => onQuantityChange(parseInt(e.target.value) || 1)}
-                                className="h-11 text-center text-lg font-bold rounded-xl border-2"
-                            />
+                            <div className="flex-1 relative">
+                                <Input
+                                    type="number"
+                                    value={stockQuantity}
+                                    onChange={(e) => onQuantityChange(parseInt(e.target.value) || 0)}
+                                    className="h-14 w-full text-center text-2xl font-black rounded-xl border-slate-200 focus-visible:ring-slate-900 focus-visible:border-slate-900 transition-all bg-white shadow-inner"
+                                />
+                            </div>
 
                             <Button
                                 type="button"
                                 variant="outline"
-                                size="icon"
                                 onClick={() => onQuantityChange(stockQuantity + 1)}
-                                disabled={
-                                    stockDialog.type === 'reduce' &&
-                                    stockQuantity >= stockDialog.currentStock
-                                }
-                                className="h-11 w-11 rounded-xl border-2"
+                                disabled={isSubmitting}
+                                className="h-14 w-14 rounded-xl border-slate-200 hover:border-slate-900 hover:bg-slate-900 hover:text-white transition-all shadow-sm group"
                             >
-                                <Plus className="h-4 w-4" />
+                                <Plus className="h-5 w-5 shrink-0" />
                             </Button>
                         </div>
 
-                        {/* Quick buttons */}
-                        <div className="flex items-center gap-2">
-                            <span className="text-xs text-gray-500 font-medium">Quick:</span>
-                            {quickButtons.map((num) => (
-                                <Button
+                        {/* Presets - Minimalist Grid */}
+                        <div className="grid grid-cols-5 gap-2">
+                            {[5, 10, 20, 50, 100].map((num) => (
+                                <button
                                     key={num}
                                     type="button"
-                                    variant="outline"
-                                    size="sm"
                                     onClick={() => onQuantityChange(num)}
-                                    disabled={
-                                        stockDialog.type === 'reduce' && num > stockDialog.currentStock
-                                    }
-                                    className="h-7 px-3 text-xs font-semibold rounded-lg hover:bg-blue-50 hover:text-blue-600 hover:border-blue-300"
+                                    disabled={isSubmitting}
+                                    className={cn(
+                                        "py-2 rounded-lg text-[11px] font-bold transition-all border transform active:scale-95",
+                                        stockQuantity === num
+                                            ? "bg-slate-900 border-slate-900 text-white shadow-lg shadow-slate-200"
+                                            : "bg-white border-slate-100 text-slate-400 hover:border-slate-300 hover:text-slate-900 shadow-sm"
+                                    )}
                                 >
                                     +{num}
-                                </Button>
+                                </button>
                             ))}
                         </div>
-
-                        <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                            <Info className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                            <p className="text-xs text-amber-700">
-                                {isAdd ? (
-                                    <>
-                                        This will <strong>increase</strong> the stock from{' '}
-                                        <strong>{stockDialog.currentStock}</strong> to{' '}
-                                        <strong>{newStock}</strong> units.
-                                    </>
-                                ) : (
-                                    <>
-                                        This will <strong>decrease</strong> the stock from{' '}
-                                        <strong>{stockDialog.currentStock}</strong> to{' '}
-                                        <strong>{newStock}</strong> units.
-                                    </>
-                                )}
-                            </p>
-                        </div>
-                    </motion.div>
+                    </div>
                 </div>
 
-                <DialogFooter className="gap-2">
+                {/* Footer Section - Action Centric */}
+                <div className="px-6 py-6 mt-4 bg-slate-50 border-t border-slate-100 flex items-center gap-3">
                     <Button
-                        variant="outline"
+                        variant="ghost"
                         onClick={onClose}
                         disabled={isSubmitting}
-                        className="h-11 px-6 rounded-xl font-semibold"
+                        className="flex-1 h-12 rounded-xl text-xs font-black uppercase text-slate-400 hover:text-slate-900 hover:bg-white transition-all"
                     >
-                        Cancel
+                        Discard
                     </Button>
                     <Button
                         onClick={onSubmit}
-                        disabled={isSubmitting}
-                        className={`h-11 px-6 rounded-xl font-semibold shadow-lg ${isAdd
-                            ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700'
-                            : 'bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700'
-                            }`}
+                        disabled={isSubmitting || isInvalid || stockQuantity <= 0}
+                        className={cn(
+                            "flex-[2] h-12 rounded-xl text-xs font-black uppercase shadow-lg transition-all active:scale-[0.98]",
+                            isAdd
+                                ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-200"
+                                : "bg-rose-600 hover:bg-rose-700 text-white shadow-rose-200"
+                        )}
                     >
-                        {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                        {isAdd ? (
-                            <>
-                                <Plus className="h-4 w-4 mr-2" />
-                                Add Stock
-                            </>
+                        {isSubmitting ? (
+                            <Loader2 className="h-5 w-5 animate-spin mx-auto" />
                         ) : (
-                            <>
-                                <Minus className="h-4 w-4 mr-2" />
-                                Reduce Stock
-                            </>
+                            <span>Confirm Updates</span>
                         )}
                     </Button>
-                </DialogFooter>
+                </div>
             </DialogContent>
         </Dialog>
     );

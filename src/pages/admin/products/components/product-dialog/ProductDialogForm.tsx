@@ -48,6 +48,7 @@ export default function ProductDialogForm({
             const foundCat = flatCategories.find(c => String(c.cateId) === currentId);
 
             if (foundCat && foundCat.depth > 0) {
+                // cateId points to a child category — move it to subCateId, set parent as cateId
                 const parentId = findTopLevelParent(currentId);
                 dispatch({
                     type: 'SET_ALL',
@@ -56,9 +57,25 @@ export default function ProductDialogForm({
                         subCateId: currentId
                     }
                 });
+            } else if (foundCat && foundCat.depth === 0 && product.material) {
+                // cateId is a parent category — try to match material name to a subcategory
+                const parentCat = categories.find(c => String(c.cateId) === currentId);
+                const children = parentCat?.childCategoryList ?? [];
+                const matchedChild = children.find(
+                    child => child.name.toLowerCase() === product.material.toLowerCase()
+                );
+                if (matchedChild) {
+                    dispatch({
+                        type: 'SET_ALL',
+                        payload: {
+                            cateId: currentId,
+                            subCateId: String(matchedChild.cateId),
+                        }
+                    });
+                }
             }
         }
-    }, [isEdit, product?.id, product?.cateId, flatCategories, findTopLevelParent]);
+    }, [isEdit, product?.id, product?.cateId, product?.material, flatCategories, findTopLevelParent, categories]);
 
     /* ── Handlers ── */
     const handleNameChange = useCallback(
@@ -206,6 +223,7 @@ export default function ProductDialogForm({
                             returnPolicyDay={form.returnPolicyDay}
                             status={form.status}
                             isLoading={isLoading}
+                            isEdit={isEdit}
                             onWarrantyChange={(v) => setField('warrantyPolicyDay', v)}
                             onReturnChange={(v) => setField('returnPolicyDay', v)}
                             onStatusChange={(v) => setField('status', v)}

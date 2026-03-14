@@ -1,265 +1,205 @@
-import type { CartItem } from "@/store/cartStore"
-import { Separator } from "@/components/ui/separator"
-import { ShoppingBag, RefreshCcw, Package, Info } from "lucide-react"
+import type { CartItem } from "@/store/cartTypes"
+import { ShoppingBag, RefreshCcw, Package, ShieldCheck } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { useState } from "react"
 
 interface OrderSummaryProps {
     cart: CartItem[]
     totalPrice: number
     tradeInDiscount?: number
     finalTotal?: number
+    estimatedDeliveryDate?: string
 }
 
-export function OrderSummary({ cart, totalPrice, tradeInDiscount = 0, finalTotal }: OrderSummaryProps) {
-    const [expandedTradeIn, setExpandedTradeIn] = useState<string | null>(null)
-    const shipping = 0 // Free shipping
+export function OrderSummary({ cart, totalPrice, tradeInDiscount = 0, finalTotal, estimatedDeliveryDate }: OrderSummaryProps) {
+    const shipping = 0
     const baseTotal = finalTotal ?? totalPrice
-    const tax = baseTotal * 0.1 // 10% tax
+    const tax = baseTotal * 0.1
     const total = baseTotal + shipping + tax
 
-    // Separate items with and without trade-in
     const tradeInItems = cart.filter(item => item.tradeIn && item.tradeIn.totalValue > 0)
     const regularItems = cart.filter(item => !item.tradeIn || item.tradeIn.totalValue === 0)
 
     return (
-        <div className="sticky top-24">
-            <div className="group rounded-2xl border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition-all duration-300">
-                {/* Header */}
-                <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-100">
-                    <div className="rounded-full bg-gradient-to-br from-[#4988c4] to-[#3a73a8] p-3 shadow-lg">
-                        <ShoppingBag className="h-5 w-5 text-white" />
+        <div className="sticky top-10">
+            <div className="group rounded-[2.5rem] border border-slate-100 bg-white p-10 shadow-2xl shadow-slate-200/40 hover:shadow-3xl transition-all duration-700">
+                {/* Simplified Header */}
+                <div className="flex items-center justify-between mb-10 pb-8 border-b border-slate-50">
+                    <div className="space-y-1">
+                        <h2 className="text-2xl font-black text-slate-900 tracking-tight">Order Summary</h2>
+                        <div className="flex items-center gap-2">
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Review your selections</p>
+                            <span className="h-1 w-1 rounded-full bg-slate-200" />
+                            <span className="text-[10px] font-black text-[#4988c4] uppercase tracking-widest">{cart.reduce((acc, item) => acc + item.quantity, 0)} Items</span>
+                        </div>
                     </div>
-                    <div className="flex-1">
-                        <h2 className="text-xl font-bold text-gray-900">Your Order</h2>
-                        <p className="text-sm text-gray-500 mt-0.5">{cart.length} {cart.length === 1 ? 'item' : 'items'}</p>
+                    <div className="w-12 h-12 rounded-[1.25rem] bg-slate-50 flex items-center justify-center">
+                        <ShoppingBag className="w-6 h-6 text-slate-900" />
                     </div>
                 </div>
 
-                {/* Cart Items */}
-                <div className="space-y-4 mb-6 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                {/* Items Container */}
+                <div className="space-y-8 mb-10 max-h-[400px] overflow-y-auto pt-4 pr-6 pl-2 -ml-2 custom-scrollbar scroll-smooth">
                     {/* Trade-in Items Section */}
                     {tradeInItems.length > 0 && (
-                        <div className="space-y-3">
-                            <div className="flex items-center gap-2 text-emerald-700">
-                                <RefreshCcw className="w-4 h-4" />
-                                <span className="text-xs font-semibold uppercase tracking-wide">Trade-in Items</span>
+                        <div className="space-y-4">
+                            <div className="flex items-center gap-2 text-emerald-600">
+                                <RefreshCcw className="w-3.5 h-3.5" />
+                                <span className="text-[9px] font-black uppercase tracking-[0.2em]">Trade-in Savings</span>
                             </div>
-                            
-                            {tradeInItems.map((item, index) => (
-                                <div 
-                                    key={item.id} 
-                                    className="rounded-xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50/80 to-green-50/50 p-3 animate-slide-up"
-                                    style={{ animationDelay: `${index * 50}ms` }}
+
+                            {tradeInItems.map((item) => (
+                                <div
+                                    key={item.id}
+                                    className="rounded-[1.5rem] border-2 border-emerald-50 bg-emerald-50/20 p-4 space-y-4"
                                 >
-                                    {/* New Product - Compact */}
-                                    <div className="flex gap-3 group/item">
-                                        <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg bg-white ring-2 ring-emerald-200">
-                                            <img
-                                                src={item.image}
-                                                alt={item.name}
-                                                className="h-full w-full object-cover"
-                                            />
-                                            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-emerald-500 text-[9px] font-bold text-white ring-2 ring-white">
+                                    <div className="flex gap-4">
+                                        <div className="relative h-16 w-16 shrink-0">
+                                            <div className="h-full w-full overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-emerald-100">
+                                                <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
+                                            </div>
+                                            <span className="absolute top-0 right-0 translate-x-1/3 -translate-y-1/3 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-black text-white ring-2 ring-white z-10 shadow-sm">
                                                 {item.quantity}
                                             </span>
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <h4 className="text-sm font-semibold text-gray-900 line-clamp-1">
-                                                {item.name}
-                                            </h4>
-                                            {(item.color || item.size) && (
-                                                <p className="text-xs text-gray-500">
-                                                    {item.color && <span>Color: {item.color}</span>}
-                                                    {item.color && item.size && <span> • </span>}
-                                                    {item.size && <span>Size: {item.size}</span>}
-                                                </p>
-                                            )}
-                                            <div className="flex items-center justify-between mt-1">
-                                                <div className="flex items-baseline gap-1">
-                                                    <span className="text-sm font-bold text-emerald-600">${item.subtotal.toFixed(2)}</span>
-                                                    <span className="text-xs text-gray-400 line-through">${(item.quantity * item.price).toFixed(2)}</span>
-                                                </div>
+                                            <h4 className="text-sm font-black text-slate-900 truncate">{item.name}</h4>
+                                            <div className="mt-1 flex items-baseline gap-2">
+                                                <span className="text-xs font-black text-emerald-600">${item.subtotal.toFixed(2)}</span>
+                                                <span className="text-[10px] text-slate-400 line-through font-bold">${(item.quantity * item.price).toFixed(2)}</span>
                                             </div>
                                         </div>
                                     </div>
-                                    
-                                    {/* Trade-in Badge with Tooltip */}
-                                    <div className="mt-2 flex items-center justify-between">
+
+                                    <div className="flex items-center justify-between pt-3 border-t border-emerald-100/50">
                                         <TooltipProvider delayDuration={100}>
                                             <Tooltip>
                                                 <TooltipTrigger asChild>
-                                                    <button 
-                                                        className="flex items-center gap-1.5 px-2 py-1 bg-white/80 hover:bg-white rounded-full border border-emerald-200 transition-colors cursor-help text-xs"
-                                                        onClick={() => setExpandedTradeIn(expandedTradeIn === item.id ? null : item.id)}
-                                                    >
-                                                        <RefreshCcw className="w-3 h-3 text-emerald-600" />
-                                                        <span className="font-medium text-emerald-700">
-                                                            {item.tradeIn?.products.length} traded
-                                                        </span>
-                                                        <Info className="w-3 h-3 text-emerald-500" />
+                                                    <button className="text-[10px] font-black uppercase tracking-widest text-emerald-700/60 hover:text-emerald-700 transition-colors flex items-center gap-1.5 focus:outline-none">
+                                                        <span>{item.tradeIn?.products.length} Traded</span>
+                                                        <Package className="w-3 h-3" />
                                                     </button>
                                                 </TooltipTrigger>
-                                                <TooltipContent 
-                                                    side="left" 
-                                                    className="w-56 p-0 bg-white border border-emerald-200 shadow-xl rounded-xl overflow-hidden"
-                                                >
-                                                    <div className="bg-gradient-to-r from-emerald-500 to-green-500 px-3 py-2 text-white">
-                                                        <span className="text-xs font-semibold">Traded Items</span>
-                                                    </div>
-                                                    <div className="p-2 space-y-1.5 max-h-40 overflow-y-auto">
-                                                        {item.tradeIn?.products.map((product) => (
-                                                            <div key={product.id} className="flex items-center gap-2">
-                                                                <img 
-                                                                    src={product.image} 
-                                                                    alt={product.name}
-                                                                    className="w-7 h-7 rounded object-cover"
-                                                                />
-                                                                <div className="flex-1 min-w-0">
-                                                                    <p className="text-xs font-medium text-gray-700 truncate">{product.name}</p>
-                                                                </div>
-                                                                <span className="text-xs font-bold text-emerald-600">
-                                                                    -${product.tradeInValue.toFixed(2)}
-                                                                </span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
+                                                <TooltipContent side="right" className="rounded-xl border-emerald-100 p-2 shadow-xl">
+                                                    {item.tradeIn?.products.map((p) => (
+                                                        <div key={p.id} className="text-[9px] font-bold text-slate-600 px-2 py-1">
+                                                            -{p.name}: ${p.tradeInValue.toFixed(2)}
+                                                        </div>
+                                                    ))}
                                                 </TooltipContent>
                                             </Tooltip>
                                         </TooltipProvider>
-                                        <span className="text-xs font-bold text-emerald-600">
-                                            -${item.tradeIn?.totalValue.toFixed(2)}
-                                        </span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                    
-                    {/* Regular Items Section */}
-                    {regularItems.length > 0 && (
-                        <div className="space-y-3">
-                            {tradeInItems.length > 0 && (
-                                <div className="flex items-center gap-2 text-gray-500 mt-4">
-                                    <Package className="w-4 h-4" />
-                                    <span className="text-xs font-semibold uppercase tracking-wide">Regular Items</span>
-                                </div>
-                            )}
-                            
-                            {regularItems.map((item, index) => (
-                                <div 
-                                    key={item.id} 
-                                    className="flex gap-3 group/item p-2 rounded-lg hover:bg-gray-50 transition-colors animate-slide-up" 
-                                    style={{ animationDelay: `${(tradeInItems.length + index) * 50}ms` }}
-                                >
-                                    <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100 ring-1 ring-gray-200 group-hover/item:ring-[#4988c4] transition-all">
-                                        <img
-                                            src={item.image}
-                                            alt={item.name}
-                                            className="h-full w-full object-cover group-hover/item:scale-105 transition-transform duration-300"
-                                        />
-                                        <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-[#4988c4] to-[#3a73a8] text-[10px] font-bold text-white ring-2 ring-white">
-                                            {item.quantity}
-                                        </span>
-                                    </div>
-                                    <div className="flex flex-1 flex-col justify-between py-0.5">
-                                        <div>
-                                            <h4 className="text-sm font-semibold text-gray-900 line-clamp-1 group-hover/item:text-[#4988c4] transition-colors">
-                                                {item.name}
-                                            </h4>
-                                            {(item.color || item.size) && (
-                                                <p className="text-xs text-gray-500">
-                                                    {item.color && <span>Color: {item.color}</span>}
-                                                    {item.color && item.size && <span> • </span>}
-                                                    {item.size && <span>Size: {item.size}</span>}
-                                                </p>
-                                            )}
-                                        </div>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-xs text-gray-500">{item.quantity} × ${item.price.toFixed(2)}</span>
-                                            <p className="text-sm font-bold text-[#4988c4]">
-                                                ${item.subtotal.toFixed(2)}
-                                            </p>
+                                        <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-100/50">
+                                            <span className="text-[10px] font-black text-emerald-600 tracking-tighter">-${item.tradeIn?.totalValue.toFixed(2)}</span>
                                         </div>
                                     </div>
                                 </div>
                             ))}
                         </div>
                     )}
+
+                    {/* Regular Items - Fixed & Sharp Design */}
+                    {regularItems.map((item) => (
+                        <div key={item.id} className="flex gap-5 group/item items-center py-4 border-b border-slate-50 last:border-0">
+                            <div className="relative h-16 w-16 shrink-0">
+                                <div className="h-full w-full overflow-hidden rounded-xl bg-slate-50 border border-slate-100">
+                                    <img 
+                                        src={item.image} 
+                                        alt={item.name} 
+                                        className="h-full w-full object-cover"
+                                    />
+                                </div>
+                                <div className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 border-2 border-white z-10 shadow-sm">
+                                    <span className="text-[10px] font-black text-white leading-none">
+                                        {item.quantity}
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="flex-1 min-w-0 pr-2">
+                                <h4 className="text-[13px] font-black text-slate-900 truncate uppercase tracking-tight">{item.name}</h4>
+                                <div className="flex items-center gap-2 mt-1">
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                        Qty: {item.quantity}
+                                    </p>
+                                    <span className="h-1 w-1 rounded-full bg-slate-200" />
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                        ${item.price.toFixed(2)}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <span className="text-sm font-black text-slate-900 tracking-tight">
+                                    ${item.subtotal.toFixed(2)}
+                                </span>
+                            </div>
+                        </div>
+                    ))}
                 </div>
 
-                <Separator className="my-4" />
-
-                {/* Pricing Details */}
-                <div className="space-y-3">
-                    <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Subtotal</span>
-                        <span className="font-medium text-gray-900">
-                            ${totalPrice.toFixed(2)}
-                        </span>
+                {/* Totals Section */}
+                <div className="space-y-4 pt-10 border-t border-slate-50">
+                    <div className="flex justify-between items-center px-2">
+                        <span className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 font-bold">Base Price</span>
+                        <span className="text-sm font-black text-slate-900">${totalPrice.toFixed(2)}</span>
                     </div>
-                    
+
                     {tradeInDiscount > 0 && (
-                        <div className="flex justify-between text-sm bg-emerald-50 -mx-2 px-2 py-2 rounded-lg">
-                            <span className="text-emerald-700 flex items-center gap-1.5 font-medium">
-                                <RefreshCcw className="w-4 h-4" />
-                                Trade-in Discount
+                        <div className="flex justify-between items-center bg-emerald-50/50 rounded-2xl p-4 border border-emerald-100/50">
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 flex items-center gap-2">
+                                <RefreshCcw className="w-3.5 h-3.5" />
+                                Trade Credit
                             </span>
-                            <span className="font-bold text-emerald-600">-${tradeInDiscount.toFixed(2)}</span>
+                            <span className="text-sm font-black text-emerald-600">-${tradeInDiscount.toFixed(2)}</span>
                         </div>
                     )}
-                    
-                    <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Shipping</span>
-                        <span className="font-medium text-green-600">Free</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                        <span className="text-gray-600">Tax (10%)</span>
-                        <span className="font-medium text-gray-900">
-                            ${tax.toFixed(2)}
-                        </span>
-                    </div>
 
-                    <Separator className="my-3" />
-
-                    <div className="flex justify-between items-center pt-2">
-                        <span className="text-base font-semibold text-gray-900">Total</span>
-                        <span className="text-2xl font-bold text-[#4988c4]">
-                            ${total.toFixed(2)}
-                        </span>
-                    </div>
-                </div>
-
-                {/* Trade-in Summary */}
-                {tradeInDiscount > 0 && (
-                    <div className="mt-4 p-3 bg-gradient-to-r from-emerald-500 to-green-500 rounded-xl text-white">
+                    <div className="flex justify-between items-center px-2">
                         <div className="flex items-center gap-2">
-                            <RefreshCcw className="h-4 w-4" />
-                            <span className="text-sm font-medium">You save ${tradeInDiscount.toFixed(2)} with Trade-in!</span>
+                            <span className="text-[11px] font-black uppercase tracking-[0.15em] text-slate-400">Shipping Fees</span>
+                            <span className="px-1.5 py-0.5 rounded bg-blue-50 text-[9px] font-black text-[#4988c4] uppercase tracking-tighter">Premium</span>
+                        </div>
+                        <div className="text-right">
+                            <span className="text-xs font-black text-emerald-500 uppercase tracking-widest block">Free Arrival</span>
+                            {estimatedDeliveryDate && (
+                                <span className="text-[9px] font-bold text-slate-300 uppercase tracking-tighter">By {estimatedDeliveryDate}</span>
+                            )}
                         </div>
                     </div>
-                )}
 
-                {/* Trust Badges */}
-                <div className="mt-6 pt-6 border-t border-gray-200">
-                    <div className="space-y-3 text-sm text-gray-600">
-                        <div className="flex items-center gap-2">
-                            <svg className="h-5 w-5 text-[#4988c4]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                            </svg>
-                            <span>Secure SSL encrypted payment</span>
+                    <div className="flex justify-between items-center px-2">
+                        <span className="text-[11px] font-black uppercase tracking-[0.15em] text-slate-400">Est. GST / Tax</span>
+                        <span className="text-sm font-bold text-slate-900">${tax.toFixed(2)}</span>
+                    </div>
+
+                    <div className="h-px bg-slate-50 -mx-2 my-2" />
+
+                    <div className="flex justify-between items-end p-2 pb-6">
+                        <div className="space-y-1">
+                            <span className="text-[10px] font-black uppercase tracking-[0.25em] text-slate-300">Net Total</span>
+                            <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest leading-none">Final Amount</h3>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <svg className="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                            <span>Free returns within 30 days</span>
+                        <div className="text-right">
+                            <span className="text-4xl font-black text-[#4988c4] tracking-tighter leading-none block">
+                                ${total.toFixed(2)}
+                            </span>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <svg className="h-5 w-5 text-[#4988c4]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                            </svg>
-                            <span>Multiple payment methods</span>
+                    </div>
+
+                    {/* Security Trust */}
+                    <div className="rounded-2xl border-2 border-slate-50 bg-slate-50/30 p-4 space-y-4">
+                        <div className="flex items-center gap-3">
+                            <ShieldCheck className="w-4 h-4 text-[#4988c4]" />
+                            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Security Protocols</span>
+                        </div>
+                        <div className="flex items-center gap-4 px-2">
+                            <div className="flex flex-col">
+                                <span className="text-[9px] font-black text-slate-600 uppercase tracking-tighter leading-none">PCI Standard</span>
+                                <span className="text-[8px] font-bold text-slate-300 uppercase leading-none mt-1">Compliant</span>
+                            </div>
+                            <div className="w-px h-6 bg-slate-200" />
+                            <div className="flex flex-col">
+                                <span className="text-[9px] font-black text-slate-600 uppercase tracking-tighter leading-none">256-Bit SSL</span>
+                                <span className="text-[8px] font-bold text-slate-300 uppercase leading-none mt-1">Active</span>
+                            </div>
                         </div>
                     </div>
                 </div>

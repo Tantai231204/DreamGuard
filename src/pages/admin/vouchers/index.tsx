@@ -226,7 +226,7 @@ export default function VouchersPage() {
                 stats={headerStats}
             />
 
-            <div className="flex-1 overflow-hidden flex flex-col bg-gradient-to-br from-gray-50/50 via-white to-purple-50/30">
+            <div className="flex-1 overflow-hidden flex flex-col bg-gradient-to-br from-gray-50/50 via-white to-blue-50/30">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -237,7 +237,7 @@ export default function VouchersPage() {
                         <AdminBulkActions
                             table={table}
                             itemLabel="voucher"
-                            accentColor="purple"
+                            accentColor="black"
                             onEdit={() => console.log('Edit selected')}
                             onDuplicate={() => console.log('Duplicate selected')}
                             onDelete={() => console.log('Delete selected')}

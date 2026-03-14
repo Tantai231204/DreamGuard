@@ -128,7 +128,7 @@ const VirtualVariantSelect = memo(function VirtualVariantSelect({
                     onClick={() => setOpen(true)}
                     className={cn(
                         'h-7 px-2.5 text-[11px] font-medium rounded-md border border-gray-200',
-                        'text-gray-500 hover:text-violet-600 hover:border-violet-300 hover:bg-violet-50',
+                        'text-gray-500 hover:text-primary-600 hover:border-primary-300 hover:bg-primary-50',
                         'transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1',
                     )}
                 >
@@ -146,7 +146,7 @@ const VirtualVariantSelect = memo(function VirtualVariantSelect({
                     onClick={() => setOpen(true)}
                     className={cn(
                         'flex w-full items-center gap-2 h-10 rounded-lg border border-dashed border-gray-300',
-                        'px-3 text-sm text-gray-400 hover:border-violet-400 hover:text-violet-500 hover:bg-violet-50/50',
+                        'px-3 text-sm text-gray-400 hover:border-primary-400 hover:text-primary-500 hover:bg-primary-50/50',
                         'transition-all disabled:opacity-40 disabled:cursor-not-allowed',
                     )}
                 >
@@ -165,8 +165,8 @@ const VirtualVariantSelect = memo(function VirtualVariantSelect({
                 onClick={() => setOpen(true)}
                 className={cn(
                     'flex w-full items-center gap-2.5 min-h-[48px] py-2 px-3 rounded-lg',
-                    'border border-violet-200 bg-violet-50/40',
-                    'hover:border-violet-300 hover:bg-violet-50/70 transition-all',
+                    'border border-primary-200 bg-primary-50/40',
+                    'hover:border-primary-300 hover:bg-primary-50/70 transition-all',
                     'disabled:opacity-40 disabled:cursor-not-allowed',
                 )}
             >
@@ -194,7 +194,7 @@ const VirtualVariantSelect = memo(function VirtualVariantSelect({
                     </div>
                 </div>
                 <div className="text-right shrink-0">
-                    <div className="text-xs font-bold text-violet-600">{selectedOption.salePrice.toLocaleString('en-US')}₫</div>
+                    <div className="text-xs font-bold text-primary-600">{selectedOption.salePrice.toLocaleString('en-US')}₫</div>
                     <ChevronDown className="h-3 w-3 text-gray-400 mx-auto mt-0.5" />
                 </div>
             </button>
@@ -217,7 +217,7 @@ const VirtualVariantSelect = memo(function VirtualVariantSelect({
                     onWheel={(e) => e.stopPropagation()}
                     onTouchMove={(e) => e.stopPropagation()}
                     className={cn(
-                        'z-[300] w-[520px]',
+                        'z-50 w-[520px]',
                         'rounded-xl border border-gray-200 bg-white shadow-2xl shadow-black/15',
                         'data-[state=open]:animate-in data-[state=closed]:animate-out',
                         'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
@@ -252,7 +252,7 @@ const VirtualVariantSelect = memo(function VirtualVariantSelect({
                             <span className="font-semibold text-gray-600">{filtered.length}</span> variants available
                         </span>
                         {excludeIds.length > 0 && (
-                            <span className="text-[11px] text-violet-500 font-medium">
+                            <span className="text-[11px] text-primary-500 font-medium">
                                 {excludeIds.length} already in combo
                             </span>
                         )}
@@ -261,7 +261,7 @@ const VirtualVariantSelect = memo(function VirtualVariantSelect({
                     {/* Virtualized list */}
                     {isLoading ? (
                         <div className="flex flex-col items-center justify-center py-12 gap-3">
-                            <div className="h-6 w-6 border-2 border-violet-300 border-t-violet-600 rounded-full animate-spin" />
+                            <div className="h-6 w-6 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin" />
                             <span className="text-sm text-gray-500">Loading variants...</span>
                         </div>
                     ) : rows.length === 0 ? (
@@ -297,11 +297,11 @@ const VirtualVariantSelect = memo(function VirtualVariantSelect({
                                         >
                                             {row.kind === 'header' ? (
                                                 <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border-y border-gray-100">
-                                                    <Package className="h-3.5 w-3.5 text-violet-500 shrink-0" />
+                                                    <Package className="h-3.5 w-3.5 text-primary-500 shrink-0" />
                                                     <span className="text-[12px] font-bold text-gray-800 truncate flex-1">
                                                         {row.productName || `Product ${row.productId.slice(0, 8)}…`}
                                                     </span>
-                                                    <span className="text-[10px] text-violet-500 font-semibold bg-violet-50 px-1.5 py-0.5 rounded shrink-0">
+                                                    <span className="text-[10px] text-primary-500 font-semibold bg-primary-50 px-1.5 py-0.5 rounded shrink-0">
                                                         {row.count} variant{row.count !== 1 ? 's' : ''}
                                                     </span>
                                                 </div>
@@ -313,7 +313,7 @@ const VirtualVariantSelect = memo(function VirtualVariantSelect({
                                                         'flex items-center gap-3 w-full px-3 py-2.5 text-left',
                                                         'transition-colors outline-none',
                                                         value === row.variant.variantId
-                                                            ? 'bg-violet-50 border-l-2 border-violet-500'
+                                                            ? 'bg-primary-50 border-l-2 border-primary-500'
                                                             : 'hover:bg-gray-50 border-l-2 border-transparent',
                                                     )}
                                                 >
@@ -365,7 +365,7 @@ const VirtualVariantSelect = memo(function VirtualVariantSelect({
 
                                                     {/* Check mark */}
                                                     {value === row.variant.variantId && (
-                                                        <Check className="h-4 w-4 text-violet-600 shrink-0" />
+                                                        <Check className="h-4 w-4 text-primary-600 shrink-0" />
                                                     )}
                                                 </button>
                                             )}

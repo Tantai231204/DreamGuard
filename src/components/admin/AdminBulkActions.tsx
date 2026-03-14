@@ -6,7 +6,7 @@ import type { Table } from '@tanstack/react-table';
 interface AdminBulkActionsProps<T> {
   table: Table<T>;
   itemLabel?: string;
-  accentColor?: 'blue' | 'purple';
+  accentColor?: 'blue' | 'black';
   onEdit?: () => void;
   onDuplicate?: () => void;
   onDelete?: () => void;
@@ -37,24 +37,22 @@ export function AdminBulkActions<T>({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.2 }}
-          className={`px-6 py-5 border-b-2 shadow-sm ${
-            isBlue
-              ? 'bg-gradient-to-r from-blue-50 to-cyan-50 border-blue-200'
-              : 'bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200'
-          }`}
+          className={`px-6 py-5 border-b-2 shadow-sm ${isBlue
+            ? 'bg-gradient-to-r from-primary-50 to-white border-primary-100'
+            : 'bg-gradient-to-r from-slate-50 to-white border-slate-200'
+            }`}
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div
-                className={`flex items-center gap-3 px-5 py-2.5 rounded-xl border-2 shadow-md ${
-                  isBlue
-                    ? 'bg-white border-[var(--color-primary)] text-[var(--color-primary)]'
-                    : 'bg-white border-purple-500 text-purple-600'
-                }`}
+                className={`flex items-center gap-3 px-5 py-2.5 rounded-xl border-2 shadow-sm ${isBlue
+                  ? 'bg-white border-primary-500 text-primary-600'
+                  : 'bg-white border-slate-900 text-slate-900'
+                  }`}
               >
                 <Package className="h-5 w-5" />
                 <span className="font-black text-xl">{selectedCount}</span>
-                <div className="h-6 w-px bg-gray-300"></div>
+                <div className="h-6 w-px bg-gray-200"></div>
                 <span className="text-sm font-semibold">
                   {itemLabel}{selectedCount !== 1 ? 's' : ''} selected
                 </span>
@@ -65,11 +63,10 @@ export function AdminBulkActions<T>({
                   <Button
                     size="sm"
                     variant="outline"
-                    className={`gap-2 rounded-xl border-2 font-semibold shadow-sm transition-all ${
-                      isBlue
-                        ? 'hover:bg-blue-500 hover:border-blue-500 hover:text-white hover:shadow-md'
-                        : 'hover:bg-purple-500 hover:border-purple-500 hover:text-white hover:shadow-md'
-                    }`}
+                    className={`gap-2 rounded-xl border-2 font-semibold shadow-sm transition-all ${isBlue
+                      ? 'hover:bg-primary-600 hover:border-primary-600 hover:text-white hover:shadow-md'
+                      : 'hover:bg-slate-900 hover:border-slate-900 hover:text-white hover:shadow-md'
+                      }`}
                     onClick={onEdit}
                   >
                     <Edit className="h-4 w-4" />

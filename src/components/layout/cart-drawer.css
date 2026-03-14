@@ -4,7 +4,7 @@
   will-change: transform;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Remove custom transition to let Vaul handle spring physics smoothly */
 }
 
 [vaul-drawer][vaul-drawer-direction="right"] {
@@ -23,8 +23,10 @@
 
 [vaul-overlay] {
   opacity: 0;
-  will-change: opacity;
-  transition: opacity 0.25s ease-out;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  will-change: opacity, backdrop-filter;
+  transition: opacity 0.4s cubic-bezier(0.32, 0.72, 0, 1), backdrop-filter 0.4s cubic-bezier(0.32, 0.72, 0, 1) !important;
 }
 
 [vaul-overlay][vaul-drawer-visible="true"] {
@@ -51,8 +53,15 @@
 
 /* Performance optimizations */
 .cart-drawer-content {
-  contain: layout style;
+  contain: paint layout;
   content-visibility: auto;
+  overscroll-behavior-y: contain; /* Prevents scroll chaining to the body */
+}
+
+.cart-drawer-scroll {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scroll-padding-bottom: 20px;
 }
 
 /* Hardware acceleration for cart items */
@@ -66,7 +75,7 @@
 @keyframes slideInItem {
   from {
     opacity: 0;
-    transform: translate3d(0, 12px, 0);
+    transform: translate3d(20px, 0, 0); /* Slide from right for lateral feel */
   }
   to {
     opacity: 1;
@@ -75,7 +84,7 @@
 }
 
 .animate-slide-in-item {
-  animation: slideInItem 0.25s cubic-bezier(0.4, 0, 0.2, 1) both;
+  animation: slideInItem 0.4s cubic-bezier(0.32, 0.72, 0, 1) both;
 }
 
 /* Smooth hover transitions */

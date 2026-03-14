@@ -1,5 +1,5 @@
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useRegisterStore } from "../../store/registerStore";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
@@ -8,6 +8,7 @@ import { AppRoute } from "../../lib/constants";
 import { useRegister } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
+import { toast } from "sonner";
 
 type FormData = {
   firstName: string;
@@ -19,6 +20,8 @@ type FormData = {
 
 export default function RegisterComplete() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirect = searchParams.get("redirect");
 
   const registerData = useRegisterStore((s) => s.registerData);
   const clearRegisterData = useRegisterStore((s) => s.clearRegisterData);
@@ -43,22 +46,26 @@ export default function RegisterComplete() {
       },
       {
         onSuccess: () => {
-          alert("Register success");
+          toast.success("Registration Successful", {
+            description: "Your account has been created. You can now log in.",
+          });
           clearRegisterData();
-          navigate("/login");
+          navigate(redirect ? `${AppRoute.LOGIN}?redirect=${encodeURIComponent(redirect)}` : AppRoute.LOGIN);
         },
-        onError: () => {
-          alert("Register failed");
+        onError: (err: any) => {
+          toast.error("Registration Failed", {
+            description: err?.message || "Something went wrong. Please try again later.",
+          });
         },
       },
     );
   };
 
   useEffect(() => {
-  if (!registerData) {
-    navigate(AppRoute.REGISTER_BASIC, { replace: true });
-  }
-}, [registerData, navigate]);
+    if (!registerData) {
+      navigate(AppRoute.REGISTER_BASIC, { replace: true });
+    }
+  }, [registerData, navigate]);
 
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 w-full max-w-md mx-auto">

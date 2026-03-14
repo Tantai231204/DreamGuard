@@ -231,8 +231,8 @@ function MediaUploadZone({
             isDragActive && !isDragReject
               ? "border-[#4988c4] bg-blue-50 scale-[1.01]"
               : isDragReject
-              ? "border-red-500 bg-red-50"
-              : "border-gray-300 hover:border-[#4988c4] hover:bg-gray-50"
+                ? "border-red-500 bg-red-50"
+                : "border-gray-300 hover:border-[#4988c4] hover:bg-gray-50"
           )}
           role="button"
           aria-label="Kéo thả hoặc click để chọn file"

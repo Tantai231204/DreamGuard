@@ -11,6 +11,9 @@ export {
   variantService,
   comboService,
   cartService,
+  type VerifyOtpRequest,
+  type ResetPasswordRequest,
+  type ChangePasswordRequest,
 } from "./services";
 
 // Variant Types (exported from service)
@@ -42,6 +45,7 @@ export type {
   PaginatedResponse,
   Token,
   LoginRequest,
+  AuthResponse,
   RegisterRequest,
   ForgotPasswordRequest,
   VerifyTokenRequest,

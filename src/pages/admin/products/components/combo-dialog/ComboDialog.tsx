@@ -10,14 +10,14 @@
  *  - useComboForm       (all state & logic)
  */
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
     Dialog,
     DialogContent,
 } from "@/components/ui/dialog";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { Loader2 } from "lucide-react";
+import { Loader2, Info, Settings2, DollarSign } from "lucide-react";
 import type { CreateComboRequest } from "@/api/services/comboService";
 import type { Combo } from "../../types";
 import type { ComboDialogMode } from "./index";
@@ -28,8 +28,6 @@ import ComboDialogFooter from "./ComboDialogFooter";
 import ComboFormFields from "./ComboFormFields";
 import ComboItemsPanel from "./ComboItemsPanel";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Info, Settings2, DollarSign } from "lucide-react";
-import { useMemo } from "react";
 
 // ── Props ────────────────────────────────────────────────
 interface ComboDialogProps {
@@ -64,10 +62,21 @@ export default function ComboDialog({
     const [mode, setMode] = useState<ComboDialogMode | null>(inferredMode);
     const [activeTab, setActiveTab] = useState("general");
 
+    // Ensure mode state keeps in sync with inferredMode when combo/open changes
+    useEffect(() => {
+        if (open) {
+            setMode(inferredMode);
+            setActiveTab("general");
+        }
+    }, [open, inferredMode]);
+
     // All form state & logic lives in the custom hook
     const {
         form,
         isValid,
+        isPriceAutoManaged,
+        isVariantBasePriceAuto,
+        priceSource,
         variantOptions,
         isLoadingVariants,
         comboParents,
@@ -156,6 +165,9 @@ export default function ComboDialog({
                                         comboParents={comboParents}
                                         isLoadingParents={isLoadingParents}
                                         comboId={combo?.id}
+                                        isPriceAutoManaged={isPriceAutoManaged}
+                                        isVariantBasePriceAuto={isVariantBasePriceAuto}
+                                        priceSource={priceSource}
                                     />
                                 </form>
                             </Tabs>

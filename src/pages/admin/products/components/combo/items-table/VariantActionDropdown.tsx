@@ -33,7 +33,7 @@ export function VariantActionDropdown({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 shadow-xl border border-slate-200/60 rounded-xl p-1 animate-in fade-in zoom-in-95 duration-100">
                 <DropdownMenuItem
-                    className="rounded-lg cursor-pointer py-2 px-3 font-medium text-slate-600 hover:text-blue-600 focus:bg-blue-50 focus:text-blue-700 transition-colors gap-2.5"
+                    className="rounded-lg cursor-pointer py-2 px-3 font-medium text-slate-600 hover:text-primary-600 focus:bg-primary-50 focus:text-primary-700 transition-colors gap-2.5"
                     onClick={() => onEdit?.(variant)}
                 >
                     <Edit className="h-4 w-4 opacity-70" />

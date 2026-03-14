@@ -8,7 +8,7 @@ interface StockCellProps {
 }
 
 export default function StockCell({ productId, variantCount }: StockCellProps) {
-  const { data } = useAdminProductVariants(productId, variantCount > 0);
+  const { data } = useAdminProductVariants(productId, { enabled: variantCount > 0 });
 
   const stockInfo = useMemo(() => {
     if (!data?.colorGroups?.length) return null;

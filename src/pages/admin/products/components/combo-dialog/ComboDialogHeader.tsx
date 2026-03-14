@@ -56,11 +56,11 @@ const ComboDialogHeader = memo(function ComboDialogHeader({
                 </DialogDescription>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-                <div className="flex items-center gap-2 bg-indigo-50/50 px-3 py-1 rounded-full border border-indigo-200/50 group hover:bg-indigo-50 transition-colors">
-                    <div className="text-indigo-600 animate-pulse">
+                <div className="flex items-center gap-2 bg-primary-50 px-3 py-1 rounded-full border border-primary-200 group hover:bg-primary-100 transition-colors">
+                    <div className="text-primary-600 animate-pulse">
                         <SparklesIcon />
                     </div>
-                    <span className="text-[10px] font-black text-indigo-700 uppercase tracking-tighter">
+                    <span className="text-[10px] font-black text-primary-700 uppercase tracking-tighter">
                         Strength: {completionScore}%
                     </span>
                 </div>

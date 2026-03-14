@@ -2,76 +2,25 @@
 import { useMemo } from 'react';
 import { Layers } from 'lucide-react';
 import type { AdminVariantsByProductResponse } from '@/api/services/variantService';
+import { transformAdminVariants } from '@/pages/admin/products/utils/variant-utils';
 
 interface VariantSummaryDisplayProps {
   variants?: AdminVariantsByProductResponse;
   isLoading?: boolean;
 }
 
-const colorMap: Record<string, string> = {
-  white: '#f5f5f5',
-  pink: '#ffc0cb',
-  blue: '#add8e6',
-  red: '#ff6b6b',
-  green: '#90ee90',
-  yellow: '#ffeb3b',
-  orange: '#ffa500',
-  purple: '#dda0dd',
-  black: '#333333',
-  gray: '#9e9e9e',
-  grey: '#9e9e9e',
-  brown: '#a0522d',
-  beige: '#f5f5dc',
-  mint: '#98ff98',
-  unknown: '#e5e7eb',
-  default: '#e5e7eb',
-};
-
-function getColorHex(colorValue: string | undefined): string {
-  if (!colorValue) return '#e5e7eb';
-  if (colorValue.startsWith('#')) return colorValue;
-  const normalized = colorValue.toLowerCase().trim();
-  return colorMap[normalized] || '#e5e7eb';
-}
-
 export default function VariantSummaryDisplay({ variants, isLoading }: VariantSummaryDisplayProps) {
+  // Leverage centralized mapping logic
   const summary = useMemo(() => {
-    if (!variants || !variants.colorGroups || variants.colorGroups.length === 0) {
-      return null;
-    }
-
-    const colorGroups = variants.colorGroups;
-    const totalVariants = variants.totalVariants || 0;
-
-    // Get unique colors (max 3 to display)
-    const colors = colorGroups.slice(0, 3).map((group) => ({
-      name: group.color,
-      hex: getColorHex(group.color),
-    }));
-
-    // Count unique sizes
-    const sizeSet = new Set<string>();
-    colorGroups.forEach((group) => {
-      group.variants.forEach((variant) => {
-        if (variant.size) {
-          sizeSet.add(variant.size);
-        }
-      });
-    });
-
-    return {
-      totalVariants,
-      colors,
-      moreColors: colorGroups.length > 3 ? colorGroups.length - 3 : 0,
-      sizeCount: sizeSet.size,
-    };
+    if (!variants) return null;
+    return transformAdminVariants(variants);
   }, [variants]);
 
   if (isLoading) {
     return (
       <div className="flex items-center gap-2 text-gray-400">
-        <div className="h-2 w-2 rounded-full bg-gray-200 animate-pulse"></div>
-        <div className="h-2 w-2 rounded-full bg-gray-200 animate-pulse"></div>
+        <div className="h-2 w-2 rounded-full bg-gray-200 animate-pulse" />
+        <div className="h-2 w-2 rounded-full bg-gray-200 animate-pulse" />
         <span className="text-xs">Loading...</span>
       </div>
     );
@@ -81,45 +30,53 @@ export default function VariantSummaryDisplay({ variants, isLoading }: VariantSu
     return (
       <div className="flex items-center gap-2 text-gray-400">
         <Layers className="h-3.5 w-3.5" />
-        <span className="text-xs">No variants</span>
+        <span className="text-xs font-medium">No variants found</span>
       </div>
     );
   }
 
   return (
-    <div className="flex items-center gap-2.5">
+    <div className="flex items-center gap-3 py-1">
       {/* Variant Count */}
-      <div className="flex items-center gap-1.5 text-gray-600">
-        <Layers className="h-3.5 w-3.5 text-blue-500" />
-        <span className="text-xs font-semibold">{summary.totalVariants}</span>
-        <span className="text-xs text-gray-400">variant{summary.totalVariants !== 1 ? 's' : ''}</span>
+      <div className="flex items-center gap-1.5 text-slate-600">
+        <Layers className="h-4 w-4 text-blue-500" />
+        <span className="text-sm font-black text-slate-900">{summary.totalVariants}</span>
+        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">variants</span>
       </div>
+
+      <span className="h-3 w-px bg-slate-200" />
 
       {/* Color dots */}
       <div className="flex items-center gap-1">
-        {summary.colors.map((color, index) => (
-          <div
-            key={index}
-            className="w-3.5 h-3.5 rounded-full border border-gray-300 shadow-sm"
-            style={{ backgroundColor: color.hex }}
-            title={color.name}
-          />
-        ))}
-        {summary.moreColors > 0 && (
-          <span className="text-[10px] font-medium text-gray-500 ml-0.5">
-            +{summary.moreColors}
+        <div className="flex -space-x-1">
+          {summary.colorGroups.slice(0, 3).map((group, index) => (
+            <div
+              key={index}
+              className="w-3.5 h-3.5 rounded-full border border-white shadow-sm ring-1 ring-slate-100"
+              style={{ backgroundColor: group.colorHex }}
+              title={group.color}
+            />
+          ))}
+        </div>
+        {summary.colorGroups.length > 3 && (
+          <span className="text-[10px] font-black text-slate-400 ml-1">
+            +{summary.colorGroups.length - 3}
           </span>
         )}
       </div>
 
+      <span className="h-3 w-px bg-slate-200" />
+
       {/* Size count */}
       {summary.sizeCount > 0 && (
-        <>
-          <span className="text-gray-300">|</span>
-          <span className="text-xs text-gray-500 font-medium">
-            {summary.sizeCount} size{summary.sizeCount !== 1 ? 's' : ''}
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm font-black text-slate-700">
+            {summary.sizeCount}
           </span>
-        </>
+          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+            size{summary.sizeCount !== 1 ? 's' : ''}
+          </span>
+        </div>
       )}
     </div>
   );

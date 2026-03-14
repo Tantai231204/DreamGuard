@@ -8,7 +8,10 @@ export default {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#4988c4',
+          DEFAULT: 'var(--color-primary)',
+          hover: 'var(--color-primary-hover)',
+          light: 'var(--color-primary-light)',
+          dark: 'var(--color-primary-dark)',
           50: '#f0f9ff',
           100: '#e0f2fe',
           200: '#bde8f5',
@@ -21,7 +24,7 @@ export default {
           900: '#0c4a6e',
         },
         secondary: {
-          DEFAULT: '#bde8f5',
+          DEFAULT: 'var(--color-secondary, #bde8f5)',
           50: '#f8fdfe',
           100: '#e6f7fb',
           200: '#bde8f5',
@@ -33,6 +36,15 @@ export default {
           800: '#265f79',
           900: '#244f65',
         },
+        amber: {
+          50: '#fffbeb',
+          100: '#fef3c7',
+          200: '#fde68a',
+          300: '#fcd34d',
+          400: 'var(--color-amber, #fbbf24)',
+          500: '#f59e0b',
+          600: '#d97706',
+        }
       },
       animation: {
         "fade-in": "fadeIn 150ms cubic-bezier(0.16, 1, 0.3, 1)",
@@ -67,41 +79,41 @@ export default {
           "100%": { backgroundPosition: "1000px 0" },
         },
         slideInFromRight: {
-          "0%": { 
+          "0%": {
             transform: "translateX(100%)",
             opacity: "0"
           },
-          "100%": { 
+          "100%": {
             transform: "translateX(0)",
             opacity: "1"
           },
         },
         slideOutToRight: {
-          "0%": { 
+          "0%": {
             transform: "translateX(0)",
             opacity: "1"
           },
-          "100%": { 
+          "100%": {
             transform: "translateX(100%)",
             opacity: "0"
           },
         },
         scaleIn: {
-          "0%": { 
+          "0%": {
             transform: "scale(0.95)",
             opacity: "0"
           },
-          "100%": { 
+          "100%": {
             transform: "scale(1)",
             opacity: "1"
           },
         },
         scaleOut: {
-          "0%": { 
+          "0%": {
             transform: "scale(1)",
             opacity: "1"
           },
-          "100%": { 
+          "100%": {
             transform: "scale(0.95)",
             opacity: "0"
           },

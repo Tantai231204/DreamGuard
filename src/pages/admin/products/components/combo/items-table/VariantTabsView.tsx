@@ -13,7 +13,7 @@ import {
     TabsContent,
 } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { AdminStatusBadge } from '@/components/admin';
 import { Separator } from '@/components/ui/separator';
 import {
     DropdownMenu,
@@ -33,7 +33,6 @@ interface VariantTabsViewProps {
     onAddVariant?: () => void;
     onEditVariant?: (v: Combo) => void;
     onDeleteVariant?: (v: Combo) => void;
-    statusMap: Record<string, { label: string; className: string }>;
 }
 
 export function VariantTabsView({
@@ -41,7 +40,6 @@ export function VariantTabsView({
     onAddVariant,
     onEditVariant,
     onDeleteVariant,
-    statusMap,
 }: VariantTabsViewProps) {
     const [sorting, setSorting] = React.useState<SortingState>([]);
     const [activeTab, setActiveTab] = React.useState(childCombos[0]?.id);
@@ -78,7 +76,7 @@ export function VariantTabsView({
                         <Button
                             variant="secondary"
                             size="sm"
-                            className="h-7 w-7 p-0 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm transition-all"
+                            className="h-7 w-7 p-0 bg-primary-600 hover:bg-primary-700 text-white rounded-lg shadow-sm transition-all"
                             title="Add New Variant"
                             onClick={onAddVariant}
                         >
@@ -87,7 +85,7 @@ export function VariantTabsView({
                         <Separator orientation="vertical" className="h-4 bg-gray-200 mx-1" />
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm" className="h-6 px-1.5 text-[9px] font-black uppercase text-gray-400 hover:text-indigo-600">
+                                <Button variant="ghost" size="sm" className="h-6 px-1.5 text-[9px] font-black uppercase text-gray-400 hover:text-primary-600">
                                     <SortAsc className="h-3 w-3 mr-1" />
                                     Sort
                                 </Button>
@@ -116,7 +114,7 @@ export function VariantTabsView({
                                     value={child.id}
                                     className={`w-full justify-start px-3 py-3 rounded-xl border-2 transition-all group relative overflow-hidden text-left
                                         ${isActive
-                                            ? 'border-indigo-500/20 bg-white shadow-lg shadow-indigo-500/5 ring-1 ring-indigo-500/5'
+                                            ? 'border-primary-500/20 bg-white shadow-lg shadow-primary-500/5 ring-1 ring-primary-500/5'
                                             : 'border-transparent hover:bg-white/60 hover:border-gray-200'}`}
                                 >
                                     <div className="flex flex-col items-start gap-1.5 w-full">
@@ -132,13 +130,14 @@ export function VariantTabsView({
                                                     )}
                                                 </div>
                                                 <span className={`text-[12px] font-black tracking-tight truncate max-w-[140px] transition-colors
-                                                    ${isActive ? 'text-indigo-600' : 'text-gray-700'}`}>
+                                                    ${isActive ? 'text-primary-600' : 'text-gray-700'}`}>
                                                     {child.name}
                                                 </span>
                                             </div>
-                                            <Badge className={`text-[8px] font-black px-1.5 h-3.5 border-none shadow-none uppercase ${statusMap[child.status]?.className}`}>
-                                                {child.status}
-                                            </Badge>
+                                            <AdminStatusBadge 
+                                                status={child.status} 
+                                                className="h-4 px-1.5" 
+                                            />
                                         </div>
                                         <div className="flex items-center justify-between w-full mt-0.5">
                                             <div className="flex items-center gap-1.5">
@@ -147,13 +146,13 @@ export function VariantTabsView({
                                                 </span>
                                                 {isWarning && <span className="text-[8px] text-red-500 font-black animate-bounce">! STOCK</span>}
                                             </div>
-                                            <span className={`text-[10px] font-black ${isActive ? 'text-indigo-600' : 'text-gray-800'}`}>
+                                            <span className={`text-[10px] font-black ${isActive ? 'text-primary-600' : 'text-gray-800'}`}>
                                                 {(child.salePrice || child.basePrice).toLocaleString('en-US')}₫
                                             </span>
                                         </div>
                                     </div>
                                     {isActive && (
-                                        <div className="absolute left-0 top-1/4 bottom-1/4 w-1 bg-indigo-500 rounded-r-full animate-in slide-in-from-left-full duration-300" />
+                                        <div className="absolute left-0 top-1/4 bottom-1/4 w-1 bg-primary-500 rounded-r-full animate-in slide-in-from-left-full duration-300" />
                                     )}
                                 </TabsTrigger>
                             );
@@ -169,15 +168,15 @@ export function VariantTabsView({
                         value={child.id}
                         className="m-0 border-0 outline-none flex-1 data-[state=inactive]:hidden animate-in fade-in slide-in-from-right-2 duration-300"
                     >
-                        <div className="px-8 py-5 bg-gradient-to-r from-indigo-50/30 to-white border-b border-gray-100 flex items-center justify-between">
+                        <div className="px-8 py-5 bg-gradient-to-r from-primary-50/10 to-white border-b border-gray-100 flex items-center justify-between">
                             <div className="flex items-center gap-4">
-                                <div className="h-12 w-12 rounded-2xl bg-white border-2 border-indigo-100 flex items-center justify-center shadow-sm">
+                                <div className="h-12 w-12 rounded-2xl bg-white border-2 border-primary-50 flex items-center justify-center shadow-sm">
                                     <div className="w-5 h-5 rounded-full" style={{ backgroundColor: getColorHex(child.color) }} />
                                 </div>
                                 <div>
                                     <div className="flex items-center gap-2">
                                         <h3 className="text-lg font-black text-gray-900 tracking-tight">{child.name}</h3>
-                                        <Badge variant="outline" className="bg-indigo-500 text-white border-none font-black text-[9px] h-4">ACTIVE</Badge>
+                                        <AdminStatusBadge status={child.status} />
                                     </div>
                                     <p className="text-[11px] text-gray-400 font-bold uppercase tracking-widest mt-0.5 italic">Variant SKU: {child.sku}</p>
                                     {child.description && (
@@ -191,7 +190,7 @@ export function VariantTabsView({
                             <div className="flex items-center gap-6">
                                 <div className="text-right">
                                     <p className="text-[10px] text-gray-400 font-black uppercase tracking-tighter">Current Value</p>
-                                    <div className="text-lg font-black text-indigo-600">{(child.salePrice || child.basePrice).toLocaleString('en-US')}₫</div>
+                                    <div className="text-lg font-black text-primary-600">{(child.salePrice || child.basePrice).toLocaleString('en-US')}₫</div>
                                 </div>
                                 <Separator orientation="vertical" className="h-10 bg-gray-100" />
                                 <VariantActionDropdown
@@ -205,7 +204,7 @@ export function VariantTabsView({
                         <div className="p-8 bg-white/50">
                             <div className="mb-4 flex items-center justify-between">
                                 <h5 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]">Constituent Items Configuration</h5>
-                                <span className="text-[10px] text-indigo-500 font-bold bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-100">
+                                <span className="text-[10px] text-primary-500 font-bold bg-primary-50 px-2 py-0.5 rounded-full border border-primary-100">
                                     {child.items?.length || 0} Products Included
                                 </span>
                             </div>

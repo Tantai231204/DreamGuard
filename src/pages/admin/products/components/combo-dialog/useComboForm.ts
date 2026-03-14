@@ -11,6 +11,7 @@
  */
 
 import { useCallback, useReducer, useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { useAllVariantOptions } from "@/hooks/queries/useProduct";
 import { useComboParents, useCombos, useComboDetail } from "@/hooks/queries/useCombo";
 import type { CreateComboRequest } from "@/api/services/comboService";
@@ -18,6 +19,7 @@ import type { Combo } from "../../types";
 import {
     formReducer,
     getInitialState,
+    normalizeStatus,
     toSlug,
     type ComboDialogMode,
     type ComboFormState,
@@ -50,14 +52,19 @@ export function useComboForm({
     }
     const [form, dispatch] = useReducer(formReducer, initial);
 
+    // ── Local refs for sync control (Compiler-safe patterns) ──
+    const syncedParentRef = useRef<string | null>(null);
+    const enrichedRef = useRef(false);
+
+
     // ── Data fetching ────────────────────────────────────
     const isVariantMode = mode === 'variant';
     const { data: variantOptions = [], isLoading: isLoadingVariants } =
         useAllVariantOptions(open && isVariantMode);
     const { data: comboParents = [], isLoading: isLoadingParents } =
         useComboParents(open && isVariantMode);
-    // Fetch ALL combos to find parent name + count existing variants
-    const { data: allCombos = [] } = useCombos(open && isVariantMode);
+    // Fetch ALL combos to find parent name + count existing variants + price calculation
+    const { data: allCombos = [] } = useCombos(open);
 
     // Fetch full detail to ensure we have description, etc.
     const { data: detail, isLoading: isLoadingDetail } = useComboDetail(
@@ -66,45 +73,64 @@ export function useComboForm({
     );
 
     // Sync form when detail is loaded
+    // IMPORTANT: The detail endpoint is PUBLIC (/combo/{id}) and may NOT return
+    // the correct `status` for Draft/Hidden combos. The original `combo` prop
+    // comes from the ADMIN list (/combo/admin) which always has the correct status.
+    // We merge detail data but preserve the authoritative status from the admin list.
     useEffect(() => {
         if (detail && isEdit) {
-            dispatch({ type: "RESET", payload: getInitialState(detail) });
+            const state = getInitialState(detail);
+
+            // Preserve the status from the original combo prop (admin list data)
+            // because the public detail endpoint may not return status correctly.
+            if (combo?.status) {
+                state.status = normalizeStatus(combo.status);
+            }
+
+            dispatch({ type: "RESET", payload: state });
+            // Allow re-enrichment when new data arrives
+            enrichedRef.current = false;
         }
-    }, [detail, isEdit]);
+    }, [detail, isEdit, combo]);
 
-    // ── Auto-generate variant name ───────────────────────
-    const autoNameAppliedRef = useRef<string | null>(null);
+    // ── Auto-generate variant name & Sync Age Group ─────
     useEffect(() => {
+        if (!open) {
+            syncedParentRef.current = null;
+            return;
+        }
         if (isEdit || mode !== 'variant') return;
-        const parentId = form.comboParentId;
-        if (!parentId) return;
-        // Only auto-generate once per parentId change
-        if (autoNameAppliedRef.current === parentId) return;
-        // Wait until allCombos is loaded
-        if (allCombos.length === 0) return;
 
-        // Find parent from allCombos (contains both parents and variants)
+        const parentId = form.comboParentId;
+        if (!parentId || syncedParentRef.current === parentId || allCombos.length === 0) return;
+
         const parent = allCombos.find(c => c.id === parentId);
         if (!parent) return;
 
-        // Count existing variants for this parent
-        // Use parent.childCombos.length if nested, fallback to flat filter
+        // 1. Sync Age Group
+        if (parent.ageGroup && String(parent.ageGroup) !== form.ageGroup) {
+            dispatch({ type: 'SET_FIELD', field: 'ageGroup', payload: String(parent.ageGroup) });
+        }
+
+        // 2. Auto-generate Name
         const existingVariantCount = parent.childCombos?.length ?? allCombos.filter(
             c => c.comboParentId === parentId
         ).length;
         const nextNumber = existingVariantCount + 1;
-
         const generatedName = `${parent.name} #${nextNumber}`;
-        autoNameAppliedRef.current = parentId;
+
+        syncedParentRef.current = parentId;
         dispatch({ type: 'SET_FIELD', field: 'name', payload: generatedName });
         dispatch({ type: 'SET_FIELD', field: 'slug', payload: toSlug(generatedName) });
-    }, [isEdit, mode, form.comboParentId, allCombos]);
+    }, [isEdit, mode, form.comboParentId, allCombos, form.ageGroup, open]);
 
     // ── Enrich existing items with live variant data ─────
-    const enrichedRef = useRef(false);
     useEffect(() => {
-        if (!open || enrichedRef.current || variantOptions.length === 0) return;
-        if (form.items.length === 0) return;
+        if (!open) {
+            enrichedRef.current = false;
+            return;
+        }
+        if (enrichedRef.current || variantOptions.length === 0 || form.items.length === 0) return;
 
         let changed = false;
         const enriched = form.items.map((item) => {
@@ -128,11 +154,65 @@ export function useComboForm({
             };
         });
 
-        enrichedRef.current = true;
         if (changed) {
+            enrichedRef.current = true;
             dispatch({ type: "SET_ITEMS", payload: enriched });
         }
     }, [open, variantOptions, form.items]);
+
+
+    // ── Auto-calculate Prices & Price Change Notification ──
+    const lastCalculatedBaseRef = useRef<number | null>(null);
+
+    useEffect(() => {
+        if (!open) {
+            lastCalculatedBaseRef.current = null;
+            return;
+        }
+
+        if (mode === 'parent' && isEdit && combo) {
+            // Parent mode: Derive from children (if any)
+            const children = allCombos.filter(c => c.comboParentId === combo.id);
+            if (children.length > 0) {
+                const minBase = Math.min(...children.map(c => c.basePrice));
+                const minSale = Math.min(...children.map(c => c.salePrice));
+
+                if (Number(form.basePrice) !== minBase) {
+                    dispatch({ type: "SET_FIELD", field: "basePrice", payload: String(minBase) });
+                }
+                if (Number(form.salePrice) !== minSale) {
+                    dispatch({ type: "SET_FIELD", field: "salePrice", payload: String(minSale) });
+                }
+            }
+        } else if (mode === 'variant') {
+            // Variant mode: basePrice = sum of items
+            const calculatedBase = form.items.reduce((sum, item) => sum + (item.salePrice * item.quantity), 0);
+            
+            // Detection logic for item changes that affect pricing
+            const prevBase = lastCalculatedBaseRef.current;
+            
+            if (calculatedBase > 0 && Number(form.basePrice) !== calculatedBase) {
+                dispatch({ type: "SET_FIELD", field: "basePrice", payload: String(calculatedBase) });
+                
+                // Only show toast if it's a change after initial load/sync
+                if (prevBase !== null && prevBase !== calculatedBase) {
+                    toast.info("Pricing changed!", {
+                        description: "Item quantities updated. Please remember to re-adjust your Selling Price (Sale Price) to maintain desired profit/discount.",
+                        duration: 5000,
+                        action: {
+                            label: "Update Price",
+                            onClick: () => {
+                                document.querySelector<HTMLButtonElement>('button[value="pricing"]')?.click();
+                                setTimeout(() => document.getElementById('c-sale')?.focus(), 300);
+                            }
+                        }
+                    });
+                }
+            }
+            
+            lastCalculatedBaseRef.current = calculatedBase;
+        }
+    }, [open, mode, form.items, allCombos, isEdit, combo, form.basePrice, form.salePrice]);
 
     // ── Field setters ────────────────────────────────────
     const setField = useCallback(
@@ -158,6 +238,9 @@ export function useComboForm({
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
+        const basePrice = Number(form.basePrice) || 0;
+        const salePrice = Number(form.salePrice) || 0;
+
         if (mode === 'parent') {
             if (!form.name.trim() || !form.slug.trim()) return;
             onSubmit({
@@ -166,8 +249,8 @@ export function useComboForm({
                 ageGroup: form.ageGroup ? Number(form.ageGroup) : 0,
                 color: '',
                 size: '',
-                basePrice: Number(form.basePrice) || 0,
-                salePrice: Number(form.salePrice) || 0,
+                basePrice,
+                salePrice,
                 description: form.description.trim(),
                 imageUrl: form.imageUrl.trim(),
                 imagePublicId: form.imagePublicId.trim(),
@@ -201,8 +284,8 @@ export function useComboForm({
                 ageGroup: form.ageGroup ? Number(form.ageGroup) : 0,
                 color: form.color,
                 size: form.size,
-                basePrice: Number(form.basePrice) || 0,
-                salePrice: Number(form.salePrice) || 0,
+                basePrice,
+                salePrice,
                 description: form.description.trim(),
                 imageUrl: form.imageUrl.trim(),
                 imagePublicId: form.imagePublicId.trim(),
@@ -234,10 +317,21 @@ export function useComboForm({
         : form.comboParentId.trim() !== "" &&
         form.items.some((i) => i.productVariantId);
 
+    // Pricing logic per mode
+    // Parent price is locked (derived from children)
+    const isPriceAutoManaged = mode === 'parent';
+    // Variant base price is auto-managed from items, but sale price remains manual
+    const isVariantBasePriceAuto = mode === 'variant' && form.items.length > 0;
+
+    const priceSource = (mode === 'variant' ? 'items' : 'children') as 'items' | 'children';
+
     return {
         form,
         isEdit,
         isValid,
+        isPriceAutoManaged,
+        isVariantBasePriceAuto,
+        priceSource,
         // Data
         variantOptions,
         isLoadingVariants,

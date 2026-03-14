@@ -1,15 +1,27 @@
-import { ShoppingBag } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ShoppingBag, Calculator, X, DollarSign } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useComboDetail, useUpdateComboItems } from '@/hooks/queries/useCombo';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useComboDetail, useUpdateCombo } from '@/hooks/queries/useCombo';
 import { toComboItems } from './combo-utils';
 import ComboVariantRow from './ComboVariantRow';
-import type { Combo } from '../../types';
+import type { Combo, ComboItem } from '../../types';
+import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface ChildComboItemsProps {
     childId: string;
     childName: string;
     parentChildData?: Combo;
     isDense?: boolean;
+}
+
+// ── Types ─────────────────────────────────────────
+interface RichComboItem extends ComboItem {
+    basePrice?: number;
+    salePrice?: number;
 }
 
 export default function ChildComboItems({
@@ -19,31 +31,115 @@ export default function ChildComboItems({
     isDense = false
 }: ChildComboItemsProps) {
     const { data: detail, isLoading } = useComboDetail(childId, true);
-    const updateItemsMutation = useUpdateComboItems();
+    const updateComboMutation = useUpdateCombo();
 
-    const items = toComboItems(detail || parentChildData);
+    // ── Local State For Batch Updates ──────────────────
+    const [draftItems, setDraftItems] = useState<Record<string, number>>({});
+    const [draftSalePrice, setDraftSalePrice] = useState<number | null>(null);
+    const [initializedId, setInitializedId] = useState<string | null>(null);
+    const [hasFullDetail, setHasFullDetail] = useState(false);
 
-    const handleUpdateQuantity = async (itemKey: string, newQty: number) => {
-        if (!detail) return;
-        const [pId] = itemKey.split('|'); // pId is productVariantId
-
-        const updatedItems = detail.productItems?.map(i => {
-            if (i.productVariantId === pId) {
-                return { ...i, quantity: newQty };
+    // Sync state during render (React handles this safely if it's conditional)
+    // This avoids useEffect cascading renders and is the recommended way to sync props to state.
+    if (childId !== initializedId || (detail && !hasFullDetail)) {
+        const source = detail || parentChildData;
+        if (source) {
+            const itemMap: Record<string, number> = {};
+            if (detail) {
+                detail.productItems?.forEach(i => {
+                    itemMap[i.productVariantId] = i.quantity;
+                });
+                setHasFullDetail(true);
+            } else if (parentChildData) {
+                parentChildData.items?.forEach(i => {
+                    const id = i.variantId || i.productId;
+                    itemMap[id] = i.quantity;
+                });
+                setHasFullDetail(false);
             }
-            return i;
-        }) || [];
 
-        const itemsUpdate = updatedItems.map(i => ({
+            setDraftItems(itemMap);
+            setDraftSalePrice(source.salePrice);
+            setInitializedId(childId);
+        }
+    }
+
+    // ── Calculations ─────────────────────────────────
+    const items = useMemo(() => toComboItems(detail || parentChildData) as RichComboItem[], [detail, parentChildData]);
+
+    const theoreticalValue = useMemo(() => {
+        return items.reduce((sum, item) => {
+            const qty = draftItems[item.productId] ?? item.quantity;
+            const price = item.salePrice || 0;
+            return sum + price * qty;
+        }, 0);
+    }, [items, draftItems]);
+
+    const isDirty = useMemo(() => {
+        if (!detail) return false;
+
+        // Check items
+        const itemsChanged = detail.productItems?.some(i => draftItems[i.productVariantId] !== i.quantity);
+        if (itemsChanged) return true;
+
+        // Check price
+        if (draftSalePrice !== detail.salePrice) return true;
+
+        return false;
+    }, [detail, draftItems, draftSalePrice]);
+
+    // ── Handlers ─────────────────────────────────────
+    const handleQuantityChange = (itemKey: string, newQty: number) => {
+        const [pId] = itemKey.split('|');
+        setDraftItems(prev => ({ ...prev, [pId]: Math.max(1, newQty) }));
+    };
+
+    const handleReset = () => {
+        if (!detail) return;
+        const itemMap: Record<string, number> = {};
+        detail.productItems?.forEach(i => {
+            itemMap[i.productVariantId] = i.quantity;
+        });
+        setDraftItems(itemMap);
+        setDraftSalePrice(detail.salePrice);
+    };
+
+    const handleSaveAll = async () => {
+        if (!detail) return;
+
+        const updatedItems = detail.productItems?.map(i => ({
             productVariantId: i.productVariantId,
-            quantity: i.quantity
-        }));
-        await updateItemsMutation.mutateAsync({ id: childId, items: itemsUpdate });
+            quantity: draftItems[i.productVariantId] ?? i.quantity
+        })) || [];
+
+        try {
+            await updateComboMutation.mutateAsync({
+                id: childId,
+                data: {
+                    name: detail.name,
+                    slug: detail.slug,
+                    ageGroup: detail.ageGroup ?? 0,
+                    color: detail.color,
+                    size: detail.size,
+                    basePrice: detail.basePrice,
+                    description: detail.description,
+                    imageUrl: detail.imageUrl,
+                    imagePublicId: detail.imagePublicId,
+                    status: detail.status,
+                    comboParentId: detail.comboParentId ?? undefined,
+                    salePrice: draftSalePrice ?? detail.salePrice,
+                    items: updatedItems
+                }
+            });
+            toast.success("Combo configuration & pricing synchronized!");
+        } catch {
+            // Error handled by mutation onError
+        }
     };
 
     const handleDeleteItem = async (itemKey: string) => {
         if (!detail || !confirm('Remove this item from combo?')) return;
-        const [pId] = itemKey.split('|'); // pId is productVariantId
+        const [pId] = itemKey.split('|');
 
         const updatedItems = detail.productItems?.filter(i =>
             i.productVariantId !== pId
@@ -51,21 +147,37 @@ export default function ChildComboItems({
 
         const itemsUpdate = updatedItems.map(i => ({
             productVariantId: i.productVariantId,
-            quantity: i.quantity
+            quantity: draftItems[i.productVariantId] ?? i.quantity
         }));
-        await updateItemsMutation.mutateAsync({ id: childId, items: itemsUpdate });
+
+        await updateComboMutation.mutateAsync({
+            id: childId,
+            data: {
+                name: detail.name,
+                slug: detail.slug,
+                ageGroup: detail.ageGroup ?? 0,
+                color: detail.color,
+                size: detail.size,
+                basePrice: detail.basePrice,
+                description: detail.description,
+                imageUrl: detail.imageUrl,
+                imagePublicId: detail.imagePublicId,
+                status: detail.status,
+                comboParentId: detail.comboParentId ?? undefined,
+                salePrice: draftSalePrice ?? detail.salePrice,
+                items: itemsUpdate
+            }
+        });
     };
 
-    if (isLoading) {
+    // ── Render Helpers ───────────────────────────────
+    if (isLoading && !detail) {
         return (
             <div className="p-8 space-y-4">
-                <div className="flex items-center justify-between mb-4">
-                    <Skeleton className="h-6 w-1/3" />
-                    <Skeleton className="h-4 w-1/4" />
-                </div>
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-6 w-1/3 bg-slate-100" />
+                <Skeleton className="h-14 w-full bg-slate-100/50 rounded-xl" />
+                <Skeleton className="h-14 w-full bg-slate-100/50 rounded-xl" />
+                <Skeleton className="h-32 w-full bg-slate-100/30 rounded-2xl" />
             </div>
         );
     }
@@ -80,23 +192,147 @@ export default function ChildComboItems({
     }
 
     return (
-        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div className={`grid grid-cols-[1fr_120px_100px_80px] gap-4 px-8 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50/50 border-b border-gray-100 ${isDense ? 'py-2 px-6' : ''}`}>
-                <div>Constituent Component</div>
-                <div className="text-right">Value</div>
-                <div className="text-center">Qty</div>
-                <div className="text-right">Action</div>
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            {/* Items Table */}
+            <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden ring-1 ring-slate-200/40">
+                <div className={cn(
+                    "grid grid-cols-[1fr_120px_120px_60px] gap-4 px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-50/50 border-b border-slate-100",
+                    isDense && "px-4 py-2"
+                )}>
+                    <div>Component Description</div>
+                    <div className="text-right">Unit Value</div>
+                    <div className="text-center">Quantity</div>
+                    <div className="text-right">Action</div>
+                </div>
+                <div className="divide-y divide-slate-50">
+                    {items.map((item, i) => (
+                        <ComboVariantRow
+                            key={`${item.productId}|${item.variantId ?? i}`}
+                            item={{
+                                ...item,
+                                quantity: draftItems[item.productId] ?? item.quantity
+                            }}
+                            onQuantityChange={handleQuantityChange}
+                            onDelete={handleDeleteItem}
+                            isLoading={updateComboMutation.isPending}
+                            isDense={isDense}
+                        />
+                    ))}
+                </div>
             </div>
-            <div className="divide-y divide-gray-50">
-                {items.map((item, i) => (
-                    <ComboVariantRow
-                        key={`${item.productId}|${item.variantId ?? i}`}
-                        item={item}
-                        onQuantityChange={handleUpdateQuantity}
-                        onDelete={handleDeleteItem}
-                        isDense={isDense}
-                    />
-                ))}
+
+            {/* Compact Pricing Panel */}
+            <div className={cn(
+                "relative bg-white rounded-2xl border transition-all duration-300 overflow-hidden",
+                isDirty
+                    ? "border-primary-500/30 shadow-md ring-1 ring-primary-500/5"
+                    : "border-slate-200/60 shadow-sm"
+            )}>
+
+                <div className="p-5 md:px-6 md:py-4 flex flex-col md:flex-row items-center justify-between gap-5">
+
+                    {/* Left: Info */}
+                    <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-2">
+                            <Calculator className={cn("h-4 w-4", isDirty ? "text-primary-500" : "text-slate-400")} />
+                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Pricing</span>
+                        </div>
+
+                        <div className="flex items-center gap-6">
+                            <div className="space-y-0.5">
+                                <p className="text-[9px] text-slate-400 font-bold uppercase">Sum</p>
+                                <div className="text-sm font-bold text-slate-800 tabular-nums">
+                                    {theoreticalValue.toLocaleString('en-US')}₫
+                                </div>
+                            </div>
+                            <div className="h-6 w-px bg-slate-100 hidden sm:block" />
+                            <div className="space-y-0.5">
+                                <p className="text-[9px] text-primary-500/70 font-bold uppercase">Current</p>
+                                <div className="text-sm font-bold text-primary-600 tabular-nums">
+                                    {detail?.salePrice.toLocaleString('en-US')}₫
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right: Actions */}
+                    <div className="flex items-center gap-4 w-full md:w-auto">
+                        <div className="relative group flex-1 md:w-44">
+                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10">
+                                <DollarSign className="h-3.5 w-3.5" />
+                            </div>
+                            <Input
+                                type="number"
+                                value={draftSalePrice ?? ''}
+                                onChange={e => setDraftSalePrice(Number(e.target.value))}
+                                className="pl-8 pr-16 h-9 bg-slate-50/50 border-slate-200 rounded-lg font-bold text-sm focus:bg-white transition-all focus:border-primary-500"
+                                placeholder="0"
+                            />
+                            <button
+                                onClick={() => setDraftSalePrice(theoreticalValue)}
+                                className="absolute right-1.5 top-1/2 -translate-y-1/2 h-6 px-2 text-[8px] font-bold uppercase bg-white border border-slate-200 text-slate-500 hover:text-primary-600 hover:border-primary-200 rounded transition-colors"
+                            >
+                                Match
+                            </button>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            {isDirty && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={handleReset}
+                                    className="h-9 px-3 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50"
+                                >
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            )}
+                            <Button
+                                onClick={handleSaveAll}
+                                disabled={updateComboMutation.isPending || !isDirty}
+                                size="sm"
+                                className={cn(
+                                    "h-9 px-5 rounded-lg font-bold uppercase text-[10px] tracking-wider transition-all",
+                                    isDirty
+                                        ? "bg-primary-600 hover:bg-primary-700 text-white shadow-sm"
+                                        : "bg-slate-100 text-slate-400"
+                                )}
+                            >
+                                {updateComboMutation.isPending ? "Syncing..." : "Apply Changes"}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Dynamic Progress Bar */}
+                <AnimatePresence>
+                    {(isDirty || updateComboMutation.isPending) && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 2, opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="w-full bg-slate-100 overflow-hidden relative"
+                        >
+                            <motion.div
+                                initial={{ width: "0%" }}
+                                animate={{
+                                    width: updateComboMutation.isPending ? "85%" : (isDirty ? "33%" : "100%")
+                                }}
+                                transition={{
+                                    type: "spring",
+                                    stiffness: 50,
+                                    damping: 15,
+                                    restDelta: 0.01
+                                }}
+                                className="h-full bg-primary-500"
+                            />
+                            {updateComboMutation.isPending && (
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-1/2 animate-[shimmer_1.5s_infinite] -translate-x-full" />
+                            )}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
         </div>
     );

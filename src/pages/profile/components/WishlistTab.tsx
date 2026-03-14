@@ -1,154 +1,89 @@
-import { HeartFilledIcon } from "@radix-ui/react-icons"
-import { ShoppingCart, Heart, Trash2, Share2 } from "lucide-react"
+import { ShoppingCart, Trash2, Heart } from "lucide-react"
 import { Button } from "../../../components/ui/button"
-import { Badge } from "../../../components/ui/badge"
-import { Card, CardContent } from "../../../components/ui/card"
-import { mockWishlist } from "../data"
+import { useFavoriteProducts, useDeleteFavorite } from "../../../hooks/useFavorite"
 import { formatPrice } from "../utils"
 
 export default function WishlistTab() {
+
+    const { data, isLoading } = useFavoriteProducts()
+    const deleteFavorite = useDeleteFavorite()
+
+    const wishlist = data?.items || []
+
+    if (isLoading) return <p>Loading...</p>
+
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-in fade-in duration-500">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
                 <div>
-                    <h2 className="text-xl font-semibold text-gray-900">Sản phẩm yêu thích</h2>
-                    <p className="text-sm text-gray-500 mt-1">
-                        {mockWishlist.length} sản phẩm trong danh sách
+                    <h2 className="text-xl font-bold text-slate-900">Your Wishlist</h2>
+                    <p className="text-sm text-slate-500 mt-1 font-medium">
+                        You have {data?.totalCount || 0} items saved to your collection.
                     </p>
                 </div>
-                {mockWishlist.length > 0 && (
-                    <div className="flex gap-2">
-                        <Button variant="outline" size="sm">
-                            <Share2 className="h-4 w-4 mr-2" />
-                            Chia sẻ
-                        </Button>
-                        <Button size="sm">
-                            <ShoppingCart className="h-4 w-4 mr-2" />
-                            Thêm tất cả vào giỏ
-                        </Button>
-                    </div>
-                )}
             </div>
 
-            {/* Wishlist Grid */}
-            {mockWishlist.length > 0 ? (
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {mockWishlist.map((item) => (
-                        <Card key={item.id} className="group overflow-hidden hover:shadow-lg transition-all duration-300">
-                            {/* Product Image */}
-                            <div className="relative aspect-square bg-gray-100">
+            {wishlist.length > 0 ? (
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {wishlist.map((item) => (
+                        <div
+                            key={item.id}
+                            className="group relative rounded-2xl bg-white border border-slate-200/60 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden flex flex-col"
+                        >
+                            {/* Image Section */}
+                            <div className="relative aspect-square overflow-hidden bg-slate-50/50">
                                 <img
                                     src={item.image}
                                     alt={item.name}
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                 />
 
-                                {/* Badges */}
-                                <div className="absolute top-3 left-3 flex flex-col gap-2">
-                                    {item.discount && (
-                                        <Badge variant="danger" className="shadow-sm">
-                                            -{item.discount}%
-                                        </Badge>
-                                    )}
-                                    {!item.inStock && (
-                                        <Badge variant="secondary" className="shadow-sm">
-                                            Hết hàng
-                                        </Badge>
-                                    )}
-                                </div>
-
-                                {/* Remove Button */}
-                                <button className="absolute top-3 right-3 p-2 rounded-full bg-white/90 text-red-500 opacity-0 group-hover:opacity-100 hover:bg-red-50 transition-all shadow-sm">
+                                {/* Quick Remove Button */}
+                                <button
+                                    onClick={() => deleteFavorite.mutate(item.id)}
+                                    className="absolute top-3 right-3 w-9 h-9 rounded-xl bg-white/90 backdrop-blur-md text-slate-400 hover:text-rose-500 shadow-sm flex items-center justify-center transition-all hover:scale-110 active:scale-95 opacity-0 group-hover:opacity-100"
+                                >
                                     <Trash2 className="h-4 w-4" />
                                 </button>
-
-                                {/* Heart Icon */}
-                                <div className="absolute bottom-3 right-3">
-                                    <div className="p-2 rounded-full bg-[#4988c4]/10 text-[#4988c4]">
-                                        <HeartFilledIcon className="h-5 w-5" />
-                                    </div>
-                                </div>
                             </div>
 
-                            <CardContent className="p-4">
-                                {/* Product Info */}
-                                <h3 className="font-medium text-gray-900 line-clamp-2 min-h-[2.5rem] group-hover:text-[#4988c4] transition-colors">
+                            <div className="p-5 flex-1 flex flex-col">
+                                <h3 className="text-sm font-bold text-slate-900 line-clamp-2 tracking-tight mb-3 group-hover:text-primary transition-colors leading-snug">
                                     {item.name}
                                 </h3>
 
-                                {/* Price */}
-                                <div className="mt-2 flex items-center gap-2">
-                                    <span className="text-lg font-semibold text-[#4988c4]">
-                                        {formatPrice(item.price)}
-                                    </span>
-                                    {item.originalPrice && (
-                                        <span className="text-sm text-gray-400 line-through">
-                                            {formatPrice(item.originalPrice)}
+                                <div className="mt-auto">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <span className="text-lg font-bold text-primary">
+                                            {formatPrice(item.price)}
                                         </span>
-                                    )}
-                                </div>
+                                    </div>
 
-                                {/* Added Date */}
-                                <p className="mt-2 text-xs text-gray-400">
-                                    Đã thêm: {new Date(item.addedAt).toLocaleDateString("vi-VN")}
-                                </p>
-
-                                {/* Actions */}
-                                <div className="mt-4 flex gap-2">
                                     <Button
-                                        className="flex-1"
-                                        size="sm"
-                                        disabled={!item.inStock}
+                                        className="w-full h-10 rounded-xl font-bold uppercase tracking-wider text-[11px] shadow-sm transition-all active:scale-95 gap-2"
                                     >
-                                        <ShoppingCart className="h-4 w-4 mr-2" />
-                                        {item.inStock ? "Thêm vào giỏ" : "Hết hàng"}
+                                        <ShoppingCart className="h-4 w-4" />
+                                        Add to Cart
                                     </Button>
                                 </div>
-                            </CardContent>
-                        </Card>
+                            </div>
+                        </div>
                     ))}
                 </div>
             ) : (
-                /* Empty State */
-                <Card>
-                    <CardContent className="py-16 text-center">
-                        <div className="w-16 h-16 rounded-full bg-pink-100 flex items-center justify-center mx-auto mb-4">
-                            <Heart className="h-8 w-8 text-pink-400" />
-                        </div>
-                        <h3 className="font-medium text-gray-900 mb-1">Chưa có sản phẩm yêu thích</h3>
-                        <p className="text-sm text-gray-500 mb-4">
-                            Hãy khám phá và thêm sản phẩm vào danh sách yêu thích
-                        </p>
-                        <Button>Khám phá ngay</Button>
-                    </CardContent>
-                </Card>
-            )}
-
-            {/* Recently Viewed */}
-            {mockWishlist.length > 0 && (
-                <Card>
-                    <CardContent className="p-5">
-                        <h3 className="font-semibold text-gray-900 mb-4">Có thể bạn cũng thích</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {[1, 2, 3, 4].map((i) => (
-                                <div key={i} className="group cursor-pointer">
-                                    <div className="aspect-square rounded-lg bg-gray-100 overflow-hidden mb-2">
-                                        <img
-                                            src={`/images/product-${i}.jpg`}
-                                            alt={`Product ${i}`}
-                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                                        />
-                                    </div>
-                                    <p className="text-sm font-medium text-gray-900 truncate group-hover:text-[#4988c4] transition-colors">
-                                        Sản phẩm gợi ý {i}
-                                    </p>
-                                    <p className="text-sm font-semibold text-[#4988c4]">299.000đ</p>
-                                </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
+                <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50/50 py-20 text-center">
+                    <div className="w-20 h-20 rounded-2xl bg-white shadow-sm flex items-center justify-center mx-auto mb-6">
+                        <Heart className="h-8 w-8 text-slate-200" />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-900">Your wishlist is empty</h3>
+                    <p className="text-sm text-slate-500 max-w-xs mx-auto mt-2 font-medium">
+                        Explore our collections and save your favorite items here.
+                    </p>
+                    <Button className="mt-8 h-11 px-8 rounded-xl bg-slate-900 hover:bg-black text-white font-bold uppercase tracking-wider text-[11px] shadow-sm transition-all active:scale-95">
+                        Start Shopping
+                    </Button>
+                </div>
             )}
         </div>
     )

@@ -1,0 +1,79 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { orderService } from '@/api/services';
+import type { CreateOrderRequest } from '@/api/types/order';
+import { cartKeys } from './useCart';
+
+export const orderKeys = {
+    all: ['orders'] as const,
+    detail: (id: string) => [...orderKeys.all, id] as const,
+};
+
+export const useOrders = (params?: { pageNumber?: number; pageSize?: number }) => {
+    return useQuery({
+        queryKey: params ? [...orderKeys.all, params] : orderKeys.all,
+        queryFn: () => orderService.getOrders(params),
+    });
+};
+
+export const useCreateOrder = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (data: CreateOrderRequest) => orderService.createOrder(data),
+        onSuccess: (data) => {
+            // If it's COD, we should invalidate cart
+            if (!data.paymentUrl) {
+                queryClient.invalidateQueries({ queryKey: cartKeys.all });
+            }
+        },
+        onError: (error: unknown) => {
+            // Fallback error messaging if interceptor is bypassed or for specific UX
+            console.error('[useCreateOrder] error:', error);
+        }
+    });
+};
+export const useOrderDetail = (id: string) => {
+    return useQuery({
+        queryKey: orderKeys.detail(id),
+        queryFn: () => orderService.getOrderDetail(id),
+        enabled: !!id,
+    });
+};
+
+export const useCancelOrder = (options?: { meta?: Record<string, unknown> }) => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (id: string) => orderService.cancelOrder(id),
+        meta: options?.meta,
+        onSuccess: (_, id) => {
+            queryClient.invalidateQueries({ queryKey: orderKeys.all });
+            queryClient.invalidateQueries({ queryKey: orderKeys.detail(id) });
+        }
+    });
+};
+export const useAdminOrders = (params?: {
+    pageNumber?: number;
+    pageSize?: number;
+    search?: string;
+    status?: string[];
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+}) => {
+    return useQuery({
+        queryKey: [...orderKeys.all, 'admin', params],
+        queryFn: () => orderService.getAdminOrders(params),
+    });
+};
+
+export const useUpdateOrderStatus = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ id, status }: { id: string, status: string }) =>
+            orderService.updateStatus(id, status),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: orderKeys.all });
+        }
+    });
+};

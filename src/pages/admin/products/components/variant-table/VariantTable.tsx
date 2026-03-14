@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -20,14 +23,15 @@ import {
   AlertTriangle,
   ChevronDown,
   Package2,
-  ShoppingCart,
+  CircleDot,
+  Sparkles,
+  Check,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { AdminColorGroup, AdminVariantItem } from '@/api/services/variantService';
-import { useAdminProductVariants } from '@/hooks/queries/useProduct';
+import { useRichAdminVariants, useUpdateVariantStatus } from '@/hooks/queries/useProduct';
 import { useStockAdjustment } from './useStockAdjustment';
 import StockAdjustmentDialog from './StockAdjustmentDialog';
-import { useAddToCart } from '@/hooks/queries/useCart';
+import type { TransformedAdminVariants } from '@/pages/admin/products/utils/variant-utils';
 import { useToast } from '@/hooks/useToast';
 
 /* ─── Stock Status Config ───────────────────────────────── */
@@ -37,30 +41,6 @@ const stockStatusConfig: Record<string, { label: string; className: string }> = 
   'Out of Stock': { label: 'Out of Stock', className: 'bg-red-50 text-red-600 border-red-200' },
 };
 
-/* ─── Color Helpers ────────────────────────────────────── */
-const colorMap: Record<string, string> = {
-  white: '#f5f5f5',
-  pink: '#ffc0cb',
-  blue: '#add8e6',
-  red: '#ff6b6b',
-  green: '#90ee90',
-  yellow: '#ffeb3b',
-  orange: '#ffa500',
-  purple: '#dda0dd',
-  black: '#333333',
-  gray: '#9e9e9e',
-  grey: '#9e9e9e',
-  brown: '#a0522d',
-  beige: '#f5f5dc', mint: '#98ff98', unknown: '#e5e7eb',
-  default: '#e5e7eb',
-};
-
-function getColorHex(colorValue: string | undefined): string {
-  if (!colorValue) return '#e5e7eb';
-  if (colorValue.startsWith('#')) return colorValue;
-  const normalized = colorValue.toLowerCase().trim();
-  return colorMap[normalized] || '#e5e7eb';
-}
 
 /* ─── Types ────────────────────────────────────────────── */
 interface VariantTableProps {
@@ -79,9 +59,7 @@ export default function VariantTable({
   onEditVariant,
   onDeleteVariant,
 }: VariantTableProps) {
-  const { success, error } = useToast();
-  const addToCartMutation = useAddToCart();
-  const { data, isLoading } = useAdminProductVariants(productId);
+  const { data, isLoading } = useRichAdminVariants(productId);
   const {
     stockDialog,
     stockQuantity,
@@ -94,24 +72,9 @@ export default function VariantTable({
 
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set());
 
-  const colorGroups = useMemo(() => data?.colorGroups ?? [], [data?.colorGroups]);
+  const colorGroups = data?.colorGroups ?? [];
   const totalVariants = data?.totalVariants ?? 0;
-
-  // Memoized stock stats
-  const stockStats = useMemo(() => {
-    return colorGroups.reduce(
-      (acc, group) => {
-        group.variants.forEach((v) => {
-          acc.total += v.stockQuantity ?? 0;
-          if (v.stockStatus === 'In Stock') acc.inStock++;
-          else if (v.stockStatus === 'Low Stock') acc.lowStock++;
-          else acc.outOfStock++;
-        });
-        return acc;
-      },
-      { total: 0, inStock: 0, lowStock: 0, outOfStock: 0 }
-    );
-  }, [colorGroups]);
+  const stats = data?.stats;
 
   // Toggle expand/collapse
   const toggleGroup = useCallback((color: string) => {
@@ -126,18 +89,7 @@ export default function VariantTable({
     });
   }, []);
 
-  const handleAddToCart = async (variantId: string) => {
-    try {
-      await addToCartMutation.mutateAsync({
-        productVariantId: variantId,
-        comboId: null,
-        quantity: 1,
-      });
-      success('Added to Cart', 'Product variant has been added to cart.');
-    } catch {
-      error('Add to Cart Failed', 'Could not add variant to cart.');
-    }
-  };
+
 
   // Groups are collapsed by default per user request
 
@@ -219,7 +171,6 @@ export default function VariantTable({
                     onEditVariant={onEditVariant}
                     onDeleteVariant={onDeleteVariant}
                     onStockAdjust={openDialog}
-                    onAddToCart={handleAddToCart}
                   />
                 ))}
               </div>
@@ -228,22 +179,22 @@ export default function VariantTable({
         </div>
 
         {/* Footer Stats */}
-        {totalVariants > 0 && (
+        {stats && totalVariants > 0 && (
           <div className="mt-4 flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-gray-500">
             <span>
-              Total stock: <span className="font-bold text-gray-700">{stockStats.total}</span>
+              Total stock: <span className="font-bold text-gray-700">{stats.totalStock}</span>
             </span>
             <span className="text-gray-300">|</span>
             <span>
-              In stock: <span className="font-bold text-green-600">{stockStats.inStock}</span>
+              In stock: <span className="font-bold text-green-600">{stats.inStock}</span>
             </span>
             <span className="text-gray-300">|</span>
             <span>
-              Low: <span className="font-bold text-orange-500">{stockStats.lowStock}</span>
+              Low: <span className="font-bold text-orange-500">{stats.lowStock}</span>
             </span>
             <span className="text-gray-300">|</span>
             <span>
-              OOS: <span className="font-bold text-red-500">{stockStats.outOfStock}</span>
+              OOS: <span className="font-bold text-red-500">{stats.outOfStock}</span>
             </span>
           </div>
         )}
@@ -270,18 +221,14 @@ function ColorGroupRow({
   onEditVariant,
   onDeleteVariant,
   onStockAdjust,
-  onAddToCart,
 }: {
-  group: AdminColorGroup;
+  group: NonNullable<TransformedAdminVariants>['colorGroups'][number];
   isExpanded: boolean;
   onToggle: () => void;
   onEditVariant: (variantId: string) => void;
   onDeleteVariant: (variantId: string) => void;
   onStockAdjust: (type: 'add' | 'reduce', variantId: string, sku: string, currentStock: number) => void;
-  onAddToCart: (variantId: string) => void;
 }) {
-  const colorHex = getColorHex(group.color);
-
   return (
     <div className="group/grouprow">
       {/* Color Group Header - Clickable to expand/collapse */}
@@ -304,7 +251,8 @@ function ColorGroupRow({
         <div className="relative">
           <span
             className="w-5 h-5 rounded-full border border-slate-200 shadow-sm block ring-4 ring-transparent group-hover/grouprow:ring-slate-100 transition-all"
-            style={{ backgroundColor: colorHex }}
+            style={{ backgroundColor: group.colorHex }}
+            title={group.color}
           />
           {isExpanded && (
             <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-0.5 h-8 bg-gradient-to-b from-indigo-200 to-transparent" />
@@ -324,7 +272,7 @@ function ColorGroupRow({
               Inventory
             </div>
             <div className="text-sm font-black text-slate-900">
-              {group.variants.reduce((sum, v) => sum + v.stockQuantity, 0)} <span className="text-[10px] text-slate-400 font-medium">units</span>
+              {group.groupStock} <span className="text-[10px] text-slate-400 font-medium">units</span>
             </div>
           </div>
         </div>
@@ -341,16 +289,14 @@ function ColorGroupRow({
             className="overflow-hidden"
           >
             <div className="divide-y divide-slate-50 bg-white">
-              {group.variants.map((variant, index) => (
+              {group.variants.map((variant) => (
                 <VariantRow
                   key={variant.id}
                   variant={variant}
-                  isEven={index % 2 === 0}
                   onEdit={() => onEditVariant(variant.id)}
                   onDelete={() => onDeleteVariant(variant.id)}
                   onAddStock={() => onStockAdjust('add', variant.id, variant.sku, variant.stockQuantity)}
                   onReduceStock={() => onStockAdjust('reduce', variant.id, variant.sku, variant.stockQuantity)}
-                  onAddToCart={() => onAddToCart(variant.id)}
                 />
               ))}
             </div>
@@ -361,6 +307,13 @@ function ColorGroupRow({
   );
 }
 
+/* ─── Variant Status Config ─────────────────────────────── */
+const variantStatusStyles: Record<string, { dot: string; label: string }> = {
+  Published: { dot: 'bg-emerald-500', label: 'Published' },
+  Draft: { dot: 'bg-amber-400', label: 'Draft' },
+  Hidden: { dot: 'bg-gray-400', label: 'Hidden' },
+};
+
 /* ─── Variant Row ──────────────────────────────────────── */
 function VariantRow({
   variant,
@@ -368,20 +321,40 @@ function VariantRow({
   onDelete,
   onAddStock,
   onReduceStock,
-  onAddToCart,
 }: {
-  variant: AdminVariantItem;
-  isEven: boolean;
+  variant: NonNullable<TransformedAdminVariants>['colorGroups'][number]['variants'][number];
   onEdit: () => void;
   onDelete: () => void;
   onAddStock: () => void;
   onReduceStock: () => void;
-  onAddToCart: () => void;
 }) {
   const hasSale = variant.salePrice < variant.basePrice;
-  const statusConfig = stockStatusConfig[variant.stockStatus] || stockStatusConfig['Out of Stock'];
-  const isLowStock = variant.stockStatus === 'Low Stock';
-  const isOutOfStock = variant.stockStatus === 'Out of Stock';
+  const statusConfig = stockStatusConfig[variant.stockStatus] || stockStatusConfig[variant.status] || stockStatusConfig['Out of Stock'];
+  const toast = useToast();
+  const hasZeroStock = !variant.stockQuantity || variant.stockQuantity <= 0;
+
+  // Quick action mutations
+  const updateStatusMutation = useUpdateVariantStatus();
+
+  const handleQuickStatus = useCallback((newStatus: string) => {
+    if (newStatus === variant.status) return;
+
+    if (hasZeroStock && (newStatus === 'Published' || newStatus === 'Hidden')) {
+        toast.error('Invalid Status', 'Cannot activate or hide variant with zero stock.');
+        return;
+    }
+
+    updateStatusMutation.mutate(
+      { variantId: variant.id, status: newStatus },
+      {
+        onSuccess: () => toast.success('Status updated', `Variant is now ${newStatus}.`),
+        onError: () => toast.error('Failed', 'Could not update variant status.'),
+      }
+    );
+  }, [variant.id, variant.status, hasZeroStock, updateStatusMutation, toast]);
+
+  const currentStatus = variant.status || 'Draft';
+  const statusStyle = variantStatusStyles[currentStatus] || variantStatusStyles.Draft;
 
   return (
     <div className="grid grid-cols-[80px_100px_1fr_120px_140px_120px_60px] gap-4 items-center px-10 py-3.5 hover:bg-slate-50/50 transition-all group/vrow relative">
@@ -392,7 +365,7 @@ function VariantRow({
       {/* Size badge */}
       <div>
         <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-black text-slate-700 shadow-sm leading-none group-hover/vrow:border-indigo-200 group-hover/vrow:bg-indigo-50/30 transition-colors">
-          {variant.size || 'N/A'}
+          {variant.dimensions}
         </span>
       </div>
 
@@ -422,17 +395,22 @@ function VariantRow({
             variant="ghost"
             size="sm"
             onClick={(e) => { e.stopPropagation(); onReduceStock(); }}
-            disabled={variant.stockQuantity <= 0}
-            className="h-7 w-7 p-0 rounded-lg hover:bg-red-50 hover:text-red-600 disabled:opacity-30 opacity-0 group-hover/vrow:opacity-100 transition-all scale-90"
+            disabled={variant.isOutOfStock}
+            className={cn(
+              "h-7 w-7 p-0 rounded-lg transition-all scale-90",
+              variant.isOutOfStock 
+                ? "invisible opacity-0 pointer-events-none"
+                : "opacity-0 group-hover/vrow:opacity-100 hover:bg-red-50 hover:text-red-600"
+            )}
           >
             <Minus className="h-3.5 w-3.5" />
           </Button>
 
           <div className="min-w-[40px] flex items-center justify-center gap-1 px-1">
-            {isLowStock && <AlertTriangle className="h-3 w-3 text-amber-500 animate-pulse" />}
+            {variant.isLowStock && <AlertTriangle className="h-3 w-3 text-amber-500 animate-pulse" />}
             <span className={cn(
               "text-sm font-black tracking-tight",
-              isLowStock ? "text-amber-500" : isOutOfStock ? "text-red-500" : "text-slate-900"
+              variant.isLowStock ? "text-amber-500" : variant.isOutOfStock ? "text-red-500" : "text-slate-900"
             )}>
               {variant.stockQuantity}
             </span>
@@ -442,15 +420,20 @@ function VariantRow({
             variant="ghost"
             size="sm"
             onClick={(e) => { e.stopPropagation(); onAddStock(); }}
-            className="h-7 w-7 p-0 rounded-lg hover:bg-emerald-50 hover:text-emerald-600 opacity-0 group-hover/vrow:opacity-100 transition-all scale-90"
+            className={cn(
+              "h-7 w-7 p-0 rounded-lg transition-all scale-90",
+              variant.isOutOfStock
+                ? "opacity-100 text-emerald-600 hover:bg-emerald-50"
+                : "opacity-0 group-hover/vrow:opacity-100 hover:bg-emerald-50 hover:text-emerald-600"
+            )}
           >
             <Plus className="h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
 
-      {/* Stock Status Badge */}
-      <div className="text-center">
+      {/* Stock + Variant Status Badges */}
+      <div className="flex flex-col items-center gap-1">
         <Badge
           variant="outline"
           className={cn(
@@ -460,19 +443,14 @@ function VariantRow({
         >
           {statusConfig.label}
         </Badge>
+        <span className="flex items-center gap-1 text-[10px] text-slate-400 font-medium">
+          <span className={cn('w-1.5 h-1.5 rounded-full', statusStyle.dot)} />
+          {statusStyle.label}
+        </span>
       </div>
 
-      {/* Contextual Actions */}
+      {/* Contextual Actions + Quick Actions */}
       <div className="flex justify-end gap-1 opacity-0 group-hover/vrow:opacity-100 transition-opacity">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 w-8 p-0 rounded-lg hover:bg-white hover:shadow-sm border border-transparent hover:border-slate-100 transition-all text-blue-600"
-          onClick={(e) => { e.stopPropagation(); onAddToCart(); }}
-          title="Add to Cart"
-        >
-          <ShoppingCart className="h-4 w-4" />
-        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
@@ -483,7 +461,8 @@ function VariantRow({
               <MoreVertical className="h-4 w-4 text-slate-400" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48 shadow-xl border border-slate-200/60 rounded-xl p-1 animate-in fade-in zoom-in-95 duration-100">
+          <DropdownMenuContent align="end" className="w-52 shadow-xl border border-slate-200/60 rounded-xl p-1 animate-in fade-in zoom-in-95 duration-100">
+            {/* Edit */}
             <DropdownMenuItem
               className="rounded-lg cursor-pointer py-2 px-3 font-medium text-slate-600 hover:text-blue-600 focus:bg-blue-50 focus:text-blue-700 transition-colors gap-2.5"
               onClick={onEdit}
@@ -494,6 +473,52 @@ function VariantRow({
 
             <DropdownMenuSeparator className="my-1 bg-slate-100" />
 
+            {/* Quick Status Change */}
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger className="rounded-lg cursor-pointer py-2 px-3 font-medium text-slate-600 gap-2.5">
+                <CircleDot className="h-4 w-4 opacity-70" />
+                <span className="text-[13px]">Change Status</span>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="w-44 rounded-xl shadow-xl border border-slate-200/60 p-1">
+                {Object.entries(variantStatusStyles).map(([value, style]) => {
+                  const isDisabled = hasZeroStock && (value === 'Published' || value === 'Hidden');
+                  return (
+                    <DropdownMenuItem
+                      key={value}
+                      onClick={() => !isDisabled && handleQuickStatus(value)}
+                      disabled={isDisabled}
+                      className={cn(
+                        "rounded-lg cursor-pointer py-2 px-3 font-medium text-slate-600 gap-2.5",
+                        currentStatus === value && "bg-slate-50"
+                      )}
+                      title={isDisabled ? "Cannot activate or hide variant with zero stock." : undefined}
+                    >
+                      <span className={cn('w-2.5 h-2.5 rounded-full', style.dot)} />
+                      <span className={cn("text-[13px] flex-1", isDisabled && "text-gray-400")}>{style.label}</span>
+                      {currentStatus === value && <Check className="h-3.5 w-3.5 text-emerald-500" />}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+
+            {/* Quick New Arrival Toggle */}
+            <DropdownMenuItem
+              className="rounded-lg cursor-pointer py-2 px-3 font-medium text-slate-600 gap-2.5"
+              onClick={() => {
+                // isNew toggle is not a separate endpoint — covered by the edit dialog
+                onEdit();
+              }}
+            >
+              <Sparkles className={cn('h-4 w-4', variant.isNew ? 'text-orange-500' : 'opacity-70')} />
+              <span className="text-[13px]">
+                {variant.isNew ? 'Remove New Badge' : 'Mark as New'}
+              </span>
+            </DropdownMenuItem>
+
+            <DropdownMenuSeparator className="my-1 bg-slate-100" />
+
+            {/* Delete */}
             <DropdownMenuItem
               className="rounded-lg cursor-pointer py-2 px-3 font-medium text-red-500 focus:bg-red-50 focus:text-red-600 transition-colors gap-2.5"
               onClick={onDelete}

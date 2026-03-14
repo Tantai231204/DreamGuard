@@ -5,6 +5,7 @@ export type { ApiResponse, PaginatedResponse } from "./apiResponse";
 export type {
   Token,
   LoginRequest,
+  AuthResponse,
   RegisterRequest,
   ForgotPasswordRequest,
   VerifyTokenRequest,
@@ -32,3 +33,4 @@ export type {
   ProductParams,
   UpdateProductStatusParams,
 } from "./product.types";
+export type { PaymentResponse, PaymentDetailResponse } from "./payment";

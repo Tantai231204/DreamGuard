@@ -87,7 +87,7 @@ const MaterialCombobox = memo(function MaterialCombobox({
                     sideOffset={6}
                     align="start"
                     className={cn(
-                        'z-[200] w-[var(--radix-popover-trigger-width)] overflow-hidden',
+                        'z-50 w-[var(--radix-popover-trigger-width)] overflow-hidden',
                         'rounded-xl border border-gray-200 bg-white shadow-xl shadow-black/10',
                         'data-[state=open]:animate-in data-[state=closed]:animate-out',
                         'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',

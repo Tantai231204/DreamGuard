@@ -7,9 +7,11 @@ import { MenuItem } from "./MenuItem"
 import { LogoutButton } from "./LogoutButton"
 import { mockUser } from "./data"
 import { useProfile } from "@/hooks/queries"
+import { useLogout } from "@/hooks/useAuth"
 
 export function UserDropdownContent() {
-    const { role, clearAuth: logout } = useAuthStore()
+    const { role } = useAuthStore()
+    const { mutate: logout } = useLogout()
     const { data: profile, isLoading } = useProfile()
 
     const userData = {
@@ -24,15 +26,15 @@ export function UserDropdownContent() {
             align="end"
             sideOffset={8}
             className="
-                w-72 rounded-2xl border border-gray-100 bg-white p-0 overflow-hidden z-[9999]
+                w-72 rounded-2xl border border-gray-100 bg-white p-0 overflow-hidden
                 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.1)]
             "
         >
             <UserHeader user={userData} isLoading={isLoading} />
 
-            <div className="py-2">
+            <div className="py-2 px-1">
                 <MenuItem
-                    to={AppRoute.PROFILE}
+                    to={`${AppRoute.PROFILE}?tab=profile`}
                     icon={<User className="h-4 w-4" />}
                     title="Account Settings"
                 />
@@ -55,13 +57,19 @@ export function UserDropdownContent() {
                     icon={<Heart className="h-4 w-4" />}
                     title="Wishlist"
                 />
+                
+                <MenuItem
+                    to={`${AppRoute.PROFILE}?tab=security`}
+                    icon={<ShieldCheck className="h-4 w-4" />}
+                    title="Account Security"
+                />
 
-                {role === "admin" && (
+                {role?.toLowerCase() === "admin" && (
                     <>
                         <DropdownMenuSeparator className="mx-4 my-2 opacity-50" />
                         <MenuItem
                             to={AppRoute.ADMIN}
-                            icon={<ShieldCheck className="h-4 w-4" />}
+                            icon={<ShieldCheck className="h-4 w-4 text-primary" />}
                             title="Admin Controls"
                         />
                     </>

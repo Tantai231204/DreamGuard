@@ -1,15 +1,12 @@
 import { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
-
 import AppLayout from "../layouts/AppLayout";
 import AuthLayout from "../layouts/AuthLayout";
 import AdminLayout from "../layouts/AdminLayout";
-
 import PrivateRoute from "../components/router/PrivateRoute";
 import AdminRoute from "../components/router/AdminRoute";
 import UserGuard from "../components/router/UserGuard";
 import { PageLoader } from "../components/common";
-
 import { AppRoute } from "../lib/constants";
 
 /* =======================
@@ -20,17 +17,19 @@ import { AppRoute } from "../lib/constants";
 const Home = lazy(() => import("../pages/home"));
 const Products = lazy(() => import("../pages/products"));
 const ProductDetail = lazy(() => import("../pages/products/[slug]"));
+const Combos = lazy(() => import("../pages/combos"));
+const ComboDetail = lazy(() => import("../pages/combos/[id]"));
 const CartPage = lazy(() => import("../pages/cart"));
 const CheckoutPage = lazy(() => import("../pages/checkout"));
+const CheckoutResult = lazy(() => import("../pages/checkout/CheckoutResult"));
 
 // Auth
 const Login = lazy(() => import("../pages/auth/Login"));
-// const Register = lazy(() => import("../pages/auth/Register"));
 const RegisterBasic = lazy(() => import("../pages/auth/RegisterBasic"));
 const VerifyRegisterOTP = lazy(() => import("../pages/auth/VerifyRegisterOTP"));
 const RegisterComplete = lazy(() => import("../pages/auth/RegisterComplete"));
 const ForgotPassword = lazy(() => import("../pages/auth/ForgotPassword"));
-const VerifyOTP = lazy(() => import("../pages/auth/VerifyOTP"));
+const ResetPasswordOTP = lazy(() => import("../pages/auth/ResetPasswordOTP"));
 const ResetPassword = lazy(() => import("../pages/auth/ResetPassword"));
 const ResetPasswordSuccess = lazy(() => import("../pages/auth/ResetPasswordSuccess"));
 
@@ -51,10 +50,11 @@ const VoucherManagement = lazy(() => import("../pages/admin/vouchers"));
 const ResellManagement = lazy(() => import("../pages/admin/resell"));
 const TradeInDetail = lazy(() => import("../pages/admin/resell/[id]"));
 const UserManagement = lazy(() => import("../pages/admin/users"));
+const PaymentManagement = lazy(() => import("../pages/admin/payments"));
 
 /* =======================
    Router
-======================= */
+ ======================= */
 export default function AppRouter() {
     return (
         <Suspense fallback={<PageLoader />}>
@@ -67,6 +67,8 @@ export default function AppRouter() {
                         <Route path={AppRoute.HOME} element={<Home />} />
                         <Route path={AppRoute.PRODUCTS} element={<Products />} />
                         <Route path={AppRoute.PRODUCT_DETAIL} element={<ProductDetail />} />
+                        <Route path={AppRoute.COMBOS} element={<Combos />} />
+                        <Route path={AppRoute.COMBO_DETAIL} element={<ComboDetail />} />
                         <Route path={AppRoute.SERVICES} element={<Services />} />
                         <Route path={AppRoute.CART} element={<CartPage />} />
                     </Route>
@@ -74,11 +76,11 @@ export default function AppRouter() {
                     <Route element={<AuthLayout />}>
                         <Route path={AppRoute.LOGIN} element={<Login />} />
                         <Route path={AppRoute.REGISTER} element={<RegisterBasic />} />
-                        <Route path={AppRoute.REGISTER_BASIC} element={<RegisterBasic />} />
-                        <Route path="/verify-register-otp" element={<VerifyRegisterOTP />} />
+                        {/* <Route path={AppRoute.REGISTER_BASIC} element={<RegisterBasic />} /> */}
+                        <Route path={AppRoute.VERIFY_REGISTER_OTP} element={<VerifyRegisterOTP />} />
                         <Route path={AppRoute.REGISTER_COMPLETE} element={<RegisterComplete />} />
                         <Route path={AppRoute.FORGOT_PASSWORD} element={<ForgotPassword />} />
-                        <Route path={AppRoute.VERIFY_OTP} element={<VerifyOTP />} />
+                        <Route path={AppRoute.RESET_PASSWORD_OTP} element={<ResetPasswordOTP />} />
                         <Route path={AppRoute.RESET_PASSWORD} element={<ResetPassword />} />
                         <Route
                             path={AppRoute.RESET_PASSWORD_SUCCESS}
@@ -90,7 +92,10 @@ export default function AppRouter() {
                     <Route element={<PrivateRoute />}>
                         <Route element={<AppLayout variant="home" />}>
                             <Route path={AppRoute.PROFILE} element={<Profile />} />
+                        </Route>
+                        <Route element={<AppLayout variant="checkout" />}>
                             <Route path={AppRoute.CHECKOUT} element={<CheckoutPage />} />
+                            <Route path={AppRoute.CHECKOUT_RESULT} element={<CheckoutResult />} />
                         </Route>
                     </Route>
                 </Route>
@@ -110,6 +115,7 @@ export default function AppRouter() {
                         <Route path="/admin/resell" element={<ResellManagement />} />
                         <Route path="/admin/resell/:id" element={<TradeInDetail />} />
                         <Route path="/admin/users" element={<UserManagement />} />
+                        <Route path="/admin/payments" element={<PaymentManagement />} />
                     </Route>
                 </Route>
 

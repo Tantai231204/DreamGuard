@@ -115,6 +115,11 @@ export type FormAction =
 let _id = 0;
 export const nextItemId = () => `item-${++_id}-${Date.now()}`;
 
+import { normalizeStatus, getAllowedStatusTransitions } from "../../types";
+
+// ── Status Helpers (Re-exported from types.ts) ─────────
+export { normalizeStatus, getAllowedStatusTransitions };
+
 export function toSlug(str: string) {
   return str
     .toLowerCase()
@@ -148,8 +153,20 @@ export function getInitialState(
       imageUrl: imageUrl,
       imagePublicId: "", // Currently not available in Combo type, keep empty or map if added
       comboParentId: combo.comboParentId ?? "",
-      status: combo.status ?? "Published",
+      status: normalizeStatus(combo.status),
       items:
+        (combo as ComboResponse).productItems?.map((pi, idx) => ({
+          id: `existing-${idx}`,
+          productVariantId: pi.productVariantId,
+          quantity: pi.quantity,
+          label: pi.productName,
+          productName: pi.productName,
+          sku: pi.sku,
+          color: undefined,
+          size: undefined,
+          salePrice: pi.salePrice,
+          basePrice: pi.basePrice,
+        })) ||
         combo.items?.map((item, idx) => ({
           id: `existing-${idx}`,
           productVariantId: item.variantId || item.productId,
@@ -161,7 +178,7 @@ export function getInitialState(
           size: undefined,
           salePrice: 0,
           basePrice: 0,
-        })) ?? [],
+        })) || [],
     };
   }
   return {
@@ -176,7 +193,7 @@ export function getInitialState(
     imageUrl: "",
     imagePublicId: "",
     comboParentId: "",
-    status: "Published",
+    status: normalizeStatus(null),
     items: [],
   };
 }

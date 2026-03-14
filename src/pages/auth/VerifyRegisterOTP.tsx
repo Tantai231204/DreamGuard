@@ -1,13 +1,15 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { useRegisterStore } from "../../store/registerStore";
 import { useVerifyOtp, useSendRegisterOtp } from "../../hooks/useAuth";
 import { AppRoute } from "../../lib/constants";
 
 export default function VerifyRegisterOTP() {
-  
+
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirect = searchParams.get("redirect");
 
   const registerData = useRegisterStore((s) => s.registerData);
 
@@ -16,45 +18,37 @@ export default function VerifyRegisterOTP() {
 
   const [otp, setOtp] = useState<string[]>(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
-
   const [countdown, setCountdown] = useState(60);
 
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-  // redirect nếu chưa register
   useEffect(() => {
     if (!registerData) {
       navigate(AppRoute.REGISTER_BASIC);
     }
   }, [registerData, navigate]);
 
-  // countdown resend
   useEffect(() => {
     if (countdown === 0) return;
-
     const timer = setInterval(() => {
       setCountdown((prev) => prev - 1);
     }, 1000);
-
     return () => clearInterval(timer);
   }, [countdown]);
 
   const handleChange = useCallback(
-  (index: number, value: string) => {
-    if (value && !/^\d+$/.test(value)) return;
-
-    const newOtp = [...otp];
-    newOtp[index] = value.slice(-1);
-
-    setOtp(newOtp);
-    setError("");
-
-    if (value && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
-  },
-  [otp]
-);
+    (index: number, value: string) => {
+      if (value && !/^\d+$/.test(value)) return;
+      const newOtp = [...otp];
+      newOtp[index] = value.slice(-1);
+      setOtp(newOtp);
+      setError("");
+      if (value && index < 5) {
+        inputRefs.current[index + 1]?.focus();
+      }
+    },
+    [otp]
+  );
 
   const handleKeyDown = useCallback(
     (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -66,78 +60,68 @@ export default function VerifyRegisterOTP() {
   );
 
   const handlePaste = useCallback(
-  (e: React.ClipboardEvent) => {
-    e.preventDefault();
-
-    const pasted = e.clipboardData.getData("text").slice(0, 6);
-
-    if (!/^\d+$/.test(pasted)) return;
-
-    const newOtp = [...otp];
-
-    pasted.split("").forEach((char, index) => {
-      if (index < 6) newOtp[index] = char;
-    });
-
-    setOtp(newOtp);
-
-    const nextEmpty = newOtp.findIndex((v) => !v);
-    const focusIndex = nextEmpty === -1 ? 5 : nextEmpty;
-
-    inputRefs.current[focusIndex]?.focus();
-  },
-  [otp]
-);
+    (e: React.ClipboardEvent) => {
+      e.preventDefault();
+      const pasted = e.clipboardData.getData("text").slice(0, 6);
+      if (!/^\d+$/.test(pasted)) return;
+      const newOtp = [...otp];
+      pasted.split("").forEach((char, index) => {
+        if (index < 6) newOtp[index] = char;
+      });
+      setOtp(newOtp);
+      const nextEmpty = newOtp.findIndex((v) => !v);
+      const focusIndex = nextEmpty === -1 ? 5 : nextEmpty;
+      inputRefs.current[focusIndex]?.focus();
+    },
+    [otp]
+  );
 
   const handleSubmit = useCallback(
-  (e: React.FormEvent) => {
-    e.preventDefault();
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      const otpValue = otp.join("");
+      if (otpValue.length !== 6) {
+        setError("Please enter the full 6-digit code");
+        return;
+      }
+      if (!registerData) return;
 
-    const otpValue = otp.join("");
+      verifyOtp(
+        {
+          phoneNumber: registerData.phoneNumber,
+          otpCode: otpValue,
+        },
+        {
+          onSuccess: () => {
+            navigate(
+              redirect
+                ? `${AppRoute.REGISTER_COMPLETE}?redirect=${encodeURIComponent(redirect)}`
+                : AppRoute.REGISTER_COMPLETE
+            );
+          },
+          onError: () => {
+            setError("Invalid or expired OTP code");
+          },
+        }
+      );
+    },
+    [otp, registerData, navigate, verifyOtp, redirect]
+  );
 
-    if (otpValue.length !== 6) {
-      setError("Please enter the full 6-digit code");
-      return;
-    }
-
-    if (!registerData) return;
-
-    verifyOtp(
+  const handleResendOtp = () => {
+    if (!registerData || countdown > 0) return;
+    resendOtp(
       {
         email: registerData.email,
-        phoneNumber: registerData.phoneNumber,
-        otpCode: otpValue,
+        phone: registerData.phoneNumber,
       },
       {
         onSuccess: () => {
-          navigate(AppRoute.REGISTER_COMPLETE);
-        },
-        onError: () => {
-          setError("Invalid or expired OTP code");
+          setCountdown(60);
         },
       }
     );
-  },
-  [otp, registerData, navigate, verifyOtp]
-);
-
-  const handleResendOtp = () => {
-
- if (!registerData || countdown > 0) return;
-
- resendOtp(
-  {
-   email: registerData.email,
-   phone: registerData.phoneNumber
-  },
-  {
-   onSuccess: () => {
-     setCountdown(60);
-   }
-  }
- );
-
-};
+  };
 
   return (
     <div className="bg-white rounded-2xl shadow-lg border border-[var(--color-border)] p-8 w-full max-w-md">
@@ -149,7 +133,6 @@ export default function VerifyRegisterOTP() {
           alt="DreamGuard Logo"
           className="h-20 w-20 rounded-lg object-contain shadow-md"
         />
-
         <span className="text-xl font-bold text-[var(--color-auth-title)] mt-2">
           DreamGuard
         </span>
@@ -160,7 +143,6 @@ export default function VerifyRegisterOTP() {
         <h2 className="text-lg font-semibold text-[#1C4D8D]">
           Verify your email
         </h2>
-
         <p className="text-sm text-gray-500 mt-1">
           We have sent a verification code to
           <br />
@@ -170,7 +152,7 @@ export default function VerifyRegisterOTP() {
 
       <form onSubmit={handleSubmit} className="space-y-5">
 
-        {/* OTP */}
+        {/* OTP inputs */}
         <div className="flex justify-center gap-3" onPaste={handlePaste}>
           {otp.map((digit, index) => (
             <input
@@ -208,11 +190,9 @@ export default function VerifyRegisterOTP() {
 
       {/* Resend */}
       <p className="text-center text-sm text-gray-600 mt-6">
-        Didn’t receive the code?{" "}
+        Didn't receive the code?{" "}
         {countdown > 0 ? (
-          <span className="text-gray-400">
-            Resend in {countdown}s
-          </span>
+          <span className="text-gray-400">Resend in {countdown}s</span>
         ) : (
           <button
             type="button"
@@ -226,7 +206,14 @@ export default function VerifyRegisterOTP() {
 
       {/* Back */}
       <p className="text-center text-sm text-gray-500 mt-3">
-        <Link to={AppRoute.LOGIN} className="hover:underline">
+        <Link
+          to={
+            redirect
+              ? `${AppRoute.LOGIN}?redirect=${encodeURIComponent(redirect)}`
+              : AppRoute.LOGIN
+          }
+          className="hover:underline"
+        >
           ← Back to login
         </Link>
       </p>

@@ -15,6 +15,7 @@ import {
   FolderTree,
   RefreshCw,
   Ticket,
+  Wallet,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Separator } from '../ui/separator';
@@ -40,6 +41,11 @@ const navItems: NavItem[] = [
     title: 'Orders',
     href: '/admin/orders',
     icon: ShoppingCart,
+  },
+  {
+    title: 'Payments',
+    href: '/admin/payments',
+    icon: Wallet,
   },
   {
     title: 'Services',

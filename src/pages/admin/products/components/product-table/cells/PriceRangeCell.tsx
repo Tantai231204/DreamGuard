@@ -8,7 +8,7 @@ interface PriceRangeCellProps {
 }
 
 export default function PriceRangeCell({ productId, variantCount }: PriceRangeCellProps) {
-  const { data } = useAdminProductVariants(productId, variantCount > 0);
+  const { data } = useAdminProductVariants(productId, { enabled: variantCount > 0 });
 
   const priceInfo = useMemo(() => {
     if (!data?.colorGroups?.length) return null;

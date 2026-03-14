@@ -46,13 +46,13 @@ export const ProductTabs = memo(({
                 onValueChange={handleTabChange}
                 className="w-full"
             >
-                <div className="border-b border-gray-100 mb-12">
+                <div className="border-b border-slate-100 mb-12">
                     <TabsList className="bg-transparent h-auto p-0 gap-10">
                         {TAB_ORDER.map((tab) => (
                             <TabsTrigger
                                 key={tab}
                                 value={tab}
-                                className="bg-transparent border-b-2 border-transparent data-[state=active]:border-gray-950 data-[state=active]:bg-transparent rounded-none px-0 py-4 text-[10px] font-black uppercase tracking-widest text-gray-300 data-[state=active]:text-gray-950 transition-all"
+                                className="bg-transparent border-b-2 border-transparent data-[state=active]:border-slate-900 data-[state=active]:bg-transparent rounded-none px-0 py-4 text-[10px] font-black uppercase tracking-widest text-slate-300 data-[state=active]:text-slate-900 transition-all font-inter"
                             >
                                 {tab === 'description' ? 'Description' :
                                     tab === 'specs' ? 'Specifications' :
@@ -72,7 +72,7 @@ export const ProductTabs = memo(({
                             transition={{ duration: 0.3 }}
                         >
                             <TabsContent value="description" className="mt-0 outline-none">
-                                <div className="max-w-3xl prose prose-sm prose-gray leading-relaxed text-gray-500">
+                                <div className="max-w-3xl prose prose-sm prose-slate leading-relaxed text-slate-600 italic font-medium">
                                     {description ? (
                                         <div dangerouslySetInnerHTML={{ __html: description }} />
                                     ) : (
@@ -82,11 +82,11 @@ export const ProductTabs = memo(({
                             </TabsContent>
 
                             <TabsContent value="specs" className="mt-0 outline-none">
-                                <div className="max-w-2xl divide-y divide-gray-100 border-y border-gray-100">
+                                <div className="max-w-2xl divide-y divide-slate-100 border-y border-slate-100">
                                     {specs.map((spec, index) => (
-                                        <div key={index} className="flex py-4 justify-between items-center">
-                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{spec.label}</span>
-                                            <span className="text-[11px] font-black text-gray-950 uppercase tracking-tight">{spec.value}</span>
+                                        <div key={index} className="flex py-4 justify-between items-center group">
+                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover:text-slate-900 transition-colors">{spec.label}</span>
+                                            <span className="text-[11px] font-black text-slate-800 uppercase tracking-tight">{spec.value}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -101,7 +101,7 @@ export const ProductTabs = memo(({
                                                 <ReviewCard key={review.id} review={review} />
                                             ))
                                         ) : (
-                                            <p className="text-center py-10 text-gray-300 text-[10px] font-black uppercase tracking-widest">No reviews yet</p>
+                                            <p className="text-center py-10 text-slate-300 text-[10px] font-black uppercase tracking-widest">No reviews yet</p>
                                         )}
                                     </div>
                                 </div>

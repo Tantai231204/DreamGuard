@@ -1,18 +1,30 @@
 import { useState } from "react"
-import { Pencil1Icon, CameraIcon } from "@radix-ui/react-icons"
-import { User, Mail, Calendar, Star, Heart } from "lucide-react"
+import { CameraIcon } from "@radix-ui/react-icons"
+import { Mail } from "lucide-react"
 import { Button } from "../../../components/ui/button"
 import { Input } from "../../../components/ui/input"
 import { Label } from "../../../components/ui/label"
 import { Badge } from "../../../components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "../../../components/ui/avatar"
+import { cn } from "@/lib/utils"
+
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from "@/components/ui/select"
+
 import { useProfile, useUpdateProfile } from "@/hooks/queries"
 import { toast } from "sonner"
 
 export default function ProfileInfoTab() {
   const { data: profile } = useProfile()
   const { mutate: updateProfile, isPending: isUpdating } = useUpdateProfile()
+
   const [isEditing, setIsEditing] = useState(false)
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -21,7 +33,6 @@ export default function ProfileInfoTab() {
     gender: ""
   })
 
-  // Initialize form data when entering edit mode
   const handleEdit = () => {
     if (!isEditing && profile) {
       setFormData({
@@ -58,184 +69,164 @@ export default function ProfileInfoTab() {
   const fullName = `${displayData.firstName} ${displayData.lastName}`.trim() || "User"
   const initials = displayData.firstName && displayData.lastName
     ? `${displayData.firstName[0]}${displayData.lastName[0]}`.toUpperCase()
-    : (displayData.firstName ? displayData.firstName[0].toUpperCase() : "U")
+    : (displayData.firstName?.[0] || "U").toUpperCase()
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4">
+    <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Personal Information</h2>
-          <p className="mt-1 text-sm text-gray-400 font-medium">Update and manage your account details</p>
+          <h2 className="text-xl font-bold text-slate-900">Personal Information</h2>
+          <p className="text-sm text-slate-500 mt-1">Manage your account details and profile settings.</p>
         </div>
         <Button
-          variant={isEditing ? "secondary" : "default"}
+          variant={isEditing ? "outline" : "default"}
           onClick={handleEdit}
-          className={`gap-2 h-11 px-5 rounded-2xl font-semibold transition-all active:scale-95 ${isEditing
-            ? "bg-gray-100 text-gray-600 hover:bg-gray-200"
-            : "bg-[#4988c4] hover:bg-[#3b6fa3] text-white shadow-lg shadow-[#4988c4]/25"
-            }`}
+          className={cn(
+            "px-6 h-11 font-black text-[10px] uppercase tracking-[0.15em] rounded-xl transition-all duration-300 active:scale-95 group overflow-hidden",
+            !isEditing && "bg-primary text-white shadow-lg hover:shadow-primary/30 hover:-translate-y-0.5"
+          )}
         >
-          <Pencil1Icon className="h-4 w-4" />
-          {isEditing ? "Cancel" : "Edit Profile"}
+          {!isEditing && (
+            <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-[1200ms]" />
+          )}
+          <span className="relative z-10">{isEditing ? "Cancel Editing" : "Edit Profile"}</span>
         </Button>
       </div>
 
-      {/* Profile Card */}
-      <div
-        className="group relative rounded-3xl bg-white border border-gray-100 shadow-sm transition-all duration-300 overflow-hidden"
-        style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)" }}
-      >
-        {/* Colored accent stripe */}
-        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#4988c4] via-[#bde8f5] to-[#4988c4]" />
-
-        <div className="h-24 bg-gradient-to-r from-[#4988c4]/5 via-[#bde8f5]/20 to-transparent" />
-        <div className="px-6 -mt-12 pb-8 flex flex-col sm:flex-row gap-6">
-          {/* Avatar */}
-          <div className="relative">
-            <Avatar className="h-24 w-24 ring-4 ring-white shadow-lg rounded-2xl">
-              <AvatarImage src={profile?.avatarUrl} alt={fullName} />
-              <AvatarFallback className="rounded-2xl bg-gradient-to-br from-[#4988c4] to-[#3a73a8] text-white text-2xl font-semibold">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            {isEditing && (
-              <button className="absolute -bottom-1 -right-1 rounded-xl bg-[#4988c4] p-2 text-white shadow-lg transition hover:bg-[#3a73a8] hover:scale-110 active:scale-90">
-                <CameraIcon className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-
-          {/* Info */}
-          <div className="flex-1 pt-2">
-            <div className="flex items-center gap-3">
-              <h3 className="text-xl font-bold text-gray-900 leading-tight">
-                {fullName}
-              </h3>
-              <Badge variant="default" className="bg-[#4988c4]/10 text-[#4988c4] border-none font-semibold px-3">
-                Verified User
-              </Badge>
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Left Column: Avatar */}
+        <div className="lg:col-span-1">
+          <div className="bg-white rounded-2xl border border-slate-200/60 p-8 flex flex-col items-center text-center shadow-sm">
+            <div className="relative">
+              <div className="h-28 w-28 rounded-full ring-4 ring-slate-50 overflow-hidden bg-slate-100 shadow-sm">
+                <Avatar className="h-full w-full">
+                  <AvatarImage src={profile?.avatarUrl} alt={fullName} className="object-cover" />
+                  <AvatarFallback className="bg-slate-900 text-white text-2xl font-bold">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+              </div>
+              {isEditing && (
+                <button className="absolute bottom-0 right-0 p-2.5 bg-white rounded-full shadow-lg border border-slate-200 text-slate-600 hover:text-[#4988c4] transition-all">
+                  <CameraIcon className="w-4 h-4" />
+                </button>
+              )}
             </div>
-            <p className="mt-1 text-sm text-gray-500 font-medium">{displayData.email}</p>
 
-            <div className="mt-5 flex flex-wrap gap-2">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-50 text-[#4988c4] border border-blue-100/50">
-                <Heart className="h-3.5 w-3.5 fill-[#4988c4]" />
-                <span className="text-xs font-bold uppercase tracking-wider">Member</span>
-              </div>
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-600 border border-amber-100/50">
-                <Star className="h-3.5 w-3.5 fill-amber-500" />
-                <span className="text-xs font-bold uppercase tracking-wider">150 Points</span>
-              </div>
+            <div className="mt-6">
+              <h3 className="text-lg font-bold text-slate-900">{fullName}</h3>
+              <p className="text-sm text-slate-500 mt-1">{displayData.email}</p>
+            </div>
+
+            <div className="mt-6 flex flex-wrap justify-center gap-2">
+              <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 hover:bg-emerald-50 border-none font-bold text-[10px] uppercase tracking-wider">
+                Verified
+              </Badge>
+              <Badge variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-50 border-none font-bold text-[10px] uppercase tracking-wider">
+                Elite
+              </Badge>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Form */}
-      <div
-        className="rounded-3xl bg-white border border-gray-100 shadow-sm overflow-hidden"
-        style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)" }}
-      >
-        <div className="p-6 md:p-8">
-          <div className="grid gap-6 sm:grid-cols-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="firstName" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <User className="h-4 w-4 text-gray-400" />
-                First Name
-              </Label>
-              <Input
-                id="firstName"
-                value={displayData.firstName}
-                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-                disabled={!isEditing}
-                placeholder="Enter first name"
-                className="h-11 rounded-xl border-gray-200 focus:border-[#4988c4]"
-              />
+        {/* Right Column: Profile Form */}
+        <div className="lg:col-span-2">
+          <div className="bg-white rounded-2xl border border-slate-200/60 p-8 shadow-sm">
+            <div className="grid gap-6 sm:grid-cols-2">
+              {/* First Name */}
+              <div className="space-y-2">
+                <Label className="text-xs font-bold text-slate-700 ml-1">First Name</Label>
+                <Input
+                  value={displayData.firstName}
+                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                  disabled={!isEditing}
+                  placeholder="Enter first name"
+                  className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white transition-all font-medium text-slate-900"
+                />
+              </div>
+
+              {/* Last Name */}
+              <div className="space-y-2">
+                <Label className="text-xs font-bold text-slate-700 ml-1">Last Name</Label>
+                <Input
+                  value={displayData.lastName}
+                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                  disabled={!isEditing}
+                  placeholder="Enter last name"
+                  className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white transition-all font-medium text-slate-900"
+                />
+              </div>
+
+              {/* Email */}
+              <div className="space-y-2 sm:col-span-2">
+                <Label className="text-xs font-bold text-slate-700 ml-1">Email Address</Label>
+                <div className="relative group/input">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within/input:text-[#4988c4] transition-colors" />
+                  <Input
+                    type="email"
+                    value={displayData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    disabled={!isEditing}
+                    placeholder="email@example.com"
+                    className="h-11 pl-10 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white transition-all font-medium text-slate-900"
+                  />
+                </div>
+              </div>
+
+              {/* Date of Birth */}
+              <div className="space-y-2">
+                <Label className="text-xs font-bold text-slate-700 ml-1">Date of Birth</Label>
+                <Input
+                  type="date"
+                  value={displayData.dateOfBirth?.split("T")[0] || ""}
+                  onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                  disabled={!isEditing}
+                  className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white transition-all font-medium text-slate-900"
+                />
+              </div>
+
+              {/* Gender */}
+              <div className="space-y-2">
+                <Label className="text-xs font-bold text-slate-700 ml-1">Gender</Label>
+                <Select
+                  value={displayData.gender}
+                  onValueChange={(value) => setFormData({ ...formData, gender: value })}
+                  disabled={!isEditing}
+                >
+                  <SelectTrigger className="h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white transition-all font-medium text-slate-900">
+                    <SelectValue placeholder="Select gender" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                    <SelectItem value="Male">Male</SelectItem>
+                    <SelectItem value="Female">Female</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="lastName" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <User className="h-4 w-4 text-gray-400" />
-                Last Name
-              </Label>
-              <Input
-                id="lastName"
-                value={displayData.lastName}
-                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-                disabled={!isEditing}
-                placeholder="Enter last name"
-                className="h-11 rounded-xl border-gray-200 focus:border-[#4988c4]"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <Mail className="h-4 w-4 text-gray-400" />
-                Email
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={displayData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                disabled={!isEditing}
-                placeholder="Enter email address"
-                className="h-11 rounded-xl border-gray-200 focus:border-[#4988c4]"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="dateOfBirth" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-gray-400" />
-                Date of Birth
-              </Label>
-              <Input
-                id="dateOfBirth"
-                type="date"
-                value={displayData.dateOfBirth?.split("T")[0] || ""}
-                onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
-                disabled={!isEditing}
-                className="h-11 rounded-xl border-gray-200 focus:border-[#4988c4]"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="gender" className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                <User className="h-4 w-4 text-gray-400" />
-                Gender
-              </Label>
-              <select
-                id="gender"
-                value={displayData.gender}
-                onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-                disabled={!isEditing}
-                className="flex h-11 w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm focus:border-[#4988c4] focus:ring-[#4988c4]/10 transition-all outline-none disabled:bg-gray-50 disabled:text-gray-500"
-              >
-                <option value="">Select Gender</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
+
+            {isEditing && (
+              <div className="flex items-center justify-end gap-3 mt-10 pt-8 border-t border-slate-100">
+                <Button
+                  variant="ghost"
+                  onClick={() => setIsEditing(false)}
+                  disabled={isUpdating}
+                  className="h-10 px-6 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-500 hover:text-slate-900"
+                >
+                  Discard
+                </Button>
+                <Button
+                  onClick={handleSave}
+                  disabled={isUpdating}
+                  className="relative h-12 px-10 rounded-2xl bg-primary text-white font-black text-[10px] uppercase tracking-[0.2em] shadow-[0_10px_25px_-8px_rgba(var(--color-primary-rgb),0.5)] hover:shadow-[0_15px_30px_-10px_rgba(var(--color-primary-rgb),0.6)] hover:-translate-y-0.5 transition-all duration-300 active:scale-[0.98] group overflow-hidden"
+                >
+                  <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-[1500ms]" />
+                  <span className="relative z-10">{isUpdating ? "Saving..." : "Save Changes"}</span>
+                </Button>
+              </div>
+            )}
           </div>
-
-          {/* Actions */}
-          {isEditing && (
-            <div className="flex justify-end gap-3 pt-8 mt-8 border-t border-gray-50">
-              <Button
-                variant="outline"
-                onClick={() => setIsEditing(false)}
-                disabled={isUpdating}
-                className="h-11 px-6 rounded-2xl font-semibold text-gray-500 border-gray-200 hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSave}
-                disabled={isUpdating}
-                className="h-11 px-8 rounded-2xl bg-[#4988c4] hover:bg-[#3b6fa3] text-white font-semibold shadow-lg shadow-[#4988c4]/25 transition-all active:scale-95"
-              >
-                {isUpdating ? "Saving..." : "Save Changes"}
-              </Button>
-            </div>
-          )}
         </div>
       </div>
     </div>
