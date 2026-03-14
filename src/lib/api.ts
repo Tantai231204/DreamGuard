@@ -24,6 +24,7 @@ export class ApiError extends Error {
 export interface CustomAxiosRequestConfig extends AxiosRequestConfig {
   _retry?: boolean;
   _suppressToast?: boolean;
+  skipAuth?: boolean;
 }
 
 /* ======================
@@ -88,8 +89,6 @@ api.interceptors.request.use((config) => {
   // Pure Cookie Approach: No manual Authorization header.
   // Implementation: 'withCredentials: true' handles all token transport.
   return config;
-}, (error) => {
-  return Promise.reject(error);
 });
 
 /* ======================

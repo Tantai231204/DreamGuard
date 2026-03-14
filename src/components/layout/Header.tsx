@@ -101,7 +101,7 @@ export default function Header() {
     return (
         <header
             className={cn(
-                "fixed top-0 left-0 right-0 z-[100] w-full transition-all duration-500 will-change-transform",
+                "fixed top-0 left-0 right-0 z-40 w-full transition-all duration-500 will-change-transform",
                 isScrolled
                     ? "bg-white border-b border-slate-200 shadow-[0_4px_20px_rgba(0,0,0,0.05)]"
                     : "bg-white shadow-sm"

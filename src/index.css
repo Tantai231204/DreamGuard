@@ -192,13 +192,13 @@ body {
   display: flex;
   flex-direction: column;
 }
-.scroll-hidden::-webkit-scrollbar {
-  display: none;
-}
-
-.scroll-hidden {
+.scroll-hidden, .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+.scroll-hidden::-webkit-scrollbar, .no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 #root {
   flex: 1;

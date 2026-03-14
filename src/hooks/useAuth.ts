@@ -1,6 +1,15 @@
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { authService } from "../api/services";
+import { 
+  authService, 
+  type AuthResponse, 
+  type LoginRequest, 
+  type RegisterRequest,
+  type VerifyOtpRequest,
+  type ResetPasswordRequest,
+  type ForgotPasswordRequest,
+  type ChangePasswordRequest
+} from "../api";
 import { useAuthStore } from "../store/authStore";
 import { useCartStore } from "@/store/useCart";
 import { toast } from "sonner";
@@ -9,12 +18,9 @@ export const useLogin = () => {
   const setAuth = useAuthStore((s) => s.setAuth);
 
   return useMutation<
-    any,
+    AuthResponse,
     Error,
-    {
-      phoneNumber: string;
-      password: string;
-    }
+    LoginRequest
   >({
     mutationFn: authService.login,
     meta: { hideToast: true },
@@ -61,7 +67,11 @@ export const useLogout = () => {
 };
 
 export const useForgotPassword = () => {
-  return useMutation({
+  return useMutation<
+    { message: string },
+    Error,
+    ForgotPasswordRequest
+  >({
     mutationFn: authService.forgotPassword,
   });
 };
@@ -70,24 +80,24 @@ export const useVerifyOtp = () => {
   return useMutation<
     { message: string },
     Error,
-    {
-      email: string;
-      phoneNumber: string;
-      otpCode: string;
-    }
+    VerifyOtpRequest
   >({
     mutationFn: authService.verifyOtp,
   });
 };
 
 export const useResetPassword = () => {
-  return useMutation({
+  return useMutation<
+    { message: string },
+    Error,
+    ResetPasswordRequest
+  >({
     mutationFn: authService.resetPassword,
   });
 };
 
 export const useRegister = () => {
-  return useMutation({
+  return useMutation<unknown, Error, RegisterRequest>({
     mutationFn: authService.register,
   });
 };
@@ -104,3 +114,12 @@ export const useSendRegisterOtp = () => {
   })
 }
 
+export const useChangePassword = () => {
+  return useMutation<
+    { message: string },
+    Error,
+    ChangePasswordRequest
+  >({
+    mutationFn: authService.changePassword,
+  })
+}

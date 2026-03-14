@@ -8,7 +8,6 @@ interface AuthState {
   setAuth: (data: {
     roleName?: string;
     role?: string;
-    [key: string]: any;
   }) => void;
 
   clearAuth: () => void;
@@ -20,10 +19,10 @@ export const useAuthStore = create<AuthState>()(
       role: null,
       isAuthenticated: false,
 
-      setAuth: (data: any) => {
-        const roleName = data.roleName || data.role || data.RoleName || data.Role || "";
+      setAuth: (data) => {
+        const role = data.roleName || data.role || "";
         set({
-          role: roleName,
+          role,
           isAuthenticated: true,
         });
       },

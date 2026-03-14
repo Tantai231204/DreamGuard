@@ -9,7 +9,7 @@ import {
     type SortingState,
     type Row,
 } from "@tanstack/react-table"
-import { Package, RefreshCw, Plus, Search, ChevronLeft, ChevronRight, TrendingUp, Clock, Check, DollarSign, Eye, Calendar, Image as ImageIcon, MessageSquare, X } from "lucide-react"
+import { Package, RefreshCw, Plus, Search, TrendingUp, Clock, Check, DollarSign, Eye, Calendar, Image as ImageIcon } from "lucide-react"
 import { toast } from "sonner"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "../../../../components/ui/button"
@@ -31,23 +31,27 @@ import CreateWizard from "./wizard"
 // Types & Constants
 import type { EligibleProduct, MediaFile, SelectedProductWithMedia, TradeInRequest } from "./types"
 import { mockEligibleProducts, mockTradeInRequests, STATUS_CONFIG } from "./constants"
+import { formatCurrency } from "../voucher/utils"
 
 /* ═══════════════════════════════════════════════════════════
    TABLE COLUMNS DEFINITION
 ═══════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════════════════
+   TABLE COLUMNS DEFINITION
+   ═══════════════════════════════════════════════════════════ */
 const columns = [
     {
         accessorKey: "id",
-        header: "Mã yêu cầu",
+        header: "Request ID",
         cell: ({ row }: { row: Row<TradeInRequest> }) => (
-            <span className="font-mono text-xs font-semibold text-[#4988c4] bg-blue-50 px-2.5 py-1 rounded-lg">
+            <span className="font-mono text-[10px] font-bold text-[#4988c4] bg-blue-50/50 px-2 py-0.5 rounded-md border border-blue-100/50">
                 {row.original.id}
             </span>
         ),
     },
     {
         accessorKey: "items",
-        header: "Sản phẩm",
+        header: "Products",
         cell: ({ row }: { row: Row<TradeInRequest> }) => {
             const items = row.original.items
             return (
@@ -56,7 +60,7 @@ const columns = [
                         {items.slice(0, 2).map((item, i) => (
                             <div
                                 key={item.productId}
-                                className="h-10 w-10 rounded-lg bg-gray-100 border-2 border-white shadow-sm overflow-hidden"
+                                className="h-8 w-8 rounded-lg bg-slate-100 border-2 border-white shadow-sm overflow-hidden"
                                 style={{ zIndex: 2 - i }}
                             >
                                 <img
@@ -67,17 +71,17 @@ const columns = [
                             </div>
                         ))}
                         {items.length > 2 && (
-                            <div className="h-10 w-10 rounded-lg bg-gray-200 border-2 border-white flex items-center justify-center text-xs font-bold text-gray-600">
+                            <div className="h-8 w-8 rounded-lg bg-slate-100 border-2 border-white flex items-center justify-center text-[10px] font-bold text-slate-500">
                                 +{items.length - 2}
                             </div>
                         )}
                     </div>
                     <div className="min-w-0">
-                        <div className="font-medium text-gray-900 truncate max-w-[140px]">
+                        <div className="text-xs font-bold text-slate-800 truncate max-w-[140px]">
                             {items[0]?.productName}
                         </div>
                         {items.length > 1 && (
-                            <div className="text-xs text-gray-500">+{items.length - 1} sản phẩm</div>
+                            <div className="text-[10px] text-slate-400 font-medium">+{items.length - 1} more items</div>
                         )}
                     </div>
                 </div>
@@ -86,70 +90,56 @@ const columns = [
     },
     {
         id: "mediaCount",
-        header: "Hình ảnh",
+        header: "Media",
         cell: ({ row }: { row: Row<TradeInRequest> }) => {
             const totalMedia = row.original.items.reduce((sum, item) => sum + item.mediaCount, 0)
             return (
-                <div className="flex items-center gap-1.5 text-gray-600">
-                    <ImageIcon className="h-4 w-4 text-gray-400" />
-                    <span className="font-medium">{totalMedia}</span>
+                <div className="flex items-center gap-1.5 text-slate-500">
+                    <ImageIcon className="h-3.5 w-3.5 opacity-60" />
+                    <span className="text-xs font-bold">{totalMedia}</span>
                 </div>
             )
         },
     },
     {
         id: "estimatedPrice",
-        header: "Định giá",
+        header: "Valuation",
         cell: ({ row }: { row: Row<TradeInRequest> }) => {
             const total = row.original.totalEstimatedPrice ??
                 row.original.items.reduce((sum, item) => sum + item.estimatedPrice, 0)
             if (total === 0) {
-                return <span className="text-gray-400 italic text-sm">Đang xem xét</span>
+                return <span className="text-slate-400 text-[11px] font-medium italic">Under Review</span>
             }
             return (
-                <span className="font-bold text-emerald-600">
-                    {total.toLocaleString("vi-VN")}đ
+                <span className="text-sm font-bold text-emerald-600">
+                    {formatCurrency(total)}
                 </span>
             )
         },
     },
     {
         accessorKey: "createdAt",
-        header: "Ngày tạo",
+        header: "Date",
         cell: ({ row }: { row: Row<TradeInRequest> }) => (
-            <div className="flex items-center gap-2 text-gray-600">
-                <Calendar className="h-4 w-4 text-gray-400" />
-                <span className="text-sm">
-                    {new Date(row.original.createdAt).toLocaleDateString("vi-VN")}
+            <div className="flex items-center gap-2 text-slate-500">
+                <Calendar className="h-3.5 w-3.5 opacity-60" />
+                <span className="text-xs font-medium">
+                    {new Date(row.original.createdAt).toLocaleDateString()}
                 </span>
             </div>
         ),
     },
     {
         accessorKey: "status",
-        header: "Trạng thái",
+        header: "Status",
         cell: ({ row }: { row: Row<TradeInRequest> }) => {
             const status = row.original.status
             const config = STATUS_CONFIG[status]
             return (
-                <Badge className={`${config.color} gap-1.5 px-2.5 py-1`}>
+                <Badge className={`${config.color} gap-1.5 px-2 py-0.5 border-none shadow-none text-[9px] font-bold uppercase tracking-wider rounded-md`}>
                     {config.icon}
                     {config.label}
                 </Badge>
-            )
-        },
-    },
-    {
-        accessorKey: "staffNote",
-        header: "Ghi chú",
-        cell: ({ row }: { row: Row<TradeInRequest> }) => {
-            const note = row.original.staffNote
-            if (!note) return <span className="text-gray-300">—</span>
-            return (
-                <div className="flex items-center gap-2 max-w-[150px]">
-                    <MessageSquare className="h-4 w-4 text-blue-400 flex-shrink-0" />
-                    <span className="text-sm text-gray-600 truncate" title={note}>{note}</span>
-                </div>
             )
         },
     },
@@ -160,10 +150,10 @@ const columns = [
             <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 w-8 p-0 hover:bg-blue-50 hover:text-[#4988c4]"
-                onClick={() => toast.info(`Xem chi tiết yêu cầu ${row.original.id}`)}
+                className="h-8 w-8 p-0 hover:bg-slate-100 text-slate-400 hover:text-slate-900"
+                onClick={() => toast.info(`Viewing request ${row.original.id}`)}
             >
-                <Eye className="h-4 w-4" />
+                <Eye className="h-3.5 w-3.5" />
             </Button>
         ),
     },
@@ -171,7 +161,7 @@ const columns = [
 
 /* ═══════════════════════════════════════════════════════════
    GLOBAL SEARCH FUNCTION
-═══════════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════════ */
 const globalFilterFn = (
     row: Row<TradeInRequest>,
     _columnId: string,
@@ -189,7 +179,7 @@ const globalFilterFn = (
 
 /* ═══════════════════════════════════════════════════════════
    STAT CARD COMPONENT
-═══════════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════════ */
 interface StatCardProps {
     icon: React.ReactNode
     label: string
@@ -201,14 +191,14 @@ interface StatCardProps {
 function StatCard({ icon, label, value, color, bgColor }: StatCardProps) {
     return (
         <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl ${bgColor} border border-gray-100 shadow-sm`}
+            className={`flex items-center gap-4 p-5 rounded-2xl bg-white border border-slate-200/60 shadow-sm`}
         >
-            <div className={`p-2 rounded-lg bg-white shadow-sm ${color}`}>{icon}</div>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${bgColor} ${color}`}>{icon}</div>
             <div>
-                <p className="text-xs font-medium text-gray-500">{label}</p>
-                <p className="text-lg font-bold text-gray-900">{value}</p>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</p>
+                <p className="text-xl font-bold text-slate-900 leading-none mt-1">{value}</p>
             </div>
         </motion.div>
     )
@@ -216,7 +206,7 @@ function StatCard({ icon, label, value, color, bgColor }: StatCardProps) {
 
 /* ═══════════════════════════════════════════════════════════
    MAIN COMPONENT
-═══════════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════════ */
 export default function ResellTab() {
     const [view, setView] = useState<"list" | "create">("list")
     const [createStep, setCreateStep] = useState(1)
@@ -335,8 +325,8 @@ export default function ResellTab() {
         console.log("Submitting:", productsWithMedia)
 
         // Show success toast
-        toast.success("Gửi yêu cầu thành công!", {
-            description: `Đã gửi ${productsWithMedia.length} sản phẩm để đánh giá. Chúng tôi sẽ phản hồi trong vòng 24 giờ.`,
+        toast.success("Request sent successfully!", {
+            description: `Sent ${productsWithMedia.length} products for valuation. We will review and respond shortly.`,
             duration: 5000,
         })
 
@@ -350,127 +340,101 @@ export default function ResellTab() {
     const pageIndex = table.getState().pagination.pageIndex
     const pageSize = table.getState().pagination.pageSize
     const totalRows = table.getFilteredRowModel().rows.length
-    const pageCount = table.getPageCount()
     const startRow = totalRows === 0 ? 0 : pageIndex * pageSize + 1
     const endRow = Math.min((pageIndex + 1) * pageSize, totalRows)
 
     return (
-        <div className="space-y-6">
-            {/* ═══════════════════════════════════════════════════
-                HEADER
-            ═══════════════════════════════════════════════════ */}
-            <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-gradient-to-br from-[#4988c4] to-[#3a73a8] shadow-lg">
-                    <RefreshCw className="h-6 w-6 text-white" />
+        <div className="space-y-6 animate-in fade-in duration-500">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-100">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-[#4988c4]">
+                        <RefreshCw className="h-6 w-6" />
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-bold text-slate-900">Resell Service</h2>
+                        <p className="text-sm text-slate-500 mt-1 font-medium">
+                            Resell your unused products for store credit or cash.
+                        </p>
+                    </div>
                 </div>
-                <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Thu mua sản phẩm cũ</h2>
-                    <p className="text-sm text-gray-500">
-                        Bán lại sản phẩm đã mua cho DreamGuard và nhận hoàn tiền
-                    </p>
-                </div>
+                {view === "list" && (
+                    <Button
+                        onClick={handleCreateNew}
+                        className="gap-2 bg-slate-900 hover:bg-black font-bold h-10 px-6 rounded-xl"
+                    >
+                        <Plus className="h-4 w-4" />
+                        New Request
+                    </Button>
+                )}
             </div>
 
-            {/* ═══════════════════════════════════════════════════
-                CONTENT WITH TRANSITIONS
-            ═══════════════════════════════════════════════════ */}
             <AnimatePresence mode="wait">
                 {view === "list" ? (
                     <motion.div
                         key="list"
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        transition={{ duration: 0.3 }}
-                        className="space-y-6"
+                        exit={{ opacity: 0, y: -10 }}
+                        className="space-y-8"
                     >
                         {/* Benefits Banner */}
                         <BenefitsBanner />
 
                         {/* Stats Cards */}
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
                             <StatCard
                                 icon={<TrendingUp className="h-5 w-5" />}
-                                label="Tổng yêu cầu"
+                                label="Total Requests"
                                 value={stats.total}
-                                color="text-blue-600"
-                                bgColor="bg-gradient-to-br from-blue-50 to-sky-50"
+                                color="text-[#4988c4]"
+                                bgColor="bg-blue-50"
                             />
                             <StatCard
                                 icon={<Clock className="h-5 w-5" />}
-                                label="Đang xử lý"
+                                label="Pending Review"
                                 value={stats.pending + stats.reviewing}
                                 color="text-amber-600"
-                                bgColor="bg-gradient-to-br from-amber-50 to-yellow-50"
+                                bgColor="bg-amber-50"
                             />
                             <StatCard
                                 icon={<Check className="h-5 w-5" />}
-                                label="Hoàn thành"
+                                label="Completed"
                                 value={stats.completed}
-                                color="text-green-600"
-                                bgColor="bg-gradient-to-br from-green-50 to-emerald-50"
+                                color="text-emerald-600"
+                                bgColor="bg-emerald-50"
                             />
                             <StatCard
                                 icon={<DollarSign className="h-5 w-5" />}
-                                label="Tổng thu về"
-                                value={`${stats.totalEarned.toLocaleString("vi-VN")}đ`}
+                                label="Total Earned"
+                                value={formatCurrency(stats.totalEarned)}
                                 color="text-purple-600"
-                                bgColor="bg-gradient-to-br from-purple-50 to-fuchsia-50"
+                                bgColor="bg-purple-50"
                             />
                         </div>
 
-                        {/* Trade-In Requests Table */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm"
-                        >
-                            {/* Table Header */}
-                            <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
-                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                                    <h3 className="font-semibold text-gray-900">Lịch sử yêu cầu</h3>
-                                    <div className="flex items-center gap-3">
-                                        {/* Search Input */}
-                                        <div className="relative flex-1 sm:w-64">
-                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                                            <Input
-                                                placeholder="Tìm kiếm..."
-                                                value={globalFilter}
-                                                onChange={(e) => setGlobalFilter(e.target.value)}
-                                                className="pl-9 pr-8 h-9 rounded-lg border-gray-200"
-                                            />
-                                            {globalFilter && (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => setGlobalFilter("")}
-                                                    className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
-                                                >
-                                                    <X className="h-3.5 w-3.5" />
-                                                </Button>
-                                            )}
-                                        </div>
-                                        {/* Create Button */}
-                                        <Button
-                                            onClick={handleCreateNew}
-                                            size="sm"
-                                            className="gap-2 bg-gradient-to-r from-[#4988c4] to-[#3a73a8] hover:shadow-md transition-all"
-                                        >
-                                            <Plus className="h-4 w-4" />
-                                            <span className="hidden sm:inline">Tạo yêu cầu</span>
-                                        </Button>
-                                    </div>
+                        {/* Table Section */}
+                        <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
+                            <div className="px-6 py-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Request History</h3>
+                                <div className="relative w-full md:w-64">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                    <Input
+                                        placeholder="Search by ID or product..."
+                                        value={globalFilter}
+                                        onChange={(e) => setGlobalFilter(e.target.value)}
+                                        className="pl-9 h-9 rounded-lg border-slate-200 text-sm"
+                                    />
                                 </div>
                             </div>
 
-                            {/* Table Content */}
                             <div className="overflow-x-auto">
                                 <Table>
-                                    <TableHeader className="bg-gray-50">
+                                    <TableHeader className="bg-slate-50/50">
                                         {table.getHeaderGroups().map((headerGroup) => (
-                                            <TableRow key={headerGroup.id} className="border-b border-gray-200">
+                                            <TableRow key={headerGroup.id} className="border-b border-slate-100">
                                                 {headerGroup.headers.map((header) => (
-                                                    <TableHead key={header.id} className="font-semibold text-gray-700 text-sm">
+                                                    <TableHead key={header.id} className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-6 h-10">
                                                         {header.isPlaceholder
                                                             ? null
                                                             : flexRender(header.column.columnDef.header, header.getContext())}
@@ -484,10 +448,10 @@ export default function ResellTab() {
                                             table.getRowModel().rows.map((row) => (
                                                 <TableRow
                                                     key={row.id}
-                                                    className="hover:bg-blue-50/30 transition-colors border-b border-gray-100"
+                                                    className="hover:bg-slate-50/50 transition-colors border-b border-slate-100"
                                                 >
                                                     {row.getVisibleCells().map((cell) => (
-                                                        <TableCell key={cell.id} className="py-3">
+                                                        <TableCell key={cell.id} className="px-6 py-4">
                                                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                                         </TableCell>
                                                     ))}
@@ -495,20 +459,17 @@ export default function ResellTab() {
                                             ))
                                         ) : (
                                             <TableRow>
-                                                <TableCell colSpan={columns.length} className="h-48 text-center">
-                                                    <div className="flex flex-col items-center justify-center text-gray-500">
-                                                        <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-                                                            <Package className="h-7 w-7 text-gray-400" />
-                                                        </div>
-                                                        <p className="font-medium">Chưa có yêu cầu nào</p>
-                                                        <p className="text-sm mt-1 mb-4">Bắt đầu bán lại sản phẩm không dùng đến</p>
+                                                <TableCell colSpan={columns.length} className="h-64 text-center">
+                                                    <div className="flex flex-col items-center justify-center text-slate-400 gap-3">
+                                                        <Package className="h-10 w-10 opacity-20" />
+                                                        <p className="text-sm font-medium">No requests found</p>
                                                         <Button
                                                             onClick={handleCreateNew}
+                                                            variant="outline"
                                                             size="sm"
-                                                            className="gap-2 bg-gradient-to-r from-[#4988c4] to-[#3a73a8]"
+                                                            className="rounded-xl border-slate-200 font-bold mt-2"
                                                         >
-                                                            <Plus className="h-4 w-4" />
-                                                            Tạo yêu cầu mới
+                                                            Start Now
                                                         </Button>
                                                     </div>
                                                 </TableCell>
@@ -520,48 +481,41 @@ export default function ResellTab() {
 
                             {/* Pagination */}
                             {totalRows > 0 && (
-                                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50/50">
-                                    <div className="text-sm text-gray-600">
-                                        Hiển thị <span className="font-semibold">{startRow}</span> - <span className="font-semibold">{endRow}</span> trong <span className="font-semibold">{totalRows}</span> yêu cầu
-                                    </div>
+                                <div className="px-6 py-4 bg-slate-50/30 flex items-center justify-between border-t border-slate-100">
+                                    <p className="text-xs text-slate-500 font-medium font-mono">
+                                        SHW <span className="font-bold text-slate-900">{startRow}-{endRow}</span> OF <span className="font-bold text-slate-900">{totalRows}</span>
+                                    </p>
                                     <div className="flex items-center gap-2">
                                         <Button
-                                            variant="outline"
+                                            variant="ghost"
                                             size="sm"
                                             onClick={() => table.previousPage()}
                                             disabled={!table.getCanPreviousPage()}
-                                            className="h-8 px-3"
+                                            className="font-bold text-xs"
                                         >
-                                            <ChevronLeft className="h-4 w-4 mr-1" />
-                                            Trước
+                                            PREV
                                         </Button>
-                                        <div className="flex items-center gap-1 px-3 py-1 rounded-lg bg-white border border-gray-200">
-                                            <span className="text-sm text-gray-600">Trang</span>
-                                            <span className="font-semibold text-[#4988c4]">{pageIndex + 1}</span>
-                                            <span className="text-sm text-gray-600">/ {pageCount || 1}</span>
-                                        </div>
+                                        <div className="w-px h-3 bg-slate-200" />
                                         <Button
-                                            variant="outline"
+                                            variant="ghost"
                                             size="sm"
                                             onClick={() => table.nextPage()}
                                             disabled={!table.getCanNextPage()}
-                                            className="h-8 px-3"
+                                            className="font-bold text-xs"
                                         >
-                                            Sau
-                                            <ChevronRight className="h-4 w-4 ml-1" />
+                                            NEXT
                                         </Button>
                                     </div>
                                 </div>
                             )}
-                        </motion.div>
+                        </div>
                     </motion.div>
                 ) : (
                     <motion.div
                         key="create"
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        transition={{ duration: 0.3 }}
+                        exit={{ opacity: 0, y: -10 }}
                     >
                         <CreateWizard
                             step={createStep}

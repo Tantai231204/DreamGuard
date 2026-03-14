@@ -369,7 +369,7 @@ function VariantDialogInner({
                                     <SelectTrigger className={cn(INPUT_CLS, 'w-full')}>
                                         <SelectValue placeholder="Select status" />
                                     </SelectTrigger>
-                                    <SelectContent className="rounded-xl shadow-xl z-[400]">
+                                    <SelectContent className="rounded-xl shadow-xl">
                                         {VARIANT_STATUS_OPTIONS
                                             .filter(opt => getAllowedStatusTransitions(status).includes(opt.value))
                                             .map(opt => (

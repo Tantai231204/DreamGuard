@@ -87,7 +87,7 @@ const PolicyStatusSection = memo(function PolicyStatusSection({
                             <SelectTrigger className={SELECT_CLS}>
                                 <SelectValue placeholder="Select status" />
                             </SelectTrigger>
-                            <SelectContent className="rounded-xl shadow-xl z-[200]">
+                            <SelectContent className="rounded-xl shadow-xl">
                                 {PRODUCT_STATUSES
                                     .filter(s => getAllowedStatusTransitions(status).includes(s.value))
                                     .map((s, index) => (

@@ -10,8 +10,9 @@ export const AppRoute = {
   REGISTER: "/register",
   REGISTER_BASIC: "/register",
   REGISTER_COMPLETE: "/register-complete",
+  VERIFY_REGISTER_OTP: "/verify-register-otp",
   FORGOT_PASSWORD: "/forgot-password",
-  VERIFY_OTP: "/verify-otp",
+  RESET_PASSWORD_OTP: "/reset-password-otp",
   RESET_PASSWORD: "/reset-password",
   RESET_PASSWORD_SUCCESS: "/reset-password-success",
 

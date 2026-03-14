@@ -198,8 +198,8 @@ export function CartDrawer() {
             </Drawer.Trigger>
 
             <Drawer.Portal>
-                <Drawer.Overlay className="fixed inset-0 z-[999] bg-slate-900/10" />
-                <Drawer.Content className="cart-drawer-content fixed right-0 top-0 bottom-0 z-[1000] flex w-full max-w-md flex-col bg-white shadow-2xl outline-none">
+                <Drawer.Overlay className="fixed inset-0 z-50 bg-slate-900/10" />
+                <Drawer.Content className="cart-drawer-content fixed right-0 top-0 bottom-0 z-50 flex w-full max-w-md flex-col bg-white shadow-2xl outline-none">
 
                     {/* Header (Premium Refinement) */}
                     <div className="relative border-b border-slate-100 bg-white px-6 py-6 overflow-hidden">

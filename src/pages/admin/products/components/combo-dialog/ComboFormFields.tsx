@@ -99,7 +99,7 @@ const ComboFormFields = memo(function ComboFormFields({
                                         )}
                                     </SelectValue>
                                 </SelectTrigger>
-                                <SelectContent className="rounded-xl shadow-xl z-[300] max-h-60">
+                                <SelectContent className="rounded-xl shadow-xl max-h-60">
                                     {comboParents.map(parent => (
                                         <SelectItem key={parent.id} value={parent.id} className="rounded-lg">
                                             <div className="flex items-center gap-2.5">
@@ -255,7 +255,7 @@ const ComboFormFields = memo(function ComboFormFields({
                                                 <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
                                             </button>
                                         </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end" className="w-40 rounded-xl shadow-xl z-[400]">
+                                        <DropdownMenuContent align="end" className="w-40 rounded-xl shadow-xl">
                                             {Object.entries(AGE_GROUPS).map(([val, label]) => (
                                                 <DropdownMenuItem key={val} onClick={() => setField('ageGroup', val)} className="cursor-pointer text-xs font-bold py-2.5">
                                                     {label}

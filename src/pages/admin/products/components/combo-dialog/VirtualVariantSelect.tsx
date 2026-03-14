@@ -217,7 +217,7 @@ const VirtualVariantSelect = memo(function VirtualVariantSelect({
                     onWheel={(e) => e.stopPropagation()}
                     onTouchMove={(e) => e.stopPropagation()}
                     className={cn(
-                        'z-[300] w-[520px]',
+                        'z-50 w-[520px]',
                         'rounded-xl border border-gray-200 bg-white shadow-2xl shadow-black/15',
                         'data-[state=open]:animate-in data-[state=closed]:animate-out',
                         'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',

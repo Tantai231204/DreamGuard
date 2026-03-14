@@ -7,6 +7,7 @@ import { Button } from "../../components/ui/button";
 import { useSendRegisterOtp } from "../../hooks/useAuth";
 import type { AxiosError } from "axios";
 import { toast } from "sonner";
+import { AppRoute } from "../../lib/constants";
 
 type FormData = {
   email: string;
@@ -34,7 +35,7 @@ export default function RegisterBasic() {
             phoneNumber: data.phoneNumber,
           });
 
-          navigate(redirect ? `/verify-register-otp?redirect=${encodeURIComponent(redirect)}` : "/verify-register-otp");
+          navigate(redirect ? `${AppRoute.VERIFY_REGISTER_OTP}?redirect=${encodeURIComponent(redirect)}` : AppRoute.VERIFY_REGISTER_OTP);
         },
 
         onError: (err: Error) => {
@@ -140,7 +141,7 @@ export default function RegisterBasic() {
         <p className="text-center text-sm text-gray-500 mt-3">
           Do you already have an account?{" "}
           <Link
-            to={redirect ? `/login?redirect=${encodeURIComponent(redirect)}` : "/login"}
+            to={redirect ? `${AppRoute.LOGIN}?redirect=${encodeURIComponent(redirect)}` : AppRoute.LOGIN}
             className="text-[var(--color-auth-link-dark)] font-semibold hover:underline"
           >
             Log in

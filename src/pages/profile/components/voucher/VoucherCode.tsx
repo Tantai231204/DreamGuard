@@ -24,8 +24,8 @@ export default function VoucherCode({ code, isActive, onClick }: VoucherCodeProp
 
     return (
         <div className="flex items-center gap-2">
-            <div className="flex-1 px-3 py-2 bg-gradient-to-r from-gray-50 to-blue-50 border-2 border-dashed border-[#4988c4]/30 rounded-lg">
-                <code className="text-sm font-bold text-[#4988c4] tracking-wider">
+            <div className="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg">
+                <code className="text-xs font-bold text-slate-700 tracking-wider">
                     {code}
                 </code>
             </div>
@@ -34,17 +34,17 @@ export default function VoucherCode({ code, isActive, onClick }: VoucherCodeProp
                 variant="outline"
                 disabled={!isActive}
                 onClick={handleCopy}
-                className="h-9 px-3 border-2 hover:bg-[#4988c4] hover:text-white transition-colors"
+                className="h-8 px-2.5 border-slate-200 hover:bg-[#4988c4] hover:border-[#4988c4] hover:text-white transition-all text-[11px] font-bold uppercase tracking-wider"
             >
                 {copied ? (
                     <>
-                        <Check className="h-4 w-4 mr-1" />
-                        <span className="text-xs">Đã copy</span>
+                        <Check className="h-3.5 w-3.5 mr-1.5" />
+                        Copied
                     </>
                 ) : (
                     <>
-                        <Copy className="h-4 w-4 mr-1" />
-                        <span className="text-xs">Copy</span>
+                        <Copy className="h-3.5 w-3.5 mr-1.5" />
+                        Copy
                     </>
                 )}
             </Button>

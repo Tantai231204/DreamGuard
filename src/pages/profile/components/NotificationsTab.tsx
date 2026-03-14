@@ -2,7 +2,6 @@ import { useState } from "react"
 import { Bell, Mail, MessageSquare, Truck, Tag, Gift, Megaphone, Shield, Smartphone, Volume2 } from "lucide-react"
 import { Switch } from "../../../components/ui/switch"
 import { Badge } from "../../../components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../../components/ui/card"
 import { Label } from "../../../components/ui/label"
 
 interface NotificationSetting {
@@ -23,30 +22,30 @@ interface NotificationGroup {
 const initialSettings: NotificationGroup[] = [
     {
         id: "orders",
-        title: "Đơn hàng",
+        title: "Order Updates",
         icon: <Truck className="h-5 w-5" />,
         settings: [
-            { id: "order_status", title: "Cập nhật trạng thái đơn", description: "Nhận thông báo khi đơn hàng có thay đổi", icon: <Truck className="h-4 w-4" />, enabled: true },
-            { id: "order_delivery", title: "Thông báo giao hàng", description: "Nhận thông báo khi đơn hàng sắp đến", icon: <Bell className="h-4 w-4" />, enabled: true },
+            { id: "order_status", title: "Order Status", description: "Get notified about status changes", icon: <Truck className="h-4 w-4" />, enabled: true },
+            { id: "order_delivery", title: "Delivery Updates", description: "Receive alerts when your order is nearby", icon: <Bell className="h-4 w-4" />, enabled: true },
         ]
     },
     {
         id: "promotions",
-        title: "Khuyến mãi",
+        title: "Promotions & Offers",
         icon: <Tag className="h-5 w-5" />,
         settings: [
-            { id: "flash_sale", title: "Flash Sale", description: "Thông báo khi có chương trình giảm giá sốc", icon: <Tag className="h-4 w-4" />, enabled: true },
-            { id: "voucher", title: "Voucher mới", description: "Nhận thông báo khi có voucher dành riêng cho bạn", icon: <Gift className="h-4 w-4" />, enabled: true },
-            { id: "new_products", title: "Sản phẩm mới", description: "Thông báo sản phẩm mới phù hợp với bé", icon: <Megaphone className="h-4 w-4" />, enabled: false },
+            { id: "flash_sale", title: "Flash Sales", description: "Instant alerts for limited-time discounts", icon: <Tag className="h-4 w-4" />, enabled: true },
+            { id: "voucher", title: "Personal Vouchers", description: "Notifications for exclusive coupons", icon: <Gift className="h-4 w-4" />, enabled: true },
+            { id: "new_products", title: "New Arrivals", description: "Find out when we launch new baby bedding", icon: <Megaphone className="h-4 w-4" />, enabled: false },
         ]
     },
     {
         id: "baby",
-        title: "Nhắc nhở cho bé",
+        title: "Baby Milestones",
         icon: <Shield className="h-5 w-5" />,
         settings: [
-            { id: "milestone", title: "Mốc phát triển", description: "Nhắc nhở các mốc phát triển quan trọng của bé", icon: <Shield className="h-4 w-4" />, enabled: true },
-            { id: "birthday", title: "Sinh nhật bé", description: "Nhận ưu đãi đặc biệt vào sinh nhật bé", icon: <Gift className="h-4 w-4" />, enabled: true },
+            { id: "milestone", title: "Development Tracks", description: "Reminders for important growth stages", icon: <Shield className="h-4 w-4" />, enabled: true },
+            { id: "birthday", title: "Birthday Rewards", description: "Special gifts for your little one's big day", icon: <Gift className="h-4 w-4" />, enabled: true },
         ]
     },
 ]
@@ -77,131 +76,121 @@ export default function NotificationsTab() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-in fade-in duration-500">
             {/* Header */}
-            <div>
-                <h2 className="text-xl font-semibold text-gray-900">Cài đặt thông báo</h2>
-                <p className="text-sm text-gray-500 mt-1">Quản lý cách bạn nhận thông báo từ DreamGuard</p>
+            <div className="pb-6 border-b border-slate-100">
+                <h2 className="text-xl font-bold text-slate-900">Notifications</h2>
+                <p className="text-sm text-slate-500 mt-1 font-medium">Manage how you receive updates and alerts.</p>
             </div>
 
-            {/* Notification Channels */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-base">Kênh thông báo</CardTitle>
-                    <CardDescription>Chọn cách bạn muốn nhận thông báo</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-blue-100 text-blue-600">
+            {/* Channels Card */}
+            <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm p-6 transition-all">
+                <h3 className="text-sm font-bold text-slate-900 mb-6 flex items-center gap-3 uppercase tracking-wider">
+                    <Megaphone className="h-4 w-4 text-slate-400" />
+                    Notification Channels
+                </h3>
+                <div className="grid gap-3">
+                    <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50/50 border border-slate-100 transition-colors">
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
                                 <Mail className="h-5 w-5" />
                             </div>
                             <div>
-                                <p className="font-medium text-gray-900">Email</p>
-                                <p className="text-sm text-gray-500">minhanh@email.com</p>
+                                <p className="text-sm font-bold text-slate-800">Email Notifications</p>
+                                <p className="text-[11px] text-slate-500 font-medium">Updates sent to your registered email</p>
                             </div>
                         </div>
                         <Switch 
                             checked={channels.email} 
                             onCheckedChange={(checked: boolean) => setChannels(prev => ({ ...prev, email: checked }))}
+                            className="data-[state=checked]:bg-primary"
                         />
                     </div>
 
-                    <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-purple-100 text-purple-600">
+                    <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50/50 border border-slate-100 transition-colors">
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center text-purple-600">
                                 <Smartphone className="h-5 w-5" />
                             </div>
                             <div>
-                                <p className="font-medium text-gray-900">Push notification</p>
-                                <p className="text-sm text-gray-500">Thông báo trên thiết bị</p>
+                                <p className="text-sm font-bold text-slate-800">Push Notifications</p>
+                                <p className="text-[11px] text-slate-500 font-medium">Instant alerts on your device</p>
                             </div>
                         </div>
                         <Switch 
                             checked={channels.push}
                             onCheckedChange={(checked: boolean) => setChannels(prev => ({ ...prev, push: checked }))}
+                            className="data-[state=checked]:bg-primary"
                         />
                     </div>
 
-                    <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-green-100 text-green-600">
+                    <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50/50 border border-slate-100 transition-colors">
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600">
                                 <MessageSquare className="h-5 w-5" />
                             </div>
                             <div>
-                                <p className="font-medium text-gray-900">SMS</p>
-                                <p className="text-sm text-gray-500">0912 345 678</p>
+                                <p className="text-sm font-bold text-slate-800">SMS Alerts</p>
+                                <p className="text-[11px] text-slate-500 font-medium">Text messages for urgent updates</p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="text-xs">Phí có thể áp dụng</Badge>
+                        <div className="flex items-center gap-3">
+                            <Badge className="bg-amber-50 text-amber-600 border-none text-[8px] font-bold uppercase tracking-wider px-2 h-5">FEE APPLIED</Badge>
                             <Switch 
                                 checked={channels.sms}
                                 onCheckedChange={(checked: boolean) => setChannels(prev => ({ ...prev, sms: checked }))}
+                                className="data-[state=checked]:bg-primary"
                             />
                         </div>
                     </div>
-                </CardContent>
-            </Card>
+                </div>
+            </div>
 
-            {/* Notification Settings */}
-            {settings.map((group) => (
-                <Card key={group.id}>
-                    <CardHeader>
-                        <CardTitle className="text-base flex items-center gap-2">
-                            <span className="text-[#4988c4]">{group.icon}</span>
-                            {group.title}
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-1">
-                        {group.settings.map((setting, idx) => (
-                            <div 
-                                key={setting.id}
-                                className={`flex items-center justify-between py-4 ${
-                                    idx !== group.settings.length - 1 ? "border-b" : ""
-                                }`}
-                            >
-                                <div className="flex items-start gap-3">
-                                    <div className={`p-2 rounded-lg ${
-                                        setting.enabled ? "bg-[#4988c4]/10 text-[#4988c4]" : "bg-gray-100 text-gray-400"
-                                    }`}>
-                                        {setting.icon}
-                                    </div>
-                                    <div>
-                                        <Label className="font-medium text-gray-900 cursor-pointer">
-                                            {setting.title}
-                                        </Label>
-                                        <p className="text-sm text-gray-500 mt-0.5">{setting.description}</p>
-                                    </div>
-                                </div>
-                                <Switch 
-                                    checked={setting.enabled}
-                                    onCheckedChange={() => handleToggle(group.id, setting.id)}
-                                />
-                            </div>
-                        ))}
-                    </CardContent>
-                </Card>
-            ))}
-
-            {/* Sound Settings */}
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-base flex items-center gap-2">
-                        <Volume2 className="h-5 w-5 text-[#4988c4]" />
-                        Âm thanh thông báo
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50">
-                        <div>
-                            <p className="font-medium text-gray-900">Bật âm thanh</p>
-                            <p className="text-sm text-gray-500">Phát âm thanh khi có thông báo mới</p>
+            {/* Notification Topics */}
+            <div className="grid gap-6">
+                {settings.map((group) => (
+                    <div key={group.id} className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden transition-all">
+                        <div className="px-5 py-4 flex items-center gap-3 border-b border-slate-100 bg-slate-50/30">
+                            <div className="text-slate-400">{group.icon}</div>
+                            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">{group.title}</h3>
                         </div>
-                        <Switch defaultChecked />
+                        <div className="divide-y divide-slate-100">
+                            {group.settings.map((setting) => (
+                                <div key={setting.id} className="flex items-center justify-between p-5 hover:bg-slate-50/30 transition-colors">
+                                    <div className="flex items-start gap-4">
+                                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-colors ${setting.enabled ? "bg-primary/10 text-primary" : "bg-slate-100 text-slate-400"}`}>
+                                            {setting.icon}
+                                        </div>
+                                        <div>
+                                            <Label className="text-sm font-bold text-slate-800 block mb-0.5">{setting.title}</Label>
+                                            <p className="text-xs text-slate-500 font-medium leading-relaxed">{setting.description}</p>
+                                        </div>
+                                    </div>
+                                    <Switch 
+                                        checked={setting.enabled}
+                                        onCheckedChange={() => handleToggle(group.id, setting.id)}
+                                        className="data-[state=checked]:bg-primary"
+                                    />
+                                </div>
+                            ))}
+                        </div>
                     </div>
-                </CardContent>
-            </Card>
+                ))}
+            </div>
+
+            {/* Sound Settings Card */}
+            <div className="bg-blue-50/40 border border-blue-100 rounded-2xl p-6 flex items-center justify-between transition-all">
+                <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-lg bg-white flex items-center justify-center text-primary shadow-sm border border-primary/10">
+                        <Volume2 className="h-5 w-5" />
+                    </div>
+                    <div>
+                        <p className="text-sm font-bold text-slate-800">Notification Sounds</p>
+                        <p className="text-xs text-slate-500 font-medium">Play a sound for new notifications</p>
+                    </div>
+                </div>
+                <Switch defaultChecked className="data-[state=checked]:bg-primary" />
+            </div>
         </div>
     )
 }

@@ -26,7 +26,7 @@ export function UserDropdownContent() {
             align="end"
             sideOffset={8}
             className="
-                w-72 rounded-2xl border border-gray-100 bg-white p-0 overflow-hidden z-[9999]
+                w-72 rounded-2xl border border-gray-100 bg-white p-0 overflow-hidden
                 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.1)]
             "
         >

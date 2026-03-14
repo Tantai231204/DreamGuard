@@ -27,7 +27,7 @@ export default function CheckoutResult() {
     return (
         <div className="min-h-[80vh] flex flex-col items-center justify-center p-6 relative">
             {/* Completion Progress Bar */}
-            <div className="fixed top-0 left-0 right-0 h-1 z-[100] bg-slate-100 overflow-hidden">
+            <div className="fixed top-0 left-0 right-0 h-1 z-30 bg-slate-100 overflow-hidden">
                 <motion.div
                     initial={{ width: "80%" }}
                     animate={{ width: "100%" }}

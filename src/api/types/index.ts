@@ -5,6 +5,7 @@ export type { ApiResponse, PaginatedResponse } from "./apiResponse";
 export type {
   Token,
   LoginRequest,
+  AuthResponse,
   RegisterRequest,
   ForgotPasswordRequest,
   VerifyTokenRequest,

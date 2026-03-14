@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 
@@ -30,13 +30,14 @@ const TAB_COMPONENTS: Record<TabId, React.ComponentType> = {
     notifications: NotificationsTab,
     security: SecurityTab,
 };
+
 export default function Profile() {
     const [searchParams, setSearchParams] = useSearchParams();
     const activeTab = (searchParams.get("tab") as TabId) || "profile";
 
-    const handleTabChange = (tab: TabId) => {
+    const handleTabChange = useCallback((tab: TabId) => {
         setSearchParams({ tab });
-    };
+    }, [setSearchParams]);
 
     const { setItems: setBreadcrumb } = useBreadcrumb();
 
@@ -57,38 +58,44 @@ export default function Profile() {
                 description="Manage your DreamGuard account, orders, and baby profiles."
             />
 
-            <div className="min-h-[calc(100vh-200px)] bg-white">
-                <div className="container mx-auto max-w-[1300px] px-4 py-12 lg:px-8">
+            <div className="min-h-[calc(100vh-200px)] bg-[#fafbfc] relative overflow-hidden">
+                {/* Abstract Background Accents */}
+                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-50/50 rounded-full blur-[100px] -mr-64 -mt-64" />
+                <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-slate-50 rounded-full blur-[100px] -ml-64 -mb-64" />
+
+                <div className="container mx-auto max-w-[1300px] px-4 py-16 lg:px-8 relative">
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={{ opacity: 0, y: 15 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                        className="grid gap-8 lg:grid-cols-[300px_1fr]"
+                        transition={{ duration: 0.4, ease: "easeOut" }}
+                        className="grid gap-8 lg:grid-cols-[330px_1fr] items-stretch"
                     >
-                        {/* Interactive Sidebar */}
-                        <aside className="relative z-10">
-                            <div className="sticky top-28">
-                                <ProfileSidebar
-                                    activeTab={activeTab}
-                                    onTabChange={handleTabChange}
-                                />
-                            </div>
+                        {/* Interactive Sidebar - Height Master */}
+                        <aside className="h-full">
+                            <ProfileSidebar
+                                activeTab={activeTab}
+                                onTabChange={handleTabChange}
+                            />
                         </aside>
 
-                        {/* Main Stage with AnimatePresence */}
-                        <main className="min-w-0">
-                            <AnimatePresence mode="wait">
-                                <motion.div
-                                    key={activeTab}
-                                    initial={{ opacity: 0, x: 10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: -10 }}
-                                    transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-                                    className="rounded-3xl border border-white bg-white p-8 shadow-[0_8px_30px_rgb(0,0,0,0.02)] min-h-[600px] ring-1 ring-slate-200/50 will-change-transform"
-                                >
-                                    <ActiveComponent />
-                                </motion.div>
-                            </AnimatePresence>
+                        {/* Main Stage - Follows Sidebar Height */}
+                        <main className="relative min-h-[600px]">
+                            <div className="lg:absolute lg:inset-0">
+                                <AnimatePresence mode="wait" initial={false}>
+                                    <motion.div
+                                        key={activeTab}
+                                        initial={{ opacity: 0, y: 8 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -8 }}
+                                        transition={{ duration: 0.15, ease: "easeOut" }}
+                                        className="rounded-[3rem] border border-slate-100 bg-white shadow-xl ring-1 ring-slate-100/50 flex flex-col h-full overflow-hidden"
+                                    >
+                                        <div className="flex-1 overflow-y-auto custom-scrollbar p-10 scroll-smooth">
+                                            <ActiveComponent />
+                                        </div>
+                                    </motion.div>
+                                </AnimatePresence>
+                            </div>
                         </main>
                     </motion.div>
                 </div>

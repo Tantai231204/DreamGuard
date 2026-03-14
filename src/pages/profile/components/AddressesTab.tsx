@@ -75,10 +75,11 @@ export default function AddressesTab() {
             setEditingAddress(null);
             setShowForm(true);
           }}
-          className="bg-[#4988c4] hover:bg-[#3b6fa3] text-white shadow-lg shadow-[#4988c4]/25 hover:shadow-[#4988c4]/40 transition-all active:scale-95 rounded-2xl px-5 h-11 font-semibold text-sm gap-2"
+          className="relative shadow-lg hover:shadow-primary/30 hover:-translate-y-0.5 transition-all duration-300 active:scale-95 rounded-xl px-6 h-11 bg-primary text-white font-black text-[10px] uppercase tracking-[0.15em] group overflow-hidden gap-2"
         >
-          <PlusIcon className="h-4 w-4" />
-          Add Address
+          <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-[1200ms]" />
+          <PlusIcon className="h-4 w-4 relative z-10" />
+          <span className="relative z-10">Add Address</span>
         </Button>
       </div>
 
@@ -258,14 +259,15 @@ export default function AddressesTab() {
             easier.
           </p>
           <Button
-            className="mt-6 bg-[#4988c4] hover:bg-[#3b6fa3] text-white shadow-lg shadow-[#4988c4]/20 transition-all active:scale-95 rounded-2xl h-11 px-6 font-semibold gap-2"
+            className="relative mt-6 shadow-lg hover:shadow-primary/30 hover:-translate-y-0.5 transition-all duration-300 active:scale-95 rounded-2xl h-12 px-8 bg-primary text-white font-black text-[11px] uppercase tracking-[0.2em] group overflow-hidden gap-2"
             onClick={() => {
               setEditingAddress(null);
               setShowForm(true);
             }}
           >
-            <PlusIcon className="h-4 w-4" />
-            Add First Address
+            <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-[1500ms]" />
+            <PlusIcon className="h-5 w-5 relative z-10" />
+            <span className="relative z-10">Add First Address</span>
           </Button>
         </div>
       )}
@@ -567,12 +569,13 @@ function AddressFormDialog({ open, onOpenChange, initialData }: AddressFormDialo
               Cancel
             </Button>
             <Button
-              className="flex-1 h-11 rounded-2xl bg-[#4988c4] hover:bg-[#3b6fa3] text-white font-semibold shadow-lg shadow-[#4988c4]/25 transition-all active:scale-[0.98] gap-2"
+              className="relative flex-1 h-12 rounded-2xl bg-primary text-white font-black text-[10px] uppercase tracking-[0.2em] shadow-[0_10px_25px_-8px_rgba(var(--color-primary-rgb),0.5)] hover:shadow-[0_15px_30px_-10px_rgba(var(--color-primary-rgb),0.6)] hover:-translate-y-0.5 transition-all duration-300 active:scale-[0.98] group overflow-hidden gap-2"
               onClick={handleSubmit}
               disabled={updateMutation.isPending || createMutation.isPending}
             >
-              <MapPin className="h-4 w-4" />
-              {initialData ? "Save Changes" : "Save Address"}
+              <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-[1500ms]" />
+              <MapPin className="h-4 w-4 relative z-10" />
+              <span className="relative z-10">{initialData ? "Save Changes" : "Save Address"}</span>
             </Button>
           </div>
         </div>

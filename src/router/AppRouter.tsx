@@ -29,7 +29,7 @@ const RegisterBasic = lazy(() => import("../pages/auth/RegisterBasic"));
 const VerifyRegisterOTP = lazy(() => import("../pages/auth/VerifyRegisterOTP"));
 const RegisterComplete = lazy(() => import("../pages/auth/RegisterComplete"));
 const ForgotPassword = lazy(() => import("../pages/auth/ForgotPassword"));
-const VerifyOTP = lazy(() => import("../pages/auth/VerifyOTP"));
+const ResetPasswordOTP = lazy(() => import("../pages/auth/ResetPasswordOTP"));
 const ResetPassword = lazy(() => import("../pages/auth/ResetPassword"));
 const ResetPasswordSuccess = lazy(() => import("../pages/auth/ResetPasswordSuccess"));
 
@@ -54,7 +54,7 @@ const PaymentManagement = lazy(() => import("../pages/admin/payments"));
 
 /* =======================
    Router
-======================= */
+ ======================= */
 export default function AppRouter() {
     return (
         <Suspense fallback={<PageLoader />}>
@@ -76,11 +76,11 @@ export default function AppRouter() {
                     <Route element={<AuthLayout />}>
                         <Route path={AppRoute.LOGIN} element={<Login />} />
                         <Route path={AppRoute.REGISTER} element={<RegisterBasic />} />
-                        <Route path={AppRoute.REGISTER_BASIC} element={<RegisterBasic />} />
-                        <Route path="/verify-register-otp" element={<VerifyRegisterOTP />} />
+                        {/* <Route path={AppRoute.REGISTER_BASIC} element={<RegisterBasic />} /> */}
+                        <Route path={AppRoute.VERIFY_REGISTER_OTP} element={<VerifyRegisterOTP />} />
                         <Route path={AppRoute.REGISTER_COMPLETE} element={<RegisterComplete />} />
                         <Route path={AppRoute.FORGOT_PASSWORD} element={<ForgotPassword />} />
-                        <Route path={AppRoute.VERIFY_OTP} element={<VerifyOTP />} />
+                        <Route path={AppRoute.RESET_PASSWORD_OTP} element={<ResetPasswordOTP />} />
                         <Route path={AppRoute.RESET_PASSWORD} element={<ResetPassword />} />
                         <Route
                             path={AppRoute.RESET_PASSWORD_SUCCESS}

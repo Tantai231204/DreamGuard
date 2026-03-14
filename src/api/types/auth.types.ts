@@ -11,10 +11,11 @@ export interface LoginRequest {
 }
 
 export interface AuthResponse {
-  accessToken: string;
-  refreshToken: string;
   roleName: string;
 }
+
+// Note: Tokens are handled via HttpOnly cookies (Pure Cookie Approach).
+// They are not stored in the frontend state for security.
 
 export interface RegisterRequest {
   email: string;
@@ -27,7 +28,7 @@ export interface RegisterRequest {
 }
 
 export interface ForgotPasswordRequest {
-  email: string;
+  phoneNumber: string;
 }
 
 export interface VerifyTokenRequest {

@@ -55,7 +55,7 @@ const ClassificationSection = memo(function ClassificationSection({
                                 <SelectValue placeholder="Select category" />
                             </span>
                         </SelectTrigger>
-                        <SelectContent className="rounded-xl shadow-xl z-[200]">
+                        <SelectContent className="rounded-xl shadow-xl">
                             {flatCategories.map((cat, index) => (
                                 <SelectItem
                                     key={cat.cateId ?? `cat-${index}`}
@@ -105,7 +105,7 @@ const ClassificationSection = memo(function ClassificationSection({
                                         <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
                                     </button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-40 rounded-xl shadow-xl z-[400]">
+                                <DropdownMenuContent align="end" className="w-40 rounded-xl shadow-xl">
                                     {Object.entries(AGE_GROUPS).map(([val, label]) => (
                                         <DropdownMenuItem
                                             key={val}
@@ -139,7 +139,7 @@ const ClassificationSection = memo(function ClassificationSection({
                                 <SelectValue placeholder="Select subcategory" />
                             </span>
                         </SelectTrigger>
-                        <SelectContent className="rounded-xl shadow-xl z-[200]">
+                        <SelectContent className="rounded-xl shadow-xl">
                             {childCategories.map((subCat) => (
                                 <SelectItem
                                     key={subCat.cateId}

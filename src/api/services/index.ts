@@ -1,5 +1,6 @@
 // src/api/services/index.ts
 export { authService } from './auth.service';
+export type { VerifyOtpRequest, ResetPasswordRequest, ChangePasswordRequest } from './auth.service';
 export { default as userService } from './userService';
 export { default as categoryService } from './categoryService';
 export { default as voucherService } from './voucherService';

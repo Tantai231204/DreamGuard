@@ -21,7 +21,7 @@ export default function AppLayout({ variant = "home" }: AppLayoutProps) {
   if (variant === "checkout") {
     return (
       <div className="min-h-screen bg-white flex flex-col">
-        <header className="border-b bg-white py-4 shadow-sm relative z-50">
+        <header className="border-b bg-white py-4 shadow-sm relative z-40">
           <div className="container mx-auto max-w-7xl px-4 flex items-center justify-between">
             <Link to={AppRoute.HOME} className="hover:opacity-80 transition-opacity">
               <img src="/images/logo_with_name.svg" alt="DreamGuard" className="h-10 w-auto" />
