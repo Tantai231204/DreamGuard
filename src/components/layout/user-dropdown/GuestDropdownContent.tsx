@@ -16,8 +16,8 @@ export function GuestDropdownContent() {
         >
             <GuestHeader />
 
-            <div className="p-5 border-b border-gray-50">
-                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-4">
+            <div className="p-5 border-b border-dashed border-[#4988c4]/10">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] mb-4">
                     Member Benefits
                 </p>
                 <div className="space-y-3">

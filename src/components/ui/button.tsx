@@ -22,9 +22,6 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                 {...props}
             >
                 {children}
-                {variant === "premium" && (
-                     <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-[1200ms]" />
-                )}
             </Comp>
         )
     }

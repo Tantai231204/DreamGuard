@@ -11,7 +11,7 @@ export const buttonVariants = cva(
                 ghost: 'hover:bg-primary-light/30 hover:text-primary border-2 border-transparent',
                 link: 'underline-offset-4 hover:underline text-primary',
                 amber: 'bg-amber-400 text-white hover:bg-amber-500 border-2 border-amber-400 hover:border-amber-500 shadow-lg shadow-amber-400/20 hover:shadow-amber-400/40',
-                premium: 'relative overflow-hidden bg-primary text-white border-2 border-primary hover:bg-primary-hover hover:border-primary-hover shadow-lg hover:shadow-primary/30 hover:-translate-y-0.5 active:scale-95 duration-300 font-extrabold text-[11px] uppercase tracking-[0.15em] group',
+                premium: 'relative overflow-hidden bg-primary text-white border-2 border-primary hover:bg-primary-hover hover:border-primary-hover shadow-lg hover:shadow-primary/30 hover:-translate-y-0.5 active:scale-95 duration-300 font-extrabold text-[11px] uppercase tracking-[0.15em] group after:absolute after:inset-0 after:bg-gradient-to-r after:from-transparent after:via-white/10 after:to-transparent after:-translate-x-full hover:after:translate-x-full after:transition-transform after:duration-[1200ms] after:content-[""]',
             },
             size: {
                 default: 'h-10 px-5 py-2',
