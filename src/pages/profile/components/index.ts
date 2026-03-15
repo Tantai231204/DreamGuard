@@ -5,7 +5,7 @@ export { default as OrdersTab } from "./OrdersTab"
 export { default as ResellTab } from "./ResellTab"
 export { default as WishlistTab } from "./WishlistTab"
 export { default as VouchersTab } from "./VouchersTab"
-export { default as AddressesTab } from "./AddressesTab"
+export { default as AddressesTab } from "./address/AddressesTab"
 export { default as NotificationsTab } from "./NotificationsTab"
 export { default as SecurityTab } from "./SecurityTab"
 

@@ -7,6 +7,7 @@ import {
     Printer,
     ChevronRight,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import {
     Dialog,
     DialogContent,
@@ -25,15 +26,10 @@ interface PaymentDetailSheetProps {
     id: string | null;
     onClose: () => void;
 }
-
-
-
 export function PaymentDetailSheet({ id, onClose }: PaymentDetailSheetProps) {
     const { data: payment, isLoading } = usePaymentDetail(id || '');
     const isOpen = !!id;
-
-
-
+    const navigate = useNavigate();
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="sm:max-w-md p-0 overflow-hidden border-none rounded-2xl shadow-2xl gap-0 bg-white">
@@ -91,7 +87,10 @@ export function PaymentDetailSheet({ id, onClose }: PaymentDetailSheetProps) {
                                                 value={payment.orderCode}
                                                 icon={Hash}
                                                 isLink
-                                                onClick={() => window.open(`/admin/orders`, '_blank')}
+                                                onClick={() => {
+                                                    navigate(`/admin/orders/${payment.pOrderId}`);
+                                                    onClose();
+                                                }}
                                             />
                                         </InfoGroup>
 
@@ -127,16 +126,17 @@ export function PaymentDetailSheet({ id, onClose }: PaymentDetailSheetProps) {
                     <div className="p-4 bg-white border-t flex gap-3">
                         <Button
                             variant="outline"
-                            className="flex-1 rounded-xl font-bold h-12 text-slate-600 border-slate-200 hover:bg-slate-50 transition-all"
+                            className="flex-1 rounded-xl font-bold h-12 text-slate-600 border-slate-200 hover:bg-slate-50 transition-all duration-300 hover:-translate-y-0.5 active:scale-95"
                             onClick={onClose}
                         >
                             Dismiss
                         </Button>
                         <Button
-                            className="flex-1 rounded-xl font-bold h-12 bg-slate-900 text-white hover:bg-slate-800 transition-all shadow-lg flex items-center justify-center gap-2"
+                            variant="premium"
+                            className="flex-1 rounded-xl font-bold h-12 gap-2 flex items-center justify-center"
                         >
-                            <Printer className="h-4 w-4" />
-                            Print Receipt
+                            <Printer className="h-4 w-4 relative z-10" />
+                            <span className="relative z-10">Print Receipt</span>
                         </Button>
                     </div>
                 </div>
@@ -180,10 +180,10 @@ function InfoItem({ label, value, icon: Icon, isLink, onClick, showAsBadge }: {
             </div>
             <div className="flex items-center gap-2">
                 {showAsBadge ? (
-                    <AdminStatusBadge 
-                        status={value} 
-                        type="neutral" 
-                        className="bg-slate-100/50 border-slate-200" 
+                    <AdminStatusBadge
+                        status={value}
+                        type="neutral"
+                        className="bg-slate-100/50 border-slate-200"
                     />
                 ) : (
                     <span className={cn(

@@ -76,13 +76,13 @@ export default function BabiesTab() {
           </p>
         </div>
         <Button
+          variant="premium"
           onClick={() => {
             setEditingBaby(null);
             setShowForm(true);
           }}
-          className="relative px-6 h-11 rounded-xl bg-primary text-white font-black text-[10px] uppercase tracking-[0.15em] shadow-lg hover:shadow-primary/30 hover:-translate-y-0.5 transition-all duration-300 active:scale-95 group overflow-hidden gap-2"
+          className="px-6 h-11 rounded-xl gap-2"
         >
-          <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-[1200ms]" />
           <PlusIcon className="h-4 w-4 relative z-10" />
           <span className="relative z-10">Add Profile</span>
         </Button>
@@ -223,13 +223,13 @@ export default function BabiesTab() {
             Create a profile to unlock personalized recommendations and premium growth tracking.
           </p>
           <Button
-            className="relative mt-8 h-12 px-10 rounded-2xl bg-primary text-white font-black text-[11px] uppercase tracking-[0.2em] shadow-[0_10px_25px_-8px_rgba(var(--color-primary-rgb),0.5)] hover:shadow-[0_15px_30px_-10px_rgba(var(--color-primary-rgb),0.6)] hover:-translate-y-0.5 transition-all duration-300 active:scale-95 group overflow-hidden gap-2"
+            variant="premium"
+            className="mt-8 h-12 px-10 rounded-2xl gap-2"
             onClick={() => {
               setEditingBaby(null);
               setShowForm(true);
             }}
           >
-            <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-[1500ms]" />
             <PlusIcon className="h-5 w-5 relative z-10" />
             <span className="relative z-10">Add First Profile</span>
           </Button>
@@ -481,12 +481,10 @@ function BabyFormDialog({ open, onOpenChange, initialData }: BabyFormDialogProps
               Cancel
             </Button>
             <Button
+              variant="premium"
               className={cn(
-                "relative flex-1 h-12 rounded-2xl font-black text-[10px] text-white uppercase tracking-[0.2em] transition-all duration-300 active:scale-[0.98] group overflow-hidden gap-2",
-                isBoy 
-                  ? "bg-primary shadow-[0_10px_25px_-8px_rgba(var(--color-primary-rgb),0.5)] hover:shadow-[0_15px_30px_-10px_rgba(var(--color-primary-rgb),0.6)]" 
-                  : "bg-pink-500 shadow-[0_10px_25px_-8px_rgba(236,72,153,0.5)] hover:shadow-[0_15px_30px_-10px_rgba(236,72,153,0.6)]",
-                "hover:-translate-y-0.5"
+                "flex-1 h-12 rounded-2xl gap-2",
+                !isBoy && "bg-pink-500 border-pink-500 hover:bg-pink-600 hover:border-pink-600 shadow-pink-500/40"
               )}
               onClick={() => {
                 const payload = {
@@ -511,7 +509,6 @@ function BabyFormDialog({ open, onOpenChange, initialData }: BabyFormDialogProps
                 }
               }}
             >
-              <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-[1500ms]" />
               <Gift className="h-4 w-4 relative z-10" />
               <span className="relative z-10">{formData.babyId ? "Update Profile" : "Add Baby"}</span>
             </Button>

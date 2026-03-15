@@ -214,21 +214,15 @@ export const ProductInfo = memo(({
 
             {/* ── Row 7: Add to Cart ── */}
             <Button
+                variant={isActuallyOutOfStock ? "secondary" : "premium"}
                 size="lg"
                 disabled={isActuallyOutOfStock}
                 onClick={onAddToCart}
                 className={cn(
-                    "relative w-full h-16 rounded-2xl text-[11px] font-black uppercase tracking-[0.22em] transition-all duration-300 active:scale-[0.98] group overflow-hidden",
-                    isActuallyOutOfStock
-                        ? "bg-slate-100 text-slate-400 border border-slate-100 cursor-not-allowed"
-                        : "bg-primary text-white shadow-[0_10px_30px_-10px_rgba(var(--color-primary-rgb),0.5)] hover:shadow-[0_20px_40px_-12px_rgba(var(--color-primary-rgb),0.6)] hover:-translate-y-0.5"
+                    "w-full h-16 rounded-2xl",
+                    isActuallyOutOfStock && "bg-slate-100 text-slate-400 border border-slate-100 cursor-not-allowed"
                 )}
             >
-                {/* Gloss Effect for Primary State */}
-                {!isActuallyOutOfStock && (
-                    <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                )}
-
                 {isActuallyOutOfStock ? (
                     <span className="flex items-center gap-3 relative z-10">
                         <AlertTriangle className="h-4 w-4 opacity-70" />

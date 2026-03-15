@@ -83,15 +83,6 @@ const processQueue = (error: unknown) => {
 };
 
 /* ======================
-   Request Interceptor
-====================== */
-api.interceptors.request.use((config) => {
-  // Pure Cookie Approach: No manual Authorization header.
-  // Implementation: 'withCredentials: true' handles all token transport.
-  return config;
-});
-
-/* ======================
    Response Interceptor
 ====================== */
 api.interceptors.response.use(
@@ -100,6 +91,11 @@ api.interceptors.response.use(
     return response;
   },
   async (error) => {
+    // 🛡️ Safety Guard: Avoid crashing on cancels/network timeouts without config
+    if (!error?.config) {
+      return Promise.reject(error);
+    }
+
     const originalRequest = error.config as CustomAxiosRequestConfig;
     const status = error.response?.status;
 
@@ -128,7 +124,7 @@ api.interceptors.response.use(
       try {
         // Pure Cookie Refresh:
         // No body payload needed, server will read HTTP-only RefreshToken cookie.
-        await api.post("/auths/refreshToken");
+        await api.post("/auths/refreshToken", {});
 
         processQueue(null);
         return api(originalRequest);

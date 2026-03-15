@@ -33,6 +33,8 @@ export const useAddress = (id: string) => {
   })
 }
 
+import type { Address, CreateAddressPayload, UpdateAddressPayload } from "@/api/types/address";
+
 /* 
    CREATE
  */
@@ -41,7 +43,34 @@ export const useCreateAddress = () => {
 
   return useMutation({
     mutationFn: createAddress,
-    onSuccess: () => {
+    onMutate: async (newPayload: CreateAddressPayload) => {
+      // 1. Cancel outgoing queries
+      await queryClient.cancelQueries({ queryKey: addressKeys.all })
+
+      // 2. Snapshot previous value
+      const previousAddresses = queryClient.getQueryData<Address[]>(addressKeys.all)
+
+      // 3. Optimistically update to the new value
+      queryClient.setQueryData<Address[]>(addressKeys.all, (old) => {
+        const tempAddress: Address = {
+          addressId: `temp-${Date.now()}`,
+          receiverName: newPayload.receiverName,
+          phoneNumber: newPayload.phoneNumber,
+          street: newPayload.street,
+          province: newPayload.province,
+          district: newPayload.district,
+          ward: newPayload.ward,
+        }
+        return old ? [...old, tempAddress] : [tempAddress]
+      })
+
+      // 4. Return context object for rollback
+      return { previousAddresses }
+    },
+    onError: (_err, _newPayload, context) => {
+      queryClient.setQueryData(addressKeys.all, context?.previousAddresses)
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: addressKeys.all })
     },
   })
@@ -55,7 +84,27 @@ export const useUpdateAddress = () => {
 
   return useMutation({
     mutationFn: updateAddress,
-    onSuccess: () => {
+    onMutate: async (updatedPayload: UpdateAddressPayload) => {
+      await queryClient.cancelQueries({ queryKey: addressKeys.all })
+
+      const previousAddresses = queryClient.getQueryData<Address[]>(addressKeys.all)
+
+      queryClient.setQueryData<Address[]>(addressKeys.all, (old) => {
+        return old
+          ? old.map((addr) =>
+            addr.addressId === updatedPayload.id
+              ? { ...addr, ...updatedPayload, addressId: updatedPayload.id } // map payload keys back
+              : addr
+          )
+          : []
+      })
+
+      return { previousAddresses }
+    },
+    onError: (_err, _updatedPayload, context) => {
+      queryClient.setQueryData(addressKeys.all, context?.previousAddresses)
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: addressKeys.all })
     },
   })
@@ -69,7 +118,21 @@ export const useDeleteAddress = () => {
 
   return useMutation({
     mutationFn: deleteAddress,
-    onSuccess: () => {
+    onMutate: async (idToDelete: string) => {
+      await queryClient.cancelQueries({ queryKey: addressKeys.all })
+
+      const previousAddresses = queryClient.getQueryData<Address[]>(addressKeys.all)
+
+      queryClient.setQueryData<Address[]>(addressKeys.all, (old) => {
+        return old ? old.filter((item) => item.addressId !== idToDelete) : []
+      })
+
+      return { previousAddresses }
+    },
+    onError: (_err, _idToDelete, context) => {
+      queryClient.setQueryData(addressKeys.all, context?.previousAddresses)
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: addressKeys.all })
     },
   })

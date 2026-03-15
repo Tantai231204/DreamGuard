@@ -65,21 +65,15 @@ export const ComboActions = ({ combo, activeCombo, quantity, setQuantity, onAddT
             {/* SYNCED "ADD TO CART" BUTTON */}
             <div className="flex flex-col gap-4">
                 <Button
+                    variant={isOutOfStock ? "secondary" : "premium"}
                     size="lg"
                     disabled={isOutOfStock}
                     onClick={onAddToCart}
                     className={cn(
-                        "relative w-full h-16 rounded-2xl text-[11px] font-black uppercase tracking-[0.22em] transition-all duration-300 active:scale-[0.98] group overflow-hidden",
-                        isOutOfStock
-                            ? "bg-slate-100 text-slate-400 border border-slate-100 cursor-not-allowed"
-                            : "bg-[#4988c4] text-white shadow-[0_10px_30px_-10px_rgba(73,136,196,0.5)] hover:shadow-[0_20px_40px_-12px_rgba(73,136,196,0.6)] hover:-translate-y-0.5 border-0"
+                        "w-full h-16 rounded-2xl",
+                        isOutOfStock && "bg-slate-100 text-slate-400 border border-slate-100 cursor-not-allowed"
                     )}
                 >
-                    {/* Gloss Effect */}
-                    {!isOutOfStock && (
-                        <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                    )}
-
                     <span className="flex items-center gap-4 relative z-10">
                         <ShoppingCart className="h-5 w-5 transition-transform group-hover:-rotate-12" />
                         {isOutOfStock ? "Bundle Sold Out" : "Add Bundle to Cart"}

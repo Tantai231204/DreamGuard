@@ -116,16 +116,13 @@ export default function ProfileInfoTab() {
             </div>
 
             <Button
-              variant={isEditing ? "outline" : "default"}
+              variant={isEditing ? "outline" : "premium"}
               onClick={handleEdit}
               className={cn(
-                "px-6 h-11 font-black text-[10px] uppercase tracking-[0.12em] rounded-xl transition-all duration-300 active:scale-95 group overflow-hidden md:self-end",
-                !isEditing && "bg-primary text-white shadow-lg hover:shadow-primary/20 hover:-translate-y-0.5"
+                "px-6 h-11 rounded-xl md:self-end",
+                isEditing && "font-bold text-xs uppercase tracking-wider"
               )}
             >
-              {!isEditing && (
-                <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-[1200ms]" />
-              )}
               <span className="relative z-10">{isEditing ? "Cancel Editing" : "Edit Profile"}</span>
             </Button>
           </div>
@@ -252,11 +249,11 @@ export default function ProfileInfoTab() {
                 Discard
               </Button>
               <Button
+                variant="premium"
                 onClick={handleSave}
                 disabled={isUpdating}
-                className="relative h-12 px-10 rounded-2xl bg-primary text-white font-black text-[10px] uppercase tracking-[0.2em] shadow-[0_10px_25px_-8px_rgba(var(--color-primary-rgb),0.5)] hover:shadow-[0_15px_30px_-10px_rgba(var(--color-primary-rgb),0.6)] hover:-translate-y-0.5 transition-all duration-300 active:scale-[0.98] group overflow-hidden"
+                className="h-12 px-10 rounded-2xl"
               >
-                <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-[1500ms]" />
                 <span className="relative z-10">{isUpdating ? "Saving..." : "Save Changes"}</span>
               </Button>
             </div>

@@ -102,16 +102,20 @@ const ProfileSidebar = ({ activeTab, onTabChange }: ProfileSidebarProps) => {
             return (
               <button
                 key={tab.id}
-                onClick={() => onTabChange(tab.id)}
+                onClick={() => {
+                  if (!isActive) {
+                    onTabChange(tab.id);
+                  }
+                }}
                 className={cn(
-                  "relative w-full flex items-center gap-4 rounded-2xl px-5 py-3.5 overflow-hidden group transition-all duration-300",
+                  "relative w-full flex items-center gap-4 rounded-2xl px-5 py-3.5 overflow-hidden group transition-all duration-300 cursor-pointer",
                   !isActive && "hover:bg-slate-50 text-slate-500 hover:text-slate-900"
                 )}
               >
                 {isActive && (
                   <motion.div
                     layoutId="active-pill"
-                    className="absolute inset-0 bg-primary z-0 shadow-[0_8px_20px_-6px_rgba(73,136,196,0.25)]"
+                    className="absolute inset-0 bg-primary z-0 shadow-[0_8px_20px_-6px_rgba(73,136,196,0.25)] pointer-events-none"
                     style={{ borderRadius: '12px' }}
                     transition={{
                       type: "spring",

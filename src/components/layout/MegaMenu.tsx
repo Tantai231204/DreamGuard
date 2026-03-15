@@ -101,7 +101,7 @@ export function MegaMenu({ open, items, highlight, combos = [], onMouseEnter, on
                                     {/* Elegant Vertical Dashed Divider */}
                                     <div className="absolute left-0 top-0 bottom-0 w-[1px] bg-gradient-to-b from-transparent via-slate-100 to-transparent" />
                                     <div className="absolute left-0 top-1/4 bottom-1/4 w-[1px] border-l border-dashed border-[#4988c4]/20" />
-                                    
+
                                     {(combos && combos.length > 0) ? (
                                         <div className="space-y-6">
                                             <div className="flex items-center justify-between">
