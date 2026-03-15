@@ -53,12 +53,12 @@ export function NavDropdown({
                     <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-56 rounded-2xl bg-white p-3 shadow-[0_15px_30px_-10px_rgba(0,0,0,0.05)] ring-1 ring-slate-100 group-hover:block z-50 border border-slate-50 animate-in fade-in zoom-in-95 duration-200">
                         {/* Top accent for dropdown */}
                         <div className="absolute top-0 left-0 w-full h-[1px] bg-[#4988c4] rounded-t-2xl" />
-                        
+
                         <div className="grid gap-1">
                             {items.map(item => (
                                 <div key={item.label} className="relative group/link overflow-hidden">
-                                    <a 
-                                        href={item.href} 
+                                    <a
+                                        href={item.href}
                                         className="flex items-center justify-between rounded-xl px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-slate-500 transition-all hover:bg-[#4988c4]/5 hover:text-[#4988c4]"
                                     >
                                         {item.label}
