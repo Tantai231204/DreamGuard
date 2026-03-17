@@ -1,70 +1,28 @@
 import { useState } from "react";
-import {
-  EyeOpenIcon,
-  EyeNoneIcon,
-  CheckCircledIcon,
-} from "@radix-ui/react-icons";
+import { CheckCircledIcon } from "@radix-ui/react-icons";
 import {
   Shield,
   Key,
   Smartphone,
   AlertTriangle,
-  Lock,
   History,
   LogOut,
 } from "lucide-react";
-import { Button } from "../../../components/ui/button";
-import { Input } from "../../../components/ui/input";
-import { Label } from "../../../components/ui/label";
-import { Switch } from "../../../components/ui/switch";
-import { Badge } from "../../../components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  DialogDescription,
-} from "../../../components/ui/dialog";
-import { useChangePassword } from "../../../hooks/useAuth";
-import { toast } from "sonner";
+import { Button } from "../../../../components/ui/button";
+import { Switch } from "../../../../components/ui/switch";
+import { Badge } from "../../../../components/ui/badge";
+import ChangePasswordDialog from "./ChangePasswordDialog";
 
 export default function SecurityTab() {
-  const [showPassword, setShowPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [twoFactor, setTwoFactor] = useState(false);
 
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-
-  const { mutate: changePasswordMutation, isPending } = useChangePassword();
-
-  const handleChangePassword = () => {
-    if (!currentPassword || !newPassword) {
-      toast.error("Please fill in all fields.");
-      return;
-    }
-
-    changePasswordMutation(
-      { currentPassword, newPassword },
-      {
-        onSuccess: () => {
-          toast.success("Password changed successfully.");
-          setShowChangePassword(false);
-          setCurrentPassword("");
-          setNewPassword("");
-        },
-        onError: () => {
-          toast.error("Failed to update password.");
-        },
-      }
-    );
-  };
-
   const loginHistory = [
-    { id: 1, device: "Chrome on Windows", location: "Hà Nội, VN", time: "Active Now", current: true },
-    { id: 2, device: "Safari on iPhone", location: "Hà Nội, VN", time: "2 hours ago", current: false },
-    { id: 3, device: "Firefox on macOS", location: "Hồ Chí Minh, VN", time: "3 days ago", current: false },
+    { id: 1, device: "Chrome on Windows", location: "Hanoi, VN", time: "Active Now", current: true },
+    { id: 2, device: "Safari on iPhone", location: "Hanoi, VN", time: "2 hours ago", current: false },
+    { id: 3, device: "Firefox on macOS", location: "Ho Chi Minh, VN", time: "3 days ago", current: false },
   ];
+
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -216,92 +174,7 @@ export default function SecurityTab() {
       </div>
 
       {/* Change Password Dialog */}
-      <Dialog open={showChangePassword} onOpenChange={setShowChangePassword}>
-        <DialogContent className="sm:max-w-[400px] rounded-2xl border-none shadow-2xl p-0 overflow-hidden">
-          <div className="bg-[#4988c4] p-6 text-white text-center">
-            <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center mx-auto mb-4">
-              <Lock className="h-6 w-6 text-white" />
-            </div>
-            <DialogTitle className="text-xl font-bold">Update Password</DialogTitle>
-            <DialogDescription className="text-blue-50/80 text-sm mt-1">
-              Set a new strong password for your account.
-            </DialogDescription>
-          </div>
-
-          <div className="p-6 space-y-4">
-            <div className="space-y-1.5">
-              <Label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">Current Password</Label>
-              <div className="relative">
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="h-10 rounded-xl border-slate-200 focus:border-[#4988c4] transition-all font-medium text-sm"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  {showPassword ? <EyeNoneIcon className="h-4 w-4" /> : <EyeOpenIcon className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">New Password</Label>
-              <div className="relative">
-                <Input
-                  type={showNewPassword ? "text" : "password"}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="h-10 rounded-xl border-slate-200 focus:border-[#4988c4] transition-all font-medium text-sm"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowNewPassword(!showNewPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  {showNewPassword ? <EyeNoneIcon className="h-4 w-4" /> : <EyeOpenIcon className="h-4 w-4" />}
-                </button>
-              </div>
-            </div>
-
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Requirements</p>
-              <div className="grid grid-cols-1 gap-2">
-                <div className="flex items-center gap-2 text-[11px] font-semibold text-slate-600">
-                  <CheckCircledIcon className="h-3.5 w-3.5 text-emerald-500" /> At least 8 characters
-                </div>
-                <div className="flex items-center gap-2 text-[11px] font-semibold text-slate-600">
-                  <CheckCircledIcon className="h-3.5 w-3.5 text-emerald-500" /> Upper & lowercase letters
-                </div>
-                <div className="flex items-center gap-2 text-[11px] font-semibold text-slate-600">
-                  <CheckCircledIcon className="h-3.5 w-3.5 text-emerald-500" /> At least 1 number
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-3 pt-2">
-              <Button
-                variant="ghost"
-                className="flex-1 h-10 rounded-xl font-bold text-slate-500 text-sm"
-                onClick={() => setShowChangePassword(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                className="group/btn relative flex-1 h-11 rounded-xl bg-slate-900 text-white font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:shadow-2xl hover:-translate-y-0.5 transition-all duration-300 overflow-hidden border-none"
-                onClick={handleChangePassword}
-                disabled={isPending}
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000" />
-                <span className="relative z-10">{isPending ? "UPDATING..." : "UPDATE PASSWORD"}</span>
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <ChangePasswordDialog open={showChangePassword} onOpenChange={setShowChangePassword} />
     </div>
   );
 }

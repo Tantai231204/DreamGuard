@@ -7,7 +7,7 @@ export { default as WishlistTab } from "./WishlistTab"
 export { default as VouchersTab } from "./VouchersTab"
 export { default as AddressesTab } from "./address/AddressesTab"
 export { default as NotificationsTab } from "./NotificationsTab"
-export { default as SecurityTab } from "./SecurityTab"
+export { default as SecurityTab } from "./security/SecurityTab"
 
 // Voucher components
 export * from "./voucher"

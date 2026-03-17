@@ -1,21 +1,21 @@
 import { useForm } from "react-hook-form";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { useRegisterStore } from "../../store/registerStore";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { AppRoute } from "../../lib/constants";
 import { useRegister } from "@/hooks/useAuth";
-import { useEffect, useState } from "react";
-import { EyeIcon, EyeOffIcon } from "lucide-react";
+import { useState } from "react";
+import { EyeIcon, EyeOffIcon, Lock, User, Mail, Smartphone, CalendarIcon } from "lucide-react";
+import { FaMale, FaFemale } from "react-icons/fa";
 import { toast } from "sonner";
 
 type FormData = {
-  firstName: string;
-  lastName: string;
+  fullName: string;
   password: string;
   gender: "Male" | "Female";
-  dateOfBirth: string;
+  dateOfBirth: string | Date;
 };
 
 export default function RegisterComplete() {
@@ -29,152 +29,181 @@ export default function RegisterComplete() {
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors },
-  } = useForm<FormData>();
+  } = useForm<FormData>({
+    defaultValues: {
+      gender: "Male",
+    }
+  });
 
-  const { mutate: registerAccount, isPending } = useRegister();
-
+  const { mutate: registerAccount, isPending, isSuccess } = useRegister();
   const [showPassword, setShowPassword] = useState(false);
+  const genderValue = watch("gender");
 
   const onSubmit = (data: FormData) => {
     if (!registerData) return;
 
     registerAccount(
       {
-        ...registerData,
-        ...data,
+        email: registerData.email,
+        phoneNumber: registerData.phoneNumber,
+        fullName: data.fullName,
+        password: data.password,
+        gender: data.gender,
+        dateOfBirth: String(data.dateOfBirth),
       },
       {
         onSuccess: () => {
           toast.success("Registration Successful", {
-            description: "Your account has been created. You can now log in.",
+            description: "Your account has been created.",
           });
           clearRegisterData();
           navigate(redirect ? `${AppRoute.LOGIN}?redirect=${encodeURIComponent(redirect)}` : AppRoute.LOGIN);
         },
-        onError: (err: any) => {
+        onError: (err) => {
           toast.error("Registration Failed", {
-            description: err?.message || "Something went wrong. Please try again later.",
+            description: (err as Error)?.message || "Something went wrong.",
           });
         },
       },
     );
   };
 
-  useEffect(() => {
-    if (!registerData) {
-      navigate(AppRoute.REGISTER_BASIC, { replace: true });
-    }
-  }, [registerData, navigate]);
+  // 🛡️ Guard Clause: Redirect back to basic registration step if state is missing
+  // Combined with !isSuccess to prevent submission cleanup (clearRegisterData) from triggering a redirect loop.
+  if (!registerData && !isSuccess) {
+    const redirectParam = redirect ? `?redirect=${encodeURIComponent(redirect)}` : "";
+    return <Navigate to={`${AppRoute.REGISTER_BASIC}${redirectParam}`} replace />;
+  }
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 w-full max-w-md mx-auto">
+    <div className="bg-white rounded-2xl shadow-lg border border-[var(--color-border)] p-8 w-full max-w-md mx-auto">
       {/* Logo */}
-      <div className="flex flex-col items-center mb-6">
-        <img src="/images/logo_with_name.svg" className="h-20 object-contain" />
+      <div className="flex flex-col items-center mb-8">
+        <div className="mb-1">
+          <img
+            src="/images/logo_with_name.svg"
+            alt="DreamGuard Logo"
+            className="h-20 w-20 rounded-lg object-contain shadow-md"
+          />
+        </div>
+        <span className="text-xl font-bold text-[var(--color-auth-title)]">
+          DreamGuard
+        </span>
       </div>
 
-      <h2 className="text-lg font-semibold text-center mb-6">
-        Complete Registration
-      </h2>
+      <div className="mb-6 text-center">
+        <h2 className="text-lg font-semibold text-[#1C4D8D]">
+          Complete Registration
+        </h2>
+        <p className="text-sm text-gray-500 mt-1">Fill in your information to start using DreamGuard</p>
+      </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* Email */}
-        <div>
-          <Label>Email</Label>
-          <Input value={registerData?.email || ""} disabled />
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        {/* Readonly Section */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold text-slate-500 flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-slate-400" /> Email</Label>
+            <div className="px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-lg text-slate-500 text-xs truncate">
+              {registerData?.email}
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-bold text-slate-500 flex items-center gap-1.5"><Smartphone className="w-3.5 h-3.5 text-slate-400" /> Phone</Label>
+            <div className="px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-lg text-slate-500 text-xs">
+              {registerData?.phoneNumber}
+            </div>
+          </div>
         </div>
 
-        {/* Phone */}
-        <div>
-          <Label>Phone Number</Label>
-          <Input value={registerData?.phoneNumber || ""} disabled />
-        </div>
-
-        {/* First Name */}
-        <div>
-          <Label>First Name</Label>
-          <Input
-            {...register("firstName", { required: "First name is required" })}
-          />
-          {errors.firstName && (
-            <p className="text-red-500 text-xs mt-1">
-              {errors.firstName.message}
-            </p>
-          )}
-        </div>
-
-        {/* Last Name */}
-        <div>
-          <Label>Last Name</Label>
-          <Input
-            {...register("lastName", { required: "Last name is required" })}
-          />
-          {errors.lastName && (
-            <p className="text-red-500 text-xs mt-1">
-              {errors.lastName.message}
-            </p>
-          )}
+        {/* Full Name */}
+        <div className="space-y-1.5">
+          <Label htmlFor="fullName" className="text-sm font-semibold text-slate-700">Full Name</Label>
+          <div className="relative">
+            <Input
+              id="fullName"
+              placeholder="E.g. Nguyễn Văn A"
+              {...register("fullName", { required: "Full name is required" })}
+              className="pl-10 h-11"
+            />
+            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          </div>
+          {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName.message}</p>}
         </div>
 
         {/* Password */}
-        <div>
-          <Label>Password</Label>
-
+        <div className="space-y-1.5">
+          <Label htmlFor="password" className="text-sm font-semibold text-slate-700">Password</Label>
           <div className="relative">
             <Input
+              id="password"
               type={showPassword ? "text" : "password"}
+              placeholder="password"
+              className="pl-10 pr-10 h-11"
               {...register("password", {
                 required: "Password is required",
                 pattern: {
                   value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).+$/,
-                  message:
-                    "Password must contain lowercase, uppercase, number and special character",
+                  message: "Required lower/upper/number/special char",
                 },
-                minLength: {
-                  value: 8,
-                  message: "Password must be at least 8 characters",
-                },
+                minLength: { value: 8, message: "Min 8 characters" },
               })}
             />
-
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <button
               type="button"
-              className="absolute right-3 top-2.5 text-gray-500"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
               onClick={() => setShowPassword(!showPassword)}
             >
-              {showPassword ? <EyeOffIcon size={18} /> : <EyeIcon size={18} />}
+              {showPassword ? <EyeOffIcon size={16} /> : <EyeIcon size={16} />}
             </button>
           </div>
-
-          {errors.password && (
-            <p className="text-red-500 text-xs mt-1">
-              {errors.password.message}
-            </p>
-          )}
+          {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>}
         </div>
 
         {/* Gender */}
-        <div>
-          <Label>Gender</Label>
-          <select
-            {...register("gender", { required: true })}
-            className="w-full border rounded-md h-10 px-2"
-          >
-            <option value="">Select gender</option>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-          </select>
+        <div className="space-y-1.5">
+          <Label className="text-sm font-semibold text-slate-700">Gender</Label>
+          <div className="flex gap-2 p-1 bg-gray-50 border border-gray-100 rounded-xl h-11">
+            <button
+              type="button"
+              onClick={() => setValue('gender', 'Male', { shouldValidate: true })}
+              className={`flex-1 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-all ${genderValue === 'Male'
+                ? "bg-white shadow-sm border border-blue-100 text-blue-500"
+                : "text-gray-400 hover:text-gray-600"
+                }`}
+            >
+              <FaMale className="w-4 h-4" /> Male
+            </button>
+            <button
+              type="button"
+              onClick={() => setValue('gender', 'Female', { shouldValidate: true })}
+              className={`flex-1 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-all ${genderValue === 'Female'
+                ? "bg-white shadow-sm border border-pink-100 text-pink-500"
+                : "text-gray-400 hover:text-gray-600"
+                }`}
+            >
+              <FaFemale className="w-4 h-4" /> Female
+            </button>
+          </div>
         </div>
 
         {/* Date of Birth */}
-        <div>
-          <Label>Date of Birth</Label>
-          <Input type="date" {...register("dateOfBirth", { required: true })} />
+        <div className="space-y-1.5">
+          <Label htmlFor="dateOfBirth" className="text-sm font-semibold text-slate-700 flex items-center gap-1.5"><CalendarIcon className="w-3.5 h-3.5 text-slate-400" /> Date of Birth</Label>
+          <Input
+            id="dateOfBirth"
+            type="date"
+            {...register("dateOfBirth", { required: "Date of birth is required" })}
+            className="h-11 rounded-lg border-gray-200 focus:border-[#4988c4] focus:ring-4 focus:ring-[#4988c4]/10 transition-all text-sm"
+          />
+          {errors.dateOfBirth && <p className="text-red-500 text-xs mt-1">Date of birth is required</p>}
         </div>
 
-        <Button type="submit" disabled={isPending} className="w-full h-11">
-          {isPending ? "Creating..." : "Complete Register"}
+        <Button type="submit" disabled={isPending} className="w-full h-11 bg-[var(--color-auth-btn-bg)] hover:bg-[var(--color-auth-btn-hover)] text-[var(--color-auth-btn-text)] font-semibold rounded-lg border-2 border-[var(--color-auth-btn-border)] shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98]">
+          {isPending ? "Creating..." : "Complete Registration"}
         </Button>
       </form>
     </div>
