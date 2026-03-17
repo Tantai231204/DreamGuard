@@ -2,7 +2,11 @@ import { motion } from "framer-motion";
 import { ArrowDown } from "lucide-react";
 import { trustStats } from "../data";
 
-export default function ServiceHero() {
+interface ServiceHeroProps {
+  onClickBook: () => void;
+}
+
+export default function ServiceHero({ onClickBook }: ServiceHeroProps) {
   return (
     <section className="py-16 px-4 bg-white">
       <div className="max-w-6xl mx-auto">
@@ -38,8 +42,8 @@ export default function ServiceHero() {
               <div className="flex flex-wrap gap-3">
                 <button
                   type="button"
-                  onClick={() => document.getElementById("booking")?.scrollIntoView({ behavior: "smooth" })}
-                  className="inline-flex items-center gap-2 bg-primary text-white font-medium px-6 py-2.5 rounded-full hover:bg-[var(--color-primary-hover)] transition-all text-sm cursor-pointer"
+                  onClick={onClickBook}
+                  className="inline-flex items-center gap-2 bg-[#4988c4] text-white font-medium px-6 py-2.5 rounded-full hover:bg-[#3a73a8] shadow-md shadow-[#4988c4]/10 transition-all text-sm cursor-pointer"
                 >
                   Book Now
                   <ArrowDown className="h-4 w-4 animate-bounce" />

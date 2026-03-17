@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Ticket, Check } from "lucide-react";
@@ -23,61 +23,81 @@ export default function VoucherSelectModal({ open, onClose, onSelect, onSkip, ap
             onSelect(v);
             setError("");
         } else {
-            setError("Mã không hợp lệ hoặc chưa có trong danh sách");
+            setError("Invalid voucher code or backlist coupon");
         }
     };
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="max-w-md w-full p-0 overflow-hidden">
-                <DialogHeader className="p-6 pb-2 border-b border-gray-100">
-                    <DialogTitle className="text-lg font-bold">Khuyến mại</DialogTitle>
+            {/* Shadcn Modal Content handles Close X internally by default, DO NOT DRAW CUSTOM X triggers overlapping. */}
+            <DialogContent className="max-w-md w-full p-0 overflow-hidden rounded-3xl border border-slate-100 shadow-2xl">
+                <DialogHeader className="p-6 pb-4 border-b border-slate-50">
+                    <DialogTitle className="text-xl font-black text-slate-900 tracking-tight">Select a Voucher</DialogTitle>
                 </DialogHeader>
-                <div className="p-6 pt-4 space-y-4">
+
+                <div className="p-6 pt-5 space-y-5">
                     <div className="flex gap-2">
                         <Input
-                            placeholder="Nhập mã ưu đãi"
+                            placeholder="Enter promo code"
                             value={input}
                             onChange={e => { setInput(e.target.value.toUpperCase()); setError(""); }}
                             onKeyDown={e => e.key === "Enter" && handleManualApply()}
-                            className="font-mono tracking-wider uppercase"
+                            className="font-black tracking-wider uppercase h-11 rounded-xl border-slate-200 focus:border-[#4988c4] focus:ring-[#4988c4]/5"
                         />
-                        <Button type="button" onClick={handleManualApply} disabled={!input.trim()}>
-                            Sử dụng
+                        <Button 
+                            type="button" 
+                            onClick={handleManualApply} 
+                            disabled={!input.trim()}
+                            className="h-11 px-5 rounded-xl bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-40 font-black uppercase tracking-widest text-[10px]"
+                        >
+                            Apply
                         </Button>
                     </div>
-                    {error && <div className="text-xs text-red-500 -mt-2">{error}</div>}
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
+
+                    {error && <div className="text-[10px] uppercase font-black tracking-wider text-rose-500 ml-1">{error}</div>}
+
+                    <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
                         {MOCK_VOUCHERS.map(v => (
                             <button
                                 key={v.code}
                                 type="button"
-                                className={`w-full flex items-center justify-between rounded-lg border px-4 py-3 transition-all text-left focus:outline-none focus:ring-2 focus:ring-violet-300 ${appliedCode === v.code ? "border-[var(--color-primary)] bg-blue-50" : "border-gray-200 hover:border-blue-300"}`}
+                                className={`w-full flex items-center justify-between rounded-xl border p-4 transition-all text-left focus:outline-none ${
+                                    appliedCode === v.code 
+                                        ? "border-[#4988c4] bg-[#4988c4]/5 shadow-sm shadow-[#4988c4]/5" 
+                                        : "border-slate-100 hover:border-[#4988c4]/40 hover:bg-slate-50/50"
+                                }`}
                                 onClick={() => onSelect(v)}
                             >
                                 <div className="flex items-center gap-3">
-                                    <Ticket className="h-6 w-6 text-violet-500 flex-shrink-0" />
+                                    <div className={`p-2 rounded-xl ${appliedCode === v.code ? "bg-[#4988c4] text-white" : "bg-indigo-50 text-[#4988c4]"}`}>
+                                        <Ticket className="h-5 w-5 flex-shrink-0" />
+                                    </div>
                                     <div>
-                                        <div className="font-bold text-[var(--color-primary)] text-base">{v.code}</div>
-                                        <div className="text-xs text-gray-500">{v.label} — <span className="font-semibold text-violet-700">{v.discountPct}%</span></div>
+                                        <div className="font-black text-slate-900 text-sm tracking-tight">{v.code}</div>
+                                        <div className="text-[10px] text-slate-400 font-medium">
+                                            {v.label} — <span className="font-black text-[#4988c4]">{v.discountPct}% OFF</span>
+                                        </div>
                                     </div>
                                 </div>
-                                {appliedCode === v.code && <Check className="h-5 w-5 text-[var(--color-primary)]" />}
+                                {appliedCode === v.code && (
+                                    <div className="h-5 w-5 rounded-full bg-[#4988c4] flex items-center justify-center">
+                                        <Check className="h-3 w-3 text-white" />
+                                    </div>
+                                )}
                             </button>
                         ))}
+
                         {MOCK_VOUCHERS.length === 0 && (
-                            <div className="text-center text-gray-400 py-8">Không có mã ưu đãi khả dụng</div>
+                            <div className="text-center text-slate-400 py-6 text-xs font-black uppercase tracking-widest leading-loose">No vouchers available</div>
                         )}
                     </div>
-                    <Button variant="ghost" className="w-full mt-2" onClick={onSkip}>
-                        Bỏ qua mã ưu đãi và tiếp tục
-                    </Button>
+
+                    <div className="pt-2 border-t border-slate-50">
+                        <Button variant="ghost" className="w-full h-11 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:bg-slate-50" onClick={onSkip}>
+                            Continue without voucher
+                        </Button>
+                    </div>
                 </div>
-                <DialogClose asChild>
-                    <button className="absolute top-3 right-3 text-gray-400 hover:text-gray-700" aria-label="Đóng">
-                        <span className="text-2xl">×</span>
-                    </button>
-                </DialogClose>
             </DialogContent>
         </Dialog>
     );
