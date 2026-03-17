@@ -54,6 +54,11 @@ const navItems: NavItem[] = [
     badge: 2,
   },
   {
+    title: 'Service Packages',
+    href: '/admin/service-packages',
+    icon: Package,
+  },
+  {
     title: 'Products',
     href: '/admin/products',
     icon: Package,

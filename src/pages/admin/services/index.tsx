@@ -157,7 +157,7 @@ export default function ServiceManagement() {
         {/* View Toggle & Results Count */}
         <div className="flex items-center justify-between">
           <p className="text-sm text-gray-600">
-            Found <strong className="text-gray-900">{filteredBookings.length}</strong> service bookings
+            Tìm thấy <strong className="text-gray-900">{filteredBookings.length}</strong> đơn đặt dịch vụ
           </p>
 
           <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
@@ -202,14 +202,14 @@ export default function ServiceManagement() {
                 <Sparkles className="h-8 w-8 text-gray-400" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                No bookings found
+                Không tìm thấy lịch đặt nào
               </h3>
               <p className="text-sm text-gray-500 mb-4">
-                Try changing filters or create a new booking
+                Thử đổi bộ lọc hoặc tạo đơn đặt lịch mới thử xem.
               </p>
               <Button onClick={handleCreateNew} className="gap-2">
                 <Plus className="h-4 w-4" />
-                Create New Booking
+                Tạo mới đặt lịch
               </Button>
             </CardContent>
           </Card>
