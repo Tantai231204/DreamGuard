@@ -21,39 +21,22 @@ export const getAddresses = async (): Promise<Address[]> => {
       if (error.status === 404) {
         return []
       }
-      console.log("GET ADDRESSES ERROR:", error.message)
     }
     throw error
   }
 }
 
 export const getAddressById = async (id: string): Promise<Address> => {
-  try {
-    const res = await api.get(`/Addresses/${id}`)
-    return res.data?.data ?? res.data
-  } catch (error: unknown) {
-    if (error instanceof ApiError) {
-      console.log("GET ADDRESS ERROR:", error.message)
-    }
-    throw error
-  }
+  const res = await api.get(`/Addresses/${id}`)
+  return res.data?.data ?? res.data
 }
 
 export const createAddress = async (
   payload: CreateAddressPayload,
 ): Promise<string> => {
-  try {
-    console.log("CREATE ADDRESS PAYLOAD:", payload)
-
-    const res = await api.post("/Addresses", payload)
-    const data = res.data?.data ?? res.data
-    return data?.addressId ?? data?.id ?? data
-  } catch (error: unknown) {
-    if (error instanceof ApiError) {
-      console.log("CREATE ADDRESS ERROR:", error.message)
-    }
-    throw error
-  }
+  const res = await api.post("/Addresses", payload)
+  const data = res.data?.data ?? res.data
+  return data?.addressId ?? data?.id ?? (typeof data === 'string' ? data : null)
 }
 
 /* 
@@ -64,26 +47,12 @@ export const updateAddress = async (
 ): Promise<void> => {
   const { id, ...data } = payload
 
-  try {
-    await api.put(`/Addresses/${id}`, data)
-  } catch (error: unknown) {
-    if (error instanceof ApiError) {
-      console.log("UPDATE ADDRESS ERROR:", error.message)
-    }
-    throw error
-  }
+  await api.put(`/Addresses/${id}`, data)
 }
 
 /* 
    DELETE
  */
 export const deleteAddress = async (id: string): Promise<void> => {
-  try {
-    await api.delete(`/Addresses/${id}`)
-  } catch (error: unknown) {
-    if (error instanceof ApiError) {
-      console.log("DELETE ADDRESS ERROR:", error.message)
-    }
-    throw error
-  }
+  await api.delete(`/Addresses/${id}`)
 }

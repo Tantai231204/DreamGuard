@@ -1,6 +1,6 @@
 import { memo } from "react"
 import { motion } from "framer-motion"
-import { MapPin, Bell, Baby, User, Heart, Lock, LogOut, RefreshCw, Ticket, ShoppingBag } from "lucide-react"
+import { MapPin, Bell, Baby, User, Heart, Lock, LogOut, Ticket, ShoppingBag } from "lucide-react"
 import { Button } from "../../../components/ui/button"
 import type { TabId, Tab } from "../types"
 import { useLogout } from "../../../hooks/useAuth"
@@ -13,7 +13,6 @@ const TABS: Tab[] = [
   { id: "profile", label: "My Profile", icon: <User className="h-4.5 w-4.5" /> },
   { id: "babies", label: "My Babies", icon: <Baby className="h-4.5 w-4.5" />, badge: 2 },
   { id: "orders", label: "Recent Orders", icon: <ShoppingBag className="h-4.5 w-4.5" /> },
-  { id: "resell", label: "Sell Items", icon: <RefreshCw className="h-4.5 w-4.5" /> },
   { id: "wishlist", label: "Wishlist", icon: <Heart className="h-4.5 w-4.5" /> },
   { id: "vouchers", label: "Vouchers", icon: <Ticket className="h-4.5 w-4.5" />, badge: 3 },
   { id: "addresses", label: "Shipping Addresses", icon: <MapPin className="h-4.5 w-4.5" /> },
@@ -59,7 +58,7 @@ const ProfileSidebar = ({ activeTab, onTabChange }: ProfileSidebarProps) => {
           </div>
 
           <h3 className="text-xl font-black text-slate-900 tracking-tight leading-tight mb-2">
-            {profile?.firstName ? `${profile.firstName} ${profile.lastName}` : "Exclusive Member"}
+            {profile?.fullName || "Exclusive Member"}
           </h3>
 
           <div className="flex items-center gap-2 mb-6">

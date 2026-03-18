@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { CameraIcon } from "@radix-ui/react-icons"
 import ChangePhoneDialog from "./ChangePhoneDialog"
 import { Mail, Smartphone, CalendarIcon } from "lucide-react"
@@ -8,10 +8,21 @@ import { Label } from "../../../components/ui/label"
 import { Badge } from "../../../components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "../../../components/ui/avatar"
 import { cn } from "@/lib/utils"
-
 import { useProfile, useUpdateProfile } from "@/hooks/queries"
 import { toast } from "sonner"
 import { FaMars, FaVenus } from "react-icons/fa6"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
+const profileSchema = z.object({
+  fullName: z.string()
+    .min(2, "Full name must be at least 2 characters")
+    .max(50, "Full name cannot exceed 50 characters"),
+  dateOfBirth: z.string().optional().or(z.literal("")),
+  gender: z.string().optional().or(z.literal("")),
+});
+
+type ProfileFormData = z.infer<typeof profileSchema>;
 
 export default function ProfileInfoTab() {
   const { data: profile } = useProfile()
@@ -20,48 +31,55 @@ export default function ProfileInfoTab() {
   const [isEditing, setIsEditing] = useState(false)
   const [showPhoneDialog, setShowPhoneDialog] = useState(false)
 
-  const [formData, setFormData] = useState({
-    fullName: "",
-    email: "",
-    dateOfBirth: "",
-    gender: ""
-  })
+  const { register, handleSubmit, formState: { errors }, reset, setValue, watch } = useForm<ProfileFormData>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      fullName: "",
+      dateOfBirth: "",
+      gender: ""
+    }
+  });
 
-  const handleEdit = () => {
-    if (!isEditing && profile) {
-      setFormData({
+  const watchedGender = watch("gender");
+
+  useEffect(() => {
+    if (profile) {
+      reset({
         fullName: profile.fullName || "",
-        email: profile.email || "",
         dateOfBirth: profile.dateOfBirth || "",
         gender: profile.gender || ""
-      })
+      });
     }
-    setIsEditing(!isEditing)
+  }, [profile, reset]);
+
+  const handleEdit = () => {
+    if (isEditing) {
+      // Discarding
+      if (profile) {
+        reset({
+          fullName: profile.fullName || "",
+          dateOfBirth: profile.dateOfBirth || "",
+          gender: profile.gender || ""
+        });
+      }
+    }
+    setIsEditing(!isEditing);
   }
 
-  const handleSave = () => {
-    updateProfile(formData, {
+  const handleSave = (data: ProfileFormData) => {
+    updateProfile(data, {
       onSuccess: () => {
         toast.success("Profile updated successfully")
         setIsEditing(false)
-      },
-      onError: () => {
-        toast.error("Failed to update profile")
       }
     })
   }
 
-  const displayData = isEditing ? {
-    fullName: formData.fullName,
-    email: formData.email,
-    dateOfBirth: formData.dateOfBirth,
-    gender: formData.gender,
-    phoneNumber: profile?.phoneNumber || ""
-  } : {
-    fullName: profile?.fullName || "",
+  const displayData = {
+    fullName: isEditing ? watch("fullName") : (profile?.fullName || ""),
     email: profile?.email || "",
-    dateOfBirth: profile?.dateOfBirth || "",
-    gender: profile?.gender || "",
+    dateOfBirth: isEditing ? watch("dateOfBirth") : (profile?.dateOfBirth || ""),
+    gender: isEditing ? watchedGender : (profile?.gender || ""),
     phoneNumber: profile?.phoneNumber || ""
   }
 
@@ -120,15 +138,14 @@ export default function ProfileInfoTab() {
           </div>
 
           {/* Form Body */}
-          <div className="mt-12 pt-10 border-t border-slate-100/80 grid gap-6 sm:grid-cols-2">
+          <form onSubmit={handleSubmit(handleSave)} className="mt-12 pt-10 border-t border-slate-100/80 grid gap-6 sm:grid-cols-2">
 
             {/* Full Name */}
             <div className="space-y-2 sm:col-span-2">
               <Label className="text-xs font-bold text-slate-600 ml-1">Full Name</Label>
               <div className="relative group/input">
                 <Input
-                  value={displayData.fullName}
-                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                  {...register("fullName")}
                   disabled={!isEditing}
                   placeholder="E.g. Nguyễn Văn A"
                   className={cn(
@@ -137,6 +154,7 @@ export default function ProfileInfoTab() {
                   )}
                 />
               </div>
+              {errors.fullName && <p className="text-red-500 text-[10px] mt-1 ml-1">{errors.fullName.message}</p>}
             </div>
 
             {/* Email */}
@@ -169,13 +187,14 @@ export default function ProfileInfoTab() {
                     "disabled:opacity-100 disabled:bg-slate-100/30 disabled:border-transparent disabled:text-slate-500 disabled:cursor-not-allowed shadow-none"
                   )}
                 />
-                <button
+                <Button
                   type="button"
+                  size="sm"
                   onClick={() => setShowPhoneDialog(true)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-[#4988c4] hover:text-[#4988c4]/80 transition-colors"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-7 rounded-lg text-[10px] font-black uppercase tracking-wider bg-[#4988c4] hover:bg-[#4988c4]/90 text-white px-3 shadow-sm hover:shadow-md transition-all duration-200"
                 >
                   Update
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -186,8 +205,7 @@ export default function ProfileInfoTab() {
                 <CalendarIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
                   type="date"
-                  value={displayData.dateOfBirth}
-                  onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                  {...register("dateOfBirth")}
                   disabled={!isEditing}
                   className={cn(
                     "h-11 pl-10 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white transition-all font-medium text-slate-900 w-full",
@@ -195,6 +213,7 @@ export default function ProfileInfoTab() {
                   )}
                 />
               </div>
+              {errors.dateOfBirth && <p className="text-red-500 text-[10px] mt-1 ml-1">{errors.dateOfBirth.message}</p>}
             </div>
 
             {/* Gender */}
@@ -204,12 +223,10 @@ export default function ProfileInfoTab() {
                 <button
                   type="button"
                   disabled={!isEditing}
-                  onClick={() => setFormData({ ...formData, gender: "Male" })}
+                  onClick={() => setValue("gender", "Male", { shouldDirty: true })}
                   className={cn(
-                    "flex-1 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all",
-                    displayData.gender === "Male"
-                      ? "bg-white shadow-sm border border-blue-100 text-[#4988c4]"
-                      : "text-slate-400 hover:text-slate-600",
+                    "flex-1 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all text-slate-600",
+                    displayData.gender === "Male" && "bg-white shadow-sm border border-blue-100 text-[#4988c4]",
                     !isEditing && "disabled:opacity-100 cursor-default"
                   )}
                 >
@@ -218,12 +235,10 @@ export default function ProfileInfoTab() {
                 <button
                   type="button"
                   disabled={!isEditing}
-                  onClick={() => setFormData({ ...formData, gender: "Female" })}
+                  onClick={() => setValue("gender", "Female", { shouldDirty: true })}
                   className={cn(
-                    "flex-1 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all",
-                    displayData.gender === "Female"
-                      ? "bg-white shadow-sm border border-pink-100 text-pink-500"
-                      : "text-slate-400 hover:text-slate-600",
+                    "flex-1 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all text-slate-600",
+                    displayData.gender === "Female" && "bg-white shadow-sm border border-pink-100 text-pink-500",
                     !isEditing && "disabled:opacity-100 cursor-default"
                   )}
                 >
@@ -231,29 +246,29 @@ export default function ProfileInfoTab() {
                 </button>
               </div>
             </div>
-          </div>
 
-          {/* Action Footer */}
-          {isEditing && (
-            <div className="flex items-center justify-end gap-3 mt-10 pt-8 border-t border-slate-100/80">
-              <Button
-                variant="ghost"
-                onClick={() => setIsEditing(false)}
-                disabled={isUpdating}
-                className="h-10 px-6 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-500 hover:text-slate-900"
-              >
-                Discard
-              </Button>
-              <Button
-                variant="premium"
-                onClick={handleSave}
-                disabled={isUpdating}
-                className="h-12 px-10 rounded-2xl"
-              >
-                <span className="relative z-10">{isUpdating ? "Saving..." : "Save Changes"}</span>
-              </Button>
-            </div>
-          )}
+            {/* Action Footer */}
+            {isEditing && (
+              <div className="flex items-center justify-end gap-3 mt-10 pt-8 border-t border-slate-100/80 sm:col-span-2 w-full">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={handleEdit}
+                  disabled={isUpdating}
+                  className="h-11 px-6 rounded-xl font-bold text-xs uppercase tracking-wider text-slate-500 hover:text-slate-900"
+                >
+                  Discard
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isUpdating}
+                  className="h-11 px-10 rounded-xl bg-[#4988c4] hover:bg-[#4988c4]/90 text-white font-black text-[11px] uppercase tracking-wider"
+                >
+                  <span className="relative z-10">{isUpdating ? "Saving..." : "Save Changes"}</span>
+                </Button>
+              </div>
+            )}
+          </form>
         </div>
       </div>
       <ChangePhoneDialog open={showPhoneDialog} onOpenChange={setShowPhoneDialog} currentPhone={profile?.phoneNumber || ""} />

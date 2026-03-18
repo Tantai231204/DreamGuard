@@ -30,9 +30,9 @@ export function formatDateTime(date: string | Date) {
     return `${formatDate(date)} ${formatTime(date)}`;
 }
 
-export function formatPrice(price: number) {
-    return price.toLocaleString('vi-VN', {
-        style: 'currency',
-        currency: 'VND',
-    });
+export function formatPrice(price: number | string | undefined | null) {
+    if (price === undefined || price === null || price === "") return "0 VNĐ";
+    const num = typeof price === 'string' ? parseFloat(price) : price;
+    if (isNaN(num)) return "0 VNĐ";
+    return Math.round(num).toLocaleString('vi-VN') + " VNĐ";
 }

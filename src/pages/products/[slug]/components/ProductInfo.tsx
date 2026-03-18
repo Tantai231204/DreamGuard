@@ -1,9 +1,9 @@
-import { memo, useCallback } from 'react';
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { Star, ShoppingCart, AlertTriangle, Truck, RotateCcw, ShieldCheck, Leaf } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { cn, formatPrice } from '@/lib/utils';
 import { ColorSelector } from './ColorSelector';
 import { SizeSelector } from './SizeSelector';
 import { QuantitySelector } from './QuantitySelector';
@@ -73,9 +73,6 @@ export const ProductInfo = memo(({
     stockStatusLabel,
     tradeInValue,
 }: ProductInfoProps) => {
-    const formatPrice = useCallback((price: number) => {
-        return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(price);
-    }, []);
 
     const isActuallyOutOfStock = isOutOfStock || (stockLeft !== undefined && (stockLeft ?? 0) === 0);
 
@@ -186,7 +183,7 @@ export const ProductInfo = memo(({
                     )}
                 </div>
                 <p className="text-[11px] text-slate-400">
-                    Tax included · Free shipping on orders over $50
+                    Tax included · Free shipping on orders over {formatPrice(1000000)}
                 </p>
             </div>
             {/* ── Row 6: Selectors ── */}
@@ -238,7 +235,7 @@ export const ProductInfo = memo(({
             {/* ── Row 8: Trust Strip ── */}
             <div className="grid grid-cols-3 gap-3">
                 {[
-                    { icon: Truck, label: 'Free Shipping', sub: 'Over $50' },
+                    { icon: Truck, label: 'Free Shipping', sub: `Over ${formatPrice(1000000)}` },
                     { icon: RotateCcw, label: `${product.returnPolicyDay || 30}-Day`, sub: 'Easy Returns' },
                     { icon: ShieldCheck, label: 'Warranty', sub: product.warrantyPolicyDay ? `${product.warrantyPolicyDay} days` : 'Included' },
                 ].map((item, i) => (

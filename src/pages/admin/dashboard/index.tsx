@@ -6,6 +6,7 @@ import { useAuthStore } from "@/store/authStore";
 import { mockOrders } from "../data";
 import { quickActions, statsConfig } from "./data";
 import { QuickActions, RecentOrders, StatsGrid } from "./components";
+import { formatPrice } from "@/lib/utils";
 
 export default function Dashboard() {
   const role = useAuthStore((state) => state.role);
@@ -50,7 +51,7 @@ export default function Dashboard() {
             },
             {
               label: "Revenue",
-              value: `$${orderStats.revenue.toFixed(2)}`,
+              value: formatPrice(orderStats.revenue),
               icon: DollarSign,
             },
             {

@@ -4,6 +4,8 @@ import {
   getFavoriteProducts,
   addFavoriteProduct,
   deleteFavoriteProduct,
+  addFavoriteCombo,
+  deleteFavoriteCombo,
 } from "../api/services/favoriteService"
 
 import { useAuthStore } from "../store/authStore"
@@ -98,6 +100,86 @@ export const useDeleteFavorite = () => {
       queryClient.setQueryData(["favorite-products"], context?.previousResponse)
       const err = error as { response?: { data?: { message?: string } } }
       toast.error(err.response?.data?.message || "Failed to remove from wishlist")
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["favorite-products"] })
+    },
+  })
+}
+
+export const useAddFavoriteCombo = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: addFavoriteCombo,
+    onMutate: async (comboId: string) => {
+      await queryClient.cancelQueries({ queryKey: ["favorite-products"] })
+      const previousResponse = queryClient.getQueryData<FavoriteListResponse>(["favorite-products"])
+
+      queryClient.setQueryData<FavoriteListResponse>(["favorite-products"], (old) => {
+        if (!old) return old;
+        const tempItem: FavoriteProduct = {
+          id: `temp-${Date.now()}`,
+          comboId: comboId,
+          comboName: "...",
+          slug: "",
+          basePrice: 0,
+          salePrice: 0,
+          averageRating: 0,
+          status: "Active",
+          imageUrls: [],
+          createdAt: new Date().toISOString(),
+        }
+        return {
+          ...old,
+          items: [...old.items, tempItem],
+          totalCount: (old.totalCount || 0) + 1,
+        }
+      })
+
+      return { previousResponse }
+    },
+    onSuccess: () => {
+      toast.success("Added Combo to wishlist")
+    },
+    onError: (error: unknown, _comboId, context) => {
+      queryClient.setQueryData(["favorite-products"], context?.previousResponse)
+      const err = error as { response?: { data?: { message?: string } } }
+      toast.error(err.response?.data?.message || "Failed to add Combo to wishlist")
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["favorite-products"] })
+    },
+  })
+}
+
+export const useDeleteFavoriteCombo = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: deleteFavoriteCombo,
+    onMutate: async (comboId: string) => {
+      await queryClient.cancelQueries({ queryKey: ["favorite-products"] })
+      const previousResponse = queryClient.getQueryData<FavoriteListResponse>(["favorite-products"])
+
+      queryClient.setQueryData<FavoriteListResponse>(["favorite-products"], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          items: old.items.filter((item) => item.comboId !== comboId),
+          totalCount: Math.max(0, (old.totalCount || 0) - 1),
+        }
+      })
+
+      return { previousResponse }
+    },
+    onSuccess: () => {
+      toast.success("Removed Combo from wishlist")
+    },
+    onError: (error: unknown, _comboId, context) => {
+      queryClient.setQueryData(["favorite-products"], context?.previousResponse)
+      const err = error as { response?: { data?: { message?: string } } }
+      toast.error(err.response?.data?.message || "Failed to remove Combo from wishlist")
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["favorite-products"] })
