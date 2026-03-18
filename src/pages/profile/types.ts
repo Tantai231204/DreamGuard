@@ -2,7 +2,6 @@ export type TabId =
     | "profile"
     | "babies"
     | "orders"
-    | "resell"
     | "wishlist"
     | "vouchers"
     | "addresses"

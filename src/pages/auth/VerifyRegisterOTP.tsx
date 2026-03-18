@@ -89,6 +89,7 @@ export default function VerifyRegisterOTP() {
       verifyOtp(
         {
           phoneNumber: registerData.phoneNumber,
+          email: registerData.email,
           otpCode: otpValue,
         },
         {

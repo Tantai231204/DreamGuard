@@ -21,6 +21,7 @@ export const comboKeys = {
   admin: (params: ComboParams) => ['combos', 'admin', params] as const,
   public: (params: ComboParams) => ['combos', 'public', params] as const,
   detail: (id: string) => ['combos', id] as const,
+  slug: (slug: string, params?: { size?: string; color?: string }) => ['combos', 'slug', slug, params] as const,
 };
 
 // ========================
@@ -60,6 +61,15 @@ export const useComboDetail = (id: string, enabled = true) => {
     queryKey: comboKeys.detail(id),
     queryFn: () => comboService.getById(id),
     enabled: !!id && enabled,
+  });
+};
+
+/** Lấy chi tiết 1 combo theo Slug */
+export const useComboBySlug = (slug: string, params?: { size?: string; color?: string }, enabled = true) => {
+  return useQuery({
+    queryKey: comboKeys.slug(slug, params),
+    queryFn: () => comboService.getBySlug(slug, params),
+    enabled: !!slug && enabled,
   });
 };
 
@@ -123,13 +133,13 @@ export const useUpdateComboItems = () => {
       await queryClient.cancelQueries({ queryKey: comboKeys.detail(id) });
 
       // 2. Snapshot the previous value
-      const previousDetail = queryClient.getQueryData(comboKeys.detail(id)) as any;
+      const previousDetail = queryClient.getQueryData<import('@/api/services/comboService').ComboResponse>(comboKeys.detail(id));
 
       // 3. Optimistically update to the new value
       if (previousDetail) {
          const optimisticDetail = {
            ...previousDetail,
-           productItems: previousDetail.productItems?.map((pi: any) => {
+           productItems: previousDetail.productItems?.map((pi: import('@/api/services/comboService').ProductItemResponse) => {
              const newItem = items.find(ui => ui.productVariantId === pi.productVariantId);
              return newItem ? { ...pi, quantity: newItem.quantity } : pi;
            })

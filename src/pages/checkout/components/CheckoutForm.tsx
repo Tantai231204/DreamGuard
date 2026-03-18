@@ -14,6 +14,7 @@ import { useCart } from "@/store/useCart"
 import vnAddress from "@/shared/data/vnAddress.json"
 import type { CreateAddressPayload } from "@/api/types/address"
 import { useCreateOrder, useCreateAddress } from "@/hooks/queries"
+import { formatPrice } from "@/lib/utils"
 
 interface CheckoutFormProps {
     totalPrice: number
@@ -85,11 +86,13 @@ export function CheckoutForm({ totalPrice }: CheckoutFormProps) {
                     ward: wardObj.name
                 }
 
-                console.log("Creating new address:", addressPayload)
                 addressId = await createAddress(addressPayload)
+
+                if (!addressId) {
+                    throw new Error("Failed to populate addressId after creation.")
+                }
             }
 
-            console.log("Submitting Order:", { addressId, ...data })
             const response = await createOrder({
                 addressId: addressId!,
                 userVoucherId: data.userVoucherId,
@@ -115,7 +118,7 @@ export function CheckoutForm({ totalPrice }: CheckoutFormProps) {
         toastError("Incomplete Information", "Please check the highlighted fields and try again.")
     }
 
-    const currentTotal = (totalPrice * 1.1).toLocaleString('vi-VN') + "₫"
+    const currentTotal = formatPrice(totalPrice * 1.1)
 
     return (
         <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-10 pb-20">
@@ -142,7 +145,7 @@ export function CheckoutForm({ totalPrice }: CheckoutFormProps) {
                             <div className="flex items-center justify-between w-full px-6">
                                 <span className="uppercase tracking-widest text-sm">Confirm Order</span>
                                 <div className="flex items-center gap-4">
-                                    <span className="text-2xl tracking-tighter">${currentTotal}</span>
+                                    <span className="text-2xl tracking-tighter">{currentTotal}</span>
                                     <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center group-hover:translate-x-1 transition-transform">
                                         <ArrowRight className="w-5 h-5" />
                                     </div>

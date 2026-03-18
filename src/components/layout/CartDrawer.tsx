@@ -7,6 +7,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useCart } from "@/store/useCart"
 import { useCartAnimation } from "@/store/useCartAnimation"
 import { AppRoute } from "@/lib/constants"
+import { formatPrice } from "@/lib/utils"
 import "./cart-drawer.css"
 export function CartDrawer() {
     const { cart, updateQuantity, removeItem, totalItems, totalPrice, totalTradeInDiscount, finalTotal, loadingIds, syncingIds } = useCart()
@@ -108,7 +109,7 @@ export function CartDrawer() {
                                     <TooltipTrigger asChild>
                                         <button className="self-start mb-2 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-100 flex items-center gap-1 text-[10px] text-emerald-600 font-bold hover:bg-emerald-100 transition-colors">
                                             <RefreshCcw className="w-2.5 h-2.5" />
-                                            {item.tradeIn!.products.length} trade-in · −${item.tradeIn!.totalValue.toFixed(2)}
+                                            {item.tradeIn!.products.length} trade-in · −{formatPrice(item.tradeIn!.totalValue)}
                                         </button>
                                     </TooltipTrigger>
                                     <TooltipContent side="bottom" align="start" className="w-56 p-3 bg-white border border-gray-200 shadow-lg rounded-xl text-xs">
@@ -118,13 +119,13 @@ export function CartDrawer() {
                                                 <div key={p.id} className="flex items-center gap-2">
                                                     <img src={p.image} alt={p.name} className="w-7 h-7 rounded-md object-cover flex-shrink-0 border border-gray-100" />
                                                     <span className="flex-1 text-gray-600 truncate">{p.name}</span>
-                                                    <span className="text-emerald-600 font-semibold flex-shrink-0">−${p.tradeInValue.toFixed(2)}</span>
+                                                    <span className="text-emerald-600 font-semibold flex-shrink-0">−{formatPrice(p.tradeInValue)}</span>
                                                 </div>
                                             ))}
                                         </div>
                                         <div className="mt-2 pt-2 border-t border-gray-100 flex justify-between text-gray-500">
                                             <span>Total saved</span>
-                                            <span className="font-semibold text-emerald-600">−${item.tradeIn!.totalValue.toFixed(2)}</span>
+                                            <span className="font-semibold text-emerald-600">−{formatPrice(item.tradeIn!.totalValue)}</span>
                                         </div>
                                     </TooltipContent>
                                 </Tooltip>
@@ -156,15 +157,15 @@ export function CartDrawer() {
                                 {hasTradeIn ? (
                                     <div className="flex items-baseline gap-1.5">
                                         <span className="text-[11px] text-gray-400 line-through">
-                                            ${(item.quantity * item.price).toFixed(2)}
+                                            {formatPrice(item.quantity * item.price)}
                                         </span>
                                         <span className="text-sm font-semibold text-emerald-600">
-                                            ${item.subtotal.toFixed(2)}
+                                            {formatPrice(item.subtotal)}
                                         </span>
                                     </div>
                                 ) : (
                                     <span className="text-sm font-semibold text-gray-900">
-                                        ${item.subtotal.toFixed(2)}
+                                        {formatPrice(item.subtotal)}
                                     </span>
                                 )}
                             </div>
@@ -277,7 +278,7 @@ export function CartDrawer() {
                             <div className="space-y-2.5 mb-5 text-sm">
                                 <div className="flex justify-between">
                                     <span className="text-gray-500">Subtotal</span>
-                                    <span className="font-medium text-gray-900">${totalPrice.toFixed(2)}</span>
+                                    <span className="font-medium text-gray-900">{formatPrice(totalPrice)}</span>
                                 </div>
                                 {totalTradeInDiscount > 0 && (
                                     <div className="flex justify-between items-center px-3 py-2 bg-emerald-50 rounded-lg">
@@ -285,7 +286,7 @@ export function CartDrawer() {
                                             <RefreshCcw className="w-3.5 h-3.5" />
                                             Trade-in Discount
                                         </span>
-                                        <span className="font-semibold text-emerald-600">−${totalTradeInDiscount.toFixed(2)}</span>
+                                        <span className="font-semibold text-emerald-600">−{formatPrice(totalTradeInDiscount)}</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between">
@@ -297,7 +298,7 @@ export function CartDrawer() {
                                     <div className="flex justify-between items-center pt-2">
                                         <span className="font-black text-[10px] uppercase tracking-[0.2em] text-slate-400">Total</span>
                                         <span className="text-xl font-black text-[#4988c4] tracking-tighter tabular-nums">
-                                            ${finalTotal.toFixed(2)}
+                                            {formatPrice(finalTotal)}
                                         </span>
                                     </div>
                                 </div>

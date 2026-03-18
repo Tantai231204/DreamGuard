@@ -1,7 +1,7 @@
 import { Minus, Plus, Trash2, ShoppingBag, ShieldCheck, RefreshCw, ChevronRight, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { CartItem } from "@/store/cartTypes";
-import { cn } from "@/lib/utils";
+import { cn, formatPrice } from "@/lib/utils";
 
 interface CartTableProps {
     cart: CartItem[];
@@ -155,7 +155,7 @@ export function CartTable({ cart, onQuantity, onRemove, loadingIds = [] }: CartT
                                             <div className="flex items-center gap-6">
                                                 <div className="flex flex-col">
                                                     <span className="text-[7px] font-black text-slate-300 uppercase tracking-widest mb-0.5">Price</span>
-                                                    <span className="text-xs font-black text-slate-900 tracking-tight tabular-nums">${item.price.toFixed(2)}</span>
+                                                    <span className="text-xs font-black text-slate-900 tracking-tight tabular-nums">{formatPrice(item.price)}</span>
                                                 </div>
 
                                                 <div className="flex items-center gap-1 p-0.5 rounded-lg bg-slate-50 border border-slate-100">
@@ -187,7 +187,7 @@ export function CartTable({ cart, onQuantity, onRemove, loadingIds = [] }: CartT
                                                     "text-sm font-black tracking-tight tabular-nums leading-none",
                                                     hasTradeIn ? "text-emerald-500" : "text-[#4988c4]"
                                                 )}>
-                                                    ${item.subtotal.toFixed(2)}
+                                                    {formatPrice(item.subtotal)}
                                                 </span>
                                             </div>
                                         </div>
@@ -217,7 +217,7 @@ export function CartTable({ cart, onQuantity, onRemove, loadingIds = [] }: CartT
                                 </div>
                                 <div className="flex flex-col items-center sm:items-end">
                                     <span className="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest mb-1">Bundle Savings</span>
-                                    <span className="text-xl font-black text-emerald-600">−${item.tradeIn!.totalValue.toFixed(2)}</span>
+                                    <span className="text-xl font-black text-emerald-600">−{formatPrice(item.tradeIn!.totalValue)}</span>
                                 </div>
                             </div>
                         )}

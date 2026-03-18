@@ -18,7 +18,7 @@ const Home = lazy(() => import("../pages/home"));
 const Products = lazy(() => import("../pages/products"));
 const ProductDetail = lazy(() => import("../pages/products/[slug]"));
 const Combos = lazy(() => import("../pages/combos"));
-const ComboDetail = lazy(() => import("../pages/combos/[id]"));
+const ComboDetail = lazy(() => import("../pages/combos/[slug]"));
 const CartPage = lazy(() => import("../pages/cart"));
 const CheckoutPage = lazy(() => import("../pages/checkout"));
 const CheckoutResult = lazy(() => import("../pages/checkout/CheckoutResult"));
@@ -49,9 +49,8 @@ const ProductManagement = lazy(() => import("../pages/admin/products"));
 const AdminProductDetail = lazy(() => import("../pages/admin/products/[id]"));
 const CategoryManagement = lazy(() => import("../pages/admin/categories"));
 const VoucherManagement = lazy(() => import("../pages/admin/vouchers"));
-const ResellManagement = lazy(() => import("../pages/admin/resell"));
-const TradeInDetail = lazy(() => import("../pages/admin/resell/[id]"));
 const UserManagement = lazy(() => import("../pages/admin/users"));
+const StaffManagement = lazy(() => import("../pages/admin/staff"));
 const PaymentManagement = lazy(() => import("../pages/admin/payments"));
 
 /* =======================
@@ -117,9 +116,8 @@ export default function AppRouter() {
                         <Route path="/admin/products/:id" element={<AdminProductDetail />} />
                         <Route path="/admin/categories" element={<CategoryManagement />} />
                         <Route path="/admin/vouchers" element={<VoucherManagement />} />
-                        <Route path="/admin/resell" element={<ResellManagement />} />
-                        <Route path="/admin/resell/:id" element={<TradeInDetail />} />
                         <Route path="/admin/users" element={<UserManagement />} />
+                        <Route path="/admin/staff" element={<StaffManagement />} />
                         <Route path="/admin/payments" element={<PaymentManagement />} />
                     </Route>
                 </Route>

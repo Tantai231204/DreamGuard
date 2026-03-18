@@ -1,8 +1,7 @@
 // src/api/types/user.types.ts
 
 export interface UserProfile {
-  firstName: string;
-  lastName: string;
+  fullName: string;
   email: string;
   phoneNumber: string;
   dateOfBirth: string;
@@ -11,8 +10,7 @@ export interface UserProfile {
 }
 
 export interface UpdateUserProfileRequest {
-  firstName?: string;
-  lastName?: string;
+  fullName?: string;
   phoneNumber?: string;
   dateOfBirth?: string;
   gender?: string;

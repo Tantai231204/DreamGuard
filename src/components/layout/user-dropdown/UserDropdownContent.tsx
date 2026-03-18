@@ -16,8 +16,9 @@ export function UserDropdownContent() {
 
     const userData = {
         ...mockUser,
-        name: profile ? `${profile.firstName} ${profile.lastName}` : mockUser.name,
+        name: profile?.fullName || mockUser.name,
         email: profile?.email || mockUser.email,
+        avatarUrl: profile?.avatarUrl || "/images/logo_with_name.svg",
         points: 150,
     }
 

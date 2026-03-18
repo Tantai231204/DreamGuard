@@ -16,4 +16,5 @@ export interface UserInfo {
     email: string
     points: number
     rank: string
+    avatarUrl?: string
 }

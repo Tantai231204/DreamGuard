@@ -5,6 +5,7 @@ import type { PricingPackage } from "../../../types";
 import type { BookingFormValues } from "../schema";
 import type { Voucher } from "../vouchers";
 import VoucherSelectModal from "../VoucherSelectModal";
+import { formatPrice } from "@/lib/utils";
 
 interface StepConfirmProps {
     form: BookingFormValues;
@@ -108,7 +109,7 @@ export default function StepConfirm({
                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 block mb-1">Price Summary</span>
                     <div className="flex items-center justify-between text-sm font-bold text-slate-600">
                         <span>{selectedPkg.name}</span>
-                        <span>${selectedPkg.priceValue}</span>
+                        <span>{formatPrice(selectedPkg.priceValue)}</span>
                     </div>
                     {appliedVoucher && (
                         <div className="flex items-center justify-between text-sm font-bold text-emerald-600">
@@ -116,16 +117,16 @@ export default function StepConfirm({
                                 <Tag className="h-3.5 w-3.5" />
                                 Voucher ({appliedVoucher.code})
                             </span>
-                            <span>−${discountAmt}</span>
+                            <span>−{formatPrice(discountAmt)}</span>
                         </div>
                     )}
                     <div className="border-t border-slate-100 pt-3 flex items-center justify-between">
                         <span className="font-black text-slate-900">Total</span>
                         <div className="text-right">
                             {appliedVoucher && (
-                                <span className="text-xs text-slate-300 line-through mr-2">${selectedPkg.priceValue}</span>
+                                <span className="text-xs text-slate-300 line-through mr-2">{formatPrice(selectedPkg.priceValue)}</span>
                             )}
-                            <span className="text-2xl font-black text-[#4988c4] tracking-tighter">${finalPrice}</span>
+                            <span className="text-2xl font-black text-[#4988c4] tracking-tighter">{formatPrice(finalPrice)}</span>
                             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{selectedPkg.priceNote}</span>
                         </div>
                     </div>

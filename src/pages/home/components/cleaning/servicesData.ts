@@ -36,7 +36,7 @@ export const processes: string[] = [
 export const packages: Package[] = [
   {
     name: "Basic Service Package",
-    price: "199$",
+    price: "199.000 VNĐ",
     features: [
       "Wash blankets or sheets",
       "Dry naturally",
@@ -45,7 +45,7 @@ export const packages: Package[] = [
   },
   {
     name: "Family Package",
-    price: "499$",
+    price: "499.000 VNĐ",
     features: [
       "Complete bedding wash",
       "Steam cleaning and sanitization",
@@ -57,7 +57,7 @@ export const packages: Package[] = [
   },
   {
     name: "VIP Service Package",
-    price: "899$",
+    price: "899.000 VNĐ",
     features: [
       "Bedding and mattress cleaning",
       "Steam cleaning and deodorizing",

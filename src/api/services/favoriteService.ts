@@ -2,8 +2,10 @@ import api from "../../lib/api"
 
 export interface FavoriteProduct {
   id: string
-  productId: string
-  productName: string
+  productId?: string
+  productName?: string
+  comboId?: string        // Added comboId support
+  comboName?: string      // Added comboName support
   slug: string
   basePrice: number
   salePrice: number
@@ -35,5 +37,16 @@ export const addFavoriteProduct = async (productId: string) => {
 
 export const deleteFavoriteProduct = async (productId: string) => {
   const res = await api.delete(`/favoriteproduct/${productId}`)
+  return res.data
+}
+
+// Added Combo favorite methods
+export const addFavoriteCombo = async (comboId: string) => {
+  const res = await api.post(`/favoriteproduct/combo/${comboId}`)
+  return res.data
+}
+
+export const deleteFavoriteCombo = async (comboId: string) => {
+  const res = await api.delete(`/favoriteproduct/combo/${comboId}`)
   return res.data
 }

@@ -6,6 +6,7 @@ interface SEOProps {
     keywords?: string;
     image?: string;
     url?: string;
+    jsonLd?: object;
 }
 
 export const SEO: React.FC<SEOProps> = ({
@@ -13,7 +14,8 @@ export const SEO: React.FC<SEOProps> = ({
     description,
     keywords,
     image,
-    url
+    url,
+    jsonLd
 }) => {
     const siteName = "DreamGuard";
     const fullTitle = title ? `${title} | ${siteName}` : siteName;
@@ -59,5 +61,9 @@ export const SEO: React.FC<SEOProps> = ({
 
     }, [fullTitle, description, keywords, image, url]);
 
-    return null; // This component doesn't render anything
+    return jsonLd ? (
+        <script type="application/ld+json">
+            {JSON.stringify(jsonLd)}
+        </script>
+    ) : null;
 };

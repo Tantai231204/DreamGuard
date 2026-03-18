@@ -7,3 +7,4 @@ export { default as AdminActionToolbar } from './AdminActionToolbar';
 export { SortableHeader } from './SortableHeader';
 export { AdminRowActions } from './AdminRowActions';
 export { AdminStatusBadge } from './AdminStatusBadge';
+export { StaffRoleBadge } from './StaffRoleBadge';

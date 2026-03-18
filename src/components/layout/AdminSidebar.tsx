@@ -13,9 +13,9 @@ import {
   LogOut,
   Sparkles,
   FolderTree,
-  RefreshCw,
   Ticket,
   Wallet,
+  Briefcase,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Separator } from '../ui/separator';
@@ -74,15 +74,14 @@ const navItems: NavItem[] = [
     icon: Ticket,
   },
   {
-    title: 'Trade-ins',
-    href: '/admin/resell',
-    icon: RefreshCw,
-    badge: 2,
-  },
-  {
     title: 'Customers',
     href: '/admin/users',
     icon: Users,
+  },
+  {
+    title: 'Staff',
+    href: '/admin/staff',
+    icon: Briefcase,
   },
   {
     title: 'Chat',
@@ -168,9 +167,9 @@ export default function AdminSidebar() {
           )}
         >
           <Avatar className="h-10 w-10 border-2 border-[var(--color-primary)] flex-shrink-0">
-            <AvatarImage src={profile?.avatarUrl} alt={profile ? `${profile.firstName} ${profile.lastName}` : "Admin"} />
+            <AvatarImage src={profile?.avatarUrl} alt={profile?.fullName || "Admin"} />
             <AvatarFallback className="bg-[var(--color-primary)] text-white">
-              {profile ? `${profile.firstName[0]}${profile.lastName[0]}`.toUpperCase() : 'AD'}
+              {profile?.fullName ? profile.fullName[0].toUpperCase() : 'AD'}
             </AvatarFallback>
           </Avatar>
           {!collapsed && (
@@ -182,7 +181,7 @@ export default function AdminSidebar() {
               className="flex-1 min-w-0 overflow-hidden"
             >
               <p className="text-sm font-semibold text-gray-900 truncate">
-                {profile ? `${profile.firstName} ${profile.lastName}` : 'Admin User'}
+                {profile?.fullName || 'Admin User'}
               </p>
               <p className="text-xs text-gray-500 truncate">{profile?.email || 'admin@dreamguard.com'}</p>
             </motion.div>
