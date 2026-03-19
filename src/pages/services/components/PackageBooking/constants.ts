@@ -1,4 +1,4 @@
-import { CalendarDays, Check, Package, User } from "lucide-react";
+import { CalendarDays, Check, Package, ShoppingBag, User } from "lucide-react";
 
 export const slideVariants = {
   enter: (dir: number) => ({ x: dir > 0 ? 80 : -80, opacity: 0 }),
@@ -7,7 +7,8 @@ export const slideVariants = {
 };
 
 export const STEPS = [
-  { label: "Package", icon: Package },
+  { label: "Products", icon: ShoppingBag },
+  { label: "Service", icon: Package },
   { label: "Schedule", icon: CalendarDays },
   { label: "Contact", icon: User },
   { label: "Confirm", icon: Check },

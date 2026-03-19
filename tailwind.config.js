@@ -56,6 +56,7 @@ export default {
         "slide-up": "slideUp 400ms cubic-bezier(0.16, 1, 0.3, 1)",
         "slide-down": "slideDown 300ms cubic-bezier(0.16, 1, 0.3, 1)",
         "shimmer": "shimmer 2s linear infinite",
+        "shake": "shake 0.5s cubic-bezier(.36,.07,.19,.97) both",
       },
       keyframes: {
         fadeIn: {
@@ -77,6 +78,12 @@ export default {
         shimmer: {
           "0%": { backgroundPosition: "-1000px 0" },
           "100%": { backgroundPosition: "1000px 0" },
+        },
+        shake: {
+          "10%, 90%": { transform: "translate3d(-1px, 0, 0)" },
+          "20%, 80%": { transform: "translate3d(2px, 0, 0)" },
+          "30%, 50%, 70%": { transform: "translate3d(-4px, 0, 0)" },
+          "40%, 60%": { transform: "translate3d(4px, 0, 0)" },
         },
         slideInFromRight: {
           "0%": {

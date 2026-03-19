@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { Package, Wrench, ArrowLeft, Lock, ShieldCheck } from "lucide-react";
-import { PackageBooking, CustomBookingForm } from "./components";
-import type { BookingFlow } from "./types";
+import { ArrowLeft, Lock, ShieldCheck } from "lucide-react";
+import { PackageBooking } from "./components";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AppRoute } from "@/lib/constants";
@@ -11,7 +10,6 @@ export default function BookingPage() {
   const [searchParams] = useSearchParams();
   const pkgId = searchParams.get("packageId") || undefined;
 
-  const [flow, setFlow] = useState<BookingFlow>(pkgId ? "package" : "custom");
   const [selectedPackageId] = useState<string | undefined>(pkgId);
 
   return (
@@ -54,38 +52,8 @@ export default function BookingPage() {
           </h2>
         </div>
 
-        {/* Flow toggler setup embedded in the left flow column */}
-        <div className="flex justify-start mb-6">
-          <div className="inline-flex rounded-2xl bg-slate-100/80 border border-slate-100 p-1 gap-1 shadow-inner">
-            <button
-              type="button"
-              onClick={() => setFlow("package")}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${flow === "package"
-                ? "bg-white text-slate-900 shadow-sm border border-slate-50"
-                : "text-slate-400 hover:text-slate-600"
-                }`}
-            >
-              <Package className="h-3.5 w-3.5" /> Package
-            </button>
-            <button
-              type="button"
-              onClick={() => setFlow("custom")}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${flow === "custom"
-                ? "bg-white text-slate-900 shadow-sm border border-slate-50"
-                : "text-slate-400 hover:text-slate-600"
-                }`}
-            >
-              <Wrench className="h-3.5 w-3.5" /> Custom
-            </button>
-          </div>
-        </div>
-
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-          {flow === "package" ? (
-            <PackageBooking key={selectedPackageId ?? "pkg"} initialPackageId={selectedPackageId} />
-          ) : (
-            <CustomBookingForm key="custom" />
-          )}
+          <PackageBooking key={selectedPackageId ?? "pkg"} initialPackageId={selectedPackageId} />
         </div>
       </main>
     </div>

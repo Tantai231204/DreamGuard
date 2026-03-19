@@ -1,7 +1,14 @@
 import { z } from "zod";
 
 export const bookingSchema = z.object({
-  packageId: z.string().min(1, "Please select a package"),
+  // selectedProducts is step 0 - just tracking product IDs
+  selectedProducts: z.array(z.string()).min(1, "Please select at least one product"),
+  // items is step 1 - tier + quantity for each product
+  items: z.array(z.object({
+    itemType: z.string().min(1, "Please select item type"),
+    packageId: z.string().min(1, "Please select a package"),
+    quantity: z.number().min(1),
+  })).min(1, "Please choose a service tier for at least one product"),
   scheduledDate: z.string().min(1, "Please select a date"),
   scheduledTime: z.string().min(1, "Please select a time slot"),
   customerName: z
@@ -29,10 +36,11 @@ export const bookingSchema = z.object({
 
 export type BookingFormValues = z.infer<typeof bookingSchema>;
 
-/** Fields that must be valid before advancing each step */
+/** Fields that must be valid before advancing each step (5 steps now) */
 export const STEP_FIELDS: (keyof BookingFormValues)[][] = [
-  ["packageId"],
-  ["scheduledDate", "scheduledTime"],
-  ["customerName", "customerPhone", "address"],
-  [],
+  ["selectedProducts"],        // Step 0: product selection
+  ["items"],                   // Step 1: tier selection
+  ["scheduledDate", "scheduledTime"],  // Step 2: schedule
+  ["customerName", "customerPhone", "address"],  // Step 3: contact
+  [],                          // Step 4: confirm
 ];

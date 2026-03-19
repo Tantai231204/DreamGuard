@@ -7,15 +7,18 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface AdminTableContentProps<T> {
   table: Table<T>;
   emptyMessage?: string;
+  isLoading?: boolean;
 }
 
 export function AdminTableContent<T>({ 
   table,
-  emptyMessage = "No data found"
+  emptyMessage = "No data found",
+  isLoading = false
 }: AdminTableContentProps<T>) {
   const rows = table.getRowModel().rows;
   const pageSize = table.getState().pagination.pageSize;
@@ -44,7 +47,17 @@ export function AdminTableContent<T>({
           ))}
         </TableHeader>
         <TableBody>
-          {rows.length > 0 ? (
+          {isLoading ? (
+            Array.from({ length: pageSize }).map((_, index) => (
+              <TableRow key={`loading-${index}`} className="border-b border-gray-100">
+                {Array.from({ length: columnCount }).map((_, cellIndex) => (
+                  <TableCell key={cellIndex} className="py-4">
+                    <Skeleton className="h-5 w-full bg-slate-100 rounded-md" />
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))
+          ) : rows.length > 0 ? (
             <>
               {/* Data rows */}
               {rows.map((row) => (

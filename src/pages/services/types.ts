@@ -8,8 +8,6 @@ export type ServiceType =
   | "carseat_clean"
   | "toy_sanitize";
 
-export type BookingFlow = "package" | "custom";
-
 export interface ServiceCategory {
   type: ServiceType;
   title: string;
@@ -65,35 +63,3 @@ export interface PackageBookingData {
   notes: string;
 }
 
-export interface CustomBookingData {
-  customerName: string;
-  customerPhone: string;
-  customerEmail: string;
-  serviceType: ServiceType | "";
-  items: { itemId: string; quantity: number }[];
-  scheduledDate: string;
-  scheduledTime: string;
-  address: {
-    street: string;
-    ward: string;
-    district: string;
-    city: string;
-  };
-  notes: string;
-}
-
-export interface CustomRequestData {
-  customerName: string;
-  customerPhone: string;
-  customerEmail: string;
-  images: File[];
-  description: string;
-  preferredDate: string;
-  preferredTime: string;
-  address: {
-    street: string;
-    ward: string;
-    district: string;
-    city: string;
-  };
-}

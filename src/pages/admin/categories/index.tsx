@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useToast } from '@/hooks/useToast';
 import {
     useReactTable,
@@ -9,6 +10,8 @@ import {
     type SortingState,
     type ColumnFiltersState,
     type RowSelectionState,
+    type Updater,
+    type PaginationState,
 } from '@tanstack/react-table';
 import { motion } from 'framer-motion';
 import { FolderTree } from 'lucide-react';
@@ -24,15 +27,41 @@ import CategoryActions from './components/CategoryActions';
 import CategoryDialog from './components/CategoryDialog';
 import { useCategoryColumns } from './components/useCategoryColumns';
 import { useCategories, useCreateCategory, useUpdateCategory } from '@/hooks/queries/useCategory';
+import { downloadCSV } from '@/lib/export';
 import type { Category } from './types';
 
 export default function CategoriesPage() {
     const toast = useToast();
-    const [globalFilter, setGlobalFilter] = useState('');
+    const [searchParams, setSearchParams] = useSearchParams();
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
     const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+
+    const pagination = useMemo(() => ({
+        pageIndex: parseInt(searchParams.get('page') || '1') - 1,
+        pageSize: parseInt(searchParams.get('pageSize') || '10'),
+    }), [searchParams]);
+
+    const globalFilter = searchParams.get('search') || '';
+
+    const setPagination = useCallback((updaterOrValue: Updater<PaginationState>) => {
+        const next = typeof updaterOrValue === 'function' ? updaterOrValue(pagination) : updaterOrValue;
+        setSearchParams((prev) => {
+            prev.set('page', String(next.pageIndex + 1));
+            prev.set('pageSize', String(next.pageSize));
+            return prev;
+        }, { replace: true });
+    }, [pagination, setSearchParams]);
+
+    const setGlobalFilter = useCallback((value: string) => {
+        setSearchParams((prev) => {
+            if (value) prev.set('search', value);
+            else prev.delete('search');
+            prev.set('page', '1');
+            return prev;
+        }, { replace: true });
+    }, [setSearchParams]);
 
     // Dialog state
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -93,6 +122,17 @@ export default function CategoriesPage() {
         setDialogOpen(true);
     }, []);
 
+    const handleExport = useCallback(() => {
+        const exportData = categories.map(cat => ({
+            ID: cat.cateId || '',
+            Name: cat.name || '',
+            Slug: cat.slug || '',
+            Active: cat.isActive ? 'Yes' : 'No',
+            ChildrenCount: cat.childCategoryList?.length || 0
+        }));
+        downloadCSV(exportData, 'Categories');
+    }, [categories]);
+
     // Submit form (create hoặc update)
     const handleSubmit = useCallback(
         (data: { name: string; slug: string; isActive: boolean; cateParentId?: number }) => {
@@ -124,7 +164,6 @@ export default function CategoriesPage() {
         onToggleExpand: handleToggleExpand
     });
 
-    // Stats
     const stats = useMemo(() => {
         const total = categories.length;
         const active = categories.filter((c) => c.isActive).length;
@@ -141,11 +180,13 @@ export default function CategoriesPage() {
             globalFilter,
             columnFilters,
             rowSelection,
+            pagination,
         },
         onSortingChange: setSorting,
         onGlobalFilterChange: setGlobalFilter,
         onColumnFiltersChange: setColumnFilters,
         onRowSelectionChange: setRowSelection,
+        onPaginationChange: setPagination,
         enableRowSelection: true,
         getCoreRowModel: getCoreRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
@@ -158,11 +199,6 @@ export default function CategoriesPage() {
                 item.name.toLowerCase().includes(search) ||
                 item.slug.toLowerCase().includes(search)
             );
-        },
-        initialState: {
-            pagination: {
-                pageSize: 10,
-            },
         },
     });
 
@@ -239,7 +275,7 @@ export default function CategoriesPage() {
                         {/* Actions Toolbar */}
                         <CategoryActions
                             onAdd={handleAdd}
-                            onExport={() => console.log('Export')}
+                            onExport={handleExport}
                             onImport={() => console.log('Import')}
                             onFilter={() => console.log('Filter')}
                         />

@@ -34,17 +34,17 @@ export default function StepSchedule({ form }: StepScheduleProps) {
     <div className="space-y-8 animate-in fade-in duration-500">
       <div className="space-y-2">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-[#4988c4]/10 text-[#4988c4] border border-[#4988c4]/20 text-[10px] font-black uppercase tracking-widest">
-          Step 02
+          Step 03
         </div>
         <h3 className="text-3xl font-black text-slate-900 tracking-tight">Pick a Date & Time</h3>
-        <p className="text-sm text-slate-400 font-medium">Schedule your appointment with us.</p>
+        <p className="text-sm text-slate-500 font-medium tracking-wide">Schedule your appointment with us.</p>
       </div>
 
       <div className="space-y-6">
         {/* Date Selection triggering popover */}
         <div className="space-y-3">
-          <Label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1 flex items-center gap-2">
-            <CalendarDays className="h-3.5 w-3.5 text-[#4988c4]" />
+          <Label className="text-[11px] font-black text-slate-500 uppercase tracking-[0.1em] ml-1 flex items-center gap-2">
+            <CalendarDays className="h-4 w-4 text-[#4988c4]" />
             Select Date <span className="text-rose-500 ml-0.5">*</span>
           </Label>
           
@@ -53,8 +53,8 @@ export default function StepSchedule({ form }: StepScheduleProps) {
               <Button
                 variant="outline"
                 className={cn(
-                  "h-14 w-full justify-start text-left font-bold rounded-2xl border-slate-100 bg-white hover:bg-slate-50 shadow-sm px-4 flex items-center gap-3 focus:ring-[#4988c4]/5 focus:border-[#4988c4] transition-all",
-                  !scheduledDate && "text-slate-400",
+                  "h-14 w-full justify-start text-left font-bold rounded-2xl border-slate-200 bg-white hover:bg-slate-50 shadow-sm px-4 flex items-center gap-3 focus:ring-[#4988c4]/5 focus:border-[#4988c4] transition-all text-sm",
+                  !scheduledDate && "text-slate-500 font-medium",
                   errors.scheduledDate && "border-rose-400 hover:border-rose-400 focus:ring-rose-300/20"
                 )}
               >
@@ -84,25 +84,32 @@ export default function StepSchedule({ form }: StepScheduleProps) {
 
         {/* Time Slot Selection */}
         <div className="space-y-3 pt-2">
-          <Label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1 flex items-center gap-2">
-            <Clock className="h-3.5 w-3.5 text-[#4988c4]" />
+          <Label className="text-[11px] font-black text-slate-500 uppercase tracking-[0.1em] ml-1 flex items-center gap-2">
+            <Clock className="h-4 w-4 text-[#4988c4]" />
             Time Slot <span className="text-rose-500 ml-0.5">*</span>
           </Label>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-2xl">
             {timeSlots.map((ts) => {
               const isSelected = scheduledTime === ts;
+              // Mock availability logic for presentation
+              const isFull = selectedDateObject && ts === "10:00 - 12:00" && selectedDateObject.getDate() % 2 === 0;
+              const isAlmostFull = selectedDateObject && ts === "16:00 - 18:00";
+
               return (
                 <button
                   key={ts}
                   type="button"
+                  disabled={isFull}
                   onClick={() => {
                     setValue("scheduledTime", ts, { shouldValidate: true });
                     trigger("scheduledTime");
                   }}
-                  className={`relative py-5 rounded-2xl border transition-all duration-300 flex items-center justify-center text-xs font-black uppercase tracking-widest
-                    ${isSelected
-                      ? "border-[#4988c4] bg-[#4988c4] text-white shadow-xl shadow-[#4988c4]/20 scale-[1.03]"
-                      : "border-slate-100 text-slate-600 bg-white hover:border-[#4988c4]/40 hover:bg-[#4988c4]/5 shadow-sm shadow-slate-100/30"
+                  className={`relative py-5 px-3 rounded-2xl border transition-all duration-300 flex flex-col items-center justify-center gap-1.5
+                    ${isFull
+                      ? "border-slate-100 bg-slate-50 opacity-40 cursor-not-allowed grayscale"
+                      : isSelected
+                        ? "border-[#4988c4] bg-[#4988c4] text-white shadow-xl shadow-[#4988c4]/20 scale-[1.03]"
+                        : "border-slate-100 bg-white hover:border-[#4988c4]/40 hover:bg-[#4988c4]/5 shadow-sm shadow-slate-100/30"
                     }
                   `}
                 >
@@ -111,7 +118,17 @@ export default function StepSchedule({ form }: StepScheduleProps) {
                       <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />
                     </span>
                   )}
-                  {ts}
+                  <span className={`text-xs font-black uppercase tracking-widest ${isSelected ? "text-white" : "text-slate-600"}`}>
+                    {ts}
+                  </span>
+
+                  {/* Availability indicator */}
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <span className={`h-1.5 w-1.5 rounded-full ${isFull ? "bg-rose-400" : isAlmostFull ? "bg-amber-400" : isSelected ? "bg-white/50" : "bg-emerald-400"}`} />
+                    <span className={`text-[8px] font-bold uppercase tracking-widest ${isFull ? "text-rose-400" : isAlmostFull ? "text-amber-500" : isSelected ? "text-white/70" : "text-emerald-500"}`}>
+                      {isFull ? "Full" : isAlmostFull ? "Few Left" : "Available"}
+                    </span>
+                  </div>
                 </button>
               );
             })}

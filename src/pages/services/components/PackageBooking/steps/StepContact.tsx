@@ -101,27 +101,22 @@ export default function StepContact({ form }: StepContactProps) {
     }, [addresses, isLoadingAddresses, isAuthenticated, selectedId, handleSelectAddress, isManualEntry]);
 
     const provinces = vnAddress;
-    const districts = useMemo(() => {
-        return provinces.find(p => p.code === selectedCityCode)?.districts || [];
-    }, [selectedCityCode]);
-
-    const wards = useMemo(() => {
-        return districts.find(d => d.code === selectedDistrictCode)?.wards || [];
-    }, [selectedDistrictCode, districts]);
+    const districts = provinces.find(p => p.code === selectedCityCode)?.districts || [];
+    const wards = districts.find(d => d.code === selectedDistrictCode)?.wards || [];
 
     // Apple/Stripe Design System Styles
     const cellClass = "flex flex-col px-4 py-3 border-b border-slate-100 last:border-b-0 focus-within:bg-[#4988c4]/5 transition-colors";
-    const cellInputClass = "p-0 h-auto border-0 bg-transparent focus-visible:ring-0 font-bold text-slate-900 placeholder:text-slate-300 text-sm";
-    const cellLabelClass = "text-[10px] font-black text-slate-400 uppercase tracking-wider mb-0.5";
+    const cellInputClass = "p-0 h-auto border-0 bg-transparent focus-visible:ring-0 font-bold text-slate-900 placeholder:text-slate-400 text-sm";
+    const cellLabelClass = "text-[11px] font-black text-slate-500 uppercase tracking-widest mb-0.5";
 
     return (
         <div className="space-y-6">
             <div className="space-y-1">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-[#4988c4]/10 text-[#4988c4] border border-[#4988c4]/20 text-[10px] font-black uppercase tracking-widest">
-                    Step 03
+                    Step 04
                 </div>
                 <h3 className="text-2xl font-black text-slate-900 tracking-tight">Contact & Address Details</h3>
-                <p className="text-xs text-slate-400 font-medium">Provide your address for order sizing & lookup.</p>
+                <p className="text-sm text-slate-500 font-medium tracking-wide">Provide your address for order sizing & lookup.</p>
             </div>
 
             <div className="space-y-4">
@@ -147,11 +142,11 @@ export default function StepContact({ form }: StepContactProps) {
                                     </p>
                                 </div>
                             ) : (
-                                <div className="flex items-center gap-2 text-slate-400">
-                                    <MapPin className="h-4 w-4" />
-                                    <div className="space-y-0.5">
-                                        <span className="font-black text-xs text-slate-600">No Address Selected</span>
-                                        <p className="text-[10px] text-slate-400 font-bold">Choose saved address</p>
+                                <div className="flex items-center gap-2 text-slate-500">
+                                    <MapPin className="h-5 w-5" />
+                                    <div className="space-y-1">
+                                        <span className="font-black text-sm text-slate-700">No Address Selected</span>
+                                        <p className="text-[11px] text-slate-500 font-medium">Click to choose a saved address</p>
                                     </div>
                                 </div>
                             )}
@@ -189,7 +184,7 @@ export default function StepContact({ form }: StepContactProps) {
 
                             {/* Section 2: Address Full */}
                             <div className="space-y-2">
-                                <Label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">Delivery Address</Label>
+                                <Label className="text-[11px] font-black text-slate-500 uppercase tracking-[0.1em] ml-1">Delivery Address</Label>
                                 <div className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden">
                                     <div className={cellClass}>
                                         <Label className={cellLabelClass}>Street / Apartment</Label>
@@ -216,12 +211,12 @@ export default function StepContact({ form }: StepContactProps) {
                 </AnimatePresence>
             </div>
 
-            <div className="space-y-1.5 pt-4 border-t border-slate-100 border-dashed">
+            <div className="space-y-2 pt-4 border-t border-slate-100 border-dashed">
                 <div className="flex items-center justify-between ml-1">
-                    <Label className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-1">
-                        <MessageSquare className="w-3 h-3 text-[#4988c4]" /> Notes Settings
+                    <Label className="text-[11px] font-black text-slate-500 uppercase tracking-[0.1em] flex items-center gap-1.5">
+                        <MessageSquare className="w-3.5 h-3.5 text-[#4988c4]" /> Notes Settings
                     </Label>
-                    <span className="text-[9px] font-bold text-slate-300">{notesValue.length} / 500</span>
+                    <span className="text-[10px] font-bold text-slate-400">{notesValue.length} / 500</span>
                 </div>
                 <Textarea
                     rows={2}
