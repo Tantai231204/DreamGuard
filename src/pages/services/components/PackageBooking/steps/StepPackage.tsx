@@ -108,10 +108,10 @@ export default function StepPackage({ form }: StepPackageProps) {
           Step 02
         </div>
         <h3 className="text-2xl font-black text-slate-900 tracking-tight">
-          Choose Service Tier
+          Select Cleaning Level
         </h3>
         <p className="text-sm text-slate-500 font-medium tracking-wide">
-          Select a cleaning service level for each product.
+          Select a depth of cleaning for your product.
         </p>
       </div>
 
@@ -129,7 +129,7 @@ export default function StepPackage({ form }: StepPackageProps) {
             <ChevronLeft className="h-4 w-4" />
           </Button>
 
-          <div className="flex-1 flex items-center gap-1.5 overflow-x-auto px-1 py-1">
+          <div className="flex-1 flex items-center gap-2 overflow-x-auto px-1 py-1 no-scrollbar">
             {products.map((p, i) => {
               const PIcon = iconMap[p.icon] || BedDouble;
               const isActive = i === safeIdx;
@@ -139,18 +139,18 @@ export default function StepPackage({ form }: StepPackageProps) {
                   key={p.id}
                   type="button"
                   onClick={() => setActiveIdx(i)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap shadow-sm
                     ${isActive
-                      ? "border-[#4988c4] bg-[#4988c4]/5 text-[#4988c4]"
+                      ? "border-[#4988c4] bg-[#4988c4] text-white shadow-md shadow-[#4988c4]/15"
                       : hasItem
-                        ? "border-emerald-200 bg-emerald-50/50 text-emerald-600"
-                        : "border-slate-100 bg-white text-slate-500 hover:border-slate-200"
+                        ? "border-emerald-100 bg-emerald-50 text-emerald-600"
+                        : "border-slate-100 bg-white text-slate-600 hover:border-slate-200"
                     }
                   `}
                 >
-                  <PIcon className="h-3.5 w-3.5" />
+                  <PIcon className={`h-4 w-4 ${isActive ? "text-white" : "text-[#4988c4]"}`} />
                   {p.label}
-                  {hasItem && <Check className="h-3 w-3" />}
+                  {hasItem && <Check className={`h-3.5 w-3.5 ${isActive ? "text-white" : "text-emerald-500"}`} strokeWidth={3} />}
                 </button>
               );
             })}

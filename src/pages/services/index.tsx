@@ -4,6 +4,7 @@ import {
   ServiceCategories,
   ProcessSteps,
   PricingSection,
+  CustomizeSection,
 } from "./components";
 
 import { useNavigate } from "react-router-dom";
@@ -24,6 +25,9 @@ export default function ServicesPage() {
     <div className="min-h-screen bg-white">
       {/* Hero with click triggers */}
       <ServiceHero onClickBook={handleStartBooking} />
+
+      {/* 3D Customize Section (New Entry Point) */}
+      <CustomizeSection />
 
       {/* Service Categories */}
       <ServiceCategories />

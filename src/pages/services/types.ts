@@ -20,12 +20,7 @@ export interface ServiceCategory {
   image: string;
 }
 
-export interface ServiceItemOption {
-  id: string;
-  name: string;
-  unitPrice: number;
-  serviceType: ServiceType;
-}
+
 
 export interface ProcessStep {
   step: number;

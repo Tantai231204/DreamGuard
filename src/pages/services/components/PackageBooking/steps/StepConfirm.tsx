@@ -52,7 +52,7 @@ export default function StepConfirm({
             {!isSidebar && (
                 <div className="space-y-2">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-[#4988c4]/10 text-[#4988c4] border border-[#4988c4]/20 text-[10px] font-black uppercase tracking-widest">
-                        Step 05
+                        Step 06
                     </div>
                     <h3 className="text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
                         <Check className="h-5 w-5 text-emerald-500" /> Booking Preview
@@ -157,53 +157,55 @@ export default function StepConfirm({
             />
 
             {/* Services Summary Card */}
-            <div className="rounded-2xl bg-gradient-to-br from-[#4988c4] to-[#3a73a8] p-6 text-white shadow-xl shadow-[#4988c4]/20 relative overflow-hidden">
-                <div className="flex items-start justify-between gap-3 mb-4 relative z-10">
-                    <div>
-                        <span className="text-[9px] font-black uppercase tracking-widest text-white/60">Services Summary</span>
-                        <h4 className="text-2xl font-black mt-0.5 tracking-tight leading-none">
-                            {(form.items || []).length} {(form.items || []).length === 1 ? "Item" : "Items"} Selected
-                        </h4>
+            {!isSidebar && (
+                <div className="rounded-2xl bg-gradient-to-br from-[#4988c4] to-[#3a73a8] p-6 text-white shadow-xl shadow-[#4988c4]/20 relative overflow-hidden">
+                    <div className="flex items-start justify-between gap-3 mb-4 relative z-10">
+                        <div>
+                            <span className="text-[9px] font-black uppercase tracking-widest text-white/60">Services Summary</span>
+                            <h4 className="text-2xl font-black mt-0.5 tracking-tight leading-none">
+                                {(form.items || []).length} {(form.items || []).length === 1 ? "Item" : "Items"} Selected
+                            </h4>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                            <div className="text-3xl font-black tracking-tighter">{formatPrice(totalBeforeVoucher)}</div>
+                            <div className="text-white/60 text-[10px] uppercase font-black tracking-widest mt-0.5">subtotal</div>
+                        </div>
                     </div>
-                    <div className="text-right flex-shrink-0">
-                        <div className="text-3xl font-black tracking-tighter">{formatPrice(totalBeforeVoucher)}</div>
-                        <div className="text-white/60 text-[10px] uppercase font-black tracking-widest mt-0.5">subtotal</div>
-                    </div>
-                </div>
-                <div className="border-t border-white/10 pt-4 relative z-10 space-y-3">
-                    {(form.items || []).map((it, idx) => {
-                        const product = productTypes.find(p => p.id === it.itemType);
-                        const tier = product?.tiers.find(t => t.tierId === it.packageId);
-                        const price = getProductTierPrice(it.itemType, it.packageId);
+                    <div className="border-t border-white/10 pt-4 relative z-10 space-y-3">
+                        {(form.items || []).map((it, idx) => {
+                            const product = productTypes.find(p => p.id === it.itemType);
+                            const tier = product?.tiers.find(t => t.tierId === it.packageId);
+                            const price = getProductTierPrice(it.itemType, it.packageId);
 
-                        return (
-                            <div key={idx} className="flex items-center justify-between border-b border-white/5 pb-2 last:border-b-0">
-                                <div>
-                                    <p className="text-sm font-black">{product?.label || it.itemType}</p>
-                                    <p className="text-[10px] text-white/70 font-bold">{tier?.name || it.packageId} (x{it.quantity})</p>
+                            return (
+                                <div key={idx} className="flex items-center justify-between border-b border-white/5 pb-2 last:border-b-0">
+                                    <div>
+                                        <p className="text-sm font-black">{product?.label || it.itemType}</p>
+                                        <p className="text-[10px] text-white/70 font-bold">{tier?.name || it.packageId} (x{it.quantity})</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-sm font-black">{formatPrice(price * it.quantity)}</p>
+                                    </div>
                                 </div>
-                                <div className="text-right">
-                                    <p className="text-sm font-black">{formatPrice(price * it.quantity)}</p>
-                                </div>
-                            </div>
-                        );
-                    })}
+                            );
+                        })}
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Lower Grid for Info */}
             <div className={`grid gap-6 ${isSidebar ? "grid-cols-1" : "md:grid-cols-2"}`}>
                 {/* Schedule card */}
-                {form.scheduledDate && (
+                {!isSidebar && form.scheduledDate && (
                     <div className={cardClass}>
                         <div className={titleClass}>
-                        <div className="flex items-center gap-2">
-                            <CalendarDays className="h-3.5 w-3.5 text-[#4988c4]" /> Schedule
+                            <div className="flex items-center gap-2">
+                                <CalendarDays className="h-3.5 w-3.5 text-[#4988c4]" /> Schedule
+                            </div>
+                            {!isSidebar && onEditStep && (
+                                <button onClick={() => onEditStep(2)} className="ml-auto text-[#4988c4] hover:underline underline-offset-2">Edit</button>
+                            )}
                         </div>
-                        {!isSidebar && onEditStep && (
-                            <button onClick={() => onEditStep(2)} className="ml-auto text-[#4988c4] hover:underline underline-offset-2">Edit</button>
-                        )}
-                    </div>
                         <div className="flex items-center justify-between gap-4">
                             <div>
                                 <p className="text-[11px] font-black uppercase tracking-widest text-slate-500 mb-1">Date</p>
@@ -218,16 +220,16 @@ export default function StepConfirm({
                 )}
 
                 {/* Contact Information */}
-                {form.customerName && (
+                {!isSidebar && form.customerName && (
                     <div className={cardClass}>
                         <div className={titleClass}>
-                        <div className="flex items-center gap-2">
-                             <User className="h-3.5 w-3.5 text-[#4988c4]" /> Contact Info
+                            <div className="flex items-center gap-2">
+                                <User className="h-3.5 w-3.5 text-[#4988c4]" /> Contact Info
+                            </div>
+                            {!isSidebar && onEditStep && (
+                                <button onClick={() => onEditStep(3)} className="ml-auto text-[#4988c4] hover:underline underline-offset-2">Edit</button>
+                            )}
                         </div>
-                        {!isSidebar && onEditStep && (
-                            <button onClick={() => onEditStep(3)} className="ml-auto text-[#4988c4] hover:underline underline-offset-2">Edit</button>
-                        )}
-                    </div>
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
                                 <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">Name</span>
@@ -243,7 +245,7 @@ export default function StepConfirm({
             </div>
 
             {/* Address */}
-            {form.address && form.address.street && (
+            {!isSidebar && form.address && form.address.street && (
                 <div className={`${cardClass} space-y-2`}>
                     <div className={titleClass}>
                         <div className="flex items-center gap-2">

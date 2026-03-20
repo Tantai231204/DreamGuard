@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import type {
   ServiceCategory,
-  ServiceItemOption,
   ProcessStep,
   PricingPackage,
 } from "./types";
@@ -100,37 +99,7 @@ export const serviceCategories: ServiceCategory[] = [
   },
 ];
 
-/* ===== Service Items (for custom booking) ===== */
-export const serviceItems: ServiceItemOption[] = [
-  // Deep clean
-  { id: "dc-1", name: "King-size mattress (1.8m)", unitPrice: 450000, serviceType: "deep_clean" },
-  { id: "dc-2", name: "Queen-size mattress (1.6m)", unitPrice: 400000, serviceType: "deep_clean" },
-  { id: "dc-3", name: "Single mattress (1.2m)", unitPrice: 300000, serviceType: "deep_clean" },
-  { id: "dc-4", name: "Fabric sofa", unitPrice: 350000, serviceType: "deep_clean" },
-  // Basic clean
-  { id: "bc-1", name: "Full bedding set (double)", unitPrice: 250000, serviceType: "basic_clean" },
-  { id: "bc-2", name: "Full bedding set (single)", unitPrice: 180000, serviceType: "basic_clean" },
-  { id: "bc-3", name: "Blanket", unitPrice: 100000, serviceType: "basic_clean" },
-  { id: "bc-4", name: "Pillow (each)", unitPrice: 50000, serviceType: "basic_clean" },
-  // Mattress clean
-  { id: "mc-1", name: "Double mattress (1.8m)", unitPrice: 350000, serviceType: "mattress_clean" },
-  { id: "mc-2", name: "Single mattress (1.2m)", unitPrice: 250000, serviceType: "mattress_clean" },
-  { id: "mc-3", name: "Baby crib mattress", unitPrice: 180000, serviceType: "mattress_clean" },
-  { id: "mc-4", name: "Bed sheet", unitPrice: 80000, serviceType: "mattress_clean" },
-  // Stroller clean
-  { id: "sc-1", name: "Single stroller", unitPrice: 280000, serviceType: "stroller_clean" },
-  { id: "sc-2", name: "Double stroller", unitPrice: 380000, serviceType: "stroller_clean" },
-  { id: "sc-3", name: "Portable bassinet", unitPrice: 200000, serviceType: "stroller_clean" },
-  // Car seat clean
-  { id: "cs-1", name: "Infant car seat (Group 0+)", unitPrice: 200000, serviceType: "carseat_clean" },
-  { id: "cs-2", name: "Toddler car seat (Group 1-2)", unitPrice: 250000, serviceType: "carseat_clean" },
-  { id: "cs-3", name: "Booster seat", unitPrice: 150000, serviceType: "carseat_clean" },
-  // Toy sanitize
-  { id: "ts-1", name: "Plastic toy set (10 items)", unitPrice: 150000, serviceType: "toy_sanitize" },
-  { id: "ts-2", name: "Large stuffed animal (>30cm)", unitPrice: 100000, serviceType: "toy_sanitize" },
-  { id: "ts-3", name: "Small stuffed animal (<30cm)", unitPrice: 70000, serviceType: "toy_sanitize" },
-  { id: "ts-4", name: "Wooden toy set", unitPrice: 120000, serviceType: "toy_sanitize" },
-];
+
 
 /* ===== Pricing Packages (pre-made packages) ===== */
 export const pricingPackages: PricingPackage[] = [

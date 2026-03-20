@@ -23,6 +23,7 @@ export const AppRoute = {
   COMBO_DETAIL: "/combos/:slug",
   SERVICES: "/services",
   SERVICES_BOOKING: "/services/booking",
+  SERVICES_CUSTOMIZE: "/services/customize",
   CART: "/cart",
   CHECKOUT: "/checkout",
   CHECKOUT_RESULT: "/checkout/result",

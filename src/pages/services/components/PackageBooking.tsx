@@ -9,6 +9,7 @@ import { slideVariants } from "./PackageBooking/constants";
 import Stepper from "./PackageBooking/Stepper";
 import StepProducts from "./PackageBooking/steps/StepProducts";
 import StepPackage from "./PackageBooking/steps/StepPackage";
+import StepMedia from "./PackageBooking/steps/StepMedia";
 import StepSchedule from "./PackageBooking/steps/StepSchedule";
 import StepContact from "./PackageBooking/steps/StepContact";
 import StepConfirm from "./PackageBooking/steps/StepConfirm";
@@ -21,12 +22,13 @@ import { productTypes, getProductTierPrice } from "../data";
 const stepErrorMessages: Record<number, string> = {
   0: "Please select at least one product to continue.",
   1: "Please choose a service tier for each selected product.",
-  2: "Please select both a date and time slot.",
-  3: "Please fill in all required contact fields.",
+  2: "", // Optional Media
+  3: "Please select a date and an available time slot.",
+  4: "Please fill in accurate contact and address details.",
 };
 
 const DRAFT_KEY = "dreamguard_booking_draft";
-const TOTAL_STEPS = 5;
+const TOTAL_STEPS = 6;
 
 interface PackageBookingProps {
   initialPackageId?: string;
@@ -239,8 +241,8 @@ export default function PackageBooking({ initialPackageId }: PackageBookingProps
         <Stepper currentStep={step} />
       </div>
 
-      <div className={step < 4 ? "lg:grid lg:grid-cols-12 lg:gap-12 items-start" : "max-w-2xl mx-auto"}>
-        <div className={`min-h-[450px] ${step < 4 ? "lg:col-span-7" : ""}`}>
+      <div className={step < 5 ? "lg:grid lg:grid-cols-12 lg:gap-12 items-start" : "max-w-2xl mx-auto"}>
+        <div className={`min-h-[450px] ${step < 5 ? "lg:col-span-7" : ""}`}>
         <AnimatePresence mode="wait" custom={direction}>
           <motion.div
             key={step}
@@ -253,9 +255,10 @@ export default function PackageBooking({ initialPackageId }: PackageBookingProps
           >
             {step === 0 && <StepProducts form={form} />}
             {step === 1 && <StepPackage form={form} />}
-            {step === 2 && <StepSchedule form={form} />}
-            {step === 3 && <StepContact form={form} />}
-            {step === 4 && (
+            {step === 2 && <StepMedia form={form} />}
+            {step === 3 && <StepSchedule form={form} />}
+            {step === 4 && <StepContact form={form} />}
+            {step === 5 && (
               <StepConfirm
                 form={watchedValues}
                 appliedVoucher={appliedVoucher}
@@ -309,7 +312,7 @@ export default function PackageBooking({ initialPackageId }: PackageBookingProps
       </div>
 
         {/* Sticky Sidebar (Step 0 - 3) */}
-        {step < 4 && (
+        {step < 5 && (
           <div className="hidden lg:block lg:col-span-5 sticky top-24">
             <StepConfirm
               form={watchedValues}

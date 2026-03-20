@@ -55,7 +55,7 @@ export default function StepProducts({ form }: StepProductsProps) {
       </div>
 
       {/* Product Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         {productTypes.map((product) => {
           const Icon = iconMap[product.icon] || BedDouble;
           const isSelected = selected.includes(product.id);
@@ -75,13 +75,13 @@ export default function StepProducts({ form }: StepProductsProps) {
               `}
             >
               {/* Corner check circle */}
-              <div className={`absolute top-3 right-3 h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all
+              <div className={`absolute top-3 right-3 h-6 w-6 rounded-full border-2 flex items-center justify-center transition-all
                 ${isSelected
                   ? "bg-[#4988c4] border-[#4988c4] scale-100"
                   : "bg-white border-slate-200 scale-90 group-hover:border-[#4988c4]/40"
                 }
               `}>
-                <Check className={`h-3 w-3 transition-colors ${isSelected ? "text-white" : "text-transparent"}`} />
+                <Check className={`h-3.5 w-3.5 transition-colors ${isSelected ? "text-white" : "text-transparent"}`} strokeWidth={3} />
               </div>
 
               {/* Icon */}

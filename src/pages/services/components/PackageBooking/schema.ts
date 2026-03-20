@@ -32,15 +32,16 @@ export const bookingSchema = z.object({
     city: z.string().min(1, "City is required"),
   }),
   notes: z.string().max(500, "Notes cannot exceed 500 characters").optional(),
+  mediaUploads: z.array(z.string()).optional(),
 });
 
 export type BookingFormValues = z.infer<typeof bookingSchema>;
 
-/** Fields that must be valid before advancing each step (5 steps now) */
 export const STEP_FIELDS: (keyof BookingFormValues)[][] = [
-  ["selectedProducts"],        // Step 0: product selection
-  ["items"],                   // Step 1: tier selection
-  ["scheduledDate", "scheduledTime"],  // Step 2: schedule
-  ["customerName", "customerPhone", "address"],  // Step 3: contact
-  [],                          // Step 4: confirm
+  ["selectedProducts"],        // Step 0: Product selection
+  ["items"],                   // Step 1: Tier selection
+  [],                          // Step 2: Media uploads (Opt)
+  ["scheduledDate", "scheduledTime"], // Step 3: Schedule
+  ["customerName", "customerPhone", "address"], // Step 4: Contact & Address
+  [],                          // Step 5: Confirm
 ];

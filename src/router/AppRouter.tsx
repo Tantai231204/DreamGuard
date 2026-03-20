@@ -37,6 +37,7 @@ const ResetPasswordSuccess = lazy(() => import("../pages/auth/ResetPasswordSucce
 const Profile = lazy(() => import("../pages/profile"));
 const Services = lazy(() => import("../pages/services"));
 const ServicesBooking = lazy(() => import("../pages/services/Booking"));
+const ServicesCustomize = lazy(() => import("../pages/services/customize"));
 
 // Admin
 const AdminDashboard = lazy(() => import("../pages/admin/dashboard"));
@@ -75,6 +76,7 @@ export default function AppRouter() {
                     </Route>
 
                     <Route path={AppRoute.SERVICES_BOOKING} element={<ServicesBooking />} />
+                    <Route path={AppRoute.SERVICES_CUSTOMIZE} element={<ServicesCustomize />} />
 
                     <Route element={<AuthLayout />}>
                         <Route path={AppRoute.LOGIN} element={<Login />} />
