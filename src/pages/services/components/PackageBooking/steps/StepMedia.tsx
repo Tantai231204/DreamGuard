@@ -1,45 +1,41 @@
 import type { ChangeEvent } from "react";
 import { useState } from "react";
 import { Camera, Trash2, UploadCloud } from "lucide-react";
-import { type UseFormReturn, useWatch } from "react-hook-form";
+import { type UseFormReturn } from "react-hook-form";
 import type { BookingFormValues } from "../schema";
 
 interface StepMediaProps {
   form: UseFormReturn<BookingFormValues>;
+  onFilesChange: (files: File[]) => void;
+  initialFiles: File[];
 }
 
-export default function StepMedia({ form }: StepMediaProps) {
-  const { setValue, control } = form;
-  const mediaUploads = useWatch({ control, name: "mediaUploads" }) ?? [];
-  const [previews, setPreviews] = useState<string[]>([]);
+export default function StepMedia({ form, onFilesChange, initialFiles }: StepMediaProps) {
+  const { setValue } = form;
+  const [filesList, setFilesList] = useState<File[]>(initialFiles);
+  const [previews, setPreviews] = useState<string[]>(initialFiles.map(f => URL.createObjectURL(f)));
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
-    const newPreviews: string[] = [];
-    const newFileNames: string[] = [];
+    const added = Array.from(files);
+    const nextFiles = [...filesList, ...added];
+    setFilesList(nextFiles);
+    onFilesChange(nextFiles);
 
-    Array.from(files).forEach((file) => {
-      newFileNames.push(file.name);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        newPreviews.push(reader.result as string);
-        if (newPreviews.length === files.length) {
-          setPreviews((prev) => [...prev, ...newPreviews]);
-          setValue("mediaUploads", [...mediaUploads, ...newFileNames]);
-        }
-      };
-      reader.readAsDataURL(file);
-    });
+    const nextPreviews = added.map(f => URL.createObjectURL(f));
+    setPreviews((prev) => [...prev, ...nextPreviews]);
+    setValue("mediaUploads", nextFiles.map(f => f.name));
   };
 
   const removeMedia = (index: number) => {
+    const nextFiles = filesList.filter((_, i) => i !== index);
+    setFilesList(nextFiles);
+    onFilesChange(nextFiles);
+
     setPreviews((prev) => prev.filter((_, i) => i !== index));
-    setValue(
-      "mediaUploads",
-      mediaUploads.filter((_, i) => i !== index)
-    );
+    setValue("mediaUploads", nextFiles.map(f => f.name));
   };
 
   return (

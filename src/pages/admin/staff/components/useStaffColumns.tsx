@@ -4,9 +4,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Edit,
-  Trash2,
+  Power,
   Eye,
-  Ban,
   ShieldCheck,
   Mail,
   Phone,
@@ -150,10 +149,9 @@ export function useStaffColumns({ onEdit, onChangeRole }: StaffColumnsProps = {}
                   ...(!isAdmin ? [
                     [
                       { label: 'Change Role', icon: <ShieldCheck className="h-4 w-4" />, variant: 'info' as const, onClick: () => onChangeRole && onChangeRole(staff) },
-                      { label: 'Suspend', icon: <Ban className="h-4 w-4" />, variant: 'warning' as const, onClick: () => console.log('Suspend', staff.staffId) },
                     ],
                     [
-                      { label: 'Delete', icon: <Trash2 className="h-4 w-4" />, variant: 'danger' as const, onClick: () => console.log('Delete', staff.staffId) }
+                      { label: staff.status === 'active' ? 'Deactivate' : 'Activate', icon: <Power className="h-4 w-4" />, variant: (staff.status === 'active' ? 'warning' : 'success') as 'warning' | 'success', onClick: () => console.log('Toggle status', staff.staffId) }
                     ]
                   ] : [])
                 ]}

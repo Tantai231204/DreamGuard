@@ -9,7 +9,11 @@ import {
   Car,
   Baby,
   Boxes,
-  Brush
+  Brush,
+  Repeat,
+  Banknote,
+  CreditCard,
+  Wallet
 } from 'lucide-react';
 import type { ServiceStatus, ServiceType, PaymentStatus } from './types';
 
@@ -26,35 +30,56 @@ export const statusConfig: Record<ServiceStatus, {
     text: 'text-amber-700',
     border: 'border-amber-200',
     icon: Clock,
-    label: 'Chờ xác nhận',
+    label: 'Pending',
   },
   confirmed: {
     bg: 'bg-blue-50',
     text: 'text-blue-700',
     border: 'border-blue-200',
     icon: CalendarCheck,
-    label: 'Đã xác nhận',
+    label: 'Confirmed',
   },
-  in_progress: {
-    bg: 'bg-purple-50',
-    text: 'text-purple-700',
-    border: 'border-purple-200',
+  processing: {
+    bg: 'bg-amber-50',
+    text: 'text-amber-700',
+    border: 'border-amber-200',
     icon: Loader2,
-    label: 'Đang thực hiện',
+    label: 'Processing',
   },
   completed: {
-    bg: 'bg-green-50',
-    text: 'text-green-700',
-    border: 'border-green-200',
+    bg: 'bg-emerald-50',
+    text: 'text-emerald-700',
+    border: 'border-emerald-200',
     icon: CheckCircle2,
-    label: 'Hoàn thành',
+    label: 'Completed',
   },
   cancelled: {
-    bg: 'bg-red-50',
-    text: 'text-red-700',
-    border: 'border-red-200',
+    bg: 'bg-rose-50',
+    text: 'text-rose-700',
+    border: 'border-rose-200',
     icon: XCircle,
-    label: 'Đã hủy',
+    label: 'Cancelled',
+  },
+  rejected: {
+    bg: 'bg-rose-50',
+    text: 'text-rose-700',
+    border: 'border-rose-200',
+    icon: XCircle,
+    label: 'Rejected',
+  },
+  refunded: {
+    bg: 'bg-amber-50',
+    text: 'text-amber-700',
+    border: 'border-amber-200',
+    icon: Repeat,
+    label: 'Refunded',
+  },
+  forcedcancelled: {
+    bg: 'bg-rose-50',
+    text: 'text-rose-700',
+    border: 'border-rose-200',
+    icon: XCircle,
+    label: 'Forced Cancelled',
   },
 };
 
@@ -66,40 +91,40 @@ export const serviceTypeConfig: Record<ServiceType, {
   description: string;
 }> = {
   deep_clean: {
-    label: 'Vệ sinh sâu',
+    label: 'Deep Clean',
     icon: Sparkles,
     color: 'text-indigo-600',
-    description: 'Vệ sinh toàn diện, khử khuẩn chuyên sâu',
+    description: 'Comprehensive deeper sterilization',
   },
   basic_clean: {
-    label: 'Vệ sinh cơ bản',
+    label: 'Basic Clean',
     icon: Brush,
     color: 'text-blue-600',
-    description: 'Làm sạch bề mặt, khử mùi',
+    description: 'Surface cleanliness and deodorization',
   },
   mattress_clean: {
-    label: 'Vệ sinh nệm',
+    label: 'Mattress Clean',
     icon: Bed,
     color: 'text-purple-600',
-    description: 'Giặt nệm, diệt khuẩn, ve giường',
+    description: 'Washing mattresses, killing bed bacteria',
   },
   stroller_clean: {
-    label: 'Vệ sinh xe đẩy',
+    label: 'Stroller Clean',
     icon: Baby,
     color: 'text-pink-600',
-    description: 'Vệ sinh xe đẩy em bé',
+    description: 'Baby stroller cleaning',
   },
   carseat_clean: {
-    label: 'Vệ sinh ghế xe hơi',
+    label: 'Car Seat Clean',
     icon: Car,
     color: 'text-emerald-600',
-    description: 'Vệ sinh ghế ngồi ô tô cho bé',
+    description: 'Baby car seat cleaning',
   },
   toy_sanitize: {
-    label: 'Khử khuẩn đồ chơi',
+    label: 'Toy Sanitize',
     icon: Boxes,
     color: 'text-orange-600',
-    description: 'Khử khuẩn an toàn cho bé',
+    description: 'Safe sanitization for babies',
   },
 };
 
@@ -108,41 +133,87 @@ export const paymentStatusConfig: Record<PaymentStatus, {
   label: string;
   bg: string;
   text: string;
+  border: string;
+  icon: typeof Clock;
 }> = {
   unpaid: {
-    label: 'Chưa thanh toán',
-    bg: 'bg-gray-100',
-    text: 'text-gray-700',
+    label: 'Unpaid',
+    bg: 'bg-slate-50',
+    text: 'text-slate-600',
+    border: 'border-slate-200',
+    icon: Clock,
   },
   paid: {
-    label: 'Đã thanh toán',
-    bg: 'bg-green-100',
-    text: 'text-green-700',
+    label: 'Paid',
+    bg: 'bg-emerald-50',
+    text: 'text-emerald-700',
+    border: 'border-emerald-200',
+    icon: CheckCircle2,
   },
   refunded: {
-    label: 'Đã hoàn tiền',
-    bg: 'bg-red-100',
-    text: 'text-red-700',
+    label: 'Refunded',
+    bg: 'bg-amber-50',
+    text: 'text-amber-700',
+    border: 'border-amber-200',
+    icon: Repeat,
+  },
+};
+
+export const paymentMethodConfig: Record<string, {
+  label: string;
+  bg: string;
+  text: string;
+  border: string;
+  icon: typeof CreditCard;
+}> = {
+  cash: {
+    label: 'Cash',
+    bg: 'bg-orange-50',
+    text: 'text-orange-700',
+    border: 'border-orange-200',
+    icon: Banknote,
+  },
+  banking: {
+    label: 'Banking',
+    bg: 'bg-sky-50',
+    text: 'text-sky-700',
+    border: 'border-sky-200',
+    icon: CreditCard,
+  },
+  momo: {
+    label: 'MoMo',
+    bg: 'bg-pink-50',
+    text: 'text-pink-600',
+    border: 'border-pink-200',
+    icon: Wallet,
+  },
+  vnpay: {
+    label: 'VNPay',
+    bg: 'bg-blue-50',
+    text: 'text-blue-700',
+    border: 'border-blue-200',
+    icon: CreditCard,
   },
 };
 
 // Filter options for service status
 export const statusFilterOptions = [
-  { value: 'all', label: 'Tất cả trạng thái' },
-  { value: 'pending', label: 'Chờ xác nhận' },
-  { value: 'confirmed', label: 'Đã xác nhận' },
-  { value: 'in_progress', label: 'Đang thực hiện' },
-  { value: 'completed', label: 'Hoàn thành' },
-  { value: 'cancelled', label: 'Đã hủy' },
+  { value: 'all', label: 'All Statuses' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'confirmed', label: 'Confirmed' },
+  { value: 'processing', label: 'Processing' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'cancelled', label: 'Cancelled' },
+  { value: 'rejected', label: 'Rejected' },
 ];
 
 // Filter options for service type
 export const serviceTypeFilterOptions = [
-  { value: 'all', label: 'Tất cả dịch vụ' },
-  { value: 'deep_clean', label: 'Vệ sinh sâu' },
-  { value: 'basic_clean', label: 'Vệ sinh cơ bản' },
-  { value: 'mattress_clean', label: 'Vệ sinh nệm' },
-  { value: 'stroller_clean', label: 'Vệ sinh xe đẩy' },
-  { value: 'carseat_clean', label: 'Vệ sinh ghế xe hơi' },
-  { value: 'toy_sanitize', label: 'Khử khuẩn đồ chơi' },
+  { value: 'all', label: 'All Services' },
+  { value: 'deep_clean', label: 'Deep Clean' },
+  { value: 'basic_clean', label: 'Basic Clean' },
+  { value: 'mattress_clean', label: 'Mattress Clean' },
+  { value: 'stroller_clean', label: 'Stroller Clean' },
+  { value: 'carseat_clean', label: 'Car Seat Clean' },
+  { value: 'toy_sanitize', label: 'Toy Sanitize' },
 ];

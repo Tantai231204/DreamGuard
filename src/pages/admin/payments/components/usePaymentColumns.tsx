@@ -93,6 +93,7 @@ export const usePaymentColumns = ({ onView }: usePaymentColumnsProps) => {
                     return (
                         <AdminStatusBadge 
                             status={method} 
+                            mode="method"
                             type="neutral" 
                             className="bg-slate-100/50 border-slate-200" 
                         />
@@ -107,6 +108,7 @@ export const usePaymentColumns = ({ onView }: usePaymentColumnsProps) => {
                     return (
                         <AdminStatusBadge 
                             status={status} 
+                            mode="status"
                         />
                     );
                 },

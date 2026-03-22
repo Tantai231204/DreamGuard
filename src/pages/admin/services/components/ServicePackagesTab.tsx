@@ -43,17 +43,21 @@ export function ServicePackagesTab() {
     const updateStatusMutation = useUpdateServicePackageStatus();
 
     const handleEdit = useMemo(() => (pkg: ServicePackage) => {
-        console.log('Edit in tab currently logged', pkg.id);
+        console.log('Edit in tab currently logged', pkg.servicePackageId);
     }, []);
 
     const handleToggleStatus = useMemo(() => (pkg: ServicePackage) => {
         const newStatus = pkg.status === 'Active' ? 'Inactive' : 'Active';
-        updateStatusMutation.mutate({ id: pkg.id, status: newStatus }, {
+        updateStatusMutation.mutate({ id: pkg.servicePackageId, status: newStatus }, {
             onSuccess: () => toast.success('Status updated', `Package is now ${newStatus}`)
         });
     }, [updateStatusMutation, toast]);
 
-    const columns = useServicePackageColumns({ onEdit: handleEdit, onToggleStatus: handleToggleStatus });
+    const handleMapPricing = useMemo(() => (pkg: ServicePackage) => {
+        console.log('Map Pricing in tab currently logged', pkg.servicePackageId);
+    }, []);
+
+    const columns = useServicePackageColumns({ onEdit: handleEdit, onToggleStatus: handleToggleStatus, onMapPricing: handleMapPricing });
 
     const table = useReactTable({
         data: packages,

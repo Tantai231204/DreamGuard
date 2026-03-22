@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { CalendarDays, Check, MapPin, Tag, Ticket, User, X } from "lucide-react";
+import { CalendarDays, Check, CheckCircle2, MapPin, ShieldCheck, Tag, Ticket, Trash2, User, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { BookingFormValues } from "../schema";
 import type { Voucher } from "../vouchers";
 import VoucherSelectModal from "../VoucherSelectModal";
 import { formatPrice, formatDate } from "@/lib/utils";
-import { productTypes, getProductTierPrice } from "../../../data";
+import { useBookingData, type ProductType, type ServiceTier } from "../useBookingData";
+import { ProductAssetIcons, type ProductAssetIconKey } from "@/components/common/icons";
 
 interface StepConfirmProps {
     form: BookingFormValues;
@@ -14,6 +15,9 @@ interface StepConfirmProps {
     onRemoveVoucher: () => void;
     onEditStep?: (target: number) => void;
     isSidebar?: boolean;
+    paymentMethod: 'COD' | 'VNPAY';
+    onPaymentChange: (method: 'COD' | 'VNPAY') => void;
+    onClearDraft?: () => void;
 }
 
 export default function StepConfirm({
@@ -23,7 +27,11 @@ export default function StepConfirm({
     onRemoveVoucher,
     onEditStep,
     isSidebar = false,
+    paymentMethod,
+    onPaymentChange,
+    onClearDraft,
 }: StepConfirmProps) {
+    const { productTypes, getProductTierPrice } = useBookingData(form.selectedProducts || []);
     const [modalOpen, setModalOpen] = useState(false);
 
     const totalBeforeVoucher = (form.items || []).reduce((sum, it) => {
@@ -62,11 +70,24 @@ export default function StepConfirm({
             )}
 
             {isSidebar && (
-                <div className="space-y-1 pb-4">
-                    <div className="inline-flex items-center gap-2 px-2 py-0.5 rounded-md bg-[#4988c4]/10 text-[#4988c4] text-[8px] font-black uppercase tracking-wider">
-                        Live Summary
+                <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4 h-12">
+                    <div className="space-y-1">
+                        <div className="inline-flex items-center gap-2 px-2 py-0.5 rounded-md bg-[#4988c4]/10 text-[#4988c4] text-[8px] font-black uppercase tracking-wider">
+                            Live Summary
+                        </div>
+                        <h3 className="text-xl font-black text-slate-900 tracking-tight leading-none pt-1">Booking Overview</h3>
                     </div>
-                    <h3 className="text-xl font-black text-slate-900 tracking-tight leading-none pt-1">Booking Overview</h3>
+                    {onClearDraft && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={onClearDraft}
+                            className="h-8 px-2.5 rounded-lg text-rose-500 hover:text-rose-600 hover:bg-rose-50 font-bold text-xs flex items-center gap-1 border border-rose-100/30 bg-white"
+                        >
+                            <Trash2 className="h-3.5 w-3.5" /> Clear
+                        </Button>
+                    )}
                 </div>
             )}
 
@@ -115,8 +136,8 @@ export default function StepConfirm({
                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 block mb-1">Price Summary</span>
                     <div className="space-y-2">
                         {(form.items || []).map((it, idx) => {
-                            const product = productTypes.find(p => p.id === it.itemType);
-                            const tier = product?.tiers.find(t => t.tierId === it.packageId);
+                            const product = productTypes.find((p: ProductType) => p.id === it.itemType);
+                            const tier = product?.tiers.find((t: ServiceTier) => t.tierId === it.packageId);
                             const price = getProductTierPrice(it.itemType, it.packageId);
                             return (
                                 <div key={idx} className="flex items-center justify-between text-sm font-bold text-slate-600">
@@ -173,17 +194,24 @@ export default function StepConfirm({
                     </div>
                     <div className="border-t border-white/10 pt-4 relative z-10 space-y-3">
                         {(form.items || []).map((it, idx) => {
-                            const product = productTypes.find(p => p.id === it.itemType);
-                            const tier = product?.tiers.find(t => t.tierId === it.packageId);
+                            const product = productTypes.find((p: ProductType) => p.id === it.itemType);
+                            const tier = product?.tiers.find((t: ServiceTier) => t.tierId === it.packageId);
                             const price = getProductTierPrice(it.itemType, it.packageId);
 
+                            const iconSrc = product ? ProductAssetIcons[product.icon as ProductAssetIconKey] : ProductAssetIcons.PRODUCT_CATEGORIES;
+
                             return (
-                                <div key={idx} className="flex items-center justify-between border-b border-white/5 pb-2 last:border-b-0">
-                                    <div>
-                                        <p className="text-sm font-black">{product?.label || it.itemType}</p>
-                                        <p className="text-[10px] text-white/70 font-bold">{tier?.name || it.packageId} (x{it.quantity})</p>
+                                <div key={idx} className="flex items-center justify-between border-b border-white/5 pb-2 last:border-b-0 gap-3">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-9 w-9 rounded-lg bg-white/10 flex items-center justify-center backdrop-blur-sm shadow-inner flex-shrink-0">
+                                            <img src={iconSrc} alt={product?.label} className="h-5 w-5 object-contain brightness-0 invert" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-black">{product?.label || it.itemType}</p>
+                                            <p className="text-[10px] text-white/70 font-bold">{tier?.name || it.packageId} (x{it.quantity})</p>
+                                        </div>
                                     </div>
-                                    <div className="text-right">
+                                    <div className="text-right flex-shrink-0">
                                         <p className="text-sm font-black">{formatPrice(price * it.quantity)}</p>
                                     </div>
                                 </div>
@@ -266,6 +294,86 @@ export default function StepConfirm({
                             <p className="text-sm font-medium text-slate-700 leading-relaxed">{form.notes}</p>
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* Payment Method Selection */}
+            {!isSidebar && (
+                <div className="group rounded-[2rem] border-2 border-slate-100 bg-white p-8 transition-all duration-500 mt-6">
+                    {/* Refined Section Header */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4 border-b border-slate-50 pb-8">
+                        <div className="space-y-2">
+                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 text-[#4988c4] border border-slate-100">
+                                <ShieldCheck className="w-3 h-3" />
+                                <span className="text-[9px] font-black uppercase tracking-widest text-[#4988c4]">Payment Protocol</span>
+                            </div>
+                            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Payment Method</h2>
+                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Select your preferred gateway</p>
+                        </div>
+
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50/50 text-emerald-600 rounded-xl border border-emerald-100/50">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            <span className="text-[9px] font-black uppercase tracking-widest">SSL Encrypted</span>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* VnPay Option */}
+                        <div className="relative">
+                            <button
+                                type="button"
+                                onClick={() => onPaymentChange('VNPAY')}
+                                className={`flex flex-col p-6 rounded-3xl border-2 cursor-pointer w-full text-left transition-all duration-300 hover:border-[#4988c4]/40 hover:bg-slate-50/40 group/pay
+                                    ${paymentMethod === 'VNPAY' ? 'border-[#4988c4] bg-[#4988c4]/5 shadow-lg shadow-[#4988c4]/5' : 'border-slate-100 bg-white'}
+                                `}
+                            >
+                                <div className="flex items-center justify-between mb-6 w-full">
+                                    <div className="p-1.5 rounded-xl bg-white shadow-sm border border-slate-100">
+                                        <img
+                                            src={`${import.meta.env.BASE_URL}images/vnpay.svg`}
+                                            alt="VnPay"
+                                            className="h-7 w-20 object-contain p-0.5 group-hover/pay:scale-110 transition-transform"
+                                        />
+                                    </div>
+                                    {paymentMethod === "VNPAY" && (
+                                        <CheckCircle2 className="w-5 h-5 text-[#4988c4]" />
+                                    )}
+                                </div>
+                                <div className="space-y-0.5">
+                                    <span className="text-lg font-black tracking-tight block">VnPay Wallet</span>
+                                    <span className="text-[9px] font-bold uppercase tracking-widest text-[#4988c4] opacity-80">Online Banking System</span>
+                                </div>
+                            </button>
+                        </div>
+
+                        {/* COD Option */}
+                        <div className="relative">
+                            <button
+                                type="button"
+                                onClick={() => onPaymentChange('COD')}
+                                className={`flex flex-col p-6 rounded-3xl border-2 cursor-pointer w-full text-left transition-all duration-300 hover:border-[#4988c4]/40 hover:bg-slate-50/40 group/pay
+                                    ${paymentMethod === 'COD' ? 'border-[#4988c4] bg-[#4988c4]/5 shadow-lg shadow-[#4988c4]/5' : 'border-slate-100 bg-white'}
+                                `}
+                            >
+                                <div className="flex items-center justify-between mb-6 w-full">
+                                    <div className="p-1.5 rounded-xl bg-white shadow-sm border border-slate-100">
+                                        <img
+                                            src={`${import.meta.env.BASE_URL}images/cod.svg`}
+                                            alt="COD"
+                                            className="h-7 w-20 object-contain p-0.5 group-hover/pay:scale-110 transition-transform"
+                                        />
+                                    </div>
+                                    {paymentMethod === "COD" && (
+                                        <CheckCircle2 className="w-5 h-5 text-[#4988c4]" />
+                                    )}
+                                </div>
+                                <div className="space-y-0.5">
+                                    <span className="text-lg font-black tracking-tight block">COD</span>
+                                    <span className="text-[9px] font-bold uppercase tracking-widest text-[#4988c4] opacity-80">Cash on Delivery</span>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 

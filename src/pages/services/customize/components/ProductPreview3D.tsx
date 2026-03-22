@@ -1,281 +1,275 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { Suspense, useMemo } from "react";
+import React, { Suspense, useMemo, useState, memo } from "react";
 import { Canvas } from "@react-three/fiber";
 import {
   OrbitControls,
   Environment,
   useGLTF,
   Html,
-  PerspectiveCamera
+  PerspectiveCamera,
+  AdaptiveDpr,
+  Preload,
 } from "@react-three/drei";
 import * as THREE from "three";
-import type { DesignConfig, CustomizableProduct } from "../types";
 import { colorOptions } from "../data";
+import type { CustomizableProduct, DesignConfig, EmbroideryPosition } from "../types";
+
+interface ProductPreview3DProps {
+  product: CustomizableProduct;
+  design: DesignConfig;
+  totalPrice: number;
+  onPositionChange: (pos: EmbroideryPosition) => void;
+}
 
 /* ═══════════════════════════════════════════
-   TEXTURES & MATERIALS
+   OPTIMIZED TEXTURE CACHE & CONSTANTS
    ═══════════════════════════════════════════ */
-// Mẫu Pattern nội bộ sinh động (đã Tối ưu Vượt Trội về Tốc Độ & Độ Nét)
-function createFabricTexture(colorHex: string, patternId: string) {
-  const S = 1024;
-  const canvas = document.createElement("canvas");
-  canvas.width = S; canvas.height = S;
-  const ctx = canvas.getContext("2d", { alpha: false })!; // Optimize RAM
+const textureCache = new Map<string, THREE.CanvasTexture>();
 
-  // 1. Phủ màu nền rực rỡ
-  ctx.fillStyle = colorHex;
-  ctx.fillRect(0, 0, S, S);
+const CRIB_POSITIONS = {
+  "front-rail": { pos: [0, 0.45, 0.35], rot: [0, 0, 0], plateSize: [0.5, 0.12, 0.02], label: "Front Rail" },
+  "side-rail": { pos: [0.7, 0.45, 0], rot: [0, Math.PI / 2, 0], plateSize: [0.4, 0.12, 0.02], label: "Side Rail" },
+  "headboard": { pos: [0, 0.55, -0.35], rot: [0, Math.PI, 0], plateSize: [0.55, 0.14, 0.02], label: "Headboard" },
+};
 
-  // Lựa chọn màu hoa văn sắc nét hơn
-  const isLight = new THREE.Color(colorHex).getHSL({ h: 0, s: 0, l: 0 }).l > 0.6;
-  const pColor = isLight ? "rgba(0,0,0,0.18)" : "rgba(255,255,255,0.3)";
-  ctx.fillStyle = pColor;
-  ctx.strokeStyle = pColor;
+const PILLOW_POSITIONS = {
+  "center": { pos: [0, 0.60, 0], rot: [-Math.PI / 2, 0, 0], label: "Center" },
+  "corner": { pos: [0.35, 0.60, 0.22], rot: [-Math.PI / 2, 0, 0], label: "Corner" },
+  "bottom-edge": { pos: [0, 0.55, 0.50], rot: [-Math.PI / 2, 0, 0], label: "Bottom Edge" },
+};
 
-  // 2. Vẽ hoa văn
-  if (patternId === 'dots') {
-    for (let i = 0; i < 200; i++) {
-      ctx.beginPath(); ctx.arc(Math.random() * S, Math.random() * S, 6, 0, Math.PI * 2); ctx.fill();
-    }
-  } else if (patternId === 'stripes') {
-    ctx.lineWidth = 25;
-    for (let i = -S; i < S * 2; i += 70) {
-      ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i + S, S); ctx.stroke();
-    }
-  } else if (patternId === 'stars') {
-    ctx.font = "bold 24px sans-serif";
-    for (let i = 0; i < 150; i++) ctx.fillText("⭐", Math.random() * S, Math.random() * S);
-  } else if (patternId === 'clouds') {
-    ctx.font = "bold 30px sans-serif";
-    for (let i = 0; i < 60; i++) ctx.fillText("☁️", Math.random() * S, Math.random() * S);
-  }
+const PBR_PRESETS = {
+  organic_cotton: { roughness: 0.8, sheen: 0.15, envMapIntensity: 0.4 },
+  bamboo_fiber: { roughness: 0.5, sheen: 0.6, envMapIntensity: 0.6 },
+  hypoallergenic_silk: { roughness: 0.1, sheen: 1.0, envMapIntensity: 1.0, clearcoat: 0.4 },
+  cotton_blend: { roughness: 0.7, envMapIntensity: 0.35 },
+  muslin: { roughness: 0.9, transmission: 0.08, envMapIntensity: 0.3 },
+};
 
-  // 3. Vi sợi vải dệt (Micro-fabric noise) - Cực kì nhẹ & rực màu
-  // Không lặp 5000 lần trực tiếp, vẽ lên canvas nhỏ rồi mix-blend ốp hàng loạt!
-  const noiseCanv = document.createElement("canvas");
-  noiseCanv.width = 64; noiseCanv.height = 64;
-  const nCtx = noiseCanv.getContext("2d")!;
-  nCtx.fillStyle = "rgba(0,0,0,0.06)";
-  for (let i = 0; i < 300; i++) nCtx.fillRect(Math.random() * 64, Math.random() * 64, 1.5, 1.5);
-  nCtx.fillStyle = "rgba(255,255,255,0.08)";
-  for (let i = 0; i < 300; i++) nCtx.fillRect(Math.random() * 64, Math.random() * 64, 1.5, 1.5);
+const WOOD_PROPS = { roughness: 0.55, sheen: 0.05, envMapIntensity: 0.5, clearcoat: 0.2 };
 
-  ctx.globalCompositeOperation = "overlay"; // Trộn sáng, làm màu không bị đục
-  ctx.fillStyle = ctx.createPattern(noiseCanv, 'repeat')!;
-  ctx.fillRect(0, 0, S, S);
-  ctx.globalCompositeOperation = "source-over";
+/* ═══════════════════════════════════════════
+   TEXTURE GENERATORS (Deterministic & Pure)
+   ═══════════════════════════════════════════ */
+const isLightColor = (hex: string) => new THREE.Color(hex).getHSL({ h: 0, s: 0, l: 0 }).l > 0.6;
 
-  // 4. Khởi tạo Texture SIÊU NÉT với băng thông VRAM tối ưu
+const generateFabricTex = (color: string, pattern: string, matId: string) => {
+  const key = `${color}_${pattern}_${matId}`;
+  if (textureCache.has(key)) return textureCache.get(key)!;
+
+  const S = 512;
+  const canvas = document.createElement("canvas"); canvas.width = S; canvas.height = S;
+  const ctx = canvas.getContext("2d", { alpha: false })!;
+  const light = isLightColor(color);
+
+  ctx.fillStyle = color; ctx.fillRect(0, 0, S, S);
+  ctx.strokeStyle = light ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.06)";
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i < S; i += 8) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(S, i); ctx.stroke(); ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, S); ctx.stroke(); }
+
+  const pColor = light ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.2)";
+  ctx.fillStyle = ctx.strokeStyle = pColor;
+  if (pattern === "dots") { for (let i = 0; i < 100; i++) { ctx.beginPath(); ctx.arc((i * 17) % S, (i * 23) % S, 4, 0, Math.PI * 2); ctx.fill(); } }
+  else if (pattern === "stripes") { ctx.lineWidth = 15; for (let i = -S; i < S * 2; i += 60) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i + S, S); ctx.stroke(); } }
+
   const tex = new THREE.CanvasTexture(canvas);
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(3, 3);
-  tex.anisotropy = 4; // Tối ưu VRAM (Mức 4 là đủ nét cho 4K mà không nghẽn)
-  tex.minFilter = THREE.LinearMipMapLinearFilter;
-  tex.magFilter = THREE.LinearFilter;
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.needsUpdate = true;
-  return tex;
-}
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(3, 3);
+  tex.anisotropy = 4; tex.colorSpace = THREE.SRGBColorSpace;
+  textureCache.set(key, tex); return tex;
+};
 
-const getPBRProps = (materialId: string) => {
-  switch (materialId) {
-    case "hypoallergenic_silk":
-      return { roughness: 0.1, sheen: 1.0, sheenColor: "#ffffff", clearcoat: 0.5 };
-    case "bamboo_fiber":
-      return { roughness: 0.5, sheen: 0.5, sheenColor: "#ccffee" };
-    default:
-      return { roughness: 0.8, sheen: 0.2, sheenColor: "#ffffff" };
+const generateWoodTex = () => {
+  const key = "__WOOD__"; if (textureCache.has(key)) return textureCache.get(key)!;
+  const S = 512; const canvas = document.createElement("canvas"); canvas.width = S; canvas.height = S;
+  const ctx = canvas.getContext("2d", { alpha: false })!;
+  ctx.fillStyle = "#D4A76A"; ctx.fillRect(0, 0, S, S);
+  for (let y = 0; y < S; y++) {
+    const b = 140 + Math.sin(y * 0.08) * 12 + Math.sin(y * 7) * 2;
+    ctx.fillStyle = `rgb(${b + 40}, ${b + 10}, ${b - 30})`; ctx.fillRect(0, y, S, 1);
   }
+  const tex = new THREE.CanvasTexture(canvas); tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(2, 2); tex.anisotropy = 4; tex.colorSpace = THREE.SRGBColorSpace;
+  textureCache.set(key, tex); return tex;
+};
+
+const generateEngravingTex = (text: string, isLight: boolean, isEmbroidery = false) => {
+  const key = `__TXT__${text}_${isLight}_${isEmbroidery}`; if (textureCache.has(key)) return textureCache.get(key)!;
+  const W = 512, H = isEmbroidery ? 96 : 128;
+  const canvas = document.createElement("canvas"); canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext("2d")!;
+  if (!isEmbroidery) {
+    ctx.fillStyle = "#8B6914"; ctx.fillRect(0, 0, W, H);
+    for (let y = 0; y < H; y++) { const b = 100 + Math.sin(y * 0.15) * 5; ctx.fillStyle = `rgb(${b + 35}, ${b + 5}, ${b - 30})`; ctx.fillRect(0, y, W, 1); }
+    ctx.strokeStyle = "#6b4f1a"; ctx.lineWidth = 4; ctx.roundRect(4, 4, W - 8, H - 8, 10); ctx.stroke();
+  } else { ctx.clearRect(0, 0, W, H); }
+
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  const fontSize = Math.min(isEmbroidery ? 42 : 48, (W - 40) / text.length * 1.5);
+  ctx.font = `bold ${fontSize}px sans-serif`;
+  ctx.fillStyle = isLight ? "rgba(0,0,0,0.4)" : "rgba(255,255,255,0.2)"; ctx.fillText(text.toUpperCase(), W / 2, H / 2 + 2);
+  ctx.fillStyle = isEmbroidery ? (isLight ? "#1a1a2e" : "#f5f0e8") : "#2a190a"; ctx.fillText(text.toUpperCase(), W / 2, H / 2);
+
+  const tex = new THREE.CanvasTexture(canvas); tex.colorSpace = THREE.SRGBColorSpace;
+  textureCache.set(key, tex); return tex;
 };
 
 /* ═══════════════════════════════════════════
-   PROFESSIONAL GLTF MODEL LOADER (Ultra Perf Tier)
+   UI COMPONENTS (Memoized)
    ═══════════════════════════════════════════ */
-// Tối thượng độ mượt: Tái chế Material và xóa Deep Clone
-const GLTFProductModel = ({ url, texture, materialProps, scale = 1, position = [0, 0, 0] }: any) => {
-  // Lấy dữ liệu file 3D (Ép kiểu as any để tắt cảnh báo type rườm rà)
-  const { scene } = useGLTF(url) as any;
-
-  // Tối ưu lõi: Tái sử dụng chung 1 vật lý duy nhất, không tạo rác RAM
-  const customMaterial = useMemo(() => {
-    return new THREE.MeshPhysicalMaterial({
-      map: texture,
-      ...materialProps,
-      // CẤM DÙNG DoubleSide -> Render FrontSide x2 tốc độ khung hình (FPS)
-      side: THREE.FrontSide,
-      envMapIntensity: 0.8, // Giảm phản chiếu môi trường để màu sắc thật hơn
-    });
-  }, [texture, materialProps]);
-
-  // Bắn vật rỉ vào lưới 3D NGAY TRÊN BẢN GỐC để tắt nghẽn sao chép lưới điểm
-  useMemo(() => {
-    if (scene) {
-      scene.traverse((child: any) => {
-        if (child.isMesh) {
-          child.material = customMaterial;
-          child.castShadow = true;
-          child.receiveShadow = true;
-        }
-      });
-    }
-  }, [scene, customMaterial]);
-
-  if (!scene) return null;
-  return <primitive object={scene} scale={scale} position={position} />;
-};
-
-/* ═══════════════════════════════════════════
-   FALLBACK PROCEDURAL GEOMETRIES
-   ═══════════════════════════════════════════ */
-function FallbackPillow({ texture, mat }: any) {
+const PositionHotspot = memo(({ position, rotation, label, isActive, onClick }) => {
+  const [hovered, setHovered] = useState(false);
+  const color = isActive ? "#4988c4" : hovered ? "#6ba3d6" : "#94a3b8";
   return (
-    <mesh castShadow receiveShadow position={[0, 0.15, 0]}>
-      <boxGeometry args={[1.2, 0.3, 0.8, 32, 8, 32]} />
-      <meshPhysicalMaterial map={texture} {...mat} />
-    </mesh>
+    <group position={position} rotation={rotation}>
+      <mesh onPointerOver={() => { setHovered(true); document.body.style.cursor = "pointer"; }}
+        onPointerOut={() => { setHovered(false); document.body.style.cursor = ""; }}
+        onClick={(e) => { e.stopPropagation(); onClick(); }}>
+        <sphereGeometry args={[0.03, 16, 16]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={isActive ? 1 : 0.4} />
+      </mesh>
+      {(hovered || isActive) && (
+        <Html center distanceFactor={4} style={{ pointerEvents: "none" }}>
+          <div className="px-2 py-1 bg-[#4988c4] text-white text-[9px] font-bold rounded shadow-lg transform -translate-y-4">
+            {label}
+          </div>
+        </Html>
+      )}
+    </group>
   );
-}
-
-// Render thông minh cho Pillow & Crib (Dùng file .glb thật)
-const SmartProductRender = ({ product, texture, mat }: any) => {
-  // Đối với bộ cũi: Chỉ hiển thị duy nhất file real_bumper.glb bạn đã cung cấp
-  if (product.id === 'crib_bedding_set') {
-    return (
-      <Suspense fallback={null}>
-        <GLTFProductModel url="/models/real_bumper.glb" texture={texture} materialProps={mat} />
-      </Suspense>
-    );
-  }
-
-  // Đối với gối: Dùng file real_pillow.glb bạn đã cung cấp
-  if (product.id === 'pillow') {
-    return (
-      <Suspense fallback={<FallbackPillow texture={texture} mat={mat} />}>
-        <GLTFProductModel url="/models/real_pillow.glb" texture={texture} materialProps={mat} />
-      </Suspense>
-    );
-  }
-
-  return <FallbackPillow texture={texture} mat={mat} />;
-};
+});
 
 /* ═══════════════════════════════════════════
-   SCENE ASSEMBLY
+   MODEL ENGINE (Material & Mesh Reuse)
    ═══════════════════════════════════════════ */
-const StudioLighting = () => (
-  <>
-    <Environment preset="city" /> {/* Chuyển sang preset City để có chiều sâu bóng đổ tốt hơn Studio */}
-    <ambientLight intensity={0.2} /> {/* Giảm sáng tổng thể để khối hiện rõ hơn */}
-    {/* Key Light: Giảm cường độ tránh cháy sáng */}
-    <spotLight position={[5, 8, 5]} angle={0.3} penumbra={1} intensity={1.2} shadow-bias={-0.0001} castShadow />
-    {/* Fill Light: Ánh sáng xanh nhẹ làm dịu mắt */}
-    <pointLight position={[-5, 5, -5]} intensity={0.5} color="#eef6ff" />
-    {/* Rim Light: Tạo viền bóng bẩy */}
-    <rectAreaLight width={5} height={5} color="#ffffff" intensity={1} position={[0, 2, -5]} rotation={[-Math.PI, 0, 0]} />
-  </>
-);
+const GLTFModel = memo(({ url, fabricTex, fabricProps, woodTex }) => {
+  const { scene } = useGLTF(url);
+  const fMat = useMemo(() => new THREE.MeshPhysicalMaterial({ map: fabricTex, ...fabricProps }), [fabricTex, fabricProps]);
+  const wMat = useMemo(() => new THREE.MeshPhysicalMaterial({ map: woodTex, ...WOOD_PROPS }), [woodTex]);
 
-const SceneRoot = ({ product, design }: { product: CustomizableProduct; design: DesignConfig }) => {
-  const color = colorOptions.find(c => c.id === design.baseColor)?.hex || "#ffffff";
-  const texture = useMemo(() => createFabricTexture(color, design.pattern), [color, design.pattern]);
-  const mat = useMemo(() => getPBRProps(design.material), [design.material]);
+  useMemo(() => {
+    if (scene) scene.traverse((c: any) => {
+      if (c.isMesh) {
+        const n = (c.name || "").toLowerCase();
+        c.material = (n.includes("wood") || n.includes("frame") || n.includes("leg")) ? wMat : fMat;
+        c.castShadow = c.receiveShadow = true;
+      }
+    });
+  }, [scene, fMat, wMat]);
+
+  return scene ? <primitive object={scene} /> : null;
+});
+
+const PersonalizationLayer = memo(({ isCrib, text, color, position, onPositionChange }) => {
+  const positions = isCrib ? CRIB_POSITIONS : PILLOW_POSITIONS;
+  const light = isLightColor(color);
+  const tex = useMemo(() => generateEngravingTex(text, light, !isCrib), [text, light, isCrib]);
+  const activeCfg = positions[position] || (isCrib ? CRIB_POSITIONS["front-rail"] : PILLOW_POSITIONS["center"]);
+
+  return (
+    <group>
+      {Object.entries(positions).map(([key, cfg]) => (
+        <PositionHotspot key={key} position={cfg.pos} rotation={cfg.rot} label={cfg.label}
+          isActive={position === key} onClick={() => onPositionChange?.(key)} />
+      ))}
+      <group position={activeCfg.pos} rotation={activeCfg.rot}>
+        <mesh castShadow>
+          {isCrib ? <boxGeometry args={activeCfg.plateSize} /> : <planeGeometry args={[0.55, 0.1]} />}
+          <meshPhysicalMaterial
+            map={tex}
+            transparent={!isCrib}
+            roughness={isCrib ? 0.4 : 0.9}
+            side={THREE.DoubleSide}
+            polygonOffset
+            polygonOffsetFactor={isCrib ? 0 : -5}
+            polygonOffsetUnits={isCrib ? 0 : -5}
+            depthWrite={isCrib}
+            alphaTest={isCrib ? 0 : 0.05}
+          />
+        </mesh>
+        {isCrib && (
+          <mesh position={[0, 0, -0.01]}>
+            <planeGeometry args={[activeCfg.plateSize[0] + 0.01, activeCfg.plateSize[1] + 0.01]} />
+            <meshBasicMaterial color="#000000" transparent opacity={0.15} />
+          </mesh>
+        )}
+      </group>
+    </group>
+  );
+});
+
+/* ═══════════════════════════════════════════
+   SCENE ROOT
+   ═══════════════════════════════════════════ */
+const SceneRoot = ({ product, design, onPositionChange }) => {
+  const isCrib = product.id === "crib_bedding_set";
+  const colorHex = colorOptions.find(c => c.id === design.baseColor)?.hex || "#ffffff";
+  const fabricTex = useMemo(() => generateFabricTex(colorHex, design.pattern, design.material), [colorHex, design.pattern, design.material]);
+  const fabricProps = useMemo(() => PBR_PRESETS[design.material] || PBR_PRESETS.organic_cotton, [design.material]);
+  const woodTex = useMemo(() => generateWoodTex(), []);
 
   return (
     <>
       <PerspectiveCamera makeDefault position={[2.5, 2.0, 2.5]} fov={30} />
-      <OrbitControls
-        makeDefault
-        minPolarAngle={Math.PI / 4}
-        maxPolarAngle={Math.PI / 2.2}
-        minDistance={2}
-        maxDistance={6}
-        enableDamping
-        dampingFactor={0.05}
-        enablePan={false}
-      />
-
-      <StudioLighting />
+      <OrbitControls makeDefault enablePan={false} minDistance={2} maxDistance={6} enableDamping />
+      <Environment preset="city" />
+      <ambientLight intensity={0.2} />
+      <spotLight position={[5, 8, 5]} intensity={1.5} castShadow shadow-mapSize={[1024, 1024]} />
 
       <group>
-        <SmartProductRender product={product} texture={texture} mat={mat} />
-
-        {/* Hiệu ứng Thêu chữ: Dùng Html overlay (Troika Text bị lỗi thư viện) */}
-        {design.embroideryText && (
-          <group position={product.id === 'pillow' ? [0, 0.32, 0] : [0, 0.14, 0]}>
-            <Html
-              center
-              transform
-              occlude={false}
-              rotation={[-Math.PI / 2, 0, 0]}
-              scale={0.12}
-              style={{
-                pointerEvents: 'none',
-                userSelect: 'none',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <div style={{
-                fontFamily: "'Playfair Display', serif",
-                fontSize: '24px',
-                fontWeight: 700,
-                letterSpacing: '3px',
-                color: new THREE.Color(color).getHSL({ h: 0, s: 0, l: 0 }).l > 0.6 ? '#1e293b' : '#f8fafc',
-                textShadow: '0 1px 2px rgba(0,0,0,0.3), 0 0px 1px rgba(0,0,0,0.15)',
-                textTransform: 'uppercase',
-              }}>
-                {design.embroideryText}
-              </div>
-            </Html>
-          </group>
+        <GLTFModel url={isCrib ? "/models/real_bumper.glb" : "/models/real_pillow.glb"}
+          fabricTex={fabricTex} fabricProps={fabricProps} woodTex={woodTex} />
+        {design.embroideryText.trim().length > 0 && (
+          <PersonalizationLayer isCrib={isCrib} text={design.embroideryText} color={colorHex}
+            position={design.embroideryPosition} onPositionChange={onPositionChange} />
         )}
       </group>
+      <Preload all />
+      <AdaptiveDpr pixelated />
     </>
   );
 };
 
-
 /* ═══════════════════════════════════════════
-   MAIN UI
+   MAIN COMPONENT
    ═══════════════════════════════════════════ */
-export default function ProductPreview3D({ product, design, totalPrice }: {
-  product: CustomizableProduct;
-  design: DesignConfig;
-  totalPrice: number;
-}) {
+const ProductPreview3D = memo(({ product, design, totalPrice, onPositionChange }: ProductPreview3DProps) => {
   const formatPrice = (v: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(v);
 
+  // Isolate Canvas from direct price re-renders if price is the only change
+  const renderCanvas = useMemo(() => (
+    <Canvas shadows gl={{ antialias: false, powerPreference: "high-performance" }} frameloop="demand" dpr={[1, 2]}>
+      <Suspense fallback={null}>
+        <SceneRoot product={product} design={design} onPositionChange={onPositionChange} />
+      </Suspense>
+    </Canvas>
+  ), [product, design, onPositionChange]);
+
   return (
-    <div className="w-full h-full flex flex-col bg-[#E5E7EB] overflow-hidden rounded-[2rem] border border-slate-300/50 shadow-inner relative">
-      <div className="flex-1 relative cursor-grab active:cursor-grabbing">
-
-        {/* Canvas Ưu Tiên Tốc Độ Phần Cứng Tối Đa */}
-        <Canvas
-          shadows
-          dpr={[1, 1.5]}
-          gl={{
-            antialias: true,
-            toneMapping: THREE.ACESFilmicToneMapping,
-            toneMappingExposure: 0.9, // Giảm phơi sáng tổng thể
-            powerPreference: "high-performance"
-          }}
-        >
-          <SceneRoot product={product} design={design} />
-        </Canvas>
+    <div className="w-full h-full flex flex-col bg-slate-200 overflow-hidden rounded-[2rem] border border-slate-300 relative group">
+      <div className="flex-1 relative cursor-grab">
+        {renderCanvas}
+        {design.embroideryText.trim() && (
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
+            <div className="px-3 py-1 bg-white/80 backdrop-blur rounded-full border border-slate-200 text-[9px] font-black uppercase tracking-widest text-slate-500 shadow-sm">
+              📍 Click 3D dots to reposition
+            </div>
+          </div>
+        )}
       </div>
-
-      <div className="p-5 bg-white border-t border-slate-100 flex justify-between items-center z-10">
-        <div>
-          <h3 className="font-black text-slate-800 tracking-tight">{product.name}</h3>
-          <p className="text-xs text-slate-500 font-medium">3D Engine: R3F & Three.js</p>
+      <div className="p-4 bg-white border-t border-slate-100 flex justify-between items-center z-10">
+        <div className="space-y-0.5">
+          <h3 className="font-black text-slate-800 tracking-tight leading-none">{product.name}</h3>
+          <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">Premium 3D Studio</p>
         </div>
-        <div className="text-right">
-          <span className="block text-2xl font-black text-blue-600 leading-none">
-            {formatPrice(totalPrice)}
-          </span>
+        <div className="text-right flex flex-col items-end">
+          <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter mb-0.5">Total Amount</span>
+          <span className="text-xl font-black text-[#4988c4] leading-none tabular-nums">{formatPrice(totalPrice)}</span>
         </div>
       </div>
     </div>
   );
-}
+});
+
+export default ProductPreview3D;

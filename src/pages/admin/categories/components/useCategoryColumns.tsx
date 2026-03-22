@@ -3,7 +3,7 @@ import { createColumnHelper } from '@tanstack/react-table';
 import { AdminStatusBadge } from '@/components/admin';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Pencil, Trash2, Eye, Copy, ChevronRight, ChevronDown } from 'lucide-react';
+import { Pencil, Power, Eye, Copy, ChevronRight, ChevronDown } from 'lucide-react';
 import { SortableHeader, AdminRowActions } from '@/components/admin';
 import type { Category } from '../types';
 
@@ -133,9 +133,9 @@ export function useCategoryColumns(options?: {
               <AdminRowActions
                 actions={[
                   {
-                    label: 'View Details',
-                    icon: <Eye className="h-4 w-4" />,
-                    onClick: () => console.log('View', category.cateId)
+                    label: category.isActive ? 'Deactivate' : 'Activate',
+                    icon: <Power className="h-4 w-4" />,
+                    onClick: () => console.log('Toggle status', category.cateId)
                   },
                   {
                     label: 'Edit Category',
@@ -146,12 +146,6 @@ export function useCategoryColumns(options?: {
                     label: 'Duplicate',
                     icon: <Copy className="h-4 w-4" />,
                     onClick: () => console.log('Duplicate', category.cateId)
-                  },
-                  {
-                    label: 'Delete',
-                    icon: <Trash2 className="h-4 w-4" />,
-                    variant: 'danger',
-                    onClick: () => console.log('Delete', category.cateId)
                   }
                 ]}
                 sections={[
@@ -161,7 +155,7 @@ export function useCategoryColumns(options?: {
                     { label: 'Duplicate', icon: <Copy className="h-4 w-4" />, onClick: () => console.log('Duplicate', category.cateId) },
                   ],
                   [
-                    { label: 'Delete', icon: <Trash2 className="h-4 w-4" />, variant: 'danger', onClick: () => console.log('Delete', category.cateId) }
+                    { label: category.isActive ? 'Deactivate' : 'Activate', icon: <Power className="h-4 w-4" />, variant: category.isActive ? 'warning' : 'success', onClick: () => console.log('Toggle status', category.cateId) }
                   ]
                 ]}
               />

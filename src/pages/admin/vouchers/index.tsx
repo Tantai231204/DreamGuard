@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useToast } from '@/hooks/useToast';
+import type { ApiError } from '@/lib/api';
 import {
     useReactTable,
     getCoreRowModel,
@@ -190,8 +191,10 @@ export default function VouchersPage() {
         );
     }
 
-    // Error state
-    if (isError) {
+    // Error state (Skip error rendering if it's just a 404 Not Found, so the table shows "No vouchers found" gracefully)
+    const isNotFoundError = (error as ApiError)?.status === 404;
+
+    if (isError && !isNotFoundError) {
         return (
             <div className="flex flex-col h-full">
                 <AdminPageHeader

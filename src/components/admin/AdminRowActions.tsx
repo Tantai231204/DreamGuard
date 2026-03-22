@@ -32,10 +32,11 @@ export function AdminRowActions({
 }: AdminRowActionsProps) {
   
   const renderItem = (item: AdminRowActionItem, index: number) => {
-    let variantClass = "text-slate-600 hover:text-blue-600 focus:bg-blue-50 focus:text-blue-700";
-    if (item.variant === 'danger') variantClass = "text-red-500 hover:text-red-600 focus:bg-red-50 focus:text-red-600";
-    if (item.variant === 'success') variantClass = "text-emerald-600 hover:text-emerald-700 focus:bg-emerald-50 focus:text-emerald-800";
-    if (item.variant === 'warning') variantClass = "text-amber-600 hover:text-amber-700 focus:bg-amber-50 focus:text-amber-800";
+    // Đen (Slate/Black) cho Action mặc định
+    let variantClass = "text-slate-700 hover:text-slate-900 focus:bg-slate-100 focus:text-slate-900";
+    if (item.variant === 'danger') variantClass = "text-red-600 hover:text-red-700 focus:bg-red-50 focus:text-red-700";
+    if (item.variant === 'success') variantClass = "text-emerald-700 hover:text-emerald-800 focus:bg-emerald-50 focus:text-emerald-800";
+    if (item.variant === 'warning') variantClass = "text-amber-700 hover:text-amber-800 focus:bg-amber-50 focus:text-amber-800";
 
     return (
       <DropdownMenuItem

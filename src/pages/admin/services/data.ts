@@ -1,243 +1,31 @@
-import type { ServiceBooking, Technician, ServiceStats } from './types';
+import type { ServiceBooking, ServiceStats } from './types';
 
-export const mockTechnicians: Technician[] = [
-  {
-    id: 'tech-1',
-    name: 'Nguyễn Văn An',
-    phone: '0901234567',
-    avatar: 'https://i.pravatar.cc/150?img=11',
-    rating: 4.9,
-    completedJobs: 234,
-  },
-  {
-    id: 'tech-2',
-    name: 'Trần Thị Bình',
-    phone: '0912345678',
-    avatar: 'https://i.pravatar.cc/150?img=5',
-    rating: 4.8,
-    completedJobs: 189,
-  },
-  {
-    id: 'tech-3',
-    name: 'Lê Hoàng Cường',
-    phone: '0923456789',
-    avatar: 'https://i.pravatar.cc/150?img=12',
-    rating: 4.7,
-    completedJobs: 156,
-  },
-];
-
-export const mockServiceBookings: ServiceBooking[] = [
-  {
-    id: 'SVC-001',
-    customerName: 'Phạm Thị Hương',
-    customerPhone: '0987654321',
-    customerEmail: 'huong.pham@email.com',
-    serviceType: 'deep_clean',
-    status: 'in_progress',
-    paymentStatus: 'paid',
-    scheduledDate: '2026-02-15',
-    scheduledTime: '09:00',
-    address: {
-      street: '123 Nguyễn Văn Linh',
-      ward: 'Phường Tân Thuận Đông',
-      district: 'Quận 7',
-      city: 'TP. Hồ Chí Minh',
-    },
-    items: [
-      { id: '1', name: 'Nệm đôi 1m8', quantity: 1, unitPrice: 350000 },
-      { id: '2', name: 'Gối cao su', quantity: 4, unitPrice: 50000 },
-    ],
-    technician: mockTechnicians[0],
-    totalPrice: 550000,
-    notes: 'Khách yêu cầu dùng dung dịch không mùi',
-    createdAt: '2026-02-13T08:30:00Z',
-    updatedAt: '2026-02-15T09:15:00Z',
-  },
-  {
-    id: 'SVC-002',
-    customerName: 'Nguyễn Minh Tuấn',
-    customerPhone: '0976543210',
-    customerEmail: 'tuan.nguyen@email.com',
-    serviceType: 'stroller_clean',
-    status: 'pending',
-    paymentStatus: 'unpaid',
-    scheduledDate: '2026-02-16',
-    scheduledTime: '14:00',
-    address: {
-      street: '45 Lê Văn Sỹ',
-      ward: 'Phường 13',
-      district: 'Quận 3',
-      city: 'TP. Hồ Chí Minh',
-    },
-    items: [
-      { id: '1', name: 'Xe đẩy Joie', quantity: 1, unitPrice: 280000 },
-    ],
-    totalPrice: 280000,
-    createdAt: '2026-02-14T10:00:00Z',
-    updatedAt: '2026-02-14T10:00:00Z',
-  },
-  {
-    id: 'SVC-003',
-    customerName: 'Trần Văn Đức',
-    customerPhone: '0965432109',
-    customerEmail: 'duc.tran@email.com',
-    serviceType: 'carseat_clean',
-    status: 'confirmed',
-    paymentStatus: 'paid',
-    scheduledDate: '2026-02-16',
-    scheduledTime: '10:00',
-    address: {
-      street: '78 Điện Biên Phủ',
-      ward: 'Phường 15',
-      district: 'Quận Bình Thạnh',
-      city: 'TP. Hồ Chí Minh',
-    },
-    items: [
-      { id: '1', name: 'Ghế ô tô Chicco', quantity: 2, unitPrice: 200000 },
-    ],
-    technician: mockTechnicians[1],
-    totalPrice: 400000,
-    createdAt: '2026-02-13T14:20:00Z',
-    updatedAt: '2026-02-14T11:30:00Z',
-  },
-  {
-    id: 'SVC-004',
-    customerName: 'Lê Thị Mai',
-    customerPhone: '0954321098',
-    customerEmail: 'mai.le@email.com',
-    serviceType: 'mattress_clean',
-    status: 'completed',
-    paymentStatus: 'paid',
-    scheduledDate: '2026-02-14',
-    scheduledTime: '08:00',
-    address: {
-      street: '234 Cách Mạng Tháng 8',
-      ward: 'Phường 10',
-      district: 'Quận 3',
-      city: 'TP. Hồ Chí Minh',
-    },
-    items: [
-      { id: '1', name: 'Nệm đơn 1m2', quantity: 2, unitPrice: 250000 },
-      { id: '2', name: 'Ga trải giường', quantity: 2, unitPrice: 80000 },
-    ],
-    technician: mockTechnicians[2],
-    totalPrice: 660000,
-    createdAt: '2026-02-12T16:45:00Z',
-    updatedAt: '2026-02-14T12:00:00Z',
-  },
-  {
-    id: 'SVC-005',
-    customerName: 'Võ Hoàng Nam',
-    customerPhone: '0943210987',
-    customerEmail: 'nam.vo@email.com',
-    serviceType: 'toy_sanitize',
-    status: 'pending',
-    paymentStatus: 'unpaid',
-    scheduledDate: '2026-02-17',
-    scheduledTime: '15:00',
-    address: {
-      street: '567 Nguyễn Đình Chiểu',
-      ward: 'Phường 2',
-      district: 'Quận 3',
-      city: 'TP. Hồ Chí Minh',
-    },
-    items: [
-      { id: '1', name: 'Bộ đồ chơi nhựa', quantity: 1, unitPrice: 150000 },
-      { id: '2', name: 'Thú bông lớn', quantity: 3, unitPrice: 100000 },
-    ],
-    totalPrice: 450000,
-    notes: 'Bé bị dị ứng, cần dùng dung dịch organic',
-    createdAt: '2026-02-15T09:00:00Z',
-    updatedAt: '2026-02-15T09:00:00Z',
-  },
-  {
-    id: 'SVC-006',
-    customerName: 'Đặng Thị Lan',
-    customerPhone: '0932109876',
-    customerEmail: 'lan.dang@email.com',
-    serviceType: 'basic_clean',
-    status: 'cancelled',
-    paymentStatus: 'refunded',
-    scheduledDate: '2026-02-13',
-    scheduledTime: '11:00',
-    address: {
-      street: '89 Trần Hưng Đạo',
-      ward: 'Phường Cầu Ông Lãnh',
-      district: 'Quận 1',
-      city: 'TP. Hồ Chí Minh',
-    },
-    items: [
-      { id: '1', name: 'Nệm em bé', quantity: 1, unitPrice: 180000 },
-    ],
-    totalPrice: 180000,
-    notes: 'Khách hủy do có việc đột xuất',
-    createdAt: '2026-02-11T08:00:00Z',
-    updatedAt: '2026-02-12T14:00:00Z',
-  },
-  {
-    id: 'SVC-007',
-    customerName: 'Bùi Văn Hải',
-    customerPhone: '0921098765',
-    customerEmail: 'hai.bui@email.com',
-    serviceType: 'deep_clean',
-    status: 'completed',
-    paymentStatus: 'paid',
-    scheduledDate: '2026-02-12',
-    scheduledTime: '09:00',
-    address: {
-      street: '456 Lý Thái Tổ',
-      ward: 'Phường 9',
-      district: 'Quận 10',
-      city: 'TP. Hồ Chí Minh',
-    },
-    items: [
-      { id: '1', name: 'Nệm King size', quantity: 1, unitPrice: 450000 },
-      { id: '2', name: 'Sofa vải', quantity: 1, unitPrice: 350000 },
-    ],
-    technician: mockTechnicians[0],
-    totalPrice: 800000,
-    createdAt: '2026-02-10T11:30:00Z',
-    updatedAt: '2026-02-12T14:00:00Z',
-  },
-  {
-    id: 'SVC-008',
-    customerName: 'Huỳnh Thanh Tâm',
-    customerPhone: '0910987654',
-    customerEmail: 'tam.huynh@email.com',
-    serviceType: 'stroller_clean',
-    status: 'confirmed',
-    paymentStatus: 'paid',
-    scheduledDate: '2026-02-15',
-    scheduledTime: '16:00',
-    address: {
-      street: '321 Võ Văn Tần',
-      ward: 'Phường 5',
-      district: 'Quận 3',
-      city: 'TP. Hồ Chí Minh',
-    },
-    items: [
-      { id: '1', name: 'Xe đẩy đôi', quantity: 1, unitPrice: 380000 },
-    ],
-    technician: mockTechnicians[2],
-    totalPrice: 380000,
-    createdAt: '2026-02-14T15:00:00Z',
-    updatedAt: '2026-02-14T17:00:00Z',
-  },
-];
-
-// Calculate stats from mock data
 export const calculateServiceStats = (bookings: ServiceBooking[]): ServiceStats => {
-  const today = new Date().toISOString().split('T')[0];
-  
-  return {
-    totalBookings: bookings.length,
-    pendingBookings: bookings.filter(b => b.status === 'pending').length,
-    inProgressBookings: bookings.filter(b => b.status === 'in_progress').length,
-    completedBookings: bookings.filter(b => b.status === 'completed').length,
-    totalRevenue: bookings
-      .filter(b => b.paymentStatus === 'paid')
-      .reduce((sum, b) => sum + b.totalPrice, 0),
-    todayBookings: bookings.filter(b => b.scheduledDate === today).length,
-  };
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  return bookings.reduce<ServiceStats>(
+    (acc, booking) => {
+      acc.totalBookings += 1;
+      
+      if (booking.status === 'pending') acc.pendingBookings += 1;
+      if (booking.status === 'in_progress') acc.inProgressBookings += 1;
+      if (booking.status === 'completed') acc.completedBookings += 1;
+      
+      acc.totalRevenue += booking.totalPrice || 0;
+
+      if (booking.scheduledDate === todayStr) {
+        acc.todayBookings += 1;
+      }
+
+      return acc;
+    },
+    {
+      totalBookings: 0,
+      pendingBookings: 0,
+      inProgressBookings: 0,
+      completedBookings: 0,
+      totalRevenue: 0,
+      todayBookings: 0,
+    }
+  );
 };

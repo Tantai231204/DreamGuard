@@ -44,10 +44,12 @@ const AdminDashboard = lazy(() => import("../pages/admin/dashboard"));
 const OrderManagement = lazy(() => import("../pages/admin/orders"));
 const OrderDetail = lazy(() => import("../pages/admin/orders/[id]"));
 const ServiceManagement = lazy(() => import("../pages/admin/services"));
+const ServiceDetail = lazy(() => import("../pages/admin/services/[id].tsx"));
 const ServicePackagesPage = lazy(() => import("../pages/admin/service-packages"));
 const ChatAdmin = lazy(() => import("../pages/admin/chat"));
 const ProductManagement = lazy(() => import("../pages/admin/products"));
 const AdminProductDetail = lazy(() => import("../pages/admin/products/[id]"));
+const ProductTypeManagement = lazy(() => import("../pages/admin/product-types"));
 const CategoryManagement = lazy(() => import("../pages/admin/categories"));
 const VoucherManagement = lazy(() => import("../pages/admin/vouchers"));
 const UserManagement = lazy(() => import("../pages/admin/users"));
@@ -112,10 +114,12 @@ export default function AppRouter() {
                         <Route path="/admin/orders" element={<OrderManagement />} />
                         <Route path="/admin/orders/:id" element={<OrderDetail />} />
                         <Route path="/admin/services" element={<ServiceManagement />} />
+                        <Route path="/admin/services/:id" element={<ServiceDetail />} />
                         <Route path="/admin/service-packages" element={<ServicePackagesPage />} />
                         <Route path="/admin/chat" element={<ChatAdmin />} />
                         <Route path="/admin/products" element={<ProductManagement />} />
                         <Route path="/admin/products/:id" element={<AdminProductDetail />} />
+                        <Route path={AppRoute.ADMIN_PRODUCT_TYPES} element={<ProductTypeManagement />} />
                         <Route path="/admin/categories" element={<CategoryManagement />} />
                         <Route path="/admin/vouchers" element={<VoucherManagement />} />
                         <Route path="/admin/users" element={<UserManagement />} />

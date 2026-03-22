@@ -7,11 +7,22 @@ export interface ChildProfile {
   healthConditions: string[];
 }
 
+export type EmbroideryPosition =
+  // Crib positions (khắc gỗ)
+  | "front-rail"
+  | "side-rail"
+  | "headboard"
+  // Pillow positions (thêu vải)
+  | "center"
+  | "corner"
+  | "bottom-edge";
+
 export interface DesignConfig {
   size: string;
   baseColor: string;
   pattern: string;
   embroideryText: string;
+  embroideryPosition: EmbroideryPosition;
   material: string;
 }
 

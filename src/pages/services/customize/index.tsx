@@ -1,10 +1,10 @@
-import { useState, useMemo, Suspense, lazy } from "react";
+import { useState, useMemo, Suspense, lazy, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, ChevronDown, ShoppingCart, ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
-import type { ChildProfile, DesignConfig, CustomizableProduct } from "./types";
+import type { ChildProfile, DesignConfig, CustomizableProduct, EmbroideryPosition } from "./types";
 import {
   customizableProducts, colorOptions, patternOptions,
   getRecommendedMaterials, calculateCustomPrice,
@@ -13,10 +13,9 @@ import {
 
 const ProductPreview3D = lazy(() => import("./components/ProductPreview3D"));
 
-/* ===== Collapsible Section ===== */
-function ConfigSection({ title, step, icon, defaultOpen = false, children }: {
+const ConfigSection = memo(({ title, step, icon, defaultOpen = false, children }: {
   title: string; step: number; icon: string; defaultOpen?: boolean; children: React.ReactNode;
-}) {
+}) => {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="border-b border-slate-100/80 last:border-0">
@@ -36,19 +35,17 @@ function ConfigSection({ title, step, icon, defaultOpen = false, children }: {
       </AnimatePresence>
     </div>
   );
-}
+});
 
-/* ===== Chip Button ===== */
-function Chip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+const Chip = memo(({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) => {
   return (
     <button type="button" onClick={onClick} className={cn("px-3 py-1.5 rounded-full border-2 text-[11px] font-black transition-all duration-150", active ? "border-[#4988c4] bg-[#4988c4]/10 text-[#4988c4] shadow-sm" : "border-slate-100 text-slate-500 hover:border-[#4988c4]/30")}>
       {children}
     </button>
   );
-}
+});
 
-/* ===== Color Swatch ===== */
-function ColorSwatch({ hex, name, active, onClick }: { hex: string; name: string; active: boolean; onClick: () => void }) {
+const ColorSwatch = memo(({ hex, name, active, onClick }: { hex: string; name: string; active: boolean; onClick: () => void }) => {
   return (
     <button type="button" onClick={onClick} title={name} className={cn("h-8 w-8 rounded-lg border-2 transition-all duration-150 relative", active ? "border-[#4988c4] scale-110 ring-2 ring-[#4988c4]/20 shadow-md" : "border-slate-200/60 hover:scale-105")} style={{ backgroundColor: hex }}>
       {active && (
@@ -60,7 +57,7 @@ function ColorSwatch({ hex, name, active, onClick }: { hex: string; name: string
       )}
     </button>
   );
-}
+});
 
 /* ===== Helpers ===== */
 function formatPrice(v: number) {
@@ -75,7 +72,7 @@ export default function CustomizePage() {
 
   const [selectedProduct, setSelectedProduct] = useState<CustomizableProduct | null>(null);
   const [childProfile, setChildProfile] = useState<ChildProfile>({ ageGroup: "infant", allergies: [], skinSensitivity: 1, healthConditions: [] });
-  const [design, setDesign] = useState<DesignConfig>({ size: "", baseColor: "sky", pattern: "solid", embroideryText: "", material: "organic_cotton" });
+  const [design, setDesign] = useState<DesignConfig>({ size: "", baseColor: "sky", pattern: "solid", embroideryText: "", embroideryPosition: "center", material: "organic_cotton" });
 
   // Derived
   const recommendedMaterials = useMemo(() => getRecommendedMaterials(
@@ -97,7 +94,8 @@ export default function CustomizePage() {
   // Handlers
   const selectProduct = (p: CustomizableProduct) => {
     setSelectedProduct(p);
-    setDesign(prev => ({ ...prev, size: p.availableSizes[0]?.id || "" }));
+    const defaultPos: EmbroideryPosition = p.id === "crib_bedding_set" ? "front-rail" : "center";
+    setDesign(prev => ({ ...prev, size: p.availableSizes[0]?.id || "", embroideryPosition: defaultPos }));
   };
 
   const toggleAllergy = (id: string) => {
@@ -280,7 +278,9 @@ export default function CustomizePage() {
               </div>
             </div>
             <div className="space-y-1.5">
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Embroidery (+80K)</p>
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                {selectedProduct?.id === "crib_bedding_set" ? "✏️ Name Engraving (+80K)" : "🧵 Embroidery (+80K)"}
+              </p>
               <Input
                 value={design.embroideryText}
                 onChange={e => setDesign(d => ({ ...d, embroideryText: e.target.value.slice(0, 15) }))}
@@ -289,6 +289,42 @@ export default function CustomizePage() {
                 className="h-9 rounded-lg border-slate-200 text-xs font-black placeholder:text-slate-300 focus:border-[#4988c4] focus:ring-1 focus:ring-[#4988c4]/20"
               />
               <p className="text-[9px] font-bold text-slate-400 text-right">{design.embroideryText.length}/15</p>
+
+              {/* Position Picker */}
+              {design.embroideryText.trim() && (
+                <div className="space-y-1.5 mt-2">
+                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                    📍 {selectedProduct?.id === "crib_bedding_set" ? "Nameplate Position" : "Embroidery Position"}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(selectedProduct?.id === "crib_bedding_set"
+                      ? [
+                        { id: "front-rail" as EmbroideryPosition, label: "Front Rail", icon: "🪵" },
+                        { id: "side-rail" as EmbroideryPosition, label: "Side Rail", icon: "📐" },
+                        { id: "headboard" as EmbroideryPosition, label: "Headboard", icon: "🛏️" },
+                      ]
+                      : [
+                        { id: "center" as EmbroideryPosition, label: "Center", icon: "⊕" },
+                        { id: "corner" as EmbroideryPosition, label: "Corner", icon: "◳" },
+                        { id: "bottom-edge" as EmbroideryPosition, label: "Bottom Edge", icon: "▁" },
+                      ]
+                    ).map(pos => (
+                      <Chip
+                        key={pos.id}
+                        active={design.embroideryPosition === pos.id}
+                        onClick={() => setDesign(d => ({ ...d, embroideryPosition: pos.id }))}
+                      >
+                        {pos.icon} {pos.label}
+                      </Chip>
+                    ))}
+                  </div>
+                  <p className="text-[8px] font-bold text-slate-300 italic">
+                    {selectedProduct?.id === "crib_bedding_set"
+                      ? "💡 Click a hotspot on the 3D model to place the nameplate"
+                      : "💡 Click a hotspot on the 3D model to place the embroidery"}
+                  </p>
+                </div>
+              )}
             </div>
           </ConfigSection>
         </div>
@@ -328,7 +364,12 @@ export default function CustomizePage() {
                     </div>
                   </div>
                 }>
-                  <ProductPreview3D product={selectedProduct} design={design} totalPrice={totalPrice} />
+                  <ProductPreview3D
+                    product={selectedProduct}
+                    design={design}
+                    totalPrice={totalPrice}
+                    onPositionChange={(pos: EmbroideryPosition) => setDesign(d => ({ ...d, embroideryPosition: pos }))}
+                  />
                 </Suspense>
               </div>
 

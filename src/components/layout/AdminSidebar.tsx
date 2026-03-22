@@ -23,11 +23,12 @@ import { useState } from 'react';
 import { cn } from '../../lib/utils';
 import { useProfile } from '@/hooks/queries';
 import { useLogout } from '@/hooks/useAuth';
+import { ProductAssetIcons } from '@/components/common/icons';
 
 interface NavItem {
   title: string;
   href: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string }> | string;
   badge?: number;
 }
 
@@ -67,6 +68,11 @@ const navItems: NavItem[] = [
     title: 'Categories',
     href: '/admin/categories',
     icon: FolderTree,
+  },
+  {
+    title: 'Product Types',
+    href: '/admin/product-types',
+    icon: ProductAssetIcons.PRODUCT_CATEGORIES,
   },
   {
     title: 'Vouchers',
@@ -208,12 +214,23 @@ export default function AdminSidebar() {
                         : 'text-gray-700 hover:bg-gray-100 hover:translate-x-1'
                     )}
                   >
-                    <Icon
-                      className={cn(
-                        'w-5 h-5 flex-shrink-0 transition-transform duration-300',
-                        active ? 'text-white' : 'text-gray-600'
-                      )}
-                    />
+                    {typeof Icon === 'string' ? (
+                      <img
+                        src={Icon}
+                        alt={item.title}
+                        className={cn(
+                          'w-5 h-5 flex-shrink-0 transition-all duration-300 object-contain',
+                          active ? 'brightness-0 invert' : 'opacity-60 grayscale'
+                        )}
+                      />
+                    ) : (
+                      <Icon
+                        className={cn(
+                          'w-5 h-5 flex-shrink-0 transition-transform duration-300',
+                          active ? 'text-white' : 'text-gray-600'
+                        )}
+                      />
+                    )}
                     {!collapsed && (
                       <motion.span
                         initial={{ opacity: 0, x: -10 }}

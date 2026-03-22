@@ -17,9 +17,11 @@ import {
     ChevronRight,
     AlertCircle,
     Info,
+    ShieldCheck
 } from "lucide-react"
 import { STATUS_THEME } from "../../constants"
 import { isAxiosError } from "axios"
+import { useNavigate } from "react-router-dom"
 
 // Internal Components
 import {
@@ -42,8 +44,23 @@ export function OrderDetailDialog({ orderId, orderCode, trigger }: OrderDetailDi
     const { data: order, isPending } = useOrderDetail(orderId)
     const { data: payment } = usePaymentByOrderId(orderId)
     const { mutate: cancelOrder, isPending: isCancelling } = useCancelOrder({ meta: { hideToast: true } })
+    const navigate = useNavigate()
 
     const currentTheme = order ? (STATUS_THEME[order.status] || STATUS_THEME["Pending"]) : STATUS_THEME["Pending"]
+
+    // PRE-LOAD Cart JS chunk while hovering
+    const preloadCartJS = () => {
+        import("../../../cart").catch(() => {})
+    }
+
+    const handleReOrder = () => {
+        if (!order?.items || order.items.length === 0) return
+        
+        // INSTANT Navigation. No awaits. 
+        // Pass the reorder intent to the Cart page via Search Params.
+        // Since we are already viewing the detail, the queryClient cache for this ID is 100% warm.
+        navigate(`/cart?reorder=${orderId}`)
+    }
 
     return (
         <>
@@ -104,6 +121,22 @@ export function OrderDetailDialog({ orderId, orderCode, trigger }: OrderDetailDi
                                             <p className="text-[12px] text-amber-700/80 italic font-medium">"{order.note}"</p>
                                         </div>
                                     )}
+
+                                    {currentTheme.label === "Cancelled" && (
+                                        <div className="mx-6 mt-6 p-5 bg-rose-50/40 rounded-xl border border-rose-100 text-left">
+                                            <div className="flex items-center gap-2 mb-2 text-rose-600">
+                                                <AlertCircle className="w-4 h-4" />
+                                                <span className="text-[11px] font-black uppercase tracking-widest">Refund Process Initiated</span>
+                                            </div>
+                                            <p className="text-[12px] text-rose-700/70 font-medium leading-relaxed">
+                                                Your order has been cancelled. If you already made a payment, the refund will be credited back to your original source within 3-5 business days. 
+                                            </p>
+                                            <div className="mt-4 flex flex-wrap gap-2">
+                                                <span className="px-2 py-0.5 rounded bg-rose-100 text-[10px] font-bold text-rose-600 uppercase">Refund Issued</span>
+                                                <span className="px-2 py-0.5 rounded bg-rose-50 border border-rose-100 text-[10px] font-bold text-rose-300 uppercase tracking-tighter cursor-not-allowed">Bank Processing...</span>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         ) : (
@@ -115,19 +148,37 @@ export function OrderDetailDialog({ orderId, orderCode, trigger }: OrderDetailDi
                     </div>
 
                     {/* Footer Actions */}
-                    <div className="p-5 border-t border-gray-100 bg-white flex items-center justify-end gap-3 shrink-0">
-                        {order && currentTheme.step === 0 && (
-                            <Button
-                                variant="ghost"
-                                className="h-11 px-6 text-[12px] font-bold text-rose-500 hover:text-rose-600 hover:bg-rose-50 uppercase tracking-wider transition-all"
-                                onClick={() => setConfirmOpen(true)}
-                                disabled={isCancelling}
+                    <div className="p-5 border-t border-gray-100 bg-white flex flex-col sm:flex-row items-center justify-between gap-4 shrink-0">
+                        <div className="flex flex-col items-start gap-0.5">
+                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-tight">Need more help?</span>
+                            <button 
+                                className="text-[10px] font-black text-[#4988c4] uppercase tracking-widest hover:underline flex items-center gap-1.5"
+                                onClick={() => window.alert("Connecting to a dedicated agent...")}
                             >
-                                {isCancelling ? "Cancelling..." : "Cancel Order"}
+                                <ShieldCheck className="w-3.5 h-3.5" />
+                                Chat with Senior Assistant
+                            </button>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0 ml-auto">
+                            {order && currentTheme.step === 0 && (
+                                <Button
+                                    variant="ghost"
+                                    className="h-11 px-6 text-[11px] font-bold text-rose-500 hover:text-rose-600 hover:bg-rose-50 uppercase tracking-widest transition-all"
+                                    onClick={() => setConfirmOpen(true)}
+                                    disabled={isCancelling}
+                                >
+                                    {isCancelling ? "Cancelling..." : "Cancel Order"}
+                                </Button>
+                            )}
+                            <Button 
+                                className="h-11 px-10 rounded text-[11px] font-black bg-[#4988c4] hover:bg-[#3b6fa3] text-white uppercase tracking-widest shadow-sm transition-all active:scale-95 disabled:opacity-70"
+                                onClick={handleReOrder}
+                                onMouseEnter={preloadCartJS}
+                                disabled={isPending}
+                            >
+                                Re-Order
                             </Button>
-                        )}
-                        <Button variant="ghost" className="h-11 px-6 text-[12px] font-bold text-gray-500 hover:text-gray-900 uppercase tracking-wider">Help Center</Button>
-                        <Button className="h-11 px-10 rounded text-[12px] font-bold bg-[#4988c4] hover:bg-[#3b6fa3] text-white uppercase tracking-wider shadow-sm transition-all active:scale-95">Buy Again</Button>
+                        </div>
                     </div>
                 </DialogContent>
             </Dialog>

@@ -1,5 +1,4 @@
 import { motion } from 'framer-motion';
-import type { LucideIcon } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -13,14 +12,14 @@ interface Breadcrumb {
 interface AdminPageHeaderProps {
   title: string;
   description?: string;
-  icon?: LucideIcon;
+  icon?: React.ComponentType<{ className?: string }> | string;
   iconClassName?: string;
   breadcrumbs?: Breadcrumb[];
   actions?: React.ReactNode;
   stats?: {
     label: string;
     value: string | number;
-    icon?: LucideIcon;
+    icon?: React.ComponentType<{ className?: string }> | string;
   }[];
 }
 
@@ -59,9 +58,9 @@ export default function AdminPageHeader({
                     {crumb.label}
                   </Link>
                 ) : (
-                  <Badge 
+                    <Badge 
                     variant="secondary" 
-                    className="bg-gradient-to-r from-[var(--color-primary)] to-blue-600 text-white font-semibold px-3 py-1"
+                    className="bg-[var(--color-primary)] text-white font-semibold px-3 py-1"
                   >
                     {crumb.label}
                   </Badge>
@@ -76,8 +75,12 @@ export default function AdminPageHeader({
           {/* Title */}
           <div className="flex items-center gap-4">
             {Icon && (
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--color-primary)] to-blue-600 flex items-center justify-center shadow-lg">
-                <Icon className={cn("h-6 w-6 text-white", iconClassName)} />
+              <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center shadow-md">
+                {typeof Icon === 'string' ? (
+                  <img src={Icon} alt="Icon" className={cn("h-6 w-6 filter brightness-0 invert object-contain", iconClassName)} />
+                ) : (
+                  <Icon className={cn("h-6 w-6 text-white", iconClassName)} />
+                )}
               </div>
             )}
             <div>
@@ -98,17 +101,21 @@ export default function AdminPageHeader({
                 <motion.div
                   key={index}
                   whileHover={{ scale: 1.05 }}
-                  className="text-center px-4 py-2 rounded-xl bg-gradient-to-br from-blue-50 to-white border border-blue-200 shadow-sm"
+                  className="text-center px-4 py-2 rounded-xl bg-slate-50 border border-slate-100 shadow-sm"
                 >
                   <div className="flex items-center gap-2 mb-1 justify-center">
                     {StatIcon && (
-                      <StatIcon className="h-4 w-4 text-[var(--color-primary)]" />
+                      typeof StatIcon === 'string' ? (
+                        <img src={StatIcon} alt="icon" className="h-4 w-4 object-contain opacity-70 grayscale" />
+                      ) : (
+                        <StatIcon className="h-4 w-4 text-blue-600" />
+                      )
                     )}
                     <span className="text-xs text-gray-500 font-semibold uppercase">
                       {stat.label}
                     </span>
                   </div>
-                  <div className="text-2xl font-bold text-[var(--color-primary)]">
+                  <div className="text-2xl font-bold text-blue-600">
                     {stat.value}
                   </div>
                 </motion.div>

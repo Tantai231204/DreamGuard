@@ -27,7 +27,7 @@ export function useUserColumns({ onView }: UserColumnsProps = {}) {
         cell: ({ row }) => {
           const user = row.original;
           const randomAvatarUrl = `https://api.dicebear.com/9.x/glass/svg?seed=${encodeURIComponent(user.email || user.fullName || row.id)}`;
-          
+
           return (
             <div className="flex items-center gap-3">
               <Avatar className="h-9 w-9 border-2 border-slate-100 shadow-sm">

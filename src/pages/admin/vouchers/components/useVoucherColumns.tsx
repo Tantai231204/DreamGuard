@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Pencil, Trash2, Eye, Copy, Percent, DollarSign } from 'lucide-react';
+import { Pencil, Power, Eye, Copy, Percent, DollarSign } from 'lucide-react';
 import { SortableHeader, AdminRowActions, AdminStatusBadge } from '@/components/admin';
 import type { Voucher } from '../types';
 import { formatDate, formatPrice } from '@/lib/utils';
@@ -147,7 +147,7 @@ export function useVoucherColumns(options?: {
                                         { label: 'Duplicate', icon: <Copy className="h-4 w-4" />, onClick: () => console.log('Duplicate', voucher.voucherId) },
                                     ],
                                     [
-                                        { label: 'Delete', icon: <Trash2 className="h-4 w-4" />, variant: 'danger', onClick: () => options?.onDelete?.(voucher.voucherId) }
+                                        { label: voucher.isActive ? 'Deactivate' : 'Activate', icon: <Power className="h-4 w-4" />, variant: voucher.isActive ? 'warning' : 'success', onClick: () => options?.onDelete?.(voucher.voucherId) }
                                     ]
                                 ]}
                             />

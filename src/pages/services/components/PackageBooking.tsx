@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ArrowRight, Check, Loader2, PartyPopper, CalendarDays, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import apiClient from "@/lib/api";
 import { slideVariants } from "./PackageBooking/constants";
 import Stepper from "./PackageBooking/Stepper";
 import StepProducts from "./PackageBooking/steps/StepProducts";
@@ -16,7 +17,7 @@ import StepConfirm from "./PackageBooking/steps/StepConfirm";
 import { bookingSchema, STEP_FIELDS, type BookingFormValues } from "./PackageBooking/schema";
 import { findVoucher, type Voucher } from "./PackageBooking/vouchers";
 import { formatPrice, formatDate } from "@/lib/utils";
-import { productTypes, getProductTierPrice } from "../data";
+import { useBookingData } from "./PackageBooking/useBookingData";
 
 // Validation error messages per step
 const stepErrorMessages: Record<number, string> = {
@@ -41,6 +42,10 @@ export default function PackageBooking({ initialPackageId }: PackageBookingProps
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [shakeBtn, setShakeBtn] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [paymentMethod, setPaymentMethod] = useState<'COD' | 'VNPAY'>('COD');
+
+  const { productTypes, getProductTierPrice, isLoading } = useBookingData();
 
   const handleApplyVoucher = useCallback((code: string): "ok" | "invalid" => {
     const v = findVoucher(code);
@@ -123,27 +128,83 @@ export default function PackageBooking({ initialPackageId }: PackageBookingProps
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [step]);
 
+  const handleClearDraft = useCallback(() => {
+    sessionStorage.removeItem(DRAFT_KEY);
+    form.reset({
+      selectedProducts: [],
+      items: [],
+      customerName: "",
+      customerPhone: "",
+      customerEmail: "",
+      scheduledDate: "",
+      scheduledTime: "",
+      address: { street: "", ward: "", district: "", city: "" },
+      notes: "",
+    });
+    setStep(0);
+    setUploadedFiles([]);
+    setAppliedVoucher(null);
+    toast.success("All booking data has been cleared.");
+  }, [form]);
+
   const onSubmit = handleSubmit(async (data) => {
     setIsSubmitting(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      console.log("Booking submitted:", data);
+      const payload = {
+        servicePackageMappingOrderRequest: (data.items || []).map(it => ({
+          servicePackageMappingId: it.packageId,
+          quantity: it.quantity
+        })),
+        phoneNumber: data.customerPhone,
+        receiverName: data.customerName,
+        address: `${data.address.street}, ${data.address.ward}, ${data.address.district}, ${data.address.city}`,
+        customerNote: (data.notes && data.notes.trim() !== "") ? data.notes : "Cleaning Service",
+        appointmentDate: new Date(`${data.scheduledDate}T${data.scheduledTime}:00Z`).toISOString(),
+        paymentMethod: paymentMethod,
+        userVoucherId: null // Vouchers are mock right now and don't provide GUIDs
+      };
+      const res = await apiClient.post('/ServiceOrders/OrderService', payload);
+      const orderData = res.data?.data ?? res.data;
+      const orderId = typeof orderData === 'string' ? orderData : orderData?.serviceOrderId || orderData?.id;
+
+      if (uploadedFiles.length > 0 && orderId) {
+        const formData = new FormData();
+        uploadedFiles.forEach(f => formData.append('files', f));
+        await apiClient.post(`/ServiceOrders/OrderService/${orderId}/assets`, formData);
+      }
+
+      console.log("Booking submitted successful:", payload);
       // Clear draft
       sessionStorage.removeItem(DRAFT_KEY);
+      setUploadedFiles([]); // Clear photos state
+
+      if (orderData?.paymentUrl) {
+        window.location.assign(orderData.paymentUrl);
+        return; // Skip setting isSuccess since we are redirecting
+      }
+
       setIsSuccess(true);
       toast.success("Booking confirmed successfully!");
-    } catch {
+    } catch (error) {
+      console.error(error);
       toast.error("Something went wrong. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   });
 
-  // Calculate total for success screen
   const items = watchedValues.items ?? [];
   const total = items.reduce((sum, f) => sum + getProductTierPrice(f.itemType, f.packageId) * f.quantity, 0);
   const discount = appliedVoucher ? Math.round(total * (appliedVoucher.discountPct / 100)) : 0;
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-[#4988c4] mb-4" />
+        <p className="text-sm font-bold text-slate-500">Loading service catalog...</p>
+      </div>
+    );
+  }
 
   // ====== SUCCESS STATE ======
   if (isSuccess) {
@@ -243,73 +304,78 @@ export default function PackageBooking({ initialPackageId }: PackageBookingProps
 
       <div className={step < 5 ? "lg:grid lg:grid-cols-12 lg:gap-12 items-start" : "max-w-2xl mx-auto"}>
         <div className={`min-h-[450px] ${step < 5 ? "lg:col-span-7" : ""}`}>
-        <AnimatePresence mode="wait" custom={direction}>
-          <motion.div
-            key={step}
-            custom={direction}
-            variants={slideVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ duration: 0.25 }}
-          >
-            {step === 0 && <StepProducts form={form} />}
-            {step === 1 && <StepPackage form={form} />}
-            {step === 2 && <StepMedia form={form} />}
-            {step === 3 && <StepSchedule form={form} />}
-            {step === 4 && <StepContact form={form} />}
-            {step === 5 && (
-              <StepConfirm
-                form={watchedValues}
-                appliedVoucher={appliedVoucher}
-                onApplyVoucher={handleApplyVoucher}
-                onRemoveVoucher={handleRemoveVoucher}
-                onEditStep={jumpToStep}
-                isSidebar={false}
-              />
-            )}
-          </motion.div>
-        </AnimatePresence>
-
-        <div className="flex justify-between mt-10 pt-6 border-t border-slate-100">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => go(-1)}
-            disabled={step === 0}
-            className="h-11 px-5 rounded-xl bg-slate-50 text-slate-700 hover:bg-slate-100 transition-all font-bold text-sm flex items-center gap-2 disabled:opacity-30"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" /> Back
-          </Button>
-
-          {step < TOTAL_STEPS - 1 ? (
-            <Button
-              type="button"
-              onClick={() => go(1)}
-              className={`h-11 px-7 rounded-xl bg-[#4988c4] hover:bg-[#3a73a8] text-white shadow-lg shadow-[#4988c4]/10 transition-all font-bold text-sm flex items-center gap-2 border-none ${shakeBtn ? "animate-shake" : ""}`}
+          <AnimatePresence mode="wait" custom={direction}>
+            <motion.div
+              key={step}
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.25 }}
             >
-              Continue <ArrowRight className="h-3.5 w-3.5" />
-            </Button>
-          ) : (
-            <Button
-              type="button"
-              onClick={onSubmit}
-              disabled={isSubmitting}
-              className="h-11 px-7 rounded-xl bg-[#4988c4] hover:bg-[#3a73a8] text-white shadow-lg shadow-[#4988c4]/10 transition-all font-bold text-sm flex items-center gap-2 border-none disabled:opacity-60"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" /> Processing...
-                </>
-              ) : (
-                <>
-                  <Check className="h-4 w-4" /> Confirm Booking
-                </>
+              {step === 0 && <StepProducts form={form} />}
+              {step === 1 && <StepPackage form={form} />}
+              {step === 2 && <StepMedia form={form} onFilesChange={setUploadedFiles} initialFiles={uploadedFiles} />}
+              {step === 3 && <StepSchedule form={form} />}
+              {step === 4 && <StepContact form={form} />}
+              {step === 5 && (
+                <StepConfirm
+                  form={watchedValues}
+                  appliedVoucher={appliedVoucher}
+                  onApplyVoucher={handleApplyVoucher}
+                  onRemoveVoucher={handleRemoveVoucher}
+                  onEditStep={jumpToStep}
+                  isSidebar={false}
+                  paymentMethod={paymentMethod}
+                  onPaymentChange={setPaymentMethod}
+                  onClearDraft={handleClearDraft}
+                />
               )}
-            </Button>
-          )}
+            </motion.div>
+          </AnimatePresence>
+
+          <div className="flex justify-between mt-10 pt-6 border-t border-slate-100">
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => go(-1)}
+                disabled={step === 0}
+                className="h-11 px-5 rounded-xl bg-slate-50 text-slate-700 hover:bg-slate-100 transition-all font-bold text-sm flex items-center gap-2 disabled:opacity-30"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" /> Back
+              </Button>
+            </div>
+
+            {step < TOTAL_STEPS - 1 ? (
+              <Button
+                type="button"
+                onClick={() => go(1)}
+                className={`h-11 px-7 rounded-xl bg-[#4988c4] hover:bg-[#3a73a8] text-white shadow-lg shadow-[#4988c4]/10 transition-all font-bold text-sm flex items-center gap-2 border-none ${shakeBtn ? "animate-shake" : ""}`}
+              >
+                Continue <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                onClick={onSubmit}
+                disabled={isSubmitting}
+                className="h-11 px-7 rounded-xl bg-[#4988c4] hover:bg-[#3a73a8] text-white shadow-lg shadow-[#4988c4]/10 transition-all font-bold text-sm flex items-center gap-2 border-none disabled:opacity-60"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Processing...
+                  </>
+                ) : (
+                  <>
+                    <Check className="h-4 w-4" /> Confirm Booking
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
         </div>
-      </div>
 
         {/* Sticky Sidebar (Step 0 - 3) */}
         {step < 5 && (
@@ -321,6 +387,9 @@ export default function PackageBooking({ initialPackageId }: PackageBookingProps
               onRemoveVoucher={handleRemoveVoucher}
               onEditStep={jumpToStep}
               isSidebar={true}
+              paymentMethod={paymentMethod}
+              onPaymentChange={setPaymentMethod}
+              onClearDraft={handleClearDraft}
             />
           </div>
         )}

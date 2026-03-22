@@ -1,24 +1,21 @@
 import {
   Check,
-  BedDouble, Layers, SquareStack, CloudSun, Baby, Car,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { productTypes } from "../../../data";
+import { useBookingData, type ProductType } from "../useBookingData";
 import { useWatch, type UseFormReturn } from "react-hook-form";
 import type { BookingFormValues } from "../schema";
 import { formatPrice } from "@/lib/utils";
-
-const iconMap: Record<string, typeof BedDouble> = {
-  BedDouble, Layers, SquareStack, CloudSun, Baby, Car,
-};
+import { ProductAssetIcons, type ProductAssetIconKey } from "@/components/common/icons";
 
 interface StepProductsProps {
   form: UseFormReturn<BookingFormValues>;
 }
 
 export default function StepProducts({ form }: StepProductsProps) {
-  const { setValue } = form;
   const selected: string[] = useWatch({ control: form.control, name: "selectedProducts" }) ?? [];
+  const { productTypes } = useBookingData(selected);
+  const { setValue } = form;
 
   function toggle(productId: string) {
     if (selected.includes(productId)) {
@@ -56,8 +53,8 @@ export default function StepProducts({ form }: StepProductsProps) {
 
       {/* Product Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-        {productTypes.map((product) => {
-          const Icon = iconMap[product.icon] || BedDouble;
+        {productTypes.map((product: ProductType) => {
+          const iconSrc = ProductAssetIcons[product.icon as ProductAssetIconKey] || ProductAssetIcons.PRODUCT_CATEGORIES;
           const isSelected = selected.includes(product.id);
           const priceFrom = product.tiers[0]?.price || 0;
 
@@ -66,11 +63,11 @@ export default function StepProducts({ form }: StepProductsProps) {
               key={product.id}
               type="button"
               onClick={() => toggle(product.id)}
-              whileTap={{ scale: 0.97 }}
-              className={`relative flex flex-col items-center text-center p-5 rounded-2xl border-2 transition-all duration-200 group cursor-pointer
+              whileTap={{ scale: 0.98 }}
+              className={`relative flex flex-col items-center text-center p-5 rounded-[24px] border-2 transition-all duration-300 group cursor-pointer
                 ${isSelected
-                  ? "border-[#4988c4] bg-gradient-to-b from-[#4988c4]/[0.03] to-[#4988c4]/[0.08] shadow-lg shadow-[#4988c4]/10"
-                  : "border-slate-100 bg-white hover:border-slate-200 hover:shadow-md"
+                  ? "border-[#4988c4] bg-white shadow-2xl shadow-[#4988c4]/12 scale-[1.02] z-10"
+                  : "border-slate-100 bg-white hover:border-slate-200 hover:shadow-xl hover:shadow-slate-100/80 hover:-translate-y-0.5"
                 }
               `}
             >
@@ -85,13 +82,13 @@ export default function StepProducts({ form }: StepProductsProps) {
               </div>
 
               {/* Icon */}
-              <div className={`h-12 w-12 rounded-2xl flex items-center justify-center mb-3 transition-all
+              <div className={`h-16 w-16 rounded-[20px] flex items-center justify-center mb-4 transition-all duration-300
                 ${isSelected
-                  ? "bg-[#4988c4] text-white shadow-md shadow-[#4988c4]/20"
-                  : "bg-slate-50 text-slate-400 group-hover:bg-[#4988c4]/10 group-hover:text-[#4988c4]"
+                  ? "bg-gradient-to-br from-[#4988c4]/[0.04] to-[#4988c4]/[0.15] shadow-inner border border-[#4988c4]/10"
+                  : "bg-slate-50/80 border border-slate-50 group-hover:bg-[#4988c4]/5 group-hover:border-[#4988c4]/10"
                 }
               `}>
-                <Icon className="h-5 w-5" />
+                <img src={iconSrc} alt={product.label} className={`h-9 w-9 object-contain transition-all duration-300 ${isSelected ? "scale-110 drop-shadow-md" : "opacity-90 group-hover:opacity-100 scale-100"}`} />
               </div>
 
               {/* Label */}

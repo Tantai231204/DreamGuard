@@ -15,12 +15,12 @@ interface ServiceStatsCardsProps {
 }
 
 const STAT_CONFIG = [
-  { key: 'totalBookings', title: 'Tổng đặt lịch', icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-50' },
-  { key: 'todayBookings', title: 'Hôm nay', icon: CalendarDays, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-  { key: 'pendingBookings', title: 'Chờ xác nhận', icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
-  { key: 'inProgressBookings', title: 'Đang thực hiện', icon: Loader2, color: 'text-purple-600', bg: 'bg-purple-50' },
-  { key: 'completedBookings', title: 'Hoàn thành', icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50' },
-  { key: 'totalRevenue', title: 'Doanh thu', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+  { key: 'totalBookings', title: 'Total Bookings', icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-50' },
+  { key: 'todayBookings', title: 'Today', icon: CalendarDays, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+  { key: 'pendingBookings', title: 'Pending', icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
+  { key: 'inProgressBookings', title: 'In Progress', icon: Loader2, color: 'text-purple-600', bg: 'bg-purple-50' },
+  { key: 'completedBookings', title: 'Completed', icon: CheckCircle2, color: 'text-green-600', bg: 'bg-green-50' },
+  { key: 'totalRevenue', title: 'Revenue', icon: TrendingUp, color: 'text-emerald-600', bg: 'bg-emerald-50' },
 ] as const;
 
 export const ServiceStatsCards = memo(function ServiceStatsCards({ stats }: ServiceStatsCardsProps) {

@@ -6,3 +6,5 @@ export { PageLoader } from "./PageLoader";
 export { EmptyState, EmptySearchState, EmptyFilterState, EmptyDataState } from "./EmptyState";
 export { CloudsBackground } from "./CloudsBackground";
 export { SEO } from "./SEO";
+export { CategoryBadge } from "./CategoryBadge";
+export * from "./icons";
