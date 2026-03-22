@@ -36,7 +36,7 @@ interface ServiceBookingCardProps {
   onView?: (id: string) => void;
   onEdit?: (id: string) => void;
   onConfirm?: (id: string) => void;
-  onCancel?: (id: string) => void;
+  onCancel?: (id: string, status: string) => void;
   onAssignTechnician?: (id: string) => void;
 }
 

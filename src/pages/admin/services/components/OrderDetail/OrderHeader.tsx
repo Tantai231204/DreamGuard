@@ -42,7 +42,7 @@ export function OrderHeader({ order, statusCfg, orderId }: OrderHeaderProps) {
               )}
             </div>
             <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              Service Order <span className="text-slate-400 font-medium">#{(order.soId || order.id || orderId || '').substring(0, 8).toUpperCase()}</span>
+              Service Order <span className="text-slate-400 font-medium">#{(order.id || orderId || '').substring(0, 8).toUpperCase()}</span>
             </h1>
           </div>
         </div>

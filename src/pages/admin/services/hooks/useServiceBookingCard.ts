@@ -10,7 +10,7 @@ interface UseServiceBookingCardProps {
   onView?: (id: string) => void;
   onEdit?: (id: string) => void;
   onConfirm?: (id: string) => void;
-  onCancel?: (id: string) => void;
+  onCancel?: (id: string, status: string) => void;
   onAssignTechnician?: (id: string) => void;
 }
 
@@ -62,7 +62,7 @@ export const useServiceBookingCard = ({
   const handleView = useCallback(() => onView?.(booking.id), [onView, booking.id]);
   const handleEdit = useCallback(() => onEdit?.(booking.id), [onEdit, booking.id]);
   const handleConfirm = useCallback(() => onConfirm?.(booking.id), [onConfirm, booking.id]);
-  const handleCancel = useCallback(() => onCancel?.(booking.id), [onCancel, booking.id]);
+  const handleCancel = useCallback(() => onCancel?.(booking.id, booking.status), [onCancel, booking.id, booking.status]);
   const handleAssign = useCallback(() => onAssignTechnician?.(booking.id), [onAssignTechnician, booking.id]);
 
   return {

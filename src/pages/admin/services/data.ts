@@ -8,7 +8,7 @@ export const calculateServiceStats = (bookings: ServiceBooking[]): ServiceStats 
       acc.totalBookings += 1;
       
       if (booking.status === 'pending') acc.pendingBookings += 1;
-      if (booking.status === 'in_progress') acc.inProgressBookings += 1;
+      if (booking.status === 'processing') acc.inProgressBookings += 1;
       if (booking.status === 'completed') acc.completedBookings += 1;
       
       acc.totalRevenue += booking.totalPrice || 0;

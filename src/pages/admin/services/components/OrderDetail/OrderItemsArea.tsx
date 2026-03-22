@@ -108,7 +108,7 @@ export function OrderItemsArea({ orderItems, mappingQueries, task }: OrderItemsA
             {task.checkIn || task.checkinImage || task.checkinUrl ? (
               <div className="relative aspect-video rounded-xl overflow-hidden shadow-sm border border-slate-100 mt-2">
                 <img
-                  src={task.checkIn || task.checkinImage || task.checkinUrl}
+                  src={task.checkIn || task.checkinImage || task.checkinUrl || undefined}
                   className="object-cover w-full h-full"
                   alt="Check-In"
                 />
@@ -129,7 +129,7 @@ export function OrderItemsArea({ orderItems, mappingQueries, task }: OrderItemsA
             {task.checkOut || task.checkoutImage || task.checkoutUrl ? (
               <div className="relative aspect-video rounded-xl overflow-hidden shadow-sm border border-slate-100 mt-2">
                 <img
-                  src={task.checkOut || task.checkoutImage || task.checkoutUrl}
+                  src={task.checkOut || task.checkoutImage || task.checkoutUrl || undefined}
                   className="object-cover w-full h-full"
                   alt="Check-Out"
                 />
