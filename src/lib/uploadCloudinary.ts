@@ -1,4 +1,4 @@
-export const uploadToCloudinary = async (file: File) => {
+export const uploadToCloudinary = async (file: File): Promise<string> => {
   const formData = new FormData()
   formData.append("file", file)
   formData.append("upload_preset", "imageforDG")
@@ -16,5 +16,5 @@ export const uploadToCloudinary = async (file: File) => {
   }
 
   const data = await res.json()
-  return data.secure_url
+  return data.secure_url as string
 }

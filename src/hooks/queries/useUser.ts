@@ -29,7 +29,7 @@ export const useProfile = () => {
     return useQuery<StaffResponse | UserProfile>({
         queryKey: [...profileKeys.all, role],
         queryFn: async () => {
-            const data = await isStaff ? () => staffService.getStaffProfile() : userService.getProfile();
+            const data = await (isStaff ? staffService.getStaffProfile() : userService.getProfile());
             return normalizeProfile(data);
         },
         enabled: isAuthenticated,

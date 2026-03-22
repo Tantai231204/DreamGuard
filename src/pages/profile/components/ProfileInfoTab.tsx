@@ -25,6 +25,7 @@ const profileSchema = z.object({
     .string()
     .min(2, "Full name must be at least 2 characters")
     .max(50, "Full name cannot exceed 50 characters"),
+  email: z.string().email("Invalid email address"),
   dateOfBirth: z.string().optional().or(z.literal("")),
   gender: z.string().optional().or(z.literal("")),
 });
@@ -32,12 +33,22 @@ const profileSchema = z.object({
 type ProfileFormData = z.infer<typeof profileSchema>;
 
 export default function ProfileInfoTab() {
-  const { data: profile } = useProfile();
+  const { data: profile, isLoading } = useProfile();
   const { mutate: updateProfile, isPending: isUpdating } = useUpdateProfile();
 
   const [isEditing, setIsEditing] = useState(false);
   const [showPhoneDialog, setShowPhoneDialog] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+
+  const formatDateVn = (dateStr?: string) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    if (Number.isNaN(date.getTime())) return dateStr;
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
 
   const {
     register,
@@ -50,6 +61,7 @@ export default function ProfileInfoTab() {
     resolver: zodResolver(profileSchema),
     defaultValues: {
       fullName: "",
+      email: "",
       dateOfBirth: "",
       gender: "",
     },
@@ -61,11 +73,18 @@ export default function ProfileInfoTab() {
     if (profile) {
       reset({
         fullName: profile.fullName || "",
-        dateOfBirth: profile.dateOfBirth || "",
+        email: profile.email || "",
+        dateOfBirth: profile.dateOfBirth
+          ? formatDateVn(profile.dateOfBirth)
+          : "",
         gender: profile.gender || "",
       });
     }
   }, [profile, reset]);
+
+  if (isLoading) {
+    return <div className="p-8">Loading...</div>;
+  }
 
   const handleEdit = () => {
     if (isEditing) {
@@ -99,6 +118,7 @@ export default function ProfileInfoTab() {
     updateProfile(
       {
         ...data,
+        email: data.email || profile?.email || "",
         avatarUrl,
       },
       {
@@ -113,7 +133,9 @@ export default function ProfileInfoTab() {
   const displayData = {
     fullName: isEditing ? watch("fullName") : profile?.fullName || "",
     email: profile?.email || "",
-    dateOfBirth: isEditing ? watch("dateOfBirth") : profile?.dateOfBirth || "",
+    dateOfBirth: isEditing
+      ? watch("dateOfBirth")
+      : formatDateVn(profile?.dateOfBirth || ""),
     gender: isEditing ? watchedGender : profile?.gender || "",
     phoneNumber: profile?.phoneNumber || "",
   };
@@ -251,8 +273,9 @@ export default function ProfileInfoTab() {
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within/input:text-primary transition-colors" />
                 <Input
                   type="email"
+                  {...register("email")}
                   value={displayData.email}
-                  disabled
+                  // disabled
                   className={cn(
                     "h-11 pl-10 rounded-xl bg-slate-50/50 border-slate-200 font-medium text-slate-900",
                     "disabled:opacity-100 disabled:bg-slate-100/30 disabled:border-transparent disabled:text-slate-500 disabled:cursor-not-allowed shadow-none",

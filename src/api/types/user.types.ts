@@ -2,6 +2,8 @@
 
 export interface UserProfile {
   fullName: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   phoneNumber: string;
   dateOfBirth: string;
