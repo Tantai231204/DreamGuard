@@ -148,7 +148,7 @@ function VoucherDialogInner({
 
             <form
                 onSubmit={handleSubmit}
-                className="space-y-6 py-5 max-h-[65vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 smooth-scroll"
+                className="space-y-6 pt-6 pb-8 px-8 max-h-[65vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 smooth-scroll"
                 style={{ contain: 'layout style paint', willChange: 'scroll-position' }}
             >
                 <VoucherBasicInfo

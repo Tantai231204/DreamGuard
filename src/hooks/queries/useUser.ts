@@ -12,11 +12,12 @@ export const profileKeys = {
 export const useProfile = () => {
     const { isAuthenticated, role } = useAuthStore();
     const isStaff = role && role !== "User" && role !== "Admin";
+    const hasProfile = role && role !== "Admin";
 
     return useQuery<StaffResponse | UserProfile>({
         queryKey: [...profileKeys.all, role],
         queryFn: isStaff ? () => staffService.getStaffProfile() : userService.getProfile,
-        enabled: isAuthenticated,
+        enabled: isAuthenticated && !!hasProfile,
     });
 };
 

@@ -10,6 +10,7 @@ interface AdminTableSearchProps<T> {
   table: Table<T>;
   resultCount?: number;
   resultLabel?: string;
+  actions?: React.ReactNode;
 }
 
 export function AdminTableSearch<T>({ 
@@ -18,7 +19,8 @@ export function AdminTableSearch<T>({
   placeholder = "Search...",
   table,
   resultCount,
-  resultLabel = 'results'
+  resultLabel = 'results',
+  actions
 }: AdminTableSearchProps<T>) {
   return (
     <div className="px-6 py-5 border-b border-gray-200 bg-white">
@@ -51,6 +53,8 @@ export function AdminTableSearch<T>({
           </span>
           <span className="text-sm font-medium text-gray-600">{resultLabel}</span>
         </div>
+
+        {actions && <div className="ml-auto flex items-center gap-4">{actions}</div>}
       </div>
     </div>
   );

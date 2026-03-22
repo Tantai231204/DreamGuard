@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useToast } from '@/hooks/useToast';
+import { downloadCSV } from '@/lib/export';
 import {
   useReactTable,
   getCoreRowModel,
@@ -11,7 +12,6 @@ import {
   type ColumnFiltersState,
   type RowSelectionState,
   type ExpandedState,
-  type PaginationState,
   type Table,
 } from '@tanstack/react-table';
 import { motion } from 'framer-motion';
@@ -62,17 +62,73 @@ import type {
 } from './types';
 export default function ProductsPage() {
   const toast = useToast();
-  const [activeTab, setActiveTab] = useState<'single' | 'combo'>('single');
-  const [globalFilter, setGlobalFilter] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const activeTab = (searchParams.get('tab') as 'single' | 'combo') || 'single';
+
+  const setActiveTab = useCallback((tab: 'single' | 'combo') => {
+    setSearchParams((prev: URLSearchParams) => {
+      prev.set('tab', tab);
+      return prev;
+    }, { replace: true });
+  }, [setSearchParams]);
+
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [expanded, setExpanded] = useState<ExpandedState>({});
-  const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
 
-  // Combo table state (separate from product)
-  const [comboPagination, setComboPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 10 });
-  const [comboGlobalFilter, setComboGlobalFilter] = useState('');
+  // Single Product state helpers
+  const pagination = useMemo(() => ({
+    pageIndex: parseInt(searchParams.get('page') || '1') - 1,
+    pageSize: parseInt(searchParams.get('pageSize') || '10'),
+  }), [searchParams]);
+
+  const globalFilter = searchParams.get('search') || '';
+
+  const setPagination = useCallback((updaterOrValue: import('@tanstack/react-table').Updater<import('@tanstack/react-table').PaginationState>) => {
+    const next = typeof updaterOrValue === 'function' ? updaterOrValue(pagination) : updaterOrValue;
+    setSearchParams((prev: URLSearchParams) => {
+      prev.set('page', String(next.pageIndex + 1));
+      prev.set('pageSize', String(next.pageSize));
+      return prev;
+    }, { replace: true });
+  }, [pagination, setSearchParams]);
+
+  const setGlobalFilter = useCallback((value: string) => {
+    setSearchParams((prev: URLSearchParams) => {
+      if (value) prev.set('search', value);
+      else prev.delete('search');
+      prev.set('page', '1');
+      return prev;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  // Combo state helpers
+  const comboPagination = useMemo(() => ({
+    pageIndex: parseInt(searchParams.get('comboPage') || '1') - 1,
+    pageSize: parseInt(searchParams.get('comboPageSize') || '10'),
+  }), [searchParams]);
+
+  const comboGlobalFilter = searchParams.get('comboSearch') || '';
+
+  const setComboPagination = useCallback((updaterOrValue: import('@tanstack/react-table').Updater<import('@tanstack/react-table').PaginationState>) => {
+    const next = typeof updaterOrValue === 'function' ? updaterOrValue(comboPagination) : updaterOrValue;
+    setSearchParams((prev: URLSearchParams) => {
+      prev.set('comboPage', String(next.pageIndex + 1));
+      prev.set('comboPageSize', String(next.pageSize));
+      return prev;
+    }, { replace: true });
+  }, [comboPagination, setSearchParams]);
+
+  const setComboGlobalFilter = useCallback((value: string) => {
+    setSearchParams((prev: URLSearchParams) => {
+      if (value) prev.set('comboSearch', value);
+      else prev.delete('comboSearch');
+      prev.set('comboPage', '1');
+      return prev;
+    }, { replace: true });
+  }, [setSearchParams]);
   const [comboSorting, setComboSorting] = useState<SortingState>([]);
   const [comboRowSelection, setComboRowSelection] = useState<RowSelectionState>({});
   const [comboExpanded, setComboExpanded] = useState<ExpandedState>({});
@@ -614,6 +670,31 @@ export default function ProductsPage() {
   });
 
 
+  const handleExport = useCallback(() => {
+    if (activeTab === 'single') {
+      const exportData = products.map((p: Product) => ({
+        ID: p.id || '',
+        Name: p.name || '',
+        Category: p.categoryName || '',
+        MinPrice: p.minPrice || 0,
+        MaxPrice: p.maxPrice || 0,
+        Status: p.status || '',
+        Variants: p.variantCount || 0
+      }));
+      downloadCSV(exportData, 'Products');
+    } else {
+      const exportData = combos.map((c: Combo) => ({
+        ID: c.id || '',
+        Name: c.name || '',
+        BasePrice: c.basePrice || 0,
+        SalePrice: c.salePrice || 0,
+        Status: c.status || '',
+        Type: c.type || 'combo'
+      }));
+      downloadCSV(exportData, 'Combos');
+    }
+  }, [activeTab, products, combos]);
+
   const activeTable = activeTab === 'single'
     ? productTable
     : (comboTable as unknown as Table<Product>);
@@ -681,7 +762,7 @@ export default function ProductsPage() {
               <ProductActions
                 productType={activeTab}
                 onAdd={handleAdd}
-                onExport={() => console.log('Export')}
+                onExport={handleExport}
                 onImport={() => console.log('Import')}
                 onFilter={() => console.log('Filter')}
               />

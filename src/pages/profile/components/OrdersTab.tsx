@@ -1,31 +1,15 @@
-import { useMemo, useState } from "react"
-import {
-    Search,
-    Truck,
-    Store,
-    Package,
-    Calendar as CalendarIcon,
-    X,
-    ShoppingBag,
-    ChevronLeft,
-    ChevronRight
-} from "lucide-react"
+import { useState, useMemo } from "react"
+import { Search, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "../../../components/ui/button"
 import { Input } from "../../../components/ui/input"
-import { Card } from "../../../components/ui/card"
-import { Badge } from "../../../components/ui/badge"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../../components/ui/tabs"
 import { Popover, PopoverContent, PopoverTrigger } from "../../../components/ui/popover"
 import { Calendar } from "../../../components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { format, isWithinInterval, startOfDay, endOfDay } from "date-fns"
 import type { DateRange } from "react-day-picker"
-import { formatPrice, formatDate } from "../utils"
 import { useOrders } from "@/hooks/queries"
-import type { OrderResponse } from "@/api/types/order"
-import { Skeleton } from "@/components/ui/skeleton"
-import { STATUS_THEME } from "../constants"
-import { OrderDetailDialog } from "./order-detail/OrderDetailDialog"
+import { OrderList, OrderSkeleton } from "./orders"
 
 const ITEMS_PER_PAGE = 4
 
@@ -145,24 +129,38 @@ export default function OrdersTab() {
                 <div className="w-full">
                     {isPending ? (
                         <div className="space-y-4">
-                            {Array(2).fill(0).map((_, i) => <Skeleton key={i} className="h-40 w-full rounded-2xl" />)}
+                            {Array(3).fill(0).map((_, i) => (
+                                <OrderSkeleton key={i} />
+                            ))}
                         </div>
                     ) : (
                         <div className="min-h-[400px]">
                             <TabsContent value="all" className="m-0 focus-visible:ring-0">
-                                <OrderList orders={paginatedOrders} />
+                                <OrderList orders={paginatedOrders} isFilterActive={!!(search || date)} />
                             </TabsContent>
                             <TabsContent value="processing" className="m-0 focus-visible:ring-0">
-                                <OrderList orders={paginatedOrders.filter(o => ["Pending", "Confirmed", "Processing", 0, 1, 2].includes(o.status))} />
+                                <OrderList
+                                    orders={paginatedOrders.filter(o => ["Pending", "Confirmed", "Processing", 0, 1, 2].includes(o.status))}
+                                    isFilterActive={!!(search || date)}
+                                />
                             </TabsContent>
                             <TabsContent value="shipping" className="m-0 focus-visible:ring-0">
-                                <OrderList orders={paginatedOrders.filter(o => ["Shipping", 3].includes(o.status))} />
+                                <OrderList
+                                    orders={paginatedOrders.filter(o => ["Shipping", 3].includes(o.status))}
+                                    isFilterActive={!!(search || date)}
+                                />
                             </TabsContent>
                             <TabsContent value="completed" className="m-0 focus-visible:ring-0">
-                                <OrderList orders={paginatedOrders.filter(o => ["Delivered", "Completed", 4, 5].includes(o.status))} />
+                                <OrderList
+                                    orders={paginatedOrders.filter(o => ["Delivered", "Completed", 4, 5].includes(o.status))}
+                                    isFilterActive={!!(search || date)}
+                                />
                             </TabsContent>
                             <TabsContent value="cancelled" className="m-0 focus-visible:ring-0">
-                                <OrderList orders={paginatedOrders.filter(o => ["Cancelled", 6].includes(o.status))} />
+                                <OrderList
+                                    orders={paginatedOrders.filter(o => ["Cancelled", 6].includes(o.status))}
+                                    isFilterActive={!!(search || date)}
+                                />
                             </TabsContent>
                         </div>
                     )}
@@ -200,119 +198,5 @@ export default function OrdersTab() {
                 </div>
             )}
         </div>
-    )
-}
-
-function OrderList({ orders }: { orders: OrderResponse[] }) {
-    if (orders.length === 0) return <EmptyState />
-    return (
-        <div className="space-y-4">
-            {orders.map((order) => (
-                <OrderCard key={order.id} order={order} />
-            ))}
-        </div>
-    )
-}
-
-function OrderCard({ order }: { order: OrderResponse }) {
-    const theme = STATUS_THEME[order.status] || STATUS_THEME["Pending"]
-
-    return (
-        <Card className="group relative rounded-2xl border-slate-200/60 bg-white shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md">
-            {/* Header */}
-            <div className="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-50 bg-slate-50/30">
-                <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center shadow-sm">
-                        <Store className="w-4 h-4 text-slate-500" />
-                    </div>
-                    <div>
-                        <span className="text-sm font-bold text-slate-900">DreamGuard Store</span>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{formatDate(order.createdAt)}</p>
-                    </div>
-                </div>
-                
-                <Badge
-                    variant="secondary"
-                    className="w-fit px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border-none shadow-sm"
-                    style={{ backgroundColor: `${theme.color}10`, color: theme.color }}
-                >
-                    <span className="w-1.5 h-1.5 rounded-full mr-1.5" style={{ backgroundColor: theme.color }} />
-                    {theme.label}
-                </Badge>
-            </div>
-
-            {/* Content */}
-            <div className="p-6 flex flex-col md:flex-row gap-6">
-                <div className="relative shrink-0">
-                    <div className="w-20 h-20 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center">
-                        <Package className="w-8 h-8 text-slate-300" />
-                    </div>
-                    <Badge className="absolute -top-2 -right-2 h-6 min-w-[24px] rounded-lg bg-slate-900 text-white border-2 border-white font-bold text-[10px] flex items-center justify-center shadow-sm">
-                        {order.itemCount}
-                    </Badge>
-                </div>
-
-                <div className="flex-1 flex flex-col justify-center space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div>
-                            <h4 className="text-base font-bold text-slate-900 tracking-tight">Order ID: #{order.orderCode}</h4>
-                            <div className="flex items-center gap-2 mt-1.5">
-                                {["Shipping", "Delivered", 3, 4].includes(order.status) && (
-                                    <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-emerald-50/50">
-                                        <Truck className="w-3 h-3" />
-                                        In Transit
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="sm:text-right">
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Amount</p>
-                            <p className="text-lg font-bold text-slate-900">{formatPrice(order.totalAmount)}</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Footer */}
-            <div className="px-6 py-4 bg-slate-50/30 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <p className="text-[11px] text-slate-500 font-medium">
-                    View detailed manifest and billing information for this order.
-                </p>
-                <div className="flex items-center gap-2">
-                    <OrderDetailDialog
-                        orderId={order.id}
-                        orderCode={order.orderCode}
-                        trigger={
-                            <Button variant="outline" className="h-9 px-4 rounded-lg text-xs font-bold uppercase tracking-wider border-slate-200 hover:bg-white transition-all">
-                                View Details
-                            </Button>
-                        }
-                    />
-                    {["Delivered", "Completed", 4, 5].includes(order.status) && (
-                        <Button className="relative h-9 px-4 rounded-lg text-[10px] font-black uppercase tracking-[0.15em] bg-primary text-white shadow-[0_4px_12px_-4px_rgba(73,136,196,0.5)] hover:shadow-[0_8px_20px_-6px_rgba(73,136,196,0.6)] hover:-translate-y-0.5 transition-all duration-300 group/btn overflow-hidden border-none">
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000" />
-                            <span className="relative z-10">Buy Again</span>
-                        </Button>
-                    )}
-                </div>
-            </div>
-        </Card>
-    )
-}
-
-function EmptyState() {
-    return (
-        <Card className="py-20 text-center bg-slate-50/50 border-dashed border-2 rounded-2xl flex flex-col items-center">
-            <div className="w-16 h-16 rounded-full bg-white shadow-sm flex items-center justify-center mb-6">
-                <ShoppingBag className="h-8 w-8 text-slate-200" />
-            </div>
-            <h3 className="text-base font-bold text-slate-900">No orders found</h3>
-            <p className="text-sm text-slate-500 font-medium max-w-xs mx-auto mt-2">Explore our collections to start your journey.</p>
-            <Button className="group/btn relative mt-8 h-11 px-10 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] bg-primary text-white shadow-[0_10px_25px_-8px_rgba(73,136,196,0.5)] hover:shadow-[0_15px_35px_-10px_rgba(73,136,196,0.6)] hover:-translate-y-0.5 transition-all duration-300 overflow-hidden border-none">
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000" />
-                <span className="relative z-10">Start Shopping Now</span>
-            </Button>
-        </Card>
     )
 }

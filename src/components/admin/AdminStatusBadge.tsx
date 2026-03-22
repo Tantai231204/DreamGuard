@@ -7,46 +7,49 @@ export type StatusType = 'success' | 'warning' | 'danger' | 'info' | 'neutral';
 interface AdminStatusBadgeProps {
   status: string;
   type?: StatusType;
+  mode?: 'status' | 'method'; // Explicitly set mode to avoid ambiguity
   className?: string;
   dot?: boolean;
 }
 
 const STATUS_MAP: Record<string, StatusType> = {
-  // Success
-  'published': 'success',
+  // Green for successful payments and completions (Xanh lá: Payment success & Final states)
+  'paid': 'success',
+  'codpaid': 'success',
   'active': 'success',
   'delivered': 'success',
   'completed': 'success',
-  'paid': 'success',
-  'confirmed': 'success',
   'resolved': 'success',
   '6': 'success', // OrderStatus.Completed
-  '2': 'success', // OrderStatus.Confirmed
   '5': 'success', // OrderStatus.Delivered
 
-  // Warning
-  'draft': 'warning',
-  'pending': 'warning',
-  'trial': 'warning',
-  '1': 'warning', // OrderStatus.Pending
+  // Blue for successful confirmations (Xanh dương: Intermediate success)
+  'confirmed': 'info',
+  '2': 'info', // OrderStatus.Confirmed
 
-  // Danger
-  'outofstock': 'danger',
-  'inactive': 'danger',
+  // Red for failures and rejections (Danger)
   'cancelled': 'danger',
+  'forcedcancelled': 'danger',
   'failed': 'danger',
-  'expired': 'danger',
-  'deleted': 'danger',
-  'banned': 'danger',
+  'rejected': 'danger',
+  'outofstock': 'danger',
   '7': 'danger', // OrderStatus.Cancelled
 
-  // Info
-  'shipped': 'info',
-  'partial': 'info',
-  'processing': 'info',
-  'shipping': 'info',
-  '3': 'info', // OrderStatus.Processing
-  '4': 'info', // OrderStatus.Shipping
+  // Orange/Amber for general statuses (Cam: tên bảng kèm status)
+  'pending': 'warning',
+  '1': 'warning', // OrderStatus.Pending
+  'draft': 'warning',
+  'trial': 'warning',
+  'processing': 'warning',
+  '3': 'warning', // OrderStatus.Processing
+  'shipping': 'warning',
+  '4': 'warning', // OrderStatus.Shipping
+  'refund': 'warning',
+  'refunded': 'warning',
+
+  // Potential status strings that look like methods
+  'cod': 'warning',
+  'vnpay': 'warning',
 
   // Neutral
   'hidden': 'neutral',
@@ -99,32 +102,81 @@ const TYPE_CONFIG: Record<StatusType, {
   },
 };
 
+const ICON_MAP: Record<string, React.ElementType> = {
+  'paid': Check,
+  'codpaid': Check,
+  'completed': Check,
+  'active': Check,
+  'confirmed': Check,
+  'published': Check,
+  'delivered': Check,
+  '2': Check,
+  '5': Check,
+  '6': Check,
+  'cancelled': X,
+  'failed': X,
+  'rejected': X,
+  'void': X,
+  'inactive': X,
+  'expired': X,
+  'banned': X,
+  '7': X,
+  'refunded': RotateCcw,
+  'refund': RotateCcw,
+  'processing': Package,
+  'shipped': Package,
+  'shipping': Package,
+  '3': Package,
+  '4': Package,
+  'pending': Clock4,
+  'unpaid': Clock4,
+  'codunpaid': Clock4,
+};
+
 const PAYMENT_CONFIG: Record<string, { container: string, textColor: string, iconBg: string, icon: string }> = {
   vnpay: {
-    container: "bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100/50 shadow-inner shadow-blue-500/5",
-    textColor: "text-[#005baa]",
-    iconBg: "bg-white p-1 ring-2 ring-blue-500/10 shadow-sm",
+    container: "bg-blue-50 border-blue-100 shadow-sm",
+    textColor: "text-blue-700",
+    iconBg: "bg-white p-1 ring-1 ring-blue-200",
     icon: "/images/vnpay.svg"
   },
   cod: {
-    container: "bg-gradient-to-r from-amber-50 to-orange-50 border-amber-100/50 shadow-inner shadow-orange-500/5",
-    textColor: "text-[#854d0e]",
-    iconBg: "bg-white p-1.5 ring-2 ring-amber-500/10 shadow-sm",
+    container: "bg-blue-50 border-blue-100 shadow-sm",
+    textColor: "text-blue-700",
+    iconBg: "bg-white p-1.5 ring-1 ring-blue-200",
     icon: "/images/cod.svg"
   },
 };
 
+import { RotateCcw } from "lucide-react";
+
 export function AdminStatusBadge({
   status,
   type,
+  mode,
   className,
   dot = true,
 }: AdminStatusBadgeProps) {
   const normalizedStatus = status?.toLowerCase().replace(/\s+/g, '') || 'neutral';
-  const payConfig = PAYMENT_CONFIG[normalizedStatus];
+
+  // Payment config is only used if mode is 'method' or not specified but matches perfectly
+  // and is NOT a known status keyword.
+  let payConfig = null;
+  const isStrictMethod = normalizedStatus === 'vnpay' || normalizedStatus === 'cod';
+
+  if (mode !== 'status') {
+    payConfig = PAYMENT_CONFIG[normalizedStatus];
+    if (!payConfig && (mode === 'method' || isStrictMethod)) {
+      if (normalizedStatus.startsWith('vnpay')) payConfig = PAYMENT_CONFIG['vnpay'];
+      else if (normalizedStatus.startsWith('cod')) payConfig = PAYMENT_CONFIG['cod'];
+    }
+  }
+
   const finalType = type || STATUS_MAP[normalizedStatus] || 'neutral';
   const config = TYPE_CONFIG[finalType];
-  const Icon = config.icon;
+
+  // Decide Icon based on status keyword or fallback to config default
+  const Icon = ICON_MAP[normalizedStatus] || config.icon;
 
   const containerClass = payConfig?.container || config.container;
   const textClass = payConfig?.textColor || config.textColor;

@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
     useReactTable,
@@ -7,6 +8,8 @@ import {
     type SortingState,
     type ColumnFiltersState,
     type RowSelectionState,
+    type Updater,
+    type PaginationState,
 } from '@tanstack/react-table'
 import { ShoppingCart } from 'lucide-react'
 
@@ -16,24 +19,46 @@ import { AdminTableSearch, AdminTableContent, AdminTablePagination, AdminActions
 import { useOrderColumns } from './components'
 import { useAdminOrders } from '@/hooks/queries'
 import { useDebounce } from '@/hooks/useDebounce'
+import { downloadCSV } from '@/lib/export'
 
 export default function OrderManagement() {
+    const [searchParams, setSearchParams] = useSearchParams()
     const [sorting, setSorting] = useState<SortingState>([])
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-    const [globalFilter, setGlobalFilter] = useState('')
+    
+    const pagination = useMemo(() => ({
+        pageIndex: parseInt(searchParams.get('page') || '1') - 1,
+        pageSize: parseInt(searchParams.get('pageSize') || '10'),
+    }), [searchParams])
+
+    const globalFilter = searchParams.get('search') || ''
+
+    const setPagination = useCallback((updaterOrValue: Updater<PaginationState>) => {
+        const next = typeof updaterOrValue === 'function' ? updaterOrValue(pagination) : updaterOrValue;
+        setSearchParams((prev) => {
+            prev.set('page', String(next.pageIndex + 1));
+            prev.set('pageSize', String(next.pageSize));
+            return prev;
+        });
+    }, [pagination, setSearchParams]);
+
+    const setGlobalFilter = useCallback((value: string) => {
+        setSearchParams((prev) => {
+            if (value) prev.set('search', value);
+            else prev.delete('search');
+            prev.set('page', '1');
+            return prev;
+        });
+    }, [setSearchParams]);
+
     const debouncedSearch = useDebounce(globalFilter, 500)
 
-    // Extract status filters for API
     const statusFilter = useMemo(() => {
         const filter = columnFilters.find(f => f.id === 'status')
         return filter ? (filter.value as string[]) : undefined
     }, [columnFilters])
 
     const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
-    const [pagination, setPagination] = useState({
-        pageIndex: 0,
-        pageSize: 10,
-    })
 
     const columns = useOrderColumns()
 
@@ -49,6 +74,18 @@ export default function OrderManagement() {
     const data = useMemo(() => orderData?.items ?? [], [orderData])
     const pageCount = orderData?.totalPages ?? -1
 
+    const handleExport = useCallback(() => {
+        const exportData = data.map(order => ({
+            ID: order.id || '',
+            Code: order.orderCode || '',
+            ItemCount: order.itemCount || 0,
+            Total: order.totalAmount || 0,
+            Status: order.status || '',
+            Date: order.createdAt || ''
+        }));
+        downloadCSV(exportData, 'Orders');
+    }, [data]);
+
     const table = useReactTable({
         data,
         columns,
@@ -60,37 +97,25 @@ export default function OrderManagement() {
             pagination,
         },
 
-        /* Pagination */
         onPaginationChange: setPagination,
         manualPagination: true,
         pageCount: pageCount,
 
-        /* Sorting */
         onSortingChange: setSorting,
-        manualSorting: true, // Server-side sorting
+        manualSorting: true,
         enableSorting: true,
 
-        /* Column filter */
         onColumnFiltersChange: setColumnFilters,
-        manualFiltering: true, // Server-side filtering
+        manualFiltering: true,
 
-        /* Global search */
         onGlobalFilterChange: setGlobalFilter,
         enableGlobalFilter: true,
 
-        /* Row selection */
         onRowSelectionChange: setRowSelection,
         enableRowSelection: true,
 
-        /* Core + pagination */
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
-
-        initialState: {
-            pagination: {
-                pageSize: 10,
-            },
-        },
     })
 
     return (
@@ -112,7 +137,6 @@ export default function OrderManagement() {
                     animate={{ opacity: 1, y: 0 }}
                     className="m-6 bg-white rounded-2xl border-2 border-gray-100 overflow-hidden shadow-xl flex flex-col h-[calc(100%-3rem)]"
                 >
-                    {/* Bulk Actions */}
                     <AdminBulkActions
                         table={table}
                         itemLabel="order"
@@ -120,10 +144,9 @@ export default function OrderManagement() {
                         onDelete={() => console.log('Delete selected')}
                     />
 
-                    {/* Actions Toolbar */}
                     <AdminActions
                         onFilter={() => console.log('Filter')}
-                        onExport={() => console.log('Export')}
+                        onExport={handleExport}
                         onImport={() => console.log('Import')}
                     />
 
@@ -136,7 +159,8 @@ export default function OrderManagement() {
                     <div className="flex-1 overflow-auto">
                         <AdminTableContent
                             table={table}
-                            emptyMessage={isPending ? "Loading orders..." : "No orders found"}
+                            emptyMessage="No orders found"
+                            isLoading={isPending}
                         />
                     </div>
                     <AdminTablePagination

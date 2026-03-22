@@ -25,6 +25,7 @@ interface CartState {
     syncWithServer: () => Promise<void>
     // Internal helper to sync state from API response
     updateStoreFromResponse: (response: CartResponse | unknown) => void
+    batchAddItems: (items: Array<{ productVariantId: string | null; comboId: string | null; quantity: number; _optimisticData?: CartItem }>) => Promise<void>
 }
 
 // Helper to calculate totals precisely
@@ -177,7 +178,7 @@ export const useCartStore = create<CartState>()(
                             comboId,
                             quantity: itemQuantity
                         })
-                        
+
                         const resObj = response as unknown as Record<string, unknown>;
                         const isFullCart = !!(resObj?.items || resObj?.data);
                         if (isFullCart) {
@@ -326,6 +327,40 @@ export const useCartStore = create<CartState>()(
                     console.error("[CartStore] Sync sequence failed:", error)
                     // If the sync call strictly fails due to 400 Bad Request, we've caught the error.
                     // The guest items will REMAIN in the local cart so the user doesn't lose them.
+                } finally {
+                    set({ isSyncing: false })
+                }
+            },
+
+            batchAddItems: async (items) => {
+                const { isAuthenticated } = useAuthStore.getState()
+                if (!isAuthenticated) return
+
+                // 1. Optimistic Feedback with High-Fidelity Local Representation
+                const optimisticItems = items.map(i => i._optimisticData).filter(Boolean) as CartItem[]
+                
+                if (optimisticItems.length > 0) {
+                    set(s => {
+                        const newCart = [...s.cart, ...optimisticItems]
+                        return { cart: newCart, isSyncing: true, ...calculateTotals(newCart) }
+                    })
+                } else {
+                    set({ isSyncing: true })
+                }
+                
+                try {
+                    // 2. Perform server sync and get updated cart in ONE TRIP
+                    const response = await cartService.syncCart(items)
+                    
+                    // 3. Update state directly from response (No fetchCart needed)
+                    // If response doesn't have data property, handle it
+                    get().updateStoreFromResponse(response)
+                    
+                    toast.success("Successfully restored your items!")
+                } catch (error) {
+                    console.error("[CartStore] Batch sync failed:", error)
+                    // Fallback to fetch only on failure
+                    await get().fetchCart()
                 } finally {
                     set({ isSyncing: false })
                 }
