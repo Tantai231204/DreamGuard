@@ -1,6 +1,7 @@
 import type { CartItem } from "@/store/cartTypes"
 import { ShoppingBag, RefreshCcw, Package, ShieldCheck } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { formatPrice } from "@/lib/utils"
 
 interface OrderSummaryProps {
     cart: CartItem[]
@@ -64,8 +65,8 @@ export function OrderSummary({ cart, totalPrice, tradeInDiscount = 0, finalTotal
                                         <div className="flex-1 min-w-0">
                                             <h4 className="text-sm font-black text-slate-900 truncate">{item.name}</h4>
                                             <div className="mt-1 flex items-baseline gap-2">
-                                                <span className="text-xs font-black text-emerald-600">${item.subtotal.toFixed(2)}</span>
-                                                <span className="text-[10px] text-slate-400 line-through font-bold">${(item.quantity * item.price).toFixed(2)}</span>
+                                                <span className="text-xs font-black text-emerald-600">{formatPrice(item.subtotal)}</span>
+                                                <span className="text-[10px] text-slate-400 line-through font-bold">{formatPrice(item.quantity * item.price)}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -82,14 +83,14 @@ export function OrderSummary({ cart, totalPrice, tradeInDiscount = 0, finalTotal
                                                 <TooltipContent side="right" className="rounded-xl border-emerald-100 p-2 shadow-xl">
                                                     {item.tradeIn?.products.map((p) => (
                                                         <div key={p.id} className="text-[9px] font-bold text-slate-600 px-2 py-1">
-                                                            -{p.name}: ${p.tradeInValue.toFixed(2)}
+                                                            -{p.name}: {formatPrice(p.tradeInValue)}
                                                         </div>
                                                     ))}
                                                 </TooltipContent>
                                             </Tooltip>
                                         </TooltipProvider>
                                         <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-100/50">
-                                            <span className="text-[10px] font-black text-emerald-600 tracking-tighter">-${item.tradeIn?.totalValue.toFixed(2)}</span>
+                                            <span className="text-[10px] font-black text-emerald-600 tracking-tighter">-{formatPrice(item.tradeIn?.totalValue ?? 0)}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -122,13 +123,13 @@ export function OrderSummary({ cart, totalPrice, tradeInDiscount = 0, finalTotal
                                     </p>
                                     <span className="h-1 w-1 rounded-full bg-slate-200" />
                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                        ${item.price.toFixed(2)}
+                                        {formatPrice(item.price)}
                                     </p>
                                 </div>
                             </div>
                             <div className="text-right">
                                 <span className="text-sm font-black text-slate-900 tracking-tight">
-                                    ${item.subtotal.toFixed(2)}
+                                    {formatPrice(item.subtotal)}
                                 </span>
                             </div>
                         </div>
@@ -139,7 +140,7 @@ export function OrderSummary({ cart, totalPrice, tradeInDiscount = 0, finalTotal
                 <div className="space-y-4 pt-10 border-t border-slate-50">
                     <div className="flex justify-between items-center px-2">
                         <span className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 font-bold">Base Price</span>
-                        <span className="text-sm font-black text-slate-900">${totalPrice.toFixed(2)}</span>
+                        <span className="text-sm font-black text-slate-900">{formatPrice(totalPrice)}</span>
                     </div>
 
                     {tradeInDiscount > 0 && (
@@ -148,7 +149,7 @@ export function OrderSummary({ cart, totalPrice, tradeInDiscount = 0, finalTotal
                                 <RefreshCcw className="w-3.5 h-3.5" />
                                 Trade Credit
                             </span>
-                            <span className="text-sm font-black text-emerald-600">-${tradeInDiscount.toFixed(2)}</span>
+                            <span className="text-sm font-black text-emerald-600">-{formatPrice(tradeInDiscount)}</span>
                         </div>
                     )}
 
@@ -167,7 +168,7 @@ export function OrderSummary({ cart, totalPrice, tradeInDiscount = 0, finalTotal
 
                     <div className="flex justify-between items-center px-2">
                         <span className="text-[11px] font-black uppercase tracking-[0.15em] text-slate-400">Est. GST / Tax</span>
-                        <span className="text-sm font-bold text-slate-900">${tax.toFixed(2)}</span>
+                        <span className="text-sm font-bold text-slate-900">{formatPrice(tax)}</span>
                     </div>
 
                     <div className="h-px bg-slate-50 -mx-2 my-2" />
@@ -179,7 +180,7 @@ export function OrderSummary({ cart, totalPrice, tradeInDiscount = 0, finalTotal
                         </div>
                         <div className="text-right">
                             <span className="text-4xl font-black text-[#4988c4] tracking-tighter leading-none block">
-                                ${total.toFixed(2)}
+                                {formatPrice(total)}
                             </span>
                         </div>
                     </div>

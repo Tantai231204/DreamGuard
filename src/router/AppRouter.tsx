@@ -18,7 +18,7 @@ const Home = lazy(() => import("../pages/home"));
 const Products = lazy(() => import("../pages/products"));
 const ProductDetail = lazy(() => import("../pages/products/[slug]"));
 const Combos = lazy(() => import("../pages/combos"));
-const ComboDetail = lazy(() => import("../pages/combos/[id]"));
+const ComboDetail = lazy(() => import("../pages/combos/[slug]"));
 const CartPage = lazy(() => import("../pages/cart"));
 const CheckoutPage = lazy(() => import("../pages/checkout"));
 const CheckoutResult = lazy(() => import("../pages/checkout/CheckoutResult"));
@@ -36,20 +36,21 @@ const ResetPasswordSuccess = lazy(() => import("../pages/auth/ResetPasswordSucce
 // User
 const Profile = lazy(() => import("../pages/profile"));
 const Services = lazy(() => import("../pages/services"));
+const ServicesBooking = lazy(() => import("../pages/services/Booking"));
 
 // Admin
 const AdminDashboard = lazy(() => import("../pages/admin/dashboard"));
 const OrderManagement = lazy(() => import("../pages/admin/orders"));
 const OrderDetail = lazy(() => import("../pages/admin/orders/[id]"));
 const ServiceManagement = lazy(() => import("../pages/admin/services"));
+const ServicePackagesPage = lazy(() => import("../pages/admin/service-packages"));
 const ChatAdmin = lazy(() => import("../pages/admin/chat"));
 const ProductManagement = lazy(() => import("../pages/admin/products"));
 const AdminProductDetail = lazy(() => import("../pages/admin/products/[id]"));
 const CategoryManagement = lazy(() => import("../pages/admin/categories"));
 const VoucherManagement = lazy(() => import("../pages/admin/vouchers"));
-const ResellManagement = lazy(() => import("../pages/admin/resell"));
-const TradeInDetail = lazy(() => import("../pages/admin/resell/[id]"));
 const UserManagement = lazy(() => import("../pages/admin/users"));
+const StaffManagement = lazy(() => import("../pages/admin/staff"));
 const PaymentManagement = lazy(() => import("../pages/admin/payments"));
 
 /* =======================
@@ -72,6 +73,8 @@ export default function AppRouter() {
                         <Route path={AppRoute.SERVICES} element={<Services />} />
                         <Route path={AppRoute.CART} element={<CartPage />} />
                     </Route>
+
+                    <Route path={AppRoute.SERVICES_BOOKING} element={<ServicesBooking />} />
 
                     <Route element={<AuthLayout />}>
                         <Route path={AppRoute.LOGIN} element={<Login />} />
@@ -107,14 +110,14 @@ export default function AppRouter() {
                         <Route path="/admin/orders" element={<OrderManagement />} />
                         <Route path="/admin/orders/:id" element={<OrderDetail />} />
                         <Route path="/admin/services" element={<ServiceManagement />} />
+                        <Route path="/admin/service-packages" element={<ServicePackagesPage />} />
                         <Route path="/admin/chat" element={<ChatAdmin />} />
                         <Route path="/admin/products" element={<ProductManagement />} />
                         <Route path="/admin/products/:id" element={<AdminProductDetail />} />
                         <Route path="/admin/categories" element={<CategoryManagement />} />
                         <Route path="/admin/vouchers" element={<VoucherManagement />} />
-                        <Route path="/admin/resell" element={<ResellManagement />} />
-                        <Route path="/admin/resell/:id" element={<TradeInDetail />} />
                         <Route path="/admin/users" element={<UserManagement />} />
+                        <Route path="/admin/staff" element={<StaffManagement />} />
                         <Route path="/admin/payments" element={<PaymentManagement />} />
                     </Route>
                 </Route>

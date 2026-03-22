@@ -4,7 +4,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Pencil, Trash2, Eye, Copy, Percent, DollarSign } from 'lucide-react';
 import { SortableHeader, AdminRowActions, AdminStatusBadge } from '@/components/admin';
 import type { Voucher } from '../types';
-import { formatDate } from '@/lib/utils';
+import { formatDate, formatPrice } from '@/lib/utils';
 
 const columnHelper = createColumnHelper<Voucher>();
 
@@ -76,7 +76,7 @@ export function useVoucherColumns(options?: {
                                 <DollarSign className="h-4 w-4 text-green-600" />
                             )}
                             <span className="font-bold text-green-700">
-                                {isPercent ? `${info.getValue()}%` : `$${info.getValue()}`}
+                                {isPercent ? `${info.getValue()}%` : formatPrice(info.getValue() as number)}
                             </span>
                         </div>
                     );
@@ -86,14 +86,14 @@ export function useVoucherColumns(options?: {
             columnHelper.accessor('minDiscountAmount', {
                 header: 'Min Amount',
                 cell: (info) => (
-                    <span className="text-sm text-gray-600">${info.getValue()?.toFixed(2)}</span>
+                    <span className="text-sm text-gray-600">{formatPrice(info.getValue() as number)}</span>
                 ),
             }),
 
             columnHelper.accessor('maxDiscountAmount', {
                 header: 'Max Amount',
                 cell: (info) => (
-                    <span className="text-sm text-gray-600">${info.getValue()?.toFixed(2)}</span>
+                    <span className="text-sm text-gray-600">{formatPrice(info.getValue() as number)}</span>
                 ),
             }),
 

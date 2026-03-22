@@ -1,8 +1,7 @@
 // src/api/types/user.types.ts
 
 export interface UserProfile {
-  firstName: string;
-  lastName: string;
+  fullName: string;
   email: string;
   phoneNumber: string;
   dateOfBirth: string;

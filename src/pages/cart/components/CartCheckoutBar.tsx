@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useAuthStore } from "@/store/authStore";
 import { AppRoute } from "@/lib/constants";
+import { formatPrice } from "@/lib/utils";
 
 interface CartCheckoutBarProps {
     total: number;
@@ -28,8 +29,7 @@ export function CartCheckoutBar({ total, disabled }: CartCheckoutBarProps) {
                         <div className="absolute -left-4 top-1 w-1 h-8 bg-[#4988c4] rounded-full" />
                         <span className="text-[8px] font-black text-[#4988c4] uppercase tracking-[0.3em] mb-1">Final Calculation</span>
                         <div className="flex items-baseline gap-2">
-                            <span className="text-4xl font-black text-slate-900 tracking-tighter tabular-nums">${(total ?? 0).toFixed(2)}</span>
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">USD</span>
+                            <span className="text-4xl font-black text-slate-900 tracking-tighter tabular-nums">{formatPrice(total ?? 0)}</span>
                         </div>
                     </div>
                     
@@ -44,7 +44,7 @@ export function CartCheckoutBar({ total, disabled }: CartCheckoutBarProps) {
                 <div className="flex items-center gap-8 w-full md:w-auto">
                     <div className="md:hidden flex flex-col flex-1">
                         <span className="text-[8px] font-black text-[#4988c4] uppercase tracking-widest mb-1">Total Amount</span>
-                        <span className="text-3xl font-black text-slate-900 tracking-tighter">${(total ?? 0).toFixed(2)}</span>
+                        <span className="text-3xl font-black text-slate-900 tracking-tighter">{formatPrice(total ?? 0)}</span>
                     </div>
                     
                     <Button

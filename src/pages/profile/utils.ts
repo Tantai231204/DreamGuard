@@ -1,4 +1,3 @@
-import { formatDate } from '@/lib/utils';
 
 export function calculateAge(birthDate: string): string {
     const birth = new Date(birthDate)
@@ -54,9 +53,4 @@ export function getStageInfo(birthDate: string): { name: string; color: string; 
     }
 }
 
-export function formatPrice(price: number | undefined | null): string {
-    if (price === undefined || price === null) return "0₫";
-    return price.toLocaleString("vi-VN") + "₫"
-}
-
-export { formatDate };
+export { formatDate, formatPrice } from '@/lib/utils';

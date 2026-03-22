@@ -131,6 +131,10 @@ const comboService = {
   getById: (id: string): Promise<ComboResponse> =>
     apiClient.get(`/combo/${id}`).then((res) => res.data),
 
+  /** Get combo detail by Slug */
+  getBySlug: (slug: string, params?: { size?: string; color?: string }): Promise<ComboResponse> =>
+    apiClient.get(`/combo/slug/${slug}`, { params }).then((res) => res.data),
+
   /** Create new combo */
   create: async (data: CreateComboRequest): Promise<ComboResponse> => {
     const res = await apiClient.post('/combo', data);

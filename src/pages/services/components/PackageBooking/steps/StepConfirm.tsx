@@ -5,6 +5,7 @@ import type { PricingPackage } from "../../../types";
 import type { BookingFormValues } from "../schema";
 import type { Voucher } from "../vouchers";
 import VoucherSelectModal from "../VoucherSelectModal";
+import { formatPrice } from "@/lib/utils";
 
 interface StepConfirmProps {
     form: BookingFormValues;
@@ -12,6 +13,7 @@ interface StepConfirmProps {
     appliedVoucher: Voucher | null;
     onApplyVoucher: (code: string) => "ok" | "invalid";
     onRemoveVoucher: () => void;
+    isSidebar?: boolean;
 }
 
 export default function StepConfirm({
@@ -20,6 +22,7 @@ export default function StepConfirm({
     appliedVoucher,
     onApplyVoucher,
     onRemoveVoucher,
+    isSidebar = false,
 }: StepConfirmProps) {
     const [modalOpen, setModalOpen] = useState(false);
 
@@ -37,80 +40,99 @@ export default function StepConfirm({
         setModalOpen(false);
     }
 
+    const cardClass = "rounded-2xl border-2 border-slate-100 bg-white p-6 shadow-md shadow-slate-100/50";
+    const titleClass = "text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3 flex items-center gap-2";
+
     return (
-        <div className="space-y-5">
-            {/* Header */}
-            <div>
-                <h3 className="text-xl font-bold text-gray-900">Review & Confirm</h3>
-                <p className="text-sm text-gray-500 mt-1">Please check your booking details before confirming.</p>
-            </div>
+        <div className="space-y-8">
+            {!isSidebar && (
+                <div className="space-y-2">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-[#4988c4]/10 text-[#4988c4] border border-[#4988c4]/20 text-[10px] font-black uppercase tracking-widest">
+                        Step 04
+                    </div>
+                    <h3 className="text-3xl font-black text-slate-900 tracking-tight">Review & Confirm</h3>
+                    <p className="text-sm text-slate-400 font-medium">Please check your booking details before confirming.</p>
+                </div>
+            )}
+
+            {isSidebar && (
+                <div className="space-y-1 pb-4">
+                    <div className="inline-flex items-center gap-2 px-2 py-0.5 rounded-md bg-[#4988c4]/10 text-[#4988c4] text-[8px] font-black uppercase tracking-wider">
+                        Live Summary
+                    </div>
+                    <h3 className="text-xl font-black text-slate-900 tracking-tight leading-none pt-1">Booking Overview</h3>
+                </div>
+            )}
 
             {/* Voucher + Price summary */}
-            <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm">
+            <div className="rounded-2xl border-2 border-slate-100 bg-white overflow-hidden shadow-md shadow-slate-100/50">
                 {/* Voucher row */}
-                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-50 bg-slate-50/50">
                     <div className="flex items-center gap-2">
-                        <Ticket className="h-4 w-4 text-violet-500" />
-                        <span className="text-xs font-bold uppercase tracking-widest text-violet-600">Voucher / Promo Code</span>
+                        <Ticket className="h-4 w-4 text-[#4988c4]" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-700">Voucher / Promo Code</span>
                     </div>
                     <Button
                         type="button"
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
-                        className="border-violet-300 text-violet-700 hover:bg-violet-50 hover:border-violet-400"
+                        className="h-8 px-3 rounded-lg bg-white border border-slate-100 text-[#4988c4] hover:bg-[#4988c4] hover:text-white transition-all text-[10px] font-black uppercase tracking-widest"
                         onClick={() => setModalOpen(true)}
                     >
-                        {appliedVoucher ? "Đổi mã ưu đãi" : "Chọn mã ưu đãi"}
+                        {appliedVoucher ? "Change" : "Select"}
                     </Button>
                 </div>
+
                 {appliedVoucher && (
-                    <div className="flex items-center justify-between gap-3 bg-violet-50 rounded-lg border border-violet-200 px-4 py-2 mx-4 mt-3">
+                    <div className="flex items-center justify-between gap-3 bg-[#4988c4]/5 rounded-xl border border-[#4988c4]/10 px-6 py-3 mx-6 mt-4">
                         <div className="flex items-center gap-2.5">
-                            <span className="flex-shrink-0 h-7 w-7 rounded-full bg-violet-100 flex items-center justify-center">
-                                <Tag className="h-3.5 w-3.5 text-violet-600" />
+                            <span className="flex-shrink-0 h-8 w-8 rounded-full bg-[#4988c4]/10 flex items-center justify-center">
+                                <Tag className="h-3.5 w-3.5 text-[#4988c4]" />
                             </span>
                             <div>
-                                <p className="text-sm font-bold text-violet-700 tracking-wide">{appliedVoucher.code}</p>
-                                <p className="text-xs text-violet-500">{appliedVoucher.label} — {appliedVoucher.discountPct}% off</p>
+                                <p className="text-sm font-black text-[#4988c4] tracking-wide">{appliedVoucher.code}</p>
+                                <p className="text-[10px] font-weight-black text-slate-400 uppercase tracking-widest">{appliedVoucher.label} — {appliedVoucher.discountPct}% off</p>
                             </div>
                         </div>
                         <button
                             type="button"
                             onClick={onRemoveVoucher}
-                            className="flex-shrink-0 h-6 w-6 rounded-full bg-white hover:bg-red-50 border border-gray-200 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors"
+                            className="flex-shrink-0 h-6 w-6 rounded-full bg-white hover:bg-rose-50 border border-slate-100 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-colors"
                         >
                             <X className="h-3.5 w-3.5" />
                         </button>
                     </div>
                 )}
+
                 {/* Price breakdown */}
-                <div className="px-4 py-3 space-y-2">
-                    <span className="text-xs font-bold uppercase tracking-widest text-gray-500 block">Price Summary</span>
-                    <div className="flex items-center justify-between text-sm text-gray-600">
+                <div className="px-6 py-4 space-y-3">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 block mb-1">Price Summary</span>
+                    <div className="flex items-center justify-between text-sm font-bold text-slate-600">
                         <span>{selectedPkg.name}</span>
-                        <span className="font-semibold">${selectedPkg.priceValue}</span>
+                        <span>{formatPrice(selectedPkg.priceValue)}</span>
                     </div>
                     {appliedVoucher && (
-                        <div className="flex items-center justify-between text-sm text-green-600">
+                        <div className="flex items-center justify-between text-sm font-bold text-emerald-600">
                             <span className="flex items-center gap-1.5">
                                 <Tag className="h-3.5 w-3.5" />
-                                Voucher ({appliedVoucher.code} · {appliedVoucher.discountPct}% off)
+                                Voucher ({appliedVoucher.code})
                             </span>
-                            <span className="font-semibold">−${discountAmt}</span>
+                            <span>−{formatPrice(discountAmt)}</span>
                         </div>
                     )}
-                    <div className="border-t border-gray-100 pt-2 flex items-center justify-between">
-                        <span className="font-bold text-gray-900">Total</span>
+                    <div className="border-t border-slate-100 pt-3 flex items-center justify-between">
+                        <span className="font-black text-slate-900">Total</span>
                         <div className="text-right">
                             {appliedVoucher && (
-                                <span className="text-xs text-gray-400 line-through mr-2">${selectedPkg.priceValue}</span>
+                                <span className="text-xs text-slate-300 line-through mr-2">{formatPrice(selectedPkg.priceValue)}</span>
                             )}
-                            <span className="text-xl font-black text-[var(--color-primary)]">${finalPrice}</span>
-                            <span className="text-xs text-gray-400 ml-1">{selectedPkg.priceNote}</span>
+                            <span className="text-2xl font-black text-[#4988c4] tracking-tighter">{formatPrice(finalPrice)}</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">{selectedPkg.priceNote}</span>
                         </div>
                     </div>
                 </div>
             </div>
+
             <VoucherSelectModal
                 open={modalOpen}
                 onClose={() => setModalOpen(false)}
@@ -120,28 +142,28 @@ export default function StepConfirm({
             />
 
             {/* Package hero card */}
-            <div className="rounded-2xl bg-gradient-to-br from-[var(--color-primary)] to-blue-600 p-5 text-white shadow-xl shadow-blue-200">
-                <div className="flex items-start justify-between gap-3 mb-3">
+            <div className="rounded-2xl bg-gradient-to-br from-[#4988c4] to-[#3a73a8] p-6 text-white shadow-xl shadow-[#4988c4]/20 relative overflow-hidden">
+                <div className="flex items-start justify-between gap-3 mb-4 relative z-10">
                     <div>
-                        <span className="text-xs font-semibold uppercase tracking-widest text-blue-200">Selected Package</span>
-                        <h4 className="text-xl font-black mt-0.5 leading-tight">{selectedPkg.name}</h4>
-                        <p className="text-blue-100 text-sm mt-1">{selectedPkg.description}</p>
+                        <span className="text-[9px] font-black uppercase tracking-widest text-white/60">Selected Package</span>
+                        <h4 className="text-2xl font-black mt-0.5 tracking-tight leading-none">{selectedPkg.name}</h4>
+                        <p className="text-white/80 text-xs mt-2 font-medium">{selectedPkg.description}</p>
                     </div>
                     <div className="text-right flex-shrink-0">
-                        <div className="text-3xl font-black">{selectedPkg.price}</div>
-                        <div className="text-blue-200 text-xs mt-0.5">{selectedPkg.priceNote}</div>
+                        <div className="text-3xl font-black tracking-tighter">{selectedPkg.price}</div>
+                        <div className="text-white/60 text-[10px] uppercase font-black tracking-widest mt-0.5">{selectedPkg.priceNote}</div>
                     </div>
                 </div>
                 {selectedPkg.badge && (
-                    <span className="inline-block bg-white/20 backdrop-blur-sm text-white text-xs font-bold px-2.5 py-1 rounded-full border border-white/30 mb-3">
+                    <span className="inline-block bg-white/10 backdrop-blur-md text-white text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-white/20 mb-4 relative z-10">
                         ★ {selectedPkg.badge}
                     </span>
                 )}
-                <div className="border-t border-white/20 pt-3">
-                    <ul className="space-y-1.5">
+                <div className="border-t border-white/10 pt-4 relative z-10">
+                    <ul className="space-y-2">
                         {selectedPkg.includes.map((inc) => (
-                            <li key={inc} className="flex items-center gap-2 text-sm text-blue-50">
-                                <span className="flex-shrink-0 h-4 w-4 rounded-full bg-white/25 flex items-center justify-center">
+                            <li key={inc} className="flex items-center gap-2 text-xs font-bold text-white/90">
+                                <span className="flex-shrink-0 h-4 w-4 rounded-full bg-white/20 flex items-center justify-center">
                                     <Check className="h-2.5 w-2.5 text-white" />
                                 </span>
                                 {inc}
@@ -151,80 +173,85 @@ export default function StepConfirm({
                 </div>
             </div>
 
-            {/* Schedule card */}
-            <div className="rounded-2xl border-2 border-blue-100 bg-blue-50/60 p-4">
-                <div className="flex items-center gap-2 mb-3">
-                    <CalendarDays className="h-4 w-4 text-[var(--color-primary)]" />
-                    <span className="text-xs font-bold uppercase tracking-widest text-[var(--color-primary)]">Schedule</span>
-                </div>
-                <div className="flex items-center gap-6">
-                    <div>
-                        <p className="text-xs text-gray-400 mb-0.5">Date</p>
-                        <p className="text-base font-bold text-gray-900">{form.scheduledDate}</p>
-                    </div>
-                    <div className="h-10 w-px bg-blue-200" />
-                    <div>
-                        <p className="text-xs text-gray-400 mb-0.5">Time</p>
-                        <div className="flex items-center gap-1.5">
-                            <Clock className="h-4 w-4 text-[var(--color-primary)]" />
-                            <p className="text-base font-bold text-gray-900">{form.scheduledTime}</p>
+            {/* Lower Grid for Info */}
+            <div className={`grid gap-6 ${isSidebar ? "grid-cols-1" : "md:grid-cols-2"}`}>
+                {/* Schedule card */}
+                {form.scheduledDate && (
+                    <div className={cardClass}>
+                        <div className={titleClass}>
+                            <CalendarDays className="h-3.5 w-3.5 text-[#4988c4]" /> Schedule
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Date</p>
+                                <p className="text-lg font-black text-slate-900 tracking-tight">{form.scheduledDate}</p>
+                            </div>
+                            <div className="h-8 w-px bg-slate-100" />
+                            <div>
+                                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Time</p>
+                                <div className="flex items-center gap-1.5">
+                                    <Clock className="h-3.5 w-3.5 text-[#4988c4]" />
+                                    <p className="text-lg font-black text-slate-900 tracking-tight">{form.scheduledTime}</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
+
+                {/* Contact Information */}
+                {form.customerName && (
+                    <div className={cardClass}>
+                        <div className={titleClass}>
+                            <User className="h-3.5 w-3.5 text-slate-400" /> Contact Info
+                        </div>
+                        <div className="space-y-2">
+                            <div className="flex justify-between">
+                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Name</span>
+                                <span className="text-sm font-bold text-slate-700">{form.customerName}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Phone</span>
+                                <span className="text-sm font-bold text-slate-700">{form.customerPhone}</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
 
-            {/* Contact & Address card */}
-            <div className="rounded-2xl border-2 border-gray-100 bg-gray-50/80 p-4 space-y-3">
-                <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-gray-500" />
-                    <span className="text-xs font-bold uppercase tracking-widest text-gray-500">Contact Information</span>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-white rounded-xl border border-gray-200 px-3 py-2.5">
-                        <p className="text-xs text-gray-400 mb-0.5">Full Name</p>
-                        <p className="font-semibold text-gray-900 text-sm">{form.customerName}</p>
+            {/* Address */}
+            {form.address && form.address.street && (
+                <div className={`${cardClass} space-y-2`}>
+                    <div className={titleClass}>
+                        <MapPin className="h-3.5 w-3.5 text-[#4988c4]" /> Address Location
                     </div>
-                    <div className="bg-white rounded-xl border border-gray-200 px-3 py-2.5">
-                        <p className="text-xs text-gray-400 mb-0.5">Phone</p>
-                        <p className="font-semibold text-gray-900 text-sm">{form.customerPhone}</p>
-                    </div>
-                    {form.customerEmail && (
-                        <div className="col-span-2 bg-white rounded-xl border border-gray-200 px-3 py-2.5">
-                            <p className="text-xs text-gray-400 mb-0.5">Email</p>
-                            <p className="font-semibold text-gray-900 text-sm">{form.customerEmail}</p>
-                        </div>
-                    )}
-                    <div className="col-span-2 bg-white rounded-xl border border-gray-200 px-3 py-2.5">
-                        <div className="flex items-center gap-1.5 mb-0.5">
-                            <MapPin className="h-3.5 w-3.5 text-gray-400" />
-                            <p className="text-xs text-gray-400">Address</p>
-                        </div>
-                        <p className="font-semibold text-gray-900 text-sm">
-                            {[form.address.street, form.address.ward, form.address.district, form.address.city]
-                                .filter(Boolean)
-                                .join(", ")}
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Notes */}
-            {form.notes && (
-                <div className="rounded-xl bg-amber-50 border-2 border-amber-200 p-4">
-                    <span className="text-xs font-bold uppercase tracking-widest text-amber-600 block mb-1.5">Notes</span>
-                    <p className="text-sm text-amber-800">{form.notes}</p>
+                    <p className="text-base font-black text-slate-900 tracking-tight">
+                        {[form.address.street, form.address.ward, form.address.district, form.address.city]
+                            .filter(Boolean)
+                            .join(", ")}
+                    </p>
                 </div>
             )}
 
-            {/* Confirmation notice */}
-            <div className="flex items-start gap-3 rounded-xl bg-green-50 border border-green-200 p-4">
-                <span className="flex-shrink-0 h-6 w-6 rounded-full bg-green-500 flex items-center justify-center mt-0.5">
-                    <Check className="h-3.5 w-3.5 text-white" />
-                </span>
-                <p className="text-sm text-green-800">
-                    Everything looks good! Press <strong>Confirm Booking</strong> below and we'll contact you to confirm your appointment.
-                </p>
-            </div>
+            {/* Notes */}
+            {form.notes && (
+                <div className="rounded-2xl border-2 border-amber-100 bg-amber-50/30 p-5">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600 block mb-1">Notes</span>
+                    <p className="text-sm text-amber-900 font-bold">{form.notes}</p>
+                </div>
+            )}
+
+            {/* Confirmation notice only if not sidebar, OR show simple green banner */}
+            {!isSidebar && (
+                <div className="flex items-center gap-4 rounded-2xl bg-emerald-50 border-2 border-emerald-100 p-5">
+                    <span className="flex-shrink-0 h-10 w-10 rounded-xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                        <Check className="h-5 w-5 text-white" />
+                    </span>
+                    <div>
+                        <p className="text-xs font-black uppercase tracking-widest text-emerald-800">Everything looks perfect!</p>
+                        <p className="text-[11px] text-emerald-600 font-bold mt-0.5">Press Confirm Booking to lock in your appointment.</p>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

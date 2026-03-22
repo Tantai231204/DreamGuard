@@ -48,7 +48,7 @@ export default function ProductDetail() {
 
   const isWishlisted = useMemo(() => {
     if (!favorites?.items || !product) return false;
-    return favorites.items.some((f: { productId: string }) => f.productId === product.id);
+    return favorites.items.some((f) => f.productId === product.id);
   }, [favorites, product]);
 
   const handleToggleWishlist = () => {

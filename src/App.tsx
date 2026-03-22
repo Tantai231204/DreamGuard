@@ -12,10 +12,13 @@ import { useAuthStore } from "./store/authStore";
 import { useCartStore } from "./store/useCart";
 
 function App() {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const { isAuthenticated, role } = useAuthStore();
   const prevAuth = useRef(isAuthenticated);
+  const isStaff = role && role !== "User";
 
   useEffect(() => {
+    if (isStaff) return; // Không đồng bộ giỏ hàng cho Staff/Admin
+
     // Determine Auth Transition state
     if (isAuthenticated && !prevAuth.current) {
       // Just logged in: merge guest cart
@@ -28,7 +31,7 @@ function App() {
       useCartStore.getState().syncWithServer();
     }
     prevAuth.current = isAuthenticated;
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isStaff]);
 
   return (
     <ErrorBoundary>

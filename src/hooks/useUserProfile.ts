@@ -1,13 +1,20 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import {
   getUserProfile,
-  updateUserProfile
+  updateUserProfile,
+  type UserProfile
 } from "../api/services/userProfile.service"
+import staffService from "@/api/services/staffService"
+import { useAuthStore } from "@/store/authStore"
+import type { StaffResponse } from "@/api/types/staff.types"
 
 export const useUserProfile = () => {
-  return useQuery({
-    queryKey: ["userProfile"],
-    queryFn: getUserProfile
+  const role = useAuthStore((state) => state.role);
+  const isStaff = role && role !== "User";
+
+  return useQuery<UserProfile | StaffResponse>({
+    queryKey: ["userProfile", role],
+    queryFn: isStaff ? () => staffService.getStaffProfile() : getUserProfile
   })
 }
 

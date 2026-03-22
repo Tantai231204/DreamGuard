@@ -141,16 +141,16 @@ export const ComboFilterSidebar: FC<ComboFilterSidebarProps> = ({ filters, onFil
                             <div className="flex-1 flex flex-col gap-1">
                                 <span className="text-[9px] font-bold text-slate-400 uppercase pl-1">Min</span>
                                 <div className="bg-slate-50 rounded-xl px-4 py-2 border border-slate-100 flex items-baseline gap-1 font-black">
-                                    <span className="text-[10px] text-slate-300 font-bold">$</span>
-                                    <span className="text-[14px] text-slate-700 tabular-nums">{priceRange[0]}</span>
+                                    <span className="text-[14px] text-slate-700 tabular-nums">{priceRange[0]}.000</span>
+                                    <span className="text-[10px] text-slate-300 font-bold">VNĐ</span>
                                 </div>
                             </div>
                             <div className="pt-4 text-slate-200">—</div>
                             <div className="flex-1 flex flex-col gap-1">
                                 <span className="text-[9px] font-bold text-slate-400 uppercase pl-1">Max</span>
                                 <div className="bg-slate-50 rounded-xl px-4 py-2 border border-slate-100 flex items-baseline gap-1 font-black">
-                                    <span className="text-[10px] text-slate-300 font-bold">$</span>
-                                    <span className="text-[14px] text-slate-700 tabular-nums">{priceRange[1]}</span>
+                                    <span className="text-[14px] text-slate-700 tabular-nums">{priceRange[1]}.000</span>
+                                    <span className="text-[10px] text-slate-300 font-bold">VNĐ</span>
                                 </div>
                             </div>
                         </div>

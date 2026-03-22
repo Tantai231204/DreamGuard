@@ -24,6 +24,7 @@ export function UserDropdownContent() {
         ...mockUser,
         name: resolvedName,
         email: profile?.email || mockUser.email,
+        avatarUrl: profile?.avatarUrl || "/images/logo_with_name.svg",
         points: 150,
         avatarUrl: profile?.avatarUrl || mockUser.avatarUrl || ""
     }

@@ -3,6 +3,7 @@ export interface UserProfile {
   lastName: string
   fullName?: string
   email: string
+  phoneNumber?: string
   dateOfBirth: string
   gender: string
   avatarUrl?: string

@@ -11,7 +11,6 @@ import {
     OrdersTab,
     ProfileInfoTab,
     ProfileSidebar,
-    ResellTab,
     SecurityTab,
     VouchersTab,
     WishlistTab
@@ -23,7 +22,6 @@ const TAB_COMPONENTS: Record<TabId, React.ComponentType> = {
     profile: ProfileInfoTab,
     babies: BabiesTab,
     orders: OrdersTab,
-    resell: ResellTab,
     wishlist: WishlistTab,
     vouchers: VouchersTab,
     addresses: AddressesTab,
