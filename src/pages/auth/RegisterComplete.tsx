@@ -54,22 +54,18 @@ export default function RegisterComplete() {
   const onSubmit = (data: FormData) => {
     if (!registerData) return;
 
-    // const payload = {
-    //   ...registerData,
-    //   ...data,
-    //   fullName: `${data.firstName.trim()} ${data.lastName.trim()}`,
-    // };
-
-    registerAccount(
-    {
+    const payload = {
       email: registerData.email,
       phoneNumber: registerData.phoneNumber,
-      firstName: data.firstName,
-      lastName: data.lastName,
+      firstName: data.firstName.trim(),
+      lastName: data.lastName.trim(),
+      fullName: `${data.firstName.trim()} ${data.lastName.trim()}`,
       password: data.password,
       gender: data.gender,
       dateOfBirth: data.dateOfBirth,
-    },
+    };
+
+    registerAccount(payload,
       {
         onSuccess: () => {
           toast.success("Registration Successful", {
