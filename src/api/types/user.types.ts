@@ -13,6 +13,7 @@ export interface UserProfile {
 export interface UpdateUserProfileRequest {
   firstName?: string;
   lastName?: string;
+  fullName?: string;
   phoneNumber?: string;
   dateOfBirth?: string;
   gender?: string;

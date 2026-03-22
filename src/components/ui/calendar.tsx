@@ -21,9 +21,9 @@ function Calendar({
       classNames={{
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0 relative",
         month: "space-y-4 relative",
-        month_caption: "flex justify-center pt-1 relative items-center h-9",
-        caption_label: "text-sm font-bold text-slate-900",
-        nav: "flex items-center justify-between absolute top-1.5 inset-x-0 z-10 px-1 pointer-events-none",
+        month_caption: "flex items-center justify-between px-3 py-2 bg-white border border-slate-200 rounded-lg shadow-sm",
+        caption_label: "text-base font-semibold text-slate-800",
+        nav: "flex items-center justify-between absolute top-1.5 inset-x-0 z-10 px-2 pointer-events-none",
         button_previous: cn(
           buttonVariants({ variant: "outline" }),
           "h-7 w-7 bg-white font-black p-0 border border-slate-200 shadow-sm hover:bg-slate-50 rounded-lg pointer-events-auto transition-all"

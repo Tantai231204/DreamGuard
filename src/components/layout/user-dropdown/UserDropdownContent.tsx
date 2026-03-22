@@ -14,11 +14,18 @@ export function UserDropdownContent() {
     const { mutate: logout } = useLogout()
     const { data: profile, isLoading } = useProfile()
 
+    const resolvedName = profile
+        ? profile.firstName || profile.lastName
+            ? `${profile.firstName || ""} ${profile.lastName || ""}`.trim()
+            : profile.fullName || mockUser.name
+        : mockUser.name
+
     const userData = {
         ...mockUser,
-        name: profile ? `${profile.firstName} ${profile.lastName}` : mockUser.name,
+        name: resolvedName,
         email: profile?.email || mockUser.email,
         points: 150,
+        avatarUrl: profile?.avatarUrl || mockUser.avatarUrl || ""
     }
 
     return (

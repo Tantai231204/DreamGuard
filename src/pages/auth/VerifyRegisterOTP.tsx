@@ -88,6 +88,7 @@ export default function VerifyRegisterOTP() {
 
       verifyOtp(
         {
+          email: registerData.email,
           phoneNumber: registerData.phoneNumber,
           otpCode: otpValue,
         },
@@ -99,8 +100,12 @@ export default function VerifyRegisterOTP() {
                 : AppRoute.REGISTER_COMPLETE
             );
           },
-          onError: () => {
-            setError("Invalid or expired OTP code");
+          onError: (err) => {
+            if (err instanceof Error && err.message) {
+              setError(err.message);
+            } else {
+              setError("Invalid or expired OTP code");
+            }
           },
         }
       );

@@ -61,8 +61,8 @@ export default function WishlistTab() {
                     <p className="text-sm text-gray-400 max-w-xs mx-auto mt-2 font-medium leading-relaxed">
                         Explore our collections and save your favorite items here.
                     </p>
-                    <Button variant="premium" size="premiumLg" className="relative mt-8">
-                        Start Shopping
+                    <Button variant="premium" size="premiumLg" className="relative mt-8" asChild>
+                        <a href="/products">Start Shopping</a>
                     </Button>
                 </div>
             )}

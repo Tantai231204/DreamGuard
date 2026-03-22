@@ -8,7 +8,8 @@ import type {
 import type { CustomAxiosRequestConfig } from "@/lib/api";
 
 export interface VerifyOtpRequest {
-  phoneNumber: string;
+  email?: string;
+  phoneNumber?: string;
   otpCode: string;
 }
 

@@ -1,5 +1,12 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ["Comfortaa", "system-ui", "sans-serif"],
+      },
+    },
+  },
   content: [
     './index.html',
     './src/**/*.{ts,tsx}',

@@ -39,11 +39,14 @@ export default function RegisterComplete() {
   const onSubmit = (data: FormData) => {
     if (!registerData) return;
 
+    const payload = {
+      ...registerData,
+      ...data,
+      fullName: `${data.firstName.trim()} ${data.lastName.trim()}`,
+    };
+
     registerAccount(
-      {
-        ...registerData,
-        ...data,
-      },
+      payload,
       {
         onSuccess: () => {
           toast.success("Registration Successful", {
@@ -75,7 +78,7 @@ export default function RegisterComplete() {
       </div>
 
       <h2 className="text-lg font-semibold text-center mb-6">
-        Complete Registration
+        Registration
       </h2>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

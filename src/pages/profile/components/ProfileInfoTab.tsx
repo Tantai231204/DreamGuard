@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/select"
 
 import { useProfile, useUpdateProfile } from "@/hooks/queries"
+// import { uploadUserAvatar } from "@/api/services/userProfile.service"
+import { uploadToCloudinary } from "@/lib/uploadCloudinary"
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { CalendarIcon } from "lucide-react"
@@ -29,30 +31,86 @@ export default function ProfileInfoTab() {
   const { mutate: updateProfile, isPending: isUpdating } = useUpdateProfile()
 
   const [isEditing, setIsEditing] = useState(false)
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [avatarPreview, setAvatarPreview] = useState("")
+
+  const [selectedYear, setSelectedYear] = useState<number | null>(null)
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null)
+  const [calendarStage, setCalendarStage] = useState<'year' | 'month' | 'day'>('year')
 
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
+    fullName: "",
     email: "",
     dateOfBirth: "",
-    gender: ""
+    gender: "",
+    avatarUrl: ""
   })
 
   const handleEdit = () => {
     if (!isEditing && profile) {
+      const profileFullName = profile.fullName?.trim() || ""
+      const fallbackFullName = `${profile.firstName || ""} ${profile.lastName || ""}`.trim()
+
       setFormData({
         firstName: profile.firstName || "",
         lastName: profile.lastName || "",
+        fullName: profileFullName || fallbackFullName,
         email: profile.email || "",
         dateOfBirth: profile.dateOfBirth || "",
-        gender: profile.gender || ""
+        gender: profile.gender || "",
+        avatarUrl: profile.avatarUrl || ""
       })
     }
     setIsEditing(!isEditing)
   }
 
-  const handleSave = () => {
-    updateProfile(formData, {
+  const handleSave = async () => {
+    let avatarUrl = formData.avatarUrl || profile?.avatarUrl || ""
+
+    // if (avatarFile) {
+    //   try {
+    //     const result = await uploadUserAvatar(avatarFile)
+    //     if (result?.avatarUrl) {
+    //       avatarUrl = result.avatarUrl
+    //     } else if (avatarPreview) {
+    //       // avatarUrl = avatarPreview
+    //       toast.warning("Upload endpoint not available. Using uploaded preview data (base64) as avatarUrl.")
+    //     }
+    //   } catch (err) {
+    //     console.error("Avatar upload error", err)
+    //     if (avatarPreview) {
+    //       avatarUrl = avatarPreview
+    //       toast.warning("Upload error, still using local preview data URL for avatar.")
+    //     } else {
+    //       toast.error("Avatar upload failed and no preview available, profile will continue without avatar update.")
+    //     }
+    //   }
+    // }
+
+    if (avatarFile) {
+  try {
+    const url = await uploadToCloudinary(avatarFile)
+    avatarUrl = url
+  } catch (err) {
+    console.error(err)
+    toast.error("Upload avatar failed")
+    return 
+  }
+}
+
+    const payload = {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      fullName: `${formData.firstName} ${formData.lastName}`.trim() || formData.fullName,
+      email: formData.email,
+      dateOfBirth: formData.dateOfBirth ? formData.dateOfBirth.slice(0, 10) : "",
+      gender: formData.gender,
+      avatarUrl,
+    }
+
+    updateProfile(payload, {
       onSuccess: () => {
         toast.success("Profile updated successfully")
         setIsEditing(false)
@@ -63,18 +121,52 @@ export default function ProfileInfoTab() {
     })
   }
 
-  const displayData = isEditing ? formData : {
-    firstName: profile?.firstName || "",
-    lastName: profile?.lastName || "",
-    email: profile?.email || "",
-    dateOfBirth: profile?.dateOfBirth || "",
-    gender: profile?.gender || ""
+  const handleAvatarChange = (file: File | null) => {
+    if (!file) return
+
+    setAvatarFile(file)
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      const dataUrl = reader.result as string
+      setAvatarPreview(dataUrl)
+      // setFormData((prev) => ({ ...prev, avatarUrl: dataUrl }))
+    }
+    reader.readAsDataURL(file)
   }
 
-  const fullName = `${displayData.firstName} ${displayData.lastName}`.trim() || "User"
-  const initials = displayData.firstName && displayData.lastName
-    ? `${displayData.firstName[0]}${displayData.lastName[0]}`.toUpperCase()
-    : (displayData.firstName?.[0] || "U").toUpperCase()
+  const profileFullName = profile?.fullName?.trim() || ""
+  const [firstNameFromFull = "", ...restFromFull] = profileFullName.split(" ").filter(Boolean)
+  const lastNameFromFull = restFromFull.join(" ")
+
+  const displayData = isEditing ? formData : {
+    firstName: profile?.firstName || firstNameFromFull || "",
+    lastName: profile?.lastName || lastNameFromFull || "",
+    fullName: profileFullName || `${profile?.firstName || ""} ${profile?.lastName || ""}`.trim() || "",
+    email: profile?.email || "",
+    dateOfBirth: profile?.dateOfBirth || "",
+    gender: profile?.gender || "",
+    avatarUrl: profile?.avatarUrl || ""
+  }
+
+  const yearOptions = Array.from({ length: new Date().getFullYear() - 1900 + 1 }, (_, i) => 1900 + i).reverse()
+  const monthOptions = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ]
+
+  const computedMonth = selectedYear !== null && selectedMonth !== null ? new Date(selectedYear, selectedMonth, 1) : undefined
+  const computedSelectedDay = displayData.dateOfBirth ? new Date(displayData.dateOfBirth) : undefined
+
+
+  const fullName = profileFullName || `${displayData.firstName} ${displayData.lastName}`.trim() || "User"
+  const initials = fullName
+    .split(" ")
+    .filter(Boolean)
+    .map((word: string) => word[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase() || "U"
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -87,14 +179,38 @@ export default function ProfileInfoTab() {
           <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
             <div className="flex flex-col sm:flex-row sm:items-end gap-5">
               <div className="relative h-28 w-28 rounded-[2.25rem] ring-4 ring-white shadow-lg overflow-hidden bg-white group/avatar">
+                <input
+                  id="avatar-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] || null
+                    handleAvatarChange(file)
+                  }}
+                />
+
                 <Avatar className="h-full w-full">
-                  <AvatarImage src={profile?.avatarUrl} alt={fullName} className="object-cover" />
+                  <AvatarImage
+                    src={
+                      avatarPreview ||
+                      formData.avatarUrl ||
+                      profile?.avatarUrl ||
+                      undefined
+                    }
+                    alt={fullName}
+                    className="object-cover"
+                  />
                   <AvatarFallback className="bg-slate-900 text-white text-2xl font-bold">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
                 {isEditing && (
-                  <button className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity">
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById("avatar-upload")?.click()}
+                    className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity"
+                  >
                     <CameraIcon className="w-5 h-5" />
                   </button>
                 )}
@@ -184,20 +300,105 @@ export default function ProfileInfoTab() {
                   >
                     <CalendarIcon className="h-4 w-4 text-slate-400" />
                     {displayData.dateOfBirth ? (
-                      format(new Date(displayData.dateOfBirth), "PPP")
+                      format(new Date(displayData.dateOfBirth), "yyyy-MM-dd")
                     ) : (
                       <span>Pick a date</span>
                     )}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 rounded-2xl border-slate-100 shadow-xl" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={displayData.dateOfBirth ? new Date(displayData.dateOfBirth) : undefined}
-                    onSelect={(date) => setFormData({ ...formData, dateOfBirth: date ? date.toISOString() : "" })}
-                    initialFocus
-                    disabled={!isEditing}
-                  />
+                <PopoverContent className="w-auto p-4 rounded-2xl border border-slate-200 shadow-xl" align="start">
+                  {calendarStage === 'year' && (
+                    <div className="max-h-72 overflow-auto grid gap-2 sm:grid-cols-4">
+                      {yearOptions.map((year) => (
+                        <button
+                          key={year}
+                          type="button"
+                          onClick={() => {
+                            setSelectedYear(year)
+                            setSelectedMonth(null)
+                            setCalendarStage('month')
+                          }}
+                          className={cn(
+                            'text-left px-3 py-2 rounded-lg border transition-all',
+                            selectedYear === year
+                              ? 'bg-primary/10 border-primary text-primary font-semibold'
+                              : 'bg-white border-slate-200 hover:bg-slate-100'
+                          )}
+                        >
+                          {year}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {calendarStage === 'month' && (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <button
+                          type="button"
+                          onClick={() => setCalendarStage('year')}
+                          className="text-sm text-slate-500 hover:text-slate-900"
+                        >
+                          Back to year
+                        </button>
+                        <span className="text-sm font-semibold">Year: {selectedYear}</span>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        {monthOptions.map((month, index) => (
+                          <button
+                            key={month}
+                            type="button"
+                            onClick={() => {
+                              setSelectedMonth(index)
+                              setCalendarStage('day')
+                            }}
+                            className={cn(
+                              'text-left px-3 py-2 rounded-lg border transition-all',
+                              selectedMonth === index
+                                ? 'bg-primary/10 border-primary text-primary font-semibold'
+                                : 'bg-white border-slate-200 hover:bg-slate-100'
+                            )}
+                          >
+                            {month}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {calendarStage === 'day' && selectedYear !== null && selectedMonth !== null && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between mb-2">
+                        <button
+                          type="button"
+                          onClick={() => setCalendarStage('month')}
+                          className="text-sm text-slate-500 hover:text-slate-900"
+                        >
+                          Back to month
+                        </button>
+                        <span className="text-sm font-semibold">{monthOptions[selectedMonth]} {selectedYear}</span>
+                      </div>
+
+                      <Calendar
+                        mode="single"
+                        month={computedMonth}
+                        selected={computedSelectedDay}
+                        onSelect={(date) => {
+                          if (!date) return
+                          // Lưu chính xác format năm-tháng-ngày
+                          setFormData({ ...formData, dateOfBirth: date.toISOString().slice(0, 10) })
+                          setCalendarStage('year')
+                          setSelectedYear(null)
+                          setSelectedMonth(null)
+                        }}
+                        fromYear={1900}
+                        toYear={new Date().getFullYear()}
+                        disabled={{ after: new Date() }}
+                        initialFocus
+                        className="!p-0"
+                      />
+                    </div>
+                  )}
                 </PopoverContent>
               </Popover>
             </div>

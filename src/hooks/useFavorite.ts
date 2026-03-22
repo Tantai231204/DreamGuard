@@ -62,7 +62,7 @@ export const useAddFavorite = () => {
     onError: (error: unknown, _productId, context) => {
       queryClient.setQueryData(["favorite-products"], context?.previousResponse)
       const err = error as { response?: { data?: { message?: string } } }
-      toast.error(err.response?.data?.message || "Failed to add to wishlist")
+      toast.error(err.response?.data?.message || "Failed to add to wishlist, please login first")
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["favorite-products"] })

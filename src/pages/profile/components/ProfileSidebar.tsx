@@ -59,7 +59,9 @@ const ProfileSidebar = ({ activeTab, onTabChange }: ProfileSidebarProps) => {
           </div>
 
           <h3 className="text-xl font-black text-slate-900 tracking-tight leading-tight mb-2">
-            {profile?.firstName ? `${profile.firstName} ${profile.lastName}` : "Exclusive Member"}
+            {profile?.firstName || profile?.lastName
+              ? `${profile.firstName || ""} ${profile.lastName || ""}`.trim()
+              : profile?.fullName || "Exclusive Member"}
           </h3>
 
           <div className="flex items-center gap-2 mb-6">
