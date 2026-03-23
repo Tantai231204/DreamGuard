@@ -13,9 +13,19 @@ interface OrderSidebarProps {
   technician?: Staff | null;
   scheduledDate: string | null | undefined;
   scheduledTime: string | null | undefined;
+  onAssign?: () => void;
 }
 
-export function OrderSidebar({ order, task, technician, scheduledDate, scheduledTime }: OrderSidebarProps) {
+import { memo } from 'react';
+
+export const OrderSidebar = memo(function OrderSidebar({ 
+  order, 
+  task, 
+  technician, 
+  scheduledDate, 
+  scheduledTime,
+  onAssign
+}: OrderSidebarProps) {
   return (
     <div className="space-y-6">
       {/* Customer & Address Card */}
@@ -40,7 +50,7 @@ export function OrderSidebar({ order, task, technician, scheduledDate, scheduled
             <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500">
               <MapPin className="h-3.5 w-3.5 text-red-500" /> Service Address
             </div>
-            <p className="text-xs text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-100">
+            <p className="text-xs text-slate-600 bg-slate-50 m-0 p-3 rounded-lg border border-slate-100">
               {order.address?.street || 'N/A'}
             </p>
           </div>
@@ -103,12 +113,15 @@ export function OrderSidebar({ order, task, technician, scheduledDate, scheduled
             )}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-8 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 text-center">
-            <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center mb-2">
-              <User className="h-5 w-5 text-slate-400" />
+          <button 
+            onClick={onAssign}
+            className="w-full h-full flex flex-col items-center justify-center py-8 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 text-center hover:bg-white hover:border-blue-400 group transition-all duration-300"
+          >
+            <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center mb-2 group-hover:bg-blue-50 transition-colors">
+              <User className="h-5 w-5 text-slate-400 group-hover:text-blue-500 transition-colors" />
             </div>
-            <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Assign Technician</span>
-          </div>
+            <span className="text-xs font-black text-slate-400 uppercase tracking-widest group-hover:text-blue-600 transition-colors">Assign Technician</span>
+          </button>
         )}
       </div>
 
@@ -160,4 +173,4 @@ export function OrderSidebar({ order, task, technician, scheduledDate, scheduled
       </div>
     </div>
   );
-}
+});

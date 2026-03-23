@@ -63,7 +63,7 @@ export const resolveAssetIcon = (name: string): ProductAssetIconKey => {
     return "PRODUCT_CATEGORIES";
 };
 
-export function useBookingData(selectedProducts: string[] = []) {
+export function useBookingData() {
     const { data: productTypesData, isLoading: isLoadingTypes } = useQuery({
         queryKey: ['productTypes_get_all'],
         queryFn: () => productTypeService.getAll({ pageSize: 100 })
@@ -75,8 +75,7 @@ export function useBookingData(selectedProducts: string[] = []) {
         queries: items.map((pt) => ({
             queryKey: ['product-mapping-booking', pt.productTypeId],
             queryFn: () => apiClient.get<ServicePackageMapping[]>(`/ProductTypes/${pt.productTypeId}/service-package-mapping`).then((res) => res.data),
-            staleTime: 60000,
-            enabled: selectedProducts.includes(pt.productTypeId)
+            staleTime: 60000
         }))
     });
 

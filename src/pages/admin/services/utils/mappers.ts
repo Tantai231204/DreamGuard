@@ -78,6 +78,7 @@ export const mapApiItemToServiceOrder = (item: AdminSearchOrderServiceItem): Ser
     staff: item.staff, // Consistent with API naming
     technician: item.staff, // Kept for backward compatibility in UI components
     serviceTask: item.serviceTask || item.task || item.orderTask || item.serviceOrderTask,
+    imageUrl: item.imageUrl || [],
     totalPrice: item.totalPrice || 0,
     notes: item.customerNote || "",
     createdAt: item.createdAt || "",

@@ -7,9 +7,10 @@ import VoucherSelectModal from "../VoucherSelectModal";
 import { formatPrice, formatDate } from "@/lib/utils";
 import { useBookingData, type ProductType, type ServiceTier } from "../useBookingData";
 import { ProductAssetIcons, type ProductAssetIconKey } from "@/components/common/icons";
+import { useWatch, type UseFormReturn } from "react-hook-form";
 
 interface StepConfirmProps {
-    form: BookingFormValues;
+    form: UseFormReturn<BookingFormValues>;
     appliedVoucher: Voucher | null;
     onApplyVoucher: (code: string) => "ok" | "invalid";
     onRemoveVoucher: () => void;
@@ -31,11 +32,16 @@ export default function StepConfirm({
     onPaymentChange,
     onClearDraft,
 }: StepConfirmProps) {
-    const { productTypes, getProductTierPrice } = useBookingData(form.selectedProducts || []);
+    const values = useWatch({ control: form.control });
+    const { productTypes, getProductTierPrice } = useBookingData();
     const [modalOpen, setModalOpen] = useState(false);
 
-    const totalBeforeVoucher = (form.items || []).reduce((sum, it) => {
-        return sum + getProductTierPrice(it.itemType, it.packageId) * it.quantity;
+    const items = (values.items as BookingFormValues['items']) || [];
+    const totalBeforeVoucher = items.reduce((sum, it) => {
+        const type = it.itemType || "";
+        const pkg = it.packageId || "";
+        const qty = it.quantity || 0;
+        return sum + getProductTierPrice(type, pkg) * qty;
     }, 0);
 
     const discountAmt = appliedVoucher
@@ -135,14 +141,17 @@ export default function StepConfirm({
                 <div className="px-6 py-4 space-y-3">
                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 block mb-1">Price Summary</span>
                     <div className="space-y-2">
-                        {(form.items || []).map((it, idx) => {
-                            const product = productTypes.find((p: ProductType) => p.id === it.itemType);
-                            const tier = product?.tiers.find((t: ServiceTier) => t.tierId === it.packageId);
-                            const price = getProductTierPrice(it.itemType, it.packageId);
+                        {items.map((it, idx) => {
+                            const type = it.itemType || "";
+                            const pkg = it.packageId || "";
+                            const qty = it.quantity || 0;
+                            const product = productTypes.find((p: ProductType) => p.id === type);
+                            const tier = product?.tiers.find((t: ServiceTier) => t.tierId === pkg);
+                            const price = getProductTierPrice(type, pkg);
                             return (
                                 <div key={idx} className="flex items-center justify-between text-sm font-bold text-slate-600">
-                                    <span>{product?.label || it.itemType} — {tier?.name || it.packageId} (x{it.quantity})</span>
-                                    <span>{formatPrice(price * it.quantity)}</span>
+                                    <span>{product?.label || type} — {tier?.name || pkg} (x{qty})</span>
+                                    <span>{formatPrice(price * qty)}</span>
                                 </div>
                             );
                         })}
@@ -184,7 +193,7 @@ export default function StepConfirm({
                         <div>
                             <span className="text-[9px] font-black uppercase tracking-widest text-white/60">Services Summary</span>
                             <h4 className="text-2xl font-black mt-0.5 tracking-tight leading-none">
-                                {(form.items || []).length} {(form.items || []).length === 1 ? "Item" : "Items"} Selected
+                                {items.length} {items.length === 1 ? "Item" : "Items"} Selected
                             </h4>
                         </div>
                         <div className="text-right flex-shrink-0">
@@ -193,7 +202,7 @@ export default function StepConfirm({
                         </div>
                     </div>
                     <div className="border-t border-white/10 pt-4 relative z-10 space-y-3">
-                        {(form.items || []).map((it, idx) => {
+                        {items.map((it, idx) => {
                             const product = productTypes.find((p: ProductType) => p.id === it.itemType);
                             const tier = product?.tiers.find((t: ServiceTier) => t.tierId === it.packageId);
                             const price = getProductTierPrice(it.itemType, it.packageId);
@@ -224,7 +233,7 @@ export default function StepConfirm({
             {/* Lower Grid for Info */}
             <div className={`grid gap-6 ${isSidebar ? "grid-cols-1" : "md:grid-cols-2"}`}>
                 {/* Schedule card */}
-                {!isSidebar && form.scheduledDate && (
+                {!isSidebar && values.scheduledDate && (
                     <div className={cardClass}>
                         <div className={titleClass}>
                             <div className="flex items-center gap-2">
@@ -237,18 +246,18 @@ export default function StepConfirm({
                         <div className="flex items-center justify-between gap-4">
                             <div>
                                 <p className="text-[11px] font-black uppercase tracking-widest text-slate-500 mb-1">Date</p>
-                                <p className="text-base font-black text-slate-900">{formatDate(form.scheduledDate)}</p>
+                                <p className="text-base font-black text-slate-900">{formatDate(values.scheduledDate)}</p>
                             </div>
                             <div className="text-right">
                                 <p className="text-[11px] font-black uppercase tracking-widest text-slate-500 mb-1">Time</p>
-                                <p className="text-base font-black text-slate-900">{form.scheduledTime}</p>
+                                <p className="text-base font-black text-slate-900">{values.scheduledTime}</p>
                             </div>
                         </div>
                     </div>
                 )}
 
                 {/* Contact Information */}
-                {!isSidebar && form.customerName && (
+                {!isSidebar && values.customerName && (
                     <div className={cardClass}>
                         <div className={titleClass}>
                             <div className="flex items-center gap-2">
@@ -261,11 +270,11 @@ export default function StepConfirm({
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
                                 <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">Name</span>
-                                <span className="text-sm font-bold text-slate-700">{form.customerName}</span>
+                                <span className="text-sm font-bold text-slate-700">{values.customerName}</span>
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">Phone</span>
-                                <span className="text-sm font-bold text-slate-700">{form.customerPhone}</span>
+                                <span className="text-sm font-bold text-slate-700">{values.customerPhone}</span>
                             </div>
                         </div>
                     </div>
@@ -273,7 +282,7 @@ export default function StepConfirm({
             </div>
 
             {/* Address */}
-            {!isSidebar && form.address && form.address.street && (
+            {!isSidebar && values.address && values.address.street && (
                 <div className={`${cardClass} space-y-2`}>
                     <div className={titleClass}>
                         <div className="flex items-center gap-2">
@@ -284,14 +293,14 @@ export default function StepConfirm({
                         )}
                     </div>
                     <p className="text-base font-black text-slate-900 tracking-tight">
-                        {[form.address.street, form.address.ward, form.address.district, form.address.city]
+                        {[values.address.street, values.address.ward, values.address.district, values.address.city]
                             .filter(Boolean)
                             .join(", ")}
                     </p>
-                    {form.notes && (
+                    {values.notes && (
                         <div className="mt-4 pt-4 border-t border-slate-100 border-dashed">
                             <p className="text-[11px] font-black uppercase tracking-widest text-slate-500 mb-1">Notes / Instructions</p>
-                            <p className="text-sm font-medium text-slate-700 leading-relaxed">{form.notes}</p>
+                            <p className="text-sm font-medium text-slate-700 leading-relaxed">{values.notes}</p>
                         </div>
                     )}
                 </div>

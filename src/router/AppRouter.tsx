@@ -77,8 +77,6 @@ export default function AppRouter() {
                         <Route path={AppRoute.CART} element={<CartPage />} />
                     </Route>
 
-                    <Route path={AppRoute.SERVICES_BOOKING} element={<ServicesBooking />} />
-                    <Route path={AppRoute.SERVICES_CUSTOMIZE} element={<ServicesCustomize />} />
 
                     <Route element={<AuthLayout />}>
                         <Route path={AppRoute.LOGIN} element={<Login />} />
@@ -97,6 +95,8 @@ export default function AppRouter() {
 
                     {/* Private User Routes */}
                     <Route element={<PrivateRoute />}>
+                        <Route path={AppRoute.SERVICES_BOOKING} element={<ServicesBooking />} />
+                        <Route path={AppRoute.SERVICES_CUSTOMIZE} element={<ServicesCustomize />} />
                         <Route element={<AppLayout variant="home" />}>
                             <Route path={AppRoute.PROFILE} element={<Profile />} />
                         </Route>
