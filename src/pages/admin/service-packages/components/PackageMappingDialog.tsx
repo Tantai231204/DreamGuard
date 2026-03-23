@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import {
     Dialog,
     DialogContent,
@@ -11,7 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Layers, CheckCircle2, Loader2, Link2, Banknote, HelpCircle } from 'lucide-react';
 import { useProductTypes } from '@/hooks/queries/useProductType';
-import servicePackageMappingService, { type ServicePackageMapping } from '@/api/services/servicePackageMappingService';
+import { usePackageMappings, useAssignMapping, useUpdateMapping } from '@/hooks/queries/useServicePackageMapping';
+import type { ServicePackageMapping } from '@/api/services/servicePackageMappingService';
 import type { ServicePackage } from '@/api/services/servicePackageService';
 import { useToast } from '@/hooks/useToast';
 import { ProductAssetIcons } from '@/components/common/icons';
@@ -53,21 +54,8 @@ function MappingRow({ productType, servicePackageId, existingMapping, onAssigned
         ? currentPrice !== existingMapping?.price
         : currentPrice !== '';
 
-    const assignMutation = useMutation({
-        mutationFn: (data: { productTypeId: string; servicePackageId: string; price: number }) =>
-            servicePackageMappingService.assign(data),
-        onSuccess: () => {
-            onAssigned();
-        }
-    });
-
-    const updateMutation = useMutation({
-        mutationFn: (data: { mappingId: string; price: number; duration: number; servicePackage: { packageName: string; duration: number; suitableFor: string; benefits: string; serviceContent: string } }) =>
-            servicePackageMappingService.update(data.mappingId, data),
-        onSuccess: () => {
-            onAssigned();
-        }
-    });
+    const assignMutation = useAssignMapping();
+    const updateMutation = useUpdateMapping();
 
     const handleAssign = async () => {
         if (typeof currentPrice !== 'number' || currentPrice <= 0) {
@@ -98,6 +86,7 @@ function MappingRow({ productType, servicePackageId, existingMapping, onAssigned
                 });
                 toast.success('Mapping Applied', 'Pricing successfully linked.');
             }
+            onAssigned();
             setLocalPrice('');
         } catch (e) {
             toast.error('Assignment Failed', (e as Error)?.message || 'Could not complete the binding.');
@@ -182,12 +171,7 @@ export default function PackageMappingDialog({ open, onOpenChange, pkg }: Packag
     const { data: ptData, isLoading: ptLoading } = useProductTypes({ pageSize: 500, isActive: true });
     const productTypes = useMemo(() => ptData?.items ?? [], [ptData]);
 
-    const { data: mappingsData, isLoading: mappingsLoading, refetch } = useQuery({
-        queryKey: ['service-package-mappings', pkg?.servicePackageId],
-        queryFn: () => servicePackageMappingService.getAll({ servicePackageId: pkg?.servicePackageId, pageSize: 200 }),
-        enabled: open && !!pkg,
-        placeholderData: (prev) => prev,
-    });
+    const { data: mappingsData, isLoading: mappingsLoading, refetch } = usePackageMappings(pkg?.servicePackageId, open);
 
     const currentMappings = useMemo(() => {
         const raw = mappingsData ?? [];

@@ -65,6 +65,7 @@ export const useAdminOrders = (params?: {
     return useQuery({
         queryKey: [...orderKeys.all, 'admin', params],
         queryFn: () => orderService.getAdminOrders(params),
+        staleTime: 0,
     });
 };
 

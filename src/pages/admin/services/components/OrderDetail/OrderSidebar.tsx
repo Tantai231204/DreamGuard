@@ -67,83 +67,96 @@ export function OrderSidebar({ order, task, technician, scheduledDate, scheduled
         </div>
       </div>
 
-      {/* Technicians & Billing */}
+      {/* Task Assignment Card */}
       <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
         <h3 className="text-sm font-black text-slate-500 uppercase tracking-wider flex items-center gap-2">
-          <Briefcase className="h-4 w-4 text-amber-500" /> Task Assignment
+          <Briefcase className="h-4 w-4 text-emerald-500" /> Technician Assigned
         </h3>
         <Separator className="bg-slate-100" />
         {technician ? (
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100/80">
-              <Avatar className="h-10 w-10 border border-white shadow-sm">
+              <Avatar className="h-12 w-12 border-2 border-white shadow-sm ring-1 ring-slate-100">
                 <AvatarImage src={technician.avatarUrl} />
-                <AvatarFallback className="bg-blue-600 text-white font-bold text-sm">
+                <AvatarFallback className="bg-blue-600 text-white font-black text-base">
                   {technician.fullName.charAt(0)}
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0 flex-1">
-                <p className="font-bold text-slate-800 text-sm flex items-center gap-1">
-                  {technician.fullName}
-                  <ShieldCheck className="h-3.5 w-3.5 text-blue-600" />
+                <div className="flex items-center justify-between gap-2">
+                   <p className="font-black text-slate-800 text-sm truncate">{technician.fullName}</p>
+                   <ShieldCheck className="h-4 w-4 text-blue-600 shrink-0" />
+                </div>
+                <p className="text-xs font-bold text-slate-400 mt-0.5 flex items-center gap-1">
+                   <Phone className="h-3 w-3" /> {technician.phoneNumber || 'N/A'}
                 </p>
-                <p className="text-xs text-slate-400"><Phone className="h-3 w-3 inline mr-1" />{technician.phoneNumber || 'N/A'}</p>
               </div>
             </div>
+
             {task && (
-              <div className="bg-slate-50 p-3 rounded-lg border border-slate-100/50 space-y-2 text-xs">
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-500">Status:</span>
-                  <Badge className="bg-blue-600 text-white border-0 font-bold px-2 rounded-full h-4 text-[10px]">{task.status || 'Active'}</Badge>
-                </div>
-                {task.staffNote && (
-                  <div className="border-t border-slate-200/40 pt-1.5 mt-1 flex flex-col gap-0.5 text-slate-600">
-                    <span className="text-slate-400 font-medium">Staff Note:</span>
-                    <span className="italic">{task.staffNote}</span>
-                  </div>
-                )}
+              <div className="flex items-center justify-between p-3 bg-blue-50/50 rounded-xl border border-blue-100/30">
+                <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Task Status</span>
+                <Badge className="bg-blue-600 text-white border-0 font-black px-2.5 rounded-full h-5 text-[10px] uppercase tracking-wide">
+                  {task.status || 'Active'}
+                </Badge>
               </div>
             )}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-6 text-amber-600 bg-amber-50/50 rounded-xl border border-dashed border-amber-200 text-center">
-            <AlertCircle className="h-5 w-5 mb-1 text-amber-500" />
-            <span className="text-xs font-bold text-amber-800">No Technician Assigned</span>
+          <div className="flex flex-col items-center justify-center py-8 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 text-center">
+            <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center mb-2">
+              <User className="h-5 w-5 text-slate-400" />
+            </div>
+            <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Assign Technician</span>
           </div>
         )}
       </div>
 
-      {/* Billing Card */}
+      {/* Billing & Notes Card */}
       <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
         <h3 className="text-sm font-black text-slate-500 uppercase tracking-wider flex items-center gap-2">
           <CreditCard className="h-4 w-4 text-sky-500" /> Billing Overview
         </h3>
         <Separator className="bg-slate-100" />
-        <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-100">
-          <div className="flex flex-col gap-1">
-            <span className="text-xs text-slate-400 font-medium">Payment Info</span>
-            <div className="flex gap-1.5 flex-wrap">
-              <AdminStatusBadge status={order.paymentStatus?.toLowerCase() || ''} />
-              {order.paymentMethod && order.paymentMethod?.toLowerCase() !== order.paymentStatus?.toLowerCase() && (
-                <AdminStatusBadge status={order.paymentMethod?.toLowerCase() || ''} />
-              )}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100/50 hover:bg-slate-100/50 transition-colors">
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Payment Info</span>
+              <div className="flex gap-1.5 flex-wrap">
+                <AdminStatusBadge status={order.paymentStatus?.toLowerCase() || ''} mode="payment" />
+                {order.paymentMethod && order.paymentMethod?.toLowerCase() !== order.paymentStatus?.toLowerCase() && (
+                  <AdminStatusBadge status={order.paymentMethod?.toLowerCase() || ''} />
+                )}
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest block mb-0.5">Payable</span>
+              <p className="text-lg font-black text-slate-800">{formatPrice(order.totalPrice || 0)}</p>
             </div>
           </div>
-          <div className="text-right">
-            <span className="text-xs text-slate-400 font-medium block">Total Payable</span>
-            <p className="text-xl font-black text-slate-800">{formatPrice(order.totalPrice || 0)}</p>
-          </div>
-        </div>
 
-        {order.notes && (
-          <div className="bg-amber-50/50 p-3 rounded-lg border border-amber-200/50 text-xs text-slate-600 flex items-start gap-1.5">
-            <AlertCircle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
-            <div>
-              <span className="font-bold text-slate-800 block mb-0.5">Customer Delivery Note:</span>
-              {order.notes}
+          {order.notes && (
+            <div className="bg-amber-50/30 p-3.5 rounded-xl border border-amber-100/50 flex flex-col gap-2 shadow-inner">
+              <div className="flex items-center gap-1.5 text-[10px] font-black text-amber-700 uppercase tracking-widest leading-none">
+                <AlertCircle className="h-3.5 w-3.5" /> Customer Note
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed italic">
+                "{order.notes}"
+              </p>
             </div>
-          </div>
-        )}
+          )}
+
+          {task?.staffNote && (
+            <div className="bg-sky-50/30 p-3.5 rounded-xl border border-sky-100/50 flex flex-col gap-2 shadow-inner">
+              <div className="flex items-center gap-1.5 text-[10px] font-black text-sky-700 uppercase tracking-widest leading-none">
+                 <Briefcase className="h-3.5 w-3.5" /> Staff Internal Note
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed italic">
+                 "{task.staffNote}"
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

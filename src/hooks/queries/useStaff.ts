@@ -12,6 +12,7 @@ export const useStaffs = (params: StaffParams = {}) => {
     return useQuery({
         queryKey: staffKeys.list(params),
         queryFn: () => staffService.getAllStaff(params),
+        staleTime: 0,
     });
 };
 

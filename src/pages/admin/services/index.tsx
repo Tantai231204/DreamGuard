@@ -1,4 +1,4 @@
-import { Sparkles, Plus, LayoutGrid, List, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Sparkles, Plus, LayoutGrid, List, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
@@ -6,6 +6,7 @@ import AdminPageHeader from '@/components/layout/AdminPageHeader';
 import { motion } from 'framer-motion';
 
 import { ServiceFilters, ServiceBookingCard, AssignTechnicianDialog, ServiceDetailDialog } from './components';
+import { GridSkeleton, TableSkeleton } from '@/components/common';
 import { useServiceManagement } from './hooks/useServiceManagement';
 
 type ViewMode = 'grid' | 'list';
@@ -99,9 +100,7 @@ export default function ServiceManagement() {
           {/* Bookings List */}
           <div className="flex-1 overflow-auto pr-1">
             {isLoading ? (
-              <div className="flex items-center justify-center py-20">
-                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-              </div>
+               viewMode === 'grid' ? <GridSkeleton count={8} /> : <TableSkeleton rows={10} columns={4} />
             ) : filteredBookings.length > 0 ? (
               <div
                 className={

@@ -263,7 +263,7 @@ export const ServiceDetailDialog = memo(function ServiceDetailDialog({
                       <div className="flex flex-col gap-1">
                         <span className="text-xs text-slate-400 font-medium font-sans">Payment Info</span>
                         <div className="flex gap-1.5 flex-wrap mt-0.5">
-                          <AdminStatusBadge status={order.paymentStatus?.toLowerCase()} />
+                          <AdminStatusBadge status={order.paymentStatus?.toLowerCase()} mode="payment" />
                           {order.paymentMethod && order.paymentMethod?.toLowerCase() !== order.paymentStatus?.toLowerCase() && (
                             <AdminStatusBadge status={order.paymentMethod?.toLowerCase()} />
                           )}

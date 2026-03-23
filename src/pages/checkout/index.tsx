@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import { useBreadcrumb } from "@/components/common/BreadcrumbNav"
+import { LoadingSpinner } from "@/components/common"
 import { useCart } from "@/store/useCart"
 import { AppRoute } from "@/lib/constants"
 import { CheckoutForm } from "./components/CheckoutForm"
@@ -47,10 +48,7 @@ export default function CheckoutPage() {
     if (cart.length === 0) {
         return (
             <div className="min-h-screen flex items-center justify-center">
-                <div className="flex flex-col items-center gap-4">
-                    <RefreshCcw className="w-8 h-8 text-[#4988c4] animate-spin" />
-                    <p className="text-xs font-black uppercase tracking-widest text-slate-400">Syncing your secure session...</p>
-                </div>
+                <LoadingSpinner size="md" text="Syncing your secure session..." />
             </div>
         )
     }

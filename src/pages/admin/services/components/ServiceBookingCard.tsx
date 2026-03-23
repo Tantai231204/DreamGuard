@@ -20,17 +20,6 @@ import type { ServiceBooking } from '../types';
 import { formatPrice, formatDate } from '@/lib/utils';
 import { useServiceBookingCard } from '../hooks/useServiceBookingCard';
 
-interface ServiceItemDetail {
-  id?: string;
-  name?: string;
-  packageName?: string;
-  servicePackageName?: string;
-  productTypeName?: string;
-  quantity?: number;
-  unitPrice?: number;
-  price?: number;
-}
-
 interface ServiceBookingCardProps {
   booking: ServiceBooking;
   onView?: (id: string) => void;
@@ -53,7 +42,6 @@ export const ServiceBookingCard = memo(function ServiceBookingCard({
     serviceTypeCfg,
     ServiceIcon,
     StatusIcon,
-    orderItems,
     fullAddress,
     handleView,
     handleEdit,
@@ -62,7 +50,6 @@ export const ServiceBookingCard = memo(function ServiceBookingCard({
     handleAssign,
     technician,
     task,
-    isDetailFetching,
   } = useServiceBookingCard({
     booking,
     onView,
@@ -178,55 +165,30 @@ export const ServiceBookingCard = memo(function ServiceBookingCard({
             </div>
           </div>
 
-          {/* Items breakdown list with fetching skeleton */}
-          <div className="bg-gray-50/80 rounded-xl p-3 text-xs text-gray-600 border border-gray-100 min-h-[4.5rem] flex flex-col justify-center">
-            {isDetailFetching && orderItems.length === 0 ? (
-              <div className="space-y-2">
-                <div className="h-3 bg-gray-200 rounded animate-pulse w-3/4" />
-                <div className="h-3 bg-gray-200 rounded animate-pulse w-1/2" />
-              </div>
-            ) : orderItems.length > 0 ? (
-              <div className="space-y-1">
-                {orderItems.slice(0, 2).map((item: ServiceItemDetail, idx: number) => (
-                  <div key={item.id || idx} className="flex justify-between items-center py-0.5">
-                    <span className="text-gray-600 font-medium truncate pr-2">
-                      {item.servicePackageName || item.name || 'Service Item'} ×{item.quantity || 1}
-                    </span>
-                    <span className="text-gray-900 font-bold tabular-nums shrink-0">
-                      {formatPrice(item.unitPrice || item.price || 0)}
-                    </span>
-                  </div>
-                ))}
-                {orderItems.length > 2 && (
-                  <p className="text-[10px] text-blue-600 font-bold mt-1">
-                    + {orderItems.length - 2} more items...
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div className="flex items-start gap-2">
-                <div className="mt-0.5 w-1 h-1 rounded-full bg-blue-400 shrink-0" />
-                <p className="line-clamp-2 italic leading-relaxed text-gray-400">
-                  {booking.notes || 'No customer notes provided'}
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Technician */}
+          {/* Customer Note Placeholder or spacer */}
+          {!booking.notes && <div className="h-2" />}
+          {booking.notes && (
+            <div className="bg-slate-50 p-2 rounded-lg text-[11px] text-slate-500 italic border border-slate-100 line-clamp-2">
+              <span className="font-bold text-slate-400 not-italic mr-1">Note:</span>
+              {booking.notes}
+            </div>
+          )}
+          {/* Technician & Task */}
           {technician ? (
-            <div className="flex items-center gap-2 p-2 bg-green-50 rounded-lg text-xs">
-              <Avatar className="h-6 w-6">
-                <AvatarImage src={technician.avatar} />
-                <AvatarFallback className="bg-green-600 text-white text-xs">
+            <div className="flex items-center gap-2 p-2 bg-green-50 rounded-lg text-xs border border-green-100/50">
+              <Avatar className="h-6 w-6 flex-shrink-0">
+                <AvatarImage src={technician.avatar || ""} />
+                <AvatarFallback className="bg-green-600 text-white text-[10px] font-bold">
                   {technician.name.charAt(0)}
                 </AvatarFallback>
               </Avatar>
-              <span className="text-gray-700 flex-1 truncate">{technician.name}</span>
-              <Star className="h-3 w-3 text-yellow-500 fill-yellow-500" />
-              <span className="text-gray-600">{technician.rating}</span>
+              <span className="text-gray-900 font-bold truncate flex-1">{technician.name}</span>
+              <div className="flex items-center gap-0.5 mr-2">
+                <Star className="h-2.5 w-2.5 text-yellow-500 fill-yellow-500" />
+                <span className="text-[10px] text-gray-700 font-bold">{technician.rating}</span>
+              </div>
               {task && (
-                <Badge variant="outline" className="ml-auto text-[10px] h-4 px-1 bg-sky-50 text-sky-700 border-sky-200">
+                <Badge variant="outline" className="ml-auto text-[9px] h-4 px-1.5 uppercase tracking-tighter bg-white text-green-700 border-green-200 font-black">
                   {task.status}
                 </Badge>
               )}
@@ -243,7 +205,7 @@ export const ServiceBookingCard = memo(function ServiceBookingCard({
             <div className="flex items-center gap-2">
               <AdminStatusBadge
                 status={booking.paymentStatus}
-                mode="status"
+                mode="payment"
               />
               {booking.paymentMethod && (
                 <AdminStatusBadge

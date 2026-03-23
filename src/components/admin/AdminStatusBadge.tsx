@@ -7,7 +7,7 @@ export type StatusType = 'success' | 'warning' | 'danger' | 'info' | 'neutral';
 interface AdminStatusBadgeProps {
   status: string;
   type?: StatusType;
-  mode?: 'status' | 'method'; // Explicitly set mode to avoid ambiguity
+  mode?: 'status' | 'method' | 'payment'; // Explicitly set mode to avoid ambiguity
   className?: string;
   dot?: boolean;
 }
@@ -148,6 +148,15 @@ const PAYMENT_CONFIG: Record<string, { container: string, textColor: string, ico
   },
 };
 
+const PAYMENT_STATUS_MAP: Record<string, { type: StatusType, label: string, icon: React.ElementType }> = {
+  '0': { type: 'warning', label: 'Pending Payment', icon: Clock4 },
+  '1': { type: 'success', label: 'Paid', icon: Check },
+  '2': { type: 'danger', label: 'Payment Failed', icon: X },
+  '3': { type: 'neutral', label: 'COD (Collect on Delivery)', icon: Clock4 },
+  '4': { type: 'success', label: 'COD Paid', icon: Check },
+  'cod': { type: 'neutral', label: 'COD Unpaid', icon: Clock4 },
+};
+
 import { RotateCcw } from "lucide-react";
 
 export function AdminStatusBadge({
@@ -164,7 +173,7 @@ export function AdminStatusBadge({
   let payConfig = null;
   const isStrictMethod = normalizedStatus === 'vnpay' || normalizedStatus === 'cod';
 
-  if (mode !== 'status') {
+  if (mode !== 'status' && mode !== 'payment') {
     payConfig = PAYMENT_CONFIG[normalizedStatus];
     if (!payConfig && (mode === 'method' || isStrictMethod)) {
       if (normalizedStatus.startsWith('vnpay')) payConfig = PAYMENT_CONFIG['vnpay'];
@@ -172,11 +181,18 @@ export function AdminStatusBadge({
     }
   }
 
-  const finalType = type || STATUS_MAP[normalizedStatus] || 'neutral';
-  const config = TYPE_CONFIG[finalType];
+  let finalType = type || STATUS_MAP[normalizedStatus] || 'neutral';
+  let Icon = ICON_MAP[normalizedStatus] || TYPE_CONFIG[finalType as StatusType]?.icon;
+  let displayLabel = status;
 
-  // Decide Icon based on status keyword or fallback to config default
-  const Icon = ICON_MAP[normalizedStatus] || config.icon;
+  if (mode === 'payment' && PAYMENT_STATUS_MAP[normalizedStatus]) {
+    const cfg = PAYMENT_STATUS_MAP[normalizedStatus];
+    displayLabel = cfg.label;
+    finalType = cfg.type;
+    Icon = cfg.icon;
+  }
+
+  const config = TYPE_CONFIG[finalType as StatusType];
 
   const containerClass = payConfig?.container || config.container;
   const textClass = payConfig?.textColor || config.textColor;
@@ -206,7 +222,7 @@ export function AdminStatusBadge({
           )}
         </div>
       )}
-      <span className="leading-none">{status || 'Unknown'}</span>
+      <span className="leading-none">{displayLabel || 'Unknown'}</span>
     </div>
   );
 }

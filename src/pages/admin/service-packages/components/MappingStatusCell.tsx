@@ -1,18 +1,7 @@
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import apiClient from '@/lib/api';
+import { useAllPackageMappings } from '@/hooks/queries/useServicePackageMapping';
 import { CategoryBadge } from '@/components/common';
 import type { ServicePackage } from '@/api/services/servicePackageService';
-
-const fetchAllPackageMappings = async () => {
-    try {
-        const res = await apiClient.get(`/ServicePackageMappings`, { params: { pageSize: 1000 } });
-        const allData = res.data?.data ?? res.data;
-        return Array.isArray(allData) ? allData : (allData?.items ?? []);
-    } catch {
-        return [];
-    }
-};
 
 interface MappingStatusCellProps {
     pkg: ServicePackage;
@@ -23,11 +12,7 @@ export const MappingStatusCell = ({ pkg, productTypes }: MappingStatusCellProps)
     const rawValue = pkg.suitableFor || '';
     const suitableArray = useMemo(() => rawValue.split(',').map(s => s.trim().toLowerCase()).filter(Boolean), [rawValue]);
 
-    const { data: allMappings = [], isLoading } = useQuery({
-        queryKey: ['all-service-package-mappings-global'],
-        queryFn: fetchAllPackageMappings,
-        staleTime: 60000,
-    });
+    const { data: allMappings = [], isLoading } = useAllPackageMappings();
 
     const mappingsForPackage = useMemo(() => {
         return allMappings.filter((m: { servicePackageId: string }) => m.servicePackageId === pkg.servicePackageId);

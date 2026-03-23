@@ -53,7 +53,7 @@ export function PaymentDetailSheet({ id, onClose }: PaymentDetailSheetProps) {
                         </div>
                         <div className="flex flex-col items-end gap-1.5">
                             {payment && !isLoading && (
-                                <AdminStatusBadge status={payment.status} />
+                                <AdminStatusBadge status={payment.status} mode="payment" />
                             )}
                         </div>
                     </div>
