@@ -1,9 +1,31 @@
 import {
-  Camera, CheckCircle2,
-  Clock, Briefcase, BookOpen
+  useState,
+  memo,
+  useMemo,
+  useCallback
+} from 'react';
+import {
+  ChevronDown,
+  ChevronUp,
+  ChevronLeft,
+  ChevronRight,
+  Maximize2,
+  Eye,
+  Clock,
+  BookOpen,
+  Image as ImageIcon,
+  CheckCircle2,
+  Camera,
+  Briefcase,
 } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { formatPrice } from '@/lib/utils';
 import type { UseQueryResult } from '@tanstack/react-query';
 import type { ExtendedServiceItemDetail, TaskDetail, ServicePackageMappingResponse } from './types';
@@ -12,200 +34,291 @@ interface OrderItemsAreaProps {
   orderItems: ExtendedServiceItemDetail[];
   mappingQueries: UseQueryResult<ServicePackageMappingResponse, Error>[];
   task?: TaskDetail;
+  customerAssets?: string[];
 }
 
-export function OrderItemsArea({ orderItems, mappingQueries, task }: OrderItemsAreaProps) {
-  return (
-    <div className="space-y-8">
-      {/* Professional Service Packages */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-        <h3 className="text-sm font-black text-slate-700 uppercase tracking-wider flex items-center gap-2">
-          <BookOpen className="h-4 w-4 text-blue-500" /> Professional Service Packages
-        </h3>
-        <Separator className="bg-slate-50" />
+export const OrderItemsArea = memo(function OrderItemsArea({ 
+  orderItems, 
+  mappingQueries, 
+  task, 
+  customerAssets 
+}: OrderItemsAreaProps) {
+  const [showAllPackages, setShowAllPackages] = useState(false);
+  const [viewerData, setViewerData] = useState<{ images: string[], index: number } | null>(null);
 
-        <div className="flex flex-col gap-4">
-          {orderItems.map((item, index) => {
+  const { displayedItems, remainingPackagesCount } = useMemo(() => ({
+    displayedItems: showAllPackages ? orderItems : orderItems.slice(0, 2),
+    remainingPackagesCount: Math.max(0, orderItems.length - 2)
+  }), [showAllPackages, orderItems]);
+
+  // Optimized Evidence Image Collector
+  const evidenceImages = useMemo(() => [
+    task?.checkInImage || task?.checkinImage || task?.checkinUrl || task?.checkInUrl,
+    task?.checkOutImage || task?.checkoutImage || task?.checkoutUrl || task?.checkOutUrl,
+    ...(task?.evidences || []).map(ev => ev.imageUrl || ev.imageURL || ev.url || ev.photoUrl)
+  ].filter(Boolean) as string[], [task]);
+
+  const handleNext = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setViewerData(prev => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        index: (prev.index + 1) % prev.images.length
+      };
+    });
+  }, []);
+
+  const handlePrev = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setViewerData(prev => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        index: (prev.index - 1 + prev.images.length) % prev.images.length
+      };
+    });
+  }, []);
+
+  return (
+    <div className="space-y-6">
+      {/* PROFESSIONAL SERVICE PACKAGES */}
+      <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-5">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
+            <BookOpen className="h-4 w-4 text-blue-600" /> PROFESSIONAL SERVICE PACKAGES
+          </h3>
+          <Badge variant="secondary" className="text-[10px] font-bold text-blue-600 bg-blue-50 border-none rounded-full h-6 px-3">
+            {orderItems.length} {orderItems.length > 1 ? 'Services' : 'Service'} Selected
+          </Badge>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          {(displayedItems as ExtendedServiceItemDetail[]).map((item: ExtendedServiceItemDetail, index) => {
             const mappingData = mappingQueries[index]?.data;
             const isLoadingMapping = mappingQueries[index]?.isLoading;
+            const benefits = mappingData?.servicePackage?.benefits?.split('\r\n') || [];
 
             return (
-              <div key={item.servicePackageMappingId} className="flex items-center gap-4 p-3 bg-slate-50/50 rounded-2xl border border-slate-100 hover:bg-white hover:border-blue-200 transition-all group hover:shadow-md">
-                <div className="relative h-24 w-36 rounded-xl overflow-hidden shadow-inner border border-slate-200 flex-shrink-0 bg-white">
+              <div key={item.servicePackageMappingId || index} className="flex flex-col lg:flex-row gap-4 p-3.5 bg-white rounded-2xl border border-slate-100 hover:border-blue-200 transition-all group hover:shadow-sm relative items-center">
+
+                {/* Compact Visual Thumbnail */}
+                <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-slate-50 bg-slate-50 flex-shrink-0 shadow-sm transition-transform group-hover:scale-105 duration-300">
                   {mappingData?.servicePackage?.imageUrl ? (
-                    <img src={mappingData.servicePackage.imageUrl} alt="Package" className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105" />
+                    <img src={mappingData.servicePackage.imageUrl} alt="Pkg" className="w-full h-full object-contain mix-blend-multiply transition-all" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-blue-50/30">
-                      <BookOpen className="h-8 w-8 text-blue-200" />
-                    </div>
+                    <BookOpen className="h-6 w-6 text-slate-300" />
                   )}
-                  <div className="absolute top-1.5 right-1.5">
-                    <Badge className="bg-blue-600 text-white border-none font-black text-[10px] px-2 h-5 shadow-lg">
-                      {item.quantity || 1}x
-                    </Badge>
+                  {/* Compact Quantity Badge */}
+                  <div className="absolute top-1 right-1 flex items-center justify-center h-4 w-4 rounded-full bg-blue-600 text-white font-black text-[8px] shadow-sm ring-1 ring-white z-10">
+                    {item.quantity || 1}
                   </div>
                 </div>
 
-                <div className="flex-1 min-w-0 pr-2 py-1">
-                  <div className="flex items-start justify-between gap-4 mb-2">
-                    <div className="space-y-0.5">
-                      <p className="text-sm font-black text-slate-900">
-                        {mappingData?.servicePackage?.packageName || item.servicePackageName || (isLoadingMapping ? 'Fetching...' : 'Standard Package')}
-                      </p>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="bg-blue-50 text-blue-600 border-none text-[9px] font-black uppercase tracking-wider h-4 px-1.5">
-                          {mappingData?.productType?.productTypeName || item.productTypeName}
-                        </Badge>
-                        <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
-                          <Clock className="h-2.5 w-2.5" />
-                          {mappingData?.duration || mappingData?.servicePackage?.duration || '--'} mins
-                        </span>
-                      </div>
+                {/* Streamlined Content Area */}
+                <div className="flex-1 min-w-0 flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <h4 className="text-sm font-black text-slate-800 truncate uppercase tracking-tight">
+                        {mappingData?.servicePackage?.packageName || item.servicePackageName || (isLoadingMapping ? 'Synching...' : 'Standard Package')}
+                      </h4>
+                      <Badge variant="secondary" className="bg-slate-100 text-slate-500 border-none text-[8px] font-black uppercase tracking-widest h-5 px-2 rounded-full hidden sm:flex shrink-0">
+                        {mappingData?.productType?.productTypeName || item.productTypeName}
+                      </Badge>
                     </div>
-                    <p className="text-base font-black text-blue-600 tabular-nums">
+                    <p className="text-sm font-black text-blue-600 tabular-nums shrink-0 uppercase tracking-tighter">
                       {formatPrice(mappingData?.price ?? item.unitPrice ?? 0)}
                     </p>
                   </div>
 
-                  {/* Package Benefits/Tasks */}
-                  <div className="bg-slate-100/30 p-2 rounded-xl border border-slate-200/50">
-                    <div className="flex flex-wrap gap-x-4 gap-y-1.5">
-                      {(mappingData?.servicePackage?.benefits?.split('\r\n') || []).slice(0, 3).map((benefit, bIdx) => (
-                        <div key={bIdx} className="flex items-center gap-1.5 text-[10px] text-slate-500 font-bold">
-                          <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-                          {benefit}
-                        </div>
-                      ))}
-                      {(!mappingData?.servicePackage?.benefits && mappingData?.servicePackage?.serviceContent) && (
-                        <div className="text-[10px] text-slate-500 font-medium italic line-clamp-2">
-                          {mappingData.servicePackage.serviceContent}
-                        </div>
-                      )}
+                  <div className="flex items-center flex-wrap gap-x-4 gap-y-1.5">
+                    <div className="flex items-center gap-1.5 text-slate-400 font-bold text-[10px]">
+                      <Clock className="h-3 w-3 text-slate-300" />
+                      <span>{mappingData?.duration || mappingData?.servicePackage?.duration || '30'} mins</span>
                     </div>
+
+                    {/* Inline Minimal Benefits */}
+                    {benefits.length > 0 && (
+                      <div className="flex flex-wrap gap-x-3 gap-y-1.5 items-center border-l border-slate-100 pl-4 ml-0.5">
+                        {benefits.map((b, bIdx) => (
+                          <div key={bIdx} className="flex items-center gap-1 text-[9px] text-slate-500 font-medium leading-none">
+                            <CheckCircle2 className="h-2.5 w-2.5 text-emerald-500 shrink-0" />
+                            <span>{b}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             );
           })}
         </div>
+
+        {remainingPackagesCount > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowAllPackages(!showAllPackages)}
+            className="w-full h-11 rounded-2xl bg-slate-50 text-slate-500 hover:bg-slate-100 hover:text-blue-600 font-black uppercase text-[10px] tracking-widest gap-2 transition-all border border-dashed border-slate-200"
+          >
+            {showAllPackages ? (
+              <> <ChevronUp className="h-4 w-4" /> SHOW SUMMARIZED LIST </>
+            ) : (
+              <> <ChevronDown className="h-4 w-4" /> VIEW {remainingPackagesCount} MORE PACKAGES </>
+            )}
+          </Button>
+        )}
       </div>
 
-      {/* Task Validation Evidence */}
-      {task && (
-        <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-6">
+      {/* REFERENCE ASSETS */}
+      {customerAssets && customerAssets.length > 0 && (
+        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-6">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-black text-slate-700 uppercase tracking-wider flex items-center gap-2">
-              <Camera className="h-4 w-4 text-blue-500" /> Validation Evidence
+            <h3 className="text-sm font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
+              <ImageIcon className="h-4 w-4 text-sky-500" /> REFERENCE ASSETS
             </h3>
-            <Badge variant="outline" className="text-[10px] font-bold text-slate-400 border-slate-200">
-              Visual Proof of Completion
+            <Badge variant="outline" className="text-[10px] font-bold text-slate-400 border-slate-200 rounded-full h-6 px-3">
+              {customerAssets.length} Documents
             </Badge>
           </div>
-          <Separator className="bg-slate-50" />
 
-          {/* Check-In/Out Evidence Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Check-In Section */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Entry Check-In</span>
-                {task.checkIn && (
-                  <Badge className="bg-blue-50 text-blue-700 border-blue-100 font-bold text-[10px] flex items-center gap-1 px-2 py-0.5">
-                    <Clock className="h-3 w-3" /> {task.checkIn}
-                  </Badge>
-                )}
-              </div>
-
-              <div className="relative group">
-                <div className="aspect-[4/3] rounded-2xl overflow-hidden shadow-sm border-4 border-slate-50 ring-1 ring-slate-100 bg-slate-50 flex items-center justify-center transition-all duration-300 group-hover:shadow-lg">
-                  {task.checkInImage || task.checkinImage || task.checkinUrl || task.checkInUrl ? (
-                    <img src={task.checkInImage || task.checkinImage || task.checkinUrl || task.checkInUrl || ""} alt="Check-In" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                  ) : (
-                    <div className="flex flex-col items-center gap-2 opacity-30 grayscale group-hover:opacity-50 transition-opacity">
-                      <Camera className="h-10 w-10 text-slate-400" />
-                      <span className="text-[10px] font-bold uppercase tracking-widest italic">No entry proof</span>
-                    </div>
-                  )}
+          <div className="flex flex-wrap gap-3">
+            {customerAssets.map((url, idx) => (
+              <div
+                key={idx}
+                onClick={() => setViewerData({ images: customerAssets, index: idx })}
+                className="relative group w-16 h-16 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-slate-50 border border-slate-100 cursor-zoom-in transition-all"
+              >
+                <img
+                  src={url}
+                  alt={`c-asset-${idx}`}
+                  className="w-full h-full object-cover transition-opacity group-hover:opacity-80"
+                />
+                <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <Eye className="h-5 w-5 text-slate-600" />
                 </div>
               </div>
-            </div>
+            ))}
+          </div>
+        </div>
+      )}
 
-            {/* Check-Out Section */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Exit Check-Out</span>
-                {task.checkOut && (
-                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-100 font-bold text-[10px] flex items-center gap-1 px-2 py-0.5">
-                    <CheckCircle2 className="h-3 w-3" /> {task.checkOut}
-                  </Badge>
-                )}
-              </div>
-
-              <div className="relative group">
-                <div className="aspect-[4/3] rounded-2xl overflow-hidden shadow-sm border-4 border-slate-50 ring-1 ring-slate-100 bg-slate-50 flex items-center justify-center transition-all duration-300 group-hover:shadow-lg">
-                  {task.checkOutImage || task.checkoutImage || task.checkoutUrl || task.checkOutUrl ? (
-                    <img src={task.checkOutImage || task.checkoutImage || task.checkoutUrl || task.checkOutUrl || ""} alt="Check-Out" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                  ) : (
-                    <div className="flex flex-col items-center gap-2 opacity-30 grayscale group-hover:opacity-50 transition-opacity">
-                      <CheckCircle2 className="h-10 w-10 text-slate-400" />
-                      <span className="text-[10px] font-bold uppercase tracking-widest italic">No exit proof</span>
-                    </div>
-                  )}
-                </div>
-              </div>
+      {/* VALIDATION EVIDENCE */}
+      {task && (
+        <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-black text-slate-700 uppercase tracking-widest flex items-center gap-2">
+              <Camera className="h-4 w-4 text-blue-500" /> VALIDATION EVIDENCE
+            </h3>
+            <div className="flex gap-2">
+              <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 border-none font-bold text-[10px]">
+                Completed {task.checkOut || 'N/A'}
+              </Badge>
             </div>
           </div>
 
-          {/* New: Extended Evidence Gallery */}
-          {task.evidences && task.evidences.length > 0 && (
-            <>
-              <Separator className="bg-slate-50" />
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest leading-none">
-                    Additional Progress Evidence ({task.evidences.length})
-                  </span>
+          <div className="space-y-4">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Performance & Result Proof</span>
+            <div className="flex flex-wrap gap-3">
+              {/* Check-In/Out Thumbnails */}
+              {[
+                { url: task.checkInImage || task.checkinImage || task.checkinUrl || task.checkInUrl, label: 'Entry' },
+                { url: task.checkOutImage || task.checkoutImage || task.checkoutUrl || task.checkOutUrl, label: 'Exit' }
+              ].map((img, i) => img.url && (
+                <div
+                  key={`fixed-${i}`}
+                  onClick={() => setViewerData({ images: evidenceImages, index: i })}
+                  className="relative group w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-slate-50 border border-slate-100 cursor-zoom-in transition-all"
+                >
+                  <img src={img.url} alt={img.label} className="w-full h-full object-cover transition-opacity group-hover:opacity-80" />
+                  <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <span className="text-[8px] font-black text-slate-600 uppercase">{img.label}</span>
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                  {task.evidences.map((ev, idx) => (
-                    <div key={ev.seId || idx} className="space-y-2 group/ev">
-                      <div className="aspect-square rounded-2xl overflow-hidden shadow-sm border-2 border-slate-50 ring-1 ring-slate-100 bg-slate-50 relative">
-                        <img src={ev.imageUrl || ev.imageURL || ev.url || ev.photoUrl || ""} alt={ev.description} className="w-full h-full object-cover transition-transform duration-500 group-hover/ev:scale-110" />
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/ev:opacity-100 transition-opacity flex flex-col items-center justify-center p-3 text-center backdrop-blur-[2px]">
-                          <Camera className="h-4 w-4 text-white/80 mb-1.5" />
-                          <p className="text-[9px] text-white font-bold leading-tight">{ev.description || 'Service detail'}</p>
-                        </div>
-                      </div>
-                      <div className="px-1 flex items-center justify-between gap-2">
-                        <span className="text-[8px] font-black text-blue-600 uppercase tracking-tighter bg-blue-50 px-1 rounded truncate">
-                          {ev.evidenceType || 'Progress'}
-                        </span>
-                        <span className="text-[8px] font-medium text-slate-300 truncate">
-                          {new Date(ev.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
+              ))}
+
+              {/* Additional Evidence Gallery */}
+              {(task.evidences || []).map((ev, idx) => (
+                <div
+                  key={ev.seId || idx}
+                  onClick={() => {
+                    const offset = (task.checkInImage || task.checkinImage || task.checkinUrl || task.checkInUrl ? 1 : 0) +
+                      (task.checkOutImage || task.checkoutImage || task.checkoutUrl || task.checkOutUrl ? 1 : 0);
+                    setViewerData({ images: evidenceImages, index: offset + idx });
+                  }}
+                  className="relative group w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-slate-50 border border-slate-100 cursor-zoom-in transition-all"
+                >
+                  <img src={ev.imageUrl || ev.imageURL || ev.url || ev.photoUrl || ""} alt="ev" className="w-full h-full object-cover transition-opacity group-hover:opacity-80" />
+                  <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-1">
+                    <Maximize2 className="h-3 w-3 text-slate-600" />
+                    <span className="text-[7px] text-slate-500 font-bold uppercase truncate w-full text-center px-1">{ev.evidenceType || 'Detail'}</span>
+                  </div>
                 </div>
-              </div>
-            </>
-          )}
+              ))}
+            </div>
+          </div>
 
           {task.staffNote && (
-            <>
-              <Separator className="bg-slate-100" />
-              <div className="bg-blue-50/30 p-4 rounded-xl border border-blue-100/50">
-                <div className="flex items-center gap-1.5 text-[10px] font-black text-blue-700 uppercase tracking-widest mb-2">
-                  <Briefcase className="h-3.5 w-3.5" /> Technician's Observations & Notes
-                </div>
-                <p className="text-sm text-slate-600 leading-relaxed italic">
-                  "{task.staffNote}"
-                </p>
+            <div className="bg-blue-50/40 p-4 rounded-2xl border border-blue-100/50 flex flex-col gap-1.5 shadow-inner">
+              <div className="flex items-center gap-1.5 text-[10px] font-black text-blue-700 uppercase tracking-widest leading-none">
+                <Briefcase className="h-3.5 w-3.5" /> Technician's Log
               </div>
-            </>
+              <p className="text-sm text-slate-600 leading-relaxed italic">
+                "{task.staffNote}"
+              </p>
+            </div>
           )}
         </div>
       )}
+
+      {/* Gallery Dialog Viewer */}
+      <Dialog open={!!viewerData} onOpenChange={(open) => !open && setViewerData(null)}>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden border-none bg-white rounded-3xl shadow-2xl">
+          <DialogHeader className="hidden">
+            <DialogTitle>Gallery View</DialogTitle>
+          </DialogHeader>
+
+          <div className="relative w-full aspect-square sm:aspect-video flex flex-col items-center justify-center bg-slate-50">
+            {viewerData && (
+              <div className="relative w-full h-full flex items-center justify-center">
+                {/* Navigation: Prev */}
+                {viewerData.images.length > 1 && (
+                  <button
+                    onClick={handlePrev}
+                    className="absolute left-4 z-50 h-10 w-10 flex items-center justify-center text-slate-400 hover:text-slate-900 bg-white/50 hover:bg-white rounded-full shadow-sm transition-all active:scale-95"
+                  >
+                    <ChevronLeft className="h-6 w-6" />
+                  </button>
+                )}
+
+                <div className="w-full h-full flex items-center justify-center p-4">
+                  <img
+                    src={viewerData.images[viewerData.index]}
+                    alt="Evidence gallery"
+                    className="max-w-full max-h-full object-contain rounded-lg shadow-sm"
+                  />
+                </div>
+
+                {/* Navigation: Next */}
+                {viewerData.images.length > 1 && (
+                  <button
+                    onClick={handleNext}
+                    className="absolute right-4 z-50 h-10 w-10 flex items-center justify-center text-slate-400 hover:text-slate-900 bg-white/50 hover:bg-white rounded-full shadow-sm transition-all active:scale-95"
+                  >
+                    <ChevronRight className="h-6 w-6" />
+                  </button>
+                )}
+
+                {/* Indicator Overlay */}
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] font-black text-slate-500 uppercase tracking-widest bg-white shadow-sm border border-slate-100 px-3 py-1 rounded-full">
+                  {viewerData.index + 1} / {viewerData.images.length}
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
-}
+});

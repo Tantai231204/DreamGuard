@@ -1,3 +1,5 @@
+import { memo } from "react";
+// ... existing imports ...
 import {
   Check,
 } from "lucide-react";
@@ -12,9 +14,9 @@ interface StepProductsProps {
   form: UseFormReturn<BookingFormValues>;
 }
 
-export default function StepProducts({ form }: StepProductsProps) {
+const StepProducts = memo(({ form }: StepProductsProps) => {
   const selected: string[] = useWatch({ control: form.control, name: "selectedProducts" }) ?? [];
-  const { productTypes } = useBookingData(selected);
+  const { productTypes } = useBookingData();
   const { setValue } = form;
 
   function toggle(productId: string) {
@@ -24,7 +26,6 @@ export default function StepProducts({ form }: StepProductsProps) {
         selected.filter((id) => id !== productId),
         { shouldValidate: true },
       );
-      // Also remove from items array if present
       const items = form.getValues("items") ?? [];
       setValue(
         "items",
@@ -38,7 +39,6 @@ export default function StepProducts({ form }: StepProductsProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="space-y-1">
         <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-[#4988c4]/10 text-[#4988c4] border border-[#4988c4]/20 text-[9px] font-black uppercase tracking-widest">
           Step 01
@@ -51,7 +51,6 @@ export default function StepProducts({ form }: StepProductsProps) {
         </p>
       </div>
 
-      {/* Product Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         {productTypes.map((product: ProductType) => {
           const iconSrc = ProductAssetIcons[product.icon as ProductAssetIconKey] || ProductAssetIcons.PRODUCT_CATEGORIES;
@@ -66,12 +65,11 @@ export default function StepProducts({ form }: StepProductsProps) {
               whileTap={{ scale: 0.98 }}
               className={`relative flex flex-col items-center text-center p-5 rounded-[24px] border-2 transition-all duration-300 group cursor-pointer
                 ${isSelected
-                  ? "border-[#4988c4] bg-white shadow-2xl shadow-[#4988c4]/12 scale-[1.02] z-10"
+                  ? "border-          [#4988c4] bg-white shadow-2xl shadow-[#4988c4]/12 scale-[1.02] z-10"
                   : "border-slate-100 bg-white hover:border-slate-200 hover:shadow-xl hover:shadow-slate-100/80 hover:-translate-y-0.5"
                 }
               `}
             >
-              {/* Corner check circle */}
               <div className={`absolute top-3 right-3 h-6 w-6 rounded-full border-2 flex items-center justify-center transition-all
                 ${isSelected
                   ? "bg-[#4988c4] border-[#4988c4] scale-100"
@@ -81,7 +79,6 @@ export default function StepProducts({ form }: StepProductsProps) {
                 <Check className={`h-3.5 w-3.5 transition-colors ${isSelected ? "text-white" : "text-transparent"}`} strokeWidth={3} />
               </div>
 
-              {/* Icon */}
               <div className={`h-16 w-16 rounded-[20px] flex items-center justify-center mb-4 transition-all duration-300
                 ${isSelected
                   ? "bg-gradient-to-br from-[#4988c4]/[0.04] to-[#4988c4]/[0.15] shadow-inner border border-[#4988c4]/10"
@@ -91,7 +88,6 @@ export default function StepProducts({ form }: StepProductsProps) {
                 <img src={iconSrc} alt={product.label} className={`h-9 w-9 object-contain transition-all duration-300 ${isSelected ? "scale-110 drop-shadow-md" : "opacity-90 group-hover:opacity-100 scale-100"}`} />
               </div>
 
-              {/* Label */}
               <h4 className={`text-sm font-black tracking-tight transition-colors ${isSelected ? "text-[#4988c4]" : "text-slate-800"}`}>
                 {product.label}
               </h4>
@@ -99,7 +95,6 @@ export default function StepProducts({ form }: StepProductsProps) {
                 {product.description}
               </p>
 
-              {/* Price hint — inline border badge style */}
               <div className={`mt-3 px-3 py-1 rounded-lg border text-[9px] font-black uppercase tracking-wider transition-colors
                 ${isSelected
                   ? "border-[#4988c4]/25 bg-[#4988c4]/10 text-[#4988c4]"
@@ -113,7 +108,6 @@ export default function StepProducts({ form }: StepProductsProps) {
         })}
       </div>
 
-      {/* Selection counter */}
       {selected.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -135,4 +129,6 @@ export default function StepProducts({ form }: StepProductsProps) {
       )}
     </div>
   );
-}
+});
+
+export default StepProducts;

@@ -2,6 +2,7 @@ import type { ChangeEvent } from "react";
 import { useState } from "react";
 import { Camera, Trash2, UploadCloud } from "lucide-react";
 import { type UseFormReturn } from "react-hook-form";
+import { toast } from "sonner";
 import type { BookingFormValues } from "../schema";
 
 interface StepMediaProps {
@@ -15,11 +16,18 @@ export default function StepMedia({ form, onFilesChange, initialFiles }: StepMed
   const [filesList, setFilesList] = useState<File[]>(initialFiles);
   const [previews, setPreviews] = useState<string[]>(initialFiles.map(f => URL.createObjectURL(f)));
 
+  const MAX_FILES = 5;
+
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
     const added = Array.from(files);
+    if (filesList.length + added.length > MAX_FILES) {
+      toast.error(`You can only upload a maximum of ${MAX_FILES} files.`);
+      return;
+    }
+
     const nextFiles = [...filesList, ...added];
     setFilesList(nextFiles);
     onFilesChange(nextFiles);
@@ -30,6 +38,11 @@ export default function StepMedia({ form, onFilesChange, initialFiles }: StepMed
   };
 
   const removeMedia = (index: number) => {
+    // Revoke the URL to avoid memory leaks
+    if (previews[index]?.startsWith("blob:")) {
+      URL.revokeObjectURL(previews[index]);
+    }
+
     const nextFiles = filesList.filter((_, i) => i !== index);
     setFilesList(nextFiles);
     onFilesChange(nextFiles);

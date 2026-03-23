@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import AdminPageHeader from '@/components/layout/AdminPageHeader';
 import { motion } from 'framer-motion';
 
-import { ServiceFilters, ServiceBookingCard, AssignTechnicianDialog, ServiceDetailDialog } from './components';
+import { ServiceFilters, ServiceBookingCard, AssignTechnicianDialog } from './components';
 import { GridSkeleton, TableSkeleton } from '@/components/common';
 import { useServiceManagement } from './hooks/useServiceManagement';
 
@@ -28,8 +28,6 @@ export default function ServiceManagement() {
     setViewMode,
     isAssignOpen,
     setIsAssignOpen,
-    isDetailOpen,
-    setIsDetailOpen,
     selectedOrderId,
     stats,
     filteredBookings,
@@ -179,12 +177,6 @@ export default function ServiceManagement() {
         orderId={selectedOrderId}
         isOpen={isAssignOpen}
         onClose={() => setIsAssignOpen(false)}
-      />
-
-      <ServiceDetailDialog
-        orderId={selectedOrderId}
-        isOpen={isDetailOpen}
-        onClose={() => setIsDetailOpen(false)}
       />
     </div>
   );

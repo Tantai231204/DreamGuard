@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { memo, useState, useEffect, useMemo, useCallback } from "react";
+// ... existing imports ...
 import {
   Check, Minus, Plus, ChevronLeft, ChevronRight
 } from "lucide-react";
@@ -50,17 +51,15 @@ interface StepPackageProps {
   form: UseFormReturn<BookingFormValues>;
 }
 
-export default function StepPackage({ form }: StepPackageProps) {
+const StepPackage = memo(({ form }: StepPackageProps) => {
   const { control } = form;
   const { fields, append, update } = useFieldArray({ control, name: "items" });
   const selectedProductsForm = useWatch({ control, name: "selectedProducts" });
   const selectedProducts = useMemo(() => selectedProductsForm ?? [], [selectedProductsForm]);
-  const { productTypes, getProductTierPrice } = useBookingData(selectedProducts);
+  const { productTypes, getProductTierPrice } = useBookingData();
 
-  // Navigate between selected products (one at a time, no scroll)
   const [activeIdx, setActiveIdx] = useState(0);
 
-  // Selected products memoized to avoid recalculation
   const products = useMemo(() =>
     productTypes.filter((p: ProductType) => selectedProducts.includes(p.id)),
     [productTypes, selectedProducts]);
@@ -68,12 +67,10 @@ export default function StepPackage({ form }: StepPackageProps) {
   const safeIdx = Math.min(activeIdx, Math.max(0, products.length - 1));
   const currentProduct = products[safeIdx];
 
-  // Determine cartItem safely for pre-selection
   const cartItem = useMemo(() =>
     currentProduct ? fields.find((f) => f.itemType === currentProduct.id) : undefined,
     [currentProduct, fields]);
 
-  // Pre-select the featured tier when entering the product view
   useEffect(() => {
     if (currentProduct) {
       const items = form.getValues("items") || [];
@@ -88,24 +85,20 @@ export default function StepPackage({ form }: StepPackageProps) {
     }
   }, [currentProduct, append, form]);
 
-
-
   const product = currentProduct;
   const iconSrc = product ? (ProductAssetIcons[product.icon as ProductAssetIconKey] || ProductAssetIcons.PRODUCT_CATEGORIES) : ProductAssetIcons.PRODUCT_CATEGORIES;
-
 
   const selectTier = useCallback((tierId: string) => {
     if (!product) return;
 
     const idx = fields.findIndex((f) => f.itemType === product.id);
     if (idx >= 0) {
-      if (fields[idx].packageId === tierId) return; // already selected
+      if (fields[idx].packageId === tierId) return; 
       update(idx, { itemType: product.id, packageId: tierId, quantity: fields[idx].quantity });
     } else {
       append({ itemType: product.id, packageId: tierId, quantity: 1 });
     }
 
-    // Auto-advance logic without setTimeout hack
     requestAnimationFrame(() => {
       const currentValues = form.getValues("items") || [];
       const nextUnconfiguredIdx = products.findIndex((p: ProductType) =>
@@ -125,9 +118,6 @@ export default function StepPackage({ form }: StepPackageProps) {
     update(idx, { ...fields[idx], quantity: newQty });
   }, [product, fields, update]);
 
-
-
-  // Total across all items
   const total = useMemo(() => fields.reduce((sum, f) => {
     return sum + getProductTierPrice(f.itemType, f.packageId) * f.quantity;
   }, 0), [fields, getProductTierPrice]);
@@ -142,7 +132,6 @@ export default function StepPackage({ form }: StepPackageProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="space-y-1">
         <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-[#4988c4]/10 text-[#4988c4] border border-[#4988c4]/20 text-[9px] font-black uppercase tracking-widest">
           Step 02
@@ -155,7 +144,6 @@ export default function StepPackage({ form }: StepPackageProps) {
         </p>
       </div>
 
-      {/* Product Navigator — pill tabs */}
       {products.length > 1 && (
         <div className="flex items-center gap-2">
           <Button
@@ -209,7 +197,6 @@ export default function StepPackage({ form }: StepPackageProps) {
         </div>
       )}
 
-      {/* Current Product Header */}
       <AnimatePresence mode="wait">
         <motion.div
           key={product.id}
@@ -231,7 +218,6 @@ export default function StepPackage({ form }: StepPackageProps) {
               {safeIdx + 1} / {products.length}
             </span>
           </div>
-          {/* Tier Cards - Adaptive Layout Algorithm for Optimal Centering */}
           <div className={`flex sm:grid gap-8 overflow-x-auto snap-x snap-mandatory pb-8 sm:pb-4 pt-4 px-4 sm:px-2 no-scrollbar
             ${product.tiers.length === 1 ? "sm:grid-cols-1 max-w-[260px] mx-auto" :
               product.tiers.length === 2 ? "sm:grid-cols-2 max-w-[540px] mx-auto" : "sm:grid-cols-3 max-w-[820px] mx-auto"}
@@ -259,10 +245,8 @@ export default function StepPackage({ form }: StepPackageProps) {
                     }
                   `}
                 >
-                  {/* Top Edge Highlight */}
                   <div className={`absolute top-0 left-0 right-0 h-1.5 transition-all duration-300 ${isTierSelected ? style.accent : "bg-transparent group-hover:bg-slate-100"}`} />
 
-                  {/* Header */}
                   <div className="flex items-center justify-between mb-2 mt-0.5 relative z-10 w-full">
                     <span className={`text-[11px] font-black uppercase tracking-[0.1em] ${isTierSelected ? style.text : "text-slate-500"}`}>
                       {tier.name}
@@ -272,22 +256,18 @@ export default function StepPackage({ form }: StepPackageProps) {
                     </div>
                   </div>
 
-                  {/* Price Area */}
                   <div className="mb-1 relative z-10">
                     <span className={`text-2xl font-black tracking-tight ${isTierSelected ? "text-slate-900" : "text-slate-800"}`}>
                       {formatPrice(tier.price)}
                     </span>
                   </div>
 
-                  {/* Description */}
                   <p className={`text-[12px] font-semibold leading-relaxed mb-4 relative z-10 line-clamp-2 ${isTierSelected ? "text-slate-700" : "text-slate-500"}`}>
                     {tier.description}
                   </p>
 
-                  {/* Separator */}
                   <div className={`w-full h-[1px] mb-4 relative z-10 transition-colors duration-300 ${isTierSelected ? "bg-black/5" : "bg-slate-100"}`} />
 
-                  {/* Features List */}
                   <ul className="space-y-3 flex-1 w-full relative z-10">
                     {tier.features.map((f: string, idx: number) => (
                       <li key={`${tier.tierId}-${f}-${idx}`} className={`flex items-start gap-2.5 text-[12px] font-semibold leading-tight ${isTierSelected ? "text-slate-800" : "text-slate-600"}`}>
@@ -303,7 +283,6 @@ export default function StepPackage({ form }: StepPackageProps) {
             })}
           </div>
 
-          {/* Tier Comparison Button & Modal */}
           {product.tiers.length > 1 && (
             <div className="flex justify-center sm:justify-end py-2">
               <Dialog>
@@ -346,7 +325,6 @@ export default function StepPackage({ form }: StepPackageProps) {
             </div>
           )}
 
-          {/* Quantity controls */}
           {cartItem && (
             <motion.div
               initial={{ opacity: 0, y: -8 }}
@@ -386,7 +364,6 @@ export default function StepPackage({ form }: StepPackageProps) {
         </motion.div>
       </AnimatePresence>
 
-      {/* Running Total */}
       {fields.length > 0 && (
         <div className="flex items-center justify-between p-4 rounded-2xl bg-gradient-to-r from-[#4988c4] to-[#3a73a8] text-white shadow-xl shadow-[#4988c4]/15">
           <div className="flex items-center gap-3">
@@ -413,4 +390,6 @@ export default function StepPackage({ form }: StepPackageProps) {
       )}
     </div>
   );
-}
+});
+
+export default StepPackage;

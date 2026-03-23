@@ -1,5 +1,4 @@
 import type { LucideIcon } from 'lucide-react';
-import type { ServiceItemDetail } from '../ServiceDetailDialog';
 import type { Staff, ServiceBooking, ServiceEvidence } from '../../types';
 
 export interface ServicePackageMappingResponse {
@@ -23,7 +22,16 @@ export interface ServicePackageMappingResponse {
   };
 }
 
-export interface ExtendedServiceItemDetail extends ServiceItemDetail {
+export interface ExtendedServiceItemDetail {
+  id?: string;
+  name?: string;
+  packageName?: string;
+  servicePackageName?: string;
+  productTypeName?: string;
+  quantity?: number;
+  unitPrice?: number;
+  totalPrice?: number;
+  price?: number;
   servicePackageMappingId?: string;
 }
 
@@ -36,7 +44,6 @@ export interface StatusConfigItem {
   icon: LucideIcon; 
   label: string;
 }
-
 
 export interface TaskDetail {
   serviceTaskId?: string;
@@ -58,4 +65,3 @@ export interface TaskDetail {
   staff?: Staff | null;
   evidences?: ServiceEvidence[];
 }
-

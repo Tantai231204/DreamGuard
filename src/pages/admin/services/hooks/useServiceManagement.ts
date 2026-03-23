@@ -21,7 +21,6 @@ export const useServiceManagement = () => {
   const pageSize = 8;
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [isAssignOpen, setIsAssignOpen] = useState(false);
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -156,8 +155,6 @@ export const useServiceManagement = () => {
     setViewMode,
     isAssignOpen,
     setIsAssignOpen,
-    isDetailOpen,
-    setIsDetailOpen,
     selectedOrderId,
     stats,
     filteredBookings,

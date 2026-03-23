@@ -38,10 +38,12 @@ export interface ServiceBooking {
   technician?: Staff | null; // Keep for backward compatibility or UI specific role, but API call it staff
   staff?: Staff | null;
   serviceTask?: ServiceTask | null;
+  imageUrl?: string[];
   totalPrice: number;
   notes?: string;
   createdAt: string;
   updatedAt: string;
+  soId?: string;
 }
 
 export interface ServiceAddress {
@@ -133,6 +135,7 @@ export interface AdminSearchOrderServiceItem {
   updatedAt?: string | null;
   paymentMethod?: string;
   paymentStatus?: string;
+  imageUrl?: string[];
   staff?: Staff | null;
   serviceTask?: ServiceTask | null;
   task?: ServiceTask | null;
