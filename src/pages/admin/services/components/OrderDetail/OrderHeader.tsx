@@ -8,10 +8,9 @@ import type { DetailOrder, StatusConfigItem } from './types';
 interface OrderHeaderProps {
   order: DetailOrder;
   statusCfg?: StatusConfigItem;
-  orderId: string;
 }
 
-export function OrderHeader({ order, statusCfg, orderId }: OrderHeaderProps) {
+export function OrderHeader({ order, statusCfg }: OrderHeaderProps) {
   const navigate = useNavigate();
   const StatusIcon = statusCfg?.icon;
 
@@ -42,7 +41,7 @@ export function OrderHeader({ order, statusCfg, orderId }: OrderHeaderProps) {
               )}
             </div>
             <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-              Service Order <span className="text-slate-400 font-medium">#{(order.id || orderId || '').substring(0, 8).toUpperCase()}</span>
+              Service Order Details
             </h1>
           </div>
         </div>

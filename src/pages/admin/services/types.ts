@@ -60,6 +60,20 @@ export interface ServiceItem {
   servicePackageMappingId?: string;
 }
 
+export interface ServiceEvidence {
+  seId: string;
+  serviceTaskId: string;
+  taskId?: string;    // Fallback
+  imageUrl: string;
+  imageURL?: string; // Fallback
+  url?: string;      // Fallback
+  photoUrl?: string; // Fallback from subagent
+  evidenceType: string;
+  description: string;
+  createdAt: string;
+  publicId: string;
+}
+
 export interface Staff {
   staffId: string;
   fullName: string;
@@ -75,12 +89,22 @@ export interface Staff {
 
 export interface ServiceTask {
   serviceTaskId: string;
+  taskId?: string; // Fallback
   staffId: string;
   soId: string;
   status: string;
   checkIn?: string | null;
+  checkInImage?: string | null;
+  checkinImage?: string | null; // Alternative name from Dialog
+  checkinUrl?: string | null;   // Alternative name from Dialog
+  checkInUrl?: string | null;   // Inconsistent casing from API
   checkOut?: string | null;
+  checkOutImage?: string | null;
+  checkoutImage?: string | null; // Alternative name from Dialog
+  checkoutUrl?: string | null;   // Alternative name from Dialog
+  checkOutUrl?: string | null;  // Inconsistent casing from API
   staffNote?: string;
+  evidences?: ServiceEvidence[]; // For ServiceOrder details refined later
 }
 
 export interface ServiceStats {
@@ -111,6 +135,9 @@ export interface AdminSearchOrderServiceItem {
   paymentStatus?: string;
   staff?: Staff | null;
   serviceTask?: ServiceTask | null;
+  task?: ServiceTask | null;
+  orderTask?: ServiceTask | null;
+  serviceOrderTask?: ServiceTask | null;
   items?: ServiceItem[];
   orderDetails?: ServiceItem[];
   serviceOrderItems?: ServiceItem[];

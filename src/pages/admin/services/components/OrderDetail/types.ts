@@ -1,6 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 import type { ServiceItemDetail } from '../ServiceDetailDialog';
-import type { Staff, ServiceBooking } from '../../types';
+import type { Staff, ServiceBooking, ServiceEvidence } from '../../types';
 
 export interface ServicePackageMappingResponse {
   servicePackageMappingId?: string;
@@ -13,6 +13,13 @@ export interface ServicePackageMappingResponse {
     duration?: number;
     suitableFor?: string;
     serviceContent?: string;
+  };
+  productType?: {
+    productTypeId?: string;
+    productTypeName?: string;
+    isActive?: boolean;
+    addPrice?: number;
+    createdAt?: string;
   };
 }
 
@@ -30,15 +37,25 @@ export interface StatusConfigItem {
   label: string;
 }
 
+
 export interface TaskDetail {
+  serviceTaskId?: string;
+  taskId?: string;
+  staffId?: string;
+  soId?: string;
   status?: string;
-  staffNote?: string;
+  staffNote?: string | null;
   checkIn?: string | null;
+  checkInImage?: string | null;
   checkinImage?: string | null;
   checkinUrl?: string | null;
+  checkInUrl?: string | null;
   checkOut?: string | null;
+  checkOutImage?: string | null;
   checkoutImage?: string | null;
   checkoutUrl?: string | null;
+  checkOutUrl?: string | null;
   staff?: Staff | null;
+  evidences?: ServiceEvidence[];
 }
 

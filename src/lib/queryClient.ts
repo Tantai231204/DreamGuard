@@ -8,18 +8,20 @@ export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000,
-      gcTime: 30 * 60 * 1000,
+      gcTime: 10 * 60 * 1000, // Reduced gcTime
       refetchOnWindowFocus: false,
+      refetchOnReconnect: true,
 
       retry: (failureCount, error) => {
         if (axios.isAxiosError(error)) {
           const status = error.response?.status;
-          if (status === 401 || status === 403 || status === 400) {
+          if (status === 401 || status === 403 || status === 400 || status === 404) {
             return false;
           }
         }
         return failureCount < 2;
       },
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     },
     mutations: {
       retry: false,

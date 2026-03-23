@@ -3,11 +3,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import api from '@/lib/api';
-import type { 
-  ServiceStatus, 
-  ServiceType, 
-  ServiceBooking, 
-  PaginatedAdminSearchOrderServiceResponse 
+import type {
+  ServiceStatus,
+  ServiceType,
+  ServiceBooking,
+  PaginatedAdminSearchOrderServiceResponse
 } from '../types';
 import { calculateServiceStats } from '../data';
 import { mapApiItemToServiceOrder } from '../utils/mappers';
@@ -29,8 +29,6 @@ export const useServiceManagement = () => {
   const { data: bookingData, isLoading } = useQuery({
     queryKey: ['serviceOrders', searchQuery, statusFilter, dateFilter, currentPage],
     queryFn: async () => {
-      // Sending pageNumber and pageSize as Query Params (params) instead of Body
-      // as seen in the user's Hoppscotch screenshot.
       const res = await api.post('/ServiceOrders/AdminSearchOrderService', {}, {
         params: {
           pageNumber: currentPage,
@@ -39,7 +37,18 @@ export const useServiceManagement = () => {
           status: statusFilter !== 'all' ? (statusFilter === 'pending' ? 'Pending' : statusFilter) : undefined
         }
       });
-      return (res.data?.data ?? res.data) as PaginatedAdminSearchOrderServiceResponse;
+      const data = (res.data?.data ?? res.data) as PaginatedAdminSearchOrderServiceResponse;
+      
+      // Senior Performance Optimization: 
+      // Populate individual detail caches immediately to make navigation instant
+      if (data?.items) {
+        data.items.forEach(item => {
+          const mapped = mapApiItemToServiceOrder(item);
+          queryClient.setQueryData(['serviceOrder', item.soId], mapped);
+        });
+      }
+      
+      return data;
     }
   });
 
