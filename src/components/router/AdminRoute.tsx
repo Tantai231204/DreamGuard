@@ -13,12 +13,13 @@ export default function AdminRoute() {
 
   // Check authentication
   if (!isAuthenticated) {
-    return <Navigate to={AppRoute.LOGIN} replace state={{ from: location }} />;
+    return <Navigate to={AppRoute.LOGIN} replace state={{ from: location, reason: 'unauthenticated' }} />;
   }
 
   // Check admin role
   if (role?.toLowerCase() !== "admin") {
-    return <Navigate to={AppRoute.HOME} replace />;
+    // Redirect to home if user is not an admin
+    return <Navigate to={AppRoute.HOME} replace state={{ from: location, reason: 'unauthorized' }} />;
   }
 
   return <Outlet />;

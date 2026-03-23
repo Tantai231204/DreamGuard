@@ -42,25 +42,24 @@ export const useLogin = () => {
 
 
 export const useLogout = () => {
-  const clearAuth = useAuthStore((s) => s.clearAuth);
   const navigate = useNavigate();
 
   return useMutation({
-    mutationFn: authService.logout,
-    onSuccess: async () => {
+    mutationFn: async () => {
+      const state = useAuthStore.getState();
+      state.setLoggingOut(true);
+      try {
+        await authService.logout();
+      } finally {
+        state.setLoggingOut(false);
+        state.clearAuth(); // Clear after call settling to prevent overlapping race
+      }
+    },
+    onSettled: async () => {
       await useCartStore.getState().clearCart();
-      clearAuth();
       navigate("/");
       toast.success("Logged Out", {
         description: "You have been successfully logged out. See you soon!",
-      });
-    },
-    onError: () => {
-      useCartStore.getState().clearCart();
-      clearAuth();
-      navigate("/");
-      toast.success("Logged Out", {
-        description: "Session closed. You have been logged out.",
       });
     },
   });

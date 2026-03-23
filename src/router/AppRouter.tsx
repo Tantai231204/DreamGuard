@@ -56,12 +56,15 @@ const UserManagement = lazy(() => import("../pages/admin/users"));
 const StaffManagement = lazy(() => import("../pages/admin/staff"));
 const PaymentManagement = lazy(() => import("../pages/admin/payments"));
 
+import { AuthRedirectNotice } from "../components/router/AuthRedirectNotice";
+
 /* =======================
    Router
  ======================= */
 export default function AppRouter() {
     return (
         <Suspense fallback={<PageLoader />}>
+            <AuthRedirectNotice />
             <Routes>
 
                 {/* ===== Public & Auth Routes (Restricted for Admins) ===== */}
