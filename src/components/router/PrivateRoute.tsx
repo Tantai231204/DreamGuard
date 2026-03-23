@@ -13,7 +13,7 @@ export default function PrivateRoute() {
 
     if (!isAuthenticated) {
         // Save the location user tried to access
-        return <Navigate to={AppRoute.LOGIN} replace state={{ from: location }} />;
+        return <Navigate to={AppRoute.LOGIN} replace state={{ from: location, reason: 'unauthenticated' }} />;
     }
 
     return <Outlet />;
