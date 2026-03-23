@@ -205,7 +205,7 @@ export const ServiceBookingCard = memo(function ServiceBookingCard({
             <div className="flex items-center gap-2">
               <AdminStatusBadge
                 status={booking.paymentStatus}
-                mode="status"
+                mode="payment"
               />
               {booking.paymentMethod && (
                 <AdminStatusBadge

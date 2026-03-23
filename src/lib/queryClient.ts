@@ -4,6 +4,10 @@ import { toast } from "sonner";
 import { ApiError, ERROR_TITLES } from "./api";
 import { ApiErrorCode } from "./constants";
 
+// Centralized Toast Deduplication to prevent multiple identical alerts simultaneously
+let lastQueryToastTime = 0;
+let lastQueryToastMessage = "";
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -35,6 +39,14 @@ export const queryClient = new QueryClient({
       const apiError = error as ApiError;
       const title = ERROR_TITLES[apiError.code] || "Error";
       
+      // Implement Deduplication for GET queries (Parallel API floods)
+      const now = Date.now();
+      if (now - lastQueryToastTime < 1500 && lastQueryToastMessage === apiError.message) {
+        return; 
+      }
+      lastQueryToastTime = now;
+      lastQueryToastMessage = apiError.message;
+
       // Special 401 handling
       if (apiError.code === ApiErrorCode.UNAUTHORIZED) {
         toast.error("Session Expired", {

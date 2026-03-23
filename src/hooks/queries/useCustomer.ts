@@ -12,6 +12,7 @@ export const useCustomers = (params: CustomerParams = {}) => {
   return useQuery({
     queryKey: customerKeys.list(params),
     queryFn: () => customerService.getAllCustomers(params),
+    staleTime: 0,
   });
 };
 

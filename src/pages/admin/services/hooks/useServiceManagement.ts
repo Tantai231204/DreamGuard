@@ -49,7 +49,8 @@ export const useServiceManagement = () => {
       }
       
       return data;
-    }
+    },
+    staleTime: 0,
   });
 
   const parsedBookings = useMemo<ServiceBooking[]>(() => {

@@ -13,6 +13,7 @@ export const useAdminPayments = (params?: { pageNumber?: number; pageSize?: numb
         queryKey: paymentKeys.list(params),
         queryFn: () => paymentService.getAdminPayments(params),
         placeholderData: keepPreviousData,
+        staleTime: 0,
     });
 };
 

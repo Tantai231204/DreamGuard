@@ -123,7 +123,7 @@ export function OrderSidebar({ order, task, technician, scheduledDate, scheduled
             <div className="flex flex-col gap-1">
               <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Payment Info</span>
               <div className="flex gap-1.5 flex-wrap">
-                <AdminStatusBadge status={order.paymentStatus?.toLowerCase() || ''} />
+                <AdminStatusBadge status={order.paymentStatus?.toLowerCase() || ''} mode="payment" />
                 {order.paymentMethod && order.paymentMethod?.toLowerCase() !== order.paymentStatus?.toLowerCase() && (
                   <AdminStatusBadge status={order.paymentMethod?.toLowerCase() || ''} />
                 )}

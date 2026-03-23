@@ -21,6 +21,7 @@ export const useVouchers = (pageNumber = 1) => {
   return useQuery({
     queryKey: voucherKeys.page(pageNumber),
     queryFn: () => voucherService.getAll(pageNumber),
+    staleTime: 0,
   });
 };
 
