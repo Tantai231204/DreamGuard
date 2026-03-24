@@ -699,6 +699,22 @@ export default function ProductsPage() {
     ? productTable
     : (comboTable as unknown as Table<Product>);
 
+  const handleBulkDelete = useCallback(async () => {
+    const selectedRows = activeTable.getFilteredSelectedRowModel().rows;
+    const ids = selectedRows.map(r => (r.original as Product | Combo).id);
+    const deleteFn = activeTab === 'single' ? deleteMutation.mutateAsync : deleteComboMutation.mutateAsync;
+
+    if (!confirm(`Are you sure you want to deactivate ${ids.length} ${activeTab === 'single' ? 'product' : 'combo'}(s)?`)) return;
+
+    try {
+      await Promise.all(ids.map(id => deleteFn(id)));
+      toast.success('Deactivated', `Selected ${activeTab === 'single' ? 'products' : 'combos'} successfully deactivated.`);
+      activeTable.resetRowSelection();
+    } catch {
+      toast.error('Action Failed', 'Some items could not be deactivated.');
+    }
+  }, [activeTable, activeTab, deleteMutation, deleteComboMutation, toast]);
+
   // Loading state
   if (isLoading || isLoadingCombos) {
     return (
@@ -753,9 +769,8 @@ export default function ProductsPage() {
                 table={activeTable}
                 itemLabel={activeTab === 'single' ? 'product' : 'combo'}
                 accentColor={activeTab === 'single' ? 'blue' : 'black'}
-                onEdit={() => console.log('Edit selected')}
-                onDuplicate={() => console.log('Duplicate selected')}
-                onDelete={() => console.log('Delete selected')}
+                onDelete={handleBulkDelete}
+                deleteLabel="Deactivate"
               />
 
               {/* Actions Toolbar */}

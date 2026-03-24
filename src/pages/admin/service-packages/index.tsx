@@ -11,7 +11,7 @@ import {
     type PaginationState,
     type Updater,
 } from '@tanstack/react-table';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
     Package, Filter, CheckCircle2, Layers
 } from 'lucide-react';
@@ -21,7 +21,6 @@ import {
     AdminTableSearch,
     AdminTableContent,
     AdminTablePagination,
-    AdminBulkActions,
     AdminActions,
 } from '@/components/admin';
 import {
@@ -296,13 +295,7 @@ export default function ServicePackagesPage() {
                         }
                     />
 
-                    <AnimatePresence>
-                        {(table.getIsSomePageRowsSelected() || table.getIsAllPageRowsSelected()) && (
-                            <div className="px-6 py-2 border-b border-gray-100 bg-slate-50/50">
-                                <AdminBulkActions table={table} itemLabel="package" accentColor="blue" />
-                            </div>
-                        )}
-                    </AnimatePresence>
+
 
                     <div className="flex-1 overflow-auto bg-white">
                         <AdminTableContent

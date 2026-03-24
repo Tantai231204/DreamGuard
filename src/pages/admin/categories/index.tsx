@@ -267,9 +267,6 @@ export default function CategoriesPage() {
                             table={table}
                             itemLabel="category"
                             accentColor="blue"
-                            onEdit={() => console.log('Edit selected')}
-                            onDuplicate={() => console.log('Duplicate selected')}
-                            onDelete={() => console.log('Delete selected')}
                         />
 
                         {/* Actions Toolbar */}

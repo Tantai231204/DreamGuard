@@ -20,6 +20,7 @@ const STATUS_MAP: Record<string, StatusType> = {
   'delivered': 'success',
   'completed': 'success',
   'resolved': 'success',
+  'published': 'success',
   '6': 'success', // OrderStatus.Completed
   '5': 'success', // OrderStatus.Delivered
 

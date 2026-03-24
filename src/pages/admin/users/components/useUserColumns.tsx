@@ -11,15 +11,17 @@ import {
 } from 'lucide-react';
 import { SortableHeader, AdminRowActions } from '@/components/admin';
 import type { User } from '../types';
-import { formatDate } from '@/lib/utils';
+import { formatDate, cn } from '@/lib/utils';
+import { FaVenus, FaMars, FaVenusMars } from 'react-icons/fa';
 
 const columnHelper = createColumnHelper<User>();
 
 interface UserColumnsProps {
   onView?: (customer: User) => void;
+  onViewOrders?: (customer: User) => void;
 }
 
-export function useUserColumns({ onView }: UserColumnsProps = {}) {
+export function useUserColumns({ onView, onViewOrders }: UserColumnsProps = {}) {
   const columns = useMemo(
     () => [
       columnHelper.accessor('fullName', {
@@ -62,12 +64,28 @@ export function useUserColumns({ onView }: UserColumnsProps = {}) {
       }),
       columnHelper.accessor('gender', {
         header: 'Gender',
-        cell: ({ row }) => (
-          <span className="text-sm font-medium text-slate-650">
-            {row.getValue('gender') || 'N/A'}
-          </span>
-        ),
-        size: 110,
+        cell: ({ row }) => {
+          const gender = row.getValue('gender') as string | undefined;
+          if (!gender) return <span className="text-slate-400 font-medium text-xs ml-1">-</span>;
+
+          const isMale = gender.toLowerCase() === 'male';
+          const isFemale = gender.toLowerCase() === 'female';
+
+          return (
+            <div className={cn(
+              "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-[11px] font-black tracking-wider shadow-sm transition-all cursor-default",
+              isMale && "bg-blue-50/50 text-blue-700 border-blue-100 hover:bg-blue-100/40",
+              isFemale && "bg-rose-50/50 text-rose-700 border-rose-100 hover:bg-rose-100/40",
+              !isMale && !isFemale && "bg-slate-50 text-slate-600 border-slate-200"
+            )}>
+              {isMale && <FaMars className="h-3 w-3 text-blue-500" />}
+              {isFemale && <FaVenus className="h-3 w-3 text-rose-500" />}
+              {!isMale && !isFemale && <FaVenusMars className="h-3 w-3 text-slate-400" />}
+              <span className="capitalize">{gender}</span>
+            </div>
+          );
+        },
+        size: 125,
       }),
       columnHelper.accessor('dateOfBirth', {
         header: 'Birthdate',
@@ -93,7 +111,7 @@ export function useUserColumns({ onView }: UserColumnsProps = {}) {
                 sections={[
                   [
                     { label: 'View Details', icon: <Eye className="h-4 w-4" />, onClick: () => onView && onView(user) },
-                    { label: 'Order History', icon: <ShoppingBag className="h-4 w-4" />, onClick: () => console.log('Orders for', user.customerId) },
+                    { label: 'Order History', icon: <ShoppingBag className="h-4 w-4" />, onClick: () => onViewOrders && onViewOrders(user) },
                   ],
                   [
                     { label: 'Reset Password', icon: <RefreshCw className="h-4 w-4" />, onClick: () => console.log('Reset Password', user.customerId) },
@@ -107,7 +125,7 @@ export function useUserColumns({ onView }: UserColumnsProps = {}) {
         size: 60,
       }),
     ],
-    [onView]
+    [onView, onViewOrders]
   );
 
   return columns;

@@ -1,7 +1,8 @@
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Calendar, AlertCircle } from 'lucide-react';
+import { AlertCircle, Calendar as CalendarIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { DatePicker } from '@/components/ui/date-picker';
+import { format } from 'date-fns';
 
 interface VoucherDateRangeProps {
     startDate: string;
@@ -18,7 +19,6 @@ export function VoucherDateRange({
     onEndDateChange,
     isLoading = false,
 }: VoucherDateRangeProps) {
-    const today = new Date().toISOString().split('T')[0];
     const isDateRangeValid = startDate && endDate && new Date(startDate) <= new Date(endDate);
 
     return (
@@ -29,43 +29,39 @@ export function VoucherDateRange({
             className="space-y-4"
         >
             <div className="flex items-center gap-2 text-sm font-semibold text-gray-800">
-                <Calendar className="w-4 h-4 text-gray-600" />
+                <CalendarIcon className="w-4 h-4 text-gray-600" />
                 Valid Period
             </div>
 
             <div className="rounded-lg p-4 border border-gray-200 bg-white">
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="startDate" className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
-                            Start Date <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                            id="startDate"
-                            type="date"
-                            value={startDate}
-                            onChange={onStartDateChange}
-                            disabled={isLoading}
-                            min={today}
-                            className="bg-gray-50 border-gray-300 hover:border-gray-400 focus:border-[#4988c4] focus:ring-[#4988c4]/20 h-10 transition-colors"
-                        />
-                        <p className="text-xs text-gray-500">When voucher becomes active</p>
-                    </div>
+                <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
+                        Active Period <span className="text-red-500">*</span>
+                    </Label>
+                    <DatePicker
+                        mode="range"
+                        value={{
+                            from: startDate ? new Date(startDate) : undefined,
+                            to: endDate ? new Date(endDate) : undefined
+                        }}
+                        onChange={(range) => {
+                            if (range?.from) {
+                                onStartDateChange({ target: { value: format(range.from, "yyyy-MM-dd") } } as unknown as React.ChangeEvent<HTMLInputElement>);
+                            } else {
+                                onStartDateChange({ target: { value: "" } } as unknown as React.ChangeEvent<HTMLInputElement>);
+                            }
 
-                    <div className="space-y-2">
-                        <Label htmlFor="endDate" className="text-sm font-medium text-gray-700 flex items-center gap-1.5">
-                            End Date <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                            id="endDate"
-                            type="date"
-                            value={endDate}
-                            onChange={onEndDateChange}
-                            disabled={isLoading}
-                            min={startDate || today}
-                            className="bg-gray-50 border-gray-300 hover:border-gray-400 focus:border-[#4988c4] focus:ring-[#4988c4]/20 h-10 transition-colors"
-                        />
-                        <p className="text-xs text-gray-500">When voucher expires</p>
-                    </div>
+                            if (range?.to) {
+                                onEndDateChange({ target: { value: format(range.to, "yyyy-MM-dd") } } as unknown as React.ChangeEvent<HTMLInputElement>);
+                            } else {
+                                onEndDateChange({ target: { value: "" } } as unknown as React.ChangeEvent<HTMLInputElement>);
+                            }
+                        }}
+                        disabled={isLoading}
+                        placeholder="Select start and end date"
+                        className="w-full"
+                    />
+                    <p className="text-xs text-gray-500">Pick the start and expiration range for this voucher</p>
                 </div>
 
                 {startDate && endDate && !isDateRangeValid && (
@@ -98,6 +94,6 @@ export function VoucherDateRange({
                     </motion.div>
                 )}
             </div>
-        </motion.div>
+        </motion.div >
     );
 }

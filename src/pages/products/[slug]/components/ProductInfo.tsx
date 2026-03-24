@@ -1,14 +1,13 @@
 import { memo } from 'react';
 import { motion } from 'framer-motion';
-import { Star, ShoppingCart, AlertTriangle, Truck, RotateCcw, ShieldCheck, Leaf } from 'lucide-react';
+import { Star, ShoppingCart, AlertTriangle, RotateCcw, ShieldCheck, Leaf } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn, formatPrice } from '@/lib/utils';
 import { ColorSelector } from './ColorSelector';
 import { SizeSelector } from './SizeSelector';
 import { QuantitySelector } from './QuantitySelector';
-import { ProductBenefits } from './ProductBenefits';
-import type { ColorOption, SizeOption, ProductBenefit } from '../types';
+import type { ColorOption, SizeOption } from '../types';
 
 interface Product {
     id: string;
@@ -36,7 +35,6 @@ interface ProductInfoProps {
     disabledSizes?: string[];
     colorOptions: ColorOption[];
     sizeOptions: SizeOption[];
-    benefits: ProductBenefit[];
     onColorChange: (color: string) => void;
     onSizeChange: (size: string) => void;
     onQuantityChange: (quantity: number) => void;
@@ -61,7 +59,6 @@ export const ProductInfo = memo(({
     disabledSizes,
     colorOptions,
     sizeOptions,
-    benefits,
     onColorChange,
     onSizeChange,
     onQuantityChange,
@@ -111,8 +108,9 @@ export const ProductInfo = memo(({
                     </Badge>
                 )}
                 {product.ageLabel && (
-                    <Badge className="bg-sky-50 text-sky-700 border border-sky-100 px-2.5 py-0.5 text-[10px] font-bold tracking-wide rounded-md">
-                        Ages {product.ageLabel}
+                    <Badge className="bg-amber-50/80 text-amber-700 border border-amber-200/50 px-2.5 py-1 text-[10px] font-black tracking-wider rounded-lg flex items-center gap-1.5 shadow-sm">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
+                        AGE: {product.ageLabel} MONTHS+
                     </Badge>
                 )}
             </div>
@@ -160,7 +158,7 @@ export const ProductInfo = memo(({
                         isActuallyOutOfStock ? "bg-rose-500" : "bg-emerald-500 animate-pulse"
                     )} />
                     <span className="text-[10px] font-bold uppercase tracking-wider">
-                        {stockStatusLabel || (isActuallyOutOfStock ? "Out of Stock" : "In Stock")}
+                        {stockStatusLabel || (isActuallyOutOfStock ? "Tạm hết hàng" : "In Stock")}
                     </span>
                 </div>
             </div>
@@ -232,23 +230,24 @@ export const ProductInfo = memo(({
                     </span>
                 )}
             </Button>
-            {/* ── Row 8: Trust Strip ── */}
-            <div className="grid grid-cols-3 gap-3">
+            {/* ── Row 8: Dynamic Policies (Sleek Grid) ── */}
+            <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-100/80">
                 {[
-                    { icon: Truck, label: 'Free Shipping', sub: `Over ${formatPrice(1000000)}` },
-                    { icon: RotateCcw, label: `${product.returnPolicyDay || 30}-Day`, sub: 'Easy Returns' },
-                    { icon: ShieldCheck, label: 'Warranty', sub: product.warrantyPolicyDay ? `${product.warrantyPolicyDay} days` : 'Included' },
+                    { icon: RotateCcw, label: 'Returns policy', value: `${product.returnPolicyDay || 30}-Days`, sub: 'Easy exchanges' },
+                    { icon: ShieldCheck, label: 'Warranty coverage', value: product.warrantyPolicyDay ? `${product.warrantyPolicyDay} days` : 'Included', sub: 'Against defects' },
                 ].map((item, i) => (
-                    <div key={i} className="flex flex-col items-center gap-1.5 py-3 bg-slate-50 rounded-lg border border-slate-100">
-                        <item.icon className="w-4 h-4 text-[#4988c4]" />
-                        <span className="text-[10px] font-bold text-slate-700 leading-none">{item.label}</span>
-                        <span className="text-[9px] text-slate-400 leading-none">{item.sub}</span>
+                    <div key={i} className="flex flex-col gap-1 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100/60 transition-colors hover:bg-white hover:shadow-sm cursor-default">
+                        <div className="flex items-center gap-1.5">
+                            <item.icon className="w-3.5 h-3.5 text-[#4988c4]" />
+                            <span className="text-[10px] font-black uppercase tracking-wider text-[#4988c4]">{item.label}</span>
+                        </div>
+                        <span className="text-[14px] font-black text-slate-900 tracking-tight mt-0.5">
+                            {item.value}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-medium tracking-wide">{item.sub}</span>
                     </div>
                 ))}
             </div>
-
-            {/* ── Row 9: Benefits ── */}
-            <ProductBenefits benefits={benefits} />
         </motion.div>
     );
 });

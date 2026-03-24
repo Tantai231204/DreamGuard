@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { CameraIcon } from "@radix-ui/react-icons"
 import ChangePhoneDialog from "./ChangePhoneDialog"
-import { Mail, Smartphone, CalendarIcon } from "lucide-react"
+import { Mail, Smartphone } from "lucide-react"
 import { Button } from "../../../components/ui/button"
 import { Input } from "../../../components/ui/input"
 import { Label } from "../../../components/ui/label"
@@ -11,7 +11,9 @@ import { cn } from "@/lib/utils"
 import { useProfile, useUpdateProfile } from "@/hooks/queries"
 import { toast } from "sonner"
 import { FaMars, FaVenus } from "react-icons/fa6"
-import { useForm } from "react-hook-form"
+import { useForm, Controller } from "react-hook-form"
+import { DatePicker } from "@/components/ui/date-picker"
+import { format } from "date-fns"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 const profileSchema = z.object({
@@ -31,7 +33,7 @@ export default function ProfileInfoTab() {
   const [isEditing, setIsEditing] = useState(false)
   const [showPhoneDialog, setShowPhoneDialog] = useState(false)
 
-  const { register, handleSubmit, formState: { errors }, reset, setValue, watch } = useForm<ProfileFormData>({
+  const { register, handleSubmit, formState: { errors }, reset, setValue, watch, control } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
       fullName: "",
@@ -201,18 +203,26 @@ export default function ProfileInfoTab() {
             {/* Date of Birth */}
             <div className="space-y-2">
               <Label className="text-xs font-bold text-slate-600 ml-1">Date of Birth</Label>
-              <div className="relative group/input">
-                <CalendarIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  type="date"
-                  {...register("dateOfBirth")}
-                  disabled={!isEditing}
-                  className={cn(
-                    "h-11 pl-10 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white transition-all font-medium text-slate-900 w-full",
-                    !isEditing && "disabled:opacity-100 disabled:bg-slate-50/20 disabled:border-transparent disabled:text-slate-800 disabled:cursor-default shadow-none [&::-webkit-calendar-picker-indicator]:opacity-0"
-                  )}
-                />
-              </div>
+              <Controller
+                control={control}
+                name="dateOfBirth"
+                render={({ field }) => (
+                  <DatePicker
+                    mode="single"
+                    value={field.value ? new Date(field.value) : undefined}
+                    onChange={(date) => {
+                      if (date instanceof Date) {
+                        field.onChange(format(date, "yyyy-MM-dd"));
+                      } else {
+                        field.onChange("");
+                      }
+                    }}
+                    disabled={!isEditing}
+                    placeholder="DD/MM/YYYY"
+                    className="w-full"
+                  />
+                )}
+              />
               {errors.dateOfBirth && <p className="text-red-500 text-[10px] mt-1 ml-1">{errors.dateOfBirth.message}</p>}
             </div>
 
