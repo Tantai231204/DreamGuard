@@ -252,14 +252,20 @@ export default function ProfileInfoTab() {
                 <Input
                   type="email"
                   {...register("email")}
-                  value={displayData.email}
-                  // disabled
+                  disabled={!isEditing}
+                  placeholder="E.g. example@gmail.com"
                   className={cn(
-                    "h-11 pl-10 rounded-xl bg-slate-50/50 border-slate-200 font-medium text-slate-900",
-                    "disabled:opacity-100 disabled:bg-slate-100/30 disabled:border-transparent disabled:text-slate-500 disabled:cursor-not-allowed shadow-none",
+                    "h-11 pl-10 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white transition-all font-medium text-slate-900",
+                    !isEditing &&
+                      "disabled:opacity-60 disabled:bg-slate-50/20 disabled:border-transparent disabled:text-slate-800 disabled:cursor-default shadow-none",
                   )}
                 />
               </div>
+              {errors.email && (
+                <p className="text-red-500 text-[10px] mt-1 ml-1">
+                  {errors.email.message}
+                </p>
+              )}
             </div>
 
             {/* Phone Number */}
