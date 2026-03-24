@@ -16,7 +16,6 @@ import { ProductNotFound } from "./components/ProductNotFound";
 import { useProductDetailState } from "./hooks/useProductDetailState";
 import {
   safetyCertifications,
-  productBenefits,
   mockReviews,
   mockEligibleTradeInProducts,
 } from "./constants";
@@ -172,7 +171,6 @@ export default function ProductDetail() {
               sizeOptions={state.dynamicSizeOptions}
               disabledColors={state.disabledColors}
               disabledSizes={state.disabledSizes}
-              benefits={productBenefits}
               onColorChange={actions.handleColorChange}
               onSizeChange={actions.setUserSelectedSize}
               onQuantityChange={actions.setQuantity}
