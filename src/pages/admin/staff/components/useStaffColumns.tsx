@@ -4,9 +4,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Edit,
-  Trash2,
+  Power,
   Eye,
-  Ban,
   ShieldCheck,
   Mail,
   Phone,
@@ -20,9 +19,10 @@ const columnHelper = createColumnHelper<Staff>();
 
 interface StaffColumnsProps {
   onEdit?: (staff: Staff) => void;
+  onChangeRole?: (staff: Staff) => void;
 }
 
-export function useStaffColumns({ onEdit }: StaffColumnsProps = {}) {
+export function useStaffColumns({ onEdit, onChangeRole }: StaffColumnsProps = {}) {
   const columns = useMemo(
     () => [
       columnHelper.display({
@@ -61,10 +61,12 @@ export function useStaffColumns({ onEdit }: StaffColumnsProps = {}) {
         header: ({ column }) => <SortableHeader column={column} label="Staff" />,
         cell: ({ row }) => {
           const staff = row.original;
+          const randomAvatarUrl = `https://api.dicebear.com/9.x/glass/svg?seed=${encodeURIComponent(staff.email || staff.fullName || row.id)}`;
+          
           return (
             <div className="flex items-center gap-3">
-              <Avatar className="h-9 w-9 border-2 border-gray-200">
-                <AvatarImage src={staff.avatarUrl} />
+              <Avatar className="h-9 w-9 border-2 border-slate-100 shadow-sm">
+                <AvatarImage src={staff.avatarUrl || randomAvatarUrl} />
                 <AvatarFallback className="bg-indigo-600 text-white text-xs font-semibold">
                   {staff.fullName ? staff.fullName.charAt(0) : 'U'}
                 </AvatarFallback>
@@ -141,16 +143,15 @@ export function useStaffColumns({ onEdit }: StaffColumnsProps = {}) {
               <AdminRowActions
                 sections={[
                   [
-                    { label: 'View File', icon: <Eye className="h-4 w-4" />, onClick: () => console.log('View', staff.staffId) },
-                    { label: 'Edit', icon: <Edit className="h-4 w-4" />, onClick: () => onEdit && onEdit(staff) },
+                    { label: 'View Profile', icon: <Eye className="h-4 w-4" />, onClick: () => console.log('View', staff.staffId) },
+                    { label: 'Edit Info', icon: <Edit className="h-4 w-4" />, onClick: () => onEdit && onEdit(staff) },
                   ],
                   ...(!isAdmin ? [
                     [
-                      { label: 'Change Role', icon: <ShieldCheck className="h-4 w-4" />, variant: 'info' as const, onClick: () => console.log('Role', staff.staffId) },
-                      { label: 'Suspend', icon: <Ban className="h-4 w-4" />, variant: 'warning' as const, onClick: () => console.log('Suspend', staff.staffId) },
+                      { label: 'Change Role', icon: <ShieldCheck className="h-4 w-4" />, variant: 'info' as const, onClick: () => onChangeRole && onChangeRole(staff) },
                     ],
                     [
-                      { label: 'Delete', icon: <Trash2 className="h-4 w-4" />, variant: 'danger' as const, onClick: () => console.log('Delete', staff.staffId) }
+                      { label: staff.status === 'active' ? 'Deactivate' : 'Activate', icon: <Power className="h-4 w-4" />, variant: (staff.status === 'active' ? 'warning' : 'success') as 'warning' | 'success', onClick: () => console.log('Toggle status', staff.staffId) }
                     ]
                   ] : [])
                 ]}
@@ -161,7 +162,7 @@ export function useStaffColumns({ onEdit }: StaffColumnsProps = {}) {
         size: 60,
       }),
     ],
-    [onEdit]
+    [onEdit, onChangeRole]
   );
 
   return columns;

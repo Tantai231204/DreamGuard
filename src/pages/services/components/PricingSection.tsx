@@ -13,25 +13,17 @@ export default function PricingSection({
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-10">
-          <h2 className="text-3xl font-semibold text-primary mb-2">
-            Choose Your Package
+          <h2 className="text-3xl font-bold text-slate-900 mb-2">
+            Our Service Tiers
           </h2>
-          <p className="text-sm text-gray-700 max-w-3xl mx-auto">
-            Pre-made packages for convenience — pick one and we handle the rest.
-            Want something different?{" "}
-            <button
-              type="button"
-              onClick={() => document.getElementById("booking")?.scrollIntoView({ behavior: "smooth" })}
-              className="text-primary underline cursor-pointer bg-transparent border-none p-0"
-            >
-              Build a custom order
-            </button>
-            .
+          <p className="text-sm text-slate-500 max-w-3xl mx-auto font-medium tracking-wide">
+            Select standard core cleaning levels designed to fit your needs.
+            Pricing calculates dynamically per item in our builder.
           </p>
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-10">
           {pricingPackages.map((pkg, i) => (
             <motion.div
               key={pkg.id}
@@ -39,14 +31,13 @@ export default function PricingSection({
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
-              className={`bg-white border border-dashed rounded-xl p-6 transition-all duration-300 ${
-                pkg.featured
-                  ? "border-primary shadow-lg scale-[1.02] relative"
-                  : "border-blue-300 hover:shadow-md"
-              }`}
+              className={`bg-white border-2 rounded-[20px] p-7 transition-all duration-300 ${pkg.featured
+                ? "border-[#4988c4] shadow-xl shadow-[#4988c4]/5 scale-[1.02] relative"
+                : "border-slate-100 hover:shadow-md"
+                }`}
             >
               {pkg.featured && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-white text-xs px-4 py-1 rounded-full font-medium">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#4988c4] text-white text-[10px] font-black uppercase tracking-wider px-4 py-1 rounded-full">
                   Popular
                 </div>
               )}
@@ -55,23 +46,25 @@ export default function PricingSection({
                 {pkg.name}
               </h3>
 
-              <p className="text-2xl font-bold text-primary mb-1">
+              <p className="text-2xl font-black text-[#4988c4] mb-1">
                 {pkg.price}{" "}
-                <span className="text-sm font-normal text-gray-500">
-                  {pkg.priceNote}
-                </span>
+                {pkg.priceNote && (
+                  <span className="text-sm font-normal text-slate-400">
+                    {pkg.priceNote}
+                  </span>
+                )}
               </p>
 
-              <p className="text-xs text-gray-500 mb-5">{pkg.description}</p>
+              <p className="text-xs text-slate-500 font-medium tracking-wide mb-5 leading-relaxed">{pkg.description}</p>
 
               {/* Features */}
-              <ul className="space-y-2 mb-6 min-h-[100px]">
-                {pkg.features.slice(0, 4).map((feature, idx) => (
+              <ul className="space-y-2.5 mb-6 min-h-[120px]">
+                {pkg.features.slice(0, 5).map((feature, idx) => (
                   <li
                     key={idx}
-                    className="flex items-start text-xs text-gray-500"
+                    className="flex items-start text-xs text-slate-500 font-medium"
                   >
-                    <span className="text-primary mr-2 font-bold">•</span>
+                    <span className="text-[#4988c4] mr-2 font-bold">•</span>
                     <span className="leading-relaxed">{feature}</span>
                   </li>
                 ))}
@@ -98,13 +91,12 @@ export default function PricingSection({
               <button
                 type="button"
                 onClick={() => onSelectPackage(pkg.id)}
-                className={`block w-full py-2.5 text-sm font-medium rounded-full transition-all duration-300 text-center ${
-                  pkg.featured
-                    ? "bg-primary text-white hover:bg-[var(--color-primary-hover)] hover:shadow-md"
-                    : "bg-[var(--color-primary-light)] text-gray-900 hover:opacity-90"
-                }`}
+                className={`block w-full py-2.5 text-sm font-bold rounded-xl transition-all duration-300 text-center ${pkg.featured
+                  ? "bg-[#4988c4] text-white hover:bg-[#3a73a8] hover:shadow-lg hover:shadow-[#4988c4]/10"
+                  : "bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-100"
+                  }`}
               >
-                Book Now
+                Build your Booking
               </button>
             </motion.div>
           ))}

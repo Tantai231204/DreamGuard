@@ -1,102 +1,44 @@
-import { useState, useMemo, useCallback } from 'react';
-import {
-  Sparkles,
-  Plus,
-  Download,
-  RefreshCw,
-  LayoutGrid,
-  List
-} from 'lucide-react';
-import { toast } from 'sonner';
-
+import { Sparkles, Plus, LayoutGrid, List, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 import AdminPageHeader from '@/components/layout/AdminPageHeader';
+import { motion } from 'framer-motion';
 
-import { ServiceStatsCards, ServiceFilters, ServiceBookingCard } from './components';
-import { mockServiceBookings, calculateServiceStats } from './data';
-import type { ServiceStatus, ServiceType } from './types';
+import { ServiceFilters, ServiceBookingCard, AssignTechnicianDialog } from './components';
+import { GridSkeleton, TableSkeleton } from '@/components/common';
+import { useServiceManagement } from './hooks/useServiceManagement';
 
 type ViewMode = 'grid' | 'list';
 
 export default function ServiceManagement() {
-  // Filter states
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<ServiceStatus | 'all'>('all');
-  const [serviceTypeFilter, setServiceTypeFilter] = useState<ServiceType | 'all'>('all');
-  const [dateFilter, setDateFilter] = useState('');
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
-
-  // Calculate stats
-  const stats = useMemo(() => calculateServiceStats(mockServiceBookings), []);
-
-  // Filter bookings
-  const filteredBookings = useMemo(() => {
-    return mockServiceBookings.filter((booking) => {
-      // Search filter
-      if (searchQuery) {
-        const search = searchQuery.toLowerCase();
-        const matchesSearch =
-          booking.id.toLowerCase().includes(search) ||
-          booking.customerName.toLowerCase().includes(search) ||
-          booking.customerPhone.includes(search) ||
-          booking.customerEmail.toLowerCase().includes(search);
-        if (!matchesSearch) return false;
-      }
-
-      // Status filter
-      if (statusFilter !== 'all' && booking.status !== statusFilter) {
-        return false;
-      }
-
-      // Service type filter
-      if (serviceTypeFilter !== 'all' && booking.serviceType !== serviceTypeFilter) {
-        return false;
-      }
-
-      // Date filter
-      if (dateFilter && booking.scheduledDate !== dateFilter) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [searchQuery, statusFilter, serviceTypeFilter, dateFilter]);
-
-  // Handlers
-  const handleViewBooking = useCallback((id: string) => {
-    toast.info(`View details for booking ${id}`);
-    // TODO: Navigate to detail page
-  }, []);
-
-  const handleEditBooking = useCallback((id: string) => {
-    toast.info(`Edit booking ${id}`);
-  }, []);
-
-  const handleConfirmBooking = useCallback((id: string) => {
-    toast.success(`Confirmed booking ${id}`);
-  }, []);
-
-  const handleCancelBooking = useCallback((id: string) => {
-    toast.error(`Cancelled booking ${id}`);
-  }, []);
-
-  const handleAssignTechnician = useCallback((id: string) => {
-    toast.info(`Assign technician to booking ${id}`);
-  }, []);
-
-  const handleExport = useCallback(() => {
-    toast.success('Exporting report...');
-  }, []);
-
-  const handleRefresh = useCallback(() => {
-    toast.success('Data refreshed');
-  }, []);
-
-  const handleCreateNew = useCallback(() => {
-    toast.info('Creating new service booking');
-  }, []);
+  const {
+    searchQuery,
+    setSearchQuery,
+    statusFilter,
+    setStatusFilter,
+    serviceTypeFilter,
+    setServiceTypeFilter,
+    dateFilter,
+    setDateFilter,
+    currentPage,
+    setCurrentPage,
+    totalPages,
+    viewMode,
+    setViewMode,
+    isAssignOpen,
+    setIsAssignOpen,
+    selectedOrderId,
+    stats,
+    filteredBookings,
+    isLoading,
+    handleViewBooking,
+    handleEditBooking,
+    handleConfirmBooking,
+    handleCancelBooking,
+    handleAssignTechnician,
+    handleCreateNew,
+  } = useServiceManagement();
 
   return (
     <div className="flex flex-col h-full bg-gray-50">
@@ -105,116 +47,137 @@ export default function ServiceManagement() {
         title="Cleaning Service Management"
         description="Track and manage cleaning service bookings"
         icon={Sparkles}
-        actions={
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              className="gap-2 rounded-xl border-2 font-medium shadow-sm hover:shadow-md border-gray-300 hover:border-gray-400 hover:bg-gray-50 transition-all"
-            >
-              <RefreshCw className="h-4 w-4" />
-              <span className="hidden sm:inline">Refresh</span>
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleExport}
-              className="gap-2 rounded-xl border-2 font-medium shadow-sm hover:shadow-md border-green-200 text-green-700 hover:border-green-500 hover:bg-green-500 hover:text-white transition-all"
-            >
-              <Download className="h-4 w-4" />
-              <span className="hidden sm:inline">Export Report</span>
-            </Button>
-            <Button
-              size="sm"
-              onClick={handleCreateNew}
-              className="gap-2 rounded-xl bg-gradient-to-r from-[var(--color-primary)] to-blue-600 hover:from-[var(--color-primary-hover)] hover:to-blue-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
-            >
-              <Plus className="h-4 w-4" />
-              <span className="hidden sm:inline">Create New</span>
-            </Button>
-          </div>
-        }
+        stats={[
+          { label: 'Total Bookings', value: stats.totalBookings },
+          { label: 'Pending', value: stats.pendingBookings },
+          { label: 'In Progress', value: stats.inProgressBookings },
+          { label: 'Completed', value: stats.completedBookings }
+        ]}
       />
 
       {/* Content */}
-      <div className="flex-1 overflow-auto p-6 space-y-5">
-        {/* Stats */}
-        <ServiceStatsCards stats={stats} />
+      <div className="flex-1 overflow-hidden bg-white">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="m-6 bg-white rounded-2xl border-2 border-gray-100 overflow-hidden shadow-xl flex flex-col h-[calc(100%-3rem)] p-4 space-y-4"
+        >
 
-        {/* Filters */}
-        <ServiceFilters
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          statusFilter={statusFilter}
-          onStatusFilterChange={setStatusFilter}
-          serviceTypeFilter={serviceTypeFilter}
-          onServiceTypeFilterChange={setServiceTypeFilter}
-          dateFilter={dateFilter}
-          onDateFilterChange={setDateFilter}
-        />
+          {/* Filters */}
+          <ServiceFilters
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
+            serviceTypeFilter={serviceTypeFilter}
+            onServiceTypeFilterChange={setServiceTypeFilter}
+            dateFilter={dateFilter}
+            onDateFilterChange={setDateFilter}
+          />
 
-        {/* View Toggle & Results Count */}
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-600">
-            Tìm thấy <strong className="text-gray-900">{filteredBookings.length}</strong> đơn đặt dịch vụ
-          </p>
+          {/* View Toggle & Results Count */}
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-600">
+              Found <strong className="text-gray-900">{filteredBookings.length}</strong> service bookings
+            </p>
 
-          <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
-            <TabsList className="h-9">
-              <TabsTrigger value="grid" className="h-7 px-3 gap-1.5">
-                <LayoutGrid className="h-4 w-4" />
-                <span className="hidden sm:inline text-xs">Grid</span>
-              </TabsTrigger>
-              <TabsTrigger value="list" className="h-7 px-3 gap-1.5">
-                <List className="h-4 w-4" />
-                <span className="hidden sm:inline text-xs">List</span>
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
-
-        {/* Bookings List */}
-        {filteredBookings.length > 0 ? (
-          <div
-            className={
-              viewMode === 'grid'
-                ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4'
-                : 'grid grid-cols-1 gap-3'
-            }
-          >
-            {filteredBookings.map((booking) => (
-              <ServiceBookingCard
-                key={booking.id}
-                booking={booking}
-                onView={handleViewBooking}
-                onEdit={handleEditBooking}
-                onConfirm={handleConfirmBooking}
-                onCancel={handleCancelBooking}
-                onAssignTechnician={handleAssignTechnician}
-              />
-            ))}
+            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
+              <TabsList className="h-9">
+                <TabsTrigger value="grid" className="h-7 px-3 gap-1.5">
+                  <LayoutGrid className="h-4 w-4" />
+                  <span className="hidden sm:inline text-xs">Grid</span>
+                </TabsTrigger>
+                <TabsTrigger value="list" className="h-7 px-3 gap-1.5">
+                  <List className="h-4 w-4" />
+                  <span className="hidden sm:inline text-xs">List</span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
           </div>
-        ) : (
-          <Card className="border-dashed">
-            <CardContent className="flex flex-col items-center justify-center py-16">
-              <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-                <Sparkles className="h-8 w-8 text-gray-400" />
+
+          {/* Bookings List */}
+          <div className="flex-1 overflow-auto pr-1">
+            {isLoading ? (
+               viewMode === 'grid' ? <GridSkeleton count={8} /> : <TableSkeleton rows={10} columns={4} />
+            ) : filteredBookings.length > 0 ? (
+              <div
+                className={
+                  viewMode === 'grid'
+                    ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4'
+                    : 'grid grid-cols-1 gap-3'
+                }
+              >
+                {filteredBookings.map((booking) => (
+                  <ServiceBookingCard
+                    key={booking.id}
+                    booking={booking}
+                    onView={handleViewBooking}
+                    onEdit={handleEditBooking}
+                    onConfirm={handleConfirmBooking}
+                    onCancel={handleCancelBooking}
+                    onAssignTechnician={handleAssignTechnician}
+                  />
+                ))}
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                Không tìm thấy lịch đặt nào
-              </h3>
-              <p className="text-sm text-gray-500 mb-4">
-                Thử đổi bộ lọc hoặc tạo đơn đặt lịch mới thử xem.
-              </p>
-              <Button onClick={handleCreateNew} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Tạo mới đặt lịch
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+            ) : (
+              <Card className="border-dashed flex-1 justify-center">
+                <CardContent className="flex flex-col items-center justify-center py-16">
+                  <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                    <Sparkles className="h-8 w-8 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                    No bookings found
+                  </h3>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Try changing some filters or create a new booking.
+                  </p>
+                  <button onClick={handleCreateNew} className="gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg flex items-center">
+                    <Plus className="h-4 w-4" />
+                    Create New Booking
+                  </button>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          {/* Custom Pagination Footer */}
+          {!isLoading && filteredBookings.length > 0 && (
+            <div className="flex items-center justify-between px-6 py-4 border-t-2 border-gray-100 bg-gray-50/50 -mx-4 -mb-4">
+               <div className="text-sm font-medium text-gray-500">
+                Page <span className="text-gray-900 font-bold">{currentPage}</span> of <span className="text-gray-900 font-bold">{totalPages}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="gap-2 h-9 px-4 rounded-xl border-gray-200"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="gap-2 h-9 px-4 rounded-xl border-gray-200"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+        </motion.div>
       </div>
+
+      <AssignTechnicianDialog
+        orderId={selectedOrderId}
+        isOpen={isAssignOpen}
+        onClose={() => setIsAssignOpen(false)}
+      />
     </div>
   );
 }

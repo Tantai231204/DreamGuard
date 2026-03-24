@@ -1,4 +1,4 @@
-import { Package } from "lucide-react";
+import { Package, RotateCcw, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SEO } from "@/components/common";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -153,6 +153,25 @@ export default function ComboDetail() {
                             setQuantity={setQuantity}
                             onAddToCart={handleAddToCart}
                         />
+
+                        {/* ── Dynamic Policies (Sleek Grid) ── */}
+                        <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-100/80">
+                            {[
+                                { icon: RotateCcw, label: 'Returns policy', value: `${(combo as { returnPolicyDay?: number }).returnPolicyDay || 30}-Days`, sub: 'Easy exchanges' },
+                                { icon: ShieldCheck, label: 'Warranty coverage', value: (combo as { warrantyPolicyDay?: number }).warrantyPolicyDay ? `${(combo as { warrantyPolicyDay?: number }).warrantyPolicyDay} days` : 'Included', sub: 'Against defects' },
+                            ].map((item, i) => (
+                                <div key={i} className="flex flex-col gap-1 p-3.5 bg-slate-50/50 rounded-xl border border-slate-100/60 transition-colors hover:bg-white hover:shadow-sm cursor-default">
+                                    <div className="flex items-center gap-1.5">
+                                        <item.icon className="w-3.5 h-3.5 text-[#4988c4]" />
+                                        <span className="text-[10px] font-black uppercase tracking-wider text-[#4988c4]">{item.label}</span>
+                                    </div>
+                                    <span className="text-[14px] font-black text-slate-900 tracking-tight mt-0.5">
+                                        {item.value}
+                                    </span>
+                                    <span className="text-[10px] text-slate-400 font-medium tracking-wide">{item.sub}</span>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
 

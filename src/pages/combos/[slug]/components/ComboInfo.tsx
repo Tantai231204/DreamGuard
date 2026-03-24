@@ -41,8 +41,9 @@ export const ComboInfo = ({ combo, activeCombo }: Props) => {
                     Organic Material
                 </Badge>
                 {current.ageGroup && (
-                    <Badge className="bg-sky-50 text-sky-700 border border-sky-100 px-2.5 py-0.5 text-[10px] font-bold tracking-wide rounded-md">
-                        Ages {current.ageGroup}+
+                    <Badge className="bg-amber-50/80 text-amber-700 border border-amber-200/50 px-2.5 py-1 text-[10px] font-black tracking-wider rounded-lg flex items-center gap-1.5 shadow-sm">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
+                        AGE: {current.ageGroup} MONTHS+
                     </Badge>
                 )}
             </div>

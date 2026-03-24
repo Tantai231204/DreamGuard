@@ -61,7 +61,9 @@ export default function Login() {
       
       if (from) {
         if (typeof from === 'string') targetPath = from;
-        else if (typeof from === 'object' && (from as any).pathname) targetPath = (from as any).pathname;
+        else if (typeof from === 'object' && from && 'pathname' in from) {
+            targetPath = (from as { pathname: string }).pathname;
+        }
       }
 
       // Avoid infinite loop if target is somehow login

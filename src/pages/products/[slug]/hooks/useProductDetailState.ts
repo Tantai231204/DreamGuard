@@ -139,8 +139,8 @@ export function useProductDetailState({ product, productImageRef }: UseProductDe
         let oos = false;
         if (typeof stockLeft === "number") {
             if (stockLeft === 0) { label = "Out of stock"; oos = true; }
-            else if (stockLeft < 5) label = `Only ${stockLeft} left`;
-            else label = `${stockLeft} in stock`;
+            else if (stockLeft < 10) label = "Low stock";
+            else label = "In stock";
         }
         return { stockLeft, stockStatusLabel: label, isOutOfStock: oos };
     }, [currentVariant]);

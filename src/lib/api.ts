@@ -34,9 +34,6 @@ export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "/api",
   timeout: 30000,
   withCredentials: true, // Crucial for cookie-based auth
-  headers: {
-    "Content-Type": "application/json",
-  },
 });
 
 /* ======================
@@ -103,6 +100,8 @@ api.interceptors.response.use(
     if (
       status === 401 &&
       !originalRequest._retry &&
+      !useAuthStore.getState().isLoggingOut &&
+      useAuthStore.getState().isAuthenticated &&
       !originalRequest.url?.includes('/auths/refreshToken') &&
       !originalRequest.url?.includes('/auths/login')
     ) {
@@ -130,7 +129,9 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError);
-        useAuthStore.getState().clearAuth();
+        // Explicitly clear auth and trigger redirect reason through the store
+        // This is the "Maximum BE Sync" pattern
+        useAuthStore.getState().clearAuth('session_expired');
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

@@ -23,6 +23,7 @@ export const AppRoute = {
   COMBO_DETAIL: "/combos/:slug",
   SERVICES: "/services",
   SERVICES_BOOKING: "/services/booking",
+  SERVICES_CUSTOMIZE: "/services/customize",
   CART: "/cart",
   CHECKOUT: "/checkout",
   CHECKOUT_RESULT: "/checkout/result",
@@ -32,6 +33,7 @@ export const AppRoute = {
 
   // Admin Routes
   ADMIN: "/admin",
+  ADMIN_PRODUCT_TYPES: "/admin/product-types",
 
   // Error Routes
   NOT_FOUND: "*",

@@ -31,6 +31,8 @@
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@radix-ui/react-visually-hidden": "^1.2.4",
+    "@react-three/drei": "^9.114.3",
+    "@react-three/fiber": "^8.17.10",
     "@tanstack/react-query": "^5.0.0",
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/react-virtual": "^3.13.19",
@@ -55,6 +57,7 @@
     "recharts": "^3.7.0",
     "sonner": "^1.7.3",
     "tailwind-merge": "^2.6.0",
+    "three": "^0.183.2",
     "vaul": "^1.1.2",
     "zod": "^3.22.4",
     "zustand": "^4.5.2"

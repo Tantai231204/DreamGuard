@@ -1,24 +1,22 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
-import { Trash2, Edit, Copy, X, Package } from 'lucide-react';
+import { Trash2, X, Package } from 'lucide-react';
 import type { Table } from '@tanstack/react-table';
 
 interface AdminBulkActionsProps<T> {
   table: Table<T>;
   itemLabel?: string;
   accentColor?: 'blue' | 'black';
-  onEdit?: () => void;
-  onDuplicate?: () => void;
   onDelete?: () => void;
+  deleteLabel?: string;
 }
 
 export function AdminBulkActions<T>({
   table,
   itemLabel = 'item',
   accentColor = 'blue',
-  onEdit,
-  onDuplicate,
   onDelete,
+  deleteLabel = 'Delete',
 }: AdminBulkActionsProps<T>) {
   const selectedCount = table.getFilteredSelectedRowModel().rows.length;
   const isVisible = selectedCount > 0;
@@ -59,33 +57,6 @@ export function AdminBulkActions<T>({
               </div>
 
               <div className="flex items-center gap-2.5">
-                {onEdit && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className={`gap-2 rounded-xl border-2 font-semibold shadow-sm transition-all ${isBlue
-                      ? 'hover:bg-primary-600 hover:border-primary-600 hover:text-white hover:shadow-md'
-                      : 'hover:bg-slate-900 hover:border-slate-900 hover:text-white hover:shadow-md'
-                      }`}
-                    onClick={onEdit}
-                  >
-                    <Edit className="h-4 w-4" />
-                    Edit
-                  </Button>
-                )}
-
-                {onDuplicate && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="gap-2 rounded-xl border-2 font-semibold shadow-sm hover:bg-gray-700 hover:border-gray-700 hover:text-white hover:shadow-md transition-all"
-                    onClick={onDuplicate}
-                  >
-                    <Copy className="h-4 w-4" />
-                    Duplicate
-                  </Button>
-                )}
-
                 {onDelete && (
                   <Button
                     size="sm"
@@ -94,7 +65,7 @@ export function AdminBulkActions<T>({
                     onClick={onDelete}
                   >
                     <Trash2 className="h-4 w-4" />
-                    Delete
+                    {deleteLabel}
                   </Button>
                 )}
               </div>

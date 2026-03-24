@@ -38,26 +38,36 @@ export function UserTableContent({ table }: UserTableContentProps) {
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows.length > 0 ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && 'selected'}
-                  className="cursor-pointer transition-colors hover:bg-blue-50/30"
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className="py-3">
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
+              <>
+                {table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && 'selected'}
+                    className="cursor-pointer transition-colors hover:bg-blue-50/30 border-b border-gray-100 h-[65px]"
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id} className="py-2.5">
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+                {/* Spacer Rows to prevent Layout Collapsing */}
+                {Array.from({ length: Math.max(0, 10 - table.getRowModel().rows.length) }).map((_, i) => (
+                  <TableRow key={`empty-${i}`} className="h-[65px] border-b border-gray-50/20 hover:bg-transparent">
+                    <TableCell colSpan={table.getAllColumns().length} />
+                  </TableRow>
+                ))}
+              </>
             ) : (
-              <TableRow>
+              <TableRow className="h-[650px] hover:bg-transparent">
                 <TableCell
                   colSpan={table.getAllColumns().length}
-                  className="h-32 text-center text-gray-500"
+                  className="text-center text-gray-500 font-medium"
                 >
-                  No users found.
+                  <div className="flex flex-col items-center justify-center gap-1">
+                    <span className="text-gray-400">No customers found.</span>
+                  </div>
                 </TableCell>
               </TableRow>
             )}

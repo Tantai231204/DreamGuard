@@ -106,6 +106,7 @@ export function useHeaderData() {
             });
         }
 
+        items.push({ label: "Customize 3D", href: AppRoute.SERVICES_CUSTOMIZE });
         items.push({ label: "Combos", href: AppRoute.COMBOS });
         items.push({ label: "Services", href: "/services" });
         items.push({ label: "About", href: "/about" });

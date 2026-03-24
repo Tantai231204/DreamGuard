@@ -42,33 +42,39 @@ export default function CheckoutResult() {
             >
                 <div className="flex justify-center mb-8">
                     {isSuccess ? (
-                        <div className="relative">
+                        <div className="relative mx-auto w-24 h-24">
                             <motion.div
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
-                                transition={{ type: "spring", damping: 12, delay: 0.1 }}
-                                className="w-24 h-24 rounded-full bg-blue-50 flex items-center justify-center text-[#4988c4]"
+                                transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
+                                className="absolute inset-0 rounded-full bg-emerald-500 shadow-2xl shadow-emerald-500/30 flex items-center justify-center text-white"
                             >
-                                <CheckCircle2 className="w-12 h-12" />
+                                <CheckCircle2 className="h-12 w-12" strokeWidth={2.5} />
                             </motion.div>
                             <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 0.5 }}
-                                className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-[#4988c4] flex items-center justify-center text-white text-[10px] font-black tracking-tighter shadow-lg shadow-blue-200"
-                            >
-                                OK
-                            </motion.div>
+                                initial={{ scale: 0, opacity: 0.5 }}
+                                animate={{ scale: 2.5, opacity: 0 }}
+                                transition={{ duration: 1, delay: 0.3 }}
+                                className="absolute inset-0 rounded-full bg-emerald-400"
+                            />
                         </div>
                     ) : (
-                        <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ type: "spring", damping: 12, delay: 0.1 }}
-                            className="w-24 h-24 rounded-full bg-red-50 flex items-center justify-center text-red-500"
-                        >
-                            <XCircle className="w-12 h-12" />
-                        </motion.div>
+                        <div className="relative mx-auto w-24 h-24">
+                            <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
+                                className="absolute inset-0 rounded-full bg-rose-500 shadow-2xl shadow-rose-500/30 flex items-center justify-center text-white"
+                            >
+                                <XCircle className="h-12 w-12" strokeWidth={2.5} />
+                            </motion.div>
+                            <motion.div
+                                initial={{ scale: 0, opacity: 0.5 }}
+                                animate={{ scale: 2.5, opacity: 0 }}
+                                transition={{ duration: 1, delay: 0.3 }}
+                                className="absolute inset-0 rounded-full bg-rose-400"
+                            />
+                        </div>
                     )}
                 </div>
 

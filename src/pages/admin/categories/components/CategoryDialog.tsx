@@ -98,7 +98,7 @@ function CategoryDialogInner({
                 </div>
             </DialogHeader>
 
-            <form onSubmit={handleSubmit} className="space-y-5 py-4">
+            <form onSubmit={handleSubmit} className="space-y-5 py-6 px-8">
                 {/* Name */}
                 <div className="space-y-2">
                     <Label htmlFor="name" className="text-sm font-medium text-gray-700 flex items-center gap-1.5">

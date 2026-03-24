@@ -12,6 +12,8 @@ export const useOrders = (params?: { pageNumber?: number; pageSize?: number }) =
     return useQuery({
         queryKey: params ? [...orderKeys.all, params] : orderKeys.all,
         queryFn: () => orderService.getOrders(params),
+        staleTime: 30000,
+        gcTime: 60000,
     });
 };
 
@@ -32,11 +34,11 @@ export const useCreateOrder = () => {
         }
     });
 };
-export const useOrderDetail = (id: string) => {
+export const useOrderDetail = (id: string, options?: { enabled?: boolean }) => {
     return useQuery({
         queryKey: orderKeys.detail(id),
         queryFn: () => orderService.getOrderDetail(id),
-        enabled: !!id,
+        enabled: options?.enabled !== undefined ? (options.enabled && !!id) : !!id,
     });
 };
 
@@ -63,6 +65,7 @@ export const useAdminOrders = (params?: {
     return useQuery({
         queryKey: [...orderKeys.all, 'admin', params],
         queryFn: () => orderService.getAdminOrders(params),
+        staleTime: 0,
     });
 };
 

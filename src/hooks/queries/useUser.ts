@@ -25,14 +25,12 @@ function normalizeProfile(profile: any) {
 export const useProfile = () => {
     const { isAuthenticated, role } = useAuthStore();
     const isStaff = role && role !== "User" && role !== "Admin";
+    const hasProfile = role && role !== "Admin";
 
     return useQuery<StaffResponse | UserProfile>({
         queryKey: [...profileKeys.all, role],
-        queryFn: async () => {
-            const data = await (isStaff ? staffService.getStaffProfile() : userService.getProfile());
-            return normalizeProfile(data);
-        },
-        enabled: isAuthenticated,
+        queryFn: isStaff ? () => staffService.getStaffProfile() : userService.getProfile,
+        enabled: isAuthenticated && !!hasProfile,
     });
 };
 

@@ -1,4 +1,5 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   useReactTable,
   getCoreRowModel,
@@ -10,41 +11,70 @@ import type {
   ColumnFiltersState,
   RowSelectionState,
   PaginationState,
+  Updater,
 } from '@tanstack/react-table';
 import { Briefcase } from 'lucide-react';
 import AdminPageHeader from '@/components/layout/AdminPageHeader';
 import { AdminTableSearch, AdminTablePagination, AdminTableContent } from '@/components/admin';
-import { AdminBulkActions } from '@/components/admin/AdminBulkActions';
+
 import { useStaffColumns } from './components/useStaffColumns';
 import { StaffActions } from './components/StaffActions';
 import { StaffDialog, type StaffFormValues } from './components/StaffDialog';
+import { ChangeRoleDialog } from './components/ChangeRoleDialog';
 import { motion } from 'framer-motion';
 import { useStaffs, useCreateStaff, useUpdateStaff, useUpdateStaffRole, useUpdateStaffAccount } from '@/hooks/queries/useStaff';
 import { useToast } from '@/hooks/useToast';
+import { useDebounce } from '@/hooks/useDebounce';
+import { downloadCSV } from '@/lib/export';
 import type { Staff } from './types';
 import type { CreateStaffRequest, UpdateStaffRequest } from '@/api/types/staff.types';
 
 export default function StaffPage() {
   const toast = useToast();
-  const [globalFilter, setGlobalFilter] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
+  const pagination = useMemo(() => ({
+    pageIndex: parseInt(searchParams.get('page') || '1') - 1,
+    pageSize: parseInt(searchParams.get('pageSize') || '10'),
+  }), [searchParams]);
+
+  const globalFilter = searchParams.get('search') || '';
+
+  const setPagination = useCallback((updaterOrValue: Updater<PaginationState>) => {
+    const next = typeof updaterOrValue === 'function' ? updaterOrValue(pagination) : updaterOrValue;
+    setSearchParams((prev) => {
+      prev.set('page', String(next.pageIndex + 1));
+      prev.set('pageSize', String(next.pageSize));
+      return prev;
+    });
+  }, [pagination, setSearchParams]);
+
+  const setGlobalFilter = useCallback((value: string) => {
+    setSearchParams((prev) => {
+      if (value) prev.set('search', value);
+      else prev.delete('search');
+      prev.set('page', '1'); // Reset
+      return prev;
+    });
+  }, [setSearchParams]);
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
+  
+  const [roleDialogOpen, setRoleDialogOpen] = useState(false);
+  const [roleStaff, setRoleStaff] = useState<{ id: string; role: string } | null>(null);
 
-  const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 10,
-  });
+  const debouncedSearch = useDebounce(globalFilter, 500);
 
-  const { data } = useStaffs({
-    pageNumber: pageIndex + 1,
-    pageSize,
-    key: globalFilter || undefined,
+  const { data, isLoading } = useStaffs({
+    pageNumber: pagination.pageIndex + 1,
+    pageSize: pagination.pageSize,
+    key: debouncedSearch || undefined,
   });
-  const staffList = data?.items || [];
+  const staffList = useMemo(() => data?.items || [], [data]);
 
   const createMutation = useCreateStaff();
   const updateMutation = useUpdateStaff();
@@ -60,6 +90,24 @@ export default function StaffPage() {
     setEditingStaff(staff);
     setDialogOpen(true);
   }, []);
+
+  const handleChangeRole = useCallback((staff: Staff) => {
+    setRoleStaff({ id: staff.staffId, role: staff.role || staff.position || 'Seller' });
+    setRoleDialogOpen(true);
+  }, []);
+
+  const handleExport = useCallback(() => {
+    const exportData = staffList.map(staff => ({
+      ID: staff.staffId || '',
+      FullName: staff.fullName || '',
+      Email: staff.email || '',
+      Phone: staff.phoneNumber || '',
+      Role: staff.role || '',
+      Position: staff.position || '',
+      Status: staff.status || 'active'
+    }));
+    downloadCSV(exportData, 'Staffs');
+  }, [staffList]);
 
   const handleSubmit = useCallback(
     async (data: StaffFormValues) => {
@@ -88,7 +136,7 @@ export default function StaffPage() {
           if (newRole && newRole !== editingStaff.role) {
             await updateRoleMutation.mutateAsync({ id: editingStaff.staffId, newRole });
           }
-          
+
           toast.success('Staff updated', 'Staff details have been updated successfully.');
         } else {
           // Create mode
@@ -118,12 +166,7 @@ export default function StaffPage() {
     [editingStaff, createMutation, updateMutation, updateRoleMutation, updateAccountMutation, toast]
   );
 
-  // We should pass handleEdit to columns via context or prop injection if possible
-  // In `useStaffColumns.tsx` we can modify it to accept an `onEdit` handler if needed,
-  // but for now, we'll keep it simple and just make the actions work in the toolbar.
-  // We'll update useStaffColumns to take "onEdit" so the edit button works too.
-
-  const columns = useStaffColumns({ onEdit: handleEdit });
+  const columns = useStaffColumns({ onEdit: handleEdit, onChangeRole: handleChangeRole });
 
   const table = useReactTable({
     data: staffList,
@@ -135,8 +178,8 @@ export default function StaffPage() {
       globalFilter,
       rowSelection,
       pagination: {
-        pageIndex,
-        pageSize,
+        pageIndex: pagination.pageIndex,
+        pageSize: pagination.pageSize,
       },
     },
     manualPagination: true,
@@ -167,33 +210,23 @@ export default function StaffPage() {
           className="flex-1 bg-white rounded-2xl border-2 border-gray-100 overflow-hidden shadow-xl m-6 flex flex-col"
         >
           <div className="flex flex-col h-full overflow-hidden">
-            <div className="p-4 space-y-4">
-              <AdminBulkActions
-                table={table}
-                itemLabel="staff"
-                accentColor="black"
-                onDelete={() => {
-                  console.log('Bulk delete');
-                  table.resetRowSelection();
-                }}
-              />
+            <AdminTableSearch
+              value={globalFilter}
+              onChange={setGlobalFilter}
+              placeholder="Search staff by name, email, or position..."
+              table={table}
+              resultCount={data?.totalCount ?? 0}
+              resultLabel="staff"
+              actions={<StaffActions onAdd={handleAdd} onExport={handleExport} />}
+            />
 
-              <StaffActions onAdd={handleAdd} />
 
-              <AdminTableSearch
-                value={globalFilter}
-                onChange={setGlobalFilter}
-                placeholder="Search staff by name, email, or position..."
-                table={table}
-                resultCount={data?.totalCount ?? 0}
-                resultLabel="staff"
-              />
-            </div>
 
             <div className="flex-1 overflow-auto">
               <AdminTableContent
                 table={table}
                 emptyMessage="No staff members found."
+                isLoading={isLoading}
               />
             </div>
 
@@ -210,6 +243,14 @@ export default function StaffPage() {
         staff={editingStaff}
         onSubmit={handleSubmit}
         isLoading={createMutation.isPending || updateMutation.isPending || updateRoleMutation.isPending}
+      />
+
+      <ChangeRoleDialog
+        open={roleDialogOpen}
+        onOpenChange={setRoleDialogOpen}
+        staffId={roleStaff?.id || ''}
+        currentRole={roleStaff?.role || ''}
+        key={roleStaff?.id} // Forces fresh mount when switching users
       />
     </div>
   );

@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useToast } from '@/hooks/useToast';
+import type { ApiError } from '@/lib/api';
 import {
     useReactTable,
     getCoreRowModel,
@@ -40,7 +41,7 @@ export default function VouchersPage() {
 
     // Delete confirmation state
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-    const [voucherToDelete, setVoucherToDelete] = useState<string | null>(null);
+    const [voucherToDelete, setVoucherToDelete] = useState<string | string[] | null>(null);
 
     // Gọi API lấy danh sách vouchers qua TanStack Query (trang 1)
     const { data: vouchersData, isLoading, isError, error } = useVouchers(1);
@@ -64,7 +65,7 @@ export default function VouchersPage() {
         setDialogOpen(true);
     }, []);
 
-    // Xóa voucher
+    // Xóa voucher (single)
     const handleDelete = useCallback(
         (voucherId: string) => {
             setVoucherToDelete(voucherId);
@@ -73,17 +74,7 @@ export default function VouchersPage() {
         []
     );
 
-    const confirmDelete = useCallback(() => {
-        if (voucherToDelete) {
-            deleteMutation.mutate(voucherToDelete, {
-                onSuccess: () => {
-                    toast.success('Voucher deleted', 'The voucher has been successfully deleted.');
-                    setDeleteConfirmOpen(false);
-                },
-            });
-            setVoucherToDelete(null);
-        }
-    }, [voucherToDelete, deleteMutation, toast]);
+
 
     // Submit form (create hoặc update)
     const handleSubmit = useCallback(
@@ -173,6 +164,33 @@ export default function VouchersPage() {
         },
     });
 
+    // Xóa nhiều vouchers (bulk)
+    const handleBulkDelete = useCallback(() => {
+        const selectedRows = table.getFilteredSelectedRowModel().rows;
+        const ids = selectedRows.map(row => (row.original as Voucher).voucherId);
+        setVoucherToDelete(ids);
+        setDeleteConfirmOpen(true);
+    }, [table]);
+
+    const confirmDelete = useCallback(async () => {
+        if (!voucherToDelete) return;
+
+        const ids = Array.isArray(voucherToDelete) ? voucherToDelete : [voucherToDelete];
+
+        try {
+            await Promise.all(ids.map(id => deleteMutation.mutateAsync(id)));
+            toast.success('Deleted', `${ids.length} voucher(s) successfully deleted.`);
+            if (Array.isArray(voucherToDelete)) {
+                table.resetRowSelection();
+            }
+            setDeleteConfirmOpen(false);
+        } catch {
+            toast.error('Deletion Failed', 'Some vouchers could not be deleted.');
+        } finally {
+            setVoucherToDelete(null);
+        }
+    }, [voucherToDelete, deleteMutation, toast, table]);
+
     // Loading state
     if (isLoading) {
         return (
@@ -190,8 +208,10 @@ export default function VouchersPage() {
         );
     }
 
-    // Error state
-    if (isError) {
+    // Error state (Skip error rendering if it's just a 404 Not Found, so the table shows "No vouchers found" gracefully)
+    const isNotFoundError = (error as ApiError)?.status === 404;
+
+    if (isError && !isNotFoundError) {
         return (
             <div className="flex flex-col h-full">
                 <AdminPageHeader
@@ -238,9 +258,7 @@ export default function VouchersPage() {
                             table={table}
                             itemLabel="voucher"
                             accentColor="black"
-                            onEdit={() => console.log('Edit selected')}
-                            onDuplicate={() => console.log('Duplicate selected')}
-                            onDelete={() => console.log('Delete selected')}
+                            onDelete={handleBulkDelete}
                         />
 
                         {/* Actions Toolbar */}

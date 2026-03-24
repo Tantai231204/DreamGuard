@@ -1,4 +1,4 @@
-import { Plus, Download, Filter } from 'lucide-react';
+import { Download, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -42,11 +42,6 @@ export function UserActions() {
       <Button variant="outline" size="sm" className="gap-2">
         <Download className="h-4 w-4" />
         Export
-      </Button>
-
-      <Button size="sm" className="gap-2 bg-purple-600 hover:bg-purple-700">
-        <Plus className="h-4 w-4" />
-        Add User
       </Button>
     </div>
   );

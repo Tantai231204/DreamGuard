@@ -1,25 +1,22 @@
-import { useState, useEffect } from "react";
-import { CameraIcon } from "@radix-ui/react-icons";
-import ChangePhoneDialog from "./ChangePhoneDialog";
-import { Mail, Smartphone, CalendarIcon } from "lucide-react";
-import { Button } from "../../../components/ui/button";
-import { Input } from "../../../components/ui/input";
-import { Label } from "../../../components/ui/label";
-import { Badge } from "../../../components/ui/badge";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "../../../components/ui/avatar";
-import { cn } from "@/lib/utils";
-import { useProfile, useUpdateProfile } from "@/hooks/queries";
-// import { uploadUserAvatar } from "@/api/services/userProfile.service"
-import { uploadToCloudinary } from "@/lib/uploadCloudinary";
-import { toast } from "sonner";
-import { FaMars, FaVenus } from "react-icons/fa6";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { useState, useEffect } from "react"
+import { CameraIcon } from "@radix-ui/react-icons"
+import ChangePhoneDialog from "./ChangePhoneDialog"
+import { Mail, Smartphone } from "lucide-react"
+import { Button } from "../../../components/ui/button"
+import { Input } from "../../../components/ui/input"
+import { Label } from "../../../components/ui/label"
+import { Badge } from "../../../components/ui/badge"
+import { Avatar, AvatarFallback, AvatarImage } from "../../../components/ui/avatar"
+import { cn, formatDate } from "@/lib/utils"
+import { useProfile, useUpdateProfile } from "@/hooks/queries"
+import { toast } from "sonner"
+import { FaMars, FaVenus } from "react-icons/fa6"
+import { useForm, Controller } from "react-hook-form"
+import { DatePicker } from "@/components/ui/date-picker"
+import { format } from "date-fns"
+import { zodResolver } from "@hookform/resolvers/zod"
+import * as z from "zod"
+import { uploadToCloudinary } from "@/lib/uploadCloudinary"
 const profileSchema = z.object({
   fullName: z
     .string()
@@ -36,28 +33,11 @@ export default function ProfileInfoTab() {
   const { data: profile, isLoading } = useProfile();
   const { mutate: updateProfile, isPending: isUpdating } = useUpdateProfile();
 
-  const [isEditing, setIsEditing] = useState(false);
-  const [showPhoneDialog, setShowPhoneDialog] = useState(false);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [isEditing, setIsEditing] = useState(false)
+  const [showPhoneDialog, setShowPhoneDialog] = useState(false)
+  const [avatarFile, setAvatarFile] = useState<File | null>(null)
 
-  const formatDateVn = (dateStr?: string) => {
-    if (!dateStr) return "";
-    const date = new Date(dateStr);
-    if (Number.isNaN(date.getTime())) return dateStr;
-    const yyyy = date.getFullYear();
-    const mm = String(date.getMonth() + 1).padStart(2, "0");
-    const dd = String(date.getDate()).padStart(2, "0");
-    return `${yyyy}-${mm}-${dd}`;
-  };
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-    setValue,
-    watch,
-  } = useForm<ProfileFormData>({
+  const { register, handleSubmit, formState: { errors }, reset, setValue, watch, control } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
       fullName: "",
@@ -74,9 +54,7 @@ export default function ProfileInfoTab() {
       reset({
         fullName: profile.fullName || "",
         email: profile.email || "",
-        dateOfBirth: profile.dateOfBirth
-          ? formatDateVn(profile.dateOfBirth)
-          : "",
+        dateOfBirth: profile.dateOfBirth || "",
         gender: profile.gender || "",
       });
     }
@@ -135,7 +113,7 @@ export default function ProfileInfoTab() {
     email: profile?.email || "",
     dateOfBirth: isEditing
       ? watch("dateOfBirth")
-      : formatDateVn(profile?.dateOfBirth || ""),
+      : formatDate(profile?.dateOfBirth || ""),
     gender: isEditing ? watchedGender : profile?.gender || "",
     phoneNumber: profile?.phoneNumber || "",
   };
@@ -312,27 +290,28 @@ export default function ProfileInfoTab() {
 
             {/* Date of Birth */}
             <div className="space-y-2">
-              <Label className="text-xs font-bold text-slate-600 ml-1">
-                Date of Birth
-              </Label>
-              <div className="relative group/input">
-                <CalendarIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input
-                  type="date"
-                  {...register("dateOfBirth")}
-                  disabled={!isEditing}
-                  className={cn(
-                    "h-11 pl-10 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white transition-all font-medium text-slate-900 w-full",
-                    !isEditing &&
-                      "disabled:opacity-100 disabled:bg-slate-50/20 disabled:border-transparent disabled:text-slate-800 disabled:cursor-default shadow-none [&::-webkit-calendar-picker-indicator]:opacity-0",
-                  )}
-                />
-              </div>
-              {errors.dateOfBirth && (
-                <p className="text-red-500 text-[10px] mt-1 ml-1">
-                  {errors.dateOfBirth.message}
-                </p>
-              )}
+              <Label className="text-xs font-bold text-slate-600 ml-1">Date of Birth</Label>
+              <Controller
+                control={control}
+                name="dateOfBirth"
+                render={({ field }) => (
+                  <DatePicker
+                    mode="single"
+                    value={field.value ? new Date(field.value) : undefined}
+                    onChange={(date) => {
+                      if (date instanceof Date) {
+                        field.onChange(format(date, "yyyy-MM-dd"));
+                      } else {
+                        field.onChange("");
+                      }
+                    }}
+                    disabled={!isEditing}
+                    placeholder="DD/MM/YYYY"
+                    className="w-full"
+                  />
+                )}
+              />
+              {errors.dateOfBirth && <p className="text-red-500 text-[10px] mt-1 ml-1">{errors.dateOfBirth.message}</p>}
             </div>
 
             {/* Gender */}
