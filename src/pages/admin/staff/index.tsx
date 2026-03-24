@@ -16,7 +16,7 @@ import type {
 import { Briefcase } from 'lucide-react';
 import AdminPageHeader from '@/components/layout/AdminPageHeader';
 import { AdminTableSearch, AdminTablePagination, AdminTableContent } from '@/components/admin';
-import { AdminBulkActions } from '@/components/admin/AdminBulkActions';
+
 import { useStaffColumns } from './components/useStaffColumns';
 import { StaffActions } from './components/StaffActions';
 import { StaffDialog, type StaffFormValues } from './components/StaffDialog';
@@ -220,19 +220,7 @@ export default function StaffPage() {
               actions={<StaffActions onAdd={handleAdd} onExport={handleExport} />}
             />
 
-            {table.getIsSomePageRowsSelected() || table.getIsAllPageRowsSelected() ? (
-              <div className="px-6 py-2 border-b border-gray-100 bg-slate-50/50">
-                <AdminBulkActions
-                  table={table}
-                  itemLabel="staff"
-                  accentColor="black"
-                  onDelete={() => {
-                    console.log('Bulk delete');
-                    table.resetRowSelection();
-                  }}
-                />
-              </div>
-            ) : null}
+
 
             <div className="flex-1 overflow-auto">
               <AdminTableContent

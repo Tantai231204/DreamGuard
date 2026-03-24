@@ -8,12 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, UserPlus, Phone, Mail, Building, Briefcase, Key, User, Calendar, ShieldCheck, BadgeCheck, Eye, EyeOff, Lock, ShieldAlert } from "lucide-react";
-import { FaMars, FaVenus, FaTransgender, FaVenusMars } from "react-icons/fa";
-import type { Staff } from "../types";
-// import type { CreateStaffRequest, UpdateStaffRequest } from "@/api/types/staff.types";
+import { DatePicker } from "@/components/ui/date-picker";
+import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2, UserPlus, Phone, Mail, Building, Briefcase, Key, User, ShieldCheck, BadgeCheck, Eye, EyeOff, Lock, ShieldAlert } from "lucide-react";
+import { FaMars, FaVenus, FaVenusMars, FaTransgender } from "react-icons/fa";
+import type { Staff } from "../types";
 
 const baseStaffSchema = z.object({
   fullName: z.string().min(2, "Full name must be at least 2 characters").max(50, "Full name is too long").trim(),
@@ -164,7 +165,7 @@ export function StaffDialog({ open, onOpenChange, staff, onSubmit, isLoading }: 
 
             <div className="flex-1 flex flex-col overflow-hidden">
               {/* Profile Information Tab */}
-              <TabsContent value="profile" className="flex-1 overflow-y-auto mt-0 px-7 pt-5 pb-7 space-y-7 focus-visible:outline-none scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent pr-2 mr-1">
+              <TabsContent value="profile" className="flex-1 overflow-y-auto mt-0 px-7 pt-5 pb-7 space-y-7 focus-visible:outline-none no-scrollbar">
                 {/* 1. Personal & Profile Information */}
                 <div className="space-y-4">
                   <h3 className="flex items-center gap-2 text-xs font-black text-gray-800 uppercase tracking-widest pb-1 border-b border-gray-100">
@@ -219,15 +220,24 @@ export function StaffDialog({ open, onOpenChange, staff, onSubmit, isLoading }: 
 
                     <div className="space-y-1.5">
                       <Label htmlFor="dateOfBirth" className="text-[11px] font-bold text-gray-500 uppercase tracking-wider ml-1">Date of Birth</Label>
-                      <div className="relative">
-                        <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        <Input
-                          id="dateOfBirth"
-                          type="date"
-                          {...register("dateOfBirth")}
-                          className="pl-10 h-11 rounded-xl bg-white border-gray-200 focus:bg-white focus:border-[var(--color-primary)]/50 focus:ring-4 focus:ring-[var(--color-primary)]/10 transition-all font-medium text-sm shadow-sm"
-                        />
-                      </div>
+                      <Controller
+                        control={control}
+                        name="dateOfBirth"
+                        render={({ field }) => (
+                          <DatePicker
+                            mode="single"
+                            value={field.value ? new Date(field.value) : undefined}
+                            onChange={(date) => {
+                              if (date && date instanceof Date) {
+                                field.onChange(format(date, "yyyy-MM-dd"));
+                              } else {
+                                field.onChange("");
+                              }
+                            }}
+                            placeholder="DD/MM/YYYY"
+                          />
+                        )}
+                      />
                     </div>
 
                     <div className="space-y-1.5">
@@ -291,7 +301,7 @@ export function StaffDialog({ open, onOpenChange, staff, onSubmit, isLoading }: 
               </TabsContent>
 
               {/* Account Security Tab */}
-              <TabsContent value="security" className="flex-1 overflow-y-auto mt-0 px-7 pt-5 pb-7 space-y-7 focus-visible:outline-none scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent pr-2 mr-1">
+              <TabsContent value="security" className="flex-1 overflow-y-auto mt-0 px-7 pt-5 pb-7 space-y-7 focus-visible:outline-none no-scrollbar">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between border-b border-gray-100 pb-1">
                     <h3 className="flex items-center gap-2 text-xs font-black text-gray-800 uppercase tracking-widest">

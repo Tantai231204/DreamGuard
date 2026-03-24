@@ -17,6 +17,7 @@ import { AdminTableSearch, AdminTablePagination, AdminTableContent, AdminActions
 import { useUserColumns } from './components/useUserColumns';
 import { useCustomers } from '@/hooks/queries/useCustomer';
 import { CustomerDetailDialog } from './components/CustomerDetailDialog';
+import { CustomerOrdersDialog } from './components/CustomerOrdersDialog';
 import { useDebounce } from '@/hooks/useDebounce';
 import { downloadCSV } from '@/lib/export';
 import type { User } from './types';
@@ -60,6 +61,14 @@ export default function UsersPage() {
     setDetailOpen(true);
   }, []);
 
+  const [ordersOpen, setOrdersOpen] = useState(false);
+  const [selectedCustomerForOrders, setSelectedCustomerForOrders] = useState<User | null>(null);
+
+  const handleViewOrders = useCallback((customer: User) => {
+    setSelectedCustomerForOrders(customer);
+    setOrdersOpen(true);
+  }, []);
+
   const debouncedSearch = useDebounce(globalFilter, 500);
 
   const { data: customersData, isLoading } = useCustomers({
@@ -80,7 +89,7 @@ export default function UsersPage() {
     downloadCSV(exportData, 'Customers');
   }, [customersData]);
 
-  const columns = useUserColumns({ onView: handleViewDetails });
+  const columns = useUserColumns({ onView: handleViewDetails, onViewOrders: handleViewOrders });
 
   const table = useReactTable({
     data: customersData?.items ?? [],
@@ -148,6 +157,12 @@ export default function UsersPage() {
         open={detailOpen}
         onOpenChange={setDetailOpen}
         customer={selectedCustomer}
+      />
+
+      <CustomerOrdersDialog
+        open={ordersOpen}
+        onOpenChange={setOrdersOpen}
+        customer={selectedCustomerForOrders}
       />
     </div>
   );

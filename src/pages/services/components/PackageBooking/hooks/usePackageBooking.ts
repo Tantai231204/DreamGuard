@@ -13,13 +13,25 @@ const DRAFT_KEY = "dreamguard_booking_draft";
 const stepErrorMessages: Record<number, string> = {
   0: "Select at least one product.",
   1: "Select a tier for each product.",
-  2: "", 
+  2: "",
   3: "Select date & time.",
   4: "Enter contact details.",
 };
 
 export function usePackageBooking(initialPackageId?: string) {
-  const [step, setStep] = useState(initialPackageId ? 1 : 0);
+  // Restore draft from sessionStorage
+  const savedDraft = useMemo(() => {
+    try {
+      const raw = sessionStorage.getItem(DRAFT_KEY);
+      if (raw) return JSON.parse(raw) as { step: number; values: Partial<BookingFormValues> };
+    } catch { /* ignore */ }
+    return null;
+  }, []);
+
+  const [step, setStep] = useState(() => {
+    if (savedDraft && savedDraft.step > 0) return savedDraft.step;
+    return initialPackageId ? 1 : 0;
+  });
   const [direction, setDirection] = useState(1);
   const [appliedVoucher, setAppliedVoucher] = useState<Voucher | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -29,19 +41,12 @@ export function usePackageBooking(initialPackageId?: string) {
   const [paymentMethod, setPaymentMethod] = useState<'COD' | 'VNPAY'>('COD');
   const [uploadProgress, setUploadProgress] = useState(0);
   const [submissionStatus, setSubmissionStatus] = useState<SubmissionStatus>("idle");
-  
+
   const persistenceTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { productTypes, getProductTierPrice, isLoading: isLoadingData } = useBookingData();
 
-  // Restore draft from sessionStorage
-  const savedDraft = useMemo(() => {
-    try {
-      const raw = sessionStorage.getItem(DRAFT_KEY);
-      if (raw) return JSON.parse(raw) as { step: number; values: Partial<BookingFormValues> };
-    } catch { /* ignore */ }
-    return null;
-  }, []);
+
 
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingSchema),
@@ -70,18 +75,17 @@ export function usePackageBooking(initialPackageId?: string) {
 
   // Memoized derived data
   const { total, discount, finalPrice } = useMemo(() => {
-     const totalValue = items.reduce((sum: number, f: { itemType: string, packageId: string, quantity: number }) => sum + getProductTierPrice(f.itemType, f.packageId) * f.quantity, 0);
-     const discountValue = appliedVoucher ? Math.round(totalValue * (appliedVoucher.discountPct / 100)) : 0;
-     return { total: totalValue, discount: discountValue, finalPrice: totalValue - discountValue };
+    const totalValue = items.reduce((sum: number, f: { itemType: string, packageId: string, quantity: number }) => sum + getProductTierPrice(f.itemType, f.packageId) * f.quantity, 0);
+    const discountValue = appliedVoucher ? Math.round(totalValue * (appliedVoucher.discountPct / 100)) : 0;
+    return { total: totalValue, discount: discountValue, finalPrice: totalValue - discountValue };
   }, [items, appliedVoucher, getProductTierPrice]);
 
   // Effects
   useEffect(() => {
     if (savedDraft && savedDraft.step > 0) {
-      setStep(savedDraft.step);
       toast.info("Resumed your draft.");
     }
-  }, [savedDraft]);
+  }, []);
 
   useEffect(() => {
     if (isSuccess) return;
@@ -90,7 +94,7 @@ export function usePackageBooking(initialPackageId?: string) {
       try {
         sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ step, values: getValues() }));
       } catch { /* ignore */ }
-    }, 1000); 
+    }, 1000);
     return () => { if (persistenceTimeout.current) clearTimeout(persistenceTimeout.current); };
   }, [selectedProducts, items, step, getValues, isSuccess]);
 
@@ -218,7 +222,7 @@ export function usePackageBooking(initialPackageId?: string) {
     uploadProgress,
     submissionStatus,
     isLoadingData,
-    
+
     // Form & Derived Data
     form,
     productTypes,
@@ -227,7 +231,7 @@ export function usePackageBooking(initialPackageId?: string) {
     total,
     discount,
     finalPrice,
-    
+
     // Handlers
     setUploadedFiles,
     setPaymentMethod,

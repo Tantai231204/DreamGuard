@@ -33,11 +33,11 @@ export const QuantitySelector = memo(({
                         isOutOfStock
                             ? "bg-red-50 text-red-600"
                             : isLowStock
-                                ? "bg-amber-50 text-amber-600 animate-pulse"
+                                ? "bg-amber-50 text-amber-600"
                                 : "bg-emerald-50 text-emerald-600"
                     )}>
                         <Package className="h-3 w-3" />
-                        <span>{isOutOfStock ? "Sold out" : `${stockLeft} in stock`}</span>
+                        <span>{isOutOfStock ? "Tạm hết hàng" : isLowStock ? "Low Stock" : "In stock"}</span>
                     </div>
                 )}
             </div>

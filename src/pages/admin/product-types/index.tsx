@@ -225,6 +225,21 @@ export default function ProductTypePage() {
         getPaginationRowModel: getPaginationRowModel(),
     });
 
+    const handleBulkDelete = useCallback(async () => {
+        const selectedRows = table.getFilteredSelectedRowModel().rows;
+        const ids = selectedRows.map(row => (row.original as ProductType).productTypeId);
+        
+        if (!confirm(`Are you sure you want to deactivate ${ids.length} classification(s)?`)) return;
+
+        try {
+            await Promise.all(ids.map(id => deleteMutation.mutateAsync(id)));
+            toast.success('Deactivated', `Selected classifications have been hidden.`);
+            table.resetRowSelection();
+        } catch {
+            toast.error('Action failed', 'Some items could not be deactivated.');
+        }
+    }, [table, deleteMutation, toast]);
+
     const headerStats = [
         { label: 'Total Types', value: data?.totalCount ?? 0, icon: ProductAssetIcons.PRODUCT_CATEGORIES },
         { label: 'Active Targets', value: productTypeList.filter(p => p.isActive).length, icon: CheckCircle2 }
@@ -309,10 +324,8 @@ export default function ProductTypePage() {
                                         table={table}
                                         itemLabel="classification"
                                         accentColor="black"
-                                        onDelete={() => {
-                                            console.log('Bulk toggle/delete');
-                                            table.resetRowSelection();
-                                        }}
+                                        onDelete={handleBulkDelete}
+                                        deleteLabel="Deactivate"
                                     />
                                 </div>
                             )}

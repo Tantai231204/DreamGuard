@@ -1,7 +1,9 @@
 import { memo, useCallback } from 'react';
-import { Search, Calendar, X, SlidersHorizontal } from 'lucide-react';
+import { Search, X, SlidersHorizontal } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { DatePicker } from '@/components/ui/date-picker';
+import { format } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import {
   statusFilterOptions,
@@ -67,13 +69,18 @@ export const ServiceFilters = memo(function ServiceFilters({
             className="pl-10 h-10 rounded-full bg-gray-50/50 border-gray-100 focus:bg-white focus-visible:ring-blue-100 transition-all shadow-none"
           />
         </div>
-        <div className="relative sm:w-44">
-          <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-          <Input
-            type="date"
-            value={dateFilter}
-            onChange={(e) => onDateFilterChange(e.target.value)}
-            className="pl-10 h-10 rounded-full bg-gray-100/30 border-gray-100 focus:bg-white focus-visible:ring-blue-100 transition-all shadow-none cursor-pointer"
+        <div className="sm:w-48">
+          <DatePicker
+            mode="single"
+            value={dateFilter ? new Date(dateFilter) : undefined}
+            onChange={(date) => {
+              if (date instanceof Date) {
+                onDateFilterChange(format(date, "yyyy-MM-dd"));
+              } else {
+                onDateFilterChange("");
+              }
+            }}
+            placeholder="Filter by date"
           />
         </div>
       </div>

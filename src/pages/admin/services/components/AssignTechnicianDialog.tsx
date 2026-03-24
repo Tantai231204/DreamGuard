@@ -13,12 +13,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAssignTechnicianDialog } from '../hooks/useAssignTechnicianDialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { 
-  UserPlus, 
-  MapPin, 
-  Phone, 
-  ShieldCheck, 
-  Loader2, 
+import {
+  UserPlus,
+  MapPin,
+  Phone,
+  ShieldCheck,
+  Loader2,
   AlertCircle,
   Briefcase
 } from 'lucide-react';
@@ -40,14 +40,15 @@ export function AssignTechnicianDialog({ orderId, isOpen, onClose }: AssignTechn
     assignMutation,
   } = useAssignTechnicianDialog({ orderId, onClose });
 
-  const selectedStaff = staffs.find(s => s.staffId === selectedStaffId);
+  const cleaningStaffs = staffs.filter(s => s.role === "CleaningStaff");
+  const selectedStaff = cleaningStaffs.find(s => s.staffId === selectedStaffId);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden border border-slate-200 shadow-2xl rounded-2xl gap-0">
         <DialogHeader className="p-8 pb-6 bg-slate-50 text-slate-900 border-b border-slate-100 relative">
           <div className="relative z-10 space-y-2">
-            <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center mb-4 shadow-sm">
+            <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center mb-4 shadow-sm">
               <UserPlus className="h-6 w-6 text-white" />
             </div>
             <DialogTitle className="text-2xl font-black tracking-tight">Assign Technician</DialogTitle>
@@ -63,19 +64,19 @@ export function AssignTechnicianDialog({ orderId, isOpen, onClose }: AssignTechn
               <Label className="text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
                 <Briefcase className="h-3.5 w-3.5" /> Select Team Member
               </Label>
-              {isLoadingStaff && <Loader2 className="h-3 w-3 animate-spin text-blue-600" />}
+              {isLoadingStaff && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
             </div>
 
             <Select value={selectedStaffId} onValueChange={setSelectedStaffId} disabled={isLoadingStaff || assignMutation.isPending}>
-              <SelectTrigger className="h-14 px-4 rounded-xl border-2 border-slate-100 bg-white hover:border-blue-500 transition-all focus:ring-blue-100">
+              <SelectTrigger className="h-14 px-4 rounded-xl border-2 border-slate-100 bg-white hover:border-primary transition-all focus:ring-primary/10">
                 <SelectValue placeholder={isLoadingStaff ? "Syncing qualified staff..." : "Browse technicians"} />
               </SelectTrigger>
               <SelectContent className="max-h-[300px] p-1.5 rounded-xl">
-                {staffs.length > 0 ? (
-                  staffs.map((staff) => (
-                    <SelectItem 
-                      key={staff.staffId} 
-                      value={staff.staffId} 
+                {cleaningStaffs.length > 0 ? (
+                  cleaningStaffs.map((staff) => (
+                    <SelectItem
+                      key={staff.staffId}
+                      value={staff.staffId}
                       className="rounded-lg mb-1 last:mb-0 focus:bg-slate-50 cursor-pointer py-3"
                     >
                       <div className="flex items-center gap-3">
@@ -97,8 +98,8 @@ export function AssignTechnicianDialog({ orderId, isOpen, onClose }: AssignTechn
                   ))
                 ) : (
                   <div className="p-4 text-center text-slate-400">
-                     <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-20" />
-                     <p className="text-xs font-bold font-sans">No technicians available</p>
+                    <AlertCircle className="h-8 w-8 mx-auto mb-2 opacity-20" />
+                    <p className="text-xs font-bold font-sans">No technicians available</p>
                   </div>
                 )}
               </SelectContent>
@@ -106,52 +107,52 @@ export function AssignTechnicianDialog({ orderId, isOpen, onClose }: AssignTechn
           </div>
 
           {selectedStaff && (
-            <motion.div 
-              initial={{ opacity: 0, y: 10 }} 
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-4 shadow-sm"
             >
               <div className="flex items-center gap-4">
-                 <Avatar className="h-14 w-14 border-2 border-white shadow-sm ring-1 ring-slate-200">
-                    <AvatarImage src={selectedStaff.avatarUrl} />
-                    <AvatarFallback className="bg-slate-300 text-white font-black">{selectedStaff.fullName.charAt(0)}</AvatarFallback>
-                 </Avatar>
-                 <div className="flex-1">
-                    <h4 className="font-black text-slate-800 flex items-center gap-1.5">
-                      {selectedStaff.fullName}
-                      <ShieldCheck className="h-3.5 w-3.5 text-blue-600" />
-                    </h4>
-                    <p className="text-xs text-slate-500 font-medium flex items-center gap-1">
-                       <MapPin className="h-3 w-3 text-slate-400" /> {selectedStaff.address || 'Location Verified'}
-                    </p>
-                 </div>
+                <Avatar className="h-14 w-14 border-2 border-white shadow-sm ring-1 ring-slate-200">
+                  <AvatarImage src={selectedStaff.avatarUrl} />
+                  <AvatarFallback className="bg-slate-300 text-white font-black">{selectedStaff.fullName.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <h4 className="font-black text-slate-800 flex items-center gap-1.5">
+                    {selectedStaff.fullName}
+                    <ShieldCheck className="h-3.5 w-3.5 text-primary" />
+                  </h4>
+                  <p className="text-xs text-slate-500 font-medium flex items-center gap-1">
+                    <MapPin className="h-3 w-3 text-slate-400" /> {selectedStaff.address || 'Location Verified'}
+                  </p>
+                </div>
               </div>
               <Separator className="bg-slate-200" />
               <div className="flex justify-between items-center text-xs">
-                 <span className="flex items-center gap-1.5 text-slate-600 font-medium">
-                   <Phone className="h-3 w-3 text-slate-400" /> {selectedStaff.phoneNumber || 'Contact Private'}
-                 </span>
-                 <Badge variant="outline" className="bg-white border-slate-200 text-slate-600 font-bold px-2 rounded-md">
-                   {selectedStaff.position || 'Ready to Assign'}
-                 </Badge>
+                <span className="flex items-center gap-1.5 text-slate-600 font-medium">
+                  <Phone className="h-3 w-3 text-slate-400" /> {selectedStaff.phoneNumber || 'Contact Private'}
+                </span>
+                <Badge variant="outline" className="bg-white border-slate-200 text-slate-600 font-bold px-2 rounded-md">
+                  {selectedStaff.position || 'Ready to Assign'}
+                </Badge>
               </div>
             </motion.div>
           )}
         </div>
 
         <DialogFooter className="p-8 bg-slate-50 border-t border-slate-100 flex sm:justify-between items-center gap-4">
-          <Button 
-            variant="ghost" 
-            onClick={onClose} 
+          <Button
+            variant="ghost"
+            onClick={onClose}
             disabled={assignMutation.isPending}
             className="text-slate-400 font-black uppercase text-[10px] tracking-widest hover:bg-slate-200 hover:text-slate-800 rounded-xl px-6 h-12"
           >
             Cancel
           </Button>
-          <Button 
-            onClick={handleAssign} 
+          <Button
+            onClick={handleAssign}
             disabled={!selectedStaffId || assignMutation.isPending}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-black uppercase text-[10px] tracking-widest transition-all h-12 rounded-xl shadow-md active:scale-95 border-0"
+            className="flex-1 bg-primary hover:bg-primary-hover text-white font-black uppercase text-[10px] tracking-widest transition-all h-12 rounded-xl shadow-md active:scale-95 border-0"
           >
             {assignMutation.isPending ? (
               <span className="flex items-center gap-2">

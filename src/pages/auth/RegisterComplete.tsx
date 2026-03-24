@@ -1,4 +1,4 @@
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import { useRegisterStore } from "../../store/registerStore";
 import { Button } from "../../components/ui/button";
@@ -10,6 +10,8 @@ import { useState } from "react";
 import { EyeIcon, EyeOffIcon, Lock, User, Mail, Smartphone, CalendarIcon } from "lucide-react";
 import { FaMale, FaFemale } from "react-icons/fa";
 import { toast } from "sonner";
+import { DatePicker } from "@/components/ui/date-picker";
+import { format } from "date-fns";
 
 type FormData = {
   fullName: string;
@@ -31,6 +33,7 @@ export default function RegisterComplete() {
     handleSubmit,
     setValue,
     watch,
+    control,
     formState: { errors },
   } = useForm<FormData>({
     defaultValues: {
@@ -192,14 +195,30 @@ export default function RegisterComplete() {
 
         {/* Date of Birth */}
         <div className="space-y-1.5">
-          <Label htmlFor="dateOfBirth" className="text-sm font-semibold text-slate-700 flex items-center gap-1.5"><CalendarIcon className="w-3.5 h-3.5 text-slate-400" /> Date of Birth</Label>
-          <Input
-            id="dateOfBirth"
-            type="date"
-            {...register("dateOfBirth", { required: "Date of birth is required" })}
-            className="h-11 rounded-lg border-gray-200 focus:border-[#4988c4] focus:ring-4 focus:ring-[#4988c4]/10 transition-all text-sm"
+          <Label className="text-sm font-semibold text-slate-700 flex items-center gap-1.5">
+            <CalendarIcon className="w-3.5 h-3.5 text-slate-400" /> Date of Birth
+          </Label>
+          <Controller
+            control={control}
+            name="dateOfBirth"
+            rules={{ required: "Date of birth is required" }}
+            render={({ field }) => (
+              <DatePicker
+                mode="single"
+                value={field.value ? new Date(field.value) : undefined}
+                onChange={(date) => {
+                  if (date instanceof Date) {
+                    field.onChange(format(date, "yyyy-MM-dd"));
+                  } else {
+                    field.onChange("");
+                  }
+                }}
+                placeholder="DD/MM/YYYY"
+                className="w-full"
+              />
+            )}
           />
-          {errors.dateOfBirth && <p className="text-red-500 text-xs mt-1">Date of birth is required</p>}
+          {errors.dateOfBirth && <p className="text-red-500 text-xs mt-1">{errors.dateOfBirth.message}</p>}
         </div>
 
         <Button type="submit" disabled={isPending} className="w-full h-11 bg-[var(--color-auth-btn-bg)] hover:bg-[var(--color-auth-btn-hover)] text-[var(--color-auth-btn-text)] font-semibold rounded-lg border-2 border-[var(--color-auth-btn-border)] shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98]">

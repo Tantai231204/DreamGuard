@@ -14,7 +14,7 @@ import {
 import { ShoppingCart } from 'lucide-react'
 
 import AdminPageHeader from '@/components/layout/AdminPageHeader'
-import { AdminTableSearch, AdminTableContent, AdminTablePagination, AdminActions, AdminBulkActions } from '@/components/admin'
+import { AdminTableSearch, AdminTableContent, AdminTablePagination, AdminActions } from '@/components/admin'
 
 import { useOrderColumns } from './components'
 import { useAdminOrders } from '@/hooks/queries'
@@ -137,12 +137,7 @@ export default function OrderManagement() {
                     animate={{ opacity: 1, y: 0 }}
                     className="m-6 bg-white rounded-2xl border-2 border-gray-100 overflow-hidden shadow-xl flex flex-col h-[calc(100%-3rem)]"
                 >
-                    <AdminBulkActions
-                        table={table}
-                        itemLabel="order"
-                        accentColor="blue"
-                        onDelete={() => console.log('Delete selected')}
-                    />
+
 
                     <AdminActions
                         onFilter={() => console.log('Filter')}

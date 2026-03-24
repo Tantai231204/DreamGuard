@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Baby, CalendarIcon, Gift } from "lucide-react";
+import { Baby, Gift } from "lucide-react";
 import { format } from "date-fns";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
@@ -14,12 +14,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from "../../../../components/ui/dialog";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "../../../../components/ui/popover";
-import { Calendar as DatePicker } from "../../../../components/ui/calendar";
+
+import { DatePicker } from "../../../../components/ui/date-picker";
 import { useCreateBabyProfile, useUpdateBabyProfile } from "@/hooks/useBabyProfile";
 import type { BabyProfile } from "@/api/types/babyProfile";
 import { cn } from "@/lib/utils";
@@ -180,35 +176,13 @@ export default function BabyFormDialog({ open, onOpenChange, initialData }: Baby
                 control={control}
                 name="dateOfBirth"
                 render={({ field }) => (
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full h-11 justify-start text-left font-normal rounded-xl border-gray-200 hover:border-gray-300 transition-all",
-                          !field.value && "text-gray-400"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4 text-gray-400" />
-                        {field.value ? (
-                          <span className="text-gray-800 font-medium">
-                            {format(field.value, "dd/MM/yyyy")}
-                          </span>
-                        ) : (
-                          <span>Select date</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 rounded-2xl shadow-xl border-gray-100">
-                      <DatePicker
-                        mode="single"
-                        selected={field.value}
-                        onSelect={field.onChange}
-                        disabled={(date) => date > new Date()} // Disable future dates
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <DatePicker
+                    mode="single"
+                    value={field.value || undefined}
+                    onChange={field.onChange}
+                    placeholder="Select date"
+                    className="w-full"
+                  />
                 )}
               />
               {errors.dateOfBirth && <p className="text-red-500 text-[11px] ml-1">{errors.dateOfBirth.message}</p>}
