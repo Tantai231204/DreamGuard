@@ -176,6 +176,18 @@ export default function ProductDetail() {
               onQuantityChange={actions.setQuantity}
               onAddToCart={actions.handleAddToCart}
               tradeInValue={state.tradeInValue}
+              isCustomSize={state.isCustomSize}
+              isCustomColor={state.isCustomColor}
+              onIsCustomSizeChange={actions.setIsCustomSize}
+              onIsCustomColorChange={actions.setIsCustomColor}
+              customDimensions={state.customDimensions}
+              onCustomDimensionChange={actions.handleCustomDimensionChange}
+              customColorHex={state.customColorHex}
+              onCustomColorHexChange={actions.setCustomColorHex}
+              availableCustomizeTypes={state.availableCustomizeTypes}
+              selectedCustomizeTypeId={state.selectedCustomizeTypeId}
+              onSelectedCustomizeTypeChange={actions.setSelectedCustomizeTypeId}
+              categoryName={product?.categoryName || "Mattress"}
             />
 
             <TradeInSelector

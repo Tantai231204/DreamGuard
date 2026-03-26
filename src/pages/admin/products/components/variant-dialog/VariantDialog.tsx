@@ -17,9 +17,6 @@ export interface VariantSubmitData {
     stockQuantity: number;
     attributes: VariantAttributes | null;
     isNew: boolean;
-    isCustomizable: boolean;
-    customizeLabel?: string;
-    pendingCustoms?: { customizeTypeId: string; overridePrice: number | null }[];
 }
 
 interface VariantDialogProps {
@@ -62,7 +59,6 @@ export default function VariantDialog({
             isNew: fullData.isNew ?? variant.isNew,
             attributes: fullData.attributes ?? variant.attributes,
             status: (fullData.status || variant.status) as VariantStatus,
-            customizeLabel: fullData.customizeLabel ?? variant.customizeLabel,
         } as ProductVariant;
     }, [variant, fullData]);
 

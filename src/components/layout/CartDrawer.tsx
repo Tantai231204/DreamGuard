@@ -46,14 +46,19 @@ export function CartDrawer() {
                         <div className="absolute inset-0 border-t border-dashed border-[#4988c4]/20 scale-x-0 group-hover:scale-x-100 transition-transform duration-700 origin-left" />
                     </div>
                     {/* Ảnh */}
-                    <div className="relative h-[66px] w-[66px] flex-shrink-0 rounded-xl overflow-hidden bg-gray-100">
-                        <img
-                            src={item.image || '/placeholder.png'}
-                            alt={item.name}
-                            className="h-full w-full object-cover"
-                            decoding="async"
-                        />
-                        {/* Loading overlay trên ảnh - Chỉ dành cho Load (Add/Remove) */}
+                     <div className="relative h-[66px] w-[66px] flex-shrink-0 rounded-xl overflow-hidden bg-gray-100 group">
+                         <img
+                             src={item.image || '/placeholder.png'}
+                             alt={item.name}
+                             className="h-full w-full object-cover"
+                             decoding="async"
+                         />
+                         {item.isCustom && (
+                             <div className="absolute top-0 left-0 bg-amber-500 text-white text-[6px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded-br-md z-10 shadow-sm">
+                                 Custom
+                             </div>
+                         )}
+                         {/* Loading overlay trên ảnh - Chỉ dành cho Load (Add/Remove) */}
                         {isLoading && (
                             <div className="absolute inset-0 flex items-center justify-center bg-white/70">
                                 <Loader2 className="h-4 w-4 text-[#4988c4] animate-spin" />
@@ -92,12 +97,24 @@ export function CartDrawer() {
                             )}
                             {item.size && (
                                 <span className="text-[10px] font-medium text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded">
-                                    Size: {item.size}
+                                    Size: {item.size === 'Custom' && item.customAttributes?.length 
+                                        ? `${item.customAttributes.length}x${item.customAttributes.width}x${item.customAttributes.thickness} cm` 
+                                        : item.size}
                                 </span>
                             )}
                             {item.color && (
-                                <span className="text-[10px] font-medium text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded">
-                                    Color: {item.color}
+                                <span className="text-[10px] font-medium text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded flex items-center gap-1">
+                                    Color: {item.color === 'Custom' && item.customAttributes?.colorHex ? (
+                                        <>
+                                            <div className="w-2 h-2 rounded-full border border-gray-200" style={{ backgroundColor: item.customAttributes.colorHex }} />
+                                            {item.customAttributes.colorHex}
+                                        </>
+                                    ) : item.color}
+                                </span>
+                            )}
+                            {item.isCustom && (
+                                <span className="text-[10px] font-black text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded uppercase tracking-tighter">
+                                    Bespoke Build
                                 </span>
                             )}
                         </div>

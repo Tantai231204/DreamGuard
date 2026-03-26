@@ -6,7 +6,7 @@ export default function AdminLayout() {
   return (
     <div className="flex h-screen overflow-hidden overflow-x-hidden bg-gray-50 w-full max-w-full">
       <AdminSidebar />
-      
+
       <motion.main
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

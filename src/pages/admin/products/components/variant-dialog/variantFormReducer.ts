@@ -14,9 +14,9 @@ export interface VariantFormState {
     isNew: boolean;
     isCustomizable: boolean;
     customizeLabel: string;
+    pendingCustoms: { customizeTypeId: string; overridePrice: number | null }[];
     stockQuantity: string;
     stockStatus: string;
-    pendingCustoms: { customizeTypeId: string; overridePrice: number | null }[];
 }
 
 export type VariantFormAction =
@@ -37,10 +37,10 @@ export const createInitialState = (variant: ProductVariant | null): VariantFormS
     colorHex: variant?.attributes?.hexColor?.toString() || '',
     isNew: variant?.isNew ?? true,
     isCustomizable: variant?.isCustomizable ?? false,
-    customizeLabel: variant?.customizeLabel || '',
+    customizeLabel: variant?.customizeLabel ?? '',
+    pendingCustoms: [],
     stockQuantity: variant?.stockQuantity?.toString() || '0',
     stockStatus: variant?.stockStatus || 'In Stock',
-    pendingCustoms: []
 });
 
 export function variantFormReducer(state: VariantFormState, action: VariantFormAction): VariantFormState {

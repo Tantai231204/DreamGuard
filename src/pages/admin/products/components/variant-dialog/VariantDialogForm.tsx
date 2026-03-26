@@ -28,7 +28,6 @@ import {
 import type { ProductVariant, VariantStatus } from '../../types';
 import { VARIANT_STATUS_OPTIONS, PRODUCT_STATUS_COLORS } from '../../types';
 import ColorPicker from './ColorPicker';
-import VariantCustomization from './VariantCustomization';
 import SectionHeading from '../shared/SectionHeading';
 import type { VariantSubmitData } from './VariantDialog';
 import { useVariantForm } from './useVariantForm';
@@ -121,13 +120,12 @@ const VariantDialogForm = memo(({
             <form
                 id="variant-form"
                 onSubmit={handleSubmit}
-                className="flex-1 overflow-y-auto px-1 py-5 min-h-0"
+                className="flex-1 overflow-y-auto px-1 py-5 min-h-0 no-scrollbar"
             >
                 <Tabs defaultValue="core" className="w-full">
-                    <TabsList className="grid grid-cols-3 w-full h-12 bg-gray-100/50 p-1 rounded-xl border border-gray-200/50">
+                    <TabsList className="grid grid-cols-2 w-full h-12 bg-gray-100/50 p-1 rounded-xl border border-gray-200/50">
                         <TabsTrigger value="core" className={TAB_TRIGGER_CLS}><Info className="h-4 w-4" /> Logistics</TabsTrigger>
                         <TabsTrigger value="specs" className={TAB_TRIGGER_CLS}><LayoutGrid className="h-4 w-4" /> Attributes</TabsTrigger>
-                        <TabsTrigger value="config" className={TAB_TRIGGER_CLS}><ShieldCheck className="h-4 w-4" /> Advanced</TabsTrigger>
                     </TabsList>
 
                     <div className="mt-6 space-y-6 animate-in fade-in-50 duration-300">
@@ -206,6 +204,36 @@ const VariantDialogForm = memo(({
                                 </div>
                             </section>
 
+                            <section className="pt-6 border-t border-gray-100 flex flex-col gap-5">
+                                <div className="flex items-center justify-between p-4 bg-blue-50/50 rounded-2xl border border-blue-100/50">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600">
+                                            <Sparkles className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <Label className="text-sm font-bold text-slate-800 tracking-tight">Cấu hình tùy chỉnh (Bán lẻ)</Label>
+                                            <p className="text-[11px] text-slate-500 font-medium">Bật thuộc tính nảy cho khách hàng.</p>
+                                        </div>
+                                    </div>
+                                    <Switch 
+                                        checked={state.isCustomizable} 
+                                        onCheckedChange={(v: boolean) => setField('isCustomizable', v)} 
+                                        className="data-[state=checked]:bg-[var(--color-primary)]"
+                                    />
+                                </div>
+
+                                {state.isCustomizable && (
+                                    <FieldGroup label="Nhãn chỉ dẫn (Customize Label)" highlight>
+                                        <Input
+                                            placeholder="VD: 'Nhập kích thước nệm của bạn...'"
+                                            value={state.customizeLabel}
+                                            onChange={(e) => setField('customizeLabel', e.target.value)}
+                                            className={cn(INPUT_CLS, "h-11 border-blue-100/50 bg-white font-medium")}
+                                        />
+                                    </FieldGroup>
+                                )}
+                            </section>
+
                             <div className="flex items-center justify-between p-4 bg-blue-50/40 rounded-2xl border border-blue-100/50 shadow-sm transition-all hover:bg-white group">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-xl bg-white border border-blue-100 flex items-center justify-center text-[#4988c4] shadow-sm transform transition-transform group-hover:scale-105">
@@ -221,88 +249,84 @@ const VariantDialogForm = memo(({
                         </TabsContent>
 
                         <TabsContent value="specs" className="mt-0 space-y-8 outline-none">
-                            <section className="space-y-5">
-                                <SectionHeading title="Physical Dimensions" />
-                                <div className="grid grid-cols-2 gap-5 pb-2">
-                                    <FieldGroup label="Product Weight" icon={Weight}>
-                                        <div className="relative">
+                            <section className="space-y-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-1 h-6 bg-[var(--color-primary)] rounded-full" />
+                                    <SectionHeading title="Product Physical Spec" />
+                                </div>
+                                
+                                <div className="grid grid-cols-2 gap-x-8 gap-y-6 bg-gray-50/50 p-6 rounded-3xl border border-gray-100">
+                                    <FieldGroup label="Base Weight" icon={Weight} highlight>
+                                        <div className="relative group/field">
                                             <Input
                                                 type="number"
                                                 value={state.weight}
                                                 onChange={(e) => setField('weight', e.target.value)}
-                                                className={cn(INPUT_CLS, "pr-10 font-bold text-slate-800")}
+                                                className={cn(INPUT_CLS, "pr-12 font-black text-slate-800 text-lg group-hover/field:border-[var(--color-primary)]/50 transition-colors")}
                                                 placeholder="0.00"
                                             />
-                                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400 uppercase">kg</span>
+                                            <div className="absolute right-3 top-1/2 -translate-y-1/2 px-2 py-1 bg-white border border-gray-100 rounded-lg shadow-sm">
+                                                <span className="text-[10px] font-black text-[var(--color-primary)] uppercase">kg</span>
+                                            </div>
                                         </div>
                                     </FieldGroup>
-                                    <div />
-                                </div>
 
-                                <div className="grid grid-cols-3 gap-5">
-                                    {[
-                                        { id: 'width', label: 'Width', icon: Ruler, state: state.width },
-                                        { id: 'length', label: 'Length', icon: Ruler, state: state.length },
-                                        { id: 'thickness', label: 'Thickness', icon: Move3D, state: state.thickness },
-                                    ].map(f => (
-                                        <FieldGroup key={f.id} label={f.label} icon={f.icon}>
-                                            <div className="relative">
-                                                <Input
-                                                    type="number"
-                                                    value={f.state}
-                                                    onChange={(e) => setField(f.id as keyof VariantFormState, e.target.value)}
-                                                    className={cn(INPUT_CLS, 'pr-10 text-sm font-bold')}
-                                                    placeholder="0"
-                                                />
-                                                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400 uppercase">cm</span>
-                                            </div>
-                                        </FieldGroup>
-                                    ))}
+                                    <div className="grid grid-cols-1 gap-4">
+                                         <div className="flex flex-col justify-center">
+                                             <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Dimension Summary</Label>
+                                             <div className="flex items-center gap-2">
+                                                 <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-100 rounded-xl shadow-sm">
+                                                     <span className="text-xs font-black text-slate-700">{state.width || '0'}</span>
+                                                     <span className="text-[9px] font-bold text-slate-300">W</span>
+                                                 </div>
+                                                 <span className="text-slate-300 text-xs">×</span>
+                                                 <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-100 rounded-xl shadow-sm">
+                                                     <span className="text-xs font-black text-slate-700">{state.length || '0'}</span>
+                                                     <span className="text-[9px] font-bold text-slate-300">L</span>
+                                                 </div>
+                                                 <span className="text-slate-300 text-xs">×</span>
+                                                 <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-100 rounded-xl shadow-sm">
+                                                     <span className="text-xs font-black text-slate-700">{state.thickness || '0'}</span>
+                                                     <span className="text-[9px] font-bold text-slate-300">T</span>
+                                                 </div>
+                                             </div>
+                                         </div>
+                                    </div>
+
+                                    <div className="col-span-2 grid grid-cols-3 gap-4 pt-2 border-t border-gray-200/50 mt-2">
+                                        {[
+                                            { id: 'width', label: 'Width (W)', icon: Ruler, state: state.width },
+                                            { id: 'length', label: 'Length (L)', icon: Ruler, state: state.length },
+                                            { id: 'thickness', label: 'Thickness (T)', icon: Move3D, state: state.thickness },
+                                        ].map(f => (
+                                            <FieldGroup key={f.id} label={f.label} icon={f.icon}>
+                                                <div className="relative group/sub">
+                                                    <Input
+                                                        type="number"
+                                                        value={f.state}
+                                                        onChange={(e) => setField(f.id as keyof VariantFormState, e.target.value)}
+                                                        className={cn(INPUT_CLS, 'pr-10 text-sm font-bold bg-white group-hover/sub:border-[var(--color-primary)]/40')}
+                                                        placeholder="0"
+                                                    />
+                                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-300 uppercase">cm</span>
+                                                </div>
+                                            </FieldGroup>
+                                        ))}
+                                    </div>
                                 </div>
                             </section>
 
                             <section className="space-y-5">
-                                <SectionHeading title="Visual Identity" />
-                                <ColorPicker color={state.colorName} colorCode={state.colorHex} onColorChange={handleColorChange} disabled={isLoading} />
+                                <div className="flex items-center gap-3">
+                                    <div className="w-1 h-6 bg-amber-400 rounded-full" />
+                                    <SectionHeading title="Visual Identity & Color" />
+                                </div>
+                                <div className="bg-white border border-gray-100 p-6 rounded-3xl shadow-sm">
+                                    <ColorPicker color={state.colorName} colorCode={state.colorHex} onColorChange={handleColorChange} disabled={isLoading} />
+                                </div>
                             </section>
                         </TabsContent>
 
-                        <TabsContent value="config" className="mt-0 space-y-0 outline-none">
-                            <div className="p-6 bg-[#4988c4]/5 border border-[#4988c4]/10 rounded-2xl space-y-6">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-12 h-12 rounded-2xl bg-[#4988c4] flex items-center justify-center text-white shadow-lg shadow-blue-100"><Sparkles className="w-6 h-6" /></div>
-                                        <div className="flex flex-col">
-                                            <Label className="text-base font-bold text-slate-800 tracking-tight">Customization Config</Label>
-                                            <p className="text-xs text-slate-500 font-medium tracking-tight">Enable unique personalization.</p>
-                                        </div>
-                                    </div>
-                                    <Switch checked={state.isCustomizable} onCheckedChange={(v: boolean) => setField('isCustomizable', v)} className="data-[state=checked]:bg-[#4988c4]" />
-                                </div>
-
-                                {state.isCustomizable && (
-                                    <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-400">
-                                        <FieldGroup label="Customer Instruction" highlight>
-                                            <Input
-                                                placeholder="e.g. 'Enter your custom size...'"
-                                                value={state.customizeLabel}
-                                                onChange={(e) => setField('customizeLabel', e.target.value)}
-                                                className={cn(INPUT_CLS, "h-11 border-[#4988c4]/20 bg-white font-medium")}
-                                            />
-                                        </FieldGroup>
-
-                                        <div className="space-y-4 pt-2">
-                                            <SectionHeading title="Allowed Variation Types" />
-                                            <VariantCustomization
-                                                variantId={variant?.id}
-                                                pendingCustomizations={state.pendingCustoms}
-                                                onPendingChange={(v: VariantFormState['pendingCustoms']) => setField('pendingCustoms', v)}
-                                            />
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </TabsContent>
                     </div>
                 </Tabs>
             </form>

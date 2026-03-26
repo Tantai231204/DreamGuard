@@ -2,6 +2,9 @@ import { useState, useMemo, useCallback } from "react";
 import type { ProductVariantResponse, ProductResponse } from "@/api/types/product.types";
 import { useCart } from "@/store/useCart";
 import { useCartAnimation } from "@/store/useCartAnimation";
+import customizeTypeService from "@/api/services/customizeTypeService";
+import variantService, { type VariantCustomizeTypeResponse } from "@/api/services/variantService";
+import type { CustomizeTypeResponse } from "@/api/types/customizeType.types";
 import { calculateTradeInValue } from "../utils/tradeIn";
 import { mockEligibleTradeInProducts } from "../constants";
 import type { TabType, TradeInProduct } from "../types";
@@ -23,6 +26,27 @@ export function useProductDetailState({ product, productImageRef }: UseProductDe
     const [isWishlisted, setIsWishlisted] = useState(false);
     const [activeTab, setActiveTab] = useState<TabType>("description");
     const [selectedTradeInProducts, setSelectedTradeInProducts] = useState<string[]>([]);
+    const [isCustomSize, setIsCustomSizeState] = useState(false);
+    const [isCustomColor, setIsCustomColorState] = useState(false);
+    const [customDimensions, setCustomDimensions] = useState({ length: 1, width: 1, thickness: 1 });
+    const [customColorHex, setCustomColorHex] = useState("#FFFFFF");
+    const [availableCustomizeTypes, setAvailableCustomizeTypes] = useState<CustomizeTypeResponse[]>([]);
+    const [variantCustomizeTypes, setVariantCustomizeTypes] = useState<VariantCustomizeTypeResponse[]>([]);
+    const [selectedCustomizeTypeId, setSelectedCustomizeTypeId] = useState<string | null>(null);
+
+    // Fetch global customize types (fallback)
+    const fetchGlobalCustomizeTypes = useCallback(async () => {
+        try {
+            const response = await customizeTypeService.getAll({ pageSize: 100 });
+            setAvailableCustomizeTypes(response.items);
+        } catch (error) {
+            console.error("Failed to fetch global customize types:", error);
+        }
+    }, []);
+
+    useMemo(() => {
+        fetchGlobalCustomizeTypes();
+    }, [fetchGlobalCustomizeTypes]);
 
     // Variants come directly from the product response (getBySlug includes them)
     const allVariants = useMemo(() => product?.variants ?? [], [product]);
@@ -30,25 +54,40 @@ export function useProductDetailState({ product, productImageRef }: UseProductDe
     const getVariantSize = useCallback((v: ProductVariantResponse) => {
         if (!v) return "";
         if (v.size && v.size.trim().length > 0) return v.size.trim();
-        const attrs = (v.attributes || {}) as { width?: number; length?: number; thickness?: number };
+        const attrs = (v.attributes || {}) as { width?: number; length?: number; thickness?: number; size?: string };
+        if (attrs.size) return attrs.size;
         if (attrs.width && attrs.length) {
             return `${attrs.width}x${attrs.length}${attrs.thickness ? `x${attrs.thickness}` : ""} cm`;
         }
         return "";
     }, []);
 
+    // Optimization: Create a key-based lookup for variants
+    const variantRegistry = useMemo(() => {
+        const registry = new Map<string, ProductVariantResponse>();
+        for (const v of allVariants) {
+            const attrs = (v.attributes || {}) as { color?: string };
+            const color = (attrs.color || "default").toLowerCase();
+            const size = getVariantSize(v).toLowerCase();
+            registry.set(`${color}:${size}`, v);
+        }
+        return registry;
+    }, [allVariants, getVariantSize]);
+
     // Derived actual selections (defaults to first variant if user hasn't interacted)
     const selectedColor = useMemo(() => {
+        if (isCustomColor) return "Custom";
         if (userSelectedColor !== null) return userSelectedColor;
         if (!allVariants.length) return "";
         return ((allVariants[0].attributes as { color?: string })?.color ?? "").toLowerCase();
-    }, [allVariants, userSelectedColor]);
+    }, [allVariants, userSelectedColor, isCustomColor]);
 
     const selectedSize = useMemo(() => {
+        if (isCustomSize) return `${customDimensions.length}x${customDimensions.width}x${customDimensions.thickness} cm (Custom)`;
         if (userSelectedSize !== null) return userSelectedSize;
         if (!allVariants.length) return "";
         return getVariantSize(allVariants[0]);
-    }, [allVariants, userSelectedSize, getVariantSize]);
+    }, [allVariants, userSelectedSize, getVariantSize, isCustomSize, customDimensions]);
 
     const dynamicColorOptions = useMemo(() => {
         const colorHexFallback: Record<string, string> = {
@@ -95,13 +134,25 @@ export function useProductDetailState({ product, productImageRef }: UseProductDe
 
     const currentVariant = useMemo(() => {
         if (!allVariants.length) return undefined;
-        return allVariants.find(v => {
-            const attrs = (v.attributes || {}) as { color?: string };
-            const color = attrs.color?.toLowerCase();
-            const size = getVariantSize(v);
-            return (color === selectedColor.toLowerCase()) && (size === selectedSize);
-        }) ?? allVariants[0];
-    }, [allVariants, selectedColor, selectedSize, getVariantSize]);
+        if (isCustomColor || isCustomSize) return allVariants[0]; 
+        
+        const key = `${selectedColor.toLowerCase()}:${selectedSize.toLowerCase()}`;
+        return variantRegistry.get(key) || allVariants[0];
+    }, [variantRegistry, allVariants, selectedColor, selectedSize, isCustomColor, isCustomSize]);
+
+    // Fetch Variant-Specific Customize Types whenever the variant changes
+    useMemo(async () => {
+        if (!currentVariant?.id) return;
+        try {
+            const types = await variantService.getCustomizeTypes(currentVariant.id);
+            setVariantCustomizeTypes(types);
+            if (types.length > 0 && !selectedCustomizeTypeId) {
+                setSelectedCustomizeTypeId(types[0].customizeTypeId);
+            }
+        } catch (e) {
+            console.error("Failed to fetch variant customize types:", e);
+        }
+    }, [currentVariant?.id]);
 
     const { colorsWithStock, sizesWithStock, sizeByColor } = useMemo(() => {
         const colors = new Set<string>();
@@ -124,13 +175,29 @@ export function useProductDetailState({ product, productImageRef }: UseProductDe
     }, [allVariants, getVariantSize]);
 
     const currentPriceInfo = useMemo(() => {
-        if (!product) return { price: 0, originalPrice: undefined };
-        const price = currentVariant?.salePrice ?? currentVariant?.basePrice ?? product.minPrice ?? 0;
+        if (!product) return { price: 0, originalPrice: undefined, customSurcharge: 0 };
+        const basePrice = currentVariant?.salePrice ?? currentVariant?.basePrice ?? product.minPrice ?? 0;
+        
+        // Add customization surcharge if active
+        let customSurcharge = 0;
+        if (isCustomSize || isCustomColor) {
+            // Priority: Variant-Specific Override > Global Default
+            const vType = variantCustomizeTypes.find(t => t.customizeTypeId === selectedCustomizeTypeId);
+            if (vType) {
+                customSurcharge = vType.finalPrice;
+            } else {
+                const globalType = availableCustomizeTypes.find(t => t.id === selectedCustomizeTypeId);
+                customSurcharge = globalType?.defaultPrice ?? 0;
+            }
+        }
+
+        const price = basePrice + customSurcharge;
         const originalPrice = (currentVariant?.basePrice && currentVariant.basePrice > price)
             ? currentVariant.basePrice
             : (product.maxPrice && product.maxPrice > price) ? product.maxPrice : undefined;
-        return { price, originalPrice };
-    }, [product, currentVariant]);
+            
+        return { price, originalPrice, customSurcharge };
+    }, [product, currentVariant, isCustomSize, isCustomColor, availableCustomizeTypes, selectedCustomizeTypeId]);
 
     const currentStock = useMemo(() => {
         if (!currentVariant) return { stockLeft: undefined, stockStatusLabel: undefined, isOutOfStock: false };
@@ -159,12 +226,24 @@ export function useProductDetailState({ product, productImageRef }: UseProductDe
     const handleColorChange = useCallback((color: string) => {
         setUserSelectedColor(color);
         const sizes = sizeByColor.get(color.toLowerCase());
-        if (sizes && sizes.size > 0) {
+        if (sizes && sizes.size > 0 && !isCustomSize && !isCustomColor) {
             setUserSelectedSize(prev => (prev && sizes.has(prev)) ? prev : Array.from(sizes)[0]);
-        } else {
+        } else if (!isCustomSize && !isCustomColor) {
             setUserSelectedSize("");
         }
-    }, [sizeByColor]);
+    }, [sizeByColor, isCustomSize, isCustomColor]);
+
+    const handleCustomDimensionChange = useCallback((field: 'length' | 'width' | 'thickness', value: number) => {
+        setCustomDimensions(prev => prev[field] === value ? prev : ({ ...prev, [field]: value }));
+    }, []);
+
+    const setIsCustomSize = useCallback((val: boolean) => {
+        setIsCustomSizeState(val);
+    }, []);
+
+    const setIsCustomColor = useCallback((val: boolean) => {
+        setIsCustomColorState(val);
+    }, []);
 
     const handleAddToCart = useCallback(() => {
         if (!product) return;
@@ -184,19 +263,63 @@ export function useProductDetailState({ product, productImageRef }: UseProductDe
             totalValue: tradeInValue,
         } : undefined;
 
-        addItem({
+        // Optimization: Pre-calculate custom data to satisfy TypeScript
+        const customData = (isCustomSize || isCustomColor) ? {
+            isCustom: true,
+            customAttributes: {
+                ...(isCustomSize ? customDimensions : {}),
+                ...(isCustomColor ? { colorHex: customColorHex } : {})
+            },
+            customizeTypeIds: selectedCustomizeTypeId ? [selectedCustomizeTypeId] : [],
+            sku: (() => {
+                const sizePart = isCustomSize ? `${customDimensions.length}x${customDimensions.width}` : (selectedSize || 'STD');
+                const colorPart = isCustomColor ? customColorHex.replace('#', '') : (selectedColor || 'STD');
+                return `VAR-CUST-${sizePart}-${colorPart}`.toUpperCase();
+            })(),
+        } : {};
+
+        // Align with new backend requirements for customization
+        const customizeDetails = [];
+        if (isCustomSize || isCustomColor) {
+            if (selectedCustomizeTypeId) {
+                if (isCustomSize) {
+                    customizeDetails.push({
+                        ProductCustomizeTypeId: selectedCustomizeTypeId,
+                        CustomizeContent: `${customDimensions.length}x${customDimensions.width}x${customDimensions.thickness}`
+                    });
+                }
+                if (isCustomColor) {
+                    customizeDetails.push({
+                        ProductCustomizeTypeId: selectedCustomizeTypeId,
+                        CustomizeContent: customColorHex
+                    });
+                }
+            }
+        }
+
+        const cartItem: any = {
             id: product.id,
-            productVariantId: currentVariant?.id,
+            productId: product.id, // backend might expect productId
+            productVariantId: (isCustomSize || isCustomColor) ? null : (currentVariant?.id || null),
+            comboId: null, // Default to null for single products
             name: product.name,
             image: productImages[0] || "/images/placeholder-product.svg",
             price,
             quantity,
-            color: selectedColor || undefined,
-            size: selectedSize || undefined,
+            subtotal: price * quantity,
+            color: isCustomColor ? "Custom" : (selectedColor || undefined),
+            size: isCustomSize ? "Custom" : (selectedSize || undefined),
             tradeIn: tradeInInfo,
-        });
+            isCustom: isCustomSize || isCustomColor,
+            ProductCustomizeDetailRequest: customizeDetails.length > 0 ? customizeDetails : undefined,
+            ...customData
+        };
+
+        addItem(cartItem);
         setSelectedTradeInProducts([]);
-    }, [product, quantity, selectedColor, selectedSize, addItem, triggerFlyToCart, currentPriceInfo, productImages, productImageRef, selectedTradeInProducts, tradeInValue, currentVariant]);
+        setIsCustomSize(false);
+        setIsCustomColor(false);
+    }, [product, quantity, selectedColor, selectedSize, addItem, triggerFlyToCart, currentPriceInfo, productImages, productImageRef, selectedTradeInProducts, tradeInValue, currentVariant, isCustomSize, isCustomColor, customDimensions, customColorHex, selectedCustomizeTypeId]);
 
     const disabledColors = useMemo(() =>
         dynamicColorOptions.map(c => c.value).filter(val => !colorsWithStock.has(val.toLowerCase())),
@@ -207,18 +330,49 @@ export function useProductDetailState({ product, productImageRef }: UseProductDe
         return dynamicSizeOptions.map(s => s.value).filter(val => !allowed?.has(val));
     }, [dynamicSizeOptions, selectedColor, sizeByColor, sizesWithStock]);
 
+    // Stable actions object
+    const actions = useMemo(() => ({
+        setSelectedImage,
+        setUserSelectedColor,
+        setUserSelectedSize,
+        setQuantity,
+        setIsWishlisted,
+        setActiveTab,
+        setSelectedTradeInProducts,
+        handleColorChange,
+        handleAddToCart,
+        setIsCustomSize,
+        setIsCustomColor,
+        handleCustomDimensionChange,
+        setCustomColorHex
+    }), [
+        setUserSelectedColor,
+        setUserSelectedSize,
+        setQuantity,
+        setIsWishlisted,
+        setActiveTab,
+        setSelectedTradeInProducts,
+        handleColorChange,
+        handleAddToCart,
+        setIsCustomSize,
+        setIsCustomColor,
+        handleCustomDimensionChange,
+        setCustomColorHex
+    ]);
+
     return {
         state: {
             selectedImage, selectedColor, selectedSize, quantity,
             isWishlisted, activeTab, selectedTradeInProducts,
             productImages, dynamicColorOptions, dynamicSizeOptions,
             currentVariant, currentPriceInfo, currentStock, tradeInValue,
-            disabledColors, disabledSizes
+            disabledColors, disabledSizes, isCustomSize, isCustomColor, customDimensions, customColorHex, 
+            availableCustomizeTypes, variantCustomizeTypes, selectedCustomizeTypeId,
+            isProductCustomizable: true
         },
         actions: {
-            setSelectedImage, setUserSelectedColor, setUserSelectedSize, setQuantity,
-            setIsWishlisted, setActiveTab, setSelectedTradeInProducts,
-            handleColorChange, handleAddToCart
+            ...actions,
+            setSelectedCustomizeTypeId
         },
         getVariantSize
     };

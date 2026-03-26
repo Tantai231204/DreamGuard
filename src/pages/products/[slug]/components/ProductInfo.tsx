@@ -1,12 +1,15 @@
 import { memo } from 'react';
-import { motion } from 'framer-motion';
-import { Star, ShoppingCart, AlertTriangle, RotateCcw, ShieldCheck, Leaf } from 'lucide-react';
+import { ShoppingCart, ShieldCheck, RotateCcw, Star, Leaf } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { motion } from 'framer-motion';
 import { cn, formatPrice } from '@/lib/utils';
 import { ColorSelector } from './ColorSelector';
 import { SizeSelector } from './SizeSelector';
 import { QuantitySelector } from './QuantitySelector';
+import { CustomizationForm } from './CustomizationForm';
+import type { CustomizeTypeResponse } from '@/api/types/customizeType.types';
+import { type VariantCustomizeTypeResponse } from '@/api/services/variantService';
 import type { ColorOption, SizeOption } from '../types';
 
 interface Product {
@@ -45,6 +48,19 @@ interface ProductInfoProps {
     isNewVariant?: boolean;
     stockStatusLabel?: string;
     tradeInValue?: number;
+    isCustomSize?: boolean;
+    isCustomColor?: boolean;
+    onIsCustomSizeChange?: (val: boolean) => void;
+    onIsCustomColorChange?: (val: boolean) => void;
+    customDimensions?: { length: number; width: number; thickness: number };
+    onCustomDimensionChange?: (field: 'length' | 'width' | 'thickness', value: number) => void;
+    customColorHex?: string;
+    onCustomColorHexChange?: (hex: string) => void;
+    availableCustomizeTypes?: CustomizeTypeResponse[];
+    variantCustomizeTypes?: VariantCustomizeTypeResponse[];
+    selectedCustomizeTypeId?: string | null;
+    onSelectedCustomizeTypeChange?: (id: string) => void;
+    categoryName?: string;
 }
 
 export const ProductInfo = memo(({
@@ -69,6 +85,19 @@ export const ProductInfo = memo(({
     isNewVariant,
     stockStatusLabel,
     tradeInValue,
+    isCustomSize = false,
+    isCustomColor = false,
+    onIsCustomSizeChange,
+    onIsCustomColorChange,
+    customDimensions = { length: 0, width: 0, thickness: 0 },
+    onCustomDimensionChange,
+    customColorHex = "#FFFFFF",
+    onCustomColorHexChange,
+    availableCustomizeTypes = [],
+    variantCustomizeTypes = [],
+    selectedCustomizeTypeId,
+    onSelectedCustomizeTypeChange,
+    categoryName = "Mattress",
 }: ProductInfoProps) => {
 
     const isActuallyOutOfStock = isOutOfStock || (stockLeft !== undefined && (stockLeft ?? 0) === 0);
@@ -189,15 +218,50 @@ export const ProductInfo = memo(({
                 <ColorSelector
                     options={colorOptions}
                     selected={selectedColor}
-                    onChange={onColorChange}
+                    onChange={(val) => {
+                        onColorChange(val);
+                        if (onIsCustomColorChange) onIsCustomColorChange(false);
+                    }}
                     disabledValues={disabledColors}
+                    isCustomizable={true}
+                    isCustomMode={isCustomColor}
+                    onCustomClick={() => onIsCustomColorChange?.(!isCustomColor)}
                 />
 
-                <SizeSelector
-                    options={sizeOptions}
-                    selected={selectedSize}
-                    onChange={onSizeChange}
-                    disabledValues={disabledSizes}
+                <CustomizationForm
+                    type="color"
+                    isVisible={isCustomColor}
+                    colorHex={customColorHex}
+                    onColorChange={onCustomColorHexChange}
+                />
+
+                <div className="flex items-center justify-between">
+                    <SizeSelector
+                        options={sizeOptions}
+                        selected={selectedSize}
+                        onChange={(val) => {
+                            onSizeChange(val);
+                            if (onIsCustomSizeChange) onIsCustomSizeChange(false);
+                        }}
+                        disabledValues={disabledSizes}
+                        isCustomizable={true}
+                        isCustomMode={isCustomSize}
+                        onCustomClick={() => onIsCustomSizeChange?.(!isCustomSize)}
+                    />
+                </div>
+
+                <CustomizationForm
+                    type="dimensions"
+                    isVisible={isCustomSize}
+                    length={customDimensions.length}
+                    width={customDimensions.width}
+                    thickness={customDimensions.thickness}
+                    onDimensionChange={onCustomDimensionChange}
+                    availableTypes={availableCustomizeTypes}
+                    variantTypes={variantCustomizeTypes}
+                    selectedTypeId={selectedCustomizeTypeId}
+                    onTypeChange={onSelectedCustomizeTypeChange}
+                    categoryName={categoryName}
                 />
 
                 <QuantitySelector
@@ -208,28 +272,26 @@ export const ProductInfo = memo(({
             </div>
 
             {/* ── Row 7: Add to Cart ── */}
-            <Button
-                variant={isActuallyOutOfStock ? "secondary" : "premium"}
-                size="lg"
-                disabled={isActuallyOutOfStock}
-                onClick={onAddToCart}
-                className={cn(
-                    "w-full h-16 rounded-2xl",
-                    isActuallyOutOfStock && "bg-slate-100 text-slate-400 border border-slate-100 cursor-not-allowed"
-                )}
-            >
-                {isActuallyOutOfStock ? (
-                    <span className="flex items-center gap-3 relative z-10">
-                        <AlertTriangle className="h-4 w-4 opacity-70" />
-                        Inventory Empty
-                    </span>
-                ) : (
-                    <span className="flex items-center gap-4 relative z-10">
-                        <ShoppingCart className="h-5 w-5 transition-transform group-hover:-rotate-12" />
-                        Add to Cart
-                    </span>
-                )}
-            </Button>
+            {/* Call to Action Group */}
+            <div className="space-y-4 pt-8">
+                <div className="flex flex-col sm:flex-row gap-4">
+                    <Button 
+                        variant={isActuallyOutOfStock ? "secondary" : "premium"}
+                        className={cn(
+                            "flex-1 h-14 font-black text-sm uppercase tracking-[0.2em] rounded-2xl shadow-xl transition-all duration-300 relative group overflow-hidden",
+                            isActuallyOutOfStock ? "bg-slate-100 text-slate-400" : "shadow-blue-500/10 hover:shadow-blue-500/20"
+                        )}
+                        onClick={onAddToCart}
+                        disabled={isActuallyOutOfStock}
+                    >
+                        <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                        <span className="relative z-10 flex items-center justify-center gap-3">
+                            <ShoppingCart className="w-5 h-5 transition-transform group-hover:-rotate-12" />
+                            {isActuallyOutOfStock ? 'Sold Out' : 'Add to Cart'}
+                        </span>
+                    </Button>
+                </div>
+            </div>
             {/* ── Row 8: Dynamic Policies (Sleek Grid) ── */}
             <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-100/80">
                 {[

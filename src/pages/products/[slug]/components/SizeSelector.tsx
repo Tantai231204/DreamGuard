@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Info } from 'lucide-react';
+import { Info, Plus } from 'lucide-react';
 import * as RadioGroup from '@radix-ui/react-radio-group';
 import {
     Tooltip,
@@ -15,9 +15,12 @@ interface SizeSelectorProps {
     selected: string;
     onChange: (value: string) => void;
     disabledValues?: string[];
+    isCustomizable?: boolean;
+    onCustomClick?: () => void;
+    isCustomMode?: boolean;
 }
 
-export const SizeSelector = memo(({ options, selected, onChange, disabledValues }: SizeSelectorProps) => {
+export const SizeSelector = memo(({ options, selected, onChange, disabledValues, isCustomizable, onCustomClick, isCustomMode }: SizeSelectorProps) => {
     return (
         <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -45,7 +48,7 @@ export const SizeSelector = memo(({ options, selected, onChange, disabledValues 
             >
                 {options.map((size) => {
                     const isDisabled = disabledValues?.includes(size.value);
-                    const isActive = selected === size.value;
+                    const isActive = selected === size.value && !isCustomMode;
 
                     return (
                         <TooltipProvider key={size.value} delayDuration={500}>
@@ -89,6 +92,40 @@ export const SizeSelector = memo(({ options, selected, onChange, disabledValues 
                         </TooltipProvider>
                     )
                 })}
+
+                {isCustomizable && (
+                    <TooltipProvider delayDuration={300}>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <div>
+                                    <button
+                                        type="button"
+                                        onClick={onCustomClick}
+                                        className={cn(
+                                            "flex min-w-[100px] flex-col h-[78px] items-center justify-center rounded-2xl border-2 border-dashed px-6 py-4 transition-all duration-300 gap-1.5",
+                                            isCustomMode 
+                                                ? "border-[var(--color-primary)] bg-[var(--color-primary)]/5 text-[var(--color-primary)] shadow-lg scale-[1.02]" 
+                                                : "border-slate-200 bg-white text-slate-400 hover:border-slate-400 hover:text-slate-600"
+                                        )}
+                                    >
+                                        <div className={cn(
+                                            "w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all duration-500",
+                                            isCustomMode 
+                                                ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white shadow-[0_0_15px_rgba(var(--color-primary-rgb),0.5)] scale-110" 
+                                                : "border-slate-200"
+                                        )}>
+                                            <Plus className={cn("h-4 w-4", isCustomMode && "rotate-45")} />
+                                        </div>
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-center leading-tight">Custom<br/>Size</span>
+                                    </button>
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="bg-primary-dark text-white border-none py-1.5 px-3 text-[10px] font-black uppercase tracking-widest rounded-lg transition-transform">
+                                Manual Size Input
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                )}
             </RadioGroup.Root>
         </div>
     );

@@ -24,4 +24,16 @@ export interface CartItem {
     sku?: string
     availableStock?: number
     isAvailable?: boolean
+    isCustom?: boolean
+    customAttributes?: {
+        length?: number;
+        width?: number;
+        thickness?: number;
+        colorHex?: string;
+    }
+    customizeTypeIds?: string[]
+    ProductCustomizeDetailRequest?: Array<{
+        ProductCustomizeTypeId: string;
+        CustomizeContent: string;
+    }>
 }

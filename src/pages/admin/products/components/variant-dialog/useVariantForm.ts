@@ -30,9 +30,6 @@ const mapStateToSubmitData = (state: VariantFormState, productId: string): Varia
         stockStatus: state.stockStatus,
         stockQuantity: toNum(state.stockQuantity),
         isNew: state.isNew,
-        isCustomizable: state.isCustomizable,
-        customizeLabel: state.customizeLabel || undefined,
-        pendingCustoms: state.pendingCustoms.length > 0 ? state.pendingCustoms : undefined,
         attributes: {
             width: toNum(state.width) || undefined,
             length: toNum(state.length) || undefined,
