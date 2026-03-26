@@ -26,7 +26,7 @@ import { LoadingSpinner } from '@/components/common';
 import { ProductActions, ProductTableContent, ProductTabs, useProductColumns } from './components/product-table';
 import ProductDialog from './components/product-dialog';
 import { VariantDialog } from './components/variant-dialog';
-import type { VariantFormData } from './components/variant-dialog/VariantDialog';
+import type { VariantSubmitData } from './components/variant-dialog/VariantDialog';
 import { DeleteProductDialog, ImageUploadDialog, ProductCreationSuccess } from './components/dialogs';
 import { useComboColumns, mapCombosToSubRows } from './components/combo';
 import { ComboDialog, type ComboDialogMode } from './components/combo-dialog';
@@ -41,6 +41,8 @@ import {
   useUpdateVariant,
   useDeleteVariant,
   useUpdateVariantStatus,
+  useAssignVariantCustomizeType,
+  useUpdateVariantCustomizeTypePrice,
 } from '@/hooks/queries/useProduct';
 import {
   useAdminCombos,
@@ -267,6 +269,8 @@ export default function ProductsPage() {
   const updateVariantMutation = useUpdateVariant();
   const deleteVariantMutation = useDeleteVariant();
   const updateVariantStatusMutation = useUpdateVariantStatus();
+  const assignCustomMutation = useAssignVariantCustomizeType();
+  const updateCustomPriceMutation = useUpdateVariantCustomizeTypePrice();
 
   // Combo Mutations
   const createComboMutation = useCreateCombo();
@@ -342,7 +346,7 @@ export default function ProductsPage() {
   // Removed unused updateVariantStatusMutation
 
   const handleVariantSubmit = useCallback(
-    async (formData: VariantFormData) => {
+    async (formData: VariantSubmitData) => {
       const { status, stockStatus: _stockStatus, isNew, ...coreBody } = formData;
       void _stockStatus;
 
@@ -351,7 +355,12 @@ export default function ProductsPage() {
           // 1️⃣ Update variant info FIRST (include isNew for updates)
           await updateVariantMutation.mutateAsync({
             id: editingVariant.id,
-            data: { ...coreBody, isNew },
+            data: { 
+              ...coreBody, 
+              isNew,
+              isCustomizable: formData.isCustomizable,
+              customizeLabel: formData.customizeLabel
+            },
           });
 
           // 2️⃣ THEN update status (sequential to avoid race condition)
@@ -365,11 +374,43 @@ export default function ProductsPage() {
           setVariantDialogOpen(false);
           toast.success("Variant updated", "The variant details have been updated.");
         } else {
-          // Create: send only fields the API expects (no isNew)
-          await createVariantMutation.mutateAsync(coreBody);
+          // 1. Create Variant
+          const newVariant = await createVariantMutation.mutateAsync({
+            ...coreBody,
+            isNew,
+            isCustomizable: formData.isCustomizable,
+            customizeLabel: formData.customizeLabel
+          });
+
+          // 2. Link Pending Customizations (if any)
+          if (formData.pendingCustoms && formData.pendingCustoms.length > 0 && newVariant?.id) {
+            toast.info("Configuring Customizations", `Initializing ${formData.pendingCustoms.length} options...`);
+
+            // We use mutateAsync sequentially to avoid server/lock issues
+            for (const item of formData.pendingCustoms) {
+              try {
+                // Assign
+                await assignCustomMutation.mutateAsync({
+                  variantId: newVariant.id,
+                  data: { customizeTypeId: item.customizeTypeId }
+                });
+
+                // Update Price if overridden
+                if (item.overridePrice !== null) {
+                  await updateCustomPriceMutation.mutateAsync({
+                    variantId: newVariant.id,
+                    customizeTypeId: item.customizeTypeId,
+                    data: { overridePrice: item.overridePrice }
+                  });
+                }
+              } catch (err) {
+                console.error(`[VariantCustomization] Partial failure for ${item.customizeTypeId}:`, err);
+              }
+            }
+          }
 
           setVariantDialogOpen(false);
-          toast.success("Variant created", "The new variant has been successfully created.");
+          toast.success("Variant created", "The variant and its specific configurations have been successfully initialized.");
         }
       } catch (error) {
         console.error("Variant submission failed:", error);
@@ -380,6 +421,8 @@ export default function ProductsPage() {
       createVariantMutation,
       updateVariantMutation,
       updateVariantStatusMutation,
+      assignCustomMutation,
+      updateCustomPriceMutation,
       toast,
     ]
   );

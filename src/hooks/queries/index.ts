@@ -7,4 +7,5 @@ export * from './useUser';
 export * from './useCart';
 export * from './useOrder';
 export * from './usePayment';
+export * from './useCustomizeType';
 export * from '../useAddress';

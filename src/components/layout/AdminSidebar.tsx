@@ -75,6 +75,11 @@ const navItems: NavItem[] = [
     icon: ProductAssetIcons.PRODUCT_CATEGORIES,
   },
   {
+    title: 'Customize Types',
+    href: '/admin/customize-types',
+    icon: Sparkles,
+  },
+  {
     title: 'Vouchers',
     href: '/admin/vouchers',
     icon: Ticket,

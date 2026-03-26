@@ -69,7 +69,9 @@ export interface ProductVariantResponse {
   status: string;
   createdAt: string;
   isNew: boolean;
+  isCustomizable?: boolean;
   productId: string;
+  customizeLabel?: string;
   // Optional stock fields (may be present on some endpoints)
   stockQuantity?: number;
   stockStatus?: string;

@@ -214,7 +214,9 @@ export interface ProductVariant {
   status: VariantStatus;
   createdAt: string;
   isNew: boolean;
+  isCustomizable?: boolean;
   productId: string;
+  customizeLabel?: string;
   // Inventory (from joined table or computed)
   stockQuantity?: number;
   stockStatus?: string;
@@ -227,6 +229,8 @@ export interface CreateVariantRequest {
   weight: number;
   attributes: VariantAttributes | null;
   productid: string;
+  isCustomizable?: boolean;
+  customizeLabel?: string;
 }
 
 export interface UpdateVariantRequest {
@@ -236,6 +240,8 @@ export interface UpdateVariantRequest {
   weight: number;
   attributes: VariantAttributes | null;
   productid: string;
+  isCustomizable?: boolean;
+  customizeLabel?: string;
 }
 
 // ── Combo (kept for combo tab) ──────────────────────────
