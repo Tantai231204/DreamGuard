@@ -27,6 +27,7 @@ export type {
   AssignVariantCustomizeTypeRequest,
   UpdateVariantCustomizeTypePriceRequest,
   VariantCustomizeTypeResponse,
+  CreateVariantWithCustomizeRequest,
 } from "./services/variantService";
 
 // Combo Types (exported from service)

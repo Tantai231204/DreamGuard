@@ -1,6 +1,7 @@
 import { memo, useCallback, useMemo } from 'react';
 import { HexColorPicker, HexColorInput } from 'react-colorful';
 import { cn } from '@/lib/utils';
+import { getColorHex } from '../../utils/variant-utils';
 
 /* ─── Color Name Detection ─────────────────────────────── */
 const COLOR_NAMES: Record<string, string> = {
@@ -143,8 +144,8 @@ const ColorPicker = memo(function ColorPicker({
     onColorChange,
     disabled,
 }: ColorPickerProps) {
-    const currentHex = colorCode || '#f5f5f5';
-    const isValidHex = /^#[0-9A-Fa-f]{6}$/i.test(currentHex);
+    const currentHex = useMemo(() => getColorHex(colorCode), [colorCode]);
+    const isValidHex = currentHex !== '#e5e7eb'; // The default hex in getColorHex
 
     const detectedColorName = useMemo(() => getColorName(currentHex), [currentHex]);
 

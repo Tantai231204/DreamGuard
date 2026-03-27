@@ -2,11 +2,12 @@
 import apiClient from "../../lib/api";
 
 export interface VariantAttributes {
-  width?: number;
-  length?: number;
-  thickness?: number;
-  color?: string;    // Color Name (e.g. "Crimson")
-  hexColor?: string; // Hex Code (e.g. "#DC143C")
+  width?: number;      // Width in cm
+  length?: number;     // Length in cm  
+  thickness?: number;  // Thickness in cm
+  color?: string;      // Color Name (e.g. "Crimson")
+  hexColor?: string;   // Hex Code (e.g. "#DC143C") - Legacy name
+  colorHex?: string;   // Hex Code (e.g. "#DC143C") - Alternative name
   [key: string]: unknown;
 }
 
@@ -17,6 +18,9 @@ export interface CreateVariantRequest {
   weight: number;
   attributes: VariantAttributes | null;
   productid: string;
+  color?: string;
+  hexColor?: string;
+  colorHex?: string;
   isNew?: boolean;
   isCustomizable?: boolean;
   customizeLabel?: string;
@@ -29,6 +33,9 @@ export interface UpdateVariantRequest {
   weight: number;
   attributes: VariantAttributes | null;
   productid: string;
+  color?: string;
+  hexColor?: string;
+  colorHex?: string;
   isNew?: boolean;
   isCustomizable?: boolean;
   customizeLabel?: string;
@@ -37,6 +44,22 @@ export interface UpdateVariantRequest {
 export interface UpdateVariantStatusParams {
   variantId: string;
   status: string;
+}
+
+export interface CreateVariantWithCustomizeRequest {
+  sku: string;
+  basePrice: number;
+  salePrice: number;
+  weight: number;
+  attributes: VariantAttributes | null;
+  productId: string;
+  color?: string;
+  hexColor?: string;
+  colorHex?: string;
+  isNew?: boolean;
+  isCustomizable?: boolean;
+  customizeLabel?: string;
+  customizeTypeIds: string[];
 }
 
 export interface VariantResponse {
@@ -71,6 +94,10 @@ export interface AdminVariantItem {
   attributes: VariantAttributes | null;
   isNew?: boolean;
   isCustomizable?: boolean;
+  is_customizable?: boolean; // Snake_case fallback from API
+  customizeTypes?: VariantCustomizeTypeResponse[];
+  customizeOptions?: VariantCustomizeTypeResponse[];
+  customizeLabel?: string;
   createdAt?: string;
 }
 
@@ -111,6 +138,10 @@ const variantService = {
   /** Create new variant */
   create: (data: CreateVariantRequest): Promise<VariantResponse> =>
     apiClient.post("/variants", data).then((res) => res.data),
+
+  /** Create new variant with customization - calls /api/variants/with-customize */
+  createWithCustomize: (data: CreateVariantWithCustomizeRequest): Promise<VariantResponse> =>
+    apiClient.post("/variants/with-customize", data).then((res) => res.data),
 
   /** Update variant info */
   update: (id: string, data: UpdateVariantRequest): Promise<VariantResponse> =>

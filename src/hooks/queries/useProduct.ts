@@ -24,6 +24,7 @@ import type {
   AssignVariantCustomizeTypeRequest,
   UpdateVariantCustomizeTypePriceRequest,
   VariantCustomizeTypeResponse,
+  CreateVariantWithCustomizeRequest,
 } from "@/api";
 
 // ========================
@@ -235,6 +236,21 @@ export const useCreateVariant = () => {
       queryClient.invalidateQueries({
         queryKey: variantKeys.adminByProduct(variables.productid),
       });
+    },
+  });
+};
+
+/** Create variant with custom options */
+export const useCreateVariantWithCustomize = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: CreateVariantWithCustomizeRequest) => 
+      variantService.createWithCustomize(data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+      queryClient.invalidateQueries({ queryKey: variantKeys.byProduct(variables.productId) });
+      queryClient.invalidateQueries({ queryKey: variantKeys.adminByProduct(variables.productId) });
     },
   });
 };

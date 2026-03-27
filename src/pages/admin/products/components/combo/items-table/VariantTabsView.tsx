@@ -64,6 +64,7 @@ export function VariantTabsView({
 
     return (
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex">
+            {/* ── LEFT SIDEBAR ── */}
             <div className="w-[300px] border-r border-gray-100 bg-gray-50/30 flex flex-col">
                 <div className="p-3 border-b border-gray-100 bg-white/50 flex items-center justify-between">
                     <div className="flex flex-col">
@@ -161,6 +162,7 @@ export function VariantTabsView({
                 </div>
             </div>
 
+            {/* ── RIGHT CONTENT PANEL ── */}
             <div className="flex-1 bg-white flex flex-col min-h-[500px]">
                 {childCombos.map(child => (
                     <TabsContent
@@ -168,6 +170,7 @@ export function VariantTabsView({
                         value={child.id}
                         className="m-0 border-0 outline-none flex-1 data-[state=inactive]:hidden animate-in fade-in slide-in-from-right-2 duration-300"
                     >
+                        {/* Variant Detail Header */}
                         <div className="px-8 py-5 bg-gradient-to-r from-primary-50/10 to-white border-b border-gray-100 flex items-center justify-between">
                             <div className="flex items-center gap-4">
                                 <div className="h-12 w-12 rounded-2xl bg-white border-2 border-primary-50 flex items-center justify-center shadow-sm">
@@ -201,6 +204,7 @@ export function VariantTabsView({
                             </div>
                         </div>
 
+                        {/* Constituent Items Configuration */}
                         <div className="p-8 bg-white/50">
                             <div className="mb-4 flex items-center justify-between">
                                 <h5 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]">Constituent Items Configuration</h5>

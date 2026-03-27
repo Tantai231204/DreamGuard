@@ -24,6 +24,9 @@ import { Switch } from '@/components/ui/switch';
 import { formatPrice, formatNumber, unformatNumber, cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { VariantCustomizeTypeResponse } from '@/api';
+import type { CustomizeOptionResponse } from '@/api/types/product.types';
+
+type CustomResponse = VariantCustomizeTypeResponse | CustomizeOptionResponse;
 
 const TYPE_ICONS: Record<string, LucideIcon> = {
     'size': Ruler,
@@ -153,24 +156,28 @@ export default function VariantCustomization({ variantId, pendingCustomizations,
 
     // Model Mapping
     const assignedMap = useMemo(() => {
-        const map = new Map<string, VariantCustomizeTypeResponse>();
-        if (variantId) {
-            serverAssigned.forEach(a => map.set(a.customizeTypeId, a));
-        } else if (pendingCustomizations && availableData) {
+        const map = new Map<string, CustomResponse>();
+        
+        // 1. Prioritize pendingCustomizations (Form state) if available
+        if (pendingCustomizations && availableData) {
             pendingCustomizations.forEach(p => {
                 const opt = availableData.items.find(o => o.id === p.customizeTypeId);
                 if (opt) {
                     map.set(p.customizeTypeId, {
-                        variantId: '',
                         customizeTypeId: p.customizeTypeId,
-                        customizeTypeName: opt.name,
-                        originalPrice: opt.defaultPrice,
-                        overridePrice: p.overridePrice,
-                        finalPrice: p.overridePrice ?? opt.defaultPrice
-                    } as VariantCustomizeTypeResponse);
+                        name: opt.name,
+                        summary: opt.summary,
+                        defaultPrice: opt.defaultPrice,
+                        overridePrice: p.overridePrice ?? null,
+                    } as CustomizeOptionResponse);
                 }
             });
+        } 
+        // 2. Fallback to serverAssigned (Direct server state) if exists and no pending state logic
+        else if (variantId && serverAssigned.length > 0) {
+            serverAssigned.forEach(a => map.set(a.customizeTypeId, a));
         }
+        
         return map;
     }, [variantId, serverAssigned, pendingCustomizations, availableData]);
 
@@ -189,26 +196,36 @@ export default function VariantCustomization({ variantId, pendingCustomizations,
     const removeMutation = useRemoveVariantCustomizeType();
 
     const handleToggle = useCallback((id: string, currentlyAssigned: boolean) => {
+        if (onPendingChange) {
+            // Priority 1: Form Session (Batch Save)
+            if (currentlyAssigned) {
+                onPendingChange((pendingCustomizations || []).filter(p => p.customizeTypeId !== id));
+            } else {
+                onPendingChange([...(pendingCustomizations || []), { customizeTypeId: id, overridePrice: null }]);
+            }
+            return;
+        }
+
+        // Fallback: Immediate Mutation (Standalone Mode)
         if (currentlyAssigned) {
             if (variantId) {
                 removeMutation.mutate({ variantId, customizeTypeId: id });
-            } else {
-                onPendingChange?.((pendingCustomizations || []).filter(p => p.customizeTypeId !== id));
             }
-        } else {
-            if (variantId) {
-                assignMutation.mutate({ variantId, data: { customizeTypeId: id } });
-            } else {
-                onPendingChange?.([...(pendingCustomizations || []), { customizeTypeId: id, overridePrice: null }]);
-            }
+        } else if (variantId) {
+            assignMutation.mutate({ variantId, data: { customizeTypeId: id } });
         }
     }, [variantId, pendingCustomizations, onPendingChange, assignMutation, removeMutation]);
 
     const handleUpdatePrice = useCallback((id: string, overridePrice: number) => {
+        if (onPendingChange) {
+            // Priority 1: Form Session
+            onPendingChange((pendingCustomizations || []).map(p => p.customizeTypeId === id ? { ...p, overridePrice } : p));
+            return;
+        }
+
+        // Fallback: Immediate Mutation
         if (variantId) {
             updateMutation.mutate({ variantId, customizeTypeId: id, data: { overridePrice } });
-        } else {
-            onPendingChange?.((pendingCustomizations || []).map(p => p.customizeTypeId === id ? { ...p, overridePrice } : p));
         }
     }, [variantId, pendingCustomizations, onPendingChange, updateMutation]);
 
@@ -225,7 +242,7 @@ export default function VariantCustomization({ variantId, pendingCustomizations,
                             key={cap.id}
                             name={cap.name}
                             originalPrice={cap.defaultPrice}
-                            overridePrice={cap.assignedData?.overridePrice ?? null}
+                            overridePrice={(cap.assignedData as CustomResponse)?.overridePrice ?? null}
                             isEnabled={cap.isAssigned}
                             isUpdating={
                                 (assignMutation.isPending && assignMutation.variables?.data.customizeTypeId === cap.id) ||

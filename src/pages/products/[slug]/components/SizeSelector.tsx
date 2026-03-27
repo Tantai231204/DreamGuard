@@ -50,6 +50,11 @@ export const SizeSelector = memo(({ options, selected, onChange, disabledValues,
                     const isDisabled = disabledValues?.includes(size.value);
                     const isActive = selected === size.value && !isCustomMode;
 
+                    // Hide redundant 'Default' if it's the only option
+                    if (options.length === 1 && (size.value.toLowerCase() === 'default' || size.label?.toLowerCase() === 'default' || !size.label)) {
+                        return null;
+                    }
+
                     return (
                         <TooltipProvider key={size.value} delayDuration={500}>
                             <Tooltip>

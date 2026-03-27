@@ -1,8 +1,8 @@
-import { Minus, Plus, ShoppingCart, Share2 } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
 import type { Combo } from "../../types";
+import { QuantitySelector } from "../../../products/[slug]/components/QuantitySelector";
 
 interface Props {
     combo: Combo;
@@ -13,77 +13,36 @@ interface Props {
 }
 
 export const ComboActions = ({ combo, activeCombo, quantity, setQuantity, onAddToCart }: Props) => {
-    const handleQuantity = (delta: number) => {
-        setQuantity(Math.max(1, quantity + delta));
-    };
-
     const isOutOfStock = (activeCombo || combo).stock === 0;
 
     return (
-        <section className="space-y-10 pt-4">
+        <section className="space-y-10 pt-4 border-t border-slate-100">
             {/* Quantity Selector Style Sync */}
-            <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                    <span className="text-sm font-black text-slate-900 uppercase tracking-widest leading-none">Quantity</span>
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-600">
-                        <span>Pack ready for shipping</span>
-                    </div>
-                </div>
+            <QuantitySelector
+                value={quantity}
+                onChange={setQuantity}
+                stockLeft={(activeCombo || combo).stock ?? undefined}
+            />
 
-                <div className="inline-flex items-center bg-slate-50 rounded-2xl p-1 border border-slate-100 shadow-sm transition-all hover:border-slate-200">
-                    <button
-                        onClick={() => handleQuantity(-1)}
-                        disabled={quantity <= 1}
-                        className="flex h-10 w-10 items-center justify-center rounded-xl transition-all text-slate-400 hover:bg-white hover:text-slate-900 hover:shadow-sm disabled:opacity-30"
-                    >
-                        <Minus className="h-4 w-4 stroke-[2.5]" />
-                    </button>
-
-                    <div className="relative flex h-10 w-14 items-center justify-center overflow-hidden">
-                        <AnimatePresence mode="wait">
-                            <motion.span
-                                key={quantity}
-                                initial={{ y: 10, opacity: 0 }}
-                                animate={{ y: 0, opacity: 1 }}
-                                exit={{ y: -10, opacity: 0 }}
-                                className="text-lg font-black text-slate-900 tabular-nums"
-                            >
-                                {quantity}
-                            </motion.span>
-                        </AnimatePresence>
-                    </div>
-
-                    <button
-                        onClick={() => handleQuantity(1)}
-                        className="flex h-10 w-10 items-center justify-center rounded-xl transition-all text-slate-400 hover:bg-white hover:text-slate-900 hover:shadow-sm"
-                    >
-                        <Plus className="h-4 w-4 stroke-[2.5]" />
-                    </button>
-                </div>
-            </div>
-
-            {/* SYNCED "ADD TO CART" BUTTON */}
+            {/* SYNCED "ADD TO CART" BUTTON (Clean CTA Style) */}
             <div className="flex flex-col gap-4">
                 <Button
                     variant={isOutOfStock ? "secondary" : "premium"}
-                    size="lg"
                     disabled={isOutOfStock}
                     onClick={onAddToCart}
                     className={cn(
-                        "w-full h-16 rounded-2xl",
-                        isOutOfStock && "bg-slate-100 text-slate-400 border border-slate-100 cursor-not-allowed"
+                        "w-full h-14 font-black text-sm uppercase tracking-[0.2em] rounded-2xl shadow-xl transition-all duration-300 relative group overflow-hidden",
+                        isOutOfStock
+                            ? "bg-slate-100 text-slate-400 border-0 cursor-not-allowed"
+                            : "shadow-blue-500/10 hover:shadow-blue-500/20"
                     )}
                 >
-                    <span className="flex items-center gap-4 relative z-10">
+                    <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
+                    <span className="relative z-10 flex items-center justify-center gap-3">
                         <ShoppingCart className="h-5 w-5 transition-transform group-hover:-rotate-12" />
-                        {isOutOfStock ? "Bundle Sold Out" : "Add Bundle to Cart"}
+                        {isOutOfStock ? "Sold Out" : "Add to Cart"}
                     </span>
                 </Button>
-
-                <button className="flex items-center justify-center gap-2 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-colors">
-                    <Share2 className="w-4 h-4" />
-                    Share this exclusive bundle
-                </button>
             </div>
         </section>
     );

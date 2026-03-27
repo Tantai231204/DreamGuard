@@ -127,6 +127,7 @@ export default function ProductDetail() {
             <ProductImageGallery
               images={state.productImages}
               productName={product.name}
+              productSummary={product.summary}
               selectedImage={state.selectedImage}
               onSelectImage={actions.setSelectedImage}
               isWishlisted={isWishlisted}
@@ -184,10 +185,10 @@ export default function ProductDetail() {
               onCustomDimensionChange={actions.handleCustomDimensionChange}
               customColorHex={state.customColorHex}
               onCustomColorHexChange={actions.setCustomColorHex}
-              availableCustomizeTypes={state.availableCustomizeTypes}
-              selectedCustomizeTypeId={state.selectedCustomizeTypeId}
-              onSelectedCustomizeTypeChange={actions.setSelectedCustomizeTypeId}
-              categoryName={product?.categoryName || "Mattress"}
+              colorSurchargePrice={state.currentPriceInfo.colorSurcharge}
+              sizeSurchargePrice={state.currentPriceInfo.sizeSurcharge}
+              canCustomizeColor={state.canCustomizeColor}
+              canCustomizeSize={state.canCustomizeSize}
             />
 
             <TradeInSelector

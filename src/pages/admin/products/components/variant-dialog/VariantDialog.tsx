@@ -16,7 +16,14 @@ export interface VariantSubmitData {
     stockStatus: string;
     stockQuantity: number;
     attributes: VariantAttributes | null;
+    color?: string;
+    hexColor?: string;
+    colorHex?: string;
     isNew: boolean;
+    isCustomizable: boolean;
+    customizeLabel?: string;
+    pendingCustoms?: { customizeTypeId: string; overridePrice: number | null }[];
+    customizeTypeIds?: string[];
 }
 
 interface VariantDialogProps {
@@ -45,7 +52,7 @@ export default function VariantDialog({
     const isEdit = Boolean(variant);
 
     const { data: fullData, isLoading: isLoadingDetail } = useVariantDetail(
-        variant?.id || '', 
+        variant?.id || '',
         open && isEdit
     );
 
@@ -59,6 +66,9 @@ export default function VariantDialog({
             isNew: fullData.isNew ?? variant.isNew,
             attributes: fullData.attributes ?? variant.attributes,
             status: (fullData.status || variant.status) as VariantStatus,
+            isCustomizable: fullData.isCustomizable ?? variant.isCustomizable,
+            customizeLabel: fullData.customizeLabel ?? variant.customizeLabel,
+            customizeTypes: fullData.customizeTypes ?? variant.customizeTypes,
         } as ProductVariant;
     }, [variant, fullData]);
 

@@ -35,7 +35,7 @@ export function CartTable({ cart, onQuantity, onRemove, loadingIds = [] }: CartT
             <div className="flex flex-col items-center justify-center py-20 bg-white rounded-[2rem] border-2 border-dashed border-slate-100 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-full -mr-16 -mt-16 opacity-50" />
                 <div className="absolute bottom-0 left-0 w-24 h-24 bg-[#4988c4]/5 rounded-full -ml-12 -mb-12 opacity-50" />
-                
+
                 <div className="w-16 h-16 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center justify-center mb-6 relative z-10">
                     <ShoppingBag className="w-6 h-6 text-[#4988c4]" />
                 </div>
@@ -43,8 +43,8 @@ export function CartTable({ cart, onQuantity, onRemove, loadingIds = [] }: CartT
                 <p className="text-slate-400 text-[9px] font-black uppercase tracking-[0.2em] max-w-xs text-center leading-relaxed relative z-10">
                     Discover our premium collection and start your dream journey.
                 </p>
-                <Button 
-                    variant="ghost" 
+                <Button
+                    variant="ghost"
                     className="mt-8 px-8 h-10 rounded-xl border border-dashed border-slate-200 font-black text-[10px] uppercase tracking-widest hover:bg-[#4988c4] hover:text-white hover:border-transparent transition-all relative z-10 overflow-hidden group/btn"
                     onClick={() => window.location.href = '/'}
                 >
@@ -119,17 +119,10 @@ export function CartTable({ cart, onQuantity, onRemove, loadingIds = [] }: CartT
                                 </div>
 
                                 <div className="flex flex-1 flex-col min-w-0">
-                                    {item.isCustom && (
-                                        <div className="mb-2">
-                                            <span className="px-2 py-0.5 bg-amber-500 text-white text-[7px] font-black uppercase tracking-[0.2em] rounded-md shadow-sm">
-                                                Bespoke / Custom Build
-                                            </span>
-                                        </div>
-                                    )}
+
                                     <div className="flex justify-between items-start gap-4 mb-3">
                                         <div className="space-y-0.5">
                                             <h3 className="text-sm sm:text-lg font-black text-slate-900 tracking-tight leading-tight uppercase">
-                                                {item.isCustom && <Star className="w-3.5 h-3.5 inline mr-2 text-amber-500 fill-current" />}
                                                 {item.name}
                                             </h3>
                                             <p className={cn(
@@ -152,29 +145,31 @@ export function CartTable({ cart, onQuantity, onRemove, loadingIds = [] }: CartT
                                     </div>
 
                                     <div className="flex flex-wrap items-center gap-2 mb-3">
-                                        {item.color && (
-                                            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-50/50 rounded-lg border border-slate-100">
-                                                <div 
-                                                    className="w-2 h-2 rounded-full border border-white shadow-sm" 
-                                                    style={{ backgroundColor: resolveColor(item) }}
-                                                />
-                                                <span className="text-[8px] font-black text-slate-900 uppercase">
-                                                    {item.color === 'Custom' && item.customAttributes?.colorHex ? item.customAttributes.colorHex : item.color}
-                                                </span>
-                                            </div>
-                                        )}
-                                        {item.size && (
-                                            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-[#4988c4]/5 rounded-lg border border-[#4988c4]/10">
-                                                <span className="text-[8px] font-black text-[#4988c4] uppercase tracking-widest pl-1">
-                                                    {item.size === 'Custom' && item.customAttributes?.length 
-                                                        ? `${item.customAttributes.length}x${item.customAttributes.width}x${item.customAttributes.thickness} cm` 
-                                                        : item.size}
-                                                </span>
-                                            </div>
-                                        )}
+                                        {/* Custom Build tag */}
                                         {item.isCustom && (
                                             <div className="flex items-center gap-1.5 px-2 py-0.5 bg-amber-50 rounded-lg border border-amber-100">
-                                                <span className="text-[8px] font-black text-amber-600 uppercase tracking-widest">Bespoke Build</span>
+                                                <Star className="w-2.5 h-2.5 text-amber-500 fill-current" />
+                                                <span className="text-[8px] font-black text-amber-600 uppercase tracking-widest">Custom</span>
+                                            </div>
+                                        )}
+                                        {/* Color chip — unified for both custom and standard */}
+                                        {(item.customAttributes?.colorHex || item.color) && (
+                                            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-50/50 rounded-lg border border-slate-100">
+                                                <div
+                                                    className="w-2.5 h-2.5 rounded-full border border-white shadow-sm"
+                                                    style={{ backgroundColor: item.customAttributes?.colorHex || resolveColor(item) }}
+                                                />
+                                                <span className="text-[8px] font-black text-slate-900 uppercase">{item.customAttributes?.colorHex || item.color}</span>
+                                            </div>
+                                        )}
+                                        {/* Size chip — unified for both custom and standard */}
+                                        {(item.customAttributes?.length || item.size) && (
+                                            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-[#4988c4]/5 rounded-lg border border-[#4988c4]/10">
+                                                <span className="text-[8px] font-black text-[#4988c4] uppercase tracking-widest pl-1">
+                                                    {item.customAttributes?.length
+                                                        ? `${item.customAttributes.length}×${item.customAttributes.width}×${item.customAttributes.thickness} cm`
+                                                        : item.size}
+                                                </span>
                                             </div>
                                         )}
                                     </div>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { flexRender, type Table } from '@tanstack/react-table';
 import {
   Table as TableUI,
@@ -101,10 +102,10 @@ export default function ProductTableContent<T = unknown>({
                     <TableRow
                       data-state={row.getIsSelected() && 'selected'}
                       className={cn(
-                        'group transition-colors border-b border-slate-100',
-                        'hover:bg-slate-50/80',
-                        'data-[state=selected]:bg-slate-50',
-                        isExpanded && 'bg-slate-50/50 border-b-transparent relative z-10',
+                        'group transition-all duration-300 border-b border-slate-100',
+                        'hover:bg-slate-50/80 hover:shadow-sm isolate',
+                        'data-[state=selected]:bg-blue-50/40 data-[state=selected]:border-blue-100',
+                        isExpanded && 'bg-slate-50/80 border-b-transparent relative z-20 shadow-md',
                         isClickable && 'cursor-pointer'
                       )}
                       onClick={(e) => {
@@ -121,58 +122,68 @@ export default function ProductTableContent<T = unknown>({
                       }}
                     >
                       {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id} className="py-4 first:pl-6 last:pr-6">
+                        <TableCell key={cell.id} className="py-4 first:pl-6 last:pr-6 whitespace-nowrap">
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </TableCell>
                       ))}
                     </TableRow>
 
                     {/* ── Expanded panel ── */}
-                    {isExpanded && (
-                      <TableRow className="hover:bg-transparent border-none">
-                        <TableCell colSpan={columnCount} className="p-0 border-none">
-                          <div className="relative pl-12 pb-6 pr-6 animate-in fade-in slide-in-from-top-1 duration-200">
-                            {/* Visual Connector Line */}
-                            <div className="absolute left-6 top-0 bottom-6 w-px bg-slate-200" />
-                            <div className="absolute left-6 bottom-6 w-4 h-px bg-slate-200" />
+                    <AnimatePresence>
+                      {isExpanded && (
+                        <TableRow key={`expanded-${row.id}`} className="hover:bg-transparent border-none">
+                          <TableCell colSpan={columnCount} className="p-0 border-none">
+                            <motion.div 
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.2, ease: "easeOut" }}
+                              className="overflow-hidden"
+                            >
+                              <div className="relative pl-12 pb-6 pr-6">
+                                {/* Visual Connector Line */}
+                                <div className="absolute left-6 top-0 bottom-6 w-px bg-slate-200" />
+                                <div className="absolute left-6 bottom-6 w-4 h-px bg-slate-200" />
 
-                            <div className="bg-white rounded-xl border border-slate-200 mt-1 mx-2 overflow-hidden">
-                              {/* Single product → variant table */}
-                              {!isCombo && hasProductVariants && (
-                                <VariantTableWrapper
-                                  productId={item.id}
-                                  productName={item.name}
-                                  onAddVariant={() =>
-                                    onAddVariant?.(
-                                      item.id,
-                                      item.name,
-                                      item.slug,
-                                      item.variants?.length ?? item.variantCount ?? 0,
-                                    )
-                                  }
-                                  onEditVariant={(v) => onEditVariant?.(v)}
-                                  onDeleteVariant={(v) => onDeleteVariant?.(v)}
-                                />
-                              )}
+                                <div className="bg-white rounded-xl border border-slate-200 mt-1 mx-2 overflow-hidden">
+                                  {/* Single product → variant table */}
+                                  {!isCombo && hasProductVariants && (
+                                    <VariantTableWrapper
+                                      productId={item.id}
+                                      productName={item.name}
+                                      onAddVariant={() =>
+                                        onAddVariant?.(
+                                          item.id,
+                                          item.name,
+                                          item.slug,
+                                          item.variants?.length ?? item.variantCount ?? 0,
+                                        )
+                                      }
+                                      onEditVariant={(v) => onEditVariant?.(v)}
+                                      onDeleteVariant={(v) => onDeleteVariant?.(v)}
+                                    />
+                                  )}
 
-                              {/* Combo → items table */}
-                              {isCombo && (
-                                <ComboItemsTable
-                                  comboId={item.id}
-                                  items={(item.items as ComboItem[]) ?? []}
-                                  childCombos={item.childCombos}
-                                  comboName={item.name}
-                                  discount={item.discount ?? 0}
-                                  onAddVariant={onAddComboVariant}
-                                  onEditVariant={onEditCombo}
-                                  onDeleteVariant={onDeleteCombo}
-                                />
-                              )}
-                            </div>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )}
+                                  {/* Combo → items table */}
+                                  {isCombo && (
+                                    <ComboItemsTable
+                                      comboId={item.id}
+                                      items={(item.items as ComboItem[]) ?? []}
+                                      childCombos={item.childCombos}
+                                      comboName={item.name}
+                                      discount={item.discount ?? 0}
+                                      onAddVariant={onAddComboVariant}
+                                      onEditVariant={onEditCombo}
+                                      onDeleteVariant={onDeleteCombo}
+                                    />
+                                  )}
+                                </div>
+                              </div>
+                            </motion.div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </AnimatePresence>
                   </React.Fragment>
                 );
               })}

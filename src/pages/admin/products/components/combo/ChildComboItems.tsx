@@ -8,7 +8,7 @@ import { useComboDetail, useUpdateCombo } from '@/hooks/queries/useCombo';
 import { toComboItems } from './combo-utils';
 import ComboVariantRow from './ComboVariantRow';
 import type { Combo, ComboItem } from '../../types';
-import { cn } from '@/lib/utils';
+import { cn, formatNumber, unformatNumber } from '@/lib/utils';
 import { toast } from 'sonner';
 
 interface ChildComboItemsProps {
@@ -242,14 +242,14 @@ export default function ChildComboItems({
                             <div className="space-y-0.5">
                                 <p className="text-[9px] text-slate-400 font-bold uppercase">Sum</p>
                                 <div className="text-sm font-bold text-slate-800 tabular-nums">
-                                    {theoreticalValue.toLocaleString('en-US')}₫
+                                    {theoreticalValue.toLocaleString('vi-VN')}₫
                                 </div>
                             </div>
                             <div className="h-6 w-px bg-slate-100 hidden sm:block" />
                             <div className="space-y-0.5">
                                 <p className="text-[9px] text-primary-500/70 font-bold uppercase">Current</p>
                                 <div className="text-sm font-bold text-primary-600 tabular-nums">
-                                    {detail?.salePrice.toLocaleString('en-US')}₫
+                                    {detail?.salePrice.toLocaleString('vi-VN')}₫
                                 </div>
                             </div>
                         </div>
@@ -262,9 +262,9 @@ export default function ChildComboItems({
                                 <DollarSign className="h-3.5 w-3.5" />
                             </div>
                             <Input
-                                type="number"
-                                value={draftSalePrice ?? ''}
-                                onChange={e => setDraftSalePrice(Number(e.target.value))}
+                                type="text"
+                                value={formatNumber(draftSalePrice ?? '')}
+                                onChange={e => setDraftSalePrice(unformatNumber(e.target.value))}
                                 className="pl-8 pr-16 h-9 bg-slate-50/50 border-slate-200 rounded-lg font-bold text-sm focus:bg-white transition-all focus:border-primary-500"
                                 placeholder="0"
                             />

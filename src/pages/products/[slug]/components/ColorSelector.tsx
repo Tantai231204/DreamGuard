@@ -40,6 +40,12 @@ export const ColorSelector = memo(({ options, selected, onChange, disabledValues
                     const isDisabled = disabledValues?.includes(color.value);
                     const isActive = selected === color.value && !isCustomMode;
 
+                    // If there's only one option and it's 'Default', we hide it to satisfy the "1 selector" requirement
+                    // but we keep its value selectable internally so the user starts with it.
+                    if (options.length === 1 && (color.value === 'default' || color.label?.toLowerCase() === 'default')) {
+                        return null;
+                    }
+
                     return (
                         <TooltipProvider key={color.value} delayDuration={300}>
                             <Tooltip>

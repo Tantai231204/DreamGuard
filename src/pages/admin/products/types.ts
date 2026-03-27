@@ -1,3 +1,7 @@
+import type { CreateComboRequest } from "@/api/services/comboService";
+import type { ComboDialogMode } from "./components/combo-dialog";
+import type { SortingState, ColumnFiltersState, RowSelectionState, ExpandedState, PaginationState } from "@tanstack/react-table";
+
 // ── Product ──────────────────────────────────────────────
 export type ProductStatus = "Draft" | "Published" | "OutOfStock" | "Hidden";
 export type VariantStatus = ProductStatus;
@@ -60,31 +64,31 @@ export const PRODUCT_STATUS_COLORS: Record<ProductStatus, string> = {
 // ── Status Helpers ─────────────────────────────────────
 
 export function normalizeStatus(status: unknown): ProductStatus {
-    if (status === null || status === undefined) return "Draft";
+  if (status === null || status === undefined) return "Draft";
 
-    // Handle string format (case-insensitive and aliases)
-    if (typeof status === 'string') {
-        const s = status.toLowerCase().trim();
-        if (s === 'draft' || s === '0') return 'Draft';
-        if (s === 'published' || s === 'active' || s === '1') return 'Published';
-        if (s === 'outofstock' || s === '2') return 'OutOfStock';
-        if (s === 'hidden' || s === '3') return 'Hidden';
+  // Handle string format (case-insensitive and aliases)
+  if (typeof status === 'string') {
+    const s = status.toLowerCase().trim();
+    if (s === 'draft' || s === '0') return 'Draft';
+    if (s === 'published' || s === 'active' || s === '1') return 'Published';
+    if (s === 'outofstock' || s === '2') return 'OutOfStock';
+    if (s === 'hidden' || s === '3') return 'Hidden';
 
-        // Direct match with PascalCase
-        const validStatuses: ProductStatus[] = ['Draft', 'Published', 'OutOfStock', 'Hidden'];
-        const found = validStatuses.find(vs => vs.toLowerCase() === s);
-        if (found) return found;
-    }
+    // Direct match with PascalCase
+    const validStatuses: ProductStatus[] = ['Draft', 'Published', 'OutOfStock', 'Hidden'];
+    const found = validStatuses.find(vs => vs.toLowerCase() === s);
+    if (found) return found;
+  }
 
-    // Handle number format
-    if (typeof status === 'number') {
-        if (status === 0) return 'Draft';
-        if (status === 1) return 'Published';
-        if (status === 2) return 'OutOfStock';
-        if (status === 3) return 'Hidden';
-    }
+  // Handle number format
+  if (typeof status === 'number') {
+    if (status === 0) return 'Draft';
+    if (status === 1) return 'Published';
+    if (status === 2) return 'OutOfStock';
+    if (status === 3) return 'Hidden';
+  }
 
-    return "Draft" as ProductStatus;
+  return "Draft" as ProductStatus;
 }
 
 /**
@@ -96,18 +100,18 @@ export function normalizeStatus(status: unknown): ProductStatus {
  * - From OutOfStock: Can move to Published (restocked) or Hidden.
  */
 export function getAllowedStatusTransitions(currentStatus: string): ProductStatus[] {
-    switch (currentStatus) {
-        case 'Draft':
-            return ['Draft', 'Published', 'Hidden'];
-        case 'Published':
-            return ['Published', 'OutOfStock', 'Hidden', 'Draft'];
-        case 'Hidden':
-            return ['Hidden', 'Published', 'Draft'];
-        case 'OutOfStock':
-            return ['OutOfStock', 'Published', 'Hidden', 'Draft'];
-        default:
-            return ['Draft', 'Published', 'Hidden', 'OutOfStock'];
-    }
+  switch (currentStatus) {
+    case 'Draft':
+      return ['Draft', 'Published', 'Hidden'];
+    case 'Published':
+      return ['Published', 'OutOfStock', 'Hidden', 'Draft'];
+    case 'Hidden':
+      return ['Hidden', 'Published', 'Draft'];
+    case 'OutOfStock':
+      return ['OutOfStock', 'Published', 'Hidden', 'Draft'];
+    default:
+      return ['Draft', 'Published', 'Hidden', 'OutOfStock'];
+  }
 }
 
 
@@ -201,6 +205,7 @@ export interface VariantAttributes {
   thickness?: number;  // Thickness in cm
   color?: string;      // Color Name (e.g. "Crimson")
   hexColor?: string;   // Hex Code (e.g. "#DC143C")
+  colorHex?: string;   // Hex Code (e.g. "#DC143C")
   [key: string]: unknown;
 }
 
@@ -220,6 +225,8 @@ export interface ProductVariant {
   // Inventory (from joined table or computed)
   stockQuantity?: number;
   stockStatus?: string;
+  customizeTypes?: (import('@/api').VariantCustomizeTypeResponse | import('@/api/types/product.types').CustomizeOptionResponse)[];
+  customizeOptions?: (import('@/api').VariantCustomizeTypeResponse | import('@/api/types/product.types').CustomizeOptionResponse)[];
 }
 
 export interface CreateVariantRequest {
@@ -229,6 +236,9 @@ export interface CreateVariantRequest {
   weight: number;
   attributes: VariantAttributes | null;
   productid: string;
+  color?: string;
+  hexColor?: string;
+  colorHex?: string;
   isCustomizable?: boolean;
   customizeLabel?: string;
 }
@@ -287,4 +297,143 @@ export interface Combo {
   childCombos?: Combo[] | null;
   /** TanStack Table sub-rows — populated by mapCombosToSubRows() */
   subRows?: Combo[];
+}
+
+export interface VariantSubmitData {
+  sku: string;
+  status: ProductStatus;
+  baseprice: number;
+  saleprice: number;
+  weight: number;
+  attributes: VariantAttributes | null;
+  productid: string;
+  color?: string;
+  hexColor?: string;
+  colorHex?: string;
+  isNew: boolean;
+  isCustomizable: boolean;
+  customizeLabel?: string;
+  stockQuantity: number;
+  stockStatus: string;
+  customizeTypeIds?: string[];
+  pendingCustoms?: { customizeTypeId: string; overridePrice: number | null }[];
+}
+
+export interface AdminProductState {
+  activeTab: 'single' | 'combo';
+  setActiveTab: (tab: 'single' | 'combo') => void;
+
+  // Products Table State
+  sorting: SortingState;
+  setSorting: (s: SortingState | ((prev: SortingState) => SortingState)) => void;
+  globalFilter: string;
+  setGlobalFilter: (f: string) => void;
+  columnFilters: ColumnFiltersState;
+  setColumnFilters: (c: ColumnFiltersState | ((prev: ColumnFiltersState) => ColumnFiltersState)) => void;
+  rowSelection: RowSelectionState;
+  setRowSelection: (r: RowSelectionState | ((prev: RowSelectionState) => RowSelectionState)) => void;
+  expanded: ExpandedState;
+  setExpanded: (e: ExpandedState | ((prev: ExpandedState) => ExpandedState)) => void;
+  pagination: PaginationState;
+  setPagination: (p: PaginationState | ((prev: PaginationState) => PaginationState)) => void;
+
+  // Combo Table State
+  comboSorting: SortingState;
+  setComboSorting: (s: SortingState | ((prev: SortingState) => SortingState)) => void;
+  comboGlobalFilter: string;
+  setComboGlobalFilter: (f: string) => void;
+  comboRowSelection: RowSelectionState;
+  setComboRowSelection: (r: RowSelectionState | ((prev: RowSelectionState) => RowSelectionState)) => void;
+  comboExpanded: ExpandedState;
+  setComboExpanded: (e: ExpandedState | ((prev: ExpandedState) => ExpandedState)) => void;
+  comboPagination: PaginationState;
+  setComboPagination: (p: PaginationState | ((prev: PaginationState) => PaginationState)) => void;
+
+  // Data
+  products: Product[];
+  productPageData: { totalPages: number; totalCount: number } | undefined;
+  isLoadingProducts: boolean;
+  refetchProducts: () => void;
+  combos: Combo[];
+  comboPageData: { totalPages: number; totalCount: number } | undefined;
+  isLoadingCombos: boolean;
+  refetchCombos: () => void;
+
+  // Dialogs
+  dialogOpen: boolean;
+  setDialogOpen: (o: boolean) => void;
+  editingProduct: Product | null;
+  setEditingProduct: (p: Product | null) => void;
+  variantDialogOpen: boolean;
+  setVariantDialogOpen: (o: boolean) => void;
+  editingVariant: ProductVariant | null;
+  setEditingVariant: (v: ProductVariant | null) => void;
+  variantProductId: string;
+  setVariantProductId: (id: string) => void;
+  variantProductName: string;
+  setVariantProductName: (n: string) => void;
+  variantProductSlug: string;
+  setVariantProductSlug: (s: string) => void;
+  variantCount: number;
+  setVariantCount: (c: number) => void;
+  comboDialogOpen: boolean;
+  setComboDialogOpen: (o: boolean) => void;
+  editingCombo: Combo | null;
+  setEditingCombo: (c: Combo | null) => void;
+  comboDialogMode: ComboDialogMode | null;
+  setComboDialogMode: (m: ComboDialogMode | null) => void;
+  comboDialogKey: number;
+  setComboDialogKey: (k: number | ((prev: number) => number)) => void;
+  comboDefaultParentId?: string;
+  setComboDefaultParentId: (id: string | undefined) => void;
+  successDialogOpen: boolean;
+  setSuccessDialogOpen: (o: boolean) => void;
+  createdProductId: string;
+  setCreatedProductId: (id: string) => void;
+  createdProductName: string;
+  setCreatedProductName: (n: string) => void;
+  imageUploadOpen: boolean;
+  setImageUploadOpen: (o: boolean) => void;
+  uploadProductId: string;
+  setUploadProductId: (id: string) => void;
+  uploadProductName: string;
+  setUploadProductName: (n: string) => void;
+  comboIsCurrentUpload: boolean;
+  setComboIsCurrentUpload: (b: boolean) => void;
+  uploadProductIdRef: React.MutableRefObject<string>;
+  deleteProduct: Product | null;
+  setDeleteProduct: (p: Product | null) => void;
+  deleteCombo: Combo | null;
+  setDeleteCombo: (c: Combo | null) => void;
+  deleteVariant: ProductVariant | null;
+  setDeleteVariant: (v: ProductVariant | null) => void;
+  bulkDeleteData: { ids: string[]; type: 'single' | 'combo' } | null;
+  setBulkDeleteData: (d: { ids: string[]; type: 'single' | 'combo' } | null) => void;
+  handleAddImagesFromSuccess: () => void;
+  handleSkipImages: () => void;
+}
+
+export interface AdminProductMutations {
+  handleSubmit: (data: CreateProductRequest) => Promise<void>;
+  handleVariantSubmit: (formData: VariantSubmitData) => void | Promise<void>;
+  handleComboSubmit: (data: CreateComboRequest) => void | Promise<void>;
+  handleUploadImages: (productId: string, files: File[]) => Promise<void>;
+  handleExport: (tab: string, products: Product[], combos: Combo[]) => void;
+  handleBulkDelete: (table: import("@tanstack/react-table").Table<Product | Combo>, tab: string) => void;
+  handleConfirmBulkDelete: () => Promise<void>;
+  handleConfirmDelete: (id: string) => void;
+  handleConfirmDeleteVariant: (id: string) => void;
+  handleConfirmDeleteCombo: (id: string) => void;
+  createMutation: { isPending: boolean };
+  updateMutation: { isPending: boolean };
+  updateVariantMutation: { isPending: boolean };
+  createVariantMutation: { isPending: boolean };
+  createVariantWithCustomizeMutation: { isPending: boolean };
+  createComboMutation: { isPending: boolean };
+  updateComboMutation: { isPending: boolean };
+  uploadImagesMutation: { isPending: boolean };
+  uploadComboImageMutation: { isPending: boolean };
+  deleteMutation: { isPending: boolean };
+  deleteVariantMutation: { isPending: boolean };
+  deleteComboMutation: { isPending: boolean };
 }

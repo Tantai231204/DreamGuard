@@ -6,7 +6,7 @@ import { AdminStatusBadge } from '@/components/admin';
 import type { ComboItem } from '../../types';
 
 import { getColorHex, parseVariantLabel } from './combo-utils';
-import { cn } from '@/lib/utils';
+import { cn, formatNumber } from '@/lib/utils';
 
 interface ComboVariantRowProps {
     item: ComboItem & { basePrice?: number; salePrice?: number };
@@ -114,13 +114,13 @@ export default function ComboVariantRow({
                 {salePrice > 0 ? (
                     <>
                         <div className="text-[13px] font-bold text-slate-800 tabular-nums">
-                            {salePrice.toLocaleString('en-US')}
+                            {formatNumber(salePrice)}
                             <span className="text-[9px] ml-0.5 text-slate-400 font-bold uppercase">₫</span>
                         </div>
                         {hasSale && (
                             <div className="flex items-center gap-1.5 mt-0.5">
                                 <span className="text-[10px] text-slate-400 line-through font-bold">
-                                    {basePrice.toLocaleString('en-US')}₫
+                                    {formatNumber(basePrice)}₫
                                 </span>
                                 <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-1 rounded flex items-center">
                                     -{Math.round((1 - salePrice / basePrice) * 100)}%

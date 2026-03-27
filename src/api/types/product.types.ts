@@ -58,6 +58,14 @@ export interface ProductParams {
   key?: string;
 }
 
+export interface CustomizeOptionResponse {
+  customizeTypeId: string;
+  name: string;
+  summary: string;
+  defaultPrice: number;
+  overridePrice: number;
+}
+
 export interface ProductVariantResponse {
   id: string;
   sku: string;
@@ -69,12 +77,14 @@ export interface ProductVariantResponse {
   status: string;
   createdAt: string;
   isNew: boolean;
-  isCustomizable?: boolean;
+  isCustomizable: boolean;
+  is_customizable?: boolean;
   productId: string;
   customizeLabel?: string;
   // Optional stock fields (may be present on some endpoints)
   stockQuantity?: number;
   stockStatus?: string;
+  customizeOptions: CustomizeOptionResponse[];
 }
 
 export interface CreateProductRequest {
