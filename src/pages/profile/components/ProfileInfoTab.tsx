@@ -17,6 +17,8 @@ import { format } from "date-fns"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { uploadToCloudinary } from "@/lib/uploadCloudinary"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { useMemo, useCallback } from "react"
 const profileSchema = z.object({
   fullName: z
     .string()
@@ -35,9 +37,19 @@ export default function ProfileInfoTab() {
 
   const [isEditing, setIsEditing] = useState(false)
   const [showPhoneDialog, setShowPhoneDialog] = useState(false)
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [pendingData, setPendingData] = useState<ProfileFormData | null>(null)
 
-  const { register, handleSubmit, formState: { errors }, reset, setValue, watch, control } = useForm<ProfileFormData>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isDirty },
+    reset,
+    setValue,
+    watch,
+    control,
+  } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
       fullName: "",
@@ -60,54 +72,67 @@ export default function ProfileInfoTab() {
     }
   }, [profile, reset]);
 
-  if (isLoading) {
-    return <div className="p-8">Loading...</div>;
-  }
-
-  const handleEdit = () => {
+  const handleEdit = useCallback(() => {
     if (isEditing) {
       setAvatarFile(null);
-      // Discarding
       if (profile) {
         reset({
           fullName: profile.fullName || "",
+          email: profile.email || "",
           dateOfBirth: profile.dateOfBirth || "",
           gender: profile.gender || "",
         });
       }
     }
     setIsEditing(!isEditing);
+  }, [isEditing, profile, reset]);
+
+  // Handle initial form submission
+  const onSubmit = (data: ProfileFormData) => {
+    const hasAvatarChange = !!avatarFile;
+    if (!isDirty && !hasAvatarChange) {
+      toast.info("No changes to save");
+      setIsEditing(false);
+      return;
+    }
+    setPendingData(data);
+    setShowConfirmDialog(true);
   };
 
-  const handleSave = async (data: ProfileFormData) => {
+  // Final execution shift to a separate function for clarity and performance
+  const onConfirmSave = async () => {
+    if (!pendingData) return;
+
     let avatarUrl = profile?.avatarUrl || "";
 
-    if (avatarFile) {
-      try {
-        if (avatarFile instanceof File) {
-          avatarUrl = await uploadToCloudinary(avatarFile);
-        }
-      } catch (err) {
-        toast.error("Upload avatar failed");
-        return;
+    try {
+      if (avatarFile instanceof File) {
+        avatarUrl = await uploadToCloudinary(avatarFile);
       }
-    }
 
-    updateProfile(
-      {
-        ...data,
-        avatarUrl,
-      },
-      {
-        onSuccess: () => {
-          toast.success("Profile updated successfully");
-          setIsEditing(false);
+      updateProfile(
+        {
+          ...pendingData,
+          avatarUrl,
         },
-      },
-    );
+        {
+          onSuccess: () => {
+            toast.success("Profile updated successfully");
+            setIsEditing(false);
+            setAvatarFile(null);
+            setShowConfirmDialog(false);
+          },
+          onError: () => {
+            toast.error("Failed to update profile");
+          }
+        },
+      );
+    } catch (err) {
+      toast.error("Upload avatar failed");
+    }
   };
 
-  const displayData = {
+  const displayData = useMemo(() => ({
     fullName: isEditing ? watch("fullName") : profile?.fullName || "",
     email: profile?.email || "",
     dateOfBirth: isEditing
@@ -115,16 +140,22 @@ export default function ProfileInfoTab() {
       : formatDate(profile?.dateOfBirth || ""),
     gender: isEditing ? watchedGender : profile?.gender || "",
     phoneNumber: profile?.phoneNumber || "",
-  };
+  }), [isEditing, watch, profile, watchedGender]);
 
-  const initials = displayData.fullName
-    ? displayData.fullName
-        .split(" ")
-        .map((n: string) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
-    : "U";
+  const initials = useMemo(() => {
+    if (!displayData.fullName) return "U";
+    return displayData.fullName
+      .split(" ")
+      .filter(Boolean)
+      .map((n: string) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  }, [displayData.fullName]);
+
+  if (isLoading) {
+    return <div className="p-8">Loading...</div>;
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -156,7 +187,7 @@ export default function ProfileInfoTab() {
                       className="object-cover"
                     />
                   )}
-                  <AvatarFallback className="bg-slate-900 text-white text-2xl font-bold">
+                  <AvatarFallback className="bg-primary text-white text-2xl font-bold">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
@@ -214,7 +245,7 @@ export default function ProfileInfoTab() {
 
           {/* Form Body */}
           <form
-            onSubmit={handleSubmit(handleSave)}
+            onSubmit={handleSubmit(onSubmit)}
             className="mt-12 pt-10 border-t border-slate-100/80 grid gap-6 sm:grid-cols-2"
           >
             {/* Full Name */}
@@ -230,7 +261,7 @@ export default function ProfileInfoTab() {
                   className={cn(
                     "h-11 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white transition-all font-medium text-slate-900",
                     !isEditing &&
-                      "disabled:opacity-100 disabled:bg-slate-50/20 disabled:border-transparent disabled:text-slate-800 disabled:cursor-default shadow-none",
+                    "disabled:opacity-100 disabled:bg-slate-50/20 disabled:border-transparent disabled:text-slate-800 disabled:cursor-default shadow-none",
                   )}
                 />
               </div>
@@ -256,7 +287,7 @@ export default function ProfileInfoTab() {
                   className={cn(
                     "h-11 pl-10 rounded-xl bg-slate-50/50 border-slate-200 focus:bg-white transition-all font-medium text-slate-900",
                     !isEditing &&
-                      "disabled:opacity-60 disabled:bg-slate-50/20 disabled:border-transparent disabled:text-slate-800 disabled:cursor-default shadow-none",
+                    "disabled:opacity-60 disabled:bg-slate-50/20 disabled:border-transparent disabled:text-slate-800 disabled:cursor-default shadow-none",
                   )}
                 />
               </div>
@@ -286,7 +317,7 @@ export default function ProfileInfoTab() {
                   type="button"
                   size="sm"
                   onClick={() => setShowPhoneDialog(true)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 h-7 rounded-lg text-[10px] font-black uppercase tracking-wider bg-[#4988c4] hover:bg-[#4988c4]/90 text-white px-3 shadow-sm hover:shadow-md transition-all duration-200"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 h-7 rounded-lg text-[10px] font-black uppercase tracking-wider bg-primary hover:bg-primary-hover text-white px-3 shadow-sm hover:shadow-md transition-all duration-200"
                 >
                   Update
                 </Button>
@@ -334,7 +365,7 @@ export default function ProfileInfoTab() {
                   className={cn(
                     "flex-1 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all text-slate-600",
                     displayData.gender === "Male" &&
-                      "bg-white shadow-sm border border-blue-100 text-[#4988c4]",
+                    "bg-white shadow-sm border border-primary-light text-primary",
                     !isEditing && "disabled:opacity-100 cursor-default",
                   )}
                 >
@@ -349,7 +380,7 @@ export default function ProfileInfoTab() {
                   className={cn(
                     "flex-1 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all text-slate-600",
                     displayData.gender === "Female" &&
-                      "bg-white shadow-sm border border-pink-100 text-pink-500",
+                    "bg-white shadow-sm border border-pink-100 text-pink-500",
                     !isEditing && "disabled:opacity-100 cursor-default",
                   )}
                 >
@@ -372,8 +403,11 @@ export default function ProfileInfoTab() {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={isUpdating}
-                  className="h-11 px-10 rounded-xl bg-[#4988c4] hover:bg-[#4988c4]/90 text-white font-black text-[11px] uppercase tracking-wider"
+                  disabled={isUpdating || (!isDirty && !avatarFile)}
+                  className={cn(
+                    "h-11 px-10 rounded-xl bg-primary hover:bg-primary-hover text-white font-black text-[11px] uppercase tracking-wider transition-all",
+                    (!isDirty && !avatarFile) && "opacity-50 grayscale cursor-not-allowed"
+                  )}
                 >
                   <span className="relative z-10">
                     {isUpdating ? "Saving..." : "Save Changes"}
@@ -388,6 +422,17 @@ export default function ProfileInfoTab() {
         open={showPhoneDialog}
         onOpenChange={setShowPhoneDialog}
         currentPhone={profile?.phoneNumber || ""}
+      />
+      <ConfirmDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        title="Confirm Profile Update"
+        description="Are you sure you want to save these changes to your profile? This action will update your information across the platform."
+        confirmText="Save Changes"
+        cancelText="Review"
+        variant="info"
+        isLoading={isUpdating}
+        onConfirm={onConfirmSave}
       />
     </div>
   );
