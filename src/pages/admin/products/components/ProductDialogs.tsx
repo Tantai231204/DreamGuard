@@ -3,6 +3,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import ProductDialog from './product-dialog';
 import VariantDialog from './variant-dialog/VariantDialog';
 import { ComboDialog } from './combo-dialog';
+import { CertificateDialog } from './certificate/CertificateDialog';
 import { ImageUploadDialog, ProductCreationSuccess } from './dialogs';
 import type { AdminProductState, AdminProductMutations } from '../types';
 
@@ -12,56 +13,81 @@ interface ProductDialogsProps {
   onRefresh: () => void;
 }
 
+/**
+ * Senior Optimization: Conditional Mounting
+ * Heavy dialogs are only mounted when their 'open' state is true.
+ * This prevents unnecessary React fiber initialization for all dialogs on page load.
+ */
 export const ProductDialogs = memo(({ state, mutations, onRefresh }: ProductDialogsProps) => {
   return (
     <>
-      <ProductDialog
-        open={state.dialogOpen}
-        onOpenChange={state.setDialogOpen}
-        product={state.editingProduct}
-        onSubmit={mutations.handleSubmit}
-        isLoading={mutations.createMutation?.isPending || mutations.updateMutation?.isPending}
-      />
+      {state.dialogOpen && (
+        <ProductDialog
+          open={state.dialogOpen}
+          onOpenChange={state.setDialogOpen}
+          product={state.editingProduct}
+          onSubmit={mutations.handleSubmit}
+          isLoading={mutations.createMutation?.isPending || mutations.updateMutation?.isPending}
+        />
+      )}
 
-      <VariantDialog
-        open={state.variantDialogOpen}
-        onOpenChange={state.setVariantDialogOpen}
-        variant={state.editingVariant}
-        productId={state.variantProductId}
-        productName={state.variantProductName}
-        productSlug={state.variantProductSlug}
-        variantCount={state.variantCount}
-        onSubmit={mutations.handleVariantSubmit}
-        isLoading={mutations.updateVariantMutation?.isPending || mutations.createVariantMutation?.isPending || mutations.createVariantWithCustomizeMutation?.isPending}
-      />
+      {state.variantDialogOpen && (
+        <VariantDialog
+          open={state.variantDialogOpen}
+          onOpenChange={state.setVariantDialogOpen}
+          variant={state.editingVariant}
+          productId={state.variantProductId}
+          productName={state.variantProductName}
+          productSlug={state.variantProductSlug}
+          variantCount={state.variantCount}
+          onSubmit={mutations.handleVariantSubmit}
+          isLoading={mutations.updateVariantMutation?.isPending || mutations.createVariantMutation?.isPending || mutations.createVariantWithCustomizeMutation?.isPending}
+        />
+      )}
 
-      <ComboDialog
-        key={state.comboDialogKey}
-        open={state.comboDialogOpen}
-        onOpenChange={state.setComboDialogOpen}
-        combo={state.editingCombo}
-        initialMode={state.comboDialogMode ?? undefined}
-        defaultParentId={state.comboDefaultParentId}
-        onSubmit={mutations.handleComboSubmit}
-        isLoading={mutations.createComboMutation?.isPending || mutations.updateComboMutation?.isPending}
-      />
+      {state.comboDialogOpen && (
+        <ComboDialog
+          key={state.comboDialogKey}
+          open={state.comboDialogOpen}
+          onOpenChange={state.setComboDialogOpen}
+          combo={state.editingCombo}
+          initialMode={state.comboDialogMode ?? undefined}
+          defaultParentId={state.comboDefaultParentId}
+          onSubmit={mutations.handleComboSubmit}
+          isLoading={mutations.createComboMutation?.isPending || mutations.updateComboMutation?.isPending}
+        />
+      )}
 
-      <ProductCreationSuccess
-        open={state.successDialogOpen}
-        onOpenChange={state.setSuccessDialogOpen}
-        productName={state.createdProductName}
-        onAddImages={state.handleAddImagesFromSuccess}
-        onSkip={state.handleSkipImages}
-      />
+      {state.certDialogOpen && (
+        <CertificateDialog
+          open={state.certDialogOpen}
+          onOpenChange={state.setCertDialogOpen}
+          editingCert={state.editingCert}
+          onSubmit={mutations.handleCertSubmit}
+          isPending={mutations.createCertMutation?.isPending || mutations.updateCertMutation?.isPending}
+        />
+      )}
 
-      <ImageUploadDialog
-        open={state.imageUploadOpen}
-        onOpenChange={state.setImageUploadOpen}
-        productId={state.uploadProductId || state.createdProductId}
-        productName={state.uploadProductName || state.createdProductName}
-        onUpload={(productId, files) => mutations.handleUploadImages(productId, files)}
-        isUploading={mutations.uploadImagesMutation?.isPending || mutations.uploadComboImageMutation?.isPending}
-      />
+      {state.successDialogOpen && (
+        <ProductCreationSuccess
+          open={state.successDialogOpen}
+          onOpenChange={state.setSuccessDialogOpen}
+          productName={state.createdProductName}
+          onAddImages={state.handleAddImagesFromSuccess}
+          onSkip={state.handleSkipImages}
+        />
+      )}
+
+      {state.imageUploadOpen && (
+        <ImageUploadDialog
+          open={state.imageUploadOpen}
+          onOpenChange={state.setImageUploadOpen}
+          productId={state.uploadProductId || state.createdProductId}
+          productName={state.uploadProductName || state.createdProductName}
+          onUpload={(productId, files) => mutations.handleUploadImages(productId, files)}
+          isUploading={mutations.uploadImagesMutation?.isPending || mutations.uploadComboImageMutation?.isPending}
+        />
+      )}
 
       <ConfirmDialog
         open={!!state.deleteProduct}
@@ -77,23 +103,34 @@ export const ProductDialogs = memo(({ state, mutations, onRefresh }: ProductDial
       <ConfirmDialog
         open={!!state.deleteCombo}
         onOpenChange={(open) => !open && state.setDeleteCombo(null)}
-        title="Deactivate Combo?"
-        description={`This will hide the combo "${state.deleteCombo?.name}" from your catalog.`}
+        title="Delete Combo?"
+        description={`This action is permanent. Are you sure you want to delete "${state.deleteCombo?.name}"?`}
         onConfirm={() => mutations.handleConfirmDeleteCombo(state.deleteCombo!.id)}
-        confirmText="Deactivate"
+        confirmText="Confirm Deletion"
         variant="danger"
         isLoading={mutations.deleteComboMutation.isPending}
       />
 
       <ConfirmDialog
+        open={!!state.deleteCert}
+        onOpenChange={(open) => !open && state.setDeleteCert(null)}
+        title="Delete Certificate?"
+        description={`This action is permanent. Are you sure you want to delete "${state.deleteCert?.name}"?`}
+        onConfirm={() => mutations.handleConfirmDeleteCert(state.deleteCert!.id)}
+        confirmText="Confirm Deletion"
+        variant="danger"
+        isLoading={mutations.deleteCertMutation.isPending}
+      />
+
+      <ConfirmDialog
         open={!!state.deleteVariant}
         onOpenChange={(open) => !open && state.setDeleteVariant(null)}
-        title="Delete Variant?"
-        description={`Remove SKU: ${state.deleteVariant?.sku} permanently?`}
+        title="Hide Variant?"
+        description={`Set status of SKU: ${state.deleteVariant?.sku} to Hidden?`}
         onConfirm={() => mutations.handleConfirmDeleteVariant(state.deleteVariant!.id)}
-        confirmText="Delete SKU"
+        confirmText="Hide SKU"
         variant="danger"
-        isLoading={mutations.deleteVariantMutation.isPending}
+        isLoading={mutations.updateVariantStatusMutation.isPending}
       />
 
       <ConfirmDialog

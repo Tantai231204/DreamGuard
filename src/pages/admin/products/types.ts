@@ -69,24 +69,35 @@ export function normalizeStatus(status: unknown): ProductStatus {
   // Handle string format (case-insensitive and aliases)
   if (typeof status === 'string') {
     const s = status.toLowerCase().trim();
-    if (s === 'draft' || s === '0') return 'Draft';
-    if (s === 'published' || s === 'active' || s === '1') return 'Published';
+    // In this app, '1' maps to Warning/Pending in AdminStatusBadge, so it's not Published
+    if (s === 'draft' || s === '0' || s === 'pending' || s === '1') return 'Draft';
+    // '5' and '6' map to Success/Active in AdminStatusBadge
+    if (s === 'published' || s === 'active' || s === 'enabled' || s === 'success' || s === '5' || s === '6') return 'Published';
     if (s === 'outofstock' || s === '2') return 'OutOfStock';
-    if (s === 'hidden' || s === '3') return 'Hidden';
+    if (s === 'hidden' || s === '3' || s === 'archived') return 'Hidden';
 
-    // Direct match with PascalCase
+    // Flexible match with PascalCase
     const validStatuses: ProductStatus[] = ['Draft', 'Published', 'OutOfStock', 'Hidden'];
     const found = validStatuses.find(vs => vs.toLowerCase() === s);
     if (found) return found;
   }
 
-  // Handle number format
+  // Handle boolean format (active/inactive)
+  if (typeof status === 'boolean') {
+    return status ? 'Published' : 'Draft';
+  }
+
+  // Handle number format (common mapping)
   if (typeof status === 'number') {
-    if (status === 0) return 'Draft';
-    if (status === 1) return 'Published';
+    // 0=Draft, 1=Pending/Warning, 2=Info, 5/6=Published/Success
+    if (status === 0 || status === 1) return 'Draft';
+    if (status === 5 || status === 6) return 'Published';
     if (status === 2) return 'OutOfStock';
     if (status === 3) return 'Hidden';
   }
+
+  // Final fallback: if truthy and looks like an active keyword, assume Published
+  if (status && (status === 'active' || status === 'ACTIVE' || status === 'Published' || status === 'true' || status === 'True')) return 'Published';
 
   return "Draft" as ProductStatus;
 }
@@ -149,6 +160,26 @@ export const PRESET_COLORS = [
   { name: "Mint", code: "#98ff98" },
 ] as const;
 
+export interface Certificate {
+  id: string; // UUID
+  name: string;
+  summary: string;
+  description: string;
+  createdAt?: string;
+}
+
+export interface CreateCertificateRequest {
+  name: string;
+  summary: string;
+  description: string;
+}
+
+export interface CertificateParams {
+  pageNumber?: number;
+  pageSize?: number;
+  name?: string;
+}
+
 export interface Product {
   id: string; // UUID
   name: string;
@@ -163,6 +194,7 @@ export interface Product {
   createdAt: string;
   averageRating: number;
   cateId: number | null;
+  certificateIds?: string[];
   // Joined / computed (from admin endpoint)
   categoryName?: string;
   variantCount?: number;
@@ -182,6 +214,7 @@ export interface CreateProductRequest {
   returnPolicyDay: number | null;
   status: string;
   cateId: number | null;
+  certificateIds?: string[];
 }
 
 export interface UpdateProductRequest {
@@ -196,6 +229,7 @@ export interface UpdateProductRequest {
   warrantyPolicyDay: number | null;
   returnPolicyDay: number | null;
   cateId: number | null;
+  certificateIds?: string[];
 }
 
 // ── Product Variant ──────────────────────────────────────
@@ -320,8 +354,8 @@ export interface VariantSubmitData {
 }
 
 export interface AdminProductState {
-  activeTab: 'single' | 'combo';
-  setActiveTab: (tab: 'single' | 'combo') => void;
+  activeTab: 'single' | 'combo' | 'certificate';
+  setActiveTab: (tab: 'single' | 'combo' | 'certificate') => void;
 
   // Products Table State
   sorting: SortingState;
@@ -349,6 +383,16 @@ export interface AdminProductState {
   comboPagination: PaginationState;
   setComboPagination: (p: PaginationState | ((prev: PaginationState) => PaginationState)) => void;
 
+  // Certificate Table State
+  certSorting: SortingState;
+  setCertSorting: (s: SortingState | ((prev: SortingState) => SortingState)) => void;
+  certGlobalFilter: string;
+  setCertGlobalFilter: (f: string) => void;
+  certPagination: PaginationState;
+  setCertPagination: (p: PaginationState | ((prev: PaginationState) => PaginationState)) => void;
+  certRowSelection: RowSelectionState;
+  setCertRowSelection: (r: RowSelectionState | ((prev: RowSelectionState) => RowSelectionState)) => void;
+
   // Data
   products: Product[];
   productPageData: { totalPages: number; totalCount: number } | undefined;
@@ -358,6 +402,10 @@ export interface AdminProductState {
   comboPageData: { totalPages: number; totalCount: number } | undefined;
   isLoadingCombos: boolean;
   refetchCombos: () => void;
+  certificates: Certificate[];
+  certPageData: { totalPages: number; totalCount: number } | undefined;
+  isLoadingCerts: boolean;
+  refetchCerts: () => void;
 
   // Dialogs
   dialogOpen: boolean;
@@ -386,6 +434,12 @@ export interface AdminProductState {
   setComboDialogKey: (k: number | ((prev: number) => number)) => void;
   comboDefaultParentId?: string;
   setComboDefaultParentId: (id: string | undefined) => void;
+  certDialogOpen: boolean;
+  setCertDialogOpen: (o: boolean) => void;
+  editingCert: Certificate | null;
+  setEditingCert: (c: Certificate | null) => void;
+  deleteCert: Certificate | null;
+  setDeleteCert: (c: Certificate | null) => void;
   successDialogOpen: boolean;
   setSuccessDialogOpen: (o: boolean) => void;
   createdProductId: string;
@@ -407,8 +461,8 @@ export interface AdminProductState {
   setDeleteCombo: (c: Combo | null) => void;
   deleteVariant: ProductVariant | null;
   setDeleteVariant: (v: ProductVariant | null) => void;
-  bulkDeleteData: { ids: string[]; type: 'single' | 'combo' } | null;
-  setBulkDeleteData: (d: { ids: string[]; type: 'single' | 'combo' } | null) => void;
+  bulkDeleteData: { ids: string[]; type: 'single' | 'combo' | 'certificate' } | null;
+  setBulkDeleteData: (d: { ids: string[]; type: 'single' | 'combo' | 'certificate' } | null) => void;
   handleAddImagesFromSuccess: () => void;
   handleSkipImages: () => void;
 }
@@ -417,13 +471,14 @@ export interface AdminProductMutations {
   handleSubmit: (data: CreateProductRequest) => Promise<void>;
   handleVariantSubmit: (formData: VariantSubmitData) => void | Promise<void>;
   handleComboSubmit: (data: CreateComboRequest) => void | Promise<void>;
-  handleUploadImages: (productId: string, files: File[]) => Promise<void>;
-  handleExport: (tab: string, products: Product[], combos: Combo[]) => void;
-  handleBulkDelete: (table: import("@tanstack/react-table").Table<Product | Combo>, tab: string) => void;
+  handleCertSubmit: (data: CreateCertificateRequest) => Promise<void>;
+  handleBulkDelete: (table: import('@tanstack/react-table').Table<Product | Combo | Certificate>, tab: 'single' | 'combo' | 'certificate') => void;
   handleConfirmBulkDelete: () => Promise<void>;
+  handleExport: (tab: string, products: Product[], combos: Combo[], certificates?: Certificate[]) => void;
   handleConfirmDelete: (id: string) => void;
   handleConfirmDeleteVariant: (id: string) => void;
   handleConfirmDeleteCombo: (id: string) => void;
+  handleConfirmDeleteCert: (id: string) => void;
   createMutation: { isPending: boolean };
   updateMutation: { isPending: boolean };
   updateVariantMutation: { isPending: boolean };
@@ -431,9 +486,14 @@ export interface AdminProductMutations {
   createVariantWithCustomizeMutation: { isPending: boolean };
   createComboMutation: { isPending: boolean };
   updateComboMutation: { isPending: boolean };
+  createCertMutation: { isPending: boolean };
+  updateCertMutation: { isPending: boolean };
   uploadImagesMutation: { isPending: boolean };
   uploadComboImageMutation: { isPending: boolean };
   deleteMutation: { isPending: boolean };
   deleteVariantMutation: { isPending: boolean };
   deleteComboMutation: { isPending: boolean };
+  deleteCertMutation: { isPending: boolean };
+  updateProductStatusMutation: { isPending: boolean };
+  updateVariantStatusMutation: { isPending: boolean };
 }

@@ -1,8 +1,17 @@
-import { useReducer, useCallback, useMemo, useEffect } from 'react';
-import type { ProductVariant } from '../../types';
-import { variantFormReducer, createInitialState, type VariantFormState, type VariantFormAction } from './variantFormReducer';
+import { useCallback, useMemo, useEffect } from 'react';
+import { useForm, useWatch, type Resolver } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import type { ProductVariant, VariantStatus, VariantAttributes } from '../../types';
 import type { VariantSubmitData } from './VariantDialog';
+import { useRichAdminVariants } from '@/hooks/queries/useProduct';
 import { useCustomizeTypes } from '@/hooks/queries/useCustomizeType';
+import { variantSchema, type VariantFormValues } from './variantSchema';
+
+export interface ExtendedProductVariant extends ProductVariant {
+    pendingCustoms?: { customizeTypeId: string; overridePrice: number | null }[];
+    is_customizable?: boolean;
+    customizeOptions?: (import('@/api').VariantCustomizeTypeResponse | import('@/api/types/product.types').CustomizeOptionResponse)[];
+}
 
 interface UseVariantFormProps {
     variant: ProductVariant | null;
@@ -13,14 +22,6 @@ interface UseVariantFormProps {
     isEdit: boolean;
 }
 
-/** ─── Senior Optimization: Identify Customization Category ─── */
-const getCustomCategory = (name: string): 'size' | 'color' | 'other' => {
-    const low = (name || '').toLowerCase();
-    if (low.includes('size') || low.includes('kích thước')) return 'size';
-    if (low.includes('color') || low.includes('màu')) return 'color';
-    return 'other';
-};
-
 export function useVariantForm({
     variant,
     productId,
@@ -29,152 +30,156 @@ export function useVariantForm({
     onSubmit,
     isEdit
 }: UseVariantFormProps) {
-    const [state, dispatch] = useReducer(variantFormReducer, variant, createInitialState);
+    const form = useForm<VariantFormValues>({
+        resolver: zodResolver(variantSchema) as unknown as Resolver<VariantFormValues>,
+        defaultValues: {
+            sku: variant?.sku || '',
+            basePrice: variant?.basePrice || 0,
+            salePrice: variant?.salePrice || 0,
+            weight: variant?.weight || 0,
+            stockQuantity: variant?.stockQuantity || 0,
+            status: variant?.status || 'Draft',
+            isNew: !!(variant?.isNew),
+            isCustomizable: !!(variant?.isCustomizable),
+            customizeLabel: variant?.customizeLabel || '',
+            width: variant?.attributes?.width || 0,
+            length: variant?.attributes?.length || 0,
+            thickness: variant?.attributes?.thickness || 0,
+            colorName: variant?.attributes?.color || '',
+            colorHex: variant?.attributes?.colorHex || '',
+        },
+        mode: 'onChange',
+    });
 
-    // Fetch available customization types to help identify their categories
+    // ── Performance: Selective Watching ────────────────────────────────
+    // We only watch values that trigger UI logic/blocks
+    const isCustomizable = useWatch({ control: form.control, name: 'isCustomizable' });
+    const colorName = useWatch({ control: form.control, name: 'colorName' });
+    const colorHex = useWatch({ control: form.control, name: 'colorHex' });
+    
+    // ── Data Fetching ──────────────────────────────────────────────────
+    const { data: allVariantsData } = useRichAdminVariants(productId);
     const { data: customizationMeta } = useCustomizeTypes({ pageSize: 100 });
 
-    /** ─── Senior Logic: Field Disabling based on Customization ─── */
-    const { isCustomColor, isCustomSize, customizeTypeIds } = useMemo(() => {
-        if (!state.isCustomizable || !state.pendingCustoms.length || !customizationMeta) {
-            return { isCustomColor: false, isCustomSize: false, customizeTypeIds: [] };
+    // ── Senior Logic: Customization Detection ──────────────────────────
+    const pendingCustoms = (variant as ExtendedProductVariant)?.pendingCustoms || [];
+
+    const { isCustomColor, isCustomSize } = useMemo(() => {
+        if (!isCustomizable || !customizationMeta) {
+            return { isCustomColor: false, isCustomSize: false };
         }
+        const activeVariants = customizationMeta.items || [];
+        const hasColor = activeVariants.some(t => t.name.toLowerCase().includes('color'));
+        const hasSize = activeVariants.some(t => t.name.toLowerCase().includes('size'));
+        
+        return { isCustomColor: hasColor, isCustomSize: hasSize };
+    }, [isCustomizable, customizationMeta]);
 
-        const idsSet = new Set(state.pendingCustoms.map(p => p.customizeTypeId));
-        const activeCustomTypes = customizationMeta.items.filter(item => idsSet.has(item.id));
+    // ── Senior Logic: Enforce "Only 1 Full Custom Variant per product" ───
+    const { hasExistingFullCustom, existingFullCustomSku } = useMemo(() => {
+        if (!allVariantsData?.colorGroups) return { hasExistingFullCustom: false };
 
-        return {
-            isCustomColor: activeCustomTypes.some(t => getCustomCategory(t.name) === 'color'),
-            isCustomSize: activeCustomTypes.some(t => getCustomCategory(t.name) === 'size'),
-            customizeTypeIds: Array.from(idsSet)
-        };
-    }, [state.isCustomizable, state.pendingCustoms, customizationMeta]);
+        for (const group of allVariantsData.colorGroups) {
+            for (const v of group.variants) {
+                if (isEdit && v.id === variant?.id) continue;
+                
+                const ev = v as unknown as ExtendedProductVariant;
+                const vIsCustomizable = !!(ev.isCustomizable || ev.is_customizable || (ev.customizeTypes?.length ?? 0) > 0);
+                if (!vIsCustomizable) continue;
 
-    const setField = useCallback(<K extends keyof VariantFormState>(field: K, value: VariantFormState[K]) => {
-        dispatch({ type: 'SET_FIELD', field, value } as VariantFormAction);
-    }, []);
+                const vCustomTypes = ev.customizeTypes || ev.customizeOptions || [];
+                const hasColor = vCustomTypes.some((t: { name?: string; customizeTypeName?: string }) => 
+                    (t.name || t.customizeTypeName || '').toLowerCase().includes('color')
+                );
+                const hasSize = vCustomTypes.some((t: { name?: string; customizeTypeName?: string }) => 
+                    (t.name || t.customizeTypeName || '').toLowerCase().includes('size')
+                );
 
-    // ──────────────────────────────────────────────────────────
-    // Senior Performance: Atomic State Syncing
-    // ──────────────────────────────────────────────────────────
-    useEffect(() => {
-        if (variant) {
-            dispatch({ type: 'RESET', payload: createInitialState(variant) });
+                if (hasColor && hasSize) return { hasExistingFullCustom: true, existingFullCustomSku: ev.sku };
+            }
         }
-    }, [variant]);
+        return { hasExistingFullCustom: false };
+    }, [allVariantsData, isEdit, variant?.id]);
 
-    // ─── Senior Optimization: Clear manual values when customization is active ───
-    useEffect(() => {
-        if (isCustomColor) {
-            dispatch({ type: 'SET_COLOR', payload: { name: '', hex: '' } });
-        }
-    }, [isCustomColor]);
+    const isFullCustomBlocked = isCustomColor && isCustomSize && hasExistingFullCustom;
 
-    useEffect(() => {
-        if (isCustomSize) {
-            setField('width', '');
-            setField('length', '');
-            setField('thickness', '');
-            setField('weight', '');
-        }
-    }, [isCustomSize, setField]);
-
+    // ── Methods ─────────────────────────────────────────────────────────
     const handleRegenerateSku = useCallback(() => {
         if (isEdit) return;
+        const color = form.getValues('colorName');
         const base = productSlug.trim().toUpperCase() || 'PRODUCT';
-
-        // Use a more professional pattern: PRODUCT-V001 or PRODUCT-RED-V001
-        const colorPart = !isCustomColor && state.colorName ? `-${state.colorName.toUpperCase()}` : '';
+        const colorPart = color ? `-${color.toUpperCase()}` : '';
         const count = String(variantCount + 1).padStart(2, '0');
-        setField('sku', `${base}${colorPart}-V${count}`);
-    }, [isEdit, productSlug, variantCount, setField, isCustomColor, state.colorName]);
+        form.setValue('sku', `${base}${colorPart}-V${count}`, { shouldValidate: true });
+    }, [isEdit, productSlug, variantCount, form]);
 
     const handleColorChange = useCallback((name: string, hex: string) => {
-        dispatch({ type: 'SET_COLOR', payload: { name, hex } });
-    }, []);
+        form.setValue('colorName', name, { shouldValidate: true });
+        form.setValue('colorHex', hex, { shouldValidate: true });
+    }, [form]);
 
-    const handleSubmit = useCallback((e: React.FormEvent) => {
-        e.preventDefault();
-
-        const toNum = (val: string) => {
-            const n = parseFloat(val);
-            return isNaN(n) ? 0 : n;
-        };
+    const onFormSubmit = (values: VariantFormValues) => {
+        if (isFullCustomBlocked) return;
 
         const submitData: VariantSubmitData = {
             productid: productId,
-            sku: state.sku.trim().toUpperCase(),
-            baseprice: toNum(state.basePrice),
-            saleprice: state.salePrice ? toNum(state.salePrice) : 0,
-            weight: toNum(state.weight),
-            status: state.status,
-            stockStatus: state.stockStatus,
-            stockQuantity: toNum(state.stockQuantity),
-            isNew: state.isNew,
-            isCustomizable: state.isCustomizable,
-            customizeLabel: state.customizeLabel,
-            pendingCustoms: state.pendingCustoms,
-            customizeTypeIds: state.isCustomizable ? customizeTypeIds : [],
-            // ── Top-level color (backend compatibility) ──
-            color: isCustomColor ? undefined : (state.colorName || undefined),
-            hexColor: isCustomColor ? undefined : (state.colorHex || undefined),
-            colorHex: isCustomColor ? undefined : (state.colorHex || undefined),
+            sku: values.sku.toUpperCase(),
+            baseprice: values.basePrice,
+            saleprice: values.salePrice,
+            weight: values.weight || 0,
+            status: values.status as VariantStatus,
+            stockStatus: values.stockQuantity > 0 ? 'In Stock' : 'Out of Stock',
+            stockQuantity: values.stockQuantity,
+            isNew: !!values.isNew,
+            isCustomizable: !!values.isCustomizable,
+            customizeLabel: values.customizeLabel,
+            pendingCustoms: pendingCustoms,
+            customizeTypeIds: [],
             attributes: {
-                // If custom size is active, we don't send individual dimensions
-                width: isCustomSize ? undefined : (toNum(state.width) || undefined),
-                length: isCustomSize ? undefined : (toNum(state.length) || undefined),
-                thickness: isCustomSize ? undefined : (toNum(state.thickness) || undefined),
-                // If custom color is active, we don't send color info
-                color: isCustomColor ? undefined : (state.colorName || undefined),
-                hexColor: isCustomColor ? undefined : (state.colorHex || undefined),
-                colorHex: isCustomColor ? undefined : (state.colorHex || undefined),
-            }
+                width: values.width || undefined,
+                length: values.length || undefined,
+                thickness: values.thickness || undefined,
+                color: values.colorName || undefined,
+                hexColor: values.colorHex || undefined,
+            } as VariantAttributes
         };
 
         onSubmit(submitData);
-    }, [productId, state, onSubmit, isCustomColor, isCustomSize, customizeTypeIds]);
+    };
 
-    // ──────────────────────────────────────────────────────────
-    // Validation & UX Score Logic
-    // ──────────────────────────────────────────────────────────
-    const isValid = useMemo(() => {
-        const base = parseFloat(state.basePrice) || 0;
-        const sale = parseFloat(state.salePrice) || 0;
-
-        const hasValidSku = state.sku.trim().length >= 3;
-        const hasValidBasePrice = base > 0;
-        const hasValidSalePrice = sale === 0 || sale <= base;
-
-        return hasValidSku && hasValidBasePrice && hasValidSalePrice;
-    }, [state.sku, state.basePrice, state.salePrice]);
-
-    const completionScore = useMemo(() => {
-        let score = 0;
-        const price = parseFloat(state.basePrice) || 0;
-        const hasDims = isCustomSize || (parseFloat(state.width) > 0 || parseFloat(state.length) > 0 || parseFloat(state.thickness) > 0);
-
-        if (state.sku.trim().length >= 3) score += 25;
-        if (price > 0) score += 25;
-        if (hasDims || toNum(state.weight) > 0) score += 25;
-        if (isCustomColor || state.colorName || state.colorHex) score += 25;
-
-        return score;
-
-        function toNum(val: string) {
-            const n = parseFloat(val);
-            return isNaN(n) ? 0 : n;
+    // Auto-clear values logic if customizable
+    useEffect(() => {
+        if (isCustomColor) {
+            form.setValue('colorName', '', { shouldValidate: true });
+            form.setValue('colorHex', '', { shouldValidate: true });
         }
-    }, [state, isCustomColor, isCustomSize]);
+    }, [isCustomColor, form]);
+
+    useEffect(() => {
+        if (isCustomSize) {
+            form.setValue('width', 0, { shouldValidate: true });
+            form.setValue('length', 0, { shouldValidate: true });
+            form.setValue('thickness', 0, { shouldValidate: true });
+            form.setValue('weight', 0, { shouldValidate: true });
+        }
+    }, [isCustomSize, form]);
 
     return {
-        state,
-        setField,
+        form,
+        register: form.register,
+        errors: form.formState.errors,
+        isValid: form.formState.isValid && !isFullCustomBlocked,
         handleRegenerateSku,
         handleColorChange,
-        handleSubmit,
-        isValid,
-        completionScore,
+        handleSubmit: form.handleSubmit(onFormSubmit),
         isCustomColor,
-        isCustomSize
+        isCustomSize,
+        isFullCustomBlocked,
+        existingFullCustomSku,
+        isEdit,
+        // Watching selective values for top-level logic
+        isCustomizable,
+        colorName,
+        colorHex
     };
 }

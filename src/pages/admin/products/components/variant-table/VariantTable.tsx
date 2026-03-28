@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -389,12 +389,69 @@ function VariantRow({
   const currentStatus = variant.status || 'Draft';
   const statusStyle = variantStatusStyles[currentStatus] || variantStatusStyles.Draft;
 
+  /** ─── Senior Optimization: Identify Customization Types ─── */
+  const customInfo = useMemo(() => {
+    const types = variant.customizeTypes || (variant as { customizeOptions?: { customizeTypeName?: string; name?: string; customizeOptionName?: string; typeName?: string }[] }).customizeOptions || [];
+    const hasColorType = types.some((t: { customizeTypeName?: string; name?: string; customizeOptionName?: string; typeName?: string }) => {
+      const n = (t.customizeTypeName || t.name || t.customizeOptionName || t.typeName || '').toLowerCase();
+      return n.includes('color') || n.includes('màu');
+    });
+    const hasSizeType = types.some((t: { customizeTypeName?: string; name?: string; customizeOptionName?: string; typeName?: string }) => {
+      const n = (t.customizeTypeName || t.name || t.customizeOptionName || t.typeName || '').toLowerCase();
+      return n.includes('size') || n.includes('kích thước');
+    });
+
+    const isNoSize = variant.dimensions === 'N/A' || !variant.dimensions || variant.dimensions === '';
+
+    // A variant is "Full Custom" if it has BOTH color AND size customization types
+    const isFull = hasColorType && hasSizeType;
+
+    // Fallback: If it's customizable and has no size, it's at least "Custom Size"
+    const isCustomSize = hasSizeType || isNoSize;
+
+    return { isFull, isCustomSize };
+  }, [variant]);
+
   const isVariantCustomizable =
     variant.isCustomizable ||
-    variant.is_customizable ||
+    (variant as { is_customizable?: boolean }).is_customizable ||
     (variant.customizeTypes && variant.customizeTypes.length > 0) ||
-    (variant.customizeOptions && variant.customizeOptions.length > 0);
-  const isNoSize = variant.dimensions === 'N/A' || !variant.dimensions || variant.dimensions === '';
+    ((variant as { customizeOptions?: unknown[] }).customizeOptions && ((variant as { customizeOptions?: unknown[] }).customizeOptions?.length ?? 0) > 0) ||
+    (!variant.attributes?.width && !variant.attributes?.length && !variant.dimensions || variant.dimensions === 'N/A');
+
+  const getBadgeConfig = () => {
+    if (!isVariantCustomizable) {
+      return {
+        label: variant.dimensions || 'N/A',
+        cls: "bg-white border-slate-200 text-slate-700 group-hover/vrow:border-indigo-200 group-hover/vrow:bg-indigo-50/30"
+      };
+    }
+
+    // Bespoke logic: Full Custom vs Size Only
+    const types = variant.customizeTypes || (variant as { customizeOptions?: { customizeTypeName?: string; name?: string; customizeOptionName?: string; typeName?: string }[] }).customizeOptions || [];
+    const typeNames = types.map(t => {
+      const item = t as { customizeTypeName?: string; name?: string; customizeOptionName?: string; typeName?: string };
+      return item.customizeTypeName || item.name || item.customizeOptionName || item.typeName;
+    }).filter(Boolean).join(', ');
+
+    if (customInfo.isFull) {
+      return {
+        label: `Full: ${typeNames || 'Custom'}`,
+        cls: "bg-indigo-50 border-indigo-200 text-indigo-700 group-hover/vrow:bg-indigo-100/50 shadow-sm font-black"
+      };
+    }
+
+    if (customInfo.isCustomSize) {
+      return {
+        label: typeNames ? `Custom: ${typeNames}` : 'Custom Size',
+        cls: "bg-blue-50 border-blue-200 text-blue-600 group-hover/vrow:bg-blue-100/50 shadow-xs"
+      };
+    }
+
+    return { label: typeNames ? `Custom: ${typeNames}` : (variant.dimensions || 'N/A'), cls: "bg-white border-slate-200 text-slate-700" };
+  };
+
+  const badgeConfig = getBadgeConfig();
 
   return (
     <div className="grid grid-cols-[80px_100px_1fr_120px_140px_120px_60px] gap-4 items-center px-10 py-3.5 hover:bg-slate-50/50 transition-all group/vrow relative">
@@ -405,12 +462,10 @@ function VariantRow({
       {/* Size badge */}
       <div>
         <span className={cn(
-          "inline-flex items-center justify-center px-3 py-1.5 rounded-lg border text-xs font-black shadow-sm leading-none transition-all",
-          isNoSize && isVariantCustomizable
-            ? "bg-blue-50 border-blue-200 text-blue-600 group-hover/vrow:bg-blue-100/50 group-hover/vrow:border-blue-300"
-            : "bg-white border-slate-200 text-slate-700 group-hover/vrow:border-indigo-200 group-hover/vrow:bg-indigo-50/30"
+          "inline-flex items-center justify-center px-3 py-1.5 rounded-lg border text-[10px] font-black shadow-sm leading-none transition-all uppercase tracking-tight",
+          badgeConfig.cls
         )}>
-          {isNoSize && isVariantCustomizable ? 'Custom Size' : variant.dimensions}
+          {badgeConfig.label}
         </span>
       </div>
 
@@ -573,13 +628,13 @@ function VariantRow({
 
             <DropdownMenuSeparator className="my-1 bg-slate-100" />
 
-            {/* Delete */}
+            {/* Delete -> Soft Hide */}
             <DropdownMenuItem
               className="rounded-lg cursor-pointer py-2 px-3 font-medium text-red-500 focus:bg-red-50 focus:text-red-600 transition-colors gap-2.5"
               onClick={onDelete}
             >
               <Trash2 className="h-4 w-4 opacity-70" />
-              <span className="text-[13px]">Delete Item</span>
+              <span className="text-[13px]">Hide SKU</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

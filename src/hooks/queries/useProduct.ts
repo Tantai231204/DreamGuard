@@ -107,7 +107,9 @@ export const useAdminProductVariants = <T = AdminVariantsByProductResponse>(
   productId: string,
   options?: {
     enabled?: boolean;
-    select?: (data: AdminVariantsByProductResponse) => T
+    select?: (data: AdminVariantsByProductResponse) => T;
+    staleTime?: number;
+    gcTime?: number;
   }
 ) => {
   return useQuery({
@@ -115,6 +117,8 @@ export const useAdminProductVariants = <T = AdminVariantsByProductResponse>(
     queryFn: () => variantService.getAdminByProductId(productId),
     enabled: !!productId && (options?.enabled !== false),
     select: options?.select,
+    staleTime: options?.staleTime,
+    gcTime: options?.gcTime,
   });
 };
 
@@ -146,6 +150,16 @@ export const useRichAdminVariants = (productId: string, enabled = true) => {
   return useAdminProductVariants(productId, {
     enabled,
     select: transformAdminVariants,
+  });
+};
+
+/** Optimized version for table usage with long cache */
+export const useStableRichVariants = (productId: string, enabled = true) => {
+  return useAdminProductVariants(productId, {
+    enabled,
+    select: transformAdminVariants,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 };
 

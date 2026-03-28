@@ -26,6 +26,13 @@ export type VariantFormAction =
 
 export const createInitialState = (variant: ProductVariant | null): VariantFormState => {
     const isNew = !variant;
+    
+    // 🔥 Senior Dev Optimization: Check if variant has color but NO size attributes
+    // This allows auto-triggering the "Custom Size" UI logic requested by the user.
+    const hasColor = !!variant?.attributes?.color || !!variant?.attributes?.hexColor;
+    const hasSize = !!variant?.attributes?.width || !!variant?.attributes?.length || !!variant?.attributes?.thickness;
+    const isNoSizeButHasColor = !!variant && hasColor && !hasSize;
+
     return {
         sku: variant?.sku || '',
         status: variant?.status || 'Draft',
@@ -38,14 +45,15 @@ export const createInitialState = (variant: ProductVariant | null): VariantFormS
         colorName: variant?.attributes?.color?.toString() || (isNew ? 'White' : ''),
         colorHex: variant?.attributes?.hexColor?.toString() || (isNew ? '#f5f5f5' : ''),
         isNew: variant?.isNew ?? true,
-        isCustomizable: variant?.isCustomizable ?? false,
+        // Auto-enable if it's a bespoke variant (color only, no size)
+        isCustomizable: variant?.isCustomizable ?? isNoSizeButHasColor,
         customizeLabel: variant?.customizeLabel ?? '',
-        pendingCustoms: (variant?.customizeTypes || variant?.customizeOptions)?.map((c) => ({
-            customizeTypeId: c.customizeTypeId,
-            overridePrice: c.overridePrice
+        pendingCustoms: (variant?.customizeTypes || variant?.customizeOptions)?.map((c: { customizeTypeId?: string; id?: string; overridePrice?: number | null }) => ({
+            customizeTypeId: c.customizeTypeId || c.id || '',
+            overridePrice: c.overridePrice || null
         })) || [],
         stockQuantity: variant?.stockQuantity?.toString() || '0',
-        stockStatus: variant?.stockStatus || 'In Stock',
+        stockStatus: variant?.stockStatus || 'InStock',
     };
 };
 

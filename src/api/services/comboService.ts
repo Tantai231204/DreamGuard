@@ -129,7 +129,7 @@ const comboService = {
 
   /** Get combo detail by ID */
   getById: (id: string): Promise<ComboResponse> =>
-    apiClient.get(`/combo/${id}`).then((res) => res.data),
+    apiClient.get(`/combo/${id}`).then((res) => res.data?.data ?? res.data),
 
   /** Get combo detail by Slug */
   getBySlug: (slug: string, params?: { size?: string; color?: string }): Promise<ComboResponse> =>

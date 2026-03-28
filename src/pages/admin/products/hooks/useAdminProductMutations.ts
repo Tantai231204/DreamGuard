@@ -23,7 +23,12 @@ import {
   useUpdateComboItems,
   useUploadComboImage,
 } from '@/hooks/queries/useCombo';
-import type { CreateProductRequest, UpdateProductRequest, VariantSubmitData, Product, Combo, AdminProductState } from '../types';
+import {
+  useCreateCertificate,
+  useUpdateCertificate,
+  useDeleteCertificate,
+} from '@/hooks/queries/useCertificate';
+import type { CreateProductRequest, UpdateProductRequest, VariantSubmitData, Product, Combo, AdminProductState, Certificate, CreateCertificateRequest } from '../types';
 import type { CreateComboRequest } from '@/api/services/comboService';
 import type { Table } from '@tanstack/react-table';
 
@@ -38,7 +43,8 @@ export function useAdminProductMutations({ state }: MutationProps) {
     editingVariant, setVariantDialogOpen, editingProduct, setDialogOpen,
     setCreatedProductId, setCreatedProductName, setSuccessDialogOpen,
     uploadProductIdRef, editingCombo, setComboDialogOpen, setComboIsCurrentUpload,
-    setImageUploadOpen, setBulkDeleteData, bulkDeleteData
+    setImageUploadOpen, setBulkDeleteData, bulkDeleteData,
+    editingCert, setCertDialogOpen
   } = state;
 
   const createMutation = useCreateProduct();
@@ -61,6 +67,10 @@ export function useAdminProductMutations({ state }: MutationProps) {
   const deleteComboMutation = useDeleteCombo();
   const updateComboItemsMutation = useUpdateComboItems();
   const uploadComboImageMutation = useUploadComboImage();
+
+  const createCertMutation = useCreateCertificate();
+  const updateCertMutation = useUpdateCertificate();
+  const deleteCertMutation = useDeleteCertificate();
 
   const handleVariantSubmit = useCallback(async (formData: VariantSubmitData) => {
     const { status, stockStatus: _stockStatus, isNew, color, hexColor, colorHex, ...coreBody } = formData;
@@ -141,11 +151,17 @@ export function useAdminProductMutations({ state }: MutationProps) {
     if (editingProduct) {
       try {
         const updatePayload: UpdateProductRequest = {
-          id: editingProduct.id, name: data.name, slug: data.slug, summary: data.summary,
-          description: data.description, material: data.material, ageGroup: data.ageGroup || null,
+          id: editingProduct.id,
+          name: data.name,
+          slug: data.slug,
+          summary: data.summary,
+          description: data.description,
+          material: data.material,
+          ageGroup: data.ageGroup || null,
           warrantyPolicyDay: data.warrantyPolicyDay ? Number(data.warrantyPolicyDay) : null,
           returnPolicyDay: data.returnPolicyDay ? Number(data.returnPolicyDay) : null,
           cateId: data.cateId ? Number(data.cateId) : null,
+          certificateIds: data.certificateIds,
         };
         await updateMutation.mutateAsync(updatePayload);
         if (data.status !== editingProduct.status) {
@@ -168,17 +184,35 @@ export function useAdminProductMutations({ state }: MutationProps) {
     }
   }, [editingProduct, updateMutation, updateProductStatusMutation, createMutation, setDialogOpen, setCreatedProductId, setCreatedProductName, setSuccessDialogOpen, uploadProductIdRef, toast]);
 
+  const handleCertSubmit = useCallback(async (data: CreateCertificateRequest) => {
+    try {
+      if (editingCert) {
+        await updateCertMutation.mutateAsync({ id: editingCert.id, data });
+        toast.success('Certificate updated', 'Changes saved.');
+      } else {
+        await createCertMutation.mutateAsync(data);
+        toast.success('Certificate created', 'Success.');
+      }
+      setCertDialogOpen(false);
+    } catch (error) {
+      console.error(error);
+    }
+  }, [editingCert, updateCertMutation, createCertMutation, setCertDialogOpen, toast]);
+
   const handleComboSubmit = useCallback(async (data: CreateComboRequest) => {
     if (editingCombo) {
       try {
         const { items, ...infoData } = data;
         await Promise.all([
           updateComboMutation.mutateAsync({ id: editingCombo.id, data: infoData }),
-          items?.length ? updateComboItemsMutation.mutateAsync({ id: editingCombo.id, items }) : Promise.resolve()
+          updateComboItemsMutation.mutateAsync({ id: editingCombo.id, items: items || [] })
         ]);
         setComboDialogOpen(false);
         toast.success('Combo updated', 'Success.');
-      } catch { toast.error('Update failed', 'Error.'); }
+      } catch (error) {
+        console.error('Combo update error:', error);
+        toast.error('Update failed', 'Please check your inputs.');
+      }
     } else {
       createComboMutation.mutate(data, {
         onSuccess: (res) => {
@@ -189,6 +223,10 @@ export function useAdminProductMutations({ state }: MutationProps) {
           setSuccessDialogOpen(true);
           setComboIsCurrentUpload(true);
         },
+        onError: (err: unknown) => {
+          const msg = err instanceof Error ? err.message : 'Error occurred.';
+          toast.error('Creation failed', msg);
+        }
       });
     }
   }, [editingCombo, updateComboMutation, updateComboItemsMutation, createComboMutation, setComboDialogOpen, setCreatedProductId, setCreatedProductName, setSuccessDialogOpen, setComboIsCurrentUpload, uploadProductIdRef, toast]);
@@ -207,48 +245,61 @@ export function useAdminProductMutations({ state }: MutationProps) {
     } catch (error) { console.error(error); }
   }, [uploadProductIdRef, state.comboIsCurrentUpload, uploadComboImageMutation, uploadImagesMutation, setImageUploadOpen, toast]);
 
-  const handleExport = useCallback((tab: string, products: Product[], combos: Combo[]) => {
+  const handleExport = useCallback((tab: string, products: Product[], combos: Combo[], certificates: Certificate[] = []) => {
     if (tab === 'single') {
       const exportData = products.map((p) => ({
         ID: p.id, Name: p.name, Category: p.categoryName, MinPrice: p.minPrice, MaxPrice: p.maxPrice, Status: p.status, Variants: p.variantCount
       }));
       downloadCSV(exportData, 'Products');
-    } else {
+    } else if (tab === 'combo') {
       const exportData = combos.map((c) => ({
         ID: c.id, Name: c.name, BasePrice: c.basePrice, SalePrice: c.salePrice, Status: c.status, Type: c.type
       }));
       downloadCSV(exportData, 'Combos');
+    } else if (tab === 'certificate') {
+      const exportData = certificates.map((c) => ({
+        ID: c.id, Name: c.name, Summary: c.summary, Description: c.description, CreatedAt: c.createdAt
+      }));
+      downloadCSV(exportData, 'Certificates');
     }
   }, []);
 
-  const handleBulkDelete = useCallback((table: Table<Product | Combo>, tab: string) => {
+  const handleBulkDelete = useCallback((table: Table<Product | Combo | Certificate>, tab: 'single' | 'combo' | 'certificate') => {
     const selectedRows = table.getFilteredSelectedRowModel().rows;
     const ids = selectedRows.map((r) => r.original.id);
     if (ids.length === 0) return;
-    setBulkDeleteData({ ids, type: tab as 'single' | 'combo' });
+    setBulkDeleteData({ ids, type: tab });
   }, [setBulkDeleteData]);
 
   const handleConfirmBulkDelete = useCallback(async () => {
     if (!bulkDeleteData) return;
     const { ids, type } = bulkDeleteData;
-    const deleteFn = type === 'single' ? deleteMutation.mutateAsync : deleteComboMutation.mutateAsync;
+    let deleteFn;
+    switch (type) {
+      case 'single': deleteFn = deleteMutation.mutateAsync; break;
+      case 'combo': deleteFn = deleteComboMutation.mutateAsync; break;
+      case 'certificate': deleteFn = deleteCertMutation.mutateAsync; break;
+      default: return;
+    }
     try {
       await Promise.all(ids.map(id => deleteFn(id)));
-      toast.success('Items deactivated', `${ids.length} item(s) processed.`);
+      toast.success('Items processed', `${ids.length} item(s) processed.`);
       setBulkDeleteData(null);
     } catch { toast.error('Bulk Action Failed', 'Error occurred.'); }
-  }, [bulkDeleteData, deleteMutation, deleteComboMutation, setBulkDeleteData, toast]);
+  }, [bulkDeleteData, deleteMutation, deleteComboMutation, deleteCertMutation, setBulkDeleteData, toast]);
 
   return {
-    handleVariantSubmit, handleSubmit, handleComboSubmit, handleUploadImages,
+    handleVariantSubmit, handleSubmit, handleComboSubmit, handleCertSubmit, handleUploadImages,
     handleExport, handleBulkDelete, handleConfirmBulkDelete,
     // Mutations for loading states
     createMutation, updateMutation, updateProductStatusMutation, deleteMutation, uploadImagesMutation,
     createVariantMutation, createVariantWithCustomizeMutation, updateVariantMutation, deleteVariantMutation, updateVariantStatusMutation,
     createComboMutation, updateComboMutation, deleteComboMutation, updateComboItemsMutation, uploadComboImageMutation,
+    createCertMutation, updateCertMutation, deleteCertMutation,
     // Direct actions
     handleConfirmDelete: (id: string) => deleteMutation.mutate(id),
-    handleConfirmDeleteVariant: (id: string) => deleteVariantMutation.mutate(id),
+    handleConfirmDeleteVariant: (id: string) => updateVariantStatusMutation.mutate({ variantId: id, status: 'Hidden' }),
     handleConfirmDeleteCombo: (id: string) => deleteComboMutation.mutate(id),
+    handleConfirmDeleteCert: (id: string) => deleteCertMutation.mutate(id),
   };
 }

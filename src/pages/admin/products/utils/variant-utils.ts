@@ -93,19 +93,22 @@ export function transformAdminVariants(data: AdminVariantsByProductResponse) {
   let outOfStock = 0;
 
   const transformedGroups = colorGroups.map((group) => {
-    const isAnyCustomizable = group.variants.some(v => 
-      v.isCustomizable || 
-      v.is_customizable || // Fallback for snake_case
-      v.customizeLabel ||
-      (v.customizeTypes?.length ?? 0) > 0 || 
-      (v.customizeOptions?.length ?? 0) > 0
-    );
+    const isAnyCustomizable = group.variants.some(v => {
+      const hasExplicitFlag = v.isCustomizable || v.is_customizable || !!v.customizeLabel;
+      const hasTypes = (v.customizeTypes?.length ?? 0) > 0 || (v.customizeOptions?.length ?? 0) > 0;
+
+      // Bespoke detection: No physical dimensions in attributes often implies it's a template for customization
+      const isBespoke = !v.attributes?.width && !v.attributes?.length && !v.size;
+
+      return hasExplicitFlag || hasTypes || isBespoke;
+    });
+
     let groupLabel = group.color;
 
     // Standardize labels
     const isMissingLabel = !groupLabel || groupLabel.toLowerCase() === 'unknown' || groupLabel.trim() === '';
     if (isMissingLabel) {
-      groupLabel = isAnyCustomizable ? 'Customizable' : 'Standard';
+      groupLabel = isAnyCustomizable ? 'Bespoke / Customizable' : 'Base Product';
     }
 
     let groupHex = group.hexColor;

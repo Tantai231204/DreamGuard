@@ -98,12 +98,12 @@ export default function ImageUploadDialog({
     );
 
     return (
-        <Dialog open={open} onOpenChange={handleClose}>
-            <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col">
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-[680px] rounded-[1.5rem] p-7 gap-0 outline-none">
                 <DialogHeader className="pb-4 border-b flex-shrink-0">
                     <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-md">
-                            <ImagePlus className="w-5 h-5 text-white" />
+                        <div className="w-11 h-11 rounded-lg bg-primary flex items-center justify-center">
+                            <ImagePlus className="w-5 h-5 text-primary-foreground" />
                         </div>
                         <div>
                             <DialogTitle className="text-xl font-bold text-gray-900">
@@ -123,14 +123,14 @@ export default function ImageUploadDialog({
                         {...getRootProps()}
                         className={cn(
                             'border-2 border-dashed rounded-xl p-8 text-center transition-all',
-                            isDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 hover:border-blue-400 hover:bg-gray-50'
+                            isDragActive ? 'border-primary-500 bg-primary-50/50' : 'border-slate-200 hover:border-primary-400 hover:bg-slate-50'
                         )}
                     >
                         <input {...getInputProps()} />
                         <Upload
                             className={cn(
                                 'w-10 h-10 mx-auto mb-3',
-                                isDragActive ? 'text-blue-500' : 'text-gray-400'
+                                isDragActive ? 'text-primary-500' : 'text-slate-300'
                             )}
                         />
                         <p className="text-sm font-medium text-gray-700 mb-1">
@@ -164,7 +164,7 @@ export default function ImageUploadDialog({
                                         className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 group"
                                     >
                                         {index === 0 && (
-                                            <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 bg-blue-600 text-white text-[10px] font-semibold rounded z-10">
+                                            <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 bg-primary-500 text-white text-[10px] font-bold rounded z-10">
                                                 Main
                                             </span>
                                         )}
@@ -206,7 +206,7 @@ export default function ImageUploadDialog({
                     <Button
                         onClick={handleSubmit}
                         disabled={isUploading || files.length === 0}
-                        className="flex-1 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/30 font-medium disabled:opacity-50"
+                        className="flex-1 h-10 bg-primary-500 hover:bg-primary-600 text-white shadow-xl shadow-primary-500/20 font-bold transition-all"
                     >
                         {isUploading ? (
                             <>

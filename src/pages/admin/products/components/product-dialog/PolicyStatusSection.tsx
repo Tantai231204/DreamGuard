@@ -11,13 +11,13 @@ import { INPUT_CLS, SELECT_CLS } from './constants';
 import { AdminStatusBadge } from '@/components/admin';
 
 interface PolicyStatusSectionProps {
-    warrantyPolicyDay: string;
-    returnPolicyDay: string;
+    warrantyPolicyDay: number | string;
+    returnPolicyDay: number | string;
     status: ProductStatus;
     isLoading: boolean;
     isEdit?: boolean;
-    onWarrantyChange: (value: string) => void;
-    onReturnChange: (value: string) => void;
+    onWarrantyChange: (value: number | string) => void;
+    onReturnChange: (value: number | string) => void;
     onStatusChange: (value: string) => void;
 }
 

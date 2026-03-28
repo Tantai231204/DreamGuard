@@ -12,6 +12,7 @@ export {
   comboService,
   cartService,
   customizeTypeService,
+  certificateService,
   type VerifyOtpRequest,
   type ResetPasswordRequest,
   type ChangePasswordRequest,
