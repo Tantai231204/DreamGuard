@@ -13,7 +13,11 @@ export const useAssignTechnicianDialog = ({ orderId, onClose }: UseAssignTechnic
   const [selectedStaffId, setSelectedStaffId] = useState<string>('');
   const queryClient = useQueryClient();
 
-  const { data: staffData, isLoading: isLoadingStaff } = useStaffs({ pageSize: 100 });
+  const { data: staffData, isLoading: isLoadingStaff } = useStaffs({ 
+    pageSize: 100, 
+    role: "CleaningStaff",
+    Role: "CleaningStaff" 
+  } as any);
   const staffs = staffData?.items || [];
 
   const assignMutation = useMutation({

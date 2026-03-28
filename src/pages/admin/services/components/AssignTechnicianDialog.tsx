@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   Dialog,
@@ -23,6 +24,7 @@ import {
   Briefcase
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import type { Staff } from '../types';
 
 interface AssignTechnicianDialogProps {
   orderId: string | null;
@@ -34,13 +36,27 @@ export function AssignTechnicianDialog({ orderId, isOpen, onClose }: AssignTechn
   const {
     selectedStaffId,
     setSelectedStaffId,
-    staffs,
+    staffs: rawStaffs,
     isLoadingStaff,
     handleAssign,
     assignMutation,
   } = useAssignTechnicianDialog({ orderId, onClose });
 
-  const cleaningStaffs = staffs.filter(s => s.role === "CleaningStaff");
+  const staffs = rawStaffs as unknown as Staff[];
+
+  const cleaningStaffs = useMemo(() => {
+    return staffs.filter((s) => {
+      const role = (s.role || '').toLowerCase();
+      const pos = (s.position || '').toLowerCase();
+      return role === 'cleaningstaff' || 
+             pos === 'cleaningstaff' || 
+             role.includes('clean') || 
+             pos.includes('clean') ||
+             role.includes('technician') ||
+             role.includes('staff');
+    });
+  }, [staffs]);
+
   const selectedStaff = cleaningStaffs.find(s => s.staffId === selectedStaffId);
 
   return (
@@ -73,7 +89,7 @@ export function AssignTechnicianDialog({ orderId, isOpen, onClose }: AssignTechn
               </SelectTrigger>
               <SelectContent className="max-h-[300px] p-1.5 rounded-xl">
                 {cleaningStaffs.length > 0 ? (
-                  cleaningStaffs.map((staff) => (
+                  cleaningStaffs.map((staff: Staff) => (
                     <SelectItem
                       key={staff.staffId}
                       value={staff.staffId}
