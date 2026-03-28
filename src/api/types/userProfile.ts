@@ -1,5 +1,7 @@
 export interface UserProfile {
-  fullName: string
+  firstName: string
+  lastName: string
+  fullName?: string
   email: string
   phoneNumber?: string
   dateOfBirth: string
@@ -8,10 +10,13 @@ export interface UserProfile {
 }
 
 export interface UpdateUserProfileRequest {
-  fullName: string
+  firstName: string
+  lastName: string
+  fullName?: string
   email: string
   dateOfBirth: string
   gender: string
+  avatarUrl?: string
 }
 
 export interface ChangePhoneNumberRequest {

@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -169,6 +171,8 @@
   --shadow-testimonials-button-hover: var(--shadow-md);
   --shadow-testimonials-card: var(--shadow-card);
   --shadow-testimonials-card-hover: var(--shadow-card-hover);
+  /* font */
+  --font-sans: 'Comfortaa', sans-serif;
 }
 
 /* Reset & Base Setup */
@@ -182,7 +186,7 @@
 body {
   min-width: 320px;
   min-height: 100vh;
-  font-family: "Poppins", sans-serif;
+  /* font-family: "Poppins", sans-serif; */
   line-height: 1.5;
   background-color: #ffffff;
   color: #111827;
@@ -191,6 +195,7 @@ body {
 
   display: flex;
   flex-direction: column;
+   font-family: 'Comfortaa', sans-serif;
 }
 .scroll-hidden, .no-scrollbar {
   -ms-overflow-style: none;

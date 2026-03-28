@@ -9,6 +9,19 @@ export const profileKeys = {
     all: ["user-profile"] as const,
 };
 
+function normalizeProfile(profile: any) {
+    const fullName = profile?.fullName?.trim() || "";
+    const [firstNameFromFull, ...rest] = fullName.split(" ").filter(Boolean);
+    const lastNameFromFull = rest.join(" ");
+
+    return {
+        ...profile,
+        firstName: profile?.firstName?.trim() || firstNameFromFull || "",
+        lastName: profile?.lastName?.trim() || lastNameFromFull || "",
+        fullName: profile?.fullName || `${profile?.firstName || firstNameFromFull || ""} ${profile?.lastName || lastNameFromFull || ""}`.trim(),
+    };
+}
+
 export const useProfile = () => {
     const { isAuthenticated, role } = useAuthStore();
     const isStaff = role && role !== "User" && role !== "Admin";

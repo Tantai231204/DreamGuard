@@ -82,8 +82,14 @@ export default function ProductCard({ product }: Props) {
                                         ? "text-rose-500 bg-white" 
                                         : "text-slate-400 hover:text-rose-500 hover:bg-white"
                                 )}
+                                aria-pressed={isLiked}
+                                aria-label={isLiked ? "Remove from favorites" : "Add to favorites"}
                             >
-                                <Heart className={cn("h-4.5 w-4.5", isLiked && "fill-current")} />
+                                <Heart
+                                    className="h-4.5 w-4.5"
+                                    fill={isLiked ? "currentColor" : "none"}
+                                    stroke={isLiked ? "currentColor" : "currentColor"}
+                                />
                             </button>
                         </div>
                     </div>

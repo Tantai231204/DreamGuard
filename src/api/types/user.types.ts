@@ -2,6 +2,8 @@
 
 export interface UserProfile {
   fullName: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   phoneNumber: string;
   dateOfBirth: string;
@@ -10,6 +12,8 @@ export interface UserProfile {
 }
 
 export interface UpdateUserProfileRequest {
+  firstName?: string;
+  lastName?: string;
   fullName?: string;
   phoneNumber?: string;
   dateOfBirth?: string;

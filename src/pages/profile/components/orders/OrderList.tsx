@@ -9,7 +9,7 @@ interface OrderListProps {
 }
 
 export const OrderList = memo(({ orders, isFilterActive }: OrderListProps) => {
-    if (orders.length === 0) return <EmptyState isFilter={isFilterActive} />
+    if (orders.length === 0) return <EmptyState isFilter={isFilterActive} orderType="product" />
     return (
         <div className="space-y-4">
             {orders.map((order) => (

@@ -2,48 +2,140 @@ import { useState, useMemo } from "react"
 import { Search, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "../../../components/ui/button"
 import { Input } from "../../../components/ui/input"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../../components/ui/tabs"
+import { Tabs, TabsList, TabsTrigger } from "../../../components/ui/tabs"
 import { Popover, PopoverContent, PopoverTrigger } from "../../../components/ui/popover"
 import { Calendar } from "../../../components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { format, isWithinInterval, startOfDay, endOfDay } from "date-fns"
 import type { DateRange } from "react-day-picker"
-import { useOrders } from "@/hooks/queries"
-import { OrderList, OrderSkeleton } from "./orders"
+import { useOrders, useProfile, useServiceOrders, useServiceOrdersByCustomer } from "@/hooks/queries"
+import type { OrderResponse } from "@/api/types/order"
+import type { ServiceOrderResponse } from "@/api/types/serviceOrder"
+import { OrderList, OrderSkeleton, ServiceOrderList } from "./orders"
 
 const ITEMS_PER_PAGE = 4
 
+type OrderType = "product" | "service"
+type StatusTab = "all" | "processing" | "shipping" | "completed" | "cancelled"
+
+const PRODUCT_TABS: { id: StatusTab; label: string }[] = [
+    { id: "all", label: "All Orders" },
+    { id: "processing", label: "Processing" },
+    { id: "shipping", label: "Shipping" },
+    { id: "completed", label: "Completed" },
+    { id: "cancelled", label: "Cancelled" }
+]
+
+const SERVICE_TABS: { id: StatusTab; label: string }[] = [
+    { id: "all", label: "All Services" },
+    { id: "processing", label: "In Progress" },
+    { id: "completed", label: "Completed" },
+    { id: "cancelled", label: "Cancelled" }
+]
+
+function matchProductStatus(status: unknown, tab: StatusTab) {
+    if (tab === "all") return true
+    if (tab === "processing") return ["Pending", "Confirmed", "Processing", 0, 1, 2].includes(status as never)
+    if (tab === "shipping") return ["Shipping", 3].includes(status as never)
+    if (tab === "completed") return ["Delivered", "Completed", 4, 5].includes(status as never)
+    return ["Cancelled", 6].includes(status as never)
+}
+
+function matchServiceStatus(status: string | undefined, tab: StatusTab) {
+    if (tab === "all") return true
+    const normalized = (status || "").toLowerCase()
+    if (tab === "processing") return ["pending", "confirmed", "processing", "inprogress"].includes(normalized)
+    if (tab === "shipping") return ["assigned", "onroute", "shipping"].includes(normalized)
+    if (tab === "completed") return ["completed"].includes(normalized)
+    return ["cancelled", "canceled", "forcedcancelled", "managercancel", "managerforcecancel"].includes(normalized)
+}
+
+function normalizePhone(phone?: string) {
+    return (phone || "").replace(/\D/g, "")
+}
+
 export default function OrdersTab() {
-    const { data, isPending } = useOrders()
+    const [orderType, setOrderType] = useState<OrderType>("product")
+    const [activeStatusTab, setActiveStatusTab] = useState<StatusTab>("all")
+
+    const { data: profile } = useProfile()
+    const rawProfile = profile as Record<string, unknown> | undefined
+    const currentCustomerId = String(
+        rawProfile?.customerId || rawProfile?.id || rawProfile?.userId || ""
+    ).trim()
+    const currentPhone = normalizePhone(String(rawProfile?.phoneNumber || ""))
+
+    const { data: productData, isPending: isProductPending } = useOrders()
+    const { data: serviceByCustomerData, isPending: isServiceByCustomerPending } = useServiceOrdersByCustomer(
+        currentCustomerId,
+        { pageNumber: 1, pageSize: 50 },
+        orderType === "service" && !!currentCustomerId
+    )
+    const { data: serviceFallbackData, isPending: isServiceFallbackPending } = useServiceOrders(
+        { pageNumber: 1, pageSize: 50 },
+        orderType === "service" && !currentCustomerId
+    )
+
     const [search, setSearch] = useState("")
     const [date, setDate] = useState<DateRange | undefined>(undefined)
     const [currentPage, setCurrentPage] = useState(1)
 
+    const ownedServiceOrders = useMemo(() => {
+        const serviceItems = currentCustomerId
+            ? (serviceByCustomerData?.items ?? [])
+            : (serviceFallbackData?.items ?? [])
+
+        return serviceItems.filter((order) => {
+            const orderCustomerId = (order.customerId || "").trim()
+            const orderPhone = normalizePhone(order.phoneNumber)
+
+            if (currentCustomerId) {
+                if (!orderCustomerId) return false
+                return orderCustomerId === currentCustomerId
+            }
+
+            if (currentPhone) return orderPhone === currentPhone
+            return false
+        })
+    }, [currentCustomerId, currentPhone, serviceByCustomerData?.items, serviceFallbackData?.items])
+
     const filteredOrders = useMemo(() => {
-        const orders = data?.items ?? []
+        const orders = orderType === "product" ? (productData?.items ?? []) : ownedServiceOrders
         return orders.filter(order => {
-            const matchesSearch = order.orderCode.toLowerCase().includes(search.toLowerCase())
+            const orderCode = (order.orderCode || "").toLowerCase()
+            const matchesSearch = orderCode.includes(search.toLowerCase())
             let matchesDate = true
             if (date?.from) {
-                const orderDate = new Date(order.createdAt)
+                const orderDate = new Date(order.createdAt || 0)
                 const start = startOfDay(date.from)
                 const end = date.to ? endOfDay(date.to) : endOfDay(date.from)
                 matchesDate = isWithinInterval(orderDate, { start, end })
             }
             return matchesSearch && matchesDate
         })
-    }, [data?.items, search, date])
+    }, [orderType, productData?.items, ownedServiceOrders, search, date])
 
-    // Pagination logic
-    const totalPages = Math.ceil(filteredOrders.length / ITEMS_PER_PAGE)
+    const statusFilteredOrders = useMemo(() => {
+        if (orderType === "product") {
+            return (filteredOrders as OrderResponse[]).filter(order => matchProductStatus(order.status, activeStatusTab))
+        }
+
+        return (filteredOrders as ServiceOrderResponse[]).filter(order => matchServiceStatus(order.status, activeStatusTab))
+    }, [filteredOrders, orderType, activeStatusTab])
+
+    const totalPages = Math.max(1, Math.ceil(statusFilteredOrders.length / ITEMS_PER_PAGE))
     const paginatedOrders = useMemo(() => {
         const start = (currentPage - 1) * ITEMS_PER_PAGE
-        return filteredOrders.slice(start, start + ITEMS_PER_PAGE)
-    }, [filteredOrders, currentPage])
+        return statusFilteredOrders.slice(start, start + ITEMS_PER_PAGE)
+    }, [statusFilteredOrders, currentPage])
+
+    const isPending = orderType === "product"
+        ? isProductPending
+        : (currentCustomerId ? isServiceByCustomerPending : isServiceFallbackPending)
+    const tabs = orderType === "product" ? PRODUCT_TABS : SERVICE_TABS
 
     const handlePageChange = (page: number) => {
         setCurrentPage(page)
-        // Scroll to top of tab content if needed, though with h-850 it might not be necessary
     }
 
     return (
@@ -52,16 +144,37 @@ export default function OrdersTab() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-100">
                 <div>
                     <h2 className="text-xl font-bold text-slate-900">Order History</h2>
-                    <p className="text-sm text-slate-500 mt-1 font-medium">Manage and track your recent orders.</p>
+                    <p className="text-sm text-slate-500 mt-1 font-medium">Track product and service order history in one place.</p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3">
+                    <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1 h-10">
+                        <button
+                            onClick={() => { setOrderType("product"); setActiveStatusTab("all"); setCurrentPage(1) }}
+                            className={cn(
+                                "px-3 sm:px-4 text-[11px] font-black uppercase tracking-wider rounded-lg transition-all",
+                                orderType === "product" ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-800"
+                            )}
+                        >
+                            Product
+                        </button>
+                        <button
+                            onClick={() => { setOrderType("service"); setActiveStatusTab("all"); setCurrentPage(1) }}
+                            className={cn(
+                                "px-3 sm:px-4 text-[11px] font-black uppercase tracking-wider rounded-lg transition-all",
+                                orderType === "service" ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-800"
+                            )}
+                        >
+                            Service
+                        </button>
+                    </div>
+
                     <div className="relative group flex-1 min-w-[200px] md:w-64">
                         <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-[#4988c4] transition-colors" />
                         <Input
                             value={search}
                             onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
-                            placeholder="Search Order ID..."
+                            placeholder={orderType === "service" ? "Search Service Order ID..." : "Search Order ID..."}
                             className="pl-10 h-10 border-slate-200 bg-slate-50/50 rounded-xl focus:bg-white transition-all font-medium text-sm"
                         />
                     </div>
@@ -107,15 +220,9 @@ export default function OrdersTab() {
                 </div>
             </div>
 
-            <Tabs defaultValue="all" className="w-full space-y-6" onValueChange={() => setCurrentPage(1)}>
+            <Tabs value={activeStatusTab} className="w-full space-y-6" onValueChange={(value) => { setActiveStatusTab(value as StatusTab); setCurrentPage(1) }}>
                 <TabsList className="w-full bg-slate-100/50 p-1 rounded-xl h-12 border border-slate-200/60 flex overflow-x-auto no-scrollbar">
-                    {[
-                        { id: "all", label: "All Orders" },
-                        { id: "processing", label: "Processing" },
-                        { id: "shipping", label: "Shipping" },
-                        { id: "completed", label: "Completed" },
-                        { id: "cancelled", label: "Cancelled" }
-                    ].map((tab) => (
+                    {tabs.map((tab) => (
                         <TabsTrigger
                             key={tab.id}
                             value={tab.id}
@@ -135,33 +242,11 @@ export default function OrdersTab() {
                         </div>
                     ) : (
                         <div className="min-h-[400px]">
-                            <TabsContent value="all" className="m-0 focus-visible:ring-0">
-                                <OrderList orders={paginatedOrders} isFilterActive={!!(search || date)} />
-                            </TabsContent>
-                            <TabsContent value="processing" className="m-0 focus-visible:ring-0">
-                                <OrderList
-                                    orders={paginatedOrders.filter(o => ["Pending", "Confirmed", "Processing", 0, 1, 2].includes(o.status))}
-                                    isFilterActive={!!(search || date)}
-                                />
-                            </TabsContent>
-                            <TabsContent value="shipping" className="m-0 focus-visible:ring-0">
-                                <OrderList
-                                    orders={paginatedOrders.filter(o => ["Shipping", 3].includes(o.status))}
-                                    isFilterActive={!!(search || date)}
-                                />
-                            </TabsContent>
-                            <TabsContent value="completed" className="m-0 focus-visible:ring-0">
-                                <OrderList
-                                    orders={paginatedOrders.filter(o => ["Delivered", "Completed", 4, 5].includes(o.status))}
-                                    isFilterActive={!!(search || date)}
-                                />
-                            </TabsContent>
-                            <TabsContent value="cancelled" className="m-0 focus-visible:ring-0">
-                                <OrderList
-                                    orders={paginatedOrders.filter(o => ["Cancelled", 6].includes(o.status))}
-                                    isFilterActive={!!(search || date)}
-                                />
-                            </TabsContent>
+                            {orderType === "product" ? (
+                                <OrderList orders={paginatedOrders as OrderResponse[]} isFilterActive={!!(search || date)} />
+                            ) : (
+                                <ServiceOrderList orders={paginatedOrders as ServiceOrderResponse[]} isFilterActive={!!(search || date)} />
+                            )}
                         </div>
                     )}
                 </div>
