@@ -9,6 +9,15 @@ import { useCartAnimation } from "@/store/useCartAnimation"
 import { AppRoute } from "@/lib/constants"
 import { formatPrice } from "@/lib/utils"
 import "./cart-drawer.css"
+
+const C: Record<string, string> = {
+    red: '#ef4444', blue: '#3b82f6', green: '#22c55e', yellow: '#eab308', black: '#111827',
+    white: '#fff', gray: '#6b7280', grey: '#6b7280', pink: '#ec4899', purple: '#a855f7',
+    orange: '#f97316', brown: '#92400e', navy: '#1e3a5f', teal: '#14b8a6', gold: '#d97706',
+    silver: '#9ca3af', cream: '#fffdd0', coral: '#ff6b6b', beige: '#d4b896', peru: '#CD853F',
+}
+const hex = (c: string) => { const k = c.toLowerCase().trim(); return k.startsWith('#') ? k : C[k] ?? '#e2e8f0' }
+
 export function CartDrawer() {
     const { cart, updateQuantity, removeItem, totalItems, totalPrice, totalTradeInDiscount, finalTotal, loadingIds, syncingIds } = useCart()
     const { cartIconRef, isCartBouncing } = useCartAnimation()
@@ -29,7 +38,7 @@ export function CartDrawer() {
     }, [navigate])
 
     const cartItems = useMemo(() => (
-        cart.map((item) => {
+        cart.map((item: import("@/store/useCartStore").CartItem) => {
             const hasTradeIn = !!(item.tradeIn?.totalValue)
             const isLoading = loadingIds?.includes(item.id) ?? false
             const isSyncing = syncingIds?.includes(item.id) ?? false
@@ -46,13 +55,18 @@ export function CartDrawer() {
                         <div className="absolute inset-0 border-t border-dashed border-[#4988c4]/20 scale-x-0 group-hover:scale-x-100 transition-transform duration-700 origin-left" />
                     </div>
                     {/* Ảnh */}
-                    <div className="relative h-[66px] w-[66px] flex-shrink-0 rounded-xl overflow-hidden bg-gray-100">
+                    <div className="relative h-[66px] w-[66px] flex-shrink-0 rounded-xl overflow-hidden bg-gray-100 group">
                         <img
                             src={item.image || '/placeholder.png'}
                             alt={item.name}
                             className="h-full w-full object-cover"
                             decoding="async"
                         />
+                        {item.isCustom && (
+                            <div className="absolute top-0 left-0 bg-amber-500 text-white text-[6px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded-br-md z-10 shadow-sm">
+                                Custom
+                            </div>
+                        )}
                         {/* Loading overlay trên ảnh - Chỉ dành cho Load (Add/Remove) */}
                         {isLoading && (
                             <div className="absolute inset-0 flex items-center justify-center bg-white/70">
@@ -83,21 +97,28 @@ export function CartDrawer() {
                             </button>
                         </div>
 
-                        {/* Details & Info */}
-                        <div className="flex flex-wrap items-center gap-2 mb-2">
-                            {item.sku && (
-                                <span className="text-[10px] font-mono text-gray-400">
-                                    {item.sku}
+                        {/* Details & Info — unified layout for both custom and standard items */}
+                        <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                            {/* Custom badge */}
+                            {item.isCustom && (
+                                <span className="text-[9px] font-black text-amber-700 bg-amber-50 border border-amber-200/60 px-1.5 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1">
+                                    <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
+                                    Custom
                                 </span>
                             )}
-                            {item.size && (
-                                <span className="text-[10px] font-medium text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded">
-                                    Size: {item.size}
+                            {/* Color — resolve from customAttributes.colorHex or item.color */}
+                            {(item.customAttributes?.colorHex || item.color) && (
+                                <span className="text-[10px] font-medium text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded flex items-center gap-1">
+                                    <div className="w-2 h-2 rounded-full border border-gray-200" style={{ backgroundColor: item.customAttributes?.colorHex || hex(item.color || '') }} />
+                                    {item.customAttributes?.colorHex || item.color}
                                 </span>
                             )}
-                            {item.color && (
+                            {/* Size — resolve from customAttributes dimensions or item.size */}
+                            {(item.customAttributes?.length || item.size) && (
                                 <span className="text-[10px] font-medium text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded">
-                                    Color: {item.color}
+                                    {item.customAttributes?.length
+                                        ? `${item.customAttributes.length}×${item.customAttributes.width}×${item.customAttributes.thickness} cm`
+                                        : item.size}
                                 </span>
                             )}
                         </div>
@@ -115,7 +136,7 @@ export function CartDrawer() {
                                     <TooltipContent side="bottom" align="start" className="w-56 p-3 bg-white border border-gray-200 shadow-lg rounded-xl text-xs">
                                         <p className="font-semibold text-gray-700 mb-2">Trade-in details</p>
                                         <div className="space-y-2">
-                                            {item.tradeIn!.products.map((p) => (
+                                            {item.tradeIn!.products.map((p: import("@/store/cartTypes").TradeInItem) => (
                                                 <div key={p.id} className="flex items-center gap-2">
                                                     <img src={p.image} alt={p.name} className="w-7 h-7 rounded-md object-cover flex-shrink-0 border border-gray-100" />
                                                     <span className="flex-1 text-gray-600 truncate">{p.name}</span>

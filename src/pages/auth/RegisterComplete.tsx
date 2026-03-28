@@ -7,17 +7,26 @@ import { Label } from "../../components/ui/label";
 import { AppRoute } from "../../lib/constants";
 import { useRegister } from "@/hooks/useAuth";
 import { useState } from "react";
-import { EyeIcon, EyeOffIcon, Lock, User, Mail, Smartphone, CalendarIcon } from "lucide-react";
+import {
+  EyeIcon,
+  EyeOffIcon,
+  Lock,
+  // User,
+  Mail,
+  Smartphone,
+  CalendarIcon,
+} from "lucide-react";
 import { FaMale, FaFemale } from "react-icons/fa";
 import { toast } from "sonner";
 import { DatePicker } from "@/components/ui/date-picker";
 import { format } from "date-fns";
 
 type FormData = {
-  fullName: string;
+  firstName: string;
+  lastName: string;
   password: string;
   gender: "Male" | "Female";
-  dateOfBirth: string | Date;
+  dateOfBirth: string;
 };
 
 export default function RegisterComplete() {
@@ -38,7 +47,7 @@ export default function RegisterComplete() {
   } = useForm<FormData>({
     defaultValues: {
       gender: "Male",
-    }
+    },
   });
 
   const { mutate: registerAccount, isPending, isSuccess } = useRegister();
@@ -48,22 +57,29 @@ export default function RegisterComplete() {
   const onSubmit = (data: FormData) => {
     if (!registerData) return;
 
-    registerAccount(
-      {
-        email: registerData.email,
-        phoneNumber: registerData.phoneNumber,
-        fullName: data.fullName,
-        password: data.password,
-        gender: data.gender,
-        dateOfBirth: String(data.dateOfBirth),
-      },
+    const payload = {
+      email: registerData.email,
+      phoneNumber: registerData.phoneNumber,
+      firstName: data.firstName.trim(),
+      lastName: data.lastName.trim(),
+      fullName: `${data.firstName.trim()} ${data.lastName.trim()}`,
+      password: data.password,
+      gender: data.gender,
+      dateOfBirth: data.dateOfBirth,
+    };
+
+    registerAccount(payload,
       {
         onSuccess: () => {
           toast.success("Registration Successful", {
             description: "Your account has been created.",
           });
           clearRegisterData();
-          navigate(redirect ? `${AppRoute.LOGIN}?redirect=${encodeURIComponent(redirect)}` : AppRoute.LOGIN);
+          navigate(
+            redirect
+              ? `${AppRoute.LOGIN}?redirect=${encodeURIComponent(redirect)}`
+              : AppRoute.LOGIN,
+          );
         },
         onError: (err) => {
           toast.error("Registration Failed", {
@@ -77,8 +93,12 @@ export default function RegisterComplete() {
   // 🛡️ Guard Clause: Redirect back to basic registration step if state is missing
   // Combined with !isSuccess to prevent submission cleanup (clearRegisterData) from triggering a redirect loop.
   if (!registerData && !isSuccess) {
-    const redirectParam = redirect ? `?redirect=${encodeURIComponent(redirect)}` : "";
-    return <Navigate to={`${AppRoute.REGISTER_BASIC}${redirectParam}`} replace />;
+    const redirectParam = redirect
+      ? `?redirect=${encodeURIComponent(redirect)}`
+      : "";
+    return (
+      <Navigate to={`${AppRoute.REGISTER_BASIC}${redirectParam}`} replace />
+    );
   }
 
   return (
@@ -98,23 +118,27 @@ export default function RegisterComplete() {
       </div>
 
       <div className="mb-6 text-center">
-        <h2 className="text-lg font-semibold text-[#1C4D8D]">
-          Complete Registration
-        </h2>
-        <p className="text-sm text-gray-500 mt-1">Fill in your information to start using DreamGuard</p>
+        <h2 className="text-lg font-semibold text-[#1C4D8D]">Registration</h2>
+        <p className="text-sm text-gray-500 mt-1">
+          Fill in your information to start using DreamGuard
+        </p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         {/* Readonly Section */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <Label className="text-xs font-bold text-slate-500 flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-slate-400" /> Email</Label>
+            <Label className="text-xs font-bold text-slate-500 flex items-center gap-1.5">
+              <Mail className="w-3.5 h-3.5 text-slate-400" /> Email
+            </Label>
             <div className="px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-lg text-slate-500 text-xs truncate">
               {registerData?.email}
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-bold text-slate-500 flex items-center gap-1.5"><Smartphone className="w-3.5 h-3.5 text-slate-400" /> Phone</Label>
+            <Label className="text-xs font-bold text-slate-500 flex items-center gap-1.5">
+              <Smartphone className="w-3.5 h-3.5 text-slate-400" /> Phone
+            </Label>
             <div className="px-3 py-2.5 bg-slate-50 border border-slate-100 rounded-lg text-slate-500 text-xs">
               {registerData?.phoneNumber}
             </div>
@@ -122,7 +146,7 @@ export default function RegisterComplete() {
         </div>
 
         {/* Full Name */}
-        <div className="space-y-1.5">
+        {/* <div className="space-y-1.5">
           <Label htmlFor="fullName" className="text-sm font-semibold text-slate-700">Full Name</Label>
           <div className="relative">
             <Input
@@ -134,11 +158,27 @@ export default function RegisterComplete() {
             <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           </div>
           {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName.message}</p>}
+        </div> */}
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <Label>First Name</Label>
+            <Input {...register("firstName", { required: "Required" })} />
+          </div>
+          <div>
+            <Label>Last Name</Label>
+            <Input {...register("lastName", { required: "Required" })} />
+          </div>
         </div>
 
         {/* Password */}
         <div className="space-y-1.5">
-          <Label htmlFor="password" className="text-sm font-semibold text-slate-700">Password</Label>
+          <Label
+            htmlFor="password"
+            className="text-sm font-semibold text-slate-700"
+          >
+            Password
+          </Label>
           <div className="relative">
             <Input
               id="password"
@@ -163,7 +203,11 @@ export default function RegisterComplete() {
               {showPassword ? <EyeOffIcon size={16} /> : <EyeIcon size={16} />}
             </button>
           </div>
-          {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>}
+          {errors.password && (
+            <p className="text-red-500 text-xs mt-1">
+              {errors.password.message}
+            </p>
+          )}
         </div>
 
         {/* Gender */}
@@ -172,21 +216,27 @@ export default function RegisterComplete() {
           <div className="flex gap-2 p-1 bg-gray-50 border border-gray-100 rounded-xl h-11">
             <button
               type="button"
-              onClick={() => setValue('gender', 'Male', { shouldValidate: true })}
-              className={`flex-1 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-all ${genderValue === 'Male'
-                ? "bg-white shadow-sm border border-blue-100 text-blue-500"
-                : "text-gray-400 hover:text-gray-600"
-                }`}
+              onClick={() =>
+                setValue("gender", "Male", { shouldValidate: true })
+              }
+              className={`flex-1 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                genderValue === "Male"
+                  ? "bg-white shadow-sm border border-blue-100 text-blue-500"
+                  : "text-gray-400 hover:text-gray-600"
+              }`}
             >
               <FaMale className="w-4 h-4" /> Male
             </button>
             <button
               type="button"
-              onClick={() => setValue('gender', 'Female', { shouldValidate: true })}
-              className={`flex-1 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-all ${genderValue === 'Female'
-                ? "bg-white shadow-sm border border-pink-100 text-pink-500"
-                : "text-gray-400 hover:text-gray-600"
-                }`}
+              onClick={() =>
+                setValue("gender", "Female", { shouldValidate: true })
+              }
+              className={`flex-1 rounded-lg text-sm font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                genderValue === "Female"
+                  ? "bg-white shadow-sm border border-pink-100 text-pink-500"
+                  : "text-gray-400 hover:text-gray-600"
+              }`}
             >
               <FaFemale className="w-4 h-4" /> Female
             </button>
@@ -221,7 +271,11 @@ export default function RegisterComplete() {
           {errors.dateOfBirth && <p className="text-red-500 text-xs mt-1">{errors.dateOfBirth.message}</p>}
         </div>
 
-        <Button type="submit" disabled={isPending} className="w-full h-11 bg-[var(--color-auth-btn-bg)] hover:bg-[var(--color-auth-btn-hover)] text-[var(--color-auth-btn-text)] font-semibold rounded-lg border-2 border-[var(--color-auth-btn-border)] shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98]">
+        <Button
+          type="submit"
+          disabled={isPending}
+          className="w-full h-11 bg-[var(--color-auth-btn-bg)] hover:bg-[var(--color-auth-btn-hover)] text-[var(--color-auth-btn-text)] font-semibold rounded-lg border-2 border-[var(--color-auth-btn-border)] shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98]"
+        >
           {isPending ? "Creating..." : "Complete Registration"}
         </Button>
       </form>

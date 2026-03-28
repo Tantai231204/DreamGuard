@@ -100,10 +100,17 @@ export default function AdminPageHeader({
               return (
                 <motion.div
                   key={index}
-                  whileHover={{ scale: 1.05 }}
-                  className="text-center px-4 py-2 rounded-xl bg-slate-50 border border-slate-100 shadow-sm"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.2 }}
+                  whileHover={{ 
+                    backgroundColor: "white",
+                    borderColor: "#3b82f6",
+                    boxShadow: "0 10px 15px -3px rgba(59, 131, 246, 0.05)"
+                  }}
+                  className="text-center px-4 py-2 rounded-xl bg-slate-50 border border-slate-100 shadow-sm transition-colors duration-200"
                 >
-                  <div className="flex items-center gap-2 mb-1 justify-center">
+                  <div className="flex items-center gap-2 mb-0.5 justify-center">
                     {StatIcon && (
                       typeof StatIcon === 'string' ? (
                         <img src={StatIcon} alt="icon" className="h-4 w-4 object-contain opacity-70 grayscale" />

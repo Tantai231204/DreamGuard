@@ -13,7 +13,8 @@ import type {
   PaginationState,
   Updater,
 } from '@tanstack/react-table';
-import { Briefcase } from 'lucide-react';
+import { Briefcase, ShieldCheck, ShoppingBag, Sparkles } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AdminPageHeader from '@/components/layout/AdminPageHeader';
 import { AdminTableSearch, AdminTablePagination, AdminTableContent } from '@/components/admin';
 
@@ -42,6 +43,16 @@ export default function StaffPage() {
   }), [searchParams]);
 
   const globalFilter = searchParams.get('search') || '';
+  const roleFilter = searchParams.get('role') || 'all';
+
+  const setRoleFilter = useCallback((value: string) => {
+    setSearchParams((prev) => {
+      if (value === 'all') prev.delete('role');
+      else prev.set('role', value);
+      prev.set('page', '1'); // Reset to first page
+      return prev;
+    });
+  }, [setSearchParams]);
 
   const setPagination = useCallback((updaterOrValue: Updater<PaginationState>) => {
     const next = typeof updaterOrValue === 'function' ? updaterOrValue(pagination) : updaterOrValue;
@@ -63,7 +74,7 @@ export default function StaffPage() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
-  
+
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
   const [roleStaff, setRoleStaff] = useState<{ id: string; role: string } | null>(null);
 
@@ -73,8 +84,31 @@ export default function StaffPage() {
     pageNumber: pagination.pageIndex + 1,
     pageSize: pagination.pageSize,
     key: debouncedSearch || undefined,
-  });
-  const staffList = useMemo(() => data?.items || [], [data]);
+    // Send both variants for maximum compatibility if server is picky
+    role: roleFilter !== 'all' ? roleFilter : undefined,
+    Role: roleFilter !== 'all' ? roleFilter : undefined,
+  } as any);
+
+  const staffList = useMemo(() => {
+    const list = data?.items || [];
+    if (roleFilter !== 'all') {
+      const targetRole = roleFilter.toLowerCase();
+      return list.filter(staff => {
+        // Robust case-insensitive check against both role and position
+        const staffRole = (staff.role || '').toLowerCase();
+        const staffPosition = (staff.position || '').toLowerCase();
+        
+        return staffRole === targetRole || 
+               staffPosition === targetRole ||
+               // Handle "Cleaning Staff" vs "CleaningStaff"
+               (targetRole === 'cleaningstaff' && 
+                (staffRole.includes('clean') || staffPosition.includes('clean') || staffRole.includes('technician'))) ||
+               (targetRole === 'manager' && staffRole.includes('manager')) ||
+               (targetRole === 'seller' && (staffRole.includes('seller') || staffRole.includes('sale')));
+      });
+    }
+    return list;
+  }, [data, roleFilter]);
 
   const createMutation = useCreateStaff();
   const updateMutation = useUpdateStaff();
@@ -210,13 +244,32 @@ export default function StaffPage() {
           className="flex-1 bg-white rounded-2xl border-2 border-gray-100 overflow-hidden shadow-xl m-6 flex flex-col"
         >
           <div className="flex flex-col h-full overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+              <Tabs value={roleFilter} onValueChange={setRoleFilter} className="w-full">
+                <TabsList className="bg-white/80 border border-gray-200 p-1 rounded-xl h-11 shadow-sm">
+                  <TabsTrigger value="all" className="rounded-lg px-6 text-xs font-bold data-[state=active]:bg-[var(--color-primary)] data-[state=active]:text-white transition-all">
+                    Show All
+                  </TabsTrigger>
+                  <TabsTrigger value="Manager" className="rounded-lg px-6 text-xs font-bold data-[state=active]:bg-indigo-600 data-[state=active]:text-white transition-all flex items-center gap-2">
+                    <ShieldCheck className="w-3.5 h-3.5" /> Managers
+                  </TabsTrigger>
+                  <TabsTrigger value="Seller" className="rounded-lg px-6 text-xs font-bold data-[state=active]:bg-emerald-600 data-[state=active]:text-white transition-all flex items-center gap-2">
+                    <ShoppingBag className="w-3.5 h-3.5" /> Sellers
+                  </TabsTrigger>
+                  <TabsTrigger value="CleaningStaff" className="rounded-lg px-6 text-xs font-bold data-[state=active]:bg-amber-500 data-[state=active]:text-white transition-all flex items-center gap-2">
+                    <Sparkles className="w-3.5 h-3.5" /> Cleaning Staff
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+
             <AdminTableSearch
               value={globalFilter}
               onChange={setGlobalFilter}
               placeholder="Search staff by name, email, or position..."
               table={table}
-              resultCount={data?.totalCount ?? 0}
-              resultLabel="staff"
+              resultCount={roleFilter === 'all' ? (data?.totalCount ?? 0) : staffList.length}
+              resultLabel={roleFilter === 'all' ? "staff" : `matching ${roleFilter}s`}
               actions={<StaffActions onAdd={handleAdd} onExport={handleExport} />}
             />
 

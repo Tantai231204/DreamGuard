@@ -79,10 +79,11 @@ export interface ServiceEvidence {
 export interface Staff {
   staffId: string;
   fullName: string;
-  phoneNumber: string;
+  phoneNumber?: string;
   address?: string;
   avatarUrl?: string;
   position?: string;
+  role?: string;
   gender?: string;
   dateOfBirth?: string;
   email?: string;

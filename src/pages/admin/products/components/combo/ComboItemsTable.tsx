@@ -31,8 +31,6 @@ interface ComboItemsTableProps {
     onDeleteVariant?: (variant: Combo) => void;
 }
 
-
-
 export default function ComboItemsTable({
     comboId,
     items: fallbackItems = [],
@@ -99,7 +97,7 @@ export default function ComboItemsTable({
             {/* Background Decoration for "Nested" Feel */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-primary-50/50 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none" />
 
-            {/* Header Section - Clean & Focused */}
+            {/* Header Section */}
             <header className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
                 <div className="flex items-center gap-4">
                     <div className="h-11 w-11 rounded-2xl bg-white border-2 border-primary-100 flex items-center justify-center shadow-lg shadow-primary-100/50 text-primary-600">

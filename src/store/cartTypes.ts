@@ -8,6 +8,7 @@ export interface TradeInItem {
 
 export interface CartItem {
     id: string
+    productId?: string
     name: string
     image: string
     price: number
@@ -24,4 +25,16 @@ export interface CartItem {
     sku?: string
     availableStock?: number
     isAvailable?: boolean
+    isCustom?: boolean
+    customAttributes?: {
+        length?: number;
+        width?: number;
+        thickness?: number;
+        colorHex?: string;
+    }
+    customizeTypeIds?: string[]
+    ProductCustomizeDetailRequest?: Array<{
+        ProductCustomizeTypeId: string;
+        CustomizeContent: string;
+    }>
 }

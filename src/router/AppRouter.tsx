@@ -55,6 +55,7 @@ const VoucherManagement = lazy(() => import("../pages/admin/vouchers"));
 const UserManagement = lazy(() => import("../pages/admin/users"));
 const StaffManagement = lazy(() => import("../pages/admin/staff"));
 const PaymentManagement = lazy(() => import("../pages/admin/payments"));
+const CustomizeTypeManagement = lazy(() => import("../pages/admin/customize-types"));
 
 import { AuthRedirectNotice } from "../components/router/AuthRedirectNotice";
 
@@ -128,6 +129,7 @@ export default function AppRouter() {
                         <Route path="/admin/users" element={<UserManagement />} />
                         <Route path="/admin/staff" element={<StaffManagement />} />
                         <Route path="/admin/payments" element={<PaymentManagement />} />
+                        <Route path="/admin/customize-types" element={<CustomizeTypeManagement />} />
                     </Route>
                 </Route>
 

@@ -212,8 +212,12 @@ export default function WishlistTab() {
                         <Heart className="h-8 w-8 text-primary/40 animate-pulse" />
                     </div>
                     <h3 className="text-xl font-bold text-gray-800">Your wishlist is empty</h3>
-                    <p className="text-sm text-gray-400 max-w-xs mx-auto mt-2 font-medium">Explore collections and save items here.</p>
-                    <Button variant="premium" size="premiumLg" className="relative mt-8">Start Shopping</Button>
+                    <p className="text-sm text-gray-400 max-w-xs mx-auto mt-2 font-medium leading-relaxed">
+                        Explore our collections and save your favorite items here.
+                    </p>
+                    <Button variant="premium" size="premiumLg" className="relative mt-8" asChild>
+                        <a href="/products">Start Shopping</a>
+                    </Button>
                 </div>
             )}
         </div>

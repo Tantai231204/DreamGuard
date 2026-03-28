@@ -33,6 +33,7 @@ import { useStockAdjustment } from './useStockAdjustment';
 import StockAdjustmentDialog from './StockAdjustmentDialog';
 import type { TransformedAdminVariants } from '@/pages/admin/products/utils/variant-utils';
 import { useToast } from '@/hooks/useToast';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 /* ─── Stock Status Config ───────────────────────────────── */
 const stockStatusConfig: Record<string, { label: string; className: string }> = {
@@ -75,6 +76,30 @@ export default function VariantTable({
   const colorGroups = data?.colorGroups ?? [];
   const totalVariants = data?.totalVariants ?? 0;
   const stats = data?.stats;
+
+  const [confirmStatus, setConfirmStatus] = useState<{
+    variantId: string;
+    sku: string;
+    targetStatus: string;
+  } | null>(null);
+
+  const updateStatusMutation = useUpdateVariantStatus();
+  const toast = useToast();
+
+  const handleConfirmStatus = useCallback(() => {
+    if (!confirmStatus) return;
+
+    updateStatusMutation.mutate(
+      { variantId: confirmStatus.variantId, status: confirmStatus.targetStatus },
+      {
+        onSuccess: () => {
+          toast.success('Status updated', `Variant ${confirmStatus.sku} is now ${confirmStatus.targetStatus}.`);
+          setConfirmStatus(null);
+        },
+        onError: () => toast.error('Failed', 'Could not update variant status.'),
+      }
+    );
+  }, [confirmStatus, updateStatusMutation, toast]);
 
   // Toggle expand/collapse
   const toggleGroup = useCallback((color: string) => {
@@ -171,6 +196,7 @@ export default function VariantTable({
                     onEditVariant={onEditVariant}
                     onDeleteVariant={onDeleteVariant}
                     onStockAdjust={openDialog}
+                    onStatusChange={(vId, sku, status) => setConfirmStatus({ variantId: vId, sku, targetStatus: status })}
                   />
                 ))}
               </div>
@@ -209,6 +235,18 @@ export default function VariantTable({
         onClose={closeDialog}
         onSubmit={submitStockAdjustment}
       />
+
+      {/* Status Confirmation */}
+      <ConfirmDialog
+        open={!!confirmStatus}
+        onOpenChange={(open) => !open && setConfirmStatus(null)}
+        title="Confirm Status Change"
+        description={confirmStatus ? `Are you sure you want to change variant **"${confirmStatus.sku}"** to **"${confirmStatus.targetStatus}"**?` : ''}
+        confirmText="Confirm Change"
+        onConfirm={handleConfirmStatus}
+        isLoading={updateStatusMutation.isPending}
+        variant={confirmStatus ? variantStatusStyles[confirmStatus.targetStatus].variant : 'warning'}
+      />
     </motion.div>
   );
 }
@@ -221,6 +259,7 @@ function ColorGroupRow({
   onEditVariant,
   onDeleteVariant,
   onStockAdjust,
+  onStatusChange,
 }: {
   group: NonNullable<TransformedAdminVariants>['colorGroups'][number];
   isExpanded: boolean;
@@ -228,6 +267,7 @@ function ColorGroupRow({
   onEditVariant: (variantId: string) => void;
   onDeleteVariant: (variantId: string) => void;
   onStockAdjust: (type: 'add' | 'reduce', variantId: string, sku: string, currentStock: number) => void;
+  onStatusChange: (variantId: string, sku: string, status: string) => void;
 }) {
   return (
     <div className="group/grouprow">
@@ -297,6 +337,7 @@ function ColorGroupRow({
                   onDelete={() => onDeleteVariant(variant.id)}
                   onAddStock={() => onStockAdjust('add', variant.id, variant.sku, variant.stockQuantity)}
                   onReduceStock={() => onStockAdjust('reduce', variant.id, variant.sku, variant.stockQuantity)}
+                  onStatusChange={onStatusChange}
                 />
               ))}
             </div>
@@ -308,10 +349,10 @@ function ColorGroupRow({
 }
 
 /* ─── Variant Status Config ─────────────────────────────── */
-const variantStatusStyles: Record<string, { dot: string; label: string }> = {
-  Published: { dot: 'bg-emerald-500', label: 'Published' },
-  Draft: { dot: 'bg-amber-400', label: 'Draft' },
-  Hidden: { dot: 'bg-gray-400', label: 'Hidden' },
+const variantStatusStyles: Record<string, { dot: string; label: string; variant: 'success' | 'warning' | 'info' }> = {
+  Published: { dot: 'bg-emerald-500', label: 'Published', variant: 'success' },
+  Draft: { dot: 'bg-amber-400', label: 'Draft', variant: 'warning' },
+  Hidden: { dot: 'bg-gray-400', label: 'Hidden', variant: 'info' },
 };
 
 /* ─── Variant Row ──────────────────────────────────────── */
@@ -321,40 +362,39 @@ function VariantRow({
   onDelete,
   onAddStock,
   onReduceStock,
+  onStatusChange,
 }: {
   variant: NonNullable<TransformedAdminVariants>['colorGroups'][number]['variants'][number];
   onEdit: () => void;
   onDelete: () => void;
   onAddStock: () => void;
   onReduceStock: () => void;
+  onStatusChange: (variantId: string, sku: string, status: string) => void;
 }) {
   const hasSale = variant.salePrice < variant.basePrice;
-  const statusConfig = stockStatusConfig[variant.stockStatus] || stockStatusConfig[variant.status] || stockStatusConfig['Out of Stock'];
   const toast = useToast();
   const hasZeroStock = !variant.stockQuantity || variant.stockQuantity <= 0;
-
-  // Quick action mutations
-  const updateStatusMutation = useUpdateVariantStatus();
 
   const handleQuickStatus = useCallback((newStatus: string) => {
     if (newStatus === variant.status) return;
 
     if (hasZeroStock && (newStatus === 'Published' || newStatus === 'Hidden')) {
-        toast.error('Invalid Status', 'Cannot activate or hide variant with zero stock.');
-        return;
+      toast.error('Invalid Status', 'Cannot activate or hide variant with zero stock.');
+      return;
     }
 
-    updateStatusMutation.mutate(
-      { variantId: variant.id, status: newStatus },
-      {
-        onSuccess: () => toast.success('Status updated', `Variant is now ${newStatus}.`),
-        onError: () => toast.error('Failed', 'Could not update variant status.'),
-      }
-    );
-  }, [variant.id, variant.status, hasZeroStock, updateStatusMutation, toast]);
+    onStatusChange(variant.id, variant.sku, newStatus);
+  }, [variant.id, variant.sku, variant.status, hasZeroStock, onStatusChange, toast]);
 
   const currentStatus = variant.status || 'Draft';
   const statusStyle = variantStatusStyles[currentStatus] || variantStatusStyles.Draft;
+
+  const isVariantCustomizable =
+    variant.isCustomizable ||
+    variant.is_customizable ||
+    (variant.customizeTypes && variant.customizeTypes.length > 0) ||
+    (variant.customizeOptions && variant.customizeOptions.length > 0);
+  const isNoSize = variant.dimensions === 'N/A' || !variant.dimensions || variant.dimensions === '';
 
   return (
     <div className="grid grid-cols-[80px_100px_1fr_120px_140px_120px_60px] gap-4 items-center px-10 py-3.5 hover:bg-slate-50/50 transition-all group/vrow relative">
@@ -364,8 +404,13 @@ function VariantRow({
 
       {/* Size badge */}
       <div>
-        <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-xs font-black text-slate-700 shadow-sm leading-none group-hover/vrow:border-indigo-200 group-hover/vrow:bg-indigo-50/30 transition-colors">
-          {variant.dimensions}
+        <span className={cn(
+          "inline-flex items-center justify-center px-3 py-1.5 rounded-lg border text-xs font-black shadow-sm leading-none transition-all",
+          isNoSize && isVariantCustomizable
+            ? "bg-blue-50 border-blue-200 text-blue-600 group-hover/vrow:bg-blue-100/50 group-hover/vrow:border-blue-300"
+            : "bg-white border-slate-200 text-slate-700 group-hover/vrow:border-indigo-200 group-hover/vrow:bg-indigo-50/30"
+        )}>
+          {isNoSize && isVariantCustomizable ? 'Custom Size' : variant.dimensions}
         </span>
       </div>
 
@@ -374,6 +419,12 @@ function VariantRow({
         <span className="font-mono text-[11px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded border border-slate-100 truncate block uppercase tracking-tighter">
           {variant.sku}
         </span>
+        {isVariantCustomizable && (
+          <div className="flex items-center gap-1 mt-0.5">
+            <Sparkles className="h-2.5 w-2.5 text-blue-500" />
+            <span className="text-[9px] font-semibold text-blue-500 uppercase tracking-wider">Customizable</span>
+          </div>
+        )}
       </div>
 
       {/* Price */}
@@ -398,7 +449,7 @@ function VariantRow({
             disabled={variant.isOutOfStock}
             className={cn(
               "h-7 w-7 p-0 rounded-lg transition-all scale-90",
-              variant.isOutOfStock 
+              variant.isOutOfStock
                 ? "invisible opacity-0 pointer-events-none"
                 : "opacity-0 group-hover/vrow:opacity-100 hover:bg-red-50 hover:text-red-600"
             )}
@@ -438,10 +489,14 @@ function VariantRow({
           variant="outline"
           className={cn(
             "text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border shadow-none",
-            statusConfig.className
+            variant.isOutOfStock
+              ? stockStatusConfig['Out of Stock'].className
+              : variant.isLowStock
+                ? stockStatusConfig['Low Stock'].className
+                : stockStatusConfig['In Stock'].className
           )}
         >
-          {statusConfig.label}
+          {variant.isOutOfStock ? 'Out of Stock' : variant.isLowStock ? 'Low Stock' : 'In Stock'}
         </Badge>
         <span className="flex items-center gap-1 text-[10px] text-slate-400 font-medium">
           <span className={cn('w-1.5 h-1.5 rounded-full', statusStyle.dot)} />

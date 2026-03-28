@@ -27,6 +27,7 @@ export interface StaffParams {
   pageNumber?: number;
   pageSize?: number;
   key?: string;
+  Role?: string;
 }
 
 export interface CreateStaffRequest {

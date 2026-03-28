@@ -9,7 +9,8 @@ import GeneralSection from './GeneralSection';
 import ClassificationSection from './ClassificationSection';
 import PolicyStatusSection from './PolicyStatusSection';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Info, LayoutGrid, ShieldCheck } from 'lucide-react';
+import { Info, LayoutGrid, ShieldCheck, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface ProductDialogFormProps {
     product?: Product | null;
@@ -37,6 +38,12 @@ export default function ProductDialogForm({
         [],
     );
 
+    /* ── Variant Count Check ── */
+    const variantCount = useMemo(() => {
+        if (!product) return 0;
+        return product.variantCount ?? product.variants?.length ?? 0;
+    }, [product]);
+
     /* ── Category tree hook ── */
     const { flatCategories, findTopLevelParent, childCategories, buildSlug } =
         useCategoryTree(categories, form.cateId);
@@ -48,7 +55,6 @@ export default function ProductDialogForm({
             const foundCat = flatCategories.find(c => String(c.cateId) === currentId);
 
             if (foundCat && foundCat.depth > 0) {
-                // cateId points to a child category — move it to subCateId, set parent as cateId
                 const parentId = findTopLevelParent(currentId);
                 dispatch({
                     type: 'SET_ALL',
@@ -58,7 +64,6 @@ export default function ProductDialogForm({
                     }
                 });
             } else if (foundCat && foundCat.depth === 0 && product.material) {
-                // cateId is a parent category — try to match material name to a subcategory
                 const parentCat = categories.find(c => String(c.cateId) === currentId);
                 const children = parentCat?.childCategoryList ?? [];
                 const matchedChild = children.find(
@@ -115,14 +120,34 @@ export default function ProductDialogForm({
         [childCategories, setField]
     );
 
+    /* ── Validation ── */
+    const hasSubcategories = childCategories.length > 0;
+    const materialOrSubcateValid = hasSubcategories ? form.subCateId !== '' : form.material.trim() !== '';
+
+    // Strict Rule: Cannot publish without variants
+    const isPublishingWithoutVariants = form.status === 'Published' && variantCount === 0;
+
+    const isValid =
+        form.name.trim() !== '' &&
+        form.slug.trim() !== '' &&
+        form.summary.trim() !== '' &&
+        form.description.trim() !== '' &&
+        materialOrSubcateValid &&
+        !isPublishingWithoutVariants;
+
     const handleSubmit = useCallback(
         (e: React.FormEvent) => {
             e.preventDefault();
-            const hasSub = childCategories.length > 0;
-            const validMaterial = form.material.trim();
-            const validSubCate = form.subCateId;
 
-            if (!form.name.trim() || !form.slug.trim() || !form.summary.trim() || !form.description.trim() || (hasSub ? !validSubCate : !validMaterial)) return;
+            if (isPublishingWithoutVariants) {
+                toast.error("Cannot publish product. Please add at least one variant first.", {
+                    description: "Switch status to Draft or add variants to proceed.",
+                    icon: <AlertCircle className="w-4 h-4 text-rose-500" />
+                });
+                return;
+            }
+
+            if (!isValid) return;
 
             onSubmit({
                 name: form.name.trim(),
@@ -137,18 +162,8 @@ export default function ProductDialogForm({
                 cateId: form.cateId ? Number(form.cateId) : null,
             });
         },
-        [form, childCategories, onSubmit],
+        [form, isValid, isPublishingWithoutVariants, onSubmit],
     );
-
-    /* ── Validation ── */
-    const hasSubcategories = childCategories.length > 0;
-    const materialOrSubcateValid = hasSubcategories ? form.subCateId !== '' : form.material.trim() !== '';
-    const isValid =
-        form.name.trim() !== '' &&
-        form.slug.trim() !== '' &&
-        form.summary.trim() !== '' &&
-        form.description.trim() !== '' &&
-        materialOrSubcateValid;
 
     // Calculate Form Completion %
     const completionScore = useMemo(() => {
@@ -178,7 +193,7 @@ export default function ProductDialogForm({
                         <LayoutGrid className="h-4 w-4" /> Attributes
                     </TabsTrigger>
                     <TabsTrigger value="policy" className="rounded-lg data-[state=active]:bg-[#4988c4] data-[state=active]:text-white data-[state=active]:shadow-sm text-xs font-bold gap-2">
-                        <ShieldCheck className="h-4 w-4" /> Policies
+                        <ShieldCheck className="h-4 w-4" /> {isPublishingWithoutVariants ? <span className="text-rose-500">Policies *</span> : "Policies"}
                     </TabsTrigger>
                 </TabsList>
 
@@ -218,6 +233,17 @@ export default function ProductDialogForm({
                     </TabsContent>
 
                     <TabsContent value="policy" className="mt-0 outline-none animate-in fade-in-50 duration-300">
+                        {isPublishingWithoutVariants && (
+                            <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3">
+                                <AlertCircle className="w-5 h-5 text-rose-500 mt-0.5" />
+                                <div className="space-y-1">
+                                    <p className="text-sm font-black text-rose-700 uppercase">Warning: Publishing Guard</p>
+                                    <p className="text-xs text-rose-600 font-medium leading-relaxed">
+                                        This product has <strong>0 variants</strong>. You cannot set it to <strong>Published</strong> until at least one size/color option is created.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
                         <PolicyStatusSection
                             warrantyPolicyDay={form.warrantyPolicyDay}
                             returnPolicyDay={form.returnPolicyDay}

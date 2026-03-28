@@ -8,7 +8,7 @@
 import { memo, useCallback } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
+import { cn, formatNumber } from '@/lib/utils';
 import {
     Plus, Trash2, Minus, ShoppingBag,
     GripVertical, AlertCircle, Sparkles,
@@ -223,11 +223,11 @@ const ComboItemsPanel = memo(function ComboItemsPanel({
                                                 <div className="flex items-center gap-1.5">
                                                     <span className="text-[11px] text-slate-400 font-mono truncate">{item.sku}</span>
                                                     <span className="text-[11px] font-bold text-primary-600">
-                                                        {item.salePrice.toLocaleString('en-US')}₫
+                                                        {formatNumber(item.salePrice)}₫
                                                     </span>
                                                     {item.salePrice < item.basePrice && (
                                                         <span className="text-[10px] text-slate-400 line-through">
-                                                            {item.basePrice.toLocaleString('en-US')}₫
+                                                            {formatNumber(item.basePrice)}₫
                                                         </span>
                                                     )}
                                                 </div>
@@ -259,7 +259,7 @@ const ComboItemsPanel = memo(function ComboItemsPanel({
 
                                             {/* Subtotal */}
                                             <span className="text-[12px] font-bold text-slate-800 min-w-[60px] text-right">
-                                                {subtotal.toLocaleString('en-US')}₫
+                                                {formatNumber(subtotal)}₫
                                             </span>
 
                                             {/* Change variant */}
@@ -291,7 +291,7 @@ const ComboItemsPanel = memo(function ComboItemsPanel({
                         </span>
                         <span>
                             Variant total:{' '}
-                            <span className="font-bold text-slate-800">{totalVariantPrice.toLocaleString('en-US')}₫</span>
+                            <span className="font-bold text-slate-800">{formatNumber(totalVariantPrice)}₫</span>
                         </span>
                     </div>
 

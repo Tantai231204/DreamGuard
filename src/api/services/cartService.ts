@@ -4,6 +4,11 @@ export interface AddCartItemRequest {
     productVariantId: string | null;
     comboId: string | null;
     quantity: number;
+    ProductCustomizeDetailRequest?: Array<{
+        ProductCustomizeTypeId: string;
+        CustomizeContent: string;
+    }>;
+    configHash?: string;
 }
 
 export interface CartItemResponse {
@@ -18,6 +23,12 @@ export interface CartItemResponse {
     subTotal: number;
     availableStock: number;
     isAvailable: boolean;
+    productCustomizeDetails: Array<{
+        customizeTypeName: string;
+        customizeContent: string;
+        addOnPrice: number;
+    }>;
+    totalAddOnPrice: number;
 }
 
 export interface CartResponse {

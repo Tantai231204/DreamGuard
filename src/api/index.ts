@@ -11,6 +11,7 @@ export {
   variantService,
   comboService,
   cartService,
+  customizeTypeService,
   type VerifyOtpRequest,
   type ResetPasswordRequest,
   type ChangePasswordRequest,
@@ -23,6 +24,10 @@ export type {
   VariantResponse,
   AdminVariantsByProductResponse,
   UpdateVariantStatusParams,
+  AssignVariantCustomizeTypeRequest,
+  UpdateVariantCustomizeTypePriceRequest,
+  VariantCustomizeTypeResponse,
+  CreateVariantWithCustomizeRequest,
 } from "./services/variantService";
 
 // Combo Types (exported from service)

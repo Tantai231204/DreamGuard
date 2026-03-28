@@ -26,6 +26,7 @@ import {
     QuickInfoCard,
 } from './components/detail';
 import { ImageUploadDialog } from './components/dialogs';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 export default function AdminProductDetailPage() {
     const { id } = useParams<{ id: string }>();
@@ -83,12 +84,19 @@ export default function AdminProductDetailPage() {
         return () => window.removeEventListener('keydown', handler);
     }, [navigate, lightboxIndex]);
 
-    const handleDeleteImage = async (assetId: string) => {
-        if (!id && !product?.id) return;
-        setDeletingAssetId(assetId);
+    const [assetToDelete, setAssetToDelete] = useState<string | null>(null);
+
+    const handleDeleteImage = useCallback(async (assetId: string) => {
+        setAssetToDelete(assetId);
+    }, []);
+
+    const handleConfirmDeleteImage = async () => {
+        if (!assetToDelete) return;
+        setDeletingAssetId(assetToDelete);
         try {
-            await deleteMutation.mutateAsync(assetId);
+            await deleteMutation.mutateAsync(assetToDelete);
             queryClient.invalidateQueries({ queryKey: productKeys.detail(id ?? product!.id) });
+            setAssetToDelete(null);
         } finally {
             setDeletingAssetId(null);
         }
@@ -318,6 +326,18 @@ export default function AdminProductDetailPage() {
                 productName={product.name}
                 onUpload={handleUpload}
                 isUploading={uploadMutation.isPending}
+            />
+
+            {/* ── Delete Image Confirmation ── */}
+            <ConfirmDialog
+                open={!!assetToDelete}
+                onOpenChange={(open) => { if (!open) setAssetToDelete(null); }}
+                title="Delete Media Asset?"
+                description="Are you sure you want to remove this image from the product gallery? This action cannot be reversed."
+                confirmText="Remove Asset"
+                onConfirm={handleConfirmDeleteImage}
+                variant="danger"
+                isLoading={deleteMutation.isPending}
             />
         </div>
     );

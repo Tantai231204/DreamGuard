@@ -166,3 +166,9 @@ export const staggerContainer = {
         transition: { staggerChildren: 0.1 }
     }
 };
+
+export const MATTRESS_LIMITS = {
+    width: { min: 80, max: 240, step: 10, label: "Width" },
+    length: { min: 100, max: 240, step: 10, label: "Length" },
+    thickness: { min: 5, max: 40, step: 5, label: "Thickness" }
+};

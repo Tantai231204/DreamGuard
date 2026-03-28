@@ -93,11 +93,21 @@ export function transformAdminVariants(data: AdminVariantsByProductResponse) {
   let outOfStock = 0;
 
   const transformedGroups = colorGroups.map((group) => {
-    // Determine group color hex
-    // Priority:
-    // 1. group.hexColor (from backend)
-    // 2. Search for any hexColor in variants' attributes
-    // 3. group.color (name)
+    const isAnyCustomizable = group.variants.some(v => 
+      v.isCustomizable || 
+      v.is_customizable || // Fallback for snake_case
+      v.customizeLabel ||
+      (v.customizeTypes?.length ?? 0) > 0 || 
+      (v.customizeOptions?.length ?? 0) > 0
+    );
+    let groupLabel = group.color;
+
+    // Standardize labels
+    const isMissingLabel = !groupLabel || groupLabel.toLowerCase() === 'unknown' || groupLabel.trim() === '';
+    if (isMissingLabel) {
+      groupLabel = isAnyCustomizable ? 'Customizable' : 'Standard';
+    }
+
     let groupHex = group.hexColor;
 
     if (!groupHex || groupHex === '') {
@@ -111,7 +121,6 @@ export function transformAdminVariants(data: AdminVariantsByProductResponse) {
       groupHex = group.color;
     }
 
-    // Process through resolver
     const resolvedHex = getColorHex(groupHex);
 
     const transformedVariants = group.variants.map((v) => {
@@ -122,13 +131,16 @@ export function transformAdminVariants(data: AdminVariantsByProductResponse) {
       const stock = v.stockQuantity ?? 0;
       totalStock += stock;
 
-      // Normalize status logic
-      const isLow = v.stockStatus === 'Low Stock';
-      const isOOS = v.stockStatus === 'Out of Stock' || v.status === 'OutOfStock' || (v.stockQuantity !== undefined && v.stockQuantity <= 0);
+      // Status logic: A variant can be both in stock AND low stock.
+      // OOS is a hard status. Low stock is a warning.
+      const isOOS = v.stockStatus === 'Out of Stock' || v.status === 'OutOfStock' || stock <= 0;
+      const isLow = v.stockStatus === 'Low Stock' || (stock > 0 && stock <= 5); // Fallback threshold
 
       if (isOOS) outOfStock++;
-      else if (isLow) lowStock++;
-      else inStock++;
+      else {
+        inStock++; // It is in stock if not OOS
+        if (isLow) lowStock++;
+      }
 
       return {
         ...v,
@@ -140,6 +152,7 @@ export function transformAdminVariants(data: AdminVariantsByProductResponse) {
 
     return {
       ...group,
+      color: groupLabel,
       colorHex: resolvedHex,
       variants: transformedVariants,
       groupStock: transformedVariants.reduce((sum, v) => sum + (v.stockQuantity ?? 0), 0),
@@ -151,7 +164,7 @@ export function transformAdminVariants(data: AdminVariantsByProductResponse) {
 
   return {
     productId: data.productId,
-    productName: data.productName || 'Unknown Product',
+    productName: data.productName || 'Catalog Item',
     totalVariants,
     colorGroups: transformedGroups,
     stats: {

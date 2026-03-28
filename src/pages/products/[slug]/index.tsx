@@ -127,6 +127,7 @@ export default function ProductDetail() {
             <ProductImageGallery
               images={state.productImages}
               productName={product.name}
+              productSummary={product.summary}
               selectedImage={state.selectedImage}
               onSelectImage={actions.setSelectedImage}
               isWishlisted={isWishlisted}
@@ -176,6 +177,18 @@ export default function ProductDetail() {
               onQuantityChange={actions.setQuantity}
               onAddToCart={actions.handleAddToCart}
               tradeInValue={state.tradeInValue}
+              isCustomSize={state.isCustomSize}
+              isCustomColor={state.isCustomColor}
+              onIsCustomSizeChange={actions.setIsCustomSize}
+              onIsCustomColorChange={actions.setIsCustomColor}
+              customDimensions={state.customDimensions}
+              onCustomDimensionChange={actions.handleCustomDimensionChange}
+              customColorHex={state.customColorHex}
+              onCustomColorHexChange={actions.setCustomColorHex}
+              colorSurchargePrice={state.currentPriceInfo.colorSurcharge}
+              sizeSurchargePrice={state.currentPriceInfo.sizeSurcharge}
+              canCustomizeColor={state.canCustomizeColor}
+              canCustomizeSize={state.canCustomizeSize}
             />
 
             <TradeInSelector

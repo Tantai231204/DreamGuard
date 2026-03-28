@@ -33,10 +33,13 @@ export function UserHeader({ user, isLoading }: UserHeaderProps) {
         <div className="p-5 pb-4 border-b border-gray-50 bg-gradient-to-b from-gray-50/30 to-transparent">
             <div className="flex items-center gap-3">
                 <Avatar className="h-12 w-12 border-2 border-white shadow-sm ring-1 ring-gray-100">
-                    <AvatarImage src={user.avatarUrl} alt={user.name} />
-                    <AvatarFallback className="bg-gray-100 text-gray-500 font-semibold text-xs">
-                        {initials}
-                    </AvatarFallback>
+                    {user.avatarUrl ? (
+                        <AvatarImage src={user.avatarUrl} alt={user.name} />
+                    ) : (
+                        <AvatarFallback className="bg-gray-100 text-gray-500 font-semibold text-xs">
+                            {initials}
+                        </AvatarFallback>
+                    )}
                 </Avatar>
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">

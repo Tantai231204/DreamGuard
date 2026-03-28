@@ -54,20 +54,43 @@ export function OrderSummary({ cart, totalPrice, tradeInDiscount = 0, finalTotal
                                     className="rounded-[1.5rem] border-2 border-emerald-50 bg-emerald-50/20 p-4 space-y-4"
                                 >
                                     <div className="flex gap-4">
-                                        <div className="relative h-16 w-16 shrink-0">
-                                            <div className="h-full w-full overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-emerald-100">
-                                                <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
-                                            </div>
+                                         <div className="relative h-16 w-16 shrink-0">
+                                             <div className="h-full w-full overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-emerald-100 relative">
+                                                 <img src={item.image} alt={item.name} className="h-full w-full object-cover" />
+                                                 {item.isCustom && (
+                                                     <div className="absolute top-0 left-0 bg-amber-500 text-white text-[6px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded-br-md z-10 shadow-sm">
+                                                         Custom
+                                                     </div>
+                                                 )}
+                                             </div>
                                             <span className="absolute top-0 right-0 translate-x-1/3 -translate-y-1/3 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-black text-white ring-2 ring-white z-10 shadow-sm">
                                                 {item.quantity}
                                             </span>
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <h4 className="text-sm font-black text-slate-900 truncate">{item.name}</h4>
-                                            <div className="mt-1 flex items-baseline gap-2">
+                                            <div className="mt-1 flex flex-wrap items-center gap-2">
                                                 <span className="text-xs font-black text-emerald-600">{formatPrice(item.subtotal)}</span>
                                                 <span className="text-[10px] text-slate-400 line-through font-bold">{formatPrice(item.quantity * item.price)}</span>
+                                                {item.isCustom && (
+                                                    <span className="px-1.5 py-0.5 rounded bg-amber-50 text-[8px] font-black text-amber-600 uppercase tracking-tighter">Custom</span>
+                                                )}
                                             </div>
+                                            {(item.size === 'Custom' || item.color === 'Custom') && (
+                                                <div className="mt-1 flex flex-col gap-0.5">
+                                                    {item.size === 'Custom' && item.customAttributes?.length && (
+                                                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">
+                                                            {item.customAttributes.length}x{item.customAttributes.width}x{item.customAttributes.thickness} cm
+                                                        </span>
+                                                    )}
+                                                    {item.color === 'Custom' && item.customAttributes?.colorHex && (
+                                                        <div className="flex items-center gap-1">
+                                                            <div className="w-2 h-2 rounded-full border border-slate-200" style={{ backgroundColor: item.customAttributes.colorHex }} />
+                                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">{item.customAttributes.colorHex}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 
@@ -101,23 +124,28 @@ export function OrderSummary({ cart, totalPrice, tradeInDiscount = 0, finalTotal
                     {/* Regular Items - Fixed & Sharp Design */}
                     {regularItems.map((item) => (
                         <div key={item.id} className="flex gap-5 group/item items-center py-4 border-b border-slate-50 last:border-0">
-                            <div className="relative h-16 w-16 shrink-0">
-                                <div className="h-full w-full overflow-hidden rounded-xl bg-slate-50 border border-slate-100">
-                                    <img 
-                                        src={item.image} 
-                                        alt={item.name} 
-                                        className="h-full w-full object-cover"
-                                    />
-                                </div>
+                             <div className="relative h-16 w-16 shrink-0">
+                                 <div className="h-full w-full overflow-hidden rounded-xl bg-slate-50 border border-slate-100 relative">
+                                     <img 
+                                         src={item.image} 
+                                         alt={item.name} 
+                                         className="h-full w-full object-cover"
+                                     />
+                                     {item.isCustom && (
+                                         <div className="absolute top-0 left-0 bg-amber-500 text-white text-[6px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded-br-md z-10 shadow-sm">
+                                             Custom
+                                         </div>
+                                     )}
+                                 </div>
                                 <div className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-slate-900 border-2 border-white z-10 shadow-sm">
                                     <span className="text-[10px] font-black text-white leading-none">
                                         {item.quantity}
                                     </span>
                                 </div>
                             </div>
-                            <div className="flex-1 min-w-0 pr-2">
+                             <div className="flex-1 min-w-0 pr-2">
                                 <h4 className="text-[13px] font-black text-slate-900 truncate uppercase tracking-tight">{item.name}</h4>
-                                <div className="flex items-center gap-2 mt-1">
+                                <div className="flex flex-wrap items-center gap-2 mt-1">
                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                                         Qty: {item.quantity}
                                     </p>
@@ -125,7 +153,25 @@ export function OrderSummary({ cart, totalPrice, tradeInDiscount = 0, finalTotal
                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                                         {formatPrice(item.price)}
                                     </p>
+                                    {item.isCustom && (
+                                        <span className="px-1.5 py-0.5 rounded bg-amber-50 text-[8px] font-black text-amber-600 uppercase tracking-tighter">Custom Build</span>
+                                    )}
                                 </div>
+                                {(item.size === 'Custom' || item.color === 'Custom') && (
+                                    <div className="mt-1.5 flex flex-col gap-1">
+                                        {item.size === 'Custom' && item.customAttributes?.length && (
+                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none bg-slate-50 px-2 py-1 rounded w-fit">
+                                                Size: {item.customAttributes.length}x{item.customAttributes.width}x{item.customAttributes.thickness} cm
+                                            </span>
+                                        )}
+                                        {item.color === 'Custom' && item.customAttributes?.colorHex && (
+                                            <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded w-fit">
+                                                <div className="w-2 h-2 rounded-full border border-slate-200 shadow-sm" style={{ backgroundColor: item.customAttributes.colorHex }} />
+                                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">Color: {item.customAttributes.colorHex}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                             <div className="text-right">
                                 <span className="text-sm font-black text-slate-900 tracking-tight">
