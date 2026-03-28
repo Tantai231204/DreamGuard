@@ -96,7 +96,6 @@ export default function ProfileInfoTab() {
     updateProfile(
       {
         ...data,
-        email: data.email || profile?.email || "",
         avatarUrl,
       },
       {

@@ -27,10 +27,11 @@ export const useProfile = () => {
     const isStaff = role && role !== "User" && role !== "Admin";
     const hasProfile = role && role !== "Admin";
 
-    return useQuery<StaffResponse | UserProfile>({
+    return useQuery<StaffResponse | UserProfile, Error, any>({
         queryKey: [...profileKeys.all, role],
         queryFn: isStaff ? () => staffService.getStaffProfile() : userService.getProfile,
         enabled: isAuthenticated && !!hasProfile,
+        select: normalizeProfile,
     });
 };
 
