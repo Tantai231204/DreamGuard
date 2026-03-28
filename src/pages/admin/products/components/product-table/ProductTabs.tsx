@@ -11,6 +11,7 @@ interface ProductTabsProps {
   singleCount: number
   comboCount: number
   children: React.ReactNode
+  actions?: React.ReactNode
 }
 
 export default function ProductTabs({
@@ -19,6 +20,7 @@ export default function ProductTabs({
   singleCount,
   comboCount,
   children,
+  actions,
 }: ProductTabsProps) {
   return (
     <Tabs
@@ -29,9 +31,8 @@ export default function ProductTabs({
       className="flex h-full w-full flex-col"
     >
       {/* Header */}
-      <div className="px-6 py-3 border-b bg-slate-50/50 backdrop-blur-sm">
+      <div className="px-6 py-3 border-b bg-slate-50/50 backdrop-blur-sm flex items-center justify-between">
         <TabsList className="relative h-auto rounded-xl border bg-white p-1 shadow-sm">
-
           {/* 🔥 Animated active background */}
           <motion.div
             layoutId="activeTab"
@@ -122,6 +123,12 @@ export default function ProductTabs({
             </div>
           </TabsTrigger>
         </TabsList>
+
+        {actions && (
+          <div className="flex items-center gap-3">
+            {actions}
+          </div>
+        )}
       </div>
 
       {/* Content */}

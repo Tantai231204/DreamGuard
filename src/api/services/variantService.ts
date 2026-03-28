@@ -2,11 +2,12 @@
 import apiClient from "../../lib/api";
 
 export interface VariantAttributes {
-  width?: number;
-  length?: number;
-  thickness?: number;
-  color?: string;    // Color Name (e.g. "Crimson")
-  hexColor?: string; // Hex Code (e.g. "#DC143C")
+  width?: number;      // Width in cm
+  length?: number;     // Length in cm  
+  thickness?: number;  // Thickness in cm
+  color?: string;      // Color Name (e.g. "Crimson")
+  hexColor?: string;   // Hex Code (e.g. "#DC143C") - Legacy name
+  colorHex?: string;   // Hex Code (e.g. "#DC143C") - Alternative name
   [key: string]: unknown;
 }
 
@@ -17,7 +18,12 @@ export interface CreateVariantRequest {
   weight: number;
   attributes: VariantAttributes | null;
   productid: string;
+  color?: string;
+  hexColor?: string;
+  colorHex?: string;
   isNew?: boolean;
+  isCustomizable?: boolean;
+  customizeLabel?: string;
 }
 
 export interface UpdateVariantRequest {
@@ -27,7 +33,12 @@ export interface UpdateVariantRequest {
   weight: number;
   attributes: VariantAttributes | null;
   productid: string;
+  color?: string;
+  hexColor?: string;
+  colorHex?: string;
   isNew?: boolean;
+  isCustomizable?: boolean;
+  customizeLabel?: string;
 }
 
 export interface UpdateVariantStatusParams {
@@ -35,6 +46,21 @@ export interface UpdateVariantStatusParams {
   status: string;
 }
 
+export interface CreateVariantWithCustomizeRequest {
+  sku: string;
+  basePrice: number;
+  salePrice: number;
+  weight: number;
+  attributes: VariantAttributes | null;
+  productId: string;
+  color?: string;
+  hexColor?: string;
+  colorHex?: string;
+  isNew?: boolean;
+  isCustomizable?: boolean;
+  customizeLabel?: string;
+  customizeTypeIds: string[];
+}
 
 export interface VariantResponse {
   id: string;
@@ -48,11 +74,13 @@ export interface VariantResponse {
   createdAt: string;
   isNew: boolean;
   productId: string;
+  isCustomizable?: boolean;
+  customizeLabel?: string;
   stockQuantity?: number;
   stockStatus?: string;
+  customizeTypes?: VariantCustomizeTypeResponse[];
 }
 
-// Admin API response types
 export interface AdminVariantItem {
   id: string;
   size: string;
@@ -65,6 +93,11 @@ export interface AdminVariantItem {
   weight: number | null;
   attributes: VariantAttributes | null;
   isNew?: boolean;
+  isCustomizable?: boolean;
+  is_customizable?: boolean; // Snake_case fallback from API
+  customizeTypes?: VariantCustomizeTypeResponse[];
+  customizeOptions?: VariantCustomizeTypeResponse[];
+  customizeLabel?: string;
   createdAt?: string;
 }
 
@@ -81,10 +114,34 @@ export interface AdminVariantsByProductResponse {
   colorGroups: AdminColorGroup[];
 }
 
+/* ─── Variant Customization Types ────────────────────────── */
+
+export interface VariantCustomizeTypeResponse {
+  variantId: string;
+  customizeTypeId: string;
+  customizeTypeName: string;
+  originalPrice: number;
+  overridePrice: number | null;
+  finalPrice: number; // originalPrice or overridePrice
+}
+
+export interface AssignVariantCustomizeTypeRequest {
+  customizeTypeId: string;
+  overridePrice?: number;
+}
+
+export interface UpdateVariantCustomizeTypePriceRequest {
+  overridePrice: number;
+}
+
 const variantService = {
   /** Create new variant */
   create: (data: CreateVariantRequest): Promise<VariantResponse> =>
     apiClient.post("/variants", data).then((res) => res.data),
+
+  /** Create new variant with customization - calls /api/variants/with-customize */
+  createWithCustomize: (data: CreateVariantWithCustomizeRequest): Promise<VariantResponse> =>
+    apiClient.post("/variants/with-customize", data).then((res) => res.data),
 
   /** Update variant info */
   update: (id: string, data: UpdateVariantRequest): Promise<VariantResponse> =>
@@ -93,7 +150,6 @@ const variantService = {
   /** Update variant status */
   updateStatus: ({ variantId, status }: UpdateVariantStatusParams): Promise<void> =>
     apiClient.patch(`/variants/${variantId}/status`, {}, { params: { status } }).then((res) => res.data),
-
 
   /** Delete variant */
   delete: (id: string): Promise<void> =>
@@ -110,6 +166,24 @@ const variantService = {
   /** Get variants grouped by color for admin */
   getAdminByProductId: (productId: string): Promise<AdminVariantsByProductResponse> =>
     apiClient.get(`/variants/admin/product/${productId}`).then((res) => res.data),
+
+  /* ─── Variant Customization Methods ─── */
+
+  /** Fetch customization types assigned to this variant - using detail endpoint as fallback to avoid 405 */
+  getCustomizeTypes: (variantId: string): Promise<VariantCustomizeTypeResponse[]> =>
+    apiClient.get(`/variants/${variantId}`).then((res) => res.data?.customizeTypes || []),
+
+  /** Link a customization type to a variant */
+  assignCustomizeType: (variantId: string, data: AssignVariantCustomizeTypeRequest): Promise<void> =>
+    apiClient.post(`/variants/${variantId}/customize-types`, data).then((res) => res.data),
+
+  /** Update existing override price for a customization type on a variant */
+  updateCustomizeTypePrice: (variantId: string, customizeTypeId: string, data: UpdateVariantCustomizeTypePriceRequest): Promise<void> =>
+    apiClient.put(`/variants/${variantId}/customize-types/${customizeTypeId}/price`, data).then((res) => res.data),
+
+  /** Remove a customization type from a variant */
+  removeCustomizeType: (variantId: string, customizeTypeId: string): Promise<void> =>
+    apiClient.delete(`/variants/${variantId}/customize-types/${customizeTypeId}`).then((res) => res.data),
 };
 
 export default variantService;

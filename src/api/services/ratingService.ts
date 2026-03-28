@@ -52,13 +52,19 @@ const ratingService = {
   },
 
   getRatingByServiceOrderId: async (serviceOrderId: string): Promise<RatingResponse | null> => {
-    const result = await ratingService.adminSearchRatings({
-      serviceOrderId,
-      pageNumber: 1,
-      pageSize: 1,
-    });
+    try {
+      const result = await ratingService.adminSearchRatings({
+        serviceOrderId,
+        pageNumber: 1,
+        pageSize: 1,
+      });
 
-    return result.items[0] ?? null;
+      return result.items[0] ?? null;
+    } catch (error) {
+      const status = (error as { status?: number })?.status;
+      if (status === 403) return null;
+      throw error;
+    }
   },
 };
 

@@ -8,7 +8,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as PopoverPrimitive from '@radix-ui/react-popover';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { cn } from '@/lib/utils';
+import { cn, formatNumber } from '@/lib/utils';
 import {
     Search, X, ChevronDown, Check, Package,
 } from 'lucide-react';
@@ -194,7 +194,7 @@ const VirtualVariantSelect = memo(function VirtualVariantSelect({
                     </div>
                 </div>
                 <div className="text-right shrink-0">
-                    <div className="text-xs font-bold text-primary-600">{selectedOption.salePrice.toLocaleString('en-US')}₫</div>
+                    <div className="text-xs font-bold text-primary-600">{formatNumber(selectedOption.salePrice)}₫</div>
                     <ChevronDown className="h-3 w-3 text-gray-400 mx-auto mt-0.5" />
                 </div>
             </button>
@@ -284,6 +284,41 @@ const VirtualVariantSelect = memo(function VirtualVariantSelect({
                             <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
                                 {virtualizer.getVirtualItems().map(virtualRow => {
                                     const row = rows[virtualRow.index];
+                                    if (row.kind === 'header') {
+                                        return (
+                                            <div
+                                                key={virtualRow.key}
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: 0,
+                                                    left: 0,
+                                                    width: '100%',
+                                                    transform: `translateY(${virtualRow.start}px)`,
+                                                }}
+                                            >
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const firstV = filtered.find(v => v.productId === row.productId);
+                                                        if (firstV) handleSelect(firstV.variantId);
+                                                    }}
+                                                    className="flex items-center gap-2 w-full px-3 py-2 bg-gray-50 border-y border-gray-100 hover:bg-primary-50 transition-colors group/header"
+                                                >
+                                                    <Package className="h-3.5 w-3.5 text-primary-500 shrink-0 group-hover/header:scale-110 transition-transform" />
+                                                    <span className="text-[12px] font-bold text-gray-800 truncate flex-1 text-left">
+                                                        {row.productName || `Product ${row.productId.slice(0, 8)}…`}
+                                                    </span>
+                                                    <span className="text-[10px] text-primary-500 font-semibold bg-primary-50 px-1.5 py-0.5 rounded shrink-0 flex items-center gap-1 group-hover/header:bg-primary-100">
+                                                        {row.count} variant{row.count !== 1 ? 's' : ''}
+                                                        <ChevronDown className="h-2.5 w-2.5 opacity-0 group-hover/header:opacity-100 transition-opacity" />
+                                                    </span>
+                                                </button>
+                                            </div>
+                                        );
+                                    }
+
+                                    const opt = row.variant;
+                                    const hex = colorHex(opt.color);
                                     return (
                                         <div
                                             key={virtualRow.key}
@@ -295,80 +330,68 @@ const VirtualVariantSelect = memo(function VirtualVariantSelect({
                                                 transform: `translateY(${virtualRow.start}px)`,
                                             }}
                                         >
-                                            {row.kind === 'header' ? (
-                                                <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border-y border-gray-100">
-                                                    <Package className="h-3.5 w-3.5 text-primary-500 shrink-0" />
-                                                    <span className="text-[12px] font-bold text-gray-800 truncate flex-1">
-                                                        {row.productName || `Product ${row.productId.slice(0, 8)}…`}
-                                                    </span>
-                                                    <span className="text-[10px] text-primary-500 font-semibold bg-primary-50 px-1.5 py-0.5 rounded shrink-0">
-                                                        {row.count} variant{row.count !== 1 ? 's' : ''}
-                                                    </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleSelect(opt.variantId)}
+                                                className={cn(
+                                                    'flex items-center gap-3 w-full px-3 py-2.5 text-left',
+                                                    'transition-colors outline-none',
+                                                    value === opt.variantId
+                                                        ? 'bg-primary-50 border-l-2 border-primary-500'
+                                                        : 'hover:bg-gray-50 border-l-2 border-transparent',
+                                                )}
+                                            >
+                                                {/* Color swatch */}
+                                                <div className="shrink-0">
+                                                    {hex ? (
+                                                        <div
+                                                            className="h-6 w-6 rounded-md border border-black/10"
+                                                            style={{ backgroundColor: hex }}
+                                                        />
+                                                    ) : (
+                                                        <div className="h-6 w-6 rounded-md bg-gray-100 border border-gray-200" />
+                                                    )}
                                                 </div>
-                                            ) : (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleSelect(row.variant.variantId)}
-                                                    className={cn(
-                                                        'flex items-center gap-3 w-full px-3 py-2.5 text-left',
-                                                        'transition-colors outline-none',
-                                                        value === row.variant.variantId
-                                                            ? 'bg-primary-50 border-l-2 border-primary-500'
-                                                            : 'hover:bg-gray-50 border-l-2 border-transparent',
+
+                                                {/* Attributes */}
+                                                <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+                                                    {colorLabel(opt.color) && (
+                                                        <span className="text-[12px] font-medium text-gray-800">
+                                                            {colorLabel(opt.color)}
+                                                        </span>
                                                     )}
-                                                >
-                                                    {/* Color swatch */}
-                                                    <div className="shrink-0">
-                                                        {colorHex(row.variant.color) ? (
-                                                            <div
-                                                                className="h-6 w-6 rounded-md border border-black/10"
-                                                                style={{ backgroundColor: colorHex(row.variant.color) }}
-                                                            />
-                                                        ) : (
-                                                            <div className="h-6 w-6 rounded-md bg-gray-100 border border-gray-200" />
-                                                        )}
+                                                    {colorLabel(opt.color) && opt.size && (
+                                                        <span className="text-gray-300 text-xs">/</span>
+                                                    )}
+                                                    {opt.size && (
+                                                        <span className="text-[12px] font-medium text-gray-800">{opt.size}</span>
+                                                    )}
+                                                    {!colorLabel(opt.color) && !opt.size && (
+                                                        <span className="text-[12px] text-gray-400 italic">Default</span>
+                                                    )}
+                                                    <span className="text-[10px] text-gray-400 font-mono">{opt.sku}</span>
+                                                </div>
+
+                                                {/* Stock */}
+                                                {opt.stockStatus && stockBadge(opt.stockStatus, opt.stockQuantity)}
+
+                                                {/* Price */}
+                                                <div className="text-right shrink-0 min-w-[60px]">
+                                                    <div className="text-[12px] font-bold text-gray-800">
+                                                        {formatNumber(opt.salePrice)}₫
                                                     </div>
-
-                                                    {/* Attributes */}
-                                                    <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
-                                                        {colorLabel(row.variant.color) && (
-                                                            <span className="text-[12px] font-medium text-gray-800">
-                                                                {colorLabel(row.variant.color)}
-                                                            </span>
-                                                        )}
-                                                        {colorLabel(row.variant.color) && row.variant.size && (
-                                                            <span className="text-gray-300 text-xs">/</span>
-                                                        )}
-                                                        {row.variant.size && (
-                                                            <span className="text-[12px] font-medium text-gray-800">{row.variant.size}</span>
-                                                        )}
-                                                        {!colorLabel(row.variant.color) && !row.variant.size && (
-                                                            <span className="text-[12px] text-gray-400 italic">Default</span>
-                                                        )}
-                                                        <span className="text-[10px] text-gray-400 font-mono">{row.variant.sku}</span>
-                                                    </div>
-
-                                                    {/* Stock */}
-                                                    {row.variant.stockStatus && stockBadge(row.variant.stockStatus, row.variant.stockQuantity)}
-
-                                                    {/* Price */}
-                                                    <div className="text-right shrink-0 min-w-[60px]">
-                                                        <div className="text-[12px] font-bold text-gray-800">
-                                                            {row.variant.salePrice.toLocaleString('en-US')}₫
+                                                    {opt.salePrice < opt.basePrice && (
+                                                        <div className="text-[10px] text-gray-400 line-through">
+                                                            {formatNumber(opt.basePrice)}₫
                                                         </div>
-                                                        {row.variant.salePrice < row.variant.basePrice && (
-                                                            <div className="text-[10px] text-gray-400 line-through">
-                                                                {row.variant.basePrice.toLocaleString('en-US')}₫
-                                                            </div>
-                                                        )}
-                                                    </div>
-
-                                                    {/* Check mark */}
-                                                    {value === row.variant.variantId && (
-                                                        <Check className="h-4 w-4 text-primary-600 shrink-0" />
                                                     )}
-                                                </button>
-                                            )}
+                                                </div>
+
+                                                {/* Check mark */}
+                                                {value === opt.variantId && (
+                                                    <Check className="h-4 w-4 text-primary-600 shrink-0" />
+                                                )}
+                                            </button>
                                         </div>
                                     );
                                 })}

@@ -4,6 +4,7 @@ import staffService from "@/api/services/staffService";
 import { useAuthStore } from "@/store/authStore";
 import type { UpdateUserProfileRequest, UserProfile } from "@/api/types";
 import type { StaffResponse } from "@/api/types/staff.types";
+import { isAdminRole, isStaffRole } from "@/lib/role";
 
 export const profileKeys = {
     all: ["user-profile"] as const,
@@ -24,13 +25,14 @@ function normalizeProfile(profile: any) {
 
 export const useProfile = () => {
     const { isAuthenticated, role } = useAuthStore();
-    const isStaff = role && role !== "User" && role !== "Admin";
-    const hasProfile = role && role !== "Admin";
+    const isStaff = isStaffRole(role);
+    const hasProfile = !!role && !isAdminRole(role);
 
-    return useQuery<StaffResponse | UserProfile>({
+    return useQuery<StaffResponse | UserProfile, Error, any>({
         queryKey: [...profileKeys.all, role],
         queryFn: isStaff ? () => staffService.getStaffProfile() : userService.getProfile,
         enabled: isAuthenticated && !!hasProfile,
+        select: normalizeProfile,
     });
 };
 

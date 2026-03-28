@@ -110,6 +110,7 @@ export function usePackageBooking(initialPackageId?: string) {
   const go = useCallback(
     async (dir: 1 | -1) => {
       if (dir === 1) {
+        // Run Zod validation first
         const valid = await trigger(STEP_FIELDS[step]);
         if (!valid) {
           toast.error(stepErrorMessages[step] || "Required fields missing.");
@@ -117,12 +118,27 @@ export function usePackageBooking(initialPackageId?: string) {
           setTimeout(() => setShakeBtn(false), 500);
           return;
         }
+
+        // Custom validation for Step 1 (Services/Tiers) 
+        // Must ensure EVERY product category selected in Step 0 has a package chosen in Step 1
+        if (step === 1) {
+          const currentValues = getValues();
+          const selectedCount = (currentValues.selectedProducts || []).length;
+          const itemsCount = (currentValues.items || []).length;
+          
+          if (itemsCount < selectedCount) {
+             toast.error(`Please select a cleaning package for all ${selectedCount} selected items.`);
+             setShakeBtn(true);
+             setTimeout(() => setShakeBtn(false), 500);
+             return;
+          }
+        }
       }
       setDirection(dir);
       setStep((s) => s + dir);
       window.scrollTo({ top: 0, behavior: "smooth" });
     },
-    [step, trigger],
+    [step, trigger, getValues],
   );
 
   const jumpToStep = useCallback((target: number) => {

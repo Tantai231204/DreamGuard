@@ -1,6 +1,7 @@
 import { memo, useCallback, useMemo } from 'react';
 import { HexColorPicker, HexColorInput } from 'react-colorful';
 import { cn } from '@/lib/utils';
+import { getColorHex } from '../../utils/variant-utils';
 
 /* ─── Color Name Detection ─────────────────────────────── */
 const COLOR_NAMES: Record<string, string> = {
@@ -143,8 +144,8 @@ const ColorPicker = memo(function ColorPicker({
     onColorChange,
     disabled,
 }: ColorPickerProps) {
-    const currentHex = colorCode || '#f5f5f5';
-    const isValidHex = /^#[0-9A-Fa-f]{6}$/i.test(currentHex);
+    const currentHex = useMemo(() => getColorHex(colorCode), [colorCode]);
+    const isValidHex = currentHex !== '#e5e7eb'; // The default hex in getColorHex
 
     const detectedColorName = useMemo(() => getColorName(currentHex), [currentHex]);
 
@@ -183,10 +184,9 @@ const ColorPicker = memo(function ColorPicker({
                         onChange={handleChange}
                         prefixed
                         className={cn(
-                            'w-full h-11 px-3 text-sm font-mono uppercase rounded-xl',
-                            'border border-gray-200 bg-gray-50/50',
-                            'hover:border-[#4988c4]/60 hover:bg-white transition-all',
-                            'focus:outline-none focus:ring-2 focus:ring-[#4988c4]/20 focus:border-[#4988c4]'
+                            'w-full h-10 px-3 text-sm font-mono uppercase rounded-lg',
+                            'border border-slate-200 bg-white transition-all',
+                            'focus:outline-none focus:ring-2 focus:ring-blue-50 focus:border-blue-400'
                         )}
                     />
                 </div>

@@ -122,7 +122,18 @@ export function useComboForm({
         syncedParentRef.current = parentId;
         dispatch({ type: 'SET_FIELD', field: 'name', payload: generatedName });
         dispatch({ type: 'SET_FIELD', field: 'slug', payload: toSlug(generatedName) });
-    }, [isEdit, mode, form.comboParentId, allCombos, form.ageGroup, open]);
+
+        // 3. Auto-select Color/Size from first sibling
+        if (parent.childCombos?.[0]) {
+            const first = parent.childCombos[0];
+            if (first.color && !form.color) dispatch({ type: 'SET_FIELD', field: 'color', payload: first.color });
+            if (first.size && !form.size) dispatch({ type: 'SET_FIELD', field: 'size', payload: first.size });
+        } else {
+            // Sensible defaults if first child
+            if (!form.color) dispatch({ type: 'SET_FIELD', field: 'color', payload: '#f5f5f5' });
+            if (!form.size) dispatch({ type: 'SET_FIELD', field: 'size', payload: 'Standard' });
+        }
+    }, [isEdit, mode, form.comboParentId, allCombos, form.ageGroup, open, form.color, form.size]);
 
     // ── Enrich existing items with live variant data ─────
     useEffect(() => {
@@ -187,13 +198,13 @@ export function useComboForm({
         } else if (mode === 'variant') {
             // Variant mode: basePrice = sum of items
             const calculatedBase = form.items.reduce((sum, item) => sum + (item.salePrice * item.quantity), 0);
-            
+
             // Detection logic for item changes that affect pricing
             const prevBase = lastCalculatedBaseRef.current;
-            
+
             if (calculatedBase > 0 && Number(form.basePrice) !== calculatedBase) {
                 dispatch({ type: "SET_FIELD", field: "basePrice", payload: String(calculatedBase) });
-                
+
                 // Only show toast if it's a change after initial load/sync
                 if (prevBase !== null && prevBase !== calculatedBase) {
                     toast.info("Pricing changed!", {
@@ -209,7 +220,7 @@ export function useComboForm({
                     });
                 }
             }
-            
+
             lastCalculatedBaseRef.current = calculatedBase;
         }
     }, [open, mode, form.items, allCombos, isEdit, combo, form.basePrice, form.salePrice]);
@@ -240,63 +251,69 @@ export function useComboForm({
 
         const basePrice = Number(form.basePrice) || 0;
         const salePrice = Number(form.salePrice) || 0;
+        const targetParentId = form.comboParentId?.trim();
+        const isChild = !!targetParentId;
 
-        if (mode === 'parent') {
-            if (!form.name.trim() || !form.slug.trim()) return;
-            onSubmit({
-                name: form.name.trim(),
-                slug: form.slug.trim(),
-                ageGroup: form.ageGroup ? Number(form.ageGroup) : 0,
-                color: '',
-                size: '',
-                basePrice,
-                salePrice,
-                description: form.description.trim(),
-                imageUrl: form.imageUrl.trim(),
-                imagePublicId: form.imagePublicId.trim(),
-                comboParentId: undefined,
-                status: form.status,
-                items: [],
-            });
-        } else {
-            const validItems = form.items.filter((i) => i.productVariantId);
-            if (validItems.length === 0) return;
-            if (!form.comboParentId) return;
-
-            let finalName = form.name.trim();
-            let finalSlug = form.slug.trim();
-
-            // Fallback if empty
-            if (!finalName || !finalSlug) {
-                const parent = allCombos.find(c => c.id === form.comboParentId);
-                const existingVariantCount = parent?.childCombos?.length ?? allCombos.filter(
-                    c => c.comboParentId === form.comboParentId
-                ).length;
-                const nextNumber = existingVariantCount + 1;
-
-                if (!finalName) finalName = parent ? `${parent.name} #${nextNumber}` : `Variant #${nextNumber}`;
-                if (!finalSlug) finalSlug = toSlug(finalName);
+        // ── Schema-Based Business Rules Validation ──
+        if (form.status === 'Published') {
+            // Rule 1: Age Group is mandatory for management
+            if (!form.ageGroup || form.ageGroup === '0') {
+                toast.error("Age Group Required", { description: "You must specify an age group for published combos." });
+                return;
             }
 
-            onSubmit({
-                name: finalName,
-                slug: finalSlug,
-                ageGroup: form.ageGroup ? Number(form.ageGroup) : 0,
-                color: form.color,
-                size: form.size,
-                basePrice,
-                salePrice,
-                description: form.description.trim(),
-                imageUrl: form.imageUrl.trim(),
-                imagePublicId: form.imagePublicId.trim(),
-                comboParentId: form.comboParentId.trim() || undefined,
-                status: form.status,
-                items: validItems.map((i) => ({
-                    productVariantId: i.productVariantId,
-                    quantity: i.quantity,
-                })),
-            });
+            // Rule 2: Sale price must be valid
+            if (salePrice <= 0) {
+                toast.error("Invalid Price", { description: "Published combos must have a selling price greater than 0." });
+                return;
+            }
+
+            // Rule 3: Parent shell cannot be published without children (nothing to purchase)
+            if (!isChild) {
+                const children = allCombos.filter(c => c.comboParentId === combo?.id);
+                if (children.length === 0) {
+                    toast.error("Variant Required", { description: "You cannot publish a master combo that has no buyable variants." });
+                    return;
+                }
+            }
         }
+
+        // ── Construct Request Payload ──
+        const validItems = form.items.filter((i) => i.productVariantId);
+
+        let finalName = form.name.trim();
+        let finalSlug = form.slug.trim();
+
+        // Auto-generation fallback logic
+        if (!finalName || !finalSlug) {
+            if (isChild) {
+                const parent = allCombos.find(c => c.id === targetParentId);
+                const count = parent?.childCombos?.length ?? allCombos.filter(c => c.comboParentId === targetParentId).length;
+                if (!finalName) finalName = parent ? `${parent.name} #${count + 1}` : `Variant #${count + 1}`;
+                if (!finalSlug) finalSlug = toSlug(finalName);
+            }
+        }
+
+        if (!finalName) return; // Final guard
+
+        onSubmit({
+            name: finalName,
+            slug: finalSlug,
+            ageGroup: Number(form.ageGroup) || 0,
+            color: isChild ? form.color : '',
+            size: isChild ? form.size : '',
+            basePrice,
+            salePrice,
+            description: form.description.trim(),
+            imageUrl: form.imageUrl.trim(),
+            imagePublicId: form.imagePublicId.trim(),
+            comboParentId: isChild ? targetParentId : undefined,
+            status: form.status,
+            items: isChild ? validItems.map((i) => ({
+                productVariantId: i.productVariantId,
+                quantity: i.quantity,
+            })) : [],
+        });
     };
 
     // ── Cmd/Ctrl + Enter shortcut ────────────────────────
@@ -311,19 +328,17 @@ export function useComboForm({
         return () => window.removeEventListener("keydown", onKey);
     }, [open]);
 
-    // ── Validation ───────────────────────────────────────
-    const isValid = mode === 'parent'
-        ? form.name.trim() !== "" && form.slug.trim() !== ""
-        : form.comboParentId.trim() !== "" &&
-        form.items.some((i) => i.productVariantId);
+    // ── Validation (Pure Schema Based) ───────────────────
+    const isChildMode = !!form.comboParentId;
+    const isValid = isChildMode
+        ? form.comboParentId.trim() !== "" && form.items.some((i) => i.productVariantId)
+        : form.name.trim() !== "" && form.slug.trim() !== "";
 
-    // Pricing logic per mode
-    // Parent price is locked (derived from children)
-    const isPriceAutoManaged = mode === 'parent';
-    // Variant base price is auto-managed from items, but sale price remains manual
-    const isVariantBasePriceAuto = mode === 'variant' && form.items.length > 0;
+    // Derived flags for UI behavior
+    const isPriceAutoManaged = !form.comboParentId; // Parent prices managed by children
+    const isVariantBasePriceAuto = !!form.comboParentId && form.items.length > 0;
 
-    const priceSource = (mode === 'variant' ? 'items' : 'children') as 'items' | 'children';
+    const priceSource = (isChildMode ? 'items' : 'children') as 'items' | 'children';
 
     return {
         form,

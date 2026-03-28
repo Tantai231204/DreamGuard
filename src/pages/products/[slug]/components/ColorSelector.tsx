@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Check } from 'lucide-react';
+import { Check, Plus } from 'lucide-react';
 import * as RadioGroup from '@radix-ui/react-radio-group';
 import {
     Tooltip,
@@ -15,9 +15,12 @@ interface ColorSelectorProps {
     selected: string;
     onChange: (value: string) => void;
     disabledValues?: string[];
+    isCustomizable?: boolean;
+    onCustomClick?: () => void;
+    isCustomMode?: boolean;
 }
 
-export const ColorSelector = memo(({ options, selected, onChange, disabledValues }: ColorSelectorProps) => {
+export const ColorSelector = memo(({ options, selected, onChange, disabledValues, isCustomizable, onCustomClick, isCustomMode }: ColorSelectorProps) => {
     const selectedColor = options.find(c => c.value === selected);
 
     return (
@@ -35,7 +38,13 @@ export const ColorSelector = memo(({ options, selected, onChange, disabledValues
             >
                 {options.map((color) => {
                     const isDisabled = disabledValues?.includes(color.value);
-                    const isActive = selected === color.value;
+                    const isActive = selected === color.value && !isCustomMode;
+
+                    // If there's only one option and it's 'Default', we hide it to satisfy the "1 selector" requirement
+                    // but we keep its value selectable internally so the user starts with it.
+                    if (options.length === 1 && (color.value === 'default' || color.label?.toLowerCase() === 'default')) {
+                        return null;
+                    }
 
                     return (
                         <TooltipProvider key={color.value} delayDuration={300}>
@@ -76,6 +85,30 @@ export const ColorSelector = memo(({ options, selected, onChange, disabledValues
                         </TooltipProvider>
                     )
                 })}
+
+                {isCustomizable && (
+                    <TooltipProvider delayDuration={300}>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <button
+                                    type="button"
+                                    onClick={onCustomClick}
+                                    className={cn(
+                                        "h-10 w-10 rounded-full border-2 border-dashed flex items-center justify-center transition-all duration-300",
+                                        isCustomMode 
+                                            ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white shadow-lg scale-110" 
+                                            : "border-slate-200 bg-white text-slate-400 hover:border-slate-400 hover:text-slate-600 shadow-sm"
+                                    )}
+                                >
+                                    <Plus className="h-5 w-5" />
+                                </button>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="bg-primary-dark text-white border-none py-1.5 px-3 text-[10px] font-black uppercase tracking-widest rounded-lg">
+                                Manual Color Selection
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+                )}
             </RadioGroup.Root>
         </div>
     );

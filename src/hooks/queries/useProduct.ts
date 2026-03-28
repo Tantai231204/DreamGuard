@@ -21,6 +21,10 @@ import type {
   UpdateProductStatusParams,
   UpdateVariantStatusParams,
   AdminVariantsByProductResponse,
+  AssignVariantCustomizeTypeRequest,
+  UpdateVariantCustomizeTypePriceRequest,
+  VariantCustomizeTypeResponse,
+  CreateVariantWithCustomizeRequest,
 } from "@/api";
 
 // ========================
@@ -39,6 +43,7 @@ export const variantKeys = {
   adminByProduct: (productId: string) =>
     ["variants", "admin", productId] as const,
   detail: (id: string) => ["variants", id] as const,
+  customizeTypes: (id: string) => ["variants", id, "customize-types"] as const,
 };
 
 // ========================
@@ -99,10 +104,10 @@ export const useProductVariants = (productId: string, enabled = true) => {
 
 /** Fetch admin variants grouped by color */
 export const useAdminProductVariants = <T = AdminVariantsByProductResponse>(
-  productId: string, 
-  options?: { 
-    enabled?: boolean; 
-    select?: (data: AdminVariantsByProductResponse) => T 
+  productId: string,
+  options?: {
+    enabled?: boolean;
+    select?: (data: AdminVariantsByProductResponse) => T
   }
 ) => {
   return useQuery({
@@ -118,6 +123,15 @@ export const useVariantDetail = (variantId: string, enabled = true) => {
   return useQuery({
     queryKey: variantKeys.detail(variantId),
     queryFn: () => variantService.getById(variantId),
+    enabled: !!variantId && enabled,
+  });
+};
+
+/** Fetch customization types linked to a variant */
+export const useVariantCustomizeTypes = (variantId: string, enabled = true) => {
+  return useQuery({
+    queryKey: variantKeys.customizeTypes(variantId),
+    queryFn: () => variantService.getCustomizeTypes(variantId),
     enabled: !!variantId && enabled,
   });
 };
@@ -226,6 +240,21 @@ export const useCreateVariant = () => {
   });
 };
 
+/** Create variant with custom options */
+export const useCreateVariantWithCustomize = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: CreateVariantWithCustomizeRequest) => 
+      variantService.createWithCustomize(data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+      queryClient.invalidateQueries({ queryKey: variantKeys.byProduct(variables.productId) });
+      queryClient.invalidateQueries({ queryKey: variantKeys.adminByProduct(variables.productId) });
+    },
+  });
+};
+
 /** Update variant */
 export const useUpdateVariant = () => {
   const queryClient = useQueryClient();
@@ -264,6 +293,101 @@ export const useDeleteVariant = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.all });
       queryClient.invalidateQueries({ queryKey: variantKeys.all });
+    },
+  });
+};
+
+/* ─── Variant Customization Mutations ─── */
+
+/** Link a customize type to variant */
+export const useAssignVariantCustomizeType = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ variantId, data }: { variantId: string; data: AssignVariantCustomizeTypeRequest }) =>
+      variantService.assignCustomizeType(variantId, data),
+
+    // 🔥 Senior Dev Optimization: Optimistic Update
+    onMutate: async ({ variantId }) => {
+      await queryClient.cancelQueries({ queryKey: variantKeys.customizeTypes(variantId) });
+      const previous = queryClient.getQueryData(variantKeys.customizeTypes(variantId));
+      return { previous };
+    },
+    onSuccess: (_, { variantId }) => {
+      queryClient.invalidateQueries({ queryKey: variantKeys.customizeTypes(variantId) });
+    },
+    onError: (_err, { variantId }, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(variantKeys.customizeTypes(variantId), context.previous);
+      }
+    },
+  });
+};
+
+/** Update override price for a customize type on a variant */
+export const useUpdateVariantCustomizeTypePrice = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ variantId, customizeTypeId, data }: {
+      variantId: string;
+      customizeTypeId: string;
+      data: UpdateVariantCustomizeTypePriceRequest
+    }) => variantService.updateCustomizeTypePrice(variantId, customizeTypeId, data),
+
+    // 🔥 Senior Dev Optimization: Optimistic Update
+    onMutate: async ({ variantId, customizeTypeId, data }) => {
+      await queryClient.cancelQueries({ queryKey: variantKeys.customizeTypes(variantId) });
+      const previous = queryClient.getQueryData<VariantCustomizeTypeResponse[]>(variantKeys.customizeTypes(variantId));
+
+      if (previous) {
+        queryClient.setQueryData(variantKeys.customizeTypes(variantId),
+          previous.map(item => item.customizeTypeId === customizeTypeId
+            ? { ...item, overridePrice: data.overridePrice, finalPrice: data.overridePrice }
+            : item
+          )
+        );
+      }
+      return { previous };
+    },
+    onSuccess: (_, { variantId }) => {
+      queryClient.invalidateQueries({ queryKey: variantKeys.customizeTypes(variantId) });
+    },
+    onError: (_err, { variantId }, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(variantKeys.customizeTypes(variantId), context.previous);
+      }
+    },
+  });
+};
+
+/** Unlink a customize type from variant */
+export const useRemoveVariantCustomizeType = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ variantId, customizeTypeId }: { variantId: string; customizeTypeId: string }) =>
+      variantService.removeCustomizeType(variantId, customizeTypeId),
+
+    // 🔥 Senior Dev Optimization: Optimistic Update
+    onMutate: async ({ variantId, customizeTypeId }) => {
+      await queryClient.cancelQueries({ queryKey: variantKeys.customizeTypes(variantId) });
+      const previous = queryClient.getQueryData<VariantCustomizeTypeResponse[]>(variantKeys.customizeTypes(variantId));
+
+      if (previous) {
+        queryClient.setQueryData(variantKeys.customizeTypes(variantId),
+          previous.filter(item => item.customizeTypeId !== customizeTypeId)
+        );
+      }
+      return { previous };
+    },
+    onSuccess: (_, { variantId }) => {
+      queryClient.invalidateQueries({ queryKey: variantKeys.customizeTypes(variantId) });
+    },
+    onError: (_err, { variantId }, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(variantKeys.customizeTypes(variantId), context.previous);
+      }
     },
   });
 };

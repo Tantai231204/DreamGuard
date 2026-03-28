@@ -7,10 +7,11 @@ import {
 import staffService from "@/api/services/staffService"
 import { useAuthStore } from "@/store/authStore"
 import type { StaffResponse } from "@/api/types/staff.types"
+import { isStaffRole } from "@/lib/role"
 
 export const useUserProfile = () => {
   const role = useAuthStore((state) => state.role);
-  const isStaff = role && role !== "User";
+  const isStaff = isStaffRole(role);
 
   return useQuery<UserProfile | StaffResponse>({
     queryKey: ["userProfile", role],

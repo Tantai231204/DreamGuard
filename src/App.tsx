@@ -10,11 +10,12 @@ import AppRouter from "./router/AppRouter";
 import { useEffect, useRef } from "react";
 import { useAuthStore } from "./store/authStore";
 import { useCartStore } from "./store/useCart";
+import { isStaffRole } from "./lib/role";
 
 function App() {
   const { isAuthenticated, role } = useAuthStore();
   const prevAuth = useRef(isAuthenticated);
-  const isStaff = role && role !== "User";
+  const isStaff = isStaffRole(role);
 
   useEffect(() => {
     if (isStaff) return; // Không đồng bộ giỏ hàng cho Staff/Admin

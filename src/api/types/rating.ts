@@ -8,6 +8,7 @@ export interface RatingResponse {
   ratingId?: string;
   serviceOrderId?: string;
   staffId?: string;
+  staffName?: string;
   customerId?: string;
   comment?: string;
   score?: number;

@@ -15,10 +15,11 @@ import {
   FolderTree,
   Ticket,
   Wallet,
-  Briefcase,
+  Boxes,
+  CircleDot,
+  UserCheck,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Separator } from '../ui/separator';
 import { useState } from 'react';
 import { cn } from '../../lib/utils';
 import { useProfile } from '@/hooks/queries';
@@ -32,78 +33,56 @@ interface NavItem {
   badge?: number;
 }
 
-const navItems: NavItem[] = [
+interface NavSection {
+  label: string;
+  items: NavItem[];
+}
+
+const navSections: NavSection[] = [
   {
-    title: 'Dashboard',
-    href: '/admin',
-    icon: LayoutDashboard,
+    label: 'Overview',
+    items: [
+      { title: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+      { title: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
+      { title: 'Chat', href: '/admin/chat', icon: MessageSquare, badge: 3 },
+    ],
   },
   {
-    title: 'Orders',
-    href: '/admin/orders',
-    icon: ShoppingCart,
+    label: 'Commerce',
+    items: [
+      { title: 'Orders', href: '/admin/orders', icon: ShoppingCart },
+      { title: 'Payments', href: '/admin/payments', icon: Wallet },
+      { title: 'Vouchers', href: '/admin/vouchers', icon: Ticket },
+    ],
   },
   {
-    title: 'Payments',
-    href: '/admin/payments',
-    icon: Wallet,
+    label: 'Inventory',
+    items: [
+      { title: 'Products', href: '/admin/products', icon: Boxes },
+      { title: 'Categories', href: '/admin/categories', icon: FolderTree },
+      { title: 'Product Types', href: '/admin/product-types', icon: ProductAssetIcons.PRODUCT_CATEGORIES },
+    ],
   },
   {
-    title: 'Services',
-    href: '/admin/services',
-    icon: Sparkles,
-    badge: 2,
+    label: 'Services',
+    items: [
+      { title: 'Services', href: '/admin/services', icon: Sparkles, badge: 2 },
+      { title: 'Service Packages', href: '/admin/service-packages', icon: Package },
+      { title: 'Customize Types', href: '/admin/customize-types', icon: CircleDot },
+    ],
   },
   {
-    title: 'Service Packages',
-    href: '/admin/service-packages',
-    icon: Package,
+    label: 'User Management',
+    items: [
+      { title: 'Customers', href: '/admin/users', icon: Users },
+      { title: 'Staff', href: '/admin/staff', icon: UserCheck },
+    ],
   },
   {
-    title: 'Products',
-    href: '/admin/products',
-    icon: Package,
-  },
-  {
-    title: 'Categories',
-    href: '/admin/categories',
-    icon: FolderTree,
-  },
-  {
-    title: 'Product Types',
-    href: '/admin/product-types',
-    icon: ProductAssetIcons.PRODUCT_CATEGORIES,
-  },
-  {
-    title: 'Vouchers',
-    href: '/admin/vouchers',
-    icon: Ticket,
-  },
-  {
-    title: 'Customers',
-    href: '/admin/users',
-    icon: Users,
-  },
-  {
-    title: 'Staff',
-    href: '/admin/staff',
-    icon: Briefcase,
-  },
-  {
-    title: 'Chat',
-    href: '/admin/chat',
-    icon: MessageSquare,
-    badge: 3,
-  },
-  {
-    title: 'Analytics',
-    href: '/admin/analytics',
-    icon: BarChart3,
-  },
-  {
-    title: 'Settings',
-    href: '/admin/settings',
-    icon: Settings,
+    label: 'System',
+    items: [
+      { title: 'Settings', href: '/admin/settings', icon: Settings },
+    ],
   },
 ];
 
@@ -124,193 +103,218 @@ export default function AdminSidebar() {
     <motion.aside
       animate={{ width: collapsed ? 80 : 280 }}
       transition={{
-        duration: 0.4,
-        ease: [0.4, 0, 0.2, 1],
-        type: 'tween'
+        duration: 0.5,
+        ease: [0.32, 0, 0.67, 0],
+        type: 'spring',
+        stiffness: 260,
+        damping: 30
       }}
-      className="relative flex flex-col bg-white border-r border-gray-200 shadow-lg h-screen flex-shrink-0 overflow-x-hidden"
+      className="relative flex flex-col bg-white border-r border-gray-100 shadow-[20px_0_50px_-20px_rgba(0,0,0,0.05)] h-screen flex-shrink-0 z-50 transition-colors"
     >
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-5 border-b border-gray-200">
-        <div className="flex items-center gap-3 overflow-hidden">
-          {!collapsed && (
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="flex items-center gap-3"
-            >
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-hover)] flex items-center justify-center shadow-md">
-                <Package className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold text-gray-900">DreamGuard</h1>
-                <p className="text-xs text-gray-500">Admin Panel</p>
-              </div>
-            </motion.div>
-          )}
+      {/* Dynamic Toggle Button (Middle Floating) */}
+      <button
+        onClick={() => setCollapsed(!collapsed)}
+        className={cn(
+          "absolute -right-3 top-1/2 -translate-y-1/2 z-[100] w-6 h-12 bg-white border border-gray-200 rounded-full flex items-center justify-center shadow-md transition-all duration-300 group hover:scale-110 hover:shadow-lg hover:border-[var(--color-primary)]/50",
+          collapsed ? "px-0.5" : ""
+        )}
+      >
+        <div className="flex flex-col gap-0.5 items-center">
+          <div className={cn("w-1 h-1 rounded-full bg-gray-300 group-hover:bg-[var(--color-primary)] transition-colors", !collapsed && "rotate-45")} />
+          {collapsed ? <ChevronRight className="w-3 h-3 text-gray-500 group-hover:text-[var(--color-primary)]" /> : <ChevronLeft className="w-3 h-3 text-gray-500 group-hover:text-[var(--color-primary)]" />}
+          <div className={cn("w-1 h-1 rounded-full bg-gray-300 group-hover:bg-[var(--color-primary)] transition-colors", !collapsed && "-rotate-45")} />
         </div>
+      </button>
 
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-        >
-          {collapsed ? (
-            <ChevronRight className="w-5 h-5 text-gray-600" />
-          ) : (
-            <ChevronLeft className="w-5 h-5 text-gray-600" />
-          )}
-        </button>
-      </div>
-
-      {/* User Profile */}
-      <div className="px-4 py-4">
-        <div
-          className={cn(
-            'flex items-center gap-3 p-3 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 transition-all duration-300',
-            collapsed && 'justify-center'
-          )}
-        >
-          <Avatar className="h-10 w-10 border-2 border-[var(--color-primary)] flex-shrink-0">
-            <AvatarImage src={profile?.avatarUrl} alt={profile?.fullName || "Admin"} />
-            <AvatarFallback className="bg-[var(--color-primary)] text-white">
-              {profile?.fullName ? profile.fullName[0].toUpperCase() : 'AD'}
-            </AvatarFallback>
-          </Avatar>
+      {/* Header */}
+      <div className={cn(
+        "flex flex-col border-b border-gray-50 transition-all duration-500",
+        collapsed ? "py-8 px-4" : "py-10 px-8"
+      )}>
+        <Link to="/admin" className="flex items-center gap-4 group/logo">
+          <div className={cn(
+            "rounded-2xl bg-gradient-to-br from-[var(--color-primary)] via-[var(--color-primary-hover)] to-[var(--color-primary)] flex items-center justify-center shadow-xl shadow-[var(--color-primary)]/20 transition-all duration-700 group-hover/logo:rotate-[360deg]",
+            collapsed ? "w-12 h-12 p-2.5" : "w-11 h-11 p-2"
+          )}>
+            <img src="/images/logo_no_name.svg" alt="DG" className="w-full h-full brightness-0 invert" />
+          </div>
           {!collapsed && (
             <motion.div
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              transition={{ duration: 0.3 }}
-              className="flex-1 min-w-0 overflow-hidden"
+              className="flex flex-col"
             >
-              <p className="text-sm font-semibold text-gray-900 truncate">
-                {profile?.fullName || 'Admin User'}
-              </p>
-              <p className="text-xs text-gray-500 truncate">{profile?.email || 'admin@dreamguard.com'}</p>
+              <h1 className="text-xl font-black text-gray-900 tracking-tight leading-none">DreamGuard</h1>
+              <div className="flex items-center gap-2 mt-2">
+                <div className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                </div>
+                <p className="text-[10px] font-bold text-[var(--color-primary)] uppercase tracking-[0.2em] leading-none">Management</p>
+              </div>
             </motion.div>
           )}
-        </div>
+        </Link>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-4 py-2 overflow-y-auto overflow-x-hidden">
-        <ul className="space-y-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const active = isActive(item.href);
+      <nav className="flex-1 px-3 py-6 overflow-y-auto no-scrollbar scroll-smooth">
+        <div className={cn("transition-all duration-500", collapsed ? "space-y-4" : "space-y-10")}>
+          {navSections.map((section, idx) => (
+            <div key={section.label} className={cn("transition-all duration-300", collapsed ? "space-y-1" : "space-y-2")}>
+              {!collapsed && (
+                <h3 className="px-5 text-[10px] font-black uppercase tracking-[3px] text-gray-300 mb-4 transition-colors hover:text-[var(--color-primary)]/50 cursor-default">
+                  {section.label}
+                </h3>
+              )}
+              {collapsed && idx > 0 && <div className="mx-4 border-t border-gray-100 my-4 opacity-40" />}
+              
+              <ul className={cn("transition-all duration-300", collapsed ? "space-y-2" : "space-y-1.5")}>
+                {section.items.map((item) => {
+                  const Icon = item.icon;
+                  const active = isActive(item.href);
 
-            return (
-              <li key={item.href}>
-                <Link to={item.href}>
-                  <div
-                    className={cn(
-                      'flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 relative group',
-                      collapsed && 'justify-center px-2',
-                      active
-                        ? 'bg-gradient-to-r from-[var(--color-primary)] to-[var(--color-primary-hover)] text-white shadow-md'
-                        : 'text-gray-700 hover:bg-gray-100 hover:translate-x-1'
-                    )}
-                  >
-                    {typeof Icon === 'string' ? (
-                      <img
-                        src={Icon}
-                        alt={item.title}
-                        className={cn(
-                          'w-5 h-5 flex-shrink-0 transition-all duration-300 object-contain',
-                          active ? 'brightness-0 invert' : 'opacity-60 grayscale'
-                        )}
-                      />
-                    ) : (
-                      <Icon
-                        className={cn(
-                          'w-5 h-5 flex-shrink-0 transition-transform duration-300',
-                          active ? 'text-white' : 'text-gray-600'
-                        )}
-                      />
-                    )}
-                    {!collapsed && (
-                      <motion.span
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -10 }}
-                        transition={{ duration: 0.25 }}
-                        className="text-sm font-medium flex-1 whitespace-nowrap overflow-hidden text-ellipsis"
-                      >
-                        {item.title}
-                      </motion.span>
-                    )}
-                    {!collapsed && item.badge && (
-                      <motion.span
-                        initial={{ scale: 0, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className={cn(
-                          'px-2 py-0.5 text-xs font-semibold rounded-full flex-shrink-0',
-                          active
-                            ? 'bg-white text-[var(--color-primary)]'
-                            : 'bg-[var(--color-primary)] text-white'
-                        )}
-                      >
-                        {item.badge}
-                      </motion.span>
-                    )}
-                    {collapsed && item.badge && (
-                      <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse">
-                        {item.badge}
-                      </span>
-                    )}
+                  return (
+                    <li key={item.href} className="w-full relative px-1">
+                      <Link to={item.href}>
+                        <motion.div
+                          whileHover={{ x: collapsed ? 0 : 6 }}
+                          whileTap={{ scale: 0.96 }}
+                          className={cn(
+                            'group relative flex items-center transition-all duration-300 z-[60]',
+                            collapsed 
+                              ? 'justify-center w-12 h-12 mx-auto rounded-2xl' 
+                              : 'gap-3 px-4 py-3 mx-2 rounded-xl',
+                            active
+                              ? 'text-[var(--color-primary)] font-bold'
+                              : 'text-gray-500 hover:text-gray-900 font-semibold'
+                          )}
+                        >
+                          {/* Premium Active Back Pill */}
+                          {active && (
+                            <motion.div
+                              layoutId="active-highlight"
+                              className={cn(
+                                "absolute inset-0 -z-10 shadow-[0_4px_20px_-10px_rgba(var(--color-primary-rgb),0.3)]",
+                                collapsed 
+                                  ? "bg-[var(--color-primary)] rounded-2xl" 
+                                  : "bg-gradient-to-r from-[var(--color-primary-light)]/40 to-transparent rounded-xl"
+                              )}
+                              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                            />
+                          )}
 
-                    {/* Tooltip for collapsed state */}
-                    {collapsed && (
-                      <div className="absolute left-full ml-2 px-3 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">
-                        {item.title}
-                        <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-900" />
-                      </div>
-                    )}
-                  </div>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+                          {/* Left Indicator Ribbon */}
+                          {active && !collapsed && (
+                            <motion.div
+                              layoutId="indicator"
+                              className="absolute left-[-4px] top-1/4 bottom-1/4 w-1 bg-[var(--color-primary)] rounded-full shadow-[2px_0_10px_var(--color-primary)]"
+                            />
+                          )}
+
+                          <div className={cn(
+                            "relative flex items-center justify-center transition-all duration-500",
+                            active && !collapsed && "scale-110"
+                          )}>
+                            {typeof Icon === 'string' ? (
+                              <img
+                                src={Icon}
+                                alt={item.title}
+                                className={cn(
+                                  'w-5 h-5 flex-shrink-0 object-contain transition-all duration-500',
+                                  active ? (collapsed ? 'brightness-0 invert' : 'brightness-100') : 'opacity-50 grayscale group-hover:grayscale-0 group-hover:opacity-100'
+                                )}
+                              />
+                            ) : (
+                              <Icon
+                                className={cn(
+                                  'w-5 h-5 flex-shrink-0 transition-all duration-500',
+                                  active ? (collapsed ? 'text-white' : 'text-[var(--color-primary)]') : 'text-inherit group-hover:text-gray-800'
+                                )}
+                              />
+                            )}
+
+                            {item.badge && collapsed && (
+                              <div className="absolute -top-2 -right-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 border-2 border-white px-1 text-[9px] font-black text-white shadow-lg">
+                                {item.badge}
+                              </div>
+                            )}
+                          </div>
+
+                          {!collapsed && (
+                            <span className="text-[13px] transition-colors relative z-10 truncate tracking-wide">
+                              {item.title}
+                            </span>
+                          )}
+
+                          {item.badge && !collapsed && (
+                            <div className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[var(--color-primary)] px-1.5 text-[10px] font-black text-white shadow-lg shadow-[var(--color-primary)]/20 animate-pulse">
+                              {item.badge}
+                            </div>
+                          )}
+                          
+                          {/* Tooltip Enhanced (Visible only in collapsed state) */}
+                          {collapsed && (
+                            <div className="absolute left-[calc(100%+0.5rem)] invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-500 px-3 py-2 bg-gray-900 border border-white/10 text-white text-[11px] font-bold rounded-xl shadow-[0_10px_35px_-5px_rgba(0,0,0,0.5)] whitespace-nowrap z-[100] translate-x-[-10px] group-hover:translate-x-0">
+                              <span className="relative z-10">{item.title}</span>
+                              <div className="absolute top-1/2 left-0 -translate-x-1/2 -translate-y-1/2 border-[5px] border-transparent border-r-gray-900 shadow-sm" />
+                              {/* Glowing Backdrop for Tooltip */}
+                              <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-50 rounded-xl" />
+                            </div>
+                          )}
+                        </motion.div>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
       </nav>
 
-      <Separator />
+      {/* User Actions & Profile */}
+      <div className="p-4 bg-gray-50/30 border-t border-gray-50">
+         <div className={cn(
+           "mb-4 flex items-center transition-all duration-300",
+           collapsed ? "justify-center" : "bg-white p-2.5 rounded-2xl shadow-sm border border-gray-100 gap-3"
+         )}>
+           <div className="relative group/avatar">
+             <Avatar className="h-10 w-10 border-2 border-white shadow-md ring-2 ring-[var(--color-primary-light)] ring-offset-2 flex-shrink-0 transition-transform hover:scale-105">
+                <AvatarImage src={profile?.avatarUrl} alt={profile?.fullName || "Admin"} />
+                <AvatarFallback className="bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-hover)] text-white font-black text-xs">
+                  {profile?.fullName ? profile.fullName[0].toUpperCase() : 'AD'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 border-2 border-white rounded-full" />
+              
+              {collapsed && (
+                <div className="absolute left-full invisible group-hover/avatar:visible opacity-0 group-hover/avatar:opacity-100 transition-all duration-500 ml-5 px-4 py-3 bg-white border border-gray-100 text-gray-900 text-xs rounded-2xl shadow-2xl whitespace-nowrap z-[100] translate-x-[-10px] group-hover/avatar:translate-x-0 min-w-[150px]">
+                  <p className="font-black text-sm">{profile?.fullName || 'Administrator'}</p>
+                  <p className="text-[10px] text-gray-500 font-medium mt-0.5">{profile?.email || 'admin@dreamguard.com'}</p>
+                </div>
+              )}
+           </div>
 
-      {/* Logout Button */}
-      <div className="p-4">
-        <button
+            {!collapsed && (
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-black text-gray-900 truncate tracking-tight">
+                  {profile?.fullName || 'Administrator'}
+                </p>
+                <p className="text-[10px] text-gray-400 font-bold truncate tracking-wide mt-0.5">{profile?.email || 'admin@dreamguard.com'}</p>
+              </div>
+            )}
+         </div>
+
+         <button
           onClick={() => logout()}
           className={cn(
-            'flex items-center gap-3 px-4 py-3 rounded-xl w-full transition-all duration-300',
-            collapsed && 'justify-center px-2',
-            'text-red-600 hover:bg-red-50 hover:translate-x-1 relative group'
+            "flex items-center transition-all duration-300 group rounded-xl",
+            collapsed ? "justify-center w-12 h-12 mx-auto hover:bg-red-50" : "w-full gap-3 px-5 py-3 text-red-500 hover:bg-red-50"
           )}
         >
-          <LogOut className="w-5 h-5 flex-shrink-0" />
-          {!collapsed && (
-            <motion.span
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              transition={{ duration: 0.25 }}
-              className="text-sm font-medium whitespace-nowrap"
-            >
-              Logout
-            </motion.span>
-          )}
-
-          {/* Tooltip for collapsed state */}
-          {collapsed && (
-            <div className="absolute left-full ml-2 px-3 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap z-50">
-              Logout
-              <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-900" />
-            </div>
-          )}
+          <LogOut className="w-5 h-5 flex-shrink-0 transition-transform group-hover:-translate-x-1" />
+          {!collapsed && <span className="text-sm font-black tracking-tight">Sign Out</span>}
         </button>
       </div>
     </motion.aside>

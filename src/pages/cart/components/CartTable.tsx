@@ -1,4 +1,4 @@
-import { Minus, Plus, Trash2, ShoppingBag, ShieldCheck, RefreshCw, ChevronRight, AlertCircle } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingBag, ShieldCheck, RefreshCw, ChevronRight, AlertCircle, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { CartItem } from "@/store/cartTypes";
 import { cn, formatPrice } from "@/lib/utils";
@@ -20,8 +20,12 @@ const COLOR_HEX: Record<string, string> = {
     beige: '#d4b896', cream: '#fffdd0', coral: '#ff6b6b', mint: '#98d8c8',
 }
 
-function resolveColor(color: string): string {
+function resolveColor(item: CartItem): string {
+    const color = item.color || '';
     const key = color.toLowerCase().trim();
+    if (key === 'custom' && item.customAttributes?.colorHex) {
+        return item.customAttributes.colorHex;
+    }
     return COLOR_HEX[key] ?? (key.startsWith('#') ? key : '#e2e8f0');
 }
 
@@ -31,7 +35,7 @@ export function CartTable({ cart, onQuantity, onRemove, loadingIds = [] }: CartT
             <div className="flex flex-col items-center justify-center py-20 bg-white rounded-[2rem] border-2 border-dashed border-slate-100 relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-full -mr-16 -mt-16 opacity-50" />
                 <div className="absolute bottom-0 left-0 w-24 h-24 bg-[#4988c4]/5 rounded-full -ml-12 -mb-12 opacity-50" />
-                
+
                 <div className="w-16 h-16 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center justify-center mb-6 relative z-10">
                     <ShoppingBag className="w-6 h-6 text-[#4988c4]" />
                 </div>
@@ -39,8 +43,8 @@ export function CartTable({ cart, onQuantity, onRemove, loadingIds = [] }: CartT
                 <p className="text-slate-400 text-[9px] font-black uppercase tracking-[0.2em] max-w-xs text-center leading-relaxed relative z-10">
                     Discover our premium collection and start your dream journey.
                 </p>
-                <Button 
-                    variant="ghost" 
+                <Button
+                    variant="ghost"
                     className="mt-8 px-8 h-10 rounded-xl border border-dashed border-slate-200 font-black text-[10px] uppercase tracking-widest hover:bg-[#4988c4] hover:text-white hover:border-transparent transition-all relative z-10 overflow-hidden group/btn"
                     onClick={() => window.location.href = '/'}
                 >
@@ -65,6 +69,7 @@ export function CartTable({ cart, onQuantity, onRemove, loadingIds = [] }: CartT
                         className={cn(
                             "group relative overflow-hidden bg-white rounded-2xl border border-slate-100 p-3 sm:p-4 transition-all duration-300 hover:border-[#4988c4]/30",
                             hasTradeIn && "bg-emerald-50/10 border-emerald-100/50",
+                            item.isCustom && "bg-amber-50/50 border-amber-100/50", // Added for custom items
                             isLoading && "opacity-70 pointer-events-none"
                         )}
                     >
@@ -91,7 +96,7 @@ export function CartTable({ cart, onQuantity, onRemove, loadingIds = [] }: CartT
                         <div className="p-4 sm:p-5">
                             <div className="flex flex-col md:flex-row gap-6">
                                 <div className="relative flex-shrink-0">
-                                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-slate-50 border border-slate-100 group-hover:border-[#4988c4]/20 transition-colors">
+                                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden bg-slate-50 border border-slate-100 group-hover:border-[#4988c4]/20 transition-colors relative">
                                         <img
                                             src={item.image}
                                             alt={item.name}
@@ -100,21 +105,30 @@ export function CartTable({ cart, onQuantity, onRemove, loadingIds = [] }: CartT
                                                 isLoading && "opacity-30"
                                             )}
                                         />
+                                        {item.isCustom && (
+                                            <div className="absolute top-0 left-0 bg-amber-500 text-white text-[7px] font-black uppercase tracking-tighter px-2 py-0.5 rounded-br-lg z-10 shadow-sm border-r border-b border-white/20">
+                                                Bespoke
+                                            </div>
+                                        )}
                                     </div>
                                     {isOutOfStock && (
                                         <div className="absolute inset-0 z-[1] bg-rose-500/10 rounded-2xl flex items-center justify-center border border-rose-200">
-                                            <span className="text-white text-[7px] font-black uppercase tracking-widest px-1.5 py-0.5 bg-rose-500 rounded">Sold Out</span>
+                                            <span className="text-[7px] font-black text-white/90 uppercase tracking-widest px-1.5 py-0.5 bg-rose-500 rounded">Sold Out</span>
                                         </div>
                                     )}
                                 </div>
 
                                 <div className="flex flex-1 flex-col min-w-0">
+
                                     <div className="flex justify-between items-start gap-4 mb-3">
                                         <div className="space-y-0.5">
                                             <h3 className="text-sm sm:text-lg font-black text-slate-900 tracking-tight leading-tight uppercase">
                                                 {item.name}
                                             </h3>
-                                            <p className="text-[8px] font-black text-[#4988c4] uppercase tracking-widest flex items-center gap-2">
+                                            <p className={cn(
+                                                "text-[8px] font-black uppercase tracking-widest flex items-center gap-2",
+                                                item.isCustom ? "text-amber-500" : "text-[#4988c4]"
+                                            )}>
                                                 ID: <span className="text-slate-300 font-bold">#{item.id.slice(0, 8)}</span>
                                                 <span className="w-1 h-1 bg-slate-200 rounded-full" />
                                                 <span className="text-emerald-500">Verified</span>
@@ -131,18 +145,31 @@ export function CartTable({ cart, onQuantity, onRemove, loadingIds = [] }: CartT
                                     </div>
 
                                     <div className="flex flex-wrap items-center gap-2 mb-3">
-                                        {item.color && (
-                                            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-50/50 rounded-lg border border-slate-100">
-                                                <div 
-                                                    className="w-2 h-2 rounded-full border border-white shadow-sm" 
-                                                    style={{ backgroundColor: resolveColor(item.color) }}
-                                                />
-                                                <span className="text-[8px] font-black text-slate-900 uppercase">{item.color}</span>
+                                        {/* Custom Build tag */}
+                                        {item.isCustom && (
+                                            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-amber-50 rounded-lg border border-amber-100">
+                                                <Star className="w-2.5 h-2.5 text-amber-500 fill-current" />
+                                                <span className="text-[8px] font-black text-amber-600 uppercase tracking-widest">Custom</span>
                                             </div>
                                         )}
-                                        {item.size && (
+                                        {/* Color chip — unified for both custom and standard */}
+                                        {(item.customAttributes?.colorHex || item.color) && (
+                                            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-50/50 rounded-lg border border-slate-100">
+                                                <div
+                                                    className="w-2.5 h-2.5 rounded-full border border-white shadow-sm"
+                                                    style={{ backgroundColor: item.customAttributes?.colorHex || resolveColor(item) }}
+                                                />
+                                                <span className="text-[8px] font-black text-slate-900 uppercase">{item.customAttributes?.colorHex || item.color}</span>
+                                            </div>
+                                        )}
+                                        {/* Size chip — unified for both custom and standard */}
+                                        {(item.customAttributes?.length || item.size) && (
                                             <div className="flex items-center gap-1.5 px-2 py-0.5 bg-[#4988c4]/5 rounded-lg border border-[#4988c4]/10">
-                                                <span className="text-[8px] font-black text-[#4988c4] uppercase tracking-widest">{item.size}</span>
+                                                <span className="text-[8px] font-black text-[#4988c4] uppercase tracking-widest pl-1">
+                                                    {item.customAttributes?.length
+                                                        ? `${item.customAttributes.length}×${item.customAttributes.width}×${item.customAttributes.thickness} cm`
+                                                        : item.size}
+                                                </span>
                                             </div>
                                         )}
                                     </div>

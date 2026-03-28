@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,11 +11,69 @@ import { useToast } from '@/hooks/useToast';
 import { formatDate, formatPrice } from '../../utils';
 import { STATUS_THEME } from '../../constants';
 import { parseAddress } from '../../../../shared/utils/address/parseAddress';
+import type { RatingResponse } from '@/api/types/rating';
 
 interface ServiceOrderDetailDialogProps {
   serviceOrderId: string;
   orderCode?: string;
   trigger: React.ReactNode;
+}
+
+const RATING_CACHE_KEY = 'dreamguard-service-order-ratings';
+
+function readRatingCache(): Record<string, RatingResponse> {
+  if (typeof window === 'undefined') return {};
+
+  try {
+    const raw = window.localStorage.getItem(RATING_CACHE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, RatingResponse>;
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeRatingCache(serviceOrderId: string, rating: RatingResponse) {
+  if (typeof window === 'undefined' || !serviceOrderId) return;
+
+  const cache = readRatingCache();
+  cache[serviceOrderId] = rating;
+
+  try {
+    window.localStorage.setItem(RATING_CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    // Ignore storage write errors.
+  }
+}
+
+function mapEmbeddedRating(data?: Record<string, unknown>): RatingResponse | null {
+  if (!data) return null;
+
+  const embedded = (
+    data.rating ||
+    data.staffRating ||
+    data.orderRating ||
+    data.review
+  ) as Record<string, unknown> | undefined;
+
+  if (!embedded) return null;
+
+  const score = Number(embedded.score || embedded.ratingScore || embedded.stars || 0);
+  const comment = String(embedded.comment || embedded.feedback || '').trim();
+  const id = String(embedded.id || embedded.ratingId || '').trim();
+
+  if (!id && !comment && (!Number.isFinite(score) || score <= 0)) return null;
+
+  return {
+    id: id || undefined,
+    ratingId: String(embedded.ratingId || embedded.id || '').trim() || undefined,
+    score: Number.isFinite(score) && score > 0 ? score : undefined,
+    comment: comment || undefined,
+    staffName: String(embedded.staffName || '').trim() || undefined,
+    createdAt: String(embedded.createdAt || '').trim() || undefined,
+    updatedAt: String(embedded.updatedAt || '').trim() || undefined,
+  };
 }
 
 function toThemeKey(status?: string) {
@@ -33,14 +91,16 @@ function normalizePhone(phone?: string) {
 }
 
 export function ServiceOrderDetailDialog({ serviceOrderId, orderCode, trigger }: ServiceOrderDetailDialogProps) {
+  const [open, setOpen] = useState(false);
   const toast = useToast();
   const { data: profile } = useProfile();
+  const [cachedRating, setCachedRating] = useState<RatingResponse | null>(null);
 
   const rawProfile = profile as Record<string, unknown> | undefined;
   const currentCustomerId = String(rawProfile?.customerId || rawProfile?.id || rawProfile?.userId || '').trim();
   const currentPhone = normalizePhone(String(rawProfile?.phoneNumber || ''));
 
-  const canLoadDetail = !!serviceOrderId && (!!currentCustomerId || !!currentPhone);
+  const canLoadDetail = open && !!serviceOrderId && (!!currentCustomerId || !!currentPhone);
   const { data, isPending } = useServiceOrderDetail(serviceOrderId, { enabled: canLoadDetail });
 
   const detailCustomerId = (data?.customerId || '').trim();
@@ -52,11 +112,30 @@ export function ServiceOrderDetailDialog({ serviceOrderId, orderCode, trigger }:
   );
 
   const isCompletedOrder = (data?.status || '').toLowerCase() === 'completed';
-  const shouldLoadRating = canView && isCompletedOrder && !!serviceOrderId;
+  const shouldLoadRating = open && canView && isCompletedOrder && !!serviceOrderId;
+
+  const task = data?.serviceTask || data?.task || data?.orderTask || data?.serviceOrderTask;
+  const assignedStaff = data?.staff || data?.technician || null;
+  const assignedStaffId = String(assignedStaff?.staffId || task?.staffId || '').trim();
+  const assignedStaffNameFromOrder = String(assignedStaff?.fullName || '').trim();
 
   const { data: existingRating, isPending: isRatingPending } = useRatingByServiceOrder(serviceOrderId, {
     enabled: shouldLoadRating,
   });
+
+  const embeddedRating = useMemo(
+    () => mapEmbeddedRating((data || undefined) as Record<string, unknown> | undefined),
+    [data]
+  );
+
+  const resolvedRating = existingRating || embeddedRating || cachedRating;
+
+  const ratedStaffName = assignedStaffNameFromOrder || resolvedRating?.staffName || 'Assigned Staff';
+  const assignedStaffPhone = String(assignedStaff?.phoneNumber || '').trim();
+  const assignedStaffPosition = String(assignedStaff?.position || '').trim();
+  const hasAssignedStaff = !!assignedStaffId;
+  const taskStatus = String(task?.status || '').trim();
+  const canRateAssignedStaff = !!serviceOrderId && isCompletedOrder;
 
   const createRatingMutation = useCreateRating();
   const updateRatingMutation = useUpdateRating();
@@ -64,31 +143,47 @@ export function ServiceOrderDetailDialog({ serviceOrderId, orderCode, trigger }:
   const [draftScore, setDraftScore] = useState<number | null>(null);
   const [draftComment, setDraftComment] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!serviceOrderId) {
+      setCachedRating(null);
+      return;
+    }
+
+    const cache = readRatingCache();
+    setCachedRating(cache[serviceOrderId] || null);
+  }, [serviceOrderId]);
+
+  useEffect(() => {
+    if (!serviceOrderId || !resolvedRating) return;
+    writeRatingCache(serviceOrderId, resolvedRating);
+  }, [serviceOrderId, resolvedRating]);
+
   const existingScore = useMemo(() => {
-    const raw = Number(existingRating?.score || 5);
+    const raw = Number(resolvedRating?.score || 5);
     if (!Number.isFinite(raw)) return 5;
     return Math.max(1, Math.min(5, raw));
-  }, [existingRating?.score]);
+  }, [resolvedRating?.score]);
 
   const score = draftScore ?? existingScore;
-  const comment = draftComment ?? (existingRating?.comment || '');
+  const comment = draftComment ?? (resolvedRating?.comment || '');
 
   const ratingId = useMemo(
-    () => String(existingRating?.id || existingRating?.ratingId || '').trim(),
-    [existingRating]
+    () => String(resolvedRating?.id || resolvedRating?.ratingId || '').trim(),
+    [resolvedRating]
   );
+  const isAlreadyRated = !!ratingId;
 
   const isSubmitting = createRatingMutation.isPending || updateRatingMutation.isPending;
 
   const handleSubmitRating = async () => {
     if (!isCompletedOrder) {
-      toast.warning('Rating is only available after service completion.');
+      toast.warning('You can rate staff only after service completion.');
       return;
     }
 
     const trimmedComment = comment.trim();
     if (!trimmedComment) {
-      toast.warning('Please add a short review comment.');
+      toast.warning('Please add a short review for the assigned staff.');
       return;
     }
 
@@ -99,17 +194,21 @@ export function ServiceOrderDetailDialog({ serviceOrderId, orderCode, trigger }:
 
     try {
       if (ratingId) {
-        await updateRatingMutation.mutateAsync({
+        const updated = await updateRatingMutation.mutateAsync({
           ratingId,
           serviceOrderId,
           payload: { score, comment: trimmedComment },
         });
+        writeRatingCache(serviceOrderId, updated as RatingResponse);
+        setCachedRating(updated as RatingResponse);
         toast.success('Rating updated successfully.');
       } else {
-        await createRatingMutation.mutateAsync({
+        const created = await createRatingMutation.mutateAsync({
           serviceOrderId,
           payload: { score, comment: trimmedComment },
         });
+        writeRatingCache(serviceOrderId, created as RatingResponse);
+        setCachedRating(created as RatingResponse);
         toast.success('Rating submitted successfully.');
       }
     } catch (error) {
@@ -122,7 +221,7 @@ export function ServiceOrderDetailDialog({ serviceOrderId, orderCode, trigger }:
   const detailItems = data?.items || data?.orderDetails || data?.serviceOrderItems || [];
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border-slate-200 p-6">
         <DialogHeader>
@@ -207,6 +306,56 @@ export function ServiceOrderDetailDialog({ serviceOrderId, orderCode, trigger }:
               )}
             </div>
 
+            <div className="rounded-xl border border-slate-200 p-4 bg-white">
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <h4 className="text-sm font-bold text-slate-900">Assigned Staff</h4>
+                <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider border-slate-200 text-slate-600">
+                  {hasAssignedStaff ? 'Assigned' : 'Pending Assignment'}
+                </Badge>
+              </div>
+
+              {hasAssignedStaff ? (
+                <div className="space-y-2">
+                  <p className="text-sm text-slate-700">
+                    <span className="text-slate-500">Name:</span> <span className="font-semibold">{ratedStaffName}</span>
+                  </p>
+                  <p className="text-sm text-slate-700">
+                    <span className="text-slate-500">Phone:</span> {assignedStaffPhone || 'Updating...'}
+                  </p>
+                  <p className="text-sm text-slate-700">
+                    <span className="text-slate-500">Position:</span> {assignedStaffPosition || 'Service Staff'}
+                  </p>
+                  {taskStatus && (
+                    <p className="text-sm text-slate-700">
+                      <span className="text-slate-500">Task Status:</span> {taskStatus}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500">No staff has been assigned to this service order yet.</p>
+              )}
+
+              {resolvedRating && (
+                <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50/50 p-3 space-y-1.5">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700">Your Submitted Rating</p>
+                  <div className="flex items-center gap-2">
+                    {[1, 2, 3, 4, 5].map((value) => (
+                      <Star
+                        key={`staff-preview-${value}`}
+                        className={`h-4 w-4 ${value <= Number(resolvedRating.score || 0) ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`}
+                      />
+                    ))}
+                    <span className="text-xs font-semibold text-slate-600">
+                      {Math.max(1, Math.min(5, Number(resolvedRating.score || 0) || 0)) || '-'}/5
+                    </span>
+                  </div>
+                  {resolvedRating.comment && (
+                    <p className="text-sm text-slate-700">{resolvedRating.comment}</p>
+                  )}
+                </div>
+              )}
+            </div>
+
             {data?.paymentMethod && (
               <div className="rounded-xl border border-slate-200 p-4 bg-white">
                 <div className="flex items-center gap-2 mb-3">
@@ -246,16 +395,23 @@ export function ServiceOrderDetailDialog({ serviceOrderId, orderCode, trigger }:
             {isCompletedOrder && (
               <div className="rounded-xl border border-slate-200 p-4 bg-white space-y-3">
                 <div className="flex items-center justify-between gap-3">
-                  <h4 className="text-sm font-bold text-slate-900">Your Rating</h4>
+                  <h4 className="text-sm font-bold text-slate-900">Staff Rating</h4>
                   <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider border-slate-200 text-slate-600">
-                    {ratingId ? 'Already Rated' : 'Pending Rating'}
+                    {ratingId ? 'Staff Rated' : 'Pending Staff Rating'}
                   </Badge>
                 </div>
 
                 {isRatingPending ? (
-                  <p className="text-sm text-slate-500">Loading your rating...</p>
+                  <p className="text-sm text-slate-500">Loading staff rating...</p>
                 ) : (
                   <>
+                    <div className="rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Assigned Staff</p>
+                      <p className="text-sm font-semibold text-slate-800 mt-1">
+                        {canRateAssignedStaff ? ratedStaffName : 'No staff assigned yet'}
+                      </p>
+                    </div>
+
                     <div className="flex items-center gap-2">
                       {[1, 2, 3, 4, 5].map((value) => {
                         const active = value <= score;
@@ -266,7 +422,7 @@ export function ServiceOrderDetailDialog({ serviceOrderId, orderCode, trigger }:
                             className="rounded-md p-1 transition hover:bg-amber-50"
                             aria-label={`Rate ${value} star${value > 1 ? 's' : ''}`}
                             onClick={() => setDraftScore(value)}
-                            disabled={isSubmitting}
+                            disabled={isSubmitting || !canRateAssignedStaff || isAlreadyRated}
                           >
                             <Star
                               className={`h-5 w-5 ${active ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`}
@@ -280,10 +436,10 @@ export function ServiceOrderDetailDialog({ serviceOrderId, orderCode, trigger }:
                     <Textarea
                       value={comment}
                       onChange={(event) => setDraftComment(event.target.value)}
-                      placeholder="Share your experience with this service..."
+                      placeholder="Share your experience with this staff..."
                       className="min-h-[96px] border-slate-200"
                       maxLength={500}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || !canRateAssignedStaff || isAlreadyRated}
                     />
 
                     <div className="flex items-center justify-between gap-3">
@@ -291,12 +447,24 @@ export function ServiceOrderDetailDialog({ serviceOrderId, orderCode, trigger }:
                       <Button
                         type="button"
                         onClick={handleSubmitRating}
-                        disabled={isSubmitting}
+                        disabled={isSubmitting || !canRateAssignedStaff || isAlreadyRated}
                         className="h-9 rounded-lg px-4 text-xs font-bold uppercase tracking-wider"
                       >
-                        {isSubmitting ? 'Saving...' : (ratingId ? 'Update Rating' : 'Submit Rating')}
+                        {isAlreadyRated ? 'Already Rated' : (isSubmitting ? 'Saving...' : 'Submit Rating')}
                       </Button>
                     </div>
+
+                    {isAlreadyRated && (
+                      <p className="text-xs font-medium text-slate-500">
+                        This service order has already been rated and is now read-only.
+                      </p>
+                    )}
+
+                    {!hasAssignedStaff && (
+                      <p className="text-xs font-medium text-amber-700">
+                        Staff detail is still syncing. You can still submit your rating for this completed order.
+                      </p>
+                    )}
                   </>
                 )}
               </div>

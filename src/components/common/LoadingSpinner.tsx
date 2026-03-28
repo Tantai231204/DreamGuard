@@ -43,10 +43,10 @@ export function LoadingSpinner({
       {/* Spinner + Logo */}
       <div className="relative flex items-center justify-center">
         {/* Soft Core Overlay Shadow */}
-        <motion.div 
+        <motion.div
           animate={{ scale: [1, 1.15, 1], opacity: [0.3, 0.5, 0.3] }}
           transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute h-[90%] w-[90%] rounded-full bg-[#4988c4]/15 filter blur-md" 
+          className="absolute h-[90%] w-[90%] rounded-full bg-[#4988c4]/15 filter blur-md"
         />
 
         {/* Modern Rotating Arc Circle */}

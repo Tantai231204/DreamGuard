@@ -11,7 +11,7 @@ export { VariantDialog, ColorPicker } from './variant-dialog';
 export { VariantTable, VariantTableWrapper, VariantSummaryCell, VariantSummaryDisplay } from './variant-table';
 
 // ── Dialogs ──────────────────────────────────────────────
-export { DeleteProductDialog, ImageUploadDialog, ProductCreationSuccess } from './dialogs';
+export { ImageUploadDialog, ProductCreationSuccess } from './dialogs';
 
 // ── Combo ────────────────────────────────────────────────
 export { ComboItemsTable, useComboColumns } from './combo';
