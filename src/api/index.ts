@@ -11,6 +11,7 @@ export {
   variantService,
   comboService,
   cartService,
+  ratingService,
   type VerifyOtpRequest,
   type ResetPasswordRequest,
   type ChangePasswordRequest,
@@ -68,4 +69,8 @@ export type {
   AdminProductParams,
   ProductParams,
   UpdateProductStatusParams,
+  RatingPayload,
+  RatingResponse,
+  RatingSearchParams,
+  RatingListResponse,
 } from "./types";

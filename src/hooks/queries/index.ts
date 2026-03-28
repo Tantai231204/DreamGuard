@@ -7,5 +7,6 @@ export * from './useUser';
 export * from './useCart';
 export * from './useOrder';
 export * from './useServiceOrder';
+export * from './useRating';
 export * from './usePayment';
 export * from '../useAddress';

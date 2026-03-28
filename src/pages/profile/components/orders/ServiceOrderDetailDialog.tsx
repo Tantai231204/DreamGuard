@@ -1,11 +1,16 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { CalendarDays, MapPin, Phone, Package2, CreditCard } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { CalendarDays, MapPin, Phone, Package2, CreditCard, Star } from 'lucide-react';
 import { useProfile } from '@/hooks/queries';
 import { useServiceOrderDetail } from '@/hooks/queries/useServiceOrder';
+import { useCreateRating, useRatingByServiceOrder, useUpdateRating } from '@/hooks/queries/useRating';
+import { useToast } from '@/hooks/useToast';
 import { formatDate, formatPrice } from '../../utils';
 import { STATUS_THEME } from '../../constants';
+import { parseAddress } from '../../../../shared/utils/address/parseAddress';
 
 interface ServiceOrderDetailDialogProps {
   serviceOrderId: string;
@@ -28,6 +33,7 @@ function normalizePhone(phone?: string) {
 }
 
 export function ServiceOrderDetailDialog({ serviceOrderId, orderCode, trigger }: ServiceOrderDetailDialogProps) {
+  const toast = useToast();
   const { data: profile } = useProfile();
 
   const rawProfile = profile as Record<string, unknown> | undefined;
@@ -44,6 +50,73 @@ export function ServiceOrderDetailDialog({ serviceOrderId, orderCode, trigger }:
     (currentCustomerId && detailCustomerId === currentCustomerId) ||
     (!currentCustomerId && !!currentPhone && detailPhone === currentPhone)
   );
+
+  const isCompletedOrder = (data?.status || '').toLowerCase() === 'completed';
+  const shouldLoadRating = canView && isCompletedOrder && !!serviceOrderId;
+
+  const { data: existingRating, isPending: isRatingPending } = useRatingByServiceOrder(serviceOrderId, {
+    enabled: shouldLoadRating,
+  });
+
+  const createRatingMutation = useCreateRating();
+  const updateRatingMutation = useUpdateRating();
+
+  const [draftScore, setDraftScore] = useState<number | null>(null);
+  const [draftComment, setDraftComment] = useState<string | null>(null);
+
+  const existingScore = useMemo(() => {
+    const raw = Number(existingRating?.score || 5);
+    if (!Number.isFinite(raw)) return 5;
+    return Math.max(1, Math.min(5, raw));
+  }, [existingRating?.score]);
+
+  const score = draftScore ?? existingScore;
+  const comment = draftComment ?? (existingRating?.comment || '');
+
+  const ratingId = useMemo(
+    () => String(existingRating?.id || existingRating?.ratingId || '').trim(),
+    [existingRating]
+  );
+
+  const isSubmitting = createRatingMutation.isPending || updateRatingMutation.isPending;
+
+  const handleSubmitRating = async () => {
+    if (!isCompletedOrder) {
+      toast.warning('Rating is only available after service completion.');
+      return;
+    }
+
+    const trimmedComment = comment.trim();
+    if (!trimmedComment) {
+      toast.warning('Please add a short review comment.');
+      return;
+    }
+
+    if (!Number.isFinite(score) || score < 1 || score > 5) {
+      toast.warning('Score must be between 1 and 5 stars.');
+      return;
+    }
+
+    try {
+      if (ratingId) {
+        await updateRatingMutation.mutateAsync({
+          ratingId,
+          serviceOrderId,
+          payload: { score, comment: trimmedComment },
+        });
+        toast.success('Rating updated successfully.');
+      } else {
+        await createRatingMutation.mutateAsync({
+          serviceOrderId,
+          payload: { score, comment: trimmedComment },
+        });
+        toast.success('Rating submitted successfully.');
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to submit rating at the moment.';
+      toast.error('Rating submission failed.', message);
+    }
+  };
 
   const theme = STATUS_THEME[toThemeKey(data?.status)] || STATUS_THEME.Pending;
   const detailItems = data?.items || data?.orderDetails || data?.serviceOrderItems || [];
@@ -102,7 +175,7 @@ export function ServiceOrderDetailDialog({ serviceOrderId, orderCode, trigger }:
                   </div>
                   <div className="flex items-start gap-2 text-slate-700">
                     <MapPin className="w-4 h-4 mt-0.5 text-slate-500 flex-shrink-0" />
-                    <span className="text-sm">{data?.address || 'No address'}</span>
+<span className="text-sm">{parseAddress(data?.address)}</span>
                   </div>
                 </div>
               </div>
@@ -167,6 +240,65 @@ export function ServiceOrderDetailDialog({ serviceOrderId, orderCode, trigger }:
               <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4">
                 <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700 mb-1">Customer Note</p>
                 <p className="text-sm text-amber-800">{data.customerNote || data.note}</p>
+              </div>
+            )}
+
+            {isCompletedOrder && (
+              <div className="rounded-xl border border-slate-200 p-4 bg-white space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <h4 className="text-sm font-bold text-slate-900">Your Rating</h4>
+                  <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider border-slate-200 text-slate-600">
+                    {ratingId ? 'Already Rated' : 'Pending Rating'}
+                  </Badge>
+                </div>
+
+                {isRatingPending ? (
+                  <p className="text-sm text-slate-500">Loading your rating...</p>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2">
+                      {[1, 2, 3, 4, 5].map((value) => {
+                        const active = value <= score;
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            className="rounded-md p-1 transition hover:bg-amber-50"
+                            aria-label={`Rate ${value} star${value > 1 ? 's' : ''}`}
+                            onClick={() => setDraftScore(value)}
+                            disabled={isSubmitting}
+                          >
+                            <Star
+                              className={`h-5 w-5 ${active ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`}
+                            />
+                          </button>
+                        );
+                      })}
+                      <span className="text-xs font-semibold text-slate-500 ml-1">{score}/5</span>
+                    </div>
+
+                    <Textarea
+                      value={comment}
+                      onChange={(event) => setDraftComment(event.target.value)}
+                      placeholder="Share your experience with this service..."
+                      className="min-h-[96px] border-slate-200"
+                      maxLength={500}
+                      disabled={isSubmitting}
+                    />
+
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-[11px] text-slate-500">{comment.trim().length}/500 characters</p>
+                      <Button
+                        type="button"
+                        onClick={handleSubmitRating}
+                        disabled={isSubmitting}
+                        className="h-9 rounded-lg px-4 text-xs font-bold uppercase tracking-wider"
+                      >
+                        {isSubmitting ? 'Saving...' : (ratingId ? 'Update Rating' : 'Submit Rating')}
+                      </Button>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
