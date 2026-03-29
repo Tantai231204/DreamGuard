@@ -2,9 +2,11 @@ import { useMemo } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
 import type { Certificate } from '../../types';
 import { Button } from '@/components/ui/button';
-import { Edit2, Trash2, Eye } from 'lucide-react';
+import { Edit2, Trash2, Eye, ShieldCheck } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CertificateStatusCell } from './CertificateStatusCell';
+import { getCertificateStyle } from '@/shared/data/certificates';
+import { cn } from '@/lib/utils';
 
 const columnHelper = createColumnHelper<Certificate>();
 
@@ -38,13 +40,31 @@ export const useCertificateColumns = ({ onEdit, onDelete, onView }: UseCertifica
       enableHiding: false,
     }),
     columnHelper.accessor('name', {
-      header: 'Certificate Name',
-      cell: (info) => (
-        <div className="flex flex-col py-1">
-          <span className="font-bold text-slate-900 text-sm">{info.getValue()}</span>
-          <span className="text-[11px] text-slate-500 font-medium">#{info.row.original.id.slice(0, 8)}</span>
-        </div>
-      ),
+      header: 'Certificate',
+      cell: (info) => {
+        const name = info.getValue();
+        const registry = getCertificateStyle(name);
+        const Icon = registry.icon || ShieldCheck;
+
+        return (
+          <div className="flex items-center gap-4 py-1.5">
+            <div className={cn(
+                "w-12 h-12 rounded-[14px] flex items-center justify-center flex-shrink-0 overflow-hidden",
+                registry.bgColor
+            )}>
+              {registry.image ? (
+                <img src={registry.image} alt={name} className="w-full h-full object-contain p-2" />
+              ) : (
+                <Icon className={cn("w-6 h-6", registry.iconColor)} />
+              )}
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="font-black text-slate-900 text-[13px] tracking-tight">{name}</span>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">#{info.row.original.id.slice(0, 8)}</span>
+            </div>
+          </div>
+        );
+      },
     }),
     columnHelper.accessor('summary', {
       header: 'Summary',

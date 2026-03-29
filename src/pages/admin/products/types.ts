@@ -167,6 +167,7 @@ export interface Certificate {
   description: string;
   isActive: boolean;
   organization?: string;
+  scope?: string;
   createdAt?: string;
 }
 
@@ -175,6 +176,7 @@ export interface CreateCertificateRequest {
   summary: string;
   organization: string;
   description: string;
+  scope?: string;
 }
 
 export interface CertificateParams {

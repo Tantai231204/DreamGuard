@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { useQueries } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import variantService from "@/api/services/variantService";
+import { certificateService } from "@/api";
 import { useComboBySlug, useComboDetail as useComboDetailQuery } from "@/hooks/queries/useCombo";
 import { useCartStore } from "@/store/useCartStore";
 import { useBreadcrumb } from "@/components/common/BreadcrumbNav";
@@ -161,27 +162,59 @@ export function useComboDetail() {
         }, 0);
     }, [enrichedItems]);
 
-    const totalBundleSavings = useMemo(() => {
-        if (!totalIndividualPrice || !activeCombo?.salePrice) return 0;
-        return Math.max(0, totalIndividualPrice - activeCombo.salePrice);
-    }, [totalIndividualPrice, activeCombo]);
+  const totalBundleSavings = useMemo(() => {
+    if (!totalIndividualPrice || !activeCombo?.salePrice) return 0;
+    return Math.max(0, totalIndividualPrice - activeCombo.salePrice);
+  }, [totalIndividualPrice, activeCombo]);
 
-    return {
-        combo,
-        displayImage,
-        isLoading: isLoading || (!!selectedVariantId && isLoadingVariant && !activeCombo?.items?.length),
-        isLoadingVariant: isLoadingVariant || isAnyVariantLoading,
-        isError,
-        activeCombo: activeCombo as Combo | null,
-        enrichedItems,
-        totalIndividualPrice,
-        totalBundleSavings,
-        selectedVariantId,
-        quantity,
-        isWishlisted,
-        setQuantity,
-        setUserSelectedVariantId,
-        handleAddToCart,
-        toggleWishlist
-    };
+  // ─────────────────────────────────────────────────────────────
+  // NEW: FETCH CERTIFICATES FOR ALL PRODUCTS IN COMBO
+  // ─────────────────────────────────────────────────────────────
+  const productIds = useMemo(() => {
+    const ids = new Set<string>();
+    activeCombo?.items?.forEach(item => {
+      if (item.productId) ids.add(item.productId);
+    });
+    return Array.from(ids);
+  }, [activeCombo]);
+
+  const certQueries = useQueries({
+    queries: productIds.map(id => ({
+      queryKey: ['certificates', 'product', id],
+      queryFn: () => certificateService.getByProductId(id),
+      staleTime: 5 * 60 * 1000,
+      enabled: !!id,
+    }))
+  });
+
+  const comboCertificates = useMemo(() => {
+    const allCerts = certQueries.flatMap(q => q.data || []);
+    // Unique by ID
+    const seen = new Set();
+    return allCerts.filter(c => {
+      if (seen.has(c.id)) return false;
+      seen.add(c.id);
+      return true;
+    });
+  }, [certQueries]);
+
+  return {
+    combo,
+    displayImage,
+    isLoading: isLoading || (!!selectedVariantId && isLoadingVariant && !activeCombo?.items?.length),
+    isLoadingVariant: isLoadingVariant || isAnyVariantLoading,
+    isError,
+    activeCombo: activeCombo as Combo | null,
+    enrichedItems,
+    totalIndividualPrice,
+    totalBundleSavings,
+    comboCertificates,
+    selectedVariantId,
+    quantity,
+    isWishlisted,
+    setQuantity,
+    setUserSelectedVariantId,
+    handleAddToCart,
+    toggleWishlist
+  };
 }

@@ -7,6 +7,7 @@ import { comboSchema } from './comboSchema';
 import type { Combo } from '../../types';
 import type { CreateComboRequest, ComboItemRequest } from '@/api/services/comboService';
 import { toSlug, getInitialState, type ComboFormValues } from './index';
+import { toast } from 'sonner';
 
 interface UseComboFormProps {
     open: boolean;
@@ -146,6 +147,14 @@ export function useComboForm({
     }, [typedForm]);
 
     const onFormSubmit = (values: ComboFormValues) => {
+        // Core Guard: Prevent publishing parent without children
+        if (mode === 'parent' && values.status === 'Published' && !hasChildCombos) {
+            toast.error("Cannot publish collection", {
+                description: "Add at least one variant before publishing this combo."
+            });
+            return;
+        }
+
         const payload: CreateComboRequest = {
             name: values.name.trim(),
             slug: values.slug.trim(),
@@ -159,7 +168,7 @@ export function useComboForm({
             imagePublicId: values.imagePublicId || "",
             // Variants don't have a status selector, default to parent's published state.
             // Parents DO have a selector again, so we use their selected value.
-            status: mode === 'parent' ? (values.status || "Published") : "Published",
+            status: values.status || "Published",
             comboParentId: mode === 'variant' ? values.comboParentId : undefined,
             items: mode === 'variant'
                 ? (values.items || [])
@@ -174,10 +183,13 @@ export function useComboForm({
     };
 
     const rawChildren = useMemo(() => {
-        if (mode !== 'parent' || !combo) return [];
-        const rawCombo = combo as unknown as Record<string, unknown>;
-        return (rawCombo.subRows || rawCombo.childCombos || []) as Record<string, unknown>[];
-    }, [mode, combo]);
+        if (mode !== 'parent') return [];
+        // Use primary detail response first, then fallback to passed object
+        const source = comboResp || combo;
+        if (!source) return [];
+        const rawSource = source as unknown as Record<string, unknown>;
+        return (rawSource.subRows || rawSource.childCombos || []) as Record<string, unknown>[];
+    }, [mode, combo, comboResp]);
 
     const hasChildCombos = rawChildren.length > 0;
 

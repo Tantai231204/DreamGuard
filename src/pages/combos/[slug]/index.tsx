@@ -6,11 +6,11 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
 // Components
-import { 
-    ComboImageGallery, 
-    ComboInfo, 
-    ComboVariants, 
-    ComboActions, 
+import {
+    ComboImageGallery,
+    ComboInfo,
+    ComboVariants,
+    ComboActions,
     ComboTabs
 } from "./components";
 import { SafetyCertifications } from "../../products/[slug]/components/SafetyCertifications";
@@ -61,14 +61,15 @@ export default function ComboDetail() {
     const navigate = useNavigate();
     const {
         combo,
+        displayImage,
         isLoading,
         isLoadingVariant,
         isError,
         activeCombo,
-        displayImage,
         enrichedItems,
         totalIndividualPrice,
         totalBundleSavings,
+        comboCertificates,
         selectedVariantId,
         quantity,
         isWishlisted,
@@ -103,7 +104,7 @@ export default function ComboDetail() {
 
     return (
         <div className="min-h-screen bg-white">
-            <SEO 
+            <SEO
                 title={`${combo.name} | DreamGuard`}
                 description={combo.description}
                 image={combo.imageUrl}
@@ -125,10 +126,10 @@ export default function ComboDetail() {
 
             <main className="container mx-auto px-4 py-8 md:py-12 lg:px-12 xl:max-w-7xl">
                 <div className="grid lg:grid-cols-12 gap-12 lg:gap-20 items-start">
-                    
+
                     {/* LEFT: Gallery Section (7 cols) */}
                     <div className="lg:col-span-7">
-                        <ComboImageGallery 
+                        <ComboImageGallery
                             combo={combo}
                             activeCombo={activeCombo}
                             displayImage={displayImage}
@@ -140,7 +141,7 @@ export default function ComboDetail() {
 
                     {/* RIGHT: Content Section (5 cols) */}
                     <div className="lg:col-span-5 flex flex-col gap-10">
-                        <ComboInfo 
+                        <ComboInfo
                             combo={combo}
                             activeCombo={activeCombo}
                             isLoading={isLoadingVariant}
@@ -149,14 +150,14 @@ export default function ComboDetail() {
                             totalBundleSavings={totalBundleSavings}
                         />
 
-                        <ComboVariants 
+                        <ComboVariants
                             combo={combo}
                             activeCombo={activeCombo}
                             selectedVariantId={selectedVariantId}
                             onSelectVariant={setUserSelectedVariantId}
                         />
 
-                        <ComboActions 
+                        <ComboActions
                             combo={combo}
                             activeCombo={activeCombo}
                             quantity={quantity}
@@ -195,7 +196,7 @@ export default function ComboDetail() {
                         viewport={{ once: true }}
                         transition={{ duration: 0.8 }}
                     >
-                        <SafetyCertifications certifications={safetyCertifications} />
+                        <SafetyCertifications certifications={comboCertificates.length > 0 ? comboCertificates : safetyCertifications} />
                     </motion.div>
 
                     <motion.div

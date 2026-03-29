@@ -25,6 +25,12 @@ import { formatDate, cn } from '@/lib/utils';
 import type { Product } from '../../types';
 import { formatAgeGroup, PRODUCT_STATUSES } from '../../types';
 import { VariantInfoCell, PriceRangeCell, StockCell } from './cells';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const columnHelper = createColumnHelper<Product>();
 
@@ -186,41 +192,73 @@ export function useProductColumns({ onView, onEdit, onDelete, onAddVariant, onUp
         cell: (info) => {
           const status = info.getValue();
           const p = info.row.original;
-          
+
           if (!onUpdateStatus) return <AdminStatusBadge status={status} />;
 
           return (
             <DropdownMenu>
               <DropdownMenuTrigger className="outline-none group/sbadge">
-                <AdminStatusBadge 
-                  status={status} 
-                  className="cursor-pointer hover:shadow-md transition-all group-hover/sbadge:ring-2 group-hover/sbadge:ring-blue-100" 
+                <AdminStatusBadge
+                  status={status}
+                  className="cursor-pointer hover:shadow-md transition-all group-hover/sbadge:ring-2 group-hover/sbadge:ring-blue-100"
                 />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-40 p-1 rounded-xl shadow-xl border-slate-200">
                 <div className="px-2 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Select status</div>
-                {PRODUCT_STATUSES.map((s) => (
-                  <DropdownMenuItem
-                    key={s.value}
-                    className={cn(
-                      "rounded-lg px-2 py-2 gap-2 cursor-pointer transition-colors",
-                      status === s.value ? "bg-blue-50 text-blue-700 font-bold" : "text-slate-600 hover:bg-slate-50"
-                    )}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (status !== s.value) {
-                        onUpdateStatus(p.id, s.value, p.name, status as string);
-                      }
-                    }}
-                  >
-                    <div className={cn("h-1.5 w-1.5 rounded-full", 
-                      s.value === 'Published' ? 'bg-emerald-500' : 
-                      s.value === 'Draft' ? 'bg-amber-500' : 
-                      s.value === 'OutOfStock' ? 'bg-rose-500' : 'bg-slate-400'
-                    )} />
-                    <span className="text-[13px]">{s.label}</span>
-                  </DropdownMenuItem>
-                ))}
+                {PRODUCT_STATUSES.map((s) => {
+                  const hasVariants = (p.variants?.length ?? 0) > 0 || (p.variantCount ?? 0) > 0;
+                  const isDisabledOption = s.value === 'Published' && !hasVariants;
+
+                  return (
+                    <TooltipProvider key={s.value} delayDuration={0}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="w-full">
+                            <DropdownMenuItem
+                              key={s.value}
+                              disabled={isDisabledOption}
+                              className={cn(
+                                "rounded-lg px-2 py-2 gap-2 cursor-pointer transition-colors w-full",
+                                status === s.value ? "bg-blue-50 text-blue-700 font-bold" : "text-slate-600 hover:bg-slate-50",
+                                isDisabledOption && "opacity-50 cursor-not-allowed bg-slate-50/50"
+                              )}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (status !== s.value && !isDisabledOption) {
+                                  onUpdateStatus(p.id, s.value, p.name, status as string);
+                                }
+                              }}
+                            >
+                              <div className="flex items-center gap-2 w-full justify-between">
+                                <div className="flex items-center gap-2">
+                                  <div className={cn("h-1.5 w-1.5 rounded-full",
+                                    s.value === 'Published' ? 'bg-emerald-500' :
+                                      s.value === 'Draft' ? 'bg-amber-500' :
+                                        s.value === 'OutOfStock' ? 'bg-rose-500' : 'bg-slate-400'
+                                  )} />
+                                  <span className="text-[13px]">{s.label}</span>
+                                </div>
+                                {isDisabledOption && (
+                                  <span className="text-[9px] font-black text-rose-500 uppercase tracking-tighter bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100 italic">
+                                    Locked
+                                  </span>
+                                )}
+                              </div>
+                            </DropdownMenuItem>
+                          </div>
+                        </TooltipTrigger>
+                        {isDisabledOption && (
+                          <TooltipContent
+                            side="right"
+                            className="bg-slate-900 text-white border-none text-[11px] font-bold px-3 py-1.5 rounded-lg shadow-xl z-[100]"
+                          >
+                            Add at least one variant before publishing.
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
+                  );
+                })}
               </DropdownMenuContent>
             </DropdownMenu>
           );

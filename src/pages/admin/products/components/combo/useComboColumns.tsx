@@ -23,9 +23,16 @@ import {
     Trash2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { getAllowedStatusTransitions } from "../../types"
+import { getAllowedStatusTransitions, normalizeStatus } from "../../types"
 import type { Combo, ComboItem } from "../../types"
 import type { ProductItemResponse } from "@/api/services/comboService"
+
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 const columnHelper = createColumnHelper<Combo>()
 
@@ -332,27 +339,47 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
             columnHelper.accessor("status", {
                 header: "Status",
                 cell: (info) => {
-                    const status = info.getValue()
+                    const rawStatus = info.getValue()
+                    const normalizedStatus = normalizeStatus(rawStatus)
                     const combo = info.row.original
-                    const isParent = info.row.depth === 0;
-                    const hasChildCombos = isParent && info.row.subRows && info.row.subRows.length > 0;
+                    
+                    // Senior Parent Detection: Combine row depth with entity structure
+                    const isParent = info.row.depth === 0 && !combo.comboParentId;
+                    
+                    // Robust Child Check: Look into all possible child containers
+                    const children = (combo.subRows || combo.childCombos || combo.productItems || []);
+                    const hasChildCombos = children.length > 0;
 
-                    if (!onUpdateStatus) return <AdminStatusBadge status={status} />
+                    if (!onUpdateStatus) return <AdminStatusBadge status={normalizedStatus} />
 
-                    const allowed = getAllowedStatusTransitions(status)
+                    const allowed = getAllowedStatusTransitions(normalizedStatus)
 
                     return (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <AdminStatusBadge
-                                    status={status}
-                                    className="cursor-pointer hover:border-slate-300 transition-colors shadow-sm"
-                                />
+                                <div className="flex items-center gap-1 group/slink cursor-pointer">
+                                    <AdminStatusBadge
+                                        status={normalizedStatus}
+                                        className="hover:border-slate-300 transition-colors shadow-sm"
+                                    />
+                                </div>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="center" className="w-36 shadow-xl border-slate-200/60 rounded-xl p-1 animate-in fade-in zoom-in-95 duration-100">
+                            <DropdownMenuContent align="center" className="w-48 shadow-xl border-slate-200/60 rounded-xl p-1 animate-in fade-in zoom-in-95 duration-100">
+                                <div className="px-2 py-1.5 flex items-center justify-between">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</span>
+                                    <span className={cn(
+                                        "text-[9px] font-black px-1.5 py-0.5 rounded border uppercase tracking-tighter",
+                                        isParent ? "bg-indigo-50 text-indigo-600 border-indigo-100" : "bg-amber-50 text-amber-600 border-amber-100"
+                                    )}>
+                                        {isParent ? 'Collection' : 'Variant'}
+                                    </span>
+                                </div>
                                 {allowed.map((s) => {
                                     const normalized = s.toLowerCase();
-                                    const isDisabledOption = status === s || (s === 'Published' && isParent && !hasChildCombos);
+                                    // Published is only allowed for parents if they have at least one child/variant
+                                    const isBlockedPublished = s === 'Published' && isParent && !hasChildCombos;
+                                    const isDisabledOption = normalizedStatus === s || isBlockedPublished;
+                                    
                                     const colorCls =
                                         normalized === 'published' ? "text-emerald-600 hover:bg-emerald-50" :
                                             normalized === 'draft' ? "text-amber-600 hover:bg-amber-50" :
@@ -362,31 +389,55 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
                                                             "text-slate-600 text-opacity-70 hover:bg-slate-50";
 
                                     return (
-                                        <DropdownMenuItem
-                                            key={s}
-                                            disabled={isDisabledOption}
-                                            className={cn(
-                                                "rounded-lg cursor-pointer py-1.5 px-3 text-[12px] font-bold transition-colors mb-0.5 last:mb-0",
-                                                isDisabledOption ? "bg-slate-100/50 text-slate-400 opacity-60" : colorCls
-                                            )}
-                                            onClick={() => status !== s && onUpdateStatus(combo.id, s, combo.name, status)}
-                                        >
-                                            <div className="flex items-center gap-2 w-full">
-                                                <div className={cn(
-                                                    "w-1.5 h-1.5 rounded-full shrink-0",
-                                                    normalized === 'published' ? "bg-emerald-500" :
-                                                        normalized === 'draft' ? "bg-amber-500" :
-                                                            normalized === 'hidden' ? "bg-blue-500" :
-                                                                normalized === 'archived' ? "bg-slate-400" :
-                                                                    normalized === 'outofstock' ? "bg-rose-500" :
-                                                                        "bg-slate-300"
-                                                )} />
-                                                <span>{s}</span>
-                                                {s === 'Published' && isParent && !hasChildCombos && (
-                                                    <span className="text-[9px] text-red-500 opacity-80">(Empty)</span>
+                                        <TooltipProvider key={s} delayDuration={0}>
+                                            <Tooltip>
+                                                <TooltipTrigger asChild>
+                                                    <div className="w-full">
+                                                        <DropdownMenuItem
+                                                            disabled={isDisabledOption}
+                                                            className={cn(
+                                                                "rounded-lg cursor-pointer py-1.5 px-3 text-[12px] font-bold transition-colors mb-0.5 last:mb-0 w-full",
+                                                                isDisabledOption ? "bg-slate-100/50 text-slate-400 opacity-60" : colorCls
+                                                            )}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                if (!isDisabledOption) {
+                                                                    onUpdateStatus(combo.id, s, combo.name, normalizedStatus);
+                                                                }
+                                                            }}
+                                                        >
+                                                            <div className="flex items-center gap-2 w-full justify-between">
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className={cn(
+                                                                        "w-1.5 h-1.5 rounded-full shrink-0",
+                                                                        normalized === 'published' ? "bg-emerald-500" :
+                                                                            normalized === 'draft' ? "bg-amber-500" :
+                                                                                normalized === 'hidden' ? "bg-blue-500" :
+                                                                                    normalized === 'archived' ? "bg-slate-400" :
+                                                                                        normalized === 'outofstock' ? "bg-rose-500" :
+                                                                                            "bg-slate-300"
+                                                                    )} />
+                                                                    <span>{s}</span>
+                                                                </div>
+                                                                {isBlockedPublished && (
+                                                                    <span className="text-[9px] font-black text-rose-500 uppercase tracking-tighter bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100 italic">
+                                                                        Locked
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </DropdownMenuItem>
+                                                    </div>
+                                                </TooltipTrigger>
+                                                {isBlockedPublished && (
+                                                    <TooltipContent
+                                                        side="right"
+                                                        className="bg-slate-900 text-white border-none text-[11px] font-bold px-3 py-1.5 rounded-lg shadow-xl z-[100]"
+                                                    >
+                                                        Add variants to this combo before publishing.
+                                                    </TooltipContent>
                                                 )}
-                                            </div>
-                                        </DropdownMenuItem>
+                                            </Tooltip>
+                                        </TooltipProvider>
                                     );
                                 })}
                             </DropdownMenuContent>

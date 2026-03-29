@@ -11,7 +11,7 @@ import {
     Upload, Trash2, Image as ImageIcon, Loader2,
     AlertCircle, CheckCircle2, RefreshCw,
 } from 'lucide-react';
-import { AGE_GROUPS } from '../../types';
+import { AGE_GROUPS, PRODUCT_STATUSES } from '../../types';
 import { INPUT_CLS, SELECT_TRIGGER_CLS } from './index';
 import type { ComboDialogMode, ComboFormValues } from './index';
 import ColorPicker from '../variant-dialog/ColorPicker';
@@ -276,31 +276,63 @@ const LeftPanel = memo(({
                                 <ErrorMsg error={errors.comboParentId} />
                             </Field>
 
-                            <Field label="Age group" required>
+                            <Field label="Status" required>
                                 <Select
-                                    value={String(watchValues.ageGroup || '')}
+                                    value={String(watchValues.status || 'Draft')}
                                     onValueChange={v =>
                                         setField(
-                                            'ageGroup' as Path<ComboFormValues>,
-                                            Number(v) as PathValue<ComboFormValues, 'ageGroup'>,
+                                            'status' as Path<ComboFormValues>,
+                                            v as PathValue<ComboFormValues, 'status'>,
                                         )
                                     }
                                     disabled={isLoading}
                                 >
                                     <SelectTrigger className={SELECT_TRIGGER_CLS}>
-                                        <SelectValue placeholder="Select…" />
+                                        <SelectValue placeholder="Select status…" />
                                     </SelectTrigger>
                                     <SelectContent className="rounded-xl border-slate-200 shadow-xl">
-                                        {Object.entries(AGE_GROUPS).map(([val, label]) => (
-                                            <SelectItem key={val} value={val} className="rounded-lg py-2 text-sm">
-                                                {label}
+                                        {PRODUCT_STATUSES.map((s) => (
+                                            <SelectItem key={s.value} value={s.value} className="rounded-lg py-2 text-sm">
+                                                <div className="flex items-center gap-2">
+                                                    <div className={cn("h-1.5 w-1.5 rounded-full",
+                                                        s.value === 'Published' ? 'bg-emerald-500' :
+                                                            s.value === 'Draft' ? 'bg-amber-500' :
+                                                                s.value === 'OutOfStock' ? 'bg-rose-500' : 'bg-slate-400'
+                                                    )} />
+                                                    {s.label}
+                                                </div>
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
-                                <ErrorMsg error={errors.ageGroup} />
+                                <ErrorMsg error={errors.status} />
                             </Field>
                         </div>
+
+                        <Field label="Age group" required>
+                            <Select
+                                value={String(watchValues.ageGroup || '')}
+                                onValueChange={v =>
+                                    setField(
+                                        'ageGroup' as Path<ComboFormValues>,
+                                        Number(v) as PathValue<ComboFormValues, 'ageGroup'>,
+                                    )
+                                }
+                                disabled={isLoading}
+                            >
+                                <SelectTrigger className={SELECT_TRIGGER_CLS}>
+                                    <SelectValue placeholder="Select age group…" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                                    {Object.entries(AGE_GROUPS).map(([val, label]) => (
+                                        <SelectItem key={val} value={val} className="rounded-lg py-2 text-sm">
+                                            {label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <ErrorMsg error={errors.ageGroup} />
+                        </Field>
 
                         <Field label="Short description" required hint={`${watchValues.description?.length ?? 0}/120`}>
                             <Textarea
@@ -570,30 +602,65 @@ const ComboFormFields = memo(({
                             />
                         </Field>
                     </div>
-                    <Field label="Age group" required>
-                        <Select
-                            value={String(watchValues.ageGroup || '')}
-                            onValueChange={v =>
-                                setField(
-                                    'ageGroup' as Path<ComboFormValues>,
-                                    Number(v) as PathValue<ComboFormValues, 'ageGroup'>,
-                                )
-                            }
-                            disabled={isLoading}
-                        >
-                            <SelectTrigger className={SELECT_TRIGGER_CLS}>
-                                <SelectValue placeholder="Select age group…" />
-                            </SelectTrigger>
-                            <SelectContent className="rounded-xl border-slate-200 shadow-xl">
-                                {Object.entries(AGE_GROUPS).map(([val, label]) => (
-                                    <SelectItem key={val} value={val} className="rounded-lg py-2">
-                                        {label}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <ErrorMsg error={errors.ageGroup} />
-                    </Field>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <Field label="Status" required>
+                            <Select
+                                value={String(watchValues.status || 'Draft')}
+                                onValueChange={v =>
+                                    setField(
+                                        'status' as Path<ComboFormValues>,
+                                        v as PathValue<ComboFormValues, 'status'>,
+                                    )
+                                }
+                                disabled={isLoading}
+                            >
+                                <SelectTrigger className={SELECT_TRIGGER_CLS}>
+                                    <SelectValue placeholder="Select status…" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                                    {PRODUCT_STATUSES.map((s) => (
+                                        <SelectItem key={s.value} value={s.value} className="rounded-lg py-2 text-sm">
+                                            <div className="flex items-center gap-2">
+                                                <div className={cn("h-1.5 w-1.5 rounded-full",
+                                                    s.value === 'Published' ? 'bg-emerald-500' :
+                                                        s.value === 'Draft' ? 'bg-amber-500' :
+                                                            s.value === 'OutOfStock' ? 'bg-rose-500' : 'bg-slate-400'
+                                                )} />
+                                                {s.label}
+                                            </div>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <ErrorMsg error={errors.status} />
+                        </Field>
+
+                        <Field label="Age group" required>
+                            <Select
+                                value={String(watchValues.ageGroup || '')}
+                                onValueChange={v =>
+                                    setField(
+                                        'ageGroup' as Path<ComboFormValues>,
+                                        Number(v) as PathValue<ComboFormValues, 'ageGroup'>,
+                                    )
+                                }
+                                disabled={isLoading}
+                            >
+                                <SelectTrigger className={SELECT_TRIGGER_CLS}>
+                                    <SelectValue placeholder="Select age group…" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                                    {Object.entries(AGE_GROUPS).map(([val, label]) => (
+                                        <SelectItem key={val} value={val} className="rounded-lg py-2">
+                                            {label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <ErrorMsg error={errors.ageGroup} />
+                        </Field>
+                    </div>
 
 
 

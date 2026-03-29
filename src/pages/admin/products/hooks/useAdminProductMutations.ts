@@ -218,6 +218,15 @@ export function useAdminProductMutations({ state }: MutationProps) {
     try {
       if (editingCombo) {
         await updateComboMutation.mutateAsync({ id: editingCombo.id, data });
+        
+        // Manual Status Sync: Ensure status is updated even if main PUT ignores it
+        if (data.status && data.status !== editingCombo.status) {
+          await updateComboStatusMutation.mutateAsync({ 
+            id: editingCombo.id, 
+            status: data.status 
+          });
+        }
+        
         toast.success('Combo updated', 'Success.');
       } else {
         await createComboMutation.mutateAsync(data);
@@ -228,7 +237,7 @@ export function useAdminProductMutations({ state }: MutationProps) {
     } catch (error) {
       console.error(error);
     }
-  }, [editingCombo, updateComboMutation, createComboMutation, setComboDialogOpen, setEditingCombo, toast]);
+  }, [editingCombo, updateComboMutation, createComboMutation, updateComboStatusMutation, setComboDialogOpen, setEditingCombo, toast]);
 
   const handleCertSubmit = useCallback(async (data: CreateCertificateRequest) => {
     try {
