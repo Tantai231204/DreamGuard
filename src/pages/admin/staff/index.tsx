@@ -84,10 +84,8 @@ export default function StaffPage() {
     pageNumber: pagination.pageIndex + 1,
     pageSize: pagination.pageSize,
     key: debouncedSearch || undefined,
-    // Send both variants for maximum compatibility if server is picky
-    role: roleFilter !== 'all' ? roleFilter : undefined,
     Role: roleFilter !== 'all' ? roleFilter : undefined,
-  } as any);
+  });
 
   const staffList = useMemo(() => {
     const list = data?.items || [];

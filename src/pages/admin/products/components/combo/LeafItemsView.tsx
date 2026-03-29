@@ -29,7 +29,7 @@ export default function LeafItemsView({
 
         try {
             await updateItemsMutation.mutateAsync({ id: comboId, items: itemsUpdate });
-        } catch (e) {
+        } catch {
             // Handled via toast in hook
         }
     };
@@ -49,7 +49,7 @@ export default function LeafItemsView({
 
         try {
             await updateItemsMutation.mutateAsync({ id: comboId, items: itemsUpdate });
-        } catch (e) {
+        } catch {
             // Handled via toast in hook
         }
     };

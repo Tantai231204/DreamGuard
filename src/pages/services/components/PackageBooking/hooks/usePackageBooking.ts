@@ -85,7 +85,7 @@ export function usePackageBooking(initialPackageId?: string) {
     if (savedDraft && savedDraft.step > 0) {
       toast.info("Resumed your draft.");
     }
-  }, []);
+  }, [savedDraft]);
 
   useEffect(() => {
     if (isSuccess) return;

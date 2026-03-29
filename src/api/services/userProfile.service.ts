@@ -23,10 +23,12 @@ export const uploadUserAvatar = async (file: File): Promise<{ avatarUrl: string 
     })
 
     return res.data
-  } catch (error: any) {
+  } catch (error) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const axiosError = error as any
     // Nếu đường dẫn upload không tồn tại (404) hoặc backend chưa hỗ trợ chỗ này,
     // trả về null để frontend không block việc update profile.
-    if (error?.response?.status === 404) {
+    if (axiosError?.response?.status === 404) {
       return null
     }
     throw error

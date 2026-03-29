@@ -15,9 +15,8 @@ export const useAssignTechnicianDialog = ({ orderId, onClose }: UseAssignTechnic
 
   const { data: staffData, isLoading: isLoadingStaff } = useStaffs({ 
     pageSize: 100, 
-    role: "CleaningStaff",
     Role: "CleaningStaff" 
-  } as any);
+  });
   const staffs = staffData?.items || [];
 
   const assignMutation = useMutation({

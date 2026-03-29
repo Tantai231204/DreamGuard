@@ -12,7 +12,6 @@ const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
         const combinedRef = (node: HTMLInputElement) => {
             if (typeof ref === 'function') ref(node)
             else if (ref) ref.current = node
-            // @ts-ignore
             localRef.current = node
         }
 

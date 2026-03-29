@@ -11,7 +11,7 @@ import { cn, formatDate } from "@/lib/utils"
 import { useProfile, useUpdateProfile } from "@/hooks/queries"
 import { toast } from "sonner"
 import { FaMars, FaVenus } from "react-icons/fa6"
-import { useForm, Controller } from "react-hook-form"
+import { useForm, Controller, useWatch } from "react-hook-form"
 import { DatePicker } from "@/components/ui/date-picker"
 import { format } from "date-fns"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -47,7 +47,6 @@ export default function ProfileInfoTab() {
     formState: { errors, isDirty },
     reset,
     setValue,
-    watch,
     control,
   } = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -59,7 +58,9 @@ export default function ProfileInfoTab() {
     },
   });
 
-  const watchedGender = watch("gender");
+  const watchedGender = useWatch({ control, name: "gender" });
+  const watchedFullName = useWatch({ control, name: "fullName" });
+  const watchedDob = useWatch({ control, name: "dateOfBirth" });
 
   useEffect(() => {
     if (profile) {
@@ -127,20 +128,20 @@ export default function ProfileInfoTab() {
           }
         },
       );
-    } catch (err) {
+    } catch {
       toast.error("Upload avatar failed");
     }
   };
 
   const displayData = useMemo(() => ({
-    fullName: isEditing ? watch("fullName") : profile?.fullName || "",
+    fullName: isEditing ? watchedFullName : profile?.fullName || "",
     email: profile?.email || "",
     dateOfBirth: isEditing
-      ? watch("dateOfBirth")
+      ? watchedDob
       : formatDate(profile?.dateOfBirth || ""),
     gender: isEditing ? watchedGender : profile?.gender || "",
     phoneNumber: profile?.phoneNumber || "",
-  }), [isEditing, watch, profile, watchedGender]);
+  }), [isEditing, watchedFullName, profile, watchedDob, watchedGender]);
 
   const initials = useMemo(() => {
     if (!displayData.fullName) return "U";

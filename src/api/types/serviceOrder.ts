@@ -9,6 +9,22 @@ export interface ServiceOrderItem {
   totalPrice?: number;
 }
 
+export interface ServiceOrderStaff {
+  staffId?: string;
+  fullName?: string;
+  phoneNumber?: string;
+  avatarUrl?: string;
+  position?: string;
+}
+
+export interface ServiceOrderTask {
+  serviceTaskId?: string;
+  staffId?: string;
+  status?: string;
+  checkIn?: string | null;
+  checkOut?: string | null;
+}
+
 export interface ServiceOrderResponse {
   soId?: string;
   id?: string;
@@ -27,6 +43,12 @@ export interface ServiceOrderResponse {
   address?: string;
   customerNote?: string;
   note?: string;
+  staff?: ServiceOrderStaff | null;
+  technician?: ServiceOrderStaff | null;
+  serviceTask?: ServiceOrderTask | null;
+  task?: ServiceOrderTask | null;
+  orderTask?: ServiceOrderTask | null;
+  serviceOrderTask?: ServiceOrderTask | null;
   items?: ServiceOrderItem[];
   orderDetails?: ServiceOrderItem[];
   serviceOrderItems?: ServiceOrderItem[];
@@ -38,4 +60,12 @@ export interface ServiceOrderListResponse {
   pageSize: number;
   totalPages: number;
   totalCount: number;
+}
+
+export interface ReOrderFailedServiceOrderResponse {
+  paymentUrl?: string;
+  serviceOrderId?: string;
+  soId?: string;
+  id?: string;
+  [key: string]: unknown;
 }

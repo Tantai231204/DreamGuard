@@ -188,7 +188,7 @@ export default function CustomizeTypesPage() {
         (data: CustomizeTypeFormValues) => {
             if (editingType) {
                 updateMutation.mutate(
-                    { id: editingType.id, data: data as any },
+                    { id: editingType.id, data: data as CustomizeTypeFormValues },
                     {
                         onSuccess: () => {
                             setDialogOpen(false);
@@ -197,7 +197,7 @@ export default function CustomizeTypesPage() {
                     }
                 );
             } else {
-                createMutation.mutate(data as any, {
+                createMutation.mutate(data, {
                     onSuccess: () => {
                         setDialogOpen(false);
                         toast.success('Created', 'New classification created.');

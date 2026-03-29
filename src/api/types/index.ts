@@ -34,3 +34,9 @@ export type {
   UpdateProductStatusParams,
 } from "./product.types";
 export type { PaymentResponse, PaymentDetailResponse } from "./payment";
+export type {
+  RatingPayload,
+  RatingResponse,
+  RatingSearchParams,
+  RatingListResponse,
+} from "./rating";

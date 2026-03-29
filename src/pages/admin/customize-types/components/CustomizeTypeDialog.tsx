@@ -1,6 +1,6 @@
 // src/pages/admin/customize-types/components/CustomizeTypeDialog.tsx
 import { useEffect, memo } from 'react';
-import { useForm, type Resolver, Controller } from 'react-hook-form';
+import { useForm, type Resolver, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import {
@@ -30,7 +30,7 @@ const customizeTypeSchema = z.object({
   calculationMode: z.enum(["FixedAmount", "Multiplier"]),
   defaultMultiplier: z.number().min(0, 'Multiplier must be at least 0'),
   applicableProductType: z.enum(["None", "Mattresses", "Pillows", "Cribs"]),
-  status: z.string().default('Active'),
+  status: z.enum(["Active", "Inactive", "Archived"]).default('Active'),
 });
 
 export type CustomizeTypeFormValues = z.infer<typeof customizeTypeSchema>;
@@ -67,7 +67,6 @@ const CustomizeTypeDialog = memo(function CustomizeTypeDialog({
     handleSubmit,
     reset,
     setValue,
-    watch,
     control,
     formState: { errors }
   } = useForm<CustomizeTypeFormValues>({
@@ -84,9 +83,9 @@ const CustomizeTypeDialog = memo(function CustomizeTypeDialog({
     },
   });
 
-  const status = watch('status');
-  const calculationMode = watch('calculationMode');
-  const category = watch('category');
+  const status = useWatch({ control, name: 'status' });
+  const calculationMode = useWatch({ control, name: 'calculationMode' });
+  const category = useWatch({ control, name: 'category' });
 
   // Logic: Multiplier is ONLY allowed for Material category
   useEffect(() => {
