@@ -4,8 +4,6 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import type {
-  ServiceStatus,
-  ServiceType,
   ServiceBooking,
   PaginatedAdminSearchOrderServiceResponse
 } from '../types';
@@ -13,43 +11,33 @@ import { calculateServiceStats } from '../data';
 import { mapApiItemToServiceOrder } from '../utils/mappers';
 
 export const useServiceManagement = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<ServiceStatus | 'all'>('all');
-  const [serviceTypeFilter, setServiceTypeFilter] = useState<ServiceType | 'all'>('all');
-  const [dateFilter, setDateFilter] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 8;
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
+  // For the calendar, we fetch a large batch to show the month view
   const { data: bookingData, isLoading } = useQuery({
-    queryKey: ['serviceOrders', searchQuery, statusFilter, dateFilter, currentPage],
+    queryKey: ['serviceOrders', 'calendar'],
     queryFn: async () => {
       const res = await api.post('/ServiceOrders/AdminSearchOrderService', {}, {
         params: {
-          pageNumber: currentPage,
-          pageSize: pageSize,
-          orderCode: searchQuery || undefined,
-          status: statusFilter !== 'all' ? (statusFilter === 'pending' ? 'Pending' : statusFilter) : undefined
+          pageNumber: 1,
+          pageSize: 200, // Large enough for multiple months or busy months
         }
       });
       const data = (res.data?.data ?? res.data) as PaginatedAdminSearchOrderServiceResponse;
-      
-      // Senior Performance Optimization: 
-      // Populate individual detail caches immediately to make navigation instant
+
       if (data?.items) {
         data.items.forEach(item => {
           const mapped = mapApiItemToServiceOrder(item);
           queryClient.setQueryData(['serviceOrder', item.soId], mapped);
         });
       }
-      
+
       return data;
     },
-    staleTime: 0,
+    staleTime: 5 * 60 * 1000, // 5 minutes cache
   });
 
   const parsedBookings = useMemo<ServiceBooking[]>(() => {
@@ -58,32 +46,12 @@ export const useServiceManagement = () => {
 
   const stats = useMemo(() => calculateServiceStats(parsedBookings), [parsedBookings]);
 
-  const filteredBookings = useMemo(() => {
-    return parsedBookings.filter((booking) => {
-      if (searchQuery) {
-        const search = searchQuery.toLowerCase();
-        const matchesSearch =
-          booking.orderCode?.toLowerCase().includes(search) ||
-          booking.id.toLowerCase().includes(search) ||
-          booking.customerName.toLowerCase().includes(search) ||
-          booking.customerPhone.includes(search);
-        if (!matchesSearch) return false;
-      }
-
-      if (statusFilter !== 'all' && booking.status !== statusFilter) return false;
-      if (serviceTypeFilter !== 'all' && booking.serviceType !== serviceTypeFilter) return false;
-      if (dateFilter && booking.scheduledDate !== dateFilter) return false;
-
-      return true;
-    });
-  }, [searchQuery, statusFilter, serviceTypeFilter, dateFilter, parsedBookings]);
-
   const confirmMutation = useMutation({
     mutationFn: async (id: string) => {
       await api.patch(`/ServiceOrders/${id}/confirm`);
     },
-    onSuccess: (_, id) => {
-      toast.success(`Confirmed booking ${id}`);
+    onSuccess: () => {
+      toast.success(`Booking confirmed successfully`);
       queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
     },
     onError: () => toast.error('Failed to confirm booking'),
@@ -94,33 +62,36 @@ export const useServiceManagement = () => {
       let endpoint = '';
       switch (status) {
         case 'pending':
-          endpoint = `/ServiceOrders/${id}/reject`; // Reject
+          endpoint = `/ServiceOrders/${id}/reject`;
           break;
         case 'confirmed':
-          endpoint = `/ServiceOrders/${id}/manager-cancel`; // ManagerCancel
+          endpoint = `/ServiceOrders/${id}/manager-cancel`;
           break;
         case 'processing':
-          endpoint = `/ServiceOrders/${id}/manager-force-cancel`; // ManagerForceCancel
+          endpoint = `/ServiceOrders/${id}/manager-force-cancel`;
           break;
         default:
           throw new Error('Invalid status for cancellation');
       }
       await api.patch(endpoint);
     },
-    onSuccess: (_, { id }) => {
-      toast.success(`Action applied successfully to booking ${id}`);
+    onSuccess: () => {
+      toast.success(`Action applied successfully`);
       queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
     },
-    onError: () => toast.error('Failed to cancel/reject booking'),
+    onError: (err: unknown) => {
+      let msg = 'Operation failed';
+      if (err && typeof err === 'object' && 'response' in err) {
+        const responseData = (err as { response?: { data?: { message?: string } } }).response?.data;
+        msg = responseData?.message || msg;
+      }
+      toast.error(msg);
+    },
   });
 
   const handleViewBooking = useCallback((id: string) => {
     navigate(`/admin/services/${id}`);
   }, [navigate]);
-
-  const handleEditBooking = useCallback((id: string) => {
-    toast.info(`Edit booking ${id}`);
-  }, []);
 
   const handleConfirmBooking = useCallback((id: string) => {
     confirmMutation.mutate(id);
@@ -136,31 +107,17 @@ export const useServiceManagement = () => {
   }, []);
 
   const handleCreateNew = useCallback(() => {
-    toast.info('Creating new service booking');
+    toast.info('Feature coming soon: New booking creation');
   }, []);
 
   return {
-    searchQuery,
-    setSearchQuery,
-    statusFilter,
-    setStatusFilter,
-    serviceTypeFilter,
-    setServiceTypeFilter,
-    dateFilter,
-    setDateFilter,
-    currentPage,
-    setCurrentPage,
-    totalPages: bookingData?.totalPages || 1,
-    viewMode,
-    setViewMode,
+    stats,
+    filteredBookings: parsedBookings,
+    isLoading,
     isAssignOpen,
     setIsAssignOpen,
     selectedOrderId,
-    stats,
-    filteredBookings,
-    isLoading,
     handleViewBooking,
-    handleEditBooking,
     handleConfirmBooking,
     handleCancelBooking,
     handleAssignTechnician,
