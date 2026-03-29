@@ -13,6 +13,7 @@ import {
     useDeleteProductImage,
     productKeys,
 } from '@/hooks/queries/useProduct';
+import { useProductCertificates } from '@/hooks/queries/useCertificate';
 import { useCategories } from '@/hooks/queries/useCategory';
 import { useQueryClient } from '@tanstack/react-query';
 import { AdminStatusBadge } from '@/components/admin';
@@ -24,6 +25,7 @@ import {
     ProductInfoCard,
     ProductImagesCard,
     QuickInfoCard,
+    ProductCertificatesCard,
 } from './components/detail';
 import { ImageUploadDialog } from './components/dialogs';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -51,6 +53,7 @@ export default function AdminProductDetailPage() {
     }, []);
 
     const { data: product, isLoading, isError } = useProductDetail(id ?? '');
+    const { data: certificates, isLoading: isLoadingCerts } = useProductCertificates(id ?? '');
     const uploadMutation = useUploadProductImage();
     const deleteMutation = useDeleteProductImage();
     const { data: categories } = useCategories();
@@ -215,6 +218,23 @@ export default function AdminProductDetailPage() {
                                         />
                                     )}
                                 </TabsTrigger>
+                                <TabsTrigger
+                                    value="certificates"
+                                    className="rounded-md px-8 h-full text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-[var(--color-primary)] data-[state=active]:shadow-sm transition-all flex items-center gap-3 relative"
+                                >
+                                    Certifications
+                                    {certificates && certificates.length > 0 && (
+                                        <Badge variant="secondary" className="bg-emerald-50 text-emerald-600 hover:bg-emerald-50 border-none px-1.5 h-4.5 text-[9px] relative z-10">
+                                            {certificates.length}
+                                        </Badge>
+                                    )}
+                                    {activeTab === 'certificates' && (
+                                        <motion.div 
+                                            layoutId="active-nav-underline"
+                                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-primary)]"
+                                        />
+                                    )}
+                                </TabsTrigger>
                             </TabsList>
                         </div>
 
@@ -298,6 +318,20 @@ export default function AdminProductDetailPage() {
                                             onDeleteImage={handleDeleteImage}
                                             isDeleting={deleteMutation.isPending}
                                             deletingAssetId={deletingAssetId}
+                                        />
+                                    </motion.div>
+                                </TabsContent>
+
+                                <TabsContent value="certificates" key="certificates" className="mt-0 outline-none ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                                    <motion.div
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: -20 }}
+                                        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                                    >
+                                        <ProductCertificatesCard
+                                            certificates={certificates || []}
+                                            isLoading={isLoadingCerts}
                                         />
                                     </motion.div>
                                 </TabsContent>

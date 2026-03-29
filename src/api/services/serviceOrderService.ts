@@ -1,5 +1,9 @@
 import apiClient from '../../lib/api';
-import type { ServiceOrderListResponse, ServiceOrderResponse } from '../types/serviceOrder';
+import type {
+  ReOrderFailedServiceOrderResponse,
+  ServiceOrderListResponse,
+  ServiceOrderResponse,
+} from '../types/serviceOrder';
 
 function normalizeListPayload(payload: unknown): ServiceOrderListResponse {
   const data = payload as {
@@ -51,6 +55,15 @@ const serviceOrderService = {
   getServiceOrderById: async (id: string): Promise<ServiceOrderResponse> => {
     const res = await apiClient.get(`/ServiceOrders/${id}`);
     return (res.data?.data ?? res.data) as ServiceOrderResponse;
+  },
+
+  reOrderFailedServiceOrder: async (serviceOrderId: string): Promise<ReOrderFailedServiceOrderResponse> => {
+    const res = await apiClient.post('/ServiceOrders/ReorderFailedService', null, {
+      // Some BE environments use soId, some expose sold in Swagger/Hoppscotch.
+      params: { soId: serviceOrderId, sold: serviceOrderId },
+    });
+
+    return (res.data?.data ?? res.data) as ReOrderFailedServiceOrderResponse;
   },
 };
 

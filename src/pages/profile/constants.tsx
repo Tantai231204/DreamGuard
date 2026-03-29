@@ -17,7 +17,7 @@ const THEME_MAP: Record<string, StatusThemeItem> = {
         label: "Pending",
         variant: "warning",
         icon: <Clock3 className="h-4 w-4" />,
-        color: "#f59e0b",
+        color: "#f59e0b", // Amber 500
         step: 0,
         description: "Wait for us to verify your order"
     },
@@ -25,7 +25,7 @@ const THEME_MAP: Record<string, StatusThemeItem> = {
         label: "Confirmed",
         variant: "default",
         icon: <CheckCircle2 className="h-4 w-4" />,
-        color: "#4988c4",
+        color: "#2563eb", // Blue 600
         step: 1,
         description: "Your order has been confirmed"
     },
@@ -33,7 +33,7 @@ const THEME_MAP: Record<string, StatusThemeItem> = {
         label: "Processing",
         variant: "secondary",
         icon: <Package className="h-4 w-4" />,
-        color: "#6366f1",
+        color: "#2563eb", // Blue 600
         step: 2,
         description: "We are carefully packing your items"
     },
@@ -41,7 +41,7 @@ const THEME_MAP: Record<string, StatusThemeItem> = {
         label: "Shipping",
         variant: "outline",
         icon: <Truck className="h-4 w-4" />,
-        color: "#06b6d4",
+        color: "#2563eb", // Blue 600
         step: 3,
         description: "On the way to your home"
     },
@@ -49,7 +49,7 @@ const THEME_MAP: Record<string, StatusThemeItem> = {
         label: "Delivered",
         variant: "success",
         icon: <CheckCircle2 className="h-4 w-4" />,
-        color: "#10b981",
+        color: "#10b981", // Emerald 500
         step: 4,
         description: "Package arrived safely"
     },
@@ -57,7 +57,7 @@ const THEME_MAP: Record<string, StatusThemeItem> = {
         label: "Completed",
         variant: "success",
         icon: <CheckCircle2 className="h-4 w-4" />,
-        color: "#10b981",
+        color: "#10b981", // Emerald 500
         step: 5,
         description: "Order finished. Thank you!"
     },
@@ -65,7 +65,7 @@ const THEME_MAP: Record<string, StatusThemeItem> = {
         label: "Cancelled",
         variant: "danger",
         icon: <AlertCircle className="h-4 w-4" />,
-        color: "#ef4444",
+        color: "#e11d48", // Rose 600
         step: -1,
         description: "This order was cancelled"
     },

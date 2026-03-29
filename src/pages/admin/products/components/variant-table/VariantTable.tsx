@@ -371,7 +371,8 @@ function VariantRow({
   onReduceStock: () => void;
   onStatusChange: (variantId: string, sku: string, status: string) => void;
 }) {
-  const hasSale = variant.salePrice < variant.basePrice;
+  const hasSale = variant.salePrice > 0 && variant.salePrice < variant.basePrice;
+  const displayPrice = variant.salePrice > 0 ? variant.salePrice : variant.basePrice;
   const toast = useToast();
   const hasZeroStock = !variant.stockQuantity || variant.stockQuantity <= 0;
 
@@ -389,12 +390,38 @@ function VariantRow({
   const currentStatus = variant.status || 'Draft';
   const statusStyle = variantStatusStyles[currentStatus] || variantStatusStyles.Draft;
 
-  const isVariantCustomizable =
-    variant.isCustomizable ||
-    variant.is_customizable ||
-    (variant.customizeTypes && variant.customizeTypes.length > 0) ||
-    (variant.customizeOptions && variant.customizeOptions.length > 0);
-  const isNoSize = variant.dimensions === 'N/A' || !variant.dimensions || variant.dimensions === '';
+  const getBadgeConfig = () => {
+    if (!variant.isVariantCustomizable) {
+      return {
+        label: variant.dimensions || 'N/A',
+        cls: "bg-white border-slate-200 text-slate-700 group-hover/vrow:border-indigo-200 group-hover/vrow:bg-indigo-50/30 font-medium"
+      };
+    }
+
+    // Bespoke logic using pre-calculated flags from variant-utils.ts
+    const displayNames = variant.typeNames || 'Custom';
+
+    if (variant.isFullBespoke) {
+      return {
+        label: `Full: ${displayNames}`,
+        cls: "bg-indigo-50 border-indigo-200 text-indigo-700 group-hover/vrow:bg-indigo-100/50 shadow-sm font-black"
+      };
+    }
+
+    if (variant.isCustomSize) {
+      return {
+        label: `Custom: ${displayNames}`,
+        cls: "bg-blue-50 border-blue-200 text-blue-600 group-hover/vrow:bg-blue-100/50 shadow-xs"
+      };
+    }
+
+    return {
+      label: `Custom: ${displayNames}`,
+      cls: "bg-white border-slate-200 text-slate-700 font-bold"
+    };
+  };
+
+  const badgeConfig = getBadgeConfig();
 
   return (
     <div className="grid grid-cols-[80px_100px_1fr_120px_140px_120px_60px] gap-4 items-center px-10 py-3.5 hover:bg-slate-50/50 transition-all group/vrow relative">
@@ -405,12 +432,10 @@ function VariantRow({
       {/* Size badge */}
       <div>
         <span className={cn(
-          "inline-flex items-center justify-center px-3 py-1.5 rounded-lg border text-xs font-black shadow-sm leading-none transition-all",
-          isNoSize && isVariantCustomizable
-            ? "bg-blue-50 border-blue-200 text-blue-600 group-hover/vrow:bg-blue-100/50 group-hover/vrow:border-blue-300"
-            : "bg-white border-slate-200 text-slate-700 group-hover/vrow:border-indigo-200 group-hover/vrow:bg-indigo-50/30"
+          "inline-flex items-center justify-center px-3 py-1.5 rounded-lg border text-[10px] font-black shadow-sm leading-none transition-all uppercase tracking-tight",
+          badgeConfig.cls
         )}>
-          {isNoSize && isVariantCustomizable ? 'Custom Size' : variant.dimensions}
+          {badgeConfig.label}
         </span>
       </div>
 
@@ -419,7 +444,7 @@ function VariantRow({
         <span className="font-mono text-[11px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded border border-slate-100 truncate block uppercase tracking-tighter">
           {variant.sku}
         </span>
-        {isVariantCustomizable && (
+        {variant.isVariantCustomizable && (
           <div className="flex items-center gap-1 mt-0.5">
             <Sparkles className="h-2.5 w-2.5 text-blue-500" />
             <span className="text-[9px] font-semibold text-blue-500 uppercase tracking-wider">Customizable</span>
@@ -430,7 +455,7 @@ function VariantRow({
       {/* Price */}
       <div className="text-right">
         <div className="text-[14px] font-black text-slate-900">
-          {variant.salePrice.toLocaleString('en-US')} <span className="text-[10px] text-slate-400">₫</span>
+          {displayPrice.toLocaleString('en-US')} <span className="text-[10px] text-slate-400">₫</span>
         </div>
         {hasSale && (
           <div className="text-[11px] text-slate-300 line-through">
@@ -573,13 +598,13 @@ function VariantRow({
 
             <DropdownMenuSeparator className="my-1 bg-slate-100" />
 
-            {/* Delete */}
+            {/* Delete -> Soft Hide */}
             <DropdownMenuItem
               className="rounded-lg cursor-pointer py-2 px-3 font-medium text-red-500 focus:bg-red-50 focus:text-red-600 transition-colors gap-2.5"
               onClick={onDelete}
             >
               <Trash2 className="h-4 w-4 opacity-70" />
-              <span className="text-[13px]">Delete Item</span>
+              <span className="text-[13px]">Hide SKU</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

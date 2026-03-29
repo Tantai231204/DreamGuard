@@ -4,19 +4,29 @@ import ChildComboItems from '../ChildComboItems';
 import { getColorHex } from '../combo-utils';
 import { VariantActionDropdown } from './VariantActionDropdown';
 import { EmptyResults } from './StatsAndFeedback';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
 import type { Combo } from '../../../types';
+import { getAllowedStatusTransitions } from '../../../types';
 import type { ComboResponse } from '@/api/services/comboService';
 
 interface VariantListViewProps {
     childCombos: ComboResponse[];
     onEditVariant?: (v: Combo) => void;
     onDeleteVariant?: (v: Combo) => void;
+    onUpdateStatus?: (id: string, status: string, name?: string, currentStatus?: string) => void;
 }
 
 export function VariantListView({
     childCombos,
     onEditVariant,
     onDeleteVariant,
+    onUpdateStatus,
 }: VariantListViewProps) {
     if (childCombos.length === 0) return <EmptyResults />;
 
@@ -41,9 +51,49 @@ export function VariantListView({
                                 )}
                                 <p className="text-[10px] font-mono text-gray-400 mt-1 uppercase tracking-widest">{child.sku}</p>
                             </div>
-                            <AdminStatusBadge 
-                                status={child.status} 
-                            />
+                            <div onClick={(e) => e.stopPropagation()}>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <AdminStatusBadge
+                                            status={child.status}
+                                            className="h-4 px-1.5 cursor-pointer hover:border-slate-300 transition-all shadow-sm"
+                                        />
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="center" className="w-40 shadow-xl border-slate-200/60 rounded-xl p-1 animate-in fade-in zoom-in-95 duration-100">
+                                        {getAllowedStatusTransitions(child.status).map((s) => {
+                                            const normalized = s.toLowerCase();
+                                            const colorCls =
+                                                normalized === 'published' ? "text-emerald-600 hover:bg-emerald-50" :
+                                                    normalized === 'draft' ? "text-amber-600 hover:bg-amber-50" :
+                                                        normalized === 'hidden' ? "text-blue-600 hover:bg-blue-50" :
+                                                            "text-indigo-600 hover:bg-indigo-50 text-opacity-70 hover:bg-slate-50";
+
+                                            return (
+                                                <DropdownMenuItem
+                                                    key={s}
+                                                    disabled={child.status === s}
+                                                    className={cn(
+                                                        "rounded-lg cursor-pointer py-1.5 px-3 text-[11px] font-black uppercase tracking-tight transition-all mb-0.5 last:mb-0",
+                                                        child.status === s ? "bg-slate-50 text-slate-300" : colorCls
+                                                    )}
+                                                    onClick={() => child.status !== s && onUpdateStatus?.(child.id, s, child.name, child.status)}
+                                                >
+                                                    <div className="flex items-center gap-2">
+                                                        <div className={cn(
+                                                            "w-1.5 h-1.5 rounded-full",
+                                                            normalized === 'published' ? "bg-emerald-500" :
+                                                                normalized === 'draft' ? "bg-amber-500" :
+                                                                    normalized === 'hidden' ? "bg-blue-500" :
+                                                                        "bg-slate-400"
+                                                        )} />
+                                                        {s}
+                                                    </div>
+                                                </DropdownMenuItem>
+                                            );
+                                        })}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
                         </div>
                         <div className="flex items-center gap-4">
                             <div className="text-right">

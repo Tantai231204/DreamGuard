@@ -2,7 +2,7 @@ import { useMemo, useCallback } from 'react';
 import { useAdminProductVariants } from '@/hooks/queries/useProduct';
 import VariantTable from './VariantTable';
 import type { ProductVariant, VariantStatus, VariantAttributes } from '../../types';
-import { getColorHex } from '@/pages/admin/products/utils/variant-utils'; // Added import
+import { getColorHex } from '@/utils/color-utils';
 
 interface VariantTableWrapperProps {
     productId: string;

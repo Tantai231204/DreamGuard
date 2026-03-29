@@ -1,10 +1,11 @@
 import { useState, useMemo } from "react"
-import { Search, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight } from "lucide-react"
+import { Search, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, ArrowUpDown } from "lucide-react"
 import { Button } from "../../../components/ui/button"
 import { Input } from "../../../components/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "../../../components/ui/tabs"
 import { Popover, PopoverContent, PopoverTrigger } from "../../../components/ui/popover"
 import { Calendar } from "../../../components/ui/calendar"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select"
 import { cn } from "@/lib/utils"
 import { format, isWithinInterval, startOfDay, endOfDay } from "date-fns"
 import type { DateRange } from "react-day-picker"
@@ -17,6 +18,7 @@ const ITEMS_PER_PAGE = 4
 
 type OrderType = "product" | "service"
 type StatusTab = "all" | "processing" | "shipping" | "completed" | "cancelled"
+type ServiceSort = "newest" | "oldest"
 
 const PRODUCT_TABS: { id: StatusTab; label: string }[] = [
     { id: "all", label: "All Orders" },
@@ -41,13 +43,54 @@ function matchProductStatus(status: unknown, tab: StatusTab) {
     return ["Cancelled", 6].includes(status as never)
 }
 
-function matchServiceStatus(status: string | undefined, tab: StatusTab) {
+function normalizeServiceStatus(status: unknown) {
+    if (status === null || status === undefined) return ""
+
+    const codeMap: Record<number, string> = {
+        0: "pending",
+        1: "confirmed",
+        2: "processing",
+        3: "assigned",
+        4: "completed",
+        5: "cancelled",
+        6: "forcedcancelled",
+    }
+
+    if (typeof status === "number") {
+        return codeMap[status] || String(status)
+    }
+
+    return String(status).trim().toLowerCase().replace(/[\s_-]/g, "")
+}
+
+function matchServiceStatusV2(status: unknown, tab: StatusTab) {
     if (tab === "all") return true
-    const normalized = (status || "").toLowerCase()
-    if (tab === "processing") return ["pending", "confirmed", "processing", "inprogress"].includes(normalized)
-    if (tab === "shipping") return ["assigned", "onroute", "shipping"].includes(normalized)
-    if (tab === "completed") return ["completed"].includes(normalized)
-    return ["cancelled", "canceled", "forcedcancelled", "managercancel", "managerforcecancel"].includes(normalized)
+
+    const normalized = normalizeServiceStatus(status)
+
+    if (tab === "processing") {
+        return ["pending", "confirmed", "processing", "inprogress", "inprocess", "assigned", "onroute", "shipping"].includes(normalized)
+    }
+
+    if (tab === "completed") {
+        return ["completed", "done", "finished"].includes(normalized)
+    }
+
+    return ["cancelled", "canceled", "forcedcancelled", "managercancel", "managerforcecancel", "rejected", "refund", "refunded"].includes(normalized)
+}
+
+function getOrderTimestamp(order: OrderResponse | ServiceOrderResponse, type: OrderType) {
+    if (type === "service") {
+        const serviceOrder = order as ServiceOrderResponse
+        const source = serviceOrder.createdAt || serviceOrder.appointmentDate || serviceOrder.updatedAt
+        const value = source ? new Date(source).getTime() : 0
+        return Number.isFinite(value) ? value : 0
+    }
+
+    const productOrder = order as OrderResponse
+    const source = productOrder.createdAt || productOrder.updatedAt
+    const value = source ? new Date(source).getTime() : 0
+    return Number.isFinite(value) ? value : 0
 }
 
 function normalizePhone(phone?: string) {
@@ -57,6 +100,7 @@ function normalizePhone(phone?: string) {
 export default function OrdersTab() {
     const [orderType, setOrderType] = useState<OrderType>("product")
     const [activeStatusTab, setActiveStatusTab] = useState<StatusTab>("all")
+    const [serviceSort, setServiceSort] = useState<ServiceSort>("newest")
 
     const { data: profile } = useProfile()
     const rawProfile = profile as Record<string, unknown> | undefined
@@ -120,14 +164,30 @@ export default function OrdersTab() {
             return (filteredOrders as OrderResponse[]).filter(order => matchProductStatus(order.status, activeStatusTab))
         }
 
-        return (filteredOrders as ServiceOrderResponse[]).filter(order => matchServiceStatus(order.status, activeStatusTab))
+        return (filteredOrders as ServiceOrderResponse[]).filter(order => {
+            const taskStatus = order.serviceTask?.status || order.task?.status || order.orderTask?.status || order.serviceOrderTask?.status
+            return matchServiceStatusV2(order.status || taskStatus, activeStatusTab)
+        })
     }, [filteredOrders, orderType, activeStatusTab])
 
-    const totalPages = Math.max(1, Math.ceil(statusFilteredOrders.length / ITEMS_PER_PAGE))
+    const sortedOrders = useMemo(() => {
+        if (orderType !== "service") return statusFilteredOrders
+
+        const serviceOrders = [...(statusFilteredOrders as ServiceOrderResponse[])]
+        serviceOrders.sort((a, b) => {
+            const aTime = getOrderTimestamp(a, "service")
+            const bTime = getOrderTimestamp(b, "service")
+            return serviceSort === "newest" ? bTime - aTime : aTime - bTime
+        })
+
+        return serviceOrders
+    }, [statusFilteredOrders, orderType, serviceSort])
+
+    const totalPages = Math.max(1, Math.ceil(sortedOrders.length / ITEMS_PER_PAGE))
     const paginatedOrders = useMemo(() => {
         const start = (currentPage - 1) * ITEMS_PER_PAGE
-        return statusFilteredOrders.slice(start, start + ITEMS_PER_PAGE)
-    }, [statusFilteredOrders, currentPage])
+        return sortedOrders.slice(start, start + ITEMS_PER_PAGE)
+    }, [sortedOrders, currentPage])
 
     const isPending = orderType === "product"
         ? isProductPending
@@ -206,6 +266,27 @@ export default function OrdersTab() {
                             />
                         </PopoverContent>
                     </Popover>
+
+                    {orderType === "service" && (
+                        <Select
+                            value={serviceSort}
+                            onValueChange={(value) => {
+                                setServiceSort(value as ServiceSort)
+                                setCurrentPage(1)
+                            }}
+                        >
+                            <SelectTrigger className="h-10 min-w-[190px] rounded-xl border-slate-200 bg-white text-xs font-bold uppercase tracking-wider text-slate-700">
+                                <div className="flex items-center gap-2">
+                                    <ArrowUpDown className="h-4 w-4 text-slate-400" />
+                                    <SelectValue placeholder="Sort by date" />
+                                </div>
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="newest">Date: Nearest first</SelectItem>
+                                <SelectItem value="oldest">Date: Oldest first</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    )}
 
                     {(search || date) && (
                         <Button

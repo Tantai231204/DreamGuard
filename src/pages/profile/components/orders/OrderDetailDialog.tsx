@@ -80,7 +80,10 @@ export function OrderDetailDialog({ orderId, orderCode, trigger }: OrderDetailDi
                                 </DialogDescription>
                             </div>
                         </DialogHeader>
-                        <div className="px-4 py-1.5 rounded-full text-[11px] font-bold text-white uppercase tracking-widest bg-[#4988c4] shadow-sm">
+                        <div 
+                            className="px-4 py-1.5 rounded-full text-[11px] font-bold text-white uppercase tracking-widest shadow-sm"
+                            style={{ backgroundColor: currentTheme.color }}
+                        >
                             {currentTheme.label}
                         </div>
                     </div>
@@ -93,7 +96,7 @@ export function OrderDetailDialog({ orderId, orderCode, trigger }: OrderDetailDi
                             </div>
                         ) : order ? (
                             <div className="space-y-3">
-                                <OrderStepFlow step={currentTheme.step} />
+                                <OrderStepFlow step={currentTheme.step} color={currentTheme.color} isCancelled={currentTheme.label === "Cancelled"} />
                                 <AddressSection order={order} />
 
                                 {/* Store & Item Manifest */}

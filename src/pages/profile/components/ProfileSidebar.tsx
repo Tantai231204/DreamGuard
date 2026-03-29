@@ -72,18 +72,15 @@ interface ProfileSidebarProps {
 const ProfileSidebar = ({ activeTab, onTabChange }: ProfileSidebarProps) => {
   const logoutMutation = useLogout();
   const { data: profile } = useProfile();
+  const normalized = profile;
 
   const handleLogout = () => {
     logoutMutation.mutate();
   };
 
-  const displayName = profile
-  ? "firstName" in profile && "lastName" in profile
-    ? `${profile.firstName || ""} ${profile.lastName || ""}`.trim()
-    : "fullName" in profile
-      ? profile.fullName || "Exclusive Member"
-      : "Exclusive Member"
-  : "Exclusive Member";
+  const displayName = normalized
+    ? `${normalized.firstName || ""} ${normalized.lastName || ""}`.trim() || normalized.fullName || "Exclusive Member"
+    : "Exclusive Member";
 
   return (
     <div className="flex flex-col h-full bg-white rounded-[2.5rem] border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.04)] overflow-hidden">

@@ -47,17 +47,17 @@ export function useCustomizeTypeColumns({ onView, onEdit, onDelete }: UseCustomi
         accessorKey: 'id',
         header: ({ column }) => <SortableHeader column={column} label="ID" />,
         cell: ({ row }) => (
-            <div className="font-mono text-[10px] text-slate-400 font-medium">
+            <div className="font-mono text-[10px] text-slate-400 font-bold bg-slate-50 px-2 py-1 rounded inline-block border border-slate-100">
                 #{row.original.id?.slice(0, 8)}
             </div>
         ),
-        size: 100,
+        size: 110,
     },
     {
         accessorKey: 'name',
         header: ({ column }) => <SortableHeader column={column} label="Classification Name" />,
         cell: ({ row }) => (
-            <div className="font-bold text-slate-900 text-sm">
+            <div className="font-bold text-slate-900 text-sm tracking-tight">
                 {row.original.name}
             </div>
         ),
@@ -66,7 +66,7 @@ export function useCustomizeTypeColumns({ onView, onEdit, onDelete }: UseCustomi
         accessorKey: 'summary',
         header: ({ column }) => <SortableHeader column={column} label="Summary" />,
         cell: ({ row }) => (
-            <div className="text-sm text-slate-500 line-clamp-1 max-w-[250px]">
+            <div className="text-sm text-slate-500 line-clamp-1 max-w-[250px] font-medium">
                 {row.original.summary || <span className="text-slate-300 italic">No summary provided</span>}
             </div>
         ),
@@ -75,20 +75,58 @@ export function useCustomizeTypeColumns({ onView, onEdit, onDelete }: UseCustomi
         accessorKey: 'defaultPrice',
         header: ({ column }) => <SortableHeader column={column} label="Amount" />,
         cell: ({ row }) => (
-            <div className="font-bold text-slate-950 tabular-nums">
+            <div className="font-black text-slate-950 tabular-nums">
                 {formatPrice(row.original.defaultPrice)}
             </div>
         ),
         size: 150,
     },
     {
+        accessorKey: 'category',
+        header: ({ column }) => <SortableHeader column={column} label="Category" />,
+        cell: ({ row }) => (
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-50 border border-slate-200 shadow-sm">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#4988c4]" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">
+                    {row.original.category}
+                </span>
+            </div>
+        ),
+        size: 130,
+    },
+    {
+        accessorKey: 'calculationMode',
+        header: ({ column }) => <SortableHeader column={column} label="Logic" />,
+        cell: ({ row }) => {
+            const isMultiplier = row.original.calculationMode === 'Multiplier';
+            return (
+                <div className="flex items-center gap-2">
+                    <div className={`text-[10px] font-black uppercase tracking-tighter px-2 py-0.5 rounded border ${isMultiplier ? 'text-sky-600 bg-sky-50 border-sky-100' : 'text-slate-400 bg-slate-50 border-slate-100'}`}>
+                        {isMultiplier ? 'Multiplier' : 'Fixed'}
+                    </div>
+                </div>
+            );
+        },
+        size: 100,
+    },
+    {
+        accessorKey: 'defaultMultiplier',
+        header: ({ column }) => <SortableHeader column={column} label="Mult." />,
+        cell: ({ row }) => {
+            const isMultiplier = row.original.calculationMode === 'Multiplier';
+            return (
+                <div className={`font-mono font-black text-xs ${isMultiplier ? 'text-sky-700' : 'text-slate-300'}`}>
+                    {isMultiplier ? `x${row.original.defaultMultiplier.toFixed(2)}` : '—'}
+                </div>
+            );
+        },
+        size: 80,
+    },
+    {
         accessorKey: 'status',
         header: ({ column }) => <SortableHeader column={column} label="Status" />,
-        cell: ({ row }) => {
-            const status = row.original.status;
-            return <AdminStatusBadge status={status} />;
-        },
-        size: 120,
+        cell: ({ row }) => <AdminStatusBadge status={row.original.status} />,
+        size: 100,
     },
     {
         id: 'actions',

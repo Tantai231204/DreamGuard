@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Check, Clock4, X, Package, Minus } from "lucide-react";
+import { Check, Clock4, X, Package, Minus, RotateCcw } from "lucide-react";
 import React from "react";
 
 export type StatusType = 'success' | 'warning' | 'danger' | 'info' | 'neutral';
@@ -7,56 +7,62 @@ export type StatusType = 'success' | 'warning' | 'danger' | 'info' | 'neutral';
 interface AdminStatusBadgeProps {
   status: string;
   type?: StatusType;
-  mode?: 'status' | 'method' | 'payment'; // Explicitly set mode to avoid ambiguity
+  mode?: 'status' | 'method' | 'payment';
   className?: string;
   dot?: boolean;
 }
 
 const STATUS_MAP: Record<string, StatusType> = {
-  // Green for successful payments and completions (Xanh lá: Payment success & Final states)
-  'paid': 'success',
-  'codpaid': 'success',
-  'active': 'success',
-  'delivered': 'success',
-  'completed': 'success',
-  'resolved': 'success',
+  // Green for success
   'published': 'success',
-  '6': 'success', // OrderStatus.Completed
-  '5': 'success', // OrderStatus.Delivered
+  'Published': 'success',
+  'PUBLISHED': 'success',
+  'active': 'success',
+  'Active': 'success',
+  'ACTIVE': 'success',
+  'enabled': 'success',
+  'success': 'success',
+  'Success': 'success',
+  'true': 'success',
+  '5': 'success',
+  '6': 'success',
 
-  // Blue for successful confirmations (Xanh dương: Intermediate success)
-  'confirmed': 'info',
-  '2': 'info', // OrderStatus.Confirmed
-
-  // Red for failures and rejections (Danger)
-  'cancelled': 'danger',
-  'forcedcancelled': 'danger',
-  'failed': 'danger',
-  'rejected': 'danger',
-  'outofstock': 'danger',
-  '7': 'danger', // OrderStatus.Cancelled
-
-  // Orange/Amber for general statuses (Cam: tên bảng kèm status)
-  'pending': 'warning',
-  '1': 'warning', // OrderStatus.Pending
+  // Amber for warning
   'draft': 'warning',
-  'trial': 'warning',
-  'processing': 'warning',
-  '3': 'warning', // OrderStatus.Processing
-  'shipping': 'warning',
-  '4': 'warning', // OrderStatus.Shipping
-  'refund': 'warning',
-  'refunded': 'warning',
+  'Draft': 'warning',
+  'pending': 'warning',
+  'Pending': 'warning',
+  'warning': 'warning',
+  '1': 'warning',
+  '3': 'warning',
+  '4': 'warning',
+  'false': 'warning',
 
-  // Potential status strings that look like methods
-  'cod': 'warning',
-  'vnpay': 'warning',
+  // Red for danger
+  'outofstock': 'danger',
+  'OutOfStock': 'danger',
+  'cancelled': 'danger',
+  'failed': 'danger',
+  'error': 'danger',
+  'rejected': 'danger',
+  '2': 'danger',
+  '7': 'danger',
 
-  // Neutral
-  'hidden': 'neutral',
+  // Blue for info
+  'hidden': 'info',
+  'Hidden': 'info',
+  'confirmed': 'info',
+  'processing': 'info',
+  'shipping': 'info',
+  'info': 'info',
+
+  // Neutral for fallback
   'archived': 'neutral',
-  'undefined': 'neutral',
+  'Archived': 'neutral',
+  'none': 'neutral',
   'null': 'neutral',
+  'undefined': 'neutral',
+  'neutral': 'neutral',
 };
 
 const TYPE_CONFIG: Record<StatusType, {
@@ -108,6 +114,8 @@ const ICON_MAP: Record<string, React.ElementType> = {
   'codpaid': Check,
   'completed': Check,
   'active': Check,
+  'enabled': Check,
+  'success': Check,
   'confirmed': Check,
   'published': Check,
   'delivered': Check,
@@ -121,6 +129,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   'inactive': X,
   'expired': X,
   'banned': X,
+  'outofstock': X,
   '7': X,
   'refunded': RotateCcw,
   'refund': RotateCcw,
@@ -130,6 +139,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   '3': Package,
   '4': Package,
   'pending': Clock4,
+  'draft': Clock4,
   'unpaid': Clock4,
   'codunpaid': Clock4,
 };
@@ -158,16 +168,38 @@ const PAYMENT_STATUS_MAP: Record<string, { type: StatusType, label: string, icon
   'cod': { type: 'neutral', label: 'COD Unpaid', icon: Clock4 },
 };
 
-import { RotateCcw } from "lucide-react";
 
-export function AdminStatusBadge({
+export const AdminStatusBadge = React.forwardRef<HTMLDivElement, AdminStatusBadgeProps>(({
   status,
   type,
   mode,
   className,
   dot = true,
-}: AdminStatusBadgeProps) {
-  const normalizedStatus = status?.toLowerCase().replace(/\s+/g, '') || 'neutral';
+}, ref) => {
+  const searchStr = String(status || 'neutral').toLowerCase().trim();
+  const normalizedStatus = searchStr.replace(/\s+/g, '');
+
+  let finalType: StatusType = type || 'neutral';
+
+  // Absolute Force Keyword Match for safety
+  if (searchStr.includes('publish') || searchStr.includes('active') || searchStr.includes('success') || searchStr === '6' || searchStr === '5') {
+    finalType = 'success';
+  } else if (searchStr.includes('draft') || searchStr.includes('pending') || searchStr === '0' || searchStr === '1') {
+    finalType = 'warning';
+  } else if (searchStr.includes('hidden') || searchStr.includes('hide')) {
+    finalType = 'info';
+  } else if (searchStr.includes('out') || searchStr.includes('stock') || searchStr.includes('cancel') || searchStr.includes('fail') || searchStr.includes('error') || searchStr === '2') {
+    finalType = 'danger';
+  } else if (finalType === 'neutral') {
+    const fromMap = STATUS_MAP[normalizedStatus] || STATUS_MAP[searchStr];
+    if (fromMap && fromMap !== 'neutral') {
+      finalType = fromMap;
+    }
+  }
+
+  // 2. Select Icon based on type or status
+  let Icon = ICON_MAP[normalizedStatus] || ICON_MAP[searchStr] || TYPE_CONFIG[finalType as StatusType]?.icon || Check;
+  let displayLabel = status;
 
   // Payment config is only used if mode is 'method' or not specified but matches perfectly
   // and is NOT a known status keyword.
@@ -182,10 +214,6 @@ export function AdminStatusBadge({
     }
   }
 
-  let finalType = type || STATUS_MAP[normalizedStatus] || 'neutral';
-  let Icon = ICON_MAP[normalizedStatus] || TYPE_CONFIG[finalType as StatusType]?.icon;
-  let displayLabel = status;
-
   if (mode === 'payment' && PAYMENT_STATUS_MAP[normalizedStatus]) {
     const cfg = PAYMENT_STATUS_MAP[normalizedStatus];
     displayLabel = cfg.label;
@@ -193,19 +221,29 @@ export function AdminStatusBadge({
     Icon = cfg.icon;
   }
 
-  const config = TYPE_CONFIG[finalType as StatusType];
+  const config = TYPE_CONFIG[finalType as StatusType] || TYPE_CONFIG.neutral;
 
-  const containerClass = payConfig?.container || config.container;
-  const textClass = payConfig?.textColor || config.textColor;
-  const iconBgClass = payConfig?.iconBg || config.iconBg;
-  const iconColorClass = config.iconColor;
+  let containerClass = payConfig?.container || config.container;
+  let textClass = payConfig?.textColor || config.textColor;
+  let iconBgClass = payConfig?.iconBg || config.iconBg;
+  let iconColorClass = config.iconColor;
+
+  // Force !important for success to prevent any grey list-item / row overrides
+  if (finalType === 'success') {
+    containerClass = "!bg-emerald-50 !border-emerald-200";
+    textClass = "!text-emerald-700";
+    iconBgClass = "!bg-emerald-500";
+    iconColorClass = "!text-white";
+    Icon = Check;
+  }
 
   return (
     <div
+      ref={ref}
       className={cn(
         "inline-flex items-center gap-2.5 pl-1 pr-3.5 py-1 rounded-full border shadow-sm",
         "text-[11px] font-black uppercase tracking-tight transition-all duration-300",
-        "cursor-default hover:brightness-95 hover:shadow-md",
+        "cursor-default hover:brightness-95",
         containerClass,
         textClass,
         className
@@ -219,11 +257,13 @@ export function AdminStatusBadge({
           {payConfig ? (
             <img src={payConfig.icon} alt={status} className="h-full w-full object-contain" />
           ) : (
-            <Icon className={cn("h-3.5 w-3.5", iconColorClass)} strokeWidth={3.5} />
+            Icon && <Icon className={cn("h-3.5 w-3.5", iconColorClass)} strokeWidth={3.5} />
           )}
         </div>
       )}
       <span className="leading-none">{displayLabel || 'Unknown'}</span>
     </div>
   );
-}
+});
+
+AdminStatusBadge.displayName = 'AdminStatusBadge';

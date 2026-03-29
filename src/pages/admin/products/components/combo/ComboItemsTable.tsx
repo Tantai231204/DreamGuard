@@ -29,6 +29,7 @@ interface ComboItemsTableProps {
     onAddVariant?: (parent: Combo) => void;
     onEditVariant?: (variant: Combo) => void;
     onDeleteVariant?: (variant: Combo) => void;
+    onUpdateStatus?: (id: string, status: string, name?: string, currentStatus?: string) => void;
 }
 
 export default function ComboItemsTable({
@@ -40,6 +41,7 @@ export default function ComboItemsTable({
     onAddVariant,
     onEditVariant,
     onDeleteVariant,
+    onUpdateStatus,
 }: ComboItemsTableProps) {
     const { data: detail, isLoading, isError } = useComboDetail(comboId);
     const [searchQuery, setSearchQuery] = React.useState('');
@@ -142,12 +144,14 @@ export default function ComboItemsTable({
                             onAddVariant={() => onAddVariant?.(detail as Combo)}
                             onEditVariant={onEditVariant}
                             onDeleteVariant={onDeleteVariant}
+                            onUpdateStatus={onUpdateStatus}
                         />
                     ) : (
                         <VariantListView
                             childCombos={childCombosFiltered}
                             onEditVariant={onEditVariant}
                             onDeleteVariant={onDeleteVariant}
+                            onUpdateStatus={onUpdateStatus}
                         />
                     )
                 ) : (

@@ -9,7 +9,9 @@ export { default as variantService } from './variantService';
 export { default as comboService } from './comboService';
 export { default as cartService } from './cartService';
 export { default as orderService } from './orderService';
+export { default as ratingService } from './ratingService';
 export { default as customizeTypeService } from './customizeTypeService';
+export { default as certificateService } from './certificateService';
 export * as addressService from './address.service';
 
 export type {

@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import serviceOrderService from '@/api/services/serviceOrderService';
 
 export const serviceOrderKeys = {
@@ -40,5 +40,17 @@ export const useServiceOrderDetail = (id: string, options?: { enabled?: boolean 
     queryFn: () => serviceOrderService.getServiceOrderById(id),
     enabled: options?.enabled !== undefined ? (options.enabled && !!id) : !!id,
     staleTime: 30000,
+  });
+};
+
+export const useReOrderFailedServiceOrder = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (serviceOrderId: string) => serviceOrderService.reOrderFailedServiceOrder(serviceOrderId),
+    onSuccess: (_, serviceOrderId) => {
+      queryClient.invalidateQueries({ queryKey: serviceOrderKeys.detail(serviceOrderId) });
+      queryClient.invalidateQueries({ queryKey: serviceOrderKeys.all });
+    },
   });
 };

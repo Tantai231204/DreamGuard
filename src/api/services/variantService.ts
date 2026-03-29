@@ -97,6 +97,7 @@ export interface AdminVariantItem {
   is_customizable?: boolean; // Snake_case fallback from API
   customizeTypes?: VariantCustomizeTypeResponse[];
   customizeOptions?: VariantCustomizeTypeResponse[];
+  customizeOptionGroups?: { category: string; options: VariantCustomizeTypeResponse[] }[];
   customizeLabel?: string;
   createdAt?: string;
 }

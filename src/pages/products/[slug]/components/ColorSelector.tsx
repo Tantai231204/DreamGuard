@@ -95,8 +95,8 @@ export const ColorSelector = memo(({ options, selected, onChange, disabledValues
                                     onClick={onCustomClick}
                                     className={cn(
                                         "h-10 w-10 rounded-full border-2 border-dashed flex items-center justify-center transition-all duration-300",
-                                        isCustomMode 
-                                            ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white shadow-lg scale-110" 
+                                        isCustomMode
+                                            ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white shadow-lg scale-110"
                                             : "border-slate-200 bg-white text-slate-400 hover:border-slate-400 hover:text-slate-600 shadow-sm"
                                     )}
                                 >

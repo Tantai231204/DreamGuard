@@ -4,6 +4,7 @@ import { useProductDetail } from "@/hooks/queries/useProduct";
 import { SEO } from "@/components/common";
 import { useBreadcrumb } from "@/components/common/BreadcrumbNav";
 import { useFavoriteProducts, useAddFavorite, useDeleteFavorite } from "@/hooks/useFavorite";
+import { useProductCertificates } from "@/hooks/queries/useCertificate";
 
 // Components
 import { ProductImageGallery } from "./components/ProductImageGallery";
@@ -39,6 +40,9 @@ export default function ProductDetail() {
     product,
     productImageRef,
   });
+
+  // 3. Fetch certificates
+  const { data: apiCertificates } = useProductCertificates(product?.id || "");
 
   // Favorite Logic
   const { data: favorites } = useFavoriteProducts();
@@ -213,7 +217,7 @@ export default function ProductDetail() {
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
           >
-            <SafetyCertifications certifications={safetyCertifications} />
+            <SafetyCertifications certifications={apiCertificates || safetyCertifications} />
           </motion.div>
 
           <motion.div

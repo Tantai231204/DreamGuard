@@ -3,6 +3,8 @@ import {
     AlertDialogAction,
     AlertDialogCancel,
     AlertDialogContent,
+    AlertDialogTitle,
+    AlertDialogDescription,
 } from '@/components/ui/alert-dialog';
 import { AlertTriangle, Trash2, Info, ShieldCheck, HelpCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -153,14 +155,18 @@ export function ConfirmDialog({
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.15, duration: 0.3 }}
                     >
-                        <h3 className="text-[17px] font-bold text-slate-800 tracking-tight mb-3 leading-tight">
-                            {title}
-                        </h3>
-                        <div className="text-[14.5px] font-medium text-slate-500 leading-relaxed mb-8 px-2 max-w-[340px]">
-                            {typeof description === 'string'
-                                ? parseHighlight(description, c.highlight)
-                                : description}
-                        </div>
+                        <AlertDialogTitle asChild>
+                            <h3 className="text-[17px] font-bold text-slate-800 tracking-tight mb-3 leading-tight">
+                                {title}
+                            </h3>
+                        </AlertDialogTitle>
+                        <AlertDialogDescription asChild>
+                            <div className="text-[14.5px] font-medium text-slate-500 leading-relaxed mb-8 px-2 max-w-[340px]">
+                                {typeof description === 'string'
+                                    ? parseHighlight(description, c.highlight)
+                                    : description}
+                            </div>
+                        </AlertDialogDescription>
                     </motion.div>
 
                     {/* Actions */}

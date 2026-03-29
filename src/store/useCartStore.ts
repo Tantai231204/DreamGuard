@@ -4,7 +4,7 @@ import cartService, { type CartResponse, type CartItemResponse, type AddCartItem
 import { toast } from "sonner"
 import type { CartItem as BaseCartItem } from "./cartTypes"
 import { useAuthStore } from "./authStore"
-import MD5 from "crypto-js/md5"
+import * as CryptoJS from "crypto-js"
 
 // ── Types & Interfaces ──
 
@@ -85,7 +85,7 @@ export const generateConfigHash = (
 ) => {
     const base = comboId ? `combo:${comboId}` : `var:${productVariantId || 'base'}`;
     const meta = metadata ? `meta:${metadata.toLowerCase().trim()}` : "meta:none";
-    if (!customDetails || customDetails.length === 0) return MD5(`${base}|${meta}|std`).toString();
+    if (!customDetails || customDetails.length === 0) return CryptoJS.MD5(`${base}|${meta}|std`).toString();
 
     // Key-agnostic normalization: Use ONLY content values for hashing
     // This ensures Local (UUID keys) and Server (name keys) produce identical hashes
@@ -95,7 +95,7 @@ export const generateConfigHash = (
         .sort((a, b) => a.localeCompare(b))
         .join('&');
 
-    return MD5(`${base}|${normalized}|${meta}`).toString();
+    return CryptoJS.MD5(`${base}|${normalized}|${meta}`).toString();
 };
 
 /**

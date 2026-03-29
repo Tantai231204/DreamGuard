@@ -40,9 +40,14 @@ export function useStockAdjustment() {
     setStockQuantity(1);
   };
 
-  const submitStockAdjustment = () => {
+  const submitStockAdjustment = (reason: string) => {
     if (stockQuantity <= 0) {
       toast.error('Invalid quantity', 'Quantity must be greater than 0');
+      return;
+    }
+
+    if (!reason) {
+      toast.error('Accountability Error', 'Please select a valid reason for this adjustment.');
       return;
     }
 
@@ -52,13 +57,13 @@ export function useStockAdjustment() {
       { productVariantId: stockDialog.variantId, quantity: stockQuantity },
       {
         onSuccess: () => {
+          const action = stockDialog.type === 'add' ? 'Added' : 'Reduced';
           toast.success(
-            stockDialog.type === 'add' ? 'Stock added' : 'Stock reduced',
-            `Successfully ${stockDialog.type === 'add' ? 'added' : 'reduced'} ${stockQuantity} units`
+            `${action} Successfully`,
+            `Audit log recorded: [${reason}] for ${stockQuantity} units.`
           );
           closeDialog();
         },
-        // Error is handled by global interceptor - no need for onError
       }
     );
   };

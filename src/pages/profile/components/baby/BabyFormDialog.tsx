@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Baby, Gift } from "lucide-react";
@@ -51,7 +51,7 @@ export default function BabyFormDialog({ open, onOpenChange, initialData }: Baby
   const createMutation = useCreateBabyProfile();
   const updateMutation = useUpdateBabyProfile();
 
-  const { register, handleSubmit, formState: { errors, isSubmitting }, control, watch, setValue, reset } = useForm<BabyFormData>({
+  const { register, handleSubmit, formState: { errors, isSubmitting }, control, setValue, reset } = useForm<BabyFormData>({
     resolver: zodResolver(babyFormSchema),
     defaultValues: {
       name: "",
@@ -63,7 +63,7 @@ export default function BabyFormDialog({ open, onOpenChange, initialData }: Baby
     }
   });
 
-  const selectedGender = watch("gender");
+  const selectedGender = useWatch({ control, name: "gender" });
   const isBoy = selectedGender === "male";
 
   // Reset form with initialData when it changes or dialog opens

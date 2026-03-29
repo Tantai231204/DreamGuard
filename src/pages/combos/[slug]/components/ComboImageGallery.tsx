@@ -1,113 +1,160 @@
-import { motion, AnimatePresence } from "framer-motion";
-import { Heart, Truck, ShieldCheck, RotateCcw, Share2, Sparkles } from "lucide-react";
-import { cn } from "@/lib/utils";
-import type { Combo } from "../../types";
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { Heart, Share2, Sparkles, Package } from "lucide-react";
+import { cn, formatPrice } from "@/lib/utils";
+import type { Combo, RichComboItem } from "../../types";
 
 interface Props {
     combo: Combo;
     activeCombo: Combo | null;
     isWishlisted: boolean;
     onToggleWishlist: () => void;
+    displayImage?: string | null;
+    enrichedItems?: RichComboItem[];
 }
 
-const TRUST_FEATURES = [
-    { icon: Truck, label: "Free Shipping", sub: "Orders over 1.000.000 VNĐ" },
-    { icon: ShieldCheck, label: "Warranty", sub: "Included" },
-    { icon: RotateCcw, label: "30-Day", sub: "Easy Returns" },
-];
+export const ComboImageGallery = ({ combo, activeCombo, isWishlisted, onToggleWishlist, displayImage, enrichedItems }: Props) => {
+    const [imgError, setImgError] = useState(false);
 
-export const ComboImageGallery = ({ combo, activeCombo, isWishlisted, onToggleWishlist }: Props) => {
     const discountValue = activeCombo && activeCombo.basePrice > activeCombo.salePrice
         ? Math.round(((activeCombo.basePrice - activeCombo.salePrice) / activeCombo.basePrice) * 100)
         : null;
+
+    const mainImage = displayImage || activeCombo?.imageUrl || combo.imageUrl;
+    const hasValidImage = !!mainImage && !imgError;
+
+    const items = enrichedItems && enrichedItems.length > 0
+        ? enrichedItems
+        : ((activeCombo?.productItems || combo.productItems || []) as RichComboItem[]);
 
     const handleShare = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
         if (navigator.share) {
-            navigator.share({
-                title: combo.name,
-                url: window.location.href,
-            }).catch(() => {});
+            navigator.share({ title: combo.name, url: window.location.href }).catch(() => {});
         } else {
             navigator.clipboard.writeText(window.location.href);
-            alert("Link copied to clipboard!");
         }
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-5 lg:sticky lg:top-8">
+            {/* Main Visual Area */}
             <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="relative aspect-square rounded-[2.5rem] lg:rounded-[3rem] overflow-hidden bg-white border-2 border-dashed border-[#4988c4]/30 group z-10 transition-colors hover:border-[#4988c4]/60"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-[#f0f7ff] to-[#e8f0f8] border border-[#4988c4]/10"
             >
-                <AnimatePresence mode="wait">
-                    <motion.img 
-                        key={activeCombo?.imageUrl || combo.imageUrl}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.4 }}
-                        src={activeCombo?.imageUrl || combo.imageUrl || "/images/placeholder-product.svg"} 
-                        alt={combo.name}
-                        className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
-                    />
-                </AnimatePresence>
-                
-                {/* Vibrant Modern Badge (Synced with Product) */}
+                {hasValidImage ? (
+                    <div className="aspect-square">
+                        <img 
+                            src={mainImage!}
+                            alt={combo.name}
+                            className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+                            onError={() => setImgError(true)}
+                        />
+                    </div>
+                ) : (
+                    /* Clean Bundle Composition Visual */
+                    <div className="aspect-[4/3] flex flex-col items-center justify-center p-8 md:p-12">
+                        <div className="flex items-center justify-center gap-4 md:gap-6 mb-6">
+                            {items.map((item, i) => (
+                                <motion.div
+                                    key={i}
+                                    initial={{ opacity: 0, y: 15 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: 0.15 + i * 0.12 }}
+                                    className="bg-white rounded-2xl shadow-sm border border-white p-5 md:p-6 flex flex-col items-center gap-3 w-[140px] md:w-[160px]"
+                                >
+                                    <div className="w-14 h-14 rounded-2xl bg-[#4988c4]/8 flex items-center justify-center">
+                                        <Package className="w-6 h-6 text-[#4988c4]/60" />
+                                    </div>
+                                    <p className="text-[12px] font-bold text-slate-700 text-center leading-tight line-clamp-2">
+                                        {item.productName}
+                                    </p>
+                                    <span className="text-[10px] font-semibold text-[#4988c4]/60 bg-[#4988c4]/5 px-2 py-0.5 rounded-full">
+                                        ×{item.quantity}
+                                    </span>
+                                </motion.div>
+                            ))}
+                        </div>
+
+                        {/* Connecting line */}
+                        <div className="flex items-center gap-3 text-[#4988c4]/40">
+                            <div className="h-px w-8 bg-[#4988c4]/20" />
+                            <span className="text-[10px] font-bold uppercase tracking-[0.15em]">Bundle Set</span>
+                            <div className="h-px w-8 bg-[#4988c4]/20" />
+                        </div>
+                    </div>
+                )}
+
+                {/* Discount Badge */}
                 {discountValue && (
                     <motion.div 
                         initial={{ x: -20, opacity: 0 }}
                         animate={{ x: 0, opacity: 1 }}
-                        className="absolute top-10 left-8 z-20"
+                        className="absolute top-5 left-5 z-20"
                     >
-                        <div className="flex items-center gap-2 bg-rose-600 text-white px-4 py-1.5 rounded-xl shadow-[0_8px_30px_rgba(225,29,72,0.3)] border-0">
-                            <Sparkles className="h-3.5 w-3.5 fill-white text-white" />
-                            <span className="text-[11px] font-black uppercase tracking-[0.15em]">-{discountValue}% OFF</span>
+                        <div className="flex items-center gap-1.5 bg-rose-600 text-white px-3 py-1.5 rounded-xl shadow-lg">
+                            <Sparkles className="h-3 w-3 fill-white text-white" />
+                            <span className="text-[11px] font-bold">-{discountValue}%</span>
                         </div>
                     </motion.div>
                 )}
 
-                {/* Floating Action Group (TOP Layer) - SYNCED WITH PRODUCT STYLE */}
-                <div className="absolute right-8 top-10 flex flex-col gap-3 z-30">
+                {/* Floating Actions */}
+                <div className="absolute right-5 top-5 flex flex-col gap-2 z-30">
                     <button 
-                        onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            onToggleWishlist();
-                        }}
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleWishlist(); }}
                         className={cn(
-                            "h-12 w-12 rounded-xl bg-white/95 shadow-[0_15px_45px_-5px_rgba(0,0,0,0.1)] border border-white/40 flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-90 backdrop-blur-2xl group/fav ring-4 ring-white/10",
-                            isWishlisted ? "text-rose-500 scale-105 ring-rose-500/10" : "text-slate-400 hover:text-rose-500"
+                            "h-10 w-10 rounded-xl bg-white/90 backdrop-blur-sm shadow-md flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95",
+                            isWishlisted ? "text-rose-500" : "text-slate-400 hover:text-rose-500"
                         )}
                     >
-                        <Heart className={cn("w-5 h-5 transition-transform duration-300 group-hover/fav:scale-110", isWishlisted && "fill-current")} />
+                        <Heart className={cn("w-4 h-4", isWishlisted && "fill-current")} />
                     </button>
                     <button 
                         onClick={handleShare}
-                        className="h-12 w-12 rounded-xl bg-white/95 shadow-[0_15px_45px_-5px_rgba(0,0,0,0.1)] border border-white/40 flex items-center justify-center text-slate-400 hover:text-slate-900 transition-all duration-300 hover:scale-110 active:scale-90 backdrop-blur-2xl group/share ring-4 ring-white/10"
+                        className="h-10 w-10 rounded-xl bg-white/90 backdrop-blur-sm shadow-md flex items-center justify-center text-slate-400 hover:text-slate-700 transition-all duration-200 hover:scale-110 active:scale-95"
                     >
-                        <Share2 className="h-5 w-5 transition-transform group-hover/share:rotate-12" />
+                        <Share2 className="h-4 w-4" />
                     </button>
                 </div>
             </motion.div>
 
-            <div className="grid grid-cols-3 gap-4">
-                {TRUST_FEATURES.map((f, i) => (
-                    <motion.div 
-                        key={i} 
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2 + (i * 0.1) }}
-                        className="flex flex-col items-center text-center p-4 bg-slate-50 rounded-2xl border border-slate-100/50 hover:bg-white hover:shadow-md transition-all duration-300"
-                    >
-                        <f.icon className="w-5 h-5 text-[#4988c4] mb-2" />
-                        <p className="text-[10px] font-black uppercase text-slate-800 tracking-tight">{f.label}</p>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5">{f.sub}</p>
-                    </motion.div>
-                ))}
-            </div>
+            {/* Item Cards Row */}
+            {items.length > 0 && (
+                <div className="grid gap-3" style={{ gridTemplateColumns: `repeat(${items.length}, 1fr)` }}>
+                    {items.map((item, i) => {
+                        const itemPrice = item.enrichedDetail?.salePrice || item.salePrice || 0;
+                        return (
+                            <motion.div
+                                key={i}
+                                initial={{ opacity: 0, y: 8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.4 + i * 0.08 }}
+                                className="relative bg-white rounded-2xl border border-slate-200/60 p-4 flex flex-col items-center gap-2 hover:border-[#4988c4]/30 hover:shadow-md transition-all group cursor-default"
+                            >
+                                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center group-hover:bg-[#4988c4]/5 transition-colors">
+                                    <Package className="w-4 h-4 text-slate-300 group-hover:text-[#4988c4] transition-colors" />
+                                </div>
+                                <p className="text-[11px] font-bold text-slate-700 text-center leading-tight line-clamp-1 group-hover:text-[#4988c4] transition-colors">
+                                    {item.productName}
+                                </p>
+                                {itemPrice > 0 && (
+                                    <p className="text-[10px] font-semibold text-slate-400">
+                                        {formatPrice(itemPrice)}
+                                    </p>
+                                )}
+                                {/* Quantity */}
+                                <div className="absolute -top-1.5 -right-1.5 bg-slate-900 text-white text-[8px] font-bold w-5 h-5 rounded-full flex items-center justify-center ring-2 ring-white">
+                                    {item.quantity}
+                                </div>
+                            </motion.div>
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 };

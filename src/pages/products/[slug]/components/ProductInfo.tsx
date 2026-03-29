@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { ShoppingCart, ShieldCheck, RotateCcw, Star, Leaf } from 'lucide-react';
+import { ShoppingCart, ShieldCheck, RotateCcw, Star, Leaf, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
@@ -138,6 +138,12 @@ export const ProductInfo = memo(({
                         AGE: {product.ageLabel} MONTHS+
                     </Badge>
                 )}
+                {(canCustomizeColor || canCustomizeSize) && (
+                    <Badge className="bg-indigo-50 text-indigo-700 border border-indigo-100 px-2.5 py-1 text-[10px] font-black tracking-wider rounded-lg flex items-center gap-1.5 shadow-sm">
+                        <Sparkles className="w-3 h-3 text-indigo-500 animate-pulse" />
+                        BESPOKE / MADE-TO-MEASURE
+                    </Badge>
+                )}
             </div>
 
             {/* ── Row 2: Product Name ── */}
@@ -189,7 +195,7 @@ export const ProductInfo = memo(({
             </div>
 
             {/* ── Row 4: Price Block ── */}
-            <div className="bg-slate-50 rounded-xl px-5 py-4 border border-slate-100 space-y-2">
+            <div className="bg-slate-50/80 rounded-2xl px-6 py-5 border border-slate-100 shadow-sm space-y-3">
                 <div className="flex items-baseline gap-3 flex-wrap">
                     <span className="text-3xl font-black text-slate-900 tracking-tight">
                         {formatPrice(product.price)}
@@ -205,7 +211,26 @@ export const ProductInfo = memo(({
                         </span>
                     )}
                 </div>
-                <p className="text-[11px] text-slate-400">
+
+                {/* Surcharge Breakdown */}
+                {(isCustomSize || isCustomColor) && (colorSurchargePrice > 0 || sizeSurchargePrice > 0) && (
+                    <div className="flex flex-col gap-1.5 pt-2 border-t border-slate-200/50">
+                        {isCustomSize && sizeSurchargePrice > 0 && (
+                            <div className="flex items-center gap-2 text-[11px] font-bold text-slate-500">
+                                <span className="w-1 h-1 rounded-full bg-[#4988c4]" />
+                                <span>Includes {formatPrice(sizeSurchargePrice)} surcharge for custom dimensions</span>
+                            </div>
+                        )}
+                        {isCustomColor && colorSurchargePrice > 0 && (
+                            <div className="flex items-center gap-2 text-[11px] font-bold text-slate-500">
+                                <span className="w-1 h-1 rounded-full bg-[#4988c4]" />
+                                <span>Includes {formatPrice(colorSurchargePrice)} surcharge for custom color</span>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                <p className="text-[11px] text-slate-400 font-medium">
                     Tax included · Free shipping on orders over {formatPrice(1000000)}
                 </p>
             </div>

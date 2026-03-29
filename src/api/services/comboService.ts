@@ -129,11 +129,11 @@ const comboService = {
 
   /** Get combo detail by ID */
   getById: (id: string): Promise<ComboResponse> =>
-    apiClient.get(`/combo/${id}`).then((res) => res.data),
+    apiClient.get(`/combo/${id}`).then((res) => res.data?.data ?? res.data),
 
   /** Get combo detail by Slug */
   getBySlug: (slug: string, params?: { size?: string; color?: string }): Promise<ComboResponse> =>
-    apiClient.get(`/combo/slug/${slug}`, { params }).then((res) => res.data),
+    apiClient.get(`/combo/slug/${slug}`, { params }).then((res) => res.data?.data ?? res.data),
 
   /** Create new combo */
   create: async (data: CreateComboRequest): Promise<ComboResponse> => {
@@ -157,9 +157,13 @@ const comboService = {
   updateItems: (id: string, data: { items: ComboItemRequest[] }): Promise<void> =>
     apiClient.put(`/combo/${id}/products`, data).then((res) => res.data),
 
-  /** Delete combo */
+  /** Delete combo or Update status (queried pattern as verified) */
   delete: (id: string): Promise<void> =>
     apiClient.delete(`/combo/${id}`).then((res) => res.data),
+
+  /** Update combo status */
+  updateStatus: (id: string, status: string): Promise<void> =>
+    apiClient.delete(`/combo/${id}`, { params: { status } }).then((res) => res.data),
 
   /** Upload images for combo */
   uploadImage: (comboId: string, files: File[]): Promise<{ message: string; urls: string[] }> => {

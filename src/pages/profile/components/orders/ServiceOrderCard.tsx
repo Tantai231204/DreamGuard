@@ -3,6 +3,8 @@ import { Wrench, CalendarDays } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useReOrderFailedServiceOrder } from '@/hooks/queries/useServiceOrder';
+import { useToast } from '@/hooks/useToast';
 import type { ServiceOrderResponse } from '@/api/types/serviceOrder';
 import { formatDate, formatPrice } from '../../utils';
 import { STATUS_THEME } from '../../constants';
@@ -24,11 +26,36 @@ function toThemeKey(status?: string) {
 
 export const ServiceOrderCard = memo(({ order }: ServiceOrderCardProps) => {
   const orderId = order.soId || order.id || '';
+  const toast = useToast();
+  const reOrderFailedServiceMutation = useReOrderFailedServiceOrder();
   const theme = STATUS_THEME[toThemeKey(order.status)] || STATUS_THEME.Pending;
   const detailItems = order.items || order.orderDetails || order.serviceOrderItems || [];
   const mainServiceName = detailItems.length > 0
     ? (detailItems[0].packageName || detailItems[0].serviceName || detailItems[0].itemName || 'Service Order')
     : 'Service Order';
+
+  const paymentMethod = String(order.paymentMethod || '').toLowerCase();
+  const paymentStatus = String(order.paymentStatus || '').toLowerCase();
+  const canRetryPayment = !!orderId && paymentMethod.includes('vnpay') && paymentStatus === 'failed';
+
+  const handleRetryPayment = async () => {
+    if (!orderId) return;
+
+    try {
+      const response = await reOrderFailedServiceMutation.mutateAsync(orderId);
+      const paymentUrl = typeof response?.paymentUrl === 'string' ? response.paymentUrl : '';
+
+      if (paymentUrl) {
+        window.location.assign(paymentUrl);
+        return;
+      }
+
+      toast.warning('Unable to create payment link.', 'Please try again in a moment.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Re-payment failed. Please try again.';
+      toast.error('Cannot retry payment.', message);
+    }
+  };
 
   return (
     <Card className="rounded-2xl border-slate-200/60 bg-white shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md">
@@ -87,7 +114,18 @@ export const ServiceOrderCard = memo(({ order }: ServiceOrderCardProps) => {
         </div>
       )}
 
-      <div className="px-6 py-4 bg-slate-50/30 border-t border-slate-100 flex items-center justify-end">
+      <div className="px-6 py-4 bg-slate-50/30 border-t border-slate-100 flex items-center justify-end gap-2">
+        {canRetryPayment && (
+          <Button
+            type="button"
+            onClick={handleRetryPayment}
+            disabled={reOrderFailedServiceMutation.isPending}
+            className="h-9 px-4 rounded-lg text-[10px] font-black uppercase tracking-wider bg-[#4988c4] text-white hover:bg-[#3f79af]"
+          >
+            {reOrderFailedServiceMutation.isPending ? 'Processing...' : 'Pay Again'}
+          </Button>
+        )}
+
         <ServiceOrderDetailDialog
           serviceOrderId={orderId}
           orderCode={order.orderCode}

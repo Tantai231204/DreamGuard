@@ -11,6 +11,7 @@ import {
   type AddStockRequest,
   type ReduceStockRequest,
 } from "@/api/services/inventoryService";
+import { certificateKeys } from "./useCertificate";
 import type {
   CreateProductRequest,
   UpdateProductRequest,
@@ -25,6 +26,7 @@ import type {
   UpdateVariantCustomizeTypePriceRequest,
   VariantCustomizeTypeResponse,
   CreateVariantWithCustomizeRequest,
+  ProductResponse,
 } from "@/api";
 
 // ========================
@@ -107,7 +109,9 @@ export const useAdminProductVariants = <T = AdminVariantsByProductResponse>(
   productId: string,
   options?: {
     enabled?: boolean;
-    select?: (data: AdminVariantsByProductResponse) => T
+    select?: (data: AdminVariantsByProductResponse) => T;
+    staleTime?: number;
+    gcTime?: number;
   }
 ) => {
   return useQuery({
@@ -115,6 +119,8 @@ export const useAdminProductVariants = <T = AdminVariantsByProductResponse>(
     queryFn: () => variantService.getAdminByProductId(productId),
     enabled: !!productId && (options?.enabled !== false),
     select: options?.select,
+    staleTime: options?.staleTime,
+    gcTime: options?.gcTime,
   });
 };
 
@@ -149,6 +155,16 @@ export const useRichAdminVariants = (productId: string, enabled = true) => {
   });
 };
 
+/** Optimized version for table usage with long cache */
+export const useStableRichVariants = (productId: string, enabled = true) => {
+  return useAdminProductVariants(productId, {
+    enabled,
+    select: transformAdminVariants,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+  });
+};
+
 // ========================
 // Mutations
 // ========================
@@ -174,6 +190,8 @@ export const useUpdateProduct = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: productKeys.all });
       queryClient.invalidateQueries({ queryKey: productKeys.detail(variables.id) });
+      queryClient.invalidateQueries({ queryKey: certificateKeys.byProduct(variables.id) });
+      queryClient.invalidateQueries({ queryKey: certificateKeys.all });
     },
   });
 };
@@ -245,7 +263,7 @@ export const useCreateVariantWithCustomize = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: CreateVariantWithCustomizeRequest) => 
+    mutationFn: (data: CreateVariantWithCustomizeRequest) =>
       variantService.createWithCustomize(data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: productKeys.all });
@@ -487,7 +505,7 @@ export const useAllVariantOptions = (enabled = true) => {
         pageSize: 200,
         pageNumber: 1,
       });
-      const products = page?.items ?? [];
+      const products = (page?.items ?? []).filter((p: ProductResponse & { isCustomable?: boolean; isCustomizable?: boolean; is_customizable?: boolean }) => !p.isCustomable && !p.isCustomizable && !p.is_customizable);
       if (products.length === 0) return [];
 
       // 2. Fetch admin variants per product in parallel batches
@@ -520,16 +538,22 @@ function flattenAdminVariants(
   fallbackName?: string,
 ): VariantOption[] {
   const options: VariantOption[] = [];
-  // Use API productName if available, otherwise fall back to the product name
-  // from the product list (the admin variant endpoint sometimes returns empty name)
   const productName = res.productName || fallbackName || "Unknown Product";
 
-  for (const group of res.colorGroups) {
+  // 🔥 Senior Refactor: Use the centralized robust transformer to detect bespoke/custom flags
+  const transformed = transformAdminVariants(res);
+  if (!transformed?.colorGroups) return options;
+
+  for (const group of transformed.colorGroups) {
     for (const v of group.variants) {
+      // Don't allow customizable/bespoke variants to be added to combos.
+      // This single flag guarantees parity with the Variant Data Table logic!
+      if (v.isVariantCustomizable) continue;
+
       const parts = [productName];
       const attrs: string[] = [];
-      if (group.color) attrs.push(group.color);
-      if (v.size) attrs.push(v.size);
+      if (group.color && group.color !== 'Unknown') attrs.push(group.color);
+      if (v.dimensions && v.dimensions !== 'N/A') attrs.push(v.dimensions);
       if (attrs.length > 0) parts.push(attrs.join(" / "));
       parts.push(`(${v.sku})`);
 
@@ -538,8 +562,8 @@ function flattenAdminVariants(
         productId: res.productId,
         productName: productName,
         sku: v.sku,
-        color: group.color || undefined,
-        size: v.size || undefined,
+        color: group.color !== 'Unknown' ? group.color : undefined,
+        size: v.dimensions !== 'N/A' ? v.dimensions : undefined,
         basePrice: v.basePrice,
         salePrice: v.salePrice,
         stockQuantity: v.stockQuantity,

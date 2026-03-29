@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import type { Table } from '@tanstack/react-table';
 import { Package, TrendingUp, Filter, PlayCircle, Archive } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TableSkeleton } from '@/components/common/TableSkeleton';
@@ -7,6 +8,7 @@ import { TableSkeleton } from '@/components/common/TableSkeleton';
 import AdminPageHeader from '@/components/layout/AdminPageHeader';
 import { ProductTabs, useProductColumns } from './components/product-table';
 import { useComboColumns } from './components/combo';
+import { useCertificateColumns } from './components/certificate/useCertificateColumns';
 import { AdminActions } from '@/components/admin';
 
 // Refactored Hooks & Core Components
@@ -15,8 +17,9 @@ import { useAdminProductMutations } from './hooks/useAdminProductMutations';
 import { ProductDialogs } from './components/ProductDialogs';
 import { ProductTableSection } from './components/ProductTableSection';
 import { ComboTableSection } from './components/ComboTableSection';
+import { CertificateTableSection } from './components/CertificateTableSection';
 
-import type { Product, Combo } from './types';
+import type { Product, Combo, Certificate, ProductStatus } from './types';
 
 export default function ProductsPage() {
   const navigate = useNavigate();
@@ -24,8 +27,8 @@ export default function ProductsPage() {
   // 1. Unified State Management
   const state = useAdminProductState();
   const {
-    activeTab, setActiveTab, products, combos, productPageData, comboPageData,
-    isLoadingProducts, isLoadingCombos
+    activeTab, setActiveTab, products, combos, certificates, productPageData, comboPageData, certPageData,
+    isLoadingProducts, isLoadingCombos, isLoadingCerts
   } = state;
 
   const pageData = productPageData;
@@ -35,57 +38,89 @@ export default function ProductsPage() {
 
   // 3. UI Handlers
   const handleAdd = useCallback(() => {
-    state.setComboIsCurrentUpload(activeTab === 'combo');
-    if (activeTab === 'combo') {
-      state.setEditingCombo(null);
-      state.setComboDialogMode(null);
-      state.setComboDialogKey((k: number) => k + 1);
-      state.setComboDialogOpen(true);
+    if (activeTab === 'certificate') {
+      state.setEditingCert(null);
+      state.setCertDialogOpen(true);
     } else {
-      state.setEditingProduct(null);
-      state.setDialogOpen(true);
+      state.setComboIsCurrentUpload(activeTab === 'combo');
+      if (activeTab === 'combo') {
+        state.setEditingCombo(null);
+        state.setComboDialogMode(null);
+        state.setComboDialogKey((k: number = 0) => k + 1);
+        state.setComboDialogOpen(true);
+      } else {
+        state.setEditingProduct(null);
+        state.setDialogOpen(true);
+      }
     }
   }, [activeTab, state]);
 
   const handleExport = useCallback(() => {
     if (activeTab === 'single') {
-      mutations.handleExport('single', products, []);
-    } else {
-      mutations.handleExport('combo', [], combos);
+      mutations.handleExport('single', products, [], []);
+    } else if (activeTab === 'combo') {
+      mutations.handleExport('combo', [], combos, []);
+    } else if (activeTab === 'certificate') {
+      mutations.handleExport('certificate', [], [], certificates);
     }
-  }, [activeTab, products, combos, mutations]);
+  }, [activeTab, products, combos, certificates, mutations]);
 
   // Table Column Definitions
   const productColumns = useProductColumns({
-    onView: (p: Product) => navigate(`/admin/products/${p.id}`),
-    onEdit: (p: Product) => { state.setEditingProduct(p); state.setDialogOpen(true); },
-    onDelete: (p: Product) => state.setDeleteProduct(p),
-    onAddVariant: (p: Product) => {
+    onView: useCallback((p: Product) => navigate(`/admin/products/${p.id}`), [navigate]),
+    onEdit: useCallback((p: Product) => { state.setEditingProduct(p); state.setDialogOpen(true); }, [state]),
+    onDelete: useCallback((p: Product) => state.setDeleteProduct(p), [state]),
+    onAddVariant: useCallback((p: Product) => {
       state.setEditingVariant(null);
       state.setVariantProductId(p.id);
       state.setVariantProductName(p.name);
       state.setVariantProductSlug(p.slug);
       state.setVariantCount(p.variantCount ?? p.variants?.length ?? 0);
       state.setVariantDialogOpen(true);
-    }
+    }, [state]),
+                    onUpdateStatus: useCallback((id: string, s: string, name?: string, cur?: string) => {
+      mutations.handleStatusChangeRequest({
+        id,
+        name: name || 'Product',
+        type: 'product',
+        currentStatus: (cur || 'Draft') as ProductStatus,
+        newStatus: s as ProductStatus,
+      });
+    }, [mutations]),
   });
 
+  const handleUpdateStatus = useCallback((id: string, status: string, name?: string, cur?: string) => {
+    mutations.handleStatusChangeRequest({
+      id,
+      name: name || 'Combo',
+      type: 'combo',
+      currentStatus: (cur || 'Draft') as ProductStatus,
+      newStatus: status as ProductStatus,
+    });
+  }, [mutations]);
+
   const comboColumns = useComboColumns({
-    onView: (c: Combo) => navigate(`/admin/products/combo/${c.id}`),
-    onEdit: (c: Combo) => {
+    onView: useCallback((c: Combo) => navigate(`/admin/products/combo/${c.id}`), [navigate]),
+    onEdit: useCallback((c: Combo) => {
       state.setEditingCombo(c);
       state.setComboDialogMode(c.comboParentId ? 'variant' : 'parent');
-      state.setComboDialogKey((k: number) => k + 1);
+      state.setComboDialogKey((k: number = 0) => k + 1);
       state.setComboDialogOpen(true);
-    },
-    onDelete: (c: Combo) => state.setDeleteCombo(c),
-    onAddVariant: (parent: Combo) => {
+    }, [state]),
+    onDelete: useCallback((c: Combo) => state.setDeleteCombo(c), [state]),
+    onAddVariant: useCallback((parent: Combo) => {
       state.setEditingCombo(null);
       state.setComboDialogMode('variant');
       state.setComboDefaultParentId(parent.id);
-      state.setComboDialogKey((k: number) => k + 1);
+      state.setComboDialogKey((k: number = 0) => k + 1);
       state.setComboDialogOpen(true);
-    }
+    }, [state]),
+    onUpdateStatus: handleUpdateStatus,
+  });
+
+  const certificateColumns = useCertificateColumns({
+    onEdit: useCallback((c: Certificate) => { state.setEditingCert(c); state.setCertDialogOpen(true); }, [state]),
+    onDelete: useCallback((c: Certificate) => state.setDeleteCert(c), [state]),
   });
 
   // Calculate high-level stats based on ALL data available
@@ -93,6 +128,7 @@ export default function ProductsPage() {
     // Basic counts
     const singleTotal = pageData?.totalCount ?? products.length;
     const comboTotal = comboPageData?.totalCount ?? combos.length;
+    const certTotal = certPageData?.totalCount ?? certificates.length;
 
     // Status counts from current page (best we have without specialized API)
     const published = products.filter(p => p.status === 'Published').length +
@@ -105,19 +141,18 @@ export default function ProductsPage() {
       total: singleTotal + comboTotal,
       singleTotal,
       comboTotal,
+      certTotal,
       published,
       outOfStock,
       draft
     };
-  }, [pageData, comboPageData, products, combos]);
+  }, [pageData, comboPageData, certPageData, products, combos, certificates]);
 
   // Optimization: Keep header visible while loading table data
-  const isSyncing = isLoadingProducts || isLoadingCombos;
+  const isSyncing = isLoadingProducts || isLoadingCombos || isLoadingCerts;
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* Dynamic Header with Stats Only */}
-      {/* Dynamic Header with Stats */}
       <AdminPageHeader
         title="Inventory Catalog"
         description="Monitor and optimize your product distribution across single units and combo packages."
@@ -144,10 +179,11 @@ export default function ProductsPage() {
               onTabChange={setActiveTab}
               singleCount={stats.singleTotal}
               comboCount={stats.comboTotal}
+              certCount={stats.certTotal}
               actions={
                 <AdminActions
                   onAdd={handleAdd}
-                  addLabel={`Add ${activeTab === 'single' ? 'Product' : 'Combo'}`}
+                  addLabel={`Add ${activeTab === 'single' ? 'Product' : activeTab === 'combo' ? 'Combo' : 'Certificate'}`}
                   onExport={handleExport}
                   onFilter={() => { }}
                   onImport={() => { }}
@@ -187,12 +223,20 @@ export default function ProductsPage() {
                           onRowSelectionChange={state.setRowSelection}
                           onExpandedChange={state.setExpanded}
                           onPaginationChange={state.setPagination}
-                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                          onBulkDelete={(table) => mutations.handleBulkDelete(table as any, 'single')}
+                          onBulkDelete={(table) => mutations.handleBulkDelete(table as unknown as Table<Product | Combo | Certificate>, 'single')}
                           onExport={handleExport}
+                          onUpdateStatus={(id, s, name, cur) => {
+                            mutations.handleStatusChangeRequest({
+                              id,
+                              name: name || 'Product',
+                              type: 'product',
+                              currentStatus: (cur || 'Draft') as ProductStatus,
+                              newStatus: s as ProductStatus,
+                            });
+                          }}
                           hideHeaderActions
                         />
-                      ) : (
+                      ) : activeTab === 'combo' ? (
                         <ComboTableSection
                           combos={combos}
                           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -204,9 +248,25 @@ export default function ProductsPage() {
                           onRowSelectionChange={state.setComboRowSelection}
                           onExpandedChange={state.setComboExpanded}
                           onPaginationChange={state.setComboPagination}
-                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                          onBulkDelete={(table) => mutations.handleBulkDelete(table as any, 'combo')}
+                          onBulkDelete={(table) => mutations.handleBulkDelete(table as unknown as Table<Product | Combo | Certificate>, 'combo')}
                           onExport={handleExport}
+                          onUpdateStatus={handleUpdateStatus}
+                          hideHeaderActions
+                        />
+                      ) : (
+                        <CertificateTableSection
+                          certificates={certificates}
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          columns={certificateColumns as any}
+                          pageData={certPageData}
+                          state={state}
+                          onSortingChange={state.setCertSorting}
+                          onGlobalFilterChange={state.setCertGlobalFilter}
+                          onPaginationChange={state.setCertPagination}
+                          onRowSelectionChange={state.setCertRowSelection}
+                          onBulkDelete={(table) => mutations.handleBulkDelete(table as unknown as Table<Product | Combo | Certificate>, 'certificate')}
+                          onExport={handleExport}
+                          onCreate={handleAdd}
                           hideHeaderActions
                         />
                       )}

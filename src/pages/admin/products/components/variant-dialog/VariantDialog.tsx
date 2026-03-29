@@ -76,7 +76,7 @@ export default function VariantDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-[740px] w-full min-h-[600px] h-[90vh] max-h-[850px] rounded-2xl p-7 gap-0 overflow-hidden border-slate-100 shadow-2xl">
+            <DialogContent className="max-w-[740px] w-[95vw] min-h-[600px] h-[90vh] max-h-[850px] flex flex-col rounded-2xl p-0 gap-0 overflow-hidden border-slate-100 shadow-2xl">
                 <VisuallyHidden>
                     <DialogTitle>
                         {isEdit ? 'Configure Variant' : 'New Creation'}

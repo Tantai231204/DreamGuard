@@ -8,11 +8,11 @@ import { cn } from "@/lib/utils";
 // STYLE CONSTANTS
 // ─────────────────────────────────────────────────────────
 export const INPUT_CLS =
-  "h-11 rounded-xl border-slate-200 bg-slate-50/50 hover:bg-slate-50 hover:border-[#4988c4]/60 focus:bg-white focus:border-[#4988c4] focus:ring-4 focus:ring-[#4988c4]/20 transition-all text-sm font-medium text-slate-900 placeholder:text-slate-400 shadow-[0_1px_2px_-1px_rgba(0,0,0,0.05)] disabled:opacity-60 disabled:hover:bg-slate-50/50";
+  "h-11 rounded-xl border-slate-200 bg-slate-50/50 hover:bg-slate-50 hover:border-primary-500/60 focus:bg-white focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 transition-all text-sm font-medium text-slate-900 placeholder:text-slate-400 shadow-[0_1px_2px_-1px_rgba(0,0,0,0.05)] disabled:opacity-60 disabled:hover:bg-slate-50/50";
 
 export const SELECT_TRIGGER_CLS = cn(
   INPUT_CLS,
-  "px-3.5 [&>span]:!flex [&>span]:!items-center [&>span]:!gap-2 [&>span]:!truncate [&>span_*]:!truncate data-[state=open]:border-purple-500 data-[state=open]:ring-4 data-[state=open]:ring-purple-500/10 data-[state=open]:bg-white",
+  "px-3.5 [&>span]:!flex [&>span]:!items-center [&>span]:!gap-2 [&>span]:!truncate [&>span_*]:!truncate data-[state=open]:border-primary-500 data-[state=open]:ring-4 data-[state=open]:ring-primary-500/10 data-[state=open]:bg-white",
 );
 
 // ─────────────────────────────────────────────────────────
@@ -71,49 +71,14 @@ export type ComboDialogMode = 'parent' | 'variant';
 // ─────────────────────────────────────────────────────────
 // COMBO ITEM ENTRY
 // ─────────────────────────────────────────────────────────
-export interface ComboItemEntry {
-  id: string;
-  productVariantId: string;
-  quantity: number;
-  label: string;
-  productName: string;
-  sku: string;
-  color?: string;
-  size?: string;
-  salePrice: number;
-  basePrice: number;
-}
+import { type ComboItemValues } from './comboSchema';
+export type ComboItemEntry = ComboItemValues;
 
 // ─────────────────────────────────────────────────────────
 // FORM STATE & REDUCER
 // ─────────────────────────────────────────────────────────
-export interface ComboFormState {
-  name: string;
-  slug: string;
-  ageGroup: string;
-  color: string;
-  size: string;
-  basePrice: string;
-  salePrice: string;
-  description: string;
-  imageUrl: string;
-  imagePublicId: string;
-  comboParentId: string;
-  status: string;
-  items: ComboItemEntry[];
-}
-
-export type FormAction =
-  | {
-    type: "SET_FIELD";
-    field: keyof Omit<ComboFormState, "items">;
-    payload: string;
-  }
-  | { type: "SET_ITEMS"; payload: ComboItemEntry[] }
-  | { type: "RESET"; payload: ComboFormState };
-
-let _id = 0;
-export const nextItemId = () => `item-${++_id}-${Date.now()}`;
+import type { ComboFormValues as ZodComboFormValues } from './comboSchema';
+export type ComboFormValues = ZodComboFormValues;
 
 import { normalizeStatus, getAllowedStatusTransitions } from "../../types";
 
@@ -131,32 +96,27 @@ export function toSlug(str: string) {
     .replace(/^-+|-+$/g, "");
 }
 
+let _id = 0;
+export const nextItemId = () => `item-${++_id}-${Date.now()}`;
+
 import type { Combo } from "../../types";
 import type { ComboResponse } from "@/api/services/comboService";
 
 export function getInitialState(
   combo?: Combo | ComboResponse | null,
-): ComboFormState {
+): ComboFormValues {
   if (combo) {
     const images = combo.images ?? [];
     const imageUrl = combo.imageUrl ?? images[0] ?? "";
 
-    return {
-      name: combo.name ?? "",
-      slug: combo.slug ?? "",
-      ageGroup: combo.ageGroup ? String(combo.ageGroup) : "",
-      color: combo.color ?? "",
-      size: combo.size ?? "",
-      basePrice: String(combo.basePrice ?? ""),
-      salePrice: String(combo.salePrice ?? ('baseSalePrice' in combo ? combo.baseSalePrice : "") ?? ""),
-      description: combo.description ?? "",
-      imageUrl: imageUrl,
-      imagePublicId: "", // Currently not available in Combo type, keep empty or map if added
-      comboParentId: combo.comboParentId ?? "",
-      status: normalizeStatus(combo.status),
-      items:
-        (combo as ComboResponse).productItems?.map((pi, idx) => ({
-          id: `existing-${idx}`,
+    // Senior Data Normalization: Handle both lightweight table objects and full response objects
+    const items: ComboItemEntry[] = [];
+
+    if ('productItems' in combo && Array.isArray(combo.productItems)) {
+      // Full ComboResponse mapping
+      combo.productItems.forEach((pi, idx) => {
+        items.push({
+          id: `existing-${idx}-${pi.productVariantId}`,
           productVariantId: pi.productVariantId,
           quantity: pi.quantity,
           label: pi.productName,
@@ -166,29 +126,56 @@ export function getInitialState(
           size: undefined,
           salePrice: pi.salePrice,
           basePrice: pi.basePrice,
-        })) ||
-        combo.items?.map((item, idx) => ({
-          id: `existing-${idx}`,
+        });
+      });
+    } else if (Array.isArray(combo.items)) {
+      // Fallback for limited Combo objects
+      combo.items.forEach((item, idx) => {
+        items.push({
+          id: `existing-${idx}-${item.variantId || item.productId}`,
           productVariantId: item.variantId || item.productId,
           quantity: item.quantity,
           label: `${item.productName}${item.variantLabel ? ` — ${item.variantLabel}` : ""}`,
           productName: item.productName,
           sku: item.variantId || "",
           color: undefined,
-          size: undefined,
+          size: item.variantLabel,
           salePrice: 0,
           basePrice: 0,
-        })) || [],
+        });
+      });
+    }
+
+    return {
+      name: combo.name ?? "",
+      slug: combo.slug ?? "",
+      ageGroup: combo.ageGroup || 0,
+      color: combo.color ?? "",
+      size: combo.size ?? "",
+      basePrice: combo.basePrice ?? 0,
+      salePrice: Number(combo.salePrice ?? ('baseSalePrice' in combo ? combo.baseSalePrice : 0) ?? 0),
+      description: combo.description ?? "",
+      imageUrl: imageUrl,
+      imagePublicId: "",
+      comboParentId: combo.comboParentId ?? "",
+      // Senior Mapping Logic: Status context recovery (handle raw, wrapped, or aliased data)
+      status: normalizeStatus(
+        combo.status ??
+        (combo as { data?: { status?: unknown } }).data?.status ??
+        (combo as { isActive?: unknown }).isActive ??
+        (combo as { isPublished?: unknown }).isPublished
+      ),
+      items,
     };
   }
   return {
     name: "",
     slug: "",
-    ageGroup: "",
+    ageGroup: 1,
     color: "",
     size: "",
-    basePrice: "",
-    salePrice: "",
+    basePrice: 0,
+    salePrice: 0,
     description: "",
     imageUrl: "",
     imagePublicId: "",
@@ -198,28 +185,10 @@ export function getInitialState(
   };
 }
 
-export function formReducer(
-  state: ComboFormState,
-  action: FormAction,
-): ComboFormState {
-  switch (action.type) {
-    case "SET_FIELD":
-      return state[action.field] === action.payload
-        ? state
-        : { ...state, [action.field]: action.payload };
-    case "SET_ITEMS":
-      return { ...state, items: action.payload };
-    case "RESET":
-      return action.payload;
-    default:
-      return state;
-  }
-}
-
 // ─────────────────────────────────────────────────────────
 // COMPONENT RE-EXPORTS
 // ─────────────────────────────────────────────────────────
-export { default as ComboDialog } from "./ComboDialog";
+export { default as ComboDialog, type ComboDialogProps } from "./ComboDialog";
 export { default as ComboFormFields } from "./ComboFormFields";
 export { default as ComboItemsPanel } from "./ComboItemsPanel";
 export { default as VirtualVariantSelect } from "./VirtualVariantSelect";
@@ -227,4 +196,3 @@ export { default as ComboModeSelector } from "./ComboModeSelector";
 export { default as ComboDialogHeader } from "./ComboDialogHeader";
 export { default as ComboDialogFooter } from "./ComboDialogFooter";
 export { useComboForm } from "./useComboForm";
-

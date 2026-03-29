@@ -3,16 +3,21 @@ import { useSearchParams } from 'react-router-dom';
 import type { SortingState, ColumnFiltersState, RowSelectionState, ExpandedState, PaginationState } from '@tanstack/react-table';
 import { useAdminProducts } from '@/hooks/queries/useProduct';
 import { useAdminCombos } from '@/hooks/queries/useCombo';
+import { useAdminCertificates } from '@/hooks/queries/useCertificate';
+import { useCategories } from '@/hooks/queries/useCategory';
 import { mapCombosToSubRows } from '../components/combo';
 import type { ComboDialogMode } from '../components/combo-dialog';
-import type { Product, Combo, ProductVariant, AdminProductState } from '../types';
+import type { Product, Combo, ProductVariant, AdminProductState, Certificate, StatusChangeData } from '../types';
 
 export function useAdminProductState(): AdminProductState {
   const [searchParams, setSearchParams] = useSearchParams();
-  
+
+  // Categories
+  const { data: categories, isLoading: isLoadingCategories } = useCategories();
+
   // Tabs
-  const activeTab = (searchParams.get('tab') as 'single' | 'combo') || 'single';
-  const setActiveTab = (tab: 'single' | 'combo') => {
+  const activeTab = (searchParams.get('tab') as 'single' | 'combo' | 'certificate') || 'single';
+  const setActiveTab = (tab: 'single' | 'combo' | 'certificate') => {
     setSearchParams((prev) => {
       prev.set('tab', tab);
       prev.set('page', '1');
@@ -43,6 +48,15 @@ export function useAdminProductState(): AdminProductState {
     pageSize,
   });
 
+  // ── TABLE STATE: CERTIFICATES ────────────────────────
+  const [certSorting, setCertSorting] = useState<SortingState>([]);
+  const [certGlobalFilter, setCertGlobalFilter] = useState('');
+  const [certPagination, setCertPagination] = useState<PaginationState>({
+    pageIndex: page - 1,
+    pageSize,
+  });
+  const [certRowSelection, setCertRowSelection] = useState<RowSelectionState>({});
+
   // ── API DATA ─────────────────────────────────────────
   const { data: productData, isLoading: isLoadingProducts, refetch: refetchProducts } = useAdminProducts({
     pageNumber: pagination.pageIndex + 1,
@@ -56,9 +70,15 @@ export function useAdminProductState(): AdminProductState {
     name: comboGlobalFilter,
   });
 
-  const combos = useMemo(() => 
+  const { data: rawCertData, isLoading: isLoadingCerts, refetch: refetchCerts } = useAdminCertificates({
+    pageNumber: certPagination.pageIndex + 1,
+    pageSize: certPagination.pageSize,
+    name: certGlobalFilter,
+  });
+
+  const combos = useMemo(() =>
     rawComboData?.items ? mapCombosToSubRows(rawComboData.items as Combo[]) : []
-  , [rawComboData]);
+    , [rawComboData]);
 
   // ── DIALOG STATES ────────────────────────────────────
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -77,6 +97,10 @@ export function useAdminProductState(): AdminProductState {
   const [comboDialogKey, setComboDialogKey] = useState(0);
   const [comboDefaultParentId, setComboDefaultParentId] = useState<string | undefined>();
 
+  const [certDialogOpen, setCertDialogOpen] = useState(false);
+  const [editingCert, setEditingCert] = useState<Certificate | null>(null);
+  const [deleteCert, setDeleteCert] = useState<Certificate | null>(null);
+
   const [successDialogOpen, setSuccessDialogOpen] = useState(false);
   const [createdProductId, setCreatedProductId] = useState('');
   const [createdProductName, setCreatedProductName] = useState('');
@@ -90,7 +114,8 @@ export function useAdminProductState(): AdminProductState {
   const [deleteProduct, setDeleteProduct] = useState<Product | null>(null);
   const [deleteCombo, setDeleteCombo] = useState<Combo | null>(null);
   const [deleteVariant, setDeleteVariant] = useState<ProductVariant | null>(null);
-  const [bulkDeleteData, setBulkDeleteData] = useState<{ ids: string[], type: 'single' | 'combo' } | null>(null);
+  const [bulkDeleteData, setBulkDeleteData] = useState<{ ids: string[], type: 'single' | 'combo' | 'certificate' } | null>(null);
+  const [statusChangeData, setStatusChangeData] = useState<StatusChangeData | null>(null);
 
   const handleAddImagesFromSuccess = useCallback(() => {
     setUploadProductId(createdProductId);
@@ -111,21 +136,28 @@ export function useAdminProductState(): AdminProductState {
     comboSorting, setComboSorting, comboGlobalFilter, setComboGlobalFilter,
     comboRowSelection, setComboRowSelection, comboExpanded, setComboExpanded,
     comboPagination, setComboPagination,
+    certSorting, setCertSorting, certGlobalFilter, setCertGlobalFilter,
+    certPagination, setCertPagination,
+    certRowSelection, setCertRowSelection,
     // Data
-    products: (productData?.items as Product[]) || [], 
+    products: (productData?.items as Product[]) || [],
     productPageData: productData ? { totalPages: productData.totalPages, totalCount: productData.totalCount } : undefined,
     isLoadingProducts, refetchProducts,
-    combos, 
+    combos,
     comboPageData: rawComboData ? { totalPages: rawComboData.totalPages, totalCount: rawComboData.totalCount } : undefined,
     isLoadingCombos, refetchCombos,
+    certificates: (rawCertData?.items as Certificate[]) || [],
+    certPageData: rawCertData ? { totalPages: rawCertData.totalPages, totalCount: rawCertData.totalCount } : undefined,
+    isLoadingCerts, refetchCerts,
     // Dialog control
     dialogOpen, setDialogOpen, editingProduct, setEditingProduct,
     variantDialogOpen, setVariantDialogOpen, editingVariant, setEditingVariant,
     variantProductId, setVariantProductId, variantProductName, setVariantProductName,
     variantProductSlug, setVariantProductSlug, variantCount, setVariantCount,
-    comboDialogOpen, setComboDialogOpen, editingCombo, setEditingCombo, 
+    comboDialogOpen, setComboDialogOpen, editingCombo, setEditingCombo,
     comboDialogMode, setComboDialogMode, comboDialogKey, setComboDialogKey,
     comboDefaultParentId, setComboDefaultParentId,
+    certDialogOpen, setCertDialogOpen, editingCert, setEditingCert, deleteCert, setDeleteCert,
     successDialogOpen, setSuccessDialogOpen, createdProductId, setCreatedProductId,
     createdProductName, setCreatedProductName,
     imageUploadOpen, setImageUploadOpen, uploadProductId, setUploadProductId,
@@ -133,6 +165,8 @@ export function useAdminProductState(): AdminProductState {
     uploadProductIdRef,
     deleteProduct, setDeleteProduct, deleteCombo, setDeleteCombo,
     deleteVariant, setDeleteVariant, bulkDeleteData, setBulkDeleteData,
-    handleAddImagesFromSuccess, handleSkipImages
+    statusChangeData, setStatusChangeData,
+    handleAddImagesFromSuccess, handleSkipImages,
+    categories: categories || [], isLoadingCategories
   } as AdminProductState;
 }

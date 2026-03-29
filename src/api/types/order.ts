@@ -28,6 +28,7 @@ export interface OrderResponse {
     paymentMethod?: string;
     paymentUrl?: string;
     createdAt: string;
+    updatedAt?: string;
 }
 
 export interface OrderItem {

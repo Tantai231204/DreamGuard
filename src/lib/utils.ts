@@ -31,27 +31,29 @@ export function formatDateTime(date: string | Date) {
 }
 
 export function formatPrice(price: number | string | undefined | null) {
-    if (price === undefined || price === null || price === "") return "0 VNĐ";
+    if (price === undefined || price === null || price === "") return "0 ₫";
     const num = typeof price === 'string' ? parseFloat(price) : price;
-    if (isNaN(num)) return "0 VNĐ";
-    return Math.round(num).toLocaleString('vi-VN') + " VNĐ";
+    if (isNaN(num)) return "0 ₫";
+    return Math.round(num).toLocaleString('vi-VN') + " ₫";
 }
 
 /**
  * Format helper for price input (1000 -> 1.000)
  */
 export function formatNumber(value: string | number | undefined) {
-    if (value === undefined || value === null || value === "") return "";
+    if (value === 0 || value === "0") return "0";
+    if (!value) return "";
     const num = value.toString().replace(/\D/g, "");
+    if (!num) return "";
     return num.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
 /**
  * Unformat helper for price input (1.000 -> 1000)
  */
-export function unformatNumber(value: string | number | undefined) {
+export function unformatNumber(value: string | number | undefined): number {
     if (value === undefined || value === null || value === "") return 0;
     if (typeof value === "number") return value;
-    const num = String(value).replace(/\D/g, "");
-    return parseInt(num, 10) || 0;
+    const cleanNum = value.toString().replace(/\D/g, "");
+    return parseInt(cleanNum, 10) || 0;
 }

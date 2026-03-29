@@ -1,5 +1,4 @@
-import { memo, useState } from 'react';
-import { Badge } from '@/components/ui/badge';
+import { memo, useState, useCallback, useMemo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -8,448 +7,796 @@ import {
     Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { Layers, Package, ChevronDown, Upload, Trash2, Image as ImageIcon, Loader2, Calculator, Sparkles } from 'lucide-react';
-import SectionHeading from '../shared/SectionHeading';
-import { PRODUCT_STATUSES, PRODUCT_STATUS_COLORS } from '../../types';
-import { INPUT_CLS, SELECT_TRIGGER_CLS, getAllowedStatusTransitions } from './index';
-import type { ComboDialogMode, ComboFormState } from './index';
-import type { ComboResponse } from '@/api/services/comboService';
+import {
+    Upload, Trash2, Image as ImageIcon, Loader2,
+    AlertCircle, CheckCircle2, RefreshCw,
+} from 'lucide-react';
+import { AGE_GROUPS, PRODUCT_STATUSES } from '../../types';
+import { INPUT_CLS, SELECT_TRIGGER_CLS } from './index';
+import type { ComboDialogMode, ComboFormValues } from './index';
 import ColorPicker from '../variant-dialog/ColorPicker';
 import { useUploadComboImage, useDeleteComboImage } from '@/hooks/queries/useCombo';
 import { ImageUploadDialog } from '../dialogs';
-import { AGE_GROUPS } from '../../types';
-import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { TabsContent } from "@/components/ui/tabs";
+import { TabsContent } from '@/components/ui/tabs';
+import type { FieldErrors, UseFormRegister, Path, PathValue } from 'react-hook-form';
+import type { VariantOption } from '@/hooks/queries/useProduct';
+import ComboItemsPanel from './ComboItemsPanel';
+import VirtualVariantSelect from './VirtualVariantSelect';
+import { formatNumber, unformatNumber, formatPrice } from '@/lib/utils';
 
-// ── Props ────────────────────────────────────────────────
-interface ComboFormFieldsProps {
-    form: ComboFormState;
-    setField: (field: keyof Omit<ComboFormState, 'items'>, value: string) => void;
-    onNameChange: (value: string) => void;
+// ─────────────────────────────────────────────────────────────
+// Shared primitives
+// ─────────────────────────────────────────────────────────────
+
+const ErrorMsg = memo(({ error }: { error?: { message?: string } }) => {
+    if (!error) return null;
+    return (
+        <p className="flex items-center gap-1 mt-1 text-[11px] text-red-500 font-medium">
+            <AlertCircle className="h-3 w-3 shrink-0" />
+            {error.message}
+        </p>
+    );
+});
+ErrorMsg.displayName = 'ErrorMsg';
+
+/** Thin uppercase divider label used between form sections */
+const SectionDivider = ({ label }: { label: string }) => (
+    <div className="flex items-center gap-3 mb-3">
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 whitespace-nowrap">
+            {label}
+        </span>
+        <div className="flex-1 h-px bg-slate-100" />
+    </div>
+);
+
+/** Compact field wrapper with label + optional right slot */
+const Field = ({
+    label,
+    required,
+    hint,
+    children,
+    className,
+}: {
+    label: string;
+    required?: boolean;
+    hint?: string;
+    children: React.ReactNode;
+    className?: string;
+}) => (
+    <div className={cn('space-y-1', className)}>
+        <div className="flex items-center justify-between">
+            <Label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                {label}
+                {required && <span className="text-red-400 ml-0.5">*</span>}
+            </Label>
+            {hint && <span className="text-[10px] text-slate-400">{hint}</span>}
+        </div>
+        {children}
+    </div>
+);
+
+// ─────────────────────────────────────────────────────────────
+// Pricing strip — fixed bar at top of right column
+// ─────────────────────────────────────────────────────────────
+
+const PricingStrip = memo(({
+    marketValue,
+    salePrice,
+    isLoading,
+    setField,
+    onSync,
+}: {
+    marketValue?: number;
+    salePrice?: number;
     isLoading: boolean;
-    mode: ComboDialogMode;
-    /** Available parent combos for variant mode */
-    comboParents?: ComboResponse[];
-    isLoadingParents?: boolean;
-    /** ID of current combo for image upload */
+    setField: <K extends Path<ComboFormValues>>(field: K, value: PathValue<ComboFormValues, K>) => void;
+    onSync: () => void;
+}) => {
+    const isSynced = salePrice === marketValue;
+    const hasDiscount = (marketValue ?? 0) > 0 && (salePrice ?? 0) < (marketValue ?? 0);
+    const discountPct = hasDiscount
+        ? Math.round(((marketValue! - salePrice!) / marketValue!) * 100)
+        : 0;
+
+    return (
+        <div className="flex items-center gap-0 px-5 py-3 bg-white border-b border-slate-100 shrink-0">
+            {/* Market value (auto) */}
+            <div className="flex flex-col min-w-0">
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+                    Market value
+                </span>
+                <div className="flex items-baseline gap-1.5 mt-0.5">
+                    <span className="text-base font-semibold text-slate-900 tabular-nums">
+                        {formatPrice(marketValue ?? 0)}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-medium">Auto</span>
+                </div>
+            </div>
+
+            <div className="w-px h-8 bg-slate-100 mx-4 shrink-0" />
+
+            {/* Sale price (editable) */}
+            <div className="flex flex-col min-w-0">
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-slate-400">
+                    Sale price <span className="text-red-400">*</span>
+                </span>
+                <div className="flex items-center gap-2 mt-0.5">
+                    <div className="relative">
+                        <Input
+                            value={formatNumber(salePrice)}
+                            onChange={e =>
+                                setField(
+                                    'salePrice' as Path<ComboFormValues>,
+                                    unformatNumber(e.target.value) as PathValue<ComboFormValues, 'salePrice'>,
+                                )
+                            }
+                            disabled={isLoading}
+                            className={cn(
+                                INPUT_CLS,
+                                'h-8 w-36 pr-9 text-sm font-semibold bg-slate-50 focus:bg-white',
+                            )}
+                        />
+                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-slate-400">
+                            ₫
+                        </span>
+                    </div>
+                    {hasDiscount && (
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-100">
+                            -{discountPct}%
+                        </span>
+                    )}
+                </div>
+            </div>
+
+            {/* Sync action */}
+            <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={onSync}
+                disabled={isSynced || isLoading || !marketValue}
+                className={cn(
+                    'ml-auto h-8 gap-1.5 text-[11px] font-semibold rounded-lg',
+                    isSynced
+                        ? 'text-slate-300 cursor-default'
+                        : 'text-blue-600 hover:bg-blue-50',
+                )}
+            >
+                {isSynced ? (
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                ) : (
+                    <RefreshCw className="h-3.5 w-3.5" />
+                )}
+                {isSynced ? 'Synced' : 'Sync from items'}
+            </Button>
+        </div>
+    );
+});
+PricingStrip.displayName = 'PricingStrip';
+
+// ─────────────────────────────────────────────────────────────
+// Left panel — identity, appearance, media, status
+// ─────────────────────────────────────────────────────────────
+
+const LeftPanel = memo(({
+    register,
+    errors,
+    isLoading,
+    comboParents,
+    watchValues,
+    setField,
+    onNameChange,
+    comboId,
+    isEdit,
+}: {
+    register: UseFormRegister<ComboFormValues>;
+    errors: FieldErrors<ComboFormValues>;
+    isLoading: boolean;
+    comboParents: { id: string; label: string; imageUrl?: string; sku?: string }[];
+    watchValues: Partial<ComboFormValues>;
+    setField: <K extends Path<ComboFormValues>>(field: K, value: PathValue<ComboFormValues, K>) => void;
+    onNameChange: (v: string) => void;
     comboId?: string;
-    /** Whether pricing is being auto-calculated */
-    isPriceAutoManaged?: boolean;
-    /** Whether variant base price is auto-calculated from items */
-    isVariantBasePriceAuto?: boolean;
-    /** Source of the auto-calculation (e.g. 'items' or 'children') */
-    priceSource?: 'items' | 'children' | null;
-}
-
-// ── Component ────────────────────────────────────────────
-const ComboFormFields = memo(function ComboFormFields({
-    form, setField, onNameChange, isLoading,
-    mode, comboParents = [], isLoadingParents = false,
-    comboId, isPriceAutoManaged = false,
-    isVariantBasePriceAuto = false,
-    priceSource = null,
-}: ComboFormFieldsProps) {
-    const isVariant = mode === 'variant';
-    const isParentLocked = isVariant && !!form.comboParentId;
-
+    isEdit: boolean;
+}) => {
     const [showUploadDialog, setShowUploadDialog] = useState(false);
     const uploadMutation = useUploadComboImage();
     const deleteMutation = useDeleteComboImage();
-
     const isMediaLoading = uploadMutation.isPending || deleteMutation.isPending;
 
-    const handleDeleteImage = async () => {
-        if (!form.imagePublicId) return;
-        if (window.confirm("Are you sure you want to delete this image?")) {
-            await deleteMutation.mutateAsync(form.imagePublicId);
+    const handleDeleteImage = useCallback(async () => {
+        if (!watchValues.imagePublicId) return;
+        if (window.confirm('Delete this image?')) {
+            await deleteMutation.mutateAsync(watchValues.imagePublicId);
         }
-    };
+    }, [watchValues.imagePublicId, deleteMutation]);
+
+    const transformedParents = useMemo<VariantOption[]>(
+        () =>
+            comboParents.map(p => ({
+                variantId: p.id,
+                productId: p.id,
+                productName: p.label,
+                imageUrl: p.imageUrl,
+                sku: p.sku || '',
+                basePrice: 0,
+                salePrice: 0,
+                stockQuantity: 0,
+                stockStatus: 'InStock',
+                status: 'Published' as const,
+                label: p.label,
+            })),
+        [comboParents],
+    );
+
+
 
     return (
-        <div className="p-5 pb-10">
-            {/* ── TAB: GENERAL ── */}
-            <TabsContent value="general" className="mt-0 space-y-6 animate-in fade-in slide-in-from-left-2 duration-300">
-                {/* Parent Selector */}
-                {isVariant && (
-                    <section className="space-y-3.5">
-                        <SectionHeading title="Identity Context" />
-                        <div>
-                            <Label className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2 block">
-                                Parent Combo <span className="text-red-500">*</span>
-                            </Label>
-                            <Select
-                                value={form.comboParentId}
-                                onValueChange={v => setField('comboParentId', v)}
-                                disabled={isLoading || isLoadingParents || isParentLocked}
-                            >
-                                <SelectTrigger className={cn(SELECT_TRIGGER_CLS, "bg-white border-primary-100")}>
-                                    <SelectValue placeholder={isLoadingParents ? "Loading parents..." : "Select parent combo..."}>
-                                        {form.comboParentId && (
-                                            <div className="flex items-center gap-2">
-                                                <Package className="h-4 w-4 text-primary-500 shrink-0" />
-                                                <span className="truncate text-slate-900 font-bold">
-                                                    {comboParents.find(p => p.id === form.comboParentId)?.name ?? form.comboParentId.slice(0, 12) + '…'}
-                                                </span>
-                                            </div>
-                                        )}
-                                    </SelectValue>
-                                </SelectTrigger>
-                                <SelectContent className="rounded-xl shadow-xl max-h-60">
-                                    {comboParents.map(parent => (
-                                        <SelectItem key={parent.id} value={parent.id} className="rounded-lg">
-                                            <div className="flex items-center gap-2.5">
-                                                {parent.imageUrl ? (
-                                                    <img src={parent.imageUrl} alt="" className="h-7 w-7 rounded-md object-cover border border-gray-200" />
-                                                ) : (
-                                                    <div className="h-7 w-7 rounded-md bg-violet-100 flex items-center justify-center">
-                                                        <Layers className="h-3.5 w-3.5 text-violet-500" />
-                                                    </div>
-                                                )}
-                                                <div className="min-w-0">
-                                                    <div className="text-sm font-bold text-gray-900 truncate">{parent.name}</div>
-                                                    <div className="text-[10px] text-gray-400 font-mono">{parent.sku}</div>
+        <div className="flex flex-col h-full overflow-y-auto bg-white border-r border-slate-100">
+            <div className="flex-1 p-5 space-y-6">
+
+                {/* ── Identity ── */}
+                <section>
+                    <SectionDivider label="Identity" />
+                    <div className="space-y-3">
+                        <Field label="Variant name" required>
+                            <Input
+                                {...register('name')}
+                                placeholder="e.g. XL / Rose Gold"
+                                onChange={e => onNameChange(e.target.value)}
+                                disabled={isLoading}
+                                className={cn(INPUT_CLS, 'bg-white', errors.name && 'border-red-400')}
+                            />
+                            <ErrorMsg error={errors.name} />
+                        </Field>
+
+                        <Field label="URL slug" hint="Auto-generated">
+                            <Input
+                                {...register('slug')}
+                                disabled
+                                className={cn(INPUT_CLS, 'bg-slate-50 font-mono text-[11px] text-slate-400 cursor-not-allowed')}
+                            />
+                        </Field>
+
+                        <div className="grid grid-cols-2 gap-3">
+                            <Field label="Parent combo" required>
+                                <VirtualVariantSelect
+                                    value={String(watchValues.comboParentId || '')}
+                                    onChange={vid =>
+                                        setField(
+                                            'comboParentId' as Path<ComboFormValues>,
+                                            vid as PathValue<ComboFormValues, 'comboParentId'>,
+                                        )
+                                    }
+                                    variantOptions={transformedParents}
+                                    isLoading={isLoading}
+                                    placeholder="Select parent…"
+                                    disabled={isLoading || isEdit}
+                                />
+                                <ErrorMsg error={errors.comboParentId} />
+                            </Field>
+
+                            <Field label="Status" required>
+                                <Select
+                                    value={String(watchValues.status || 'Draft')}
+                                    onValueChange={v =>
+                                        setField(
+                                            'status' as Path<ComboFormValues>,
+                                            v as PathValue<ComboFormValues, 'status'>,
+                                        )
+                                    }
+                                    disabled={isLoading}
+                                >
+                                    <SelectTrigger className={SELECT_TRIGGER_CLS}>
+                                        <SelectValue placeholder="Select status…" />
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                                        {PRODUCT_STATUSES.map((s) => (
+                                            <SelectItem key={s.value} value={s.value} className="rounded-lg py-2 text-sm">
+                                                <div className="flex items-center gap-2">
+                                                    <div className={cn("h-1.5 w-1.5 rounded-full",
+                                                        s.value === 'Published' ? 'bg-emerald-500' :
+                                                            s.value === 'Draft' ? 'bg-amber-500' :
+                                                                s.value === 'OutOfStock' ? 'bg-rose-500' : 'bg-slate-400'
+                                                    )} />
+                                                    {s.label}
                                                 </div>
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <ErrorMsg error={errors.status} />
+                            </Field>
+                        </div>
+
+                        <Field label="Age group" required>
+                            <Select
+                                value={String(watchValues.ageGroup || '')}
+                                onValueChange={v =>
+                                    setField(
+                                        'ageGroup' as Path<ComboFormValues>,
+                                        Number(v) as PathValue<ComboFormValues, 'ageGroup'>,
+                                    )
+                                }
+                                disabled={isLoading}
+                            >
+                                <SelectTrigger className={SELECT_TRIGGER_CLS}>
+                                    <SelectValue placeholder="Select age group…" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                                    {Object.entries(AGE_GROUPS).map(([val, label]) => (
+                                        <SelectItem key={val} value={val} className="rounded-lg py-2 text-sm">
+                                            {label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <ErrorMsg error={errors.ageGroup} />
+                        </Field>
+
+                        <Field label="Short description" required hint={`${watchValues.description?.length ?? 0}/120`}>
+                            <Textarea
+                                {...register('description')}
+                                placeholder="Briefly describe this variant…"
+                                disabled={isLoading}
+                                maxLength={120}
+                                rows={2}
+                                className={cn(
+                                    'w-full rounded-lg border border-slate-200 bg-white hover:border-slate-300',
+                                    'focus:border-blue-400 focus:ring-2 focus:ring-blue-400/15',
+                                    'transition-all text-sm text-slate-900 resize-none p-2.5',
+                                    errors.description && 'border-red-400',
+                                )}
+                            />
+                            <ErrorMsg error={errors.description} />
+                        </Field>
+                    </div>
+                </section>
+
+                {/* ── Appearance ── */}
+                <section>
+                    <SectionDivider label="Appearance" />
+                    <div className="grid grid-cols-2 gap-3">
+                        <Field label="Color theme">
+                            <ColorPicker
+                                color=""
+                                colorCode={watchValues.color || ''}
+                                onColorChange={(_name, code) =>
+                                    setField(
+                                        'color' as Path<ComboFormValues>,
+                                        code as PathValue<ComboFormValues, 'color'>,
+                                    )
+                                }
+                                disabled={isLoading}
+                            />
+                        </Field>
+                        <Field label="Size / dimension">
+                            <Input
+                                {...register('size')}
+                                placeholder="e.g. 50×60 cm"
+                                disabled={isLoading}
+                                className={cn(INPUT_CLS, 'bg-white')}
+                            />
+                        </Field>
+                    </div>
+                </section>
+
+
+
+                {/* ── Media ── */}
+                <section>
+                    <SectionDivider label="Media" />
+                    {!comboId ? (
+                        <div className="flex flex-col items-center justify-center gap-2 py-5 border border-dashed border-slate-200 rounded-lg bg-slate-50/60">
+                            <Upload className="h-5 w-5 text-slate-300" />
+                            <p className="text-[11px] text-slate-400 text-center leading-relaxed">
+                                Save this variant first<br />to unlock image upload.
+                            </p>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="relative overflow-hidden rounded-lg border border-slate-200 bg-white group">
+                                {isMediaLoading && (
+                                    <div className="absolute inset-0 z-10 bg-white/70 flex items-center justify-center">
+                                        <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+                                    </div>
+                                )}
+                                <div className="h-32 bg-slate-50 flex items-center justify-center overflow-hidden">
+                                    {watchValues.imageUrl ? (
+                                        <img
+                                            src={watchValues.imageUrl}
+                                            alt="Variant"
+                                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                        />
+                                    ) : (
+                                        <ImageIcon className="h-8 w-8 text-slate-300" />
+                                    )}
+                                </div>
+                                <div className="flex items-center justify-between gap-2 px-3 py-2.5 border-t border-slate-100">
+                                    <p className="text-[10px] font-mono text-slate-400 truncate min-w-0">
+                                        {watchValues.imagePublicId || '—'}
+                                    </p>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                        {watchValues.imagePublicId && (
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-7 w-7 text-red-400 hover:bg-red-50"
+                                                onClick={handleDeleteImage}
+                                                disabled={isMediaLoading}
+                                            >
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                            </Button>
+                                        )}
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            className="h-7 px-3 text-[11px] font-semibold rounded-md"
+                                            onClick={() => setShowUploadDialog(true)}
+                                            disabled={isMediaLoading}
+                                        >
+                                            <Upload className="h-3 w-3 mr-1.5" />
+                                            {watchValues.imageUrl ? 'Change' : 'Upload'}
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                            <ImageUploadDialog
+                                open={showUploadDialog}
+                                onOpenChange={setShowUploadDialog}
+                                productId={comboId}
+                                productName={watchValues.name || ''}
+                                onUpload={async (cid, files) => {
+                                    await uploadMutation.mutateAsync({ comboId: cid, files });
+                                    setShowUploadDialog(false);
+                                }}
+                                isUploading={uploadMutation.isPending}
+                            />
+                        </>
+                    )}
+                </section>
+            </div>
+        </div>
+    );
+});
+LeftPanel.displayName = 'LeftPanel';
+
+// ─────────────────────────────────────────────────────────────
+// Main ComboFormFields
+// ─────────────────────────────────────────────────────────────
+
+interface ComboFormFieldsProps {
+    register: UseFormRegister<ComboFormValues>;
+    errors: FieldErrors<ComboFormValues>;
+    comboParents: { id: string; label: string; imageUrl?: string; sku?: string }[];
+    variantOptions: VariantOption[];
+    handleNameChange: (v: string) => void;
+    setField: <K extends Path<ComboFormValues>>(field: K, value: PathValue<ComboFormValues, K>) => void;
+    isEdit: boolean;
+    mode: ComboDialogMode;
+    isLoading: boolean;
+    isLoadingVariants: boolean;
+    watchValues: Partial<ComboFormValues>;
+    comboId?: string;
+    parentPriceRange?: string | null;
+}
+
+const ComboFormFields = memo(({
+    register,
+    errors,
+    comboParents,
+    variantOptions,
+    handleNameChange,
+    setField,
+    isEdit,
+    mode,
+    isLoading,
+    isLoadingVariants,
+    watchValues,
+    comboId,
+    parentPriceRange,
+}: ComboFormFieldsProps) => {
+    const LEFT_PANEL_WIDTH = "440px";
+
+
+
+    const handleSyncPrice = useCallback(() => {
+        const total = (watchValues.items ?? []).reduce(
+            (sum, i) => sum + (i.salePrice ?? 0) * (i.quantity ?? 1),
+            0,
+        );
+        setField(
+            'salePrice' as Path<ComboFormValues>,
+            total as PathValue<ComboFormValues, 'salePrice'>,
+        );
+    }, [watchValues.items, setField]);
+
+    // ── Variant mode: unified 2-column layout ────────────────
+    if (mode === 'variant') {
+        return (
+            <TabsContent
+                value="unified"
+                className="mt-0 outline-none h-full overflow-hidden"
+            >
+                {/* Balanced Workspace: Grid structure with generous Identity column */}
+                <div 
+                    className="grid h-full w-full overflow-hidden"
+                    style={{ gridTemplateColumns: `${LEFT_PANEL_WIDTH} 1fr` }}
+                >
+                {/* Left column */}
+                <LeftPanel
+                    register={register}
+                    errors={errors}
+                    isLoading={isLoading}
+                    comboParents={comboParents}
+                    watchValues={watchValues}
+                    setField={setField}
+                    onNameChange={handleNameChange}
+                    comboId={comboId}
+                    isEdit={isEdit}
+                />
+
+                {/* Right column */}
+                <div className="flex flex-col bg-slate-50/60 min-h-0">
+                    {/* Pricing strip */}
+                    <PricingStrip
+                        marketValue={watchValues.basePrice}
+                        salePrice={watchValues.salePrice}
+                        isLoading={isLoading}
+                        setField={setField}
+                        onSync={handleSyncPrice}
+                    />
+
+                    {/* Bundle workspace */}
+                    <div className="flex-1 min-h-0 overflow-hidden">
+                        <ComboItemsPanel
+                            items={watchValues.items || []}
+                            onChange={newItems =>
+                                setField(
+                                    'items' as Path<ComboFormValues>,
+                                    newItems as PathValue<ComboFormValues, 'items'>,
+                                )
+                            }
+                            onSyncPrice={total =>
+                                setField(
+                                    'salePrice' as Path<ComboFormValues>,
+                                    total as PathValue<ComboFormValues, 'salePrice'>,
+                                )
+                            }
+                            variantOptions={variantOptions}
+                            isLoadingVariants={isLoadingVariants}
+                            disabled={isLoading}
+                            comboPriceOverride={watchValues.salePrice}
+                        />
+                    </div>
+                    </div>
+                </div>
+            </TabsContent>
+        );
+    }
+
+    // ── Parent mode: tabbed layout (unchanged structure) ─────
+    return (
+        <div className="animate-in fade-in duration-300">
+            {/* General tab */}
+            <TabsContent value="general" className="mt-0 space-y-5 animate-in fade-in slide-in-from-left-1 duration-200">
+                <section className="space-y-3">
+                    <SectionDivider label="Identity & attributes" />
+                    <div className="grid grid-cols-2 gap-4">
+                        <Field label="Combo name" required>
+                            <Input
+                                {...register('name')}
+                                placeholder="e.g. Dreamy Night Pack"
+                                onChange={e => handleNameChange(e.target.value)}
+                                disabled={isLoading}
+                                className={cn(INPUT_CLS, 'bg-white', errors.name && 'border-red-400')}
+                            />
+                            <ErrorMsg error={errors.name} />
+                        </Field>
+                        <Field label="URL slug" hint="Auto-generated">
+                            <Input
+                                {...register('slug')}
+                                disabled
+                                className={cn(INPUT_CLS, 'bg-slate-50 font-mono text-[11px] text-slate-400 cursor-not-allowed')}
+                            />
+                        </Field>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <Field label="Status" required>
+                            <Select
+                                value={String(watchValues.status || 'Draft')}
+                                onValueChange={v =>
+                                    setField(
+                                        'status' as Path<ComboFormValues>,
+                                        v as PathValue<ComboFormValues, 'status'>,
+                                    )
+                                }
+                                disabled={isLoading}
+                            >
+                                <SelectTrigger className={SELECT_TRIGGER_CLS}>
+                                    <SelectValue placeholder="Select status…" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                                    {PRODUCT_STATUSES.map((s) => (
+                                        <SelectItem key={s.value} value={s.value} className="rounded-lg py-2 text-sm">
+                                            <div className="flex items-center gap-2">
+                                                <div className={cn("h-1.5 w-1.5 rounded-full",
+                                                    s.value === 'Published' ? 'bg-emerald-500' :
+                                                        s.value === 'Draft' ? 'bg-amber-500' :
+                                                            s.value === 'OutOfStock' ? 'bg-rose-500' : 'bg-slate-400'
+                                                )} />
+                                                {s.label}
                                             </div>
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
-                        </div>
-                    </section>
-                )}
+                            <ErrorMsg error={errors.status} />
+                        </Field>
 
-                <section className="space-y-4">
-                    <SectionHeading title="Basic Information" />
-                    <div className="space-y-4">
-                        <div>
-                            <Label htmlFor="c-name" className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2 block">
-                                {isVariant ? 'Variant Name' : 'Combo Name'} <span className="text-red-500">*</span>
-                            </Label>
-                            <Input id="c-name" value={form.name} onChange={e => onNameChange(e.target.value)}
-                                disabled={isLoading} className={cn(INPUT_CLS, "bg-white")} autoFocus />
-                        </div>
-                        <div>
-                            <Label htmlFor="c-slug" className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2 block">URL Slug</Label>
-                            <Input id="c-slug" value={form.slug} readOnly
-                                className={cn(INPUT_CLS, 'font-mono text-[11px] bg-slate-100 text-slate-500 cursor-not-allowed border-dashed')} />
-                        </div>
-                        <div>
-                            <Label htmlFor="c-desc" className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2 block">Description</Label>
-                            <Textarea id="c-desc" placeholder="Brief description..."
-                                value={form.description} onChange={e => setField('description', e.target.value)}
-                                disabled={isLoading} rows={4}
-                                className="w-full rounded-xl border border-slate-200 bg-white hover:border-[#4988c4]/60 focus:border-[#4988c4] focus:ring-4 focus:ring-[#4988c4]/20 transition-all text-sm font-medium text-slate-900 shadow-sm resize-none p-3" />
-                        </div>
+                        <Field label="Age group" required>
+                            <Select
+                                value={String(watchValues.ageGroup || '')}
+                                onValueChange={v =>
+                                    setField(
+                                        'ageGroup' as Path<ComboFormValues>,
+                                        Number(v) as PathValue<ComboFormValues, 'ageGroup'>,
+                                    )
+                                }
+                                disabled={isLoading}
+                            >
+                                <SelectTrigger className={SELECT_TRIGGER_CLS}>
+                                    <SelectValue placeholder="Select age group…" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl border-slate-200 shadow-xl">
+                                    {Object.entries(AGE_GROUPS).map(([val, label]) => (
+                                        <SelectItem key={val} value={val} className="rounded-lg py-2">
+                                            {label}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <ErrorMsg error={errors.ageGroup} />
+                        </Field>
                     </div>
+
+
+
+                    {mode === 'parent' && isEdit && parentPriceRange && (
+                        <Field label="Dynamic Variant Pricing" hint="Calculated based on existing variants">
+                            <div className="flex h-10 w-full items-center pl-3 pr-4 rounded-lg border border-slate-200 bg-slate-50/80 text-sm font-semibold text-slate-700 select-none">
+                                <span className="flex-1 opacity-90">{parentPriceRange}</span>
+                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider ml-4 rounded-md bg-white border border-slate-200 px-2 py-0.5 shadow-sm">Auto</span>
+                            </div>
+                        </Field>
+                    )}
+                    <Field label="Short description" required hint={`${watchValues.description?.length ?? 0}/120`}>
+                        <Textarea
+                            {...register('description')}
+                            placeholder="Provide a summary of this combo…"
+                            disabled={isLoading}
+                            maxLength={120}
+                            rows={2}
+                            className={cn(
+                                'w-full rounded-lg border border-slate-200 bg-white hover:border-slate-300',
+                                'focus:border-blue-400 focus:ring-2 focus:ring-blue-400/15',
+                                'transition-all text-sm text-slate-900 resize-none p-2.5',
+                                errors.description && 'border-red-400',
+                            )}
+                        />
+                        <ErrorMsg error={errors.description} />
+                    </Field>
                 </section>
 
-                <section className="space-y-4">
-                    <SectionHeading title="Combo Media" />
-
+                <section className="space-y-3">
+                    <SectionDivider label="Media" />
                     {!comboId ? (
-                        <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50 gap-3 grayscale opacity-60">
-                            <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
-                                <Upload className="h-6 w-6" />
-                            </div>
-                            <div className="text-center">
-                                <p className="text-xs font-bold text-slate-600">Uploads locked</p>
-                                <p className="text-[10px] text-slate-400">Save this combo first to enable media management.</p>
-                            </div>
+                        <div className="flex flex-col items-center justify-center gap-2 py-6 border border-dashed border-slate-200 rounded-lg bg-slate-50/60">
+                            <Upload className="h-5 w-5 text-slate-300" />
+                            <p className="text-[11px] text-slate-400 text-center leading-relaxed">
+                                Save this combo first to enable image upload.
+                            </p>
                         </div>
                     ) : (
-                        <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white bg-grid-slate-50 shadow-sm group">
-                            {isMediaLoading && (
-                                <div className="absolute inset-0 z-20 bg-white/60 backdrop-blur-[2px] flex items-center justify-center">
-                                    <Loader2 className="h-6 w-6 animate-spin text-primary-500" />
-                                </div>
-                            )}
-
-                            <div className="aspect-[16/9] w-full bg-slate-50 flex items-center justify-center overflow-hidden">
-                                {form.imageUrl ? (
-                                    <img
-                                        src={form.imageUrl}
-                                        alt="Main"
-                                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                    />
-                                ) : (
-                                    <div className="flex flex-col items-center gap-2 text-slate-300">
-                                        <ImageIcon className="h-10 w-10 stroke-[1.5]" />
-                                        <span className="text-[10px] font-bold uppercase tracking-widest">No Media Selected</span>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Actions Overlay */}
-                            <div className="p-4 border-t border-slate-100 flex items-center justify-between gap-3 bg-white">
-                                <div className="flex-1 min-w-0">
-                                    {form.imageUrl ? (
-                                        <p className="text-[10px] text-slate-400 font-mono truncate tracking-tight">{form.imagePublicId}</p>
-                                    ) : (
-                                        <p className="text-[10px] text-slate-400 italic">Select a high-quality photo...</p>
-                                    )}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    {form.imagePublicId && (
-                                        <Button
-                                            onClick={handleDeleteImage}
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-9 w-9 text-red-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                                            disabled={isMediaLoading}
-                                            type="button"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                    )}
-                                    <Button
-                                        onClick={() => setShowUploadDialog(true)}
-                                        className="h-9 px-4 rounded-xl gap-2 text-[11px] font-bold uppercase tracking-wider bg-primary-600 hover:bg-primary-700 shadow-md shadow-primary-200 transition-all border-none"
-                                        disabled={isMediaLoading}
-                                        type="button"
-                                    >
-                                        <Upload className="h-3.5 w-3.5" />
-                                        {form.imageUrl ? 'Change' : 'Upload Image'}
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
+                        <MediaBlock
+                            watchValues={watchValues}
+                            comboId={comboId}
+                        />
                     )}
-                </section>
-
-                {comboId && (
-                    <ImageUploadDialog
-                        open={showUploadDialog}
-                        onOpenChange={setShowUploadDialog}
-                        productId={comboId}
-                        productName={form.name}
-                        onUpload={async (cid, files) => {
-                            await uploadMutation.mutateAsync({ comboId: cid, files });
-                            setShowUploadDialog(false);
-                        }}
-                        isUploading={uploadMutation.isPending}
-                    />
-                )}
-            </TabsContent>
-
-            {/* ── TAB: CONFIG ── */}
-            <TabsContent value="config" className="mt-0 space-y-6 animate-in fade-in slide-in-from-left-2 duration-300">
-                <section className="space-y-4">
-                    <SectionHeading title="Classification & Specs" />
-                    <div className="grid grid-cols-1 gap-5">
-                        <div>
-                            <Label htmlFor="c-age" className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2 block">Age Group (months)</Label>
-                            <div className="relative flex">
-                                <Input id="c-age" type="number" value={form.ageGroup}
-                                    onChange={e => setField('ageGroup', e.target.value)}
-                                    disabled={isLoading} className={cn(INPUT_CLS, "pr-24 bg-white")} min={0} />
-                                <div className="absolute right-0 top-0 h-full flex items-center">
-                                    <span className="text-[10px] font-black text-slate-400 uppercase mr-8">MO</span>
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <button type="button" className="h-full px-2 hover:bg-slate-100 border-l border-slate-200 rounded-r-xl">
-                                                <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
-                                            </button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end" className="w-40 rounded-xl shadow-xl">
-                                            {Object.entries(AGE_GROUPS).map(([val, label]) => (
-                                                <DropdownMenuItem key={val} onClick={() => setField('ageGroup', val)} className="cursor-pointer text-xs font-bold py-2.5">
-                                                    {label}
-                                                </DropdownMenuItem>
-                                            ))}
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </div>
-                            </div>
-                        </div>
-
-                        {isVariant && (
-                            <div className="space-y-6">
-                                <div className="grid grid-cols-1 gap-4">
-                                    <div className="space-y-3">
-                                        <Label className="text-xs font-black text-slate-500 uppercase tracking-widest block">Variant Color</Label>
-                                        <ColorPicker
-                                            color=""
-                                            colorCode={form.color}
-                                            onColorChange={(_name: string, code: string) => setField('color', code)}
-                                            disabled={isLoading}
-                                        />
-                                    </div>
-                                    <div>
-                                        <Label htmlFor="c-size" className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2 block">Variant Size</Label>
-                                        <Input
-                                            id="c-size"
-                                            placeholder="S, M, L, XL..."
-                                            value={form.size}
-                                            onChange={e => setField('size', e.target.value)}
-                                            disabled={isLoading}
-                                            className={cn(INPUT_CLS, "bg-white")}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </section>
-
-                <section className="space-y-4">
-                    <SectionHeading title="Operational Status" />
-                    <div className="space-y-3">
-                        <Label className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2 block">Status Management</Label>
-                        {!comboId ? (
-                            <div className="flex items-center gap-2.5 p-3 rounded-xl bg-amber-50 border border-amber-200/60">
-                                <div className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
-                                <span className="text-xs font-bold text-amber-700">Initial status is locked to <span className="border-b border-amber-400">Draft</span></span>
-                                <Badge variant="outline" className="ml-auto bg-white text-[10px] font-black uppercase text-amber-600 border-amber-200">New Creation</Badge>
-                            </div>
-                        ) : (
-                            <div className="space-y-3">
-                                <Select value={form.status} onValueChange={v => setField('status', v)} disabled={isLoading}>
-                                    <SelectTrigger className={cn(SELECT_TRIGGER_CLS, "bg-white")}>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent className="rounded-xl shadow-xl">
-                                        {PRODUCT_STATUSES
-                                            .filter(s => getAllowedStatusTransitions(form.status).includes(s.value))
-                                            .map(s => (
-                                                <SelectItem key={s.value} value={s.value} className="rounded-lg">
-                                                    <span className="flex items-center gap-2 font-bold text-slate-700">
-                                                        <span className={cn('h-2 w-2 rounded-full', PRODUCT_STATUS_COLORS[s.value])} />
-                                                        {s.label}
-                                                    </span>
-                                                </SelectItem>
-                                            ))}
-                                    </SelectContent>
-                                </Select>
-                                <p className="text-[10px] text-slate-400 px-1 italic">
-                                    Transitions from <span className="font-bold text-slate-500">{form.status}</span> are restricted based on business rules.
-                                </p>
-                            </div>
-                        )}
-                    </div>
-                </section>
-            </TabsContent>
-
-            {/* ── TAB: PRICING ── */}
-            <TabsContent value="pricing" className="mt-0 space-y-6 animate-in fade-in slide-in-from-left-2 duration-300">
-                <section className="space-y-4">
-                    <div className="flex items-center justify-between">
-                        <SectionHeading title="Pricing Economics" />
-                        {isPriceAutoManaged && (
-                            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-primary-50 border border-primary-100 rounded-full animate-in zoom-in duration-300">
-                                <Sparkles className="h-3 w-3 text-primary-500" />
-                                <span className="text-[10px] font-black text-primary-600 uppercase tracking-wider">
-                                    {priceSource === 'items' ? 'Calculated from Items' : 'Derived from Variants'}
-                                </span>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-5">
-                        {isPriceAutoManaged ? (
-                            <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-1">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Base Price</p>
-                                        <div className="flex items-baseline gap-1">
-                                            <span className="text-xl font-black text-slate-900">
-                                                {Number(form.basePrice).toLocaleString('en-US')}
-                                            </span>
-                                            <span className="text-[10px] font-bold text-slate-400">VNĐ</span>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sale Price</p>
-                                        <div className="flex items-baseline gap-2">
-                                            <span className="text-xl font-black text-blue-600">
-                                                {Number(form.salePrice).toLocaleString('en-US')}
-                                            </span>
-                                            <span className="text-[10px] font-bold text-blue-400">VNĐ</span>
-                                            {form.basePrice && form.salePrice && Number(form.salePrice) < Number(form.basePrice) && (
-                                                <Badge className="bg-emerald-500 text-white border-0 text-[10px] h-5 px-1.5">
-                                                    -{Math.round(((Number(form.basePrice) - Number(form.salePrice)) / Number(form.basePrice)) * 100)}%
-                                                </Badge>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="flex items-start gap-2 pt-2 border-t border-slate-200/60 text-slate-500">
-                                    <Calculator className="h-3.5 w-3.5 mt-0.5" />
-                                    <p className="text-[11px] italic leading-relaxed">
-                                        {mode === 'parent'
-                                            ? (Number(form.salePrice) > 0
-                                                ? "This price represents the base/starting value derived from the child variants in this collection."
-                                                : "No variants found yet. Pricing will be automatically determined once variant combos are added to this collection.")
-                                            : "Pricing is calculated based on the sum of individual products and quantities specified in the items list."}
-                                    </p>
-                                </div>
-                            </div>
-                        ) : (
-                            <>
-                                <div>
-                                    <Label htmlFor="c-base" className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2 block flex items-center gap-2">
-                                        Base Price (VNĐ)
-                                        {isVariantBasePriceAuto && (
-                                            <span className="flex items-center gap-1 text-[9px] text-primary-500 bg-primary-50 px-1.5 py-0.5 rounded border border-primary-100">
-                                                <Calculator className="h-2.5 w-2.5" /> Sum of Items
-                                            </span>
-                                        )}
-                                    </Label>
-                                    <div className="relative group">
-                                        <Input
-                                            id="c-base"
-                                            type="number"
-                                            placeholder="850000"
-                                            value={form.basePrice}
-                                            onChange={e => setField('basePrice', e.target.value)}
-                                            disabled={isLoading || isVariantBasePriceAuto}
-                                            className={cn(
-                                                INPUT_CLS,
-                                                "pl-10",
-                                                isVariantBasePriceAuto ? "bg-slate-50 text-slate-500 border-dashed cursor-not-allowed" : "bg-white"
-                                            )}
-                                            min={0}
-                                        />
-                                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400">VNĐ</span>
-                                    </div>
-                                    {isVariantBasePriceAuto && (
-                                        <p className="text-[10px] text-primary-500 mt-1.5 italic font-medium px-1">
-                                            Calculated automatically from the items you added on the right.
-                                        </p>
-                                    )}
-                                </div>
-                                <div>
-                                    <Label htmlFor="c-sale" className="text-xs font-black text-slate-500 uppercase tracking-widest mb-2 block">Sale Price (VNĐ)</Label>
-                                    <div className="relative group">
-                                        <Input
-                                            id="c-sale"
-                                            type="number"
-                                            placeholder="699000"
-                                            value={form.salePrice}
-                                            onChange={e => setField('salePrice', e.target.value)}
-                                            disabled={isLoading}
-                                            className={cn(INPUT_CLS, "bg-white pl-10")}
-                                            min={0}
-                                        />
-                                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400">VNĐ</span>
-                                        {form.basePrice && form.salePrice && Number(form.salePrice) < Number(form.basePrice) && (
-                                            <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg shadow-sm">
-                                                -{Math.round(((Number(form.basePrice) - Number(form.salePrice)) / Number(form.basePrice)) * 100)}%
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                            </>
-                        )}
-                    </div>
                 </section>
             </TabsContent>
         </div>
     );
 });
 
+ComboFormFields.displayName = 'ComboFormFields';
 export default ComboFormFields;
+
+// ─────────────────────────────────────────────────────────────
+// Internal helper — reusable media block for parent mode
+// ─────────────────────────────────────────────────────────────
+
+const MediaBlock = ({
+    watchValues,
+    comboId,
+}: {
+    watchValues: Partial<ComboFormValues>;
+    comboId: string;
+}) => {
+    const [showUploadDialog, setShowUploadDialog] = useState(false);
+    const uploadMutation = useUploadComboImage();
+    const deleteMutation = useDeleteComboImage();
+    const isMediaLoading = uploadMutation.isPending || deleteMutation.isPending;
+
+    const handleDelete = async () => {
+        if (!watchValues.imagePublicId) return;
+        if (window.confirm('Delete this image?')) {
+            await deleteMutation.mutateAsync(watchValues.imagePublicId);
+        }
+    };
+
+    return (
+        <>
+            <div className="relative overflow-hidden rounded-lg border border-slate-200 bg-white group">
+                {isMediaLoading && (
+                    <div className="absolute inset-0 z-10 bg-white/70 flex items-center justify-center">
+                        <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+                    </div>
+                )}
+                <div className="h-32 bg-slate-50 flex items-center justify-center overflow-hidden">
+                    {watchValues.imageUrl ? (
+                        <img
+                            src={watchValues.imageUrl}
+                            alt="Combo"
+                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                    ) : (
+                        <ImageIcon className="h-8 w-8 text-slate-300" />
+                    )}
+                </div>
+                <div className="flex items-center justify-between gap-2 px-3 py-2.5 border-t border-slate-100">
+                    <p className="text-[10px] font-mono text-slate-400 truncate min-w-0">
+                        {watchValues.imagePublicId || '—'}
+                    </p>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                        {watchValues.imagePublicId && (
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-red-400 hover:bg-red-50"
+                                onClick={handleDelete}
+                                disabled={isMediaLoading}
+                            >
+                                <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                        )}
+                        <Button
+                            type="button"
+                            size="sm"
+                            className="h-7 px-3 text-[11px] font-semibold rounded-md"
+                            onClick={() => setShowUploadDialog(true)}
+                            disabled={isMediaLoading}
+                        >
+                            <Upload className="h-3 w-3 mr-1.5" />
+                            {watchValues.imageUrl ? 'Change' : 'Upload'}
+                        </Button>
+                    </div>
+                </div>
+            </div>
+            <ImageUploadDialog
+                open={showUploadDialog}
+                onOpenChange={setShowUploadDialog}
+                productId={comboId}
+                productName={watchValues.name || ''}
+                onUpload={async (cid, files) => {
+                    await uploadMutation.mutateAsync({ comboId: cid, files });
+                    setShowUploadDialog(false);
+                }}
+                isUploading={uploadMutation.isPending}
+            />
+        </>
+    );
+};

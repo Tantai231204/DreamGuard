@@ -11,7 +11,6 @@ import type {
   UpdateComboRequest,
   ComboParams,
 } from '@/api';
-import { isComboParent } from '@/api/services/comboService';
 import { toast } from 'sonner';
 // ========================
 // Query Keys
@@ -34,6 +33,7 @@ export const usePublicCombos = (params: ComboParams = {}) => {
     queryKey: comboKeys.public(params),
     queryFn: () => comboService.getAllPublic(params),
     placeholderData: keepPreviousData,
+    staleTime: 2 * 60 * 1000,
   });
 };
 
@@ -61,6 +61,8 @@ export const useComboDetail = (id: string, enabled = true) => {
     queryKey: comboKeys.detail(id),
     queryFn: () => comboService.getById(id),
     enabled: !!id && enabled,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 };
 
@@ -70,6 +72,8 @@ export const useComboBySlug = (slug: string, params?: { size?: string; color?: s
     queryKey: comboKeys.slug(slug, params),
     queryFn: () => comboService.getBySlug(slug, params),
     enabled: !!slug && enabled,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 };
 
@@ -79,7 +83,8 @@ export const useComboParents = (enabled = true) => {
     queryKey: [...comboKeys.all, 'parents'] as const,
     queryFn: async () => {
       const all = await comboService.getAllList();
-      return all.filter(isComboParent);
+      // Filter out any combo that has a parent (i.e., keep only top-level parents)
+      return all.filter(c => !c.comboParentId);
     },
     enabled,
   });
@@ -109,12 +114,11 @@ export const useUpdateCombo = () => {
     mutationFn: ({ id, data }: { id: string; data: UpdateComboRequest }) =>
       comboService.update(id, data),
     onSuccess: (_, variables) => {
-      toast.success('Combo updated successfully');
       queryClient.invalidateQueries({ queryKey: comboKeys.all });
       queryClient.invalidateQueries({ queryKey: comboKeys.detail(variables.id) });
     },
     onError: (error) => {
-       toast.error('Failed to update combo: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      toast.error('Failed to update combo: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   });
 };
@@ -126,7 +130,7 @@ export const useUpdateComboItems = () => {
   return useMutation({
     mutationFn: ({ id, items }: { id: string; items: import('@/api').ComboItemRequest[] }) =>
       comboService.updateItems(id, { items }),
-    
+
     // ── Optimistic Update Logic ──
     onMutate: async ({ id, items }) => {
       // 1. Cancel any outgoing refetches (so they don't overwrite our optimistic update)
@@ -137,21 +141,21 @@ export const useUpdateComboItems = () => {
 
       // 3. Optimistically update to the new value
       if (previousDetail) {
-         const optimisticDetail = {
-           ...previousDetail,
-           productItems: previousDetail.productItems?.map((pi: import('@/api/services/comboService').ProductItemResponse) => {
-             const newItem = items.find(ui => ui.productVariantId === pi.productVariantId);
-             return newItem ? { ...pi, quantity: newItem.quantity } : pi;
-           })
-         };
-         queryClient.setQueryData(comboKeys.detail(id), optimisticDetail);
+        const optimisticDetail = {
+          ...previousDetail,
+          productItems: previousDetail.productItems?.map((pi: import('@/api/services/comboService').ProductItemResponse) => {
+            const newItem = items.find(ui => ui.productVariantId === pi.productVariantId);
+            return newItem ? { ...pi, quantity: newItem.quantity } : pi;
+          })
+        };
+        queryClient.setQueryData(comboKeys.detail(id), optimisticDetail);
       }
 
       return { previousDetail };
     },
 
     onSuccess: () => {
-      toast.success('Component quantity synced');
+      // Silent success, leave it to the calling component to notify if needed
     },
 
     onError: (err, { id }, context) => {
@@ -179,6 +183,24 @@ export const useDeleteCombo = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: comboKeys.all });
     },
+  });
+};
+
+/** Cập nhật trạng thái combo (Published, Draft, etc.) */
+export const useUpdateComboStatus = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) => 
+      comboService.updateStatus(id, status),
+    onSuccess: (_, { id, status }) => {
+      queryClient.invalidateQueries({ queryKey: comboKeys.all });
+      queryClient.invalidateQueries({ queryKey: comboKeys.detail(id) });
+      toast.success(`Combo status updated to ${status}`);
+    },
+    onError: (err) => {
+      toast.error('Failed to update status: ' + (err instanceof Error ? err.message : 'Unknown error'));
+    }
   });
 };
 

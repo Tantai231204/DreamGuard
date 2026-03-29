@@ -17,7 +17,7 @@ interface ComboItemsInlinePanelProps {
 export default function ComboItemsInlinePanel({ combo, colSpan }: ComboItemsInlinePanelProps) {
     const { data: detail, isLoading, isError } = useComboDetail(combo.id);
 
-    const items = detail?.productItems ?? combo.productItems ?? [];
+    const items = detail?.items ?? combo.items ?? [];
 
     if (isLoading) {
         return (
@@ -94,55 +94,39 @@ export default function ComboItemsInlinePanel({ combo, colSpan }: ComboItemsInli
                             </div>
                         ) : (
                             <div className="space-y-2">
-                                {items.map((item, idx) => {
-                                    const key = (item as any).productVariantId ?? (item as any).id ?? idx;
-                                    const price = (item as any).salePrice ?? (item as any).basePrice;
-                                    return (
-                                        <div
-                                            key={key}
-                                            className="flex items-center gap-4 bg-white rounded-xl border border-indigo-100 px-4 py-3 shadow-sm hover:border-[#4988c4]/60 hover:shadow-md transition-all group"
-                                        >
-                                            {/* Product Icon */}
-                                            <div className="h-8 w-8 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">
-                                                <Package className="h-4 w-4 text-indigo-500" />
-                                            </div>
+                                {items.map((item, idx) => (
+                                    <div
+                                        key={item.variantId ?? item.productId ?? idx}
+                                        className="flex items-center gap-4 bg-white rounded-xl border border-indigo-100 px-4 py-3 shadow-sm hover:border-indigo-300 hover:shadow-md transition-all group"
+                                    >
+                                        {/* Product Icon */}
+                                        <div className="h-8 w-8 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">
+                                            <Package className="h-4 w-4 text-indigo-500" />
+                                        </div>
 
-                                            {/* Product Name */}
-                                            <div className="flex-1 min-w-0">
-                                                <div className="text-[13px] font-bold text-gray-800 truncate">
-                                                    {(item as any).productName}
-                                                </div>
-                                                {(item as any).sku && (
-                                                    <div className="text-[10px] font-mono text-gray-400 mt-0.5">
-                                                        SKU: {(item as any).sku}
-                                                    </div>
-                                                )}
+                                        {/* Product Name & Variant Label */}
+                                        <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                            <div className="text-[13px] font-bold text-gray-800 truncate">
+                                                {item.productName}
                                             </div>
-
-                                            {/* Quantity */}
-                                            <div className="flex items-center gap-1.5 flex-shrink-0">
-                                                <span className="text-[11px] text-gray-400 font-medium">Qty:</span>
-                                                <span className="inline-flex items-center justify-center h-7 px-3 rounded-lg bg-indigo-50 text-[13px] font-black text-indigo-700 min-w-[40px]">
-                                                    {(item as any).quantity}
-                                                </span>
-                                            </div>
-
-                                            {/* Price */}
-                                            {price != null && (
-                                                <div className="text-right flex-shrink-0 min-w-[90px]">
-                                                    <div className="text-[13px] font-bold text-violet-700">
-                                                        {price.toLocaleString('en-US')}₫
-                                                    </div>
-                                                    {(item as any).basePrice && (item as any).salePrice && (item as any).salePrice < (item as any).basePrice && (
-                                                        <div className="text-[10px] line-through text-gray-400">
-                                                            {(item as any).basePrice.toLocaleString('en-US')}₫
-                                                        </div>
-                                                    )}
+                                            {item.variantLabel && (
+                                                <div className="text-[11px] font-medium text-gray-400 mt-0.5">
+                                                    Variant: <strong className="text-gray-500 font-bold">{item.variantLabel}</strong>
                                                 </div>
                                             )}
                                         </div>
-                                    );
-                                })}
+
+                                        {/* Quantity */}
+                                        <div className="flex items-center gap-2 flex-shrink-0 bg-indigo-50/50 px-3 py-1.5 rounded-lg border border-indigo-50">
+                                            <span className="text-[10px] uppercase font-black tracking-wider text-indigo-300">
+                                                QTY
+                                            </span>
+                                            <span className="text-[14px] font-black text-indigo-700">
+                                                {item.quantity}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         )}
 
@@ -156,7 +140,7 @@ export default function ComboItemsInlinePanel({ combo, colSpan }: ComboItemsInli
                             <span>
                                 Total qty:{' '}
                                 <span className="font-bold text-indigo-700">
-                                    {items.reduce((sum, i) => sum + ((i as any).quantity ?? 0), 0)}
+                                    {items.reduce((sum, i) => sum + (i.quantity ?? 1), 0)}
                                 </span>
                             </span>
                             {combo.basePrice && (

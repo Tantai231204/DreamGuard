@@ -1,15 +1,16 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, Calculator, X, DollarSign } from 'lucide-react';
+import { ShoppingBag, Calculator, X } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useComboDetail, useUpdateCombo } from '@/hooks/queries/useCombo';
+import { useComboDetail, useUpdateCombo, useUpdateComboItems } from '@/hooks/queries/useCombo';
 import { toComboItems } from './combo-utils';
 import ComboVariantRow from './ComboVariantRow';
 import type { Combo, ComboItem } from '../../types';
-import { cn, formatNumber, unformatNumber } from '@/lib/utils';
+import { cn, formatNumber, unformatNumber, formatPrice } from '@/lib/utils';
 import { toast } from 'sonner';
+import type { ComboResponse } from '@/api';
 
 interface ChildComboItemsProps {
     childId: string;
@@ -32,6 +33,7 @@ export default function ChildComboItems({
 }: ChildComboItemsProps) {
     const { data: detail, isLoading } = useComboDetail(childId, true);
     const updateComboMutation = useUpdateCombo();
+    const updateComboItemsMutation = useUpdateComboItems();
 
     // ── Local State For Batch Updates ──────────────────
     const [draftItems, setDraftItems] = useState<Record<string, number>>({});
@@ -46,8 +48,9 @@ export default function ChildComboItems({
         if (source) {
             const itemMap: Record<string, number> = {};
             if (detail) {
-                detail.productItems?.forEach(i => {
-                    itemMap[i.productVariantId] = i.quantity;
+                detail.items?.forEach(i => {
+                    const id = i.variantId || i.productId || '';
+                    itemMap[id] = i.quantity;
                 });
                 setHasFullDetail(true);
             } else if (parentChildData) {
@@ -75,11 +78,24 @@ export default function ChildComboItems({
         }, 0);
     }, [items, draftItems]);
 
+    // Senior UX: Sync draftSalePrice with theoretical sum during render (no useEffect needed)
+    const [prevTheoreticalValue, setPrevTheoreticalValue] = useState(theoreticalValue);
+    if (theoreticalValue !== prevTheoreticalValue) {
+        setPrevTheoreticalValue(theoreticalValue);
+        // Only auto-sync if it was already in a "matched" state (no discount)
+        if (draftSalePrice === prevTheoreticalValue || (draftSalePrice === null && detail?.salePrice === prevTheoreticalValue)) {
+            setDraftSalePrice(theoreticalValue);
+        }
+    }
+
     const isDirty = useMemo(() => {
         if (!detail) return false;
 
         // Check items
-        const itemsChanged = detail.productItems?.some(i => draftItems[i.productVariantId] !== i.quantity);
+        const itemsChanged = detail.items?.some(i => {
+             const id = i.variantId || i.productId || '';
+             return draftItems[id] !== i.quantity;
+        });
         if (itemsChanged) return true;
 
         // Check price
@@ -97,8 +113,9 @@ export default function ChildComboItems({
     const handleReset = () => {
         if (!detail) return;
         const itemMap: Record<string, number> = {};
-        detail.productItems?.forEach(i => {
-            itemMap[i.productVariantId] = i.quantity;
+        detail.items?.forEach(i => {
+            const id = i.variantId || i.productId || '';
+            itemMap[id] = i.quantity;
         });
         setDraftItems(itemMap);
         setDraftSalePrice(detail.salePrice);
@@ -107,31 +124,55 @@ export default function ChildComboItems({
     const handleSaveAll = async () => {
         if (!detail) return;
 
-        const updatedItems = detail.productItems?.map(i => ({
-            productVariantId: i.productVariantId,
-            quantity: draftItems[i.productVariantId] ?? i.quantity
-        })) || [];
+        const itemsChanged = detail.items?.some(i => {
+             const id = i.variantId || i.productId || '';
+             return draftItems[id] !== i.quantity;
+        });
+        const priceOrInfoChanged = (draftSalePrice !== detail.salePrice) || (theoreticalValue !== detail.basePrice);
+
+        const updatedItems = detail.items?.map(i => {
+            const id = i.variantId || i.productId || '';
+            return {
+                productVariantId: id,
+                quantity: draftItems[id] ?? i.quantity
+            };
+        }) || [];
 
         try {
-            await updateComboMutation.mutateAsync({
-                id: childId,
-                data: {
-                    name: detail.name,
-                    slug: detail.slug,
-                    ageGroup: detail.ageGroup ?? 0,
-                    color: detail.color,
-                    size: detail.size,
-                    basePrice: detail.basePrice,
-                    description: detail.description,
-                    imageUrl: detail.imageUrl,
-                    imagePublicId: detail.imagePublicId,
-                    status: detail.status,
-                    comboParentId: detail.comboParentId ?? undefined,
-                    salePrice: draftSalePrice ?? detail.salePrice,
+            const tasks: Promise<ComboResponse | void>[] = [];
+
+            if (priceOrInfoChanged) {
+                tasks.push(updateComboMutation.mutateAsync({
+                    id: childId,
+                    data: {
+                        name: detail.name,
+                        slug: detail.slug,
+                        ageGroup: detail.ageGroup ?? 0,
+                        color: detail.color,
+                        size: detail.size,
+                        basePrice: theoreticalValue,
+                        description: detail.description,
+                        imageUrl: detail.imageUrl,
+                        imagePublicId: detail.imagePublicId,
+                        status: detail.status,
+                        comboParentId: detail.comboParentId ?? undefined,
+                        salePrice: draftSalePrice ?? detail.salePrice,
+                        items: updatedItems,
+                    }
+                }));
+            }
+
+            if (itemsChanged) {
+                tasks.push(updateComboItemsMutation.mutateAsync({
+                    id: childId,
                     items: updatedItems
-                }
-            });
-            toast.success("Combo configuration & pricing synchronized!");
+                }));
+            }
+
+            if (tasks.length > 0) {
+                await Promise.all(tasks);
+                toast.success("Combo configuration & pricing synchronized!", { id: 'child-combo-sync' });
+            }
         } catch {
             // Error handled by mutation onError
         }
@@ -141,14 +182,18 @@ export default function ChildComboItems({
         if (!detail || !confirm('Remove this item from combo?')) return;
         const [pId] = itemKey.split('|');
 
-        const updatedItems = detail.productItems?.filter(i =>
-            i.productVariantId !== pId
-        ) || [];
+        const updatedItems = detail.items?.filter(i => {
+             const id = i.variantId || i.productId || '';
+             return id !== pId;
+        }) || [];
 
-        const itemsUpdate = updatedItems.map(i => ({
-            productVariantId: i.productVariantId,
-            quantity: draftItems[i.productVariantId] ?? i.quantity
-        }));
+        const itemsUpdate = updatedItems.map(i => {
+            const id = i.variantId || i.productId || '';
+            return {
+                productVariantId: id,
+                quantity: draftItems[id] ?? i.quantity
+            };
+        });
 
         await updateComboMutation.mutateAsync({
             id: childId,
@@ -242,14 +287,14 @@ export default function ChildComboItems({
                             <div className="space-y-0.5">
                                 <p className="text-[9px] text-slate-400 font-bold uppercase">Sum</p>
                                 <div className="text-sm font-bold text-slate-800 tabular-nums">
-                                    {theoreticalValue.toLocaleString('vi-VN')}₫
+                                    {formatPrice(theoreticalValue)}
                                 </div>
                             </div>
                             <div className="h-6 w-px bg-slate-100 hidden sm:block" />
                             <div className="space-y-0.5">
                                 <p className="text-[9px] text-primary-500/70 font-bold uppercase">Current</p>
                                 <div className="text-sm font-bold text-primary-600 tabular-nums">
-                                    {detail?.salePrice.toLocaleString('vi-VN')}₫
+                                    {formatPrice(detail?.salePrice || 0)}
                                 </div>
                             </div>
                         </div>
@@ -257,20 +302,20 @@ export default function ChildComboItems({
 
                     {/* Right: Actions */}
                     <div className="flex items-center gap-4 w-full md:w-auto">
-                        <div className="relative group flex-1 md:w-44">
-                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10">
-                                <DollarSign className="h-3.5 w-3.5" />
+                        <div className="relative group flex-1 md:w-48">
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-400 z-10">
+                                VNĐ
                             </div>
                             <Input
                                 type="text"
                                 value={formatNumber(draftSalePrice ?? '')}
                                 onChange={e => setDraftSalePrice(unformatNumber(e.target.value))}
-                                className="pl-8 pr-16 h-9 bg-slate-50/50 border-slate-200 rounded-lg font-bold text-sm focus:bg-white transition-all focus:border-primary-500"
+                                className="pl-4 pr-24 h-9 bg-slate-50/50 border-slate-200 rounded-lg font-bold text-sm focus:bg-white transition-all focus:border-primary-500"
                                 placeholder="0"
                             />
                             <button
                                 onClick={() => setDraftSalePrice(theoreticalValue)}
-                                className="absolute right-1.5 top-1/2 -translate-y-1/2 h-6 px-2 text-[8px] font-bold uppercase bg-white border border-slate-200 text-slate-500 hover:text-primary-600 hover:border-primary-200 rounded transition-colors"
+                                className="absolute right-10 top-1/2 -translate-y-1/2 h-6 px-2 text-[8px] font-bold uppercase bg-white border border-slate-200 text-slate-500 hover:text-primary-600 hover:border-primary-200 rounded transition-colors"
                             >
                                 Match
                             </button>

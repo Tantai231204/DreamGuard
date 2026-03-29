@@ -75,7 +75,7 @@ const productService = {
 
   /** Update product status */
   updateStatus: ({ productId, status }: UpdateProductStatusParams): Promise<void> =>
-    apiClient.put(`/product/${productId}`, null, { params: { status } }).then((res) => res.data),
+    apiClient.put(`/product/${productId}`, {}, { params: { status } }).then((res) => res.data),
 
   /** Delete product */
   delete: (id: string): Promise<void> =>
