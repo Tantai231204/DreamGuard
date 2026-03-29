@@ -4,9 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
+
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { useWatch, type Control, type FieldErrors, type UseFormRegister, type UseFormSetValue } from 'react-hook-form';
+import { useWatch, type Control, type FieldErrors, type UseFormRegister, type UseFormSetValue, Controller, type FieldError } from 'react-hook-form';
 import {
     Select,
     SelectContent,
@@ -22,10 +22,8 @@ import {
     Info,
     LayoutGrid,
     ShieldCheck,
-    DollarSign,
+    Banknote,
     Weight,
-    Ruler,
-    Move3D,
     AlertCircle,
     type LucideIcon
 } from 'lucide-react';
@@ -37,34 +35,55 @@ import { useVariantForm, type ExtendedProductVariant } from './useVariantForm';
 import { AdminStatusBadge } from '@/components/admin';
 import VariantCustomization from './VariantCustomization';
 import { type VariantFormValues } from './variantSchema';
+import { formatNumber, unformatNumber } from '@/lib/utils';
 
 /* ─── Senior Optimization: Reusable Layout Components ─── */
 const INPUT_CLS = 'h-11 rounded-xl border-gray-200 bg-gray-50/50 hover:border-[#4988c4]/60 hover:bg-white focus:border-[#4988c4] focus:ring-2 focus:ring-[#4988c4]/20 transition-all';
 const TAB_TRIGGER_CLS = 'flex-1 h-11 rounded-lg data-[state=active]:bg-[#4988c4] data-[state=active]:text-white data-[state=active]:shadow-sm text-xs font-bold gap-2 transition-colors';
 
-const FieldGroup = memo(({ label, children, icon: Icon, highlight = false }: { label: string; children: ReactNode; icon: LucideIcon; highlight?: boolean }) => (
-    <div className="space-y-2.5">
-        <div className="flex items-center gap-2 px-1">
-            <Icon className={cn("w-3.5 h-3.5", highlight ? "text-[#4988c4]" : "text-slate-400")} />
-            <Label className="text-[11px] font-black uppercase text-slate-500 tracking-wider">{label}</Label>
+type FormFieldError = string | FieldError | undefined;
+
+const ErrorMsg = memo(({ error }: { error?: FormFieldError }) => {
+    if (!error) return null;
+    const message = typeof error === 'string' ? error : error?.message;
+    if (!message) return null;
+
+    return (
+        <p className="text-[9px] text-red-500 font-black uppercase tracking-tighter animate-in fade-in slide-in-from-top-1 duration-200 flex items-center gap-1.5 px-0.5 leading-none">
+            <AlertCircle className="h-2.5 w-2.5 shrink-0" />
+            {message}
+        </p>
+    );
+});
+
+ErrorMsg.displayName = 'ErrorMsg';
+
+const FieldGroup = memo(({
+    label,
+    children,
+    icon: Icon,
+    highlight = false,
+    error
+}: {
+    label: string;
+    children: ReactNode;
+    icon: LucideIcon;
+    highlight?: boolean;
+    error?: FormFieldError;
+}) => (
+    <div className="space-y-2">
+        <div className="flex flex-col gap-1.5 px-1">
+            <div className="flex items-center gap-2">
+                <Icon className={cn("w-3.5 h-3.5", error ? "text-red-500" : (highlight ? "text-[#4988c4]" : "text-slate-400"))} />
+                <Label className={cn("text-[11px] font-black uppercase tracking-wider", error ? "text-red-500" : "text-slate-500")}>{label}</Label>
+            </div>
+            <ErrorMsg error={error} />
         </div>
         {children}
     </div>
 ));
 
 FieldGroup.displayName = 'FieldGroup';
-
-const ErrorMsg = memo(({ error }: { error?: { message?: string } }) => {
-    if (!error) return null;
-    return (
-        <p className="text-[10px] text-red-500 font-bold mt-1.5 animate-in fade-in slide-in-from-top-1 duration-200 flex items-center gap-1 px-1">
-            <AlertCircle className="h-3 w-3" />
-            {error.message}
-        </p>
-    );
-});
-
-ErrorMsg.displayName = 'ErrorMsg';
 
 /* ─── Optimized Sub-Sections for Performance ─── */
 
@@ -87,10 +106,10 @@ const LogisticsSection = memo(({
 
     return (
         <section className="space-y-5">
-            <SectionHeading title="Identity & Pricing" />
+            <SectionHeading title="Basic Info" />
 
             <div className="grid grid-cols-2 gap-5">
-                <FieldGroup label="SKU Code" icon={Package}>
+                <FieldGroup label="SKU Code" icon={Package} error={errors.sku}>
                     <div className="relative">
                         <Input
                             {...register('sku')}
@@ -103,10 +122,9 @@ const LogisticsSection = memo(({
                             </Button>
                         )}
                     </div>
-                    <ErrorMsg error={errors.sku} />
                 </FieldGroup>
 
-                <FieldGroup label="Market Visibility" icon={RefreshCw}>
+                <FieldGroup label="Status" icon={RefreshCw} error={errors.status}>
                     {!isEdit ? (
                         <div className="flex items-center gap-2.5 px-4 h-11 rounded-xl bg-amber-50 border border-amber-200/60 transition-all">
                             <div className="h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
@@ -133,35 +151,54 @@ const LogisticsSection = memo(({
                             </SelectContent>
                         </Select>
                     )}
-                    <ErrorMsg error={errors.status} />
                 </FieldGroup>
             </div>
 
             <div className="grid grid-cols-2 gap-5">
-                <FieldGroup label="Base Price" icon={DollarSign}>
-                    <div className="relative">
-                        <Input
-                            type="number"
-                            {...register('basePrice', { valueAsNumber: true })}
-                            className={cn(INPUT_CLS, 'pr-12 font-bold text-slate-900', errors.basePrice && "border-red-400")}
-                            placeholder="0"
-                        />
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-300 uppercase">VND</span>
-                    </div>
-                    <ErrorMsg error={errors.basePrice} />
+                <FieldGroup label="Base Price" icon={Banknote} error={errors.basePrice}>
+                    <Controller
+                        name="basePrice"
+                        control={control}
+                        render={({ field }) => (
+                            <div className="relative">
+                                <Input
+                                    type="text"
+                                    inputMode="numeric"
+                                    value={formatNumber(field.value)}
+                                    onChange={(e) => {
+                                        const cleanValue = unformatNumber(e.target.value);
+                                        field.onChange(Number(cleanValue));
+                                    }}
+                                    className={cn(INPUT_CLS, 'pr-12 font-black text-slate-900 text-[15px]', errors.basePrice && "border-red-400")}
+                                    placeholder="0"
+                                />
+                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-300 uppercase pointer-events-none">₫</span>
+                            </div>
+                        )}
+                    />
                 </FieldGroup>
 
-                <FieldGroup label="Sale Price" icon={DollarSign} highlight>
-                    <div className="relative">
-                        <Input
-                            type="number"
-                            {...register('salePrice', { valueAsNumber: true })}
-                            className={cn(INPUT_CLS, 'pr-12 font-bold text-blue-600', errors.salePrice && "border-red-400")}
-                            placeholder="0"
-                        />
-                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-blue-300 uppercase underline decoration-blue-200">OFFER</span>
-                    </div>
-                    <ErrorMsg error={errors.salePrice} />
+                <FieldGroup label="Sale Price" icon={Banknote} highlight error={errors.salePrice}>
+                    <Controller
+                        name="salePrice"
+                        control={control}
+                        render={({ field }) => (
+                            <div className="relative">
+                                <Input
+                                    type="text"
+                                    inputMode="numeric"
+                                    value={formatNumber(field.value)}
+                                    onChange={(e) => {
+                                        const cleanValue = unformatNumber(e.target.value);
+                                        field.onChange(Number(cleanValue));
+                                    }}
+                                    className={cn(INPUT_CLS, 'pr-12 font-black text-blue-600 text-[15px]', errors.salePrice && "border-red-400")}
+                                    placeholder="0"
+                                />
+                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-blue-300 uppercase pointer-events-none tracking-tighter">OFFER</span>
+                            </div>
+                        )}
+                    />
                 </FieldGroup>
             </div>
         </section>
@@ -177,7 +214,9 @@ const AttributesSection = memo(({
     colorName,
     colorHex,
     handleColorChange,
-    isLoading
+    isLoading,
+    isEdit,
+    isCustomizable,
 }: {
     register: UseFormRegister<VariantFormValues>;
     errors: FieldErrors<VariantFormValues>;
@@ -187,26 +226,27 @@ const AttributesSection = memo(({
     colorHex: string;
     handleColorChange: (name: string, hex: string) => void;
     isLoading: boolean;
+    isEdit: boolean;
+    isCustomizable: boolean;
 }) => {
     return (
         <section className="space-y-6">
-            <SectionHeading title="Dynamic Specifications" />
+            <SectionHeading title="Inventory & Weight" />
             <div className="grid grid-cols-2 gap-5">
-                <FieldGroup label="Item Weight" icon={Weight}>
+                <FieldGroup label="Weight" icon={Weight} error={errors.weight}>
                     <div className="relative">
                         <Input
                             type="number"
                             {...register('weight', { valueAsNumber: true })}
-                            className={cn(INPUT_CLS, 'pr-14 font-bold', errors.weight && "border-red-400", isCustomSize && "bg-slate-50 text-slate-400 opacity-60 border-dashed cursor-not-allowed")}
+                            className={cn(INPUT_CLS, 'pr-14 font-bold', errors.weight && "border-red-400")}
                             placeholder="0"
-                            disabled={isLoading || isCustomSize}
+                            disabled={isLoading}
                         />
                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-300">KG</span>
                     </div>
-                    <ErrorMsg error={errors.weight} />
                 </FieldGroup>
 
-                <FieldGroup label="Stock Level" icon={Package}>
+                <FieldGroup label="Quantity" icon={Package} error={errors.stockQuantity}>
                     <Input
                         type="number"
                         {...register('stockQuantity', { valueAsNumber: true })}
@@ -214,79 +254,69 @@ const AttributesSection = memo(({
                         placeholder="0"
                         disabled={isLoading}
                     />
-                    <ErrorMsg error={errors.stockQuantity} />
                 </FieldGroup>
             </div>
 
-            <section className="space-y-4">
-                <div className="flex items-center gap-2">
-                    <Ruler className="w-4 h-4 text-slate-400" />
-                    <Label className="text-[11px] font-black uppercase text-slate-500 tracking-wider">Physical Dimensions</Label>
-                </div>
+            <section className="space-y-3 pt-2">
+                <SectionHeading title="Dimensions" />
                 {isCustomSize ? (
                     <div className="flex items-center gap-3 p-4 rounded-2xl bg-blue-50/40 border border-blue-100/60 animate-in zoom-in-95 duration-300 shadow-sm shadow-blue-50/50">
                         <div className="w-10 h-10 rounded-xl bg-white border border-blue-100 flex items-center justify-center text-blue-500 shadow-sm shrink-0">
                             <Sparkles className="w-5 h-5" />
                         </div>
-                        <div className="flex flex-col">
-                            <span className="text-[11px] font-black text-blue-900 uppercase tracking-widest leading-none mb-1">Custom Sizing Active</span>
-                            <span className="text-[10px] font-bold text-blue-600/80 leading-tight">Dimensions sễ được khách hàng sác định.</span>
+                        <div className="flex flex-col text-left">
+                            <span className="text-[11px] font-black text-blue-900 uppercase tracking-widest leading-none mb-1">Custom Size Enabled</span>
+                            <span className="text-[10px] font-bold text-blue-600/80 leading-tight">Customer will provide specific dimensions.</span>
                         </div>
                     </div>
                 ) : (
                     <div className="grid grid-cols-3 gap-3">
-                        <div className="relative">
-                            <Input {...register('width', { valueAsNumber: true })} type="number" className={INPUT_CLS} placeholder="W" />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-300">W</span>
+                        <div className="relative group">
+                            <Input {...register('width', { valueAsNumber: true })} type="number" className={cn(INPUT_CLS, "pr-10")} placeholder="Width" disabled={isLoading || (isEdit && isCustomizable)} />
+                            <div className="absolute right-0 top-0 h-full w-9 flex items-center justify-center bg-gray-100/50 border-l border-gray-200 rounded-r-xl transition-colors group-hover:bg-blue-50">
+                                <span className="text-[10px] font-black text-[#4988c4] uppercase">W</span>
+                            </div>
                         </div>
-                        <div className="relative">
-                            <Input {...register('length', { valueAsNumber: true })} type="number" className={INPUT_CLS} placeholder="L" />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-300">L</span>
+                        <div className="relative group">
+                            <Input {...register('length', { valueAsNumber: true })} type="number" className={cn(INPUT_CLS, "pr-10")} placeholder="Length" disabled={isLoading || (isEdit && isCustomizable)} />
+                            <div className="absolute right-0 top-0 h-full w-9 flex items-center justify-center bg-gray-100/50 border-l border-gray-200 rounded-r-xl transition-colors group-hover:bg-blue-50">
+                                <span className="text-[10px] font-black text-[#4988c4] uppercase">L</span>
+                            </div>
                         </div>
-                        <div className="relative">
-                            <Input {...register('thickness', { valueAsNumber: true })} type="number" className={INPUT_CLS} placeholder="T" />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-300">T</span>
+                        <div className="relative group">
+                            <Input {...register('thickness', { valueAsNumber: true })} type="number" className={cn(INPUT_CLS, "pr-10")} placeholder="Thick" disabled={isLoading || (isEdit && isCustomizable)} />
+                            <div className="absolute right-0 top-0 h-full w-9 flex items-center justify-center bg-gray-100/50 border-l border-gray-200 rounded-r-xl transition-colors group-hover:bg-blue-50">
+                                <span className="text-[10px] font-black text-[#4988c4] uppercase">T</span>
+                            </div>
                         </div>
                     </div>
                 )}
             </section>
 
-            <section className="space-y-4">
-                <div className="flex items-center gap-2">
-                    <Move3D className="w-4 h-4 text-slate-400" />
-                    <Label className="text-[11px] font-black uppercase text-slate-500 tracking-wider">Aesthetic Configuration</Label>
-                </div>
-                <div className="p-1.5 rounded-2xl border border-gray-100 bg-white shadow-sm">
-                    {!isCustomColor ? (
-                        <div className="flex flex-col gap-4 p-4">
+            <section className="space-y-3 pt-4">
+                <SectionHeading title="Color & Style" />
+                <div className={cn("p-1.5 rounded-2xl transition-all", isCustomColor ? "bg-white" : "bg-transparent")}>
+                    {isCustomColor ? (
+                        <div className="flex items-center gap-4 p-4 rounded-xl bg-blue-50/40 border border-blue-100/60 animate-in zoom-in-95 duration-300">
+                            <div className="h-10 w-10 rounded-xl bg-white border border-blue-100 flex items-center justify-center text-blue-500 shadow-sm shrink-0">
+                                <Sparkles className="w-5 h-5 animate-pulse" />
+                            </div>
+                            <div className="flex flex-col text-left">
+                                <span className="text-[11px] font-black text-blue-900 uppercase tracking-widest leading-none mb-1">Custom Color Enabled</span>
+                                <span className="text-[10px] font-bold text-blue-600/80 leading-tight">Customer will select preferred color.</span>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="p-0 border-0">
                             <ColorPicker
                                 color={colorName}
                                 colorCode={colorHex}
                                 onColorChange={handleColorChange}
-                                disabled={isLoading}
+                                disabled={isLoading || (isEdit && isCustomizable)}
                             />
-                            <div className="flex items-center gap-3 pt-3 border-t border-gray-50">
-                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Scheme:</span>
-                                <Badge variant="outline" className="text-[10px] font-bold bg-slate-50 border-gray-100 py-1 px-3 rounded-full">
-                                    {colorName || 'Default Palette'}
-                                </Badge>
-                                <div className="h-4 w-4 rounded-full border border-gray-200 shadow-sm" style={{ backgroundColor: colorHex || '#fff' }} />
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="p-6 bg-blue-50/30 border border-blue-100/30 rounded-xl flex items-start gap-4 animate-in slide-in-from-right-4 duration-500">
-                            <Sparkles className="h-6 w-6 text-blue-400 shrink-0" />
-                            <div className="space-y-1.5">
-                                <h3 className="text-xs font-black text-blue-900 uppercase">Custom Tinting Enabled</h3>
-                                <div className="flex flex-col gap-1">
-                                    <span className="text-[10px] font-medium text-blue-600 leading-relaxed italic">The baseline aesthetic is locked.</span>
-                                    <span className="text-[9px] font-bold text-blue-500">Color selection is now client-driven.</span>
-                                </div>
-                            </div>
                         </div>
                     )}
                 </div>
-                <ErrorMsg error={errors.colorName} />
             </section>
         </section>
     );
@@ -315,8 +345,6 @@ const VariantDialogForm = memo(({
     onOpenChange,
     isLoading = false,
 }: VariantDialogFormProps) => {
-    const isEditInitial = !!variant;
-
     const {
         form,
         register,
@@ -327,8 +355,9 @@ const VariantDialogForm = memo(({
         isValid,
         isCustomColor,
         isCustomSize,
-        isFullCustomBlocked,
-        existingFullCustomSku,
+        hasAttributeCollision,
+        isColorWithoutSize,
+        collidingSku,
         isEdit,
         isCustomizable,
         colorName,
@@ -339,12 +368,12 @@ const VariantDialogForm = memo(({
         productSlug,
         variantCount,
         onSubmit,
-        isEdit: isEditInitial
+        isEdit: !!variant
     });
 
     return (
         <div className="flex flex-col h-full bg-white relative">
-            <div className="flex items-center gap-4 pb-5 border-b border-gray-100 shrink-0">
+            <div className="flex items-center gap-4 pb-5 border-b border-gray-100 shrink-0 px-8 pt-6">
                 <div className="w-12 h-12 rounded-2xl bg-[#4988c4] flex items-center justify-center shadow-lg shadow-blue-100 shrink-0">
                     <Package className="w-6 h-6 text-white" />
                 </div>
@@ -361,7 +390,7 @@ const VariantDialogForm = memo(({
             <form
                 id="variant-form"
                 onSubmit={handleSubmit}
-                className="flex-1 overflow-y-auto px-1 py-5 min-h-0 no-scrollbar"
+                className="flex-1 overflow-y-auto px-8 py-5 min-h-0 no-scrollbar"
             >
                 <Tabs defaultValue="core" className="w-full">
                     <TabsList className="grid grid-cols-3 w-full h-12 bg-gray-100/50 p-1 rounded-xl border border-gray-200/50">
@@ -397,40 +426,53 @@ const VariantDialogForm = memo(({
 
                                 {isCustomizable && (
                                     <div className="space-y-6 animate-in fade-in slide-in-from-top-2 duration-400">
-                                        {isFullCustomBlocked && (
-                                            <div className="flex items-start gap-4 p-5 bg-rose-50 border border-rose-100 rounded-[2rem] shadow-sm animate-in zoom-in-95 duration-500">
-                                                <div className="w-12 h-12 rounded-2xl bg-white border border-rose-200 flex items-center justify-center text-rose-500 shadow-sm shrink-0">
-                                                    <Sparkles className="w-6 h-6 animate-pulse" />
-                                                </div>
-                                                <div className="flex-1 space-y-1.5 pt-0.5">
-                                                    <div className="flex items-center gap-2">
-                                                        <h4 className="text-[11px] font-black text-rose-900 uppercase tracking-widest leading-none">Configuration Blocked</h4>
-                                                        <span className="px-2 py-0.5 rounded-full bg-rose-500 text-[8px] font-black text-white uppercase tracking-tighter shadow-sm">Policy Error</span>
-                                                    </div>
-                                                    <p className="text-[10px] text-rose-600/90 font-medium leading-relaxed">
-                                                        Only <span className="font-black text-rose-900">one</span> "Full Custom" SKU is permitted per product catalog.
-                                                        Conflict detected with existing variant: <span className="font-black text-rose-900 underline underline-offset-4 decoration-rose-300">{existingFullCustomSku}</span>.
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        <div className="space-y-2">
-                                            <Label className="text-[11px] font-black uppercase text-blue-500 tracking-widest px-1">Customer Instruction</Label>
+                                        <FieldGroup label="Customer Instruction" icon={Info} error={errors.customizeLabel}>
                                             <Input
                                                 placeholder="e.g. 'Enter your custom size or color preference...'"
                                                 {...register('customizeLabel')}
                                                 className={cn(INPUT_CLS, "h-11 border-blue-100 focus:ring-blue-50 shadow-sm", errors.customizeLabel && "border-red-400")}
                                             />
-                                            <ErrorMsg error={errors.customizeLabel} />
-                                        </div>
+                                        </FieldGroup>
 
                                         <div className="space-y-3 pt-2">
+                                            {hasAttributeCollision && (
+                                                <div className="flex items-start gap-4 p-5 bg-rose-50 border border-rose-100 rounded-[2rem] shadow-sm animate-in zoom-in-95 duration-500">
+                                                    <div className="w-12 h-12 rounded-2xl bg-white border border-rose-200 flex items-center justify-center text-rose-500 shadow-sm shrink-0">
+                                                        <AlertCircle className="w-6 h-6 animate-pulse" />
+                                                    </div>
+                                                    <div className="flex-1 space-y-1.5 pt-0.5">
+                                                        <div className="flex items-center gap-2">
+                                                            <h4 className="text-[11px] font-black text-rose-900 uppercase tracking-widest leading-none">Configuration Conflict</h4>
+                                                            <span className="px-2 py-0.5 rounded-full bg-rose-500 text-[8px] font-black text-white uppercase tracking-tighter shadow-sm">Duplicate Blocked</span>
+                                                        </div>
+                                                        <p className="text-[10px] text-rose-600/90 font-medium leading-relaxed">
+                                                            A variant with these exact specifications already exists: <span className="font-black text-rose-900 underline underline-offset-4 decoration-rose-300">{collidingSku}</span>.
+                                                            Each variant must have a unique combination of attributes.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {isColorWithoutSize && (
+                                                <div className="flex items-center gap-3 p-3.5 rounded-xl bg-red-50 border border-red-100/60 animate-in slide-in-from-top-2 duration-300">
+                                                    <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[10px] font-black text-red-600 uppercase tracking-tight">Requirement Conflict</span>
+                                                        <span className="text-[11px] font-bold text-red-500 leading-tight">Size must be enabled when using Color customization.</span>
+                                                    </div>
+                                                </div>
+                                            )}
+
                                             <Label className="text-[11px] font-black uppercase text-slate-400 tracking-widest px-1">Allowed Variation Types</Label>
-                                            <VariantCustomization
-                                                variantId={variant?.id}
-                                                pendingCustomizations={variant?.pendingCustoms || []}
-                                                onPendingChange={() => {/* Manual handling if needed */ }}
+                                            <Controller
+                                                name="pendingCustoms"
+                                                control={form.control}
+                                                render={({ field }) => (
+                                                    <VariantCustomization
+                                                        pendingCustomizations={field.value}
+                                                        onPendingChange={field.onChange}
+                                                    />
+                                                )}
                                             />
                                         </div>
                                     </div>
@@ -448,13 +490,15 @@ const VariantDialogForm = memo(({
                                 colorHex={colorHex || ''}
                                 handleColorChange={handleColorChange}
                                 isLoading={isLoading}
+                                isEdit={isEdit}
+                                isCustomizable={isCustomizable}
                             />
                         </TabsContent>
                     </div>
                 </Tabs>
             </form>
 
-            <div className="flex items-center justify-end gap-3 pt-5 border-t border-gray-100 mt-auto shrink-0 bg-white">
+            <div className="flex items-center justify-end gap-3 px-8 py-5 border-t border-gray-100 mt-auto shrink-0 bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.02)]">
                 <Button
                     variant="outline"
                     type="button"

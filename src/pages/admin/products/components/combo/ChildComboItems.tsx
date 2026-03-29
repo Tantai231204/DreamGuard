@@ -48,8 +48,9 @@ export default function ChildComboItems({
         if (source) {
             const itemMap: Record<string, number> = {};
             if (detail) {
-                detail.productItems?.forEach(i => {
-                    itemMap[i.productVariantId] = i.quantity;
+                detail.items?.forEach(i => {
+                    const id = i.variantId || i.productId || '';
+                    itemMap[id] = i.quantity;
                 });
                 setHasFullDetail(true);
             } else if (parentChildData) {
@@ -91,7 +92,10 @@ export default function ChildComboItems({
         if (!detail) return false;
 
         // Check items
-        const itemsChanged = detail.productItems?.some(i => draftItems[i.productVariantId] !== i.quantity);
+        const itemsChanged = detail.items?.some(i => {
+             const id = i.variantId || i.productId || '';
+             return draftItems[id] !== i.quantity;
+        });
         if (itemsChanged) return true;
 
         // Check price
@@ -109,8 +113,9 @@ export default function ChildComboItems({
     const handleReset = () => {
         if (!detail) return;
         const itemMap: Record<string, number> = {};
-        detail.productItems?.forEach(i => {
-            itemMap[i.productVariantId] = i.quantity;
+        detail.items?.forEach(i => {
+            const id = i.variantId || i.productId || '';
+            itemMap[id] = i.quantity;
         });
         setDraftItems(itemMap);
         setDraftSalePrice(detail.salePrice);
@@ -119,13 +124,19 @@ export default function ChildComboItems({
     const handleSaveAll = async () => {
         if (!detail) return;
 
-        const itemsChanged = detail.productItems?.some(i => draftItems[i.productVariantId] !== i.quantity);
+        const itemsChanged = detail.items?.some(i => {
+             const id = i.variantId || i.productId || '';
+             return draftItems[id] !== i.quantity;
+        });
         const priceOrInfoChanged = (draftSalePrice !== detail.salePrice) || (theoreticalValue !== detail.basePrice);
 
-        const updatedItems = detail.productItems?.map(i => ({
-            productVariantId: i.productVariantId,
-            quantity: draftItems[i.productVariantId] ?? i.quantity
-        })) || [];
+        const updatedItems = detail.items?.map(i => {
+            const id = i.variantId || i.productId || '';
+            return {
+                productVariantId: id,
+                quantity: draftItems[id] ?? i.quantity
+            };
+        }) || [];
 
         try {
             const tasks: Promise<ComboResponse | void>[] = [];
@@ -171,14 +182,18 @@ export default function ChildComboItems({
         if (!detail || !confirm('Remove this item from combo?')) return;
         const [pId] = itemKey.split('|');
 
-        const updatedItems = detail.productItems?.filter(i =>
-            i.productVariantId !== pId
-        ) || [];
+        const updatedItems = detail.items?.filter(i => {
+             const id = i.variantId || i.productId || '';
+             return id !== pId;
+        }) || [];
 
-        const itemsUpdate = updatedItems.map(i => ({
-            productVariantId: i.productVariantId,
-            quantity: draftItems[i.productVariantId] ?? i.quantity
-        }));
+        const itemsUpdate = updatedItems.map(i => {
+            const id = i.variantId || i.productId || '';
+            return {
+                productVariantId: id,
+                quantity: draftItems[id] ?? i.quantity
+            };
+        });
 
         await updateComboMutation.mutateAsync({
             id: childId,

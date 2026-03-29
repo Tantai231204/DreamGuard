@@ -19,9 +19,10 @@ export default function PriceRangeCell({ productId, variantCount }: PriceRangeCe
 
     data.colorGroups.forEach((g) =>
       g.variants.forEach((v) => {
-        prices.push(v.salePrice);
+        const displayPrice = v.salePrice > 0 ? v.salePrice : v.basePrice;
+        prices.push(displayPrice);
         basePrices.push(v.basePrice);
-        if (v.salePrice < v.basePrice) hasSale = true;
+        if (v.salePrice > 0 && v.salePrice < v.basePrice) hasSale = true;
       })
     );
 

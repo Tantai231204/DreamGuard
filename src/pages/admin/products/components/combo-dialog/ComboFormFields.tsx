@@ -11,8 +11,8 @@ import {
     Upload, Trash2, Image as ImageIcon, Loader2,
     AlertCircle, CheckCircle2, RefreshCw,
 } from 'lucide-react';
-import { PRODUCT_STATUSES, PRODUCT_STATUS_COLORS, AGE_GROUPS, normalizeStatus } from '../../types';
-import { INPUT_CLS, SELECT_TRIGGER_CLS, getAllowedStatusTransitions } from './index';
+import { AGE_GROUPS } from '../../types';
+import { INPUT_CLS, SELECT_TRIGGER_CLS } from './index';
 import type { ComboDialogMode, ComboFormValues } from './index';
 import ColorPicker from '../variant-dialog/ColorPicker';
 import { useUploadComboImage, useDeleteComboImage } from '@/hooks/queries/useCombo';
@@ -229,10 +229,7 @@ const LeftPanel = memo(({
         [comboParents],
     );
 
-    const allowedTransitions = useMemo(() =>
-        getAllowedStatusTransitions(normalizeStatus(watchValues.status)),
-        [watchValues.status]
-    );
+
 
     return (
         <div className="flex flex-col h-full overflow-y-auto bg-white border-r border-slate-100">
@@ -352,42 +349,7 @@ const LeftPanel = memo(({
                     </div>
                 </section>
 
-                {/* ── Status ── */}
-                <section>
-                    <SectionDivider label="Status" />
-                    <Field label="Published status" required>
-                        <Select
-                            value={normalizeStatus(watchValues.status)}
-                            onValueChange={(v) => setField('status' as Path<ComboFormValues>, v as PathValue<ComboFormValues, 'status'>)}
-                            disabled={isLoading}
-                        >
-                            <SelectTrigger className={cn(SELECT_TRIGGER_CLS, "bg-white", errors.status && "border-red-400")}>
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent className="rounded-xl border-slate-200 shadow-xl">
-                                {allowedTransitions.map((status) => (
-                                    <SelectItem key={status} value={status} className="rounded-lg py-2">
-                                        <div className="flex items-center gap-2 text-sm text-slate-700">
-                                            <div className={cn(
-                                                "h-1.5 w-1.5 rounded-full",
-                                                PRODUCT_STATUS_COLORS[status as keyof typeof PRODUCT_STATUS_COLORS] || 'bg-amber-400'
-                                            )} />
-                                            {PRODUCT_STATUSES.find(s => s.value === status)?.label || status}
-                                        </div>
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        {isEdit && (
-                            <div className="mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50/30 text-indigo-700 border border-indigo-100/50">
-                                <span className="text-[10px] font-bold uppercase tracking-wider">
-                                    Current Persistence: {normalizeStatus(watchValues.status)}
-                                </span>
-                            </div>
-                        )}
-                        <ErrorMsg error={errors.status} />
-                    </Field>
-                </section>
+
 
                 {/* ── Media ── */}
                 <section>
@@ -485,6 +447,7 @@ interface ComboFormFieldsProps {
     isLoadingVariants: boolean;
     watchValues: Partial<ComboFormValues>;
     comboId?: string;
+    parentPriceRange?: string | null;
 }
 
 const ComboFormFields = memo(({
@@ -500,13 +463,11 @@ const ComboFormFields = memo(({
     isLoadingVariants,
     watchValues,
     comboId,
+    parentPriceRange,
 }: ComboFormFieldsProps) => {
     const LEFT_PANEL_WIDTH = "440px";
 
-    const allowedTransitions = useMemo(() =>
-        getAllowedStatusTransitions(normalizeStatus(watchValues.status)),
-        [watchValues.status]
-    );
+
 
     const handleSyncPrice = useCallback(() => {
         const total = (watchValues.items ?? []).reduce(
@@ -633,6 +594,17 @@ const ComboFormFields = memo(({
                         </Select>
                         <ErrorMsg error={errors.ageGroup} />
                     </Field>
+
+
+
+                    {mode === 'parent' && isEdit && parentPriceRange && (
+                        <Field label="Dynamic Variant Pricing" hint="Calculated based on existing variants">
+                            <div className="flex h-10 w-full items-center pl-3 pr-4 rounded-lg border border-slate-200 bg-slate-50/80 text-sm font-semibold text-slate-700 select-none">
+                                <span className="flex-1 opacity-90">{parentPriceRange}</span>
+                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider ml-4 rounded-md bg-white border border-slate-200 px-2 py-0.5 shadow-sm">Auto</span>
+                            </div>
+                        </Field>
+                    )}
                     <Field label="Short description" required hint={`${watchValues.description?.length ?? 0}/120`}>
                         <Textarea
                             {...register('description')}
@@ -667,114 +639,6 @@ const ComboFormFields = memo(({
                         />
                     )}
                 </section>
-            </TabsContent>
-
-            {/* Config tab */}
-            <TabsContent value="config" className="mt-0 space-y-5 animate-in fade-in slide-in-from-left-1 duration-200">
-                <section className="space-y-3">
-                    <SectionDivider label="Inventory & policy" />
-                    <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-100">
-                        <div className="h-10 w-10 rounded-lg bg-white border border-slate-200 flex items-center justify-center shrink-0">
-                            <Upload className="h-4 w-4 text-slate-400" />
-                        </div>
-                        <div>
-                            <p className="text-sm font-semibold text-slate-700">Parent configuration mode</p>
-                            <p className="text-xs text-slate-500 leading-relaxed">
-                                Color, size and status are managed at the variant level.
-                            </p>
-                        </div>
-                    </div>
-                    <Field label="Published status" required>
-                        {!isEdit ? (
-                            <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200/60">
-                                <div className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
-                                <span className="text-[11px] font-semibold text-amber-700">Draft — auto-assigned on creation</span>
-                            </div>
-                        ) : (
-                            <div className="space-y-2">
-                                <Select
-                                    value={normalizeStatus(watchValues.status)}
-                                    onValueChange={v =>
-                                        setField(
-                                            'status' as Path<ComboFormValues>,
-                                            v as PathValue<ComboFormValues, 'status'>,
-                                        )
-                                    }
-                                    disabled={isLoading}
-                                >
-                                    <SelectTrigger className={cn(SELECT_TRIGGER_CLS, 'bg-white', errors.status && 'border-red-400')}>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent className="rounded-xl border-slate-200 shadow-xl">
-                                        {PRODUCT_STATUSES.filter(s =>
-                                            allowedTransitions.includes(s.value),
-                                        ).map(s => (
-                                            <SelectItem key={s.value} value={s.value} className="rounded-lg py-2">
-                                                <div className="flex items-center gap-2 text-sm text-slate-700">
-                                                    <div className={cn('h-1.5 w-1.5 rounded-full', PRODUCT_STATUS_COLORS[s.value])} />
-                                                    {s.label}
-                                                </div>
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50/30 text-indigo-700 border border-indigo-100/50 w-fit">
-                                    <span className="text-[10px] font-bold uppercase tracking-wider">
-                                        Current Persistence: {normalizeStatus(watchValues.status)}
-                                    </span>
-                                </div>
-                                <ErrorMsg error={errors.status} />
-                            </div>
-                        )}
-                    </Field>
-                </section>
-            </TabsContent>
-
-            {/* Pricing tab */}
-            <TabsContent value="pricing" className="mt-0 space-y-5 animate-in fade-in slide-in-from-left-1 duration-200">
-                <section className="max-w-sm space-y-3">
-                    <SectionDivider label="Price configuration" />
-                    <Field label="Base market value" required>
-                        <div className="relative">
-                            <Input
-                                value={formatNumber(watchValues.basePrice)}
-                                onChange={e =>
-                                    setField(
-                                        'basePrice' as Path<ComboFormValues>,
-                                        unformatNumber(e.target.value) as PathValue<ComboFormValues, 'basePrice'>,
-                                    )
-                                }
-                                disabled={isLoading}
-                                className={cn(INPUT_CLS, 'pr-8 bg-white')}
-                            />
-                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-slate-400">₫</span>
-                        </div>
-                        <ErrorMsg error={errors.basePrice} />
-                    </Field>
-                    <Field label="Sale price" required>
-                        <div className="relative">
-                            <Input
-                                value={formatNumber(watchValues.salePrice)}
-                                onChange={e =>
-                                    setField(
-                                        'salePrice' as Path<ComboFormValues>,
-                                        unformatNumber(e.target.value) as PathValue<ComboFormValues, 'salePrice'>,
-                                    )
-                                }
-                                disabled={isLoading}
-                                className={cn(INPUT_CLS, 'pr-8 bg-white')}
-                            />
-                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-slate-400">₫</span>
-                        </div>
-                        <ErrorMsg error={errors.salePrice} />
-                    </Field>
-                </section>
-                <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-slate-50 border border-slate-100">
-                    <Upload className="h-4 w-4 text-slate-400 shrink-0" />
-                    <p className="text-[11px] text-slate-500 leading-relaxed">
-                        Bundle items and per-variant pricing are managed inside each child variant.
-                    </p>
-                </div>
             </TabsContent>
         </div>
     );

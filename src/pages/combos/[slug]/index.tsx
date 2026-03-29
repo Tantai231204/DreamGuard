@@ -11,8 +11,7 @@ import {
     ComboInfo, 
     ComboVariants, 
     ComboActions, 
-    ComboTabs,
-    ComboIncludedItems
+    ComboTabs
 } from "./components";
 import { SafetyCertifications } from "../../products/[slug]/components/SafetyCertifications";
 
@@ -63,8 +62,13 @@ export default function ComboDetail() {
     const {
         combo,
         isLoading,
+        isLoadingVariant,
         isError,
         activeCombo,
+        displayImage,
+        enrichedItems,
+        totalIndividualPrice,
+        totalBundleSavings,
         selectedVariantId,
         quantity,
         isWishlisted,
@@ -127,8 +131,10 @@ export default function ComboDetail() {
                         <ComboImageGallery 
                             combo={combo}
                             activeCombo={activeCombo}
+                            displayImage={displayImage}
                             isWishlisted={isWishlisted}
                             onToggleWishlist={toggleWishlist}
+                            enrichedItems={enrichedItems}
                         />
                     </div>
 
@@ -137,6 +143,10 @@ export default function ComboDetail() {
                         <ComboInfo 
                             combo={combo}
                             activeCombo={activeCombo}
+                            isLoading={isLoadingVariant}
+                            enrichedItems={enrichedItems}
+                            totalIndividualPrice={totalIndividualPrice}
+                            totalBundleSavings={totalBundleSavings}
                         />
 
                         <ComboVariants 
@@ -175,10 +185,7 @@ export default function ComboDetail() {
                     </div>
                 </div>
 
-                {/* Section: Bundle Contents Highlight */}
-                <div className="mt-20">
-                    <ComboIncludedItems combo={combo} />
-                </div>
+
 
                 {/* Bottom Section: Syncing with Product Detail Tabs style */}
                 <section className="mt-24 space-y-24">

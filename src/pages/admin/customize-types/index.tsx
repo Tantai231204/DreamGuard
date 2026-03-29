@@ -169,8 +169,16 @@ export default function CustomizeTypesPage() {
 
     const handleExport = useCallback(() => {
         downloadCSV(
-            items.map(({ id, name, summary, defaultPrice, status }) => ({
-                ID: id, Name: name, Summary: summary, Price: defaultPrice, Status: status,
+            items.map(({ id, name, summary, defaultPrice, status, category, calculationMode, defaultMultiplier, applicableProductType }) => ({
+                ID: id,
+                Name: name,
+                Summary: summary,
+                Price: defaultPrice,
+                Status: status,
+                Category: category,
+                Mode: calculationMode,
+                Multiplier: defaultMultiplier,
+                TargetType: applicableProductType,
             })),
             'CustomizeTypes_Export'
         );
@@ -180,7 +188,7 @@ export default function CustomizeTypesPage() {
         (data: CustomizeTypeFormValues) => {
             if (editingType) {
                 updateMutation.mutate(
-                    { id: editingType.id, data },
+                    { id: editingType.id, data: data as any },
                     {
                         onSuccess: () => {
                             setDialogOpen(false);
@@ -189,7 +197,7 @@ export default function CustomizeTypesPage() {
                     }
                 );
             } else {
-                createMutation.mutate(data, {
+                createMutation.mutate(data as any, {
                     onSuccess: () => {
                         setDialogOpen(false);
                         toast.success('Created', 'New classification created.');

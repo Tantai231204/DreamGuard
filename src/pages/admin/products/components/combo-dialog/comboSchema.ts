@@ -28,6 +28,8 @@ export const comboSchema = z.object({
     status: z.string().min(1, "Status is required"),
     items: z.array(comboItemSchema),
 }).refine((data) => {
+    // Only strictly validate pricing if it was explicitly provided 
+    // (useful for variant modes that still have editable pricing, parent modes pass 0 which is fine (0 > 0 is false))
     if (data.salePrice > data.basePrice) return false;
     return true;
 }, {

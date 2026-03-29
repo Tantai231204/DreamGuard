@@ -165,12 +165,15 @@ export interface Certificate {
   name: string;
   summary: string;
   description: string;
+  isActive: boolean;
+  organization?: string;
   createdAt?: string;
 }
 
 export interface CreateCertificateRequest {
   name: string;
   summary: string;
+  organization: string;
   description: string;
 }
 
@@ -194,7 +197,7 @@ export interface Product {
   createdAt: string;
   averageRating: number;
   cateId: number | null;
-  certificateIds?: string[];
+  CertificateIds?: string[];
   // Joined / computed (from admin endpoint)
   categoryName?: string;
   variantCount?: number;
@@ -214,7 +217,7 @@ export interface CreateProductRequest {
   returnPolicyDay: number | null;
   status: string;
   cateId: number | null;
-  certificateIds?: string[];
+  CertificateIds?: string[];
 }
 
 export interface UpdateProductRequest {
@@ -229,7 +232,7 @@ export interface UpdateProductRequest {
   warrantyPolicyDay: number | null;
   returnPolicyDay: number | null;
   cateId: number | null;
-  certificateIds?: string[];
+  CertificateIds?: string[];
 }
 
 // ── Product Variant ──────────────────────────────────────
@@ -353,6 +356,14 @@ export interface VariantSubmitData {
   pendingCustoms?: { customizeTypeId: string; overridePrice: number | null }[];
 }
 
+export interface StatusChangeData {
+  id: string;
+  name: string;
+  type: 'product' | 'combo' | 'variant';
+  currentStatus: ProductStatus;
+  newStatus: ProductStatus;
+}
+
 export interface AdminProductState {
   activeTab: 'single' | 'combo' | 'certificate';
   setActiveTab: (tab: 'single' | 'combo' | 'certificate') => void;
@@ -463,8 +474,12 @@ export interface AdminProductState {
   setDeleteVariant: (v: ProductVariant | null) => void;
   bulkDeleteData: { ids: string[]; type: 'single' | 'combo' | 'certificate' } | null;
   setBulkDeleteData: (d: { ids: string[]; type: 'single' | 'combo' | 'certificate' } | null) => void;
+  statusChangeData: StatusChangeData | null;
+  setStatusChangeData: (d: StatusChangeData | null) => void;
   handleAddImagesFromSuccess: () => void;
   handleSkipImages: () => void;
+  categories: import('@/api').CategoryResponse[];
+  isLoadingCategories: boolean;
 }
 
 export interface AdminProductMutations {
@@ -472,6 +487,7 @@ export interface AdminProductMutations {
   handleVariantSubmit: (formData: VariantSubmitData) => void | Promise<void>;
   handleComboSubmit: (data: CreateComboRequest) => void | Promise<void>;
   handleCertSubmit: (data: CreateCertificateRequest) => Promise<void>;
+  handleUploadImages: (productId: string, files: File[]) => Promise<void>;
   handleBulkDelete: (table: import('@tanstack/react-table').Table<Product | Combo | Certificate>, tab: 'single' | 'combo' | 'certificate') => void;
   handleConfirmBulkDelete: () => Promise<void>;
   handleExport: (tab: string, products: Product[], combos: Combo[], certificates?: Certificate[]) => void;
@@ -479,6 +495,8 @@ export interface AdminProductMutations {
   handleConfirmDeleteVariant: (id: string) => void;
   handleConfirmDeleteCombo: (id: string) => void;
   handleConfirmDeleteCert: (id: string) => void;
+  handleStatusChangeRequest: (data: StatusChangeData) => void;
+  handleConfirmStatusChange: () => Promise<void>;
   createMutation: { isPending: boolean };
   updateMutation: { isPending: boolean };
   updateVariantMutation: { isPending: boolean };
@@ -486,6 +504,7 @@ export interface AdminProductMutations {
   createVariantWithCustomizeMutation: { isPending: boolean };
   createComboMutation: { isPending: boolean };
   updateComboMutation: { isPending: boolean };
+  updateComboItemsMutation: { isPending: boolean };
   createCertMutation: { isPending: boolean };
   updateCertMutation: { isPending: boolean };
   uploadImagesMutation: { isPending: boolean };
@@ -496,4 +515,5 @@ export interface AdminProductMutations {
   deleteCertMutation: { isPending: boolean };
   updateProductStatusMutation: { isPending: boolean };
   updateVariantStatusMutation: { isPending: boolean };
+  updateComboStatusMutation: { isPending: boolean };
 }

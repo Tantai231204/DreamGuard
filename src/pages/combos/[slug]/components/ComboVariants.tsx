@@ -17,9 +17,8 @@ export const ComboVariants = memo(({
     onSelectVariant
 }: ComboVariantsProps) => {
     const allVariants = useMemo(() => {
-        const variants = combo.childCombos || [];
-        return [combo, ...variants];
-    }, [combo]);
+        return combo.childCombos || [];
+    }, [combo.childCombos]);
 
     // Format Color Options
     const colorOptions = useMemo(() => {

@@ -15,6 +15,7 @@ import { productSchema, type ProductFormValues } from './productSchema';
 
 interface ProductWithSubCate extends Product {
     subCateId?: number | null;
+    certificateIds?: string[];
 }
 
 interface ProductDialogFormProps {
@@ -23,6 +24,7 @@ interface ProductDialogFormProps {
     onSubmit: (data: CreateProductRequest) => void | Promise<void>;
     isLoading?: boolean;
     categories?: CategoryResponse[];
+    certificates?: import('../../types').Certificate[];
 }
 
 // ── Shared Sub-Components (Outside Render) ──
@@ -73,13 +75,8 @@ const GeneralTabContent = memo(({
                 onSlugChange={handleSlugChange}
                 onSummaryChange={handleSummaryChange}
                 onDescriptionChange={handleDescriptionChange}
+                errors={errors}
             />
-            <div className="grid grid-cols-2 gap-4 mt-2">
-                <div><ErrorMsg error={errors.name} /></div>
-                <div><ErrorMsg error={errors.slug} /></div>
-                <div><ErrorMsg error={errors.summary} /></div>
-                <div><ErrorMsg error={errors.description} /></div>
-            </div>
         </TabsContent>
     );
 });
@@ -92,6 +89,8 @@ const ClassificationTabContent = memo(({
     childCategories,
     onCateChange,
     onSubCateIdChange,
+    onCertificatesChange,
+    allCertificates,
     setValue,
     errors
 }: {
@@ -101,6 +100,8 @@ const ClassificationTabContent = memo(({
     childCategories: CategoryResponse[];
     onCateChange: (v: string | number) => void;
     onSubCateIdChange: (v: string | number) => void;
+    onCertificatesChange: (v: string[]) => void;
+    allCertificates: import('../../types').Certificate[];
     setValue: UseFormSetValue<ProductFormValues>;
     errors: FieldErrors<ProductFormValues>;
 }) => {
@@ -108,6 +109,7 @@ const ClassificationTabContent = memo(({
     const ageGroup = useWatch({ control, name: 'ageGroup' });
     const subCateId = useWatch({ control, name: 'subCateId' });
     const material = useWatch({ control, name: 'material' });
+    const CertificateIds = useWatch({ control, name: 'CertificateIds' });
 
     const handleAgeGroupChange = useCallback((v: string) => setValue('ageGroup', String(v || ''), { shouldValidate: true }), [setValue]);
     const handleMaterialChange = useCallback((v: string) => setValue('material', v, { shouldValidate: true }), [setValue]);
@@ -119,13 +121,16 @@ const ClassificationTabContent = memo(({
                 ageGroup={ageGroup || ''}
                 subCateId={String(subCateId || '')}
                 material={material || ''}
+                certificateIds={CertificateIds || []}
                 flatCategories={flatCategories}
                 childCategories={childCategories}
+                allCertificates={allCertificates}
                 isLoading={isLoading}
                 onCateChange={onCateChange}
                 onAgeGroupChange={handleAgeGroupChange}
                 onSubCateIdChange={onSubCateIdChange}
                 onMaterialChange={handleMaterialChange}
+                onCertificatesChange={onCertificatesChange}
             />
             <div className="space-y-2 px-1">
                 <ErrorMsg error={errors.cateId} />
@@ -139,23 +144,19 @@ ClassificationTabContent.displayName = 'ClassificationTabContent';
 const PolicyTabContent = memo(({
     control,
     isLoading,
-    isEdit,
     isPublishingWithoutVariants,
     setValue
 }: {
     control: Control<ProductFormValues>;
     isLoading: boolean;
-    isEdit: boolean;
     isPublishingWithoutVariants: boolean;
     setValue: UseFormSetValue<ProductFormValues>;
 }) => {
     const warrantyPolicyDay = useWatch({ control, name: 'warrantyPolicyDay' });
     const returnPolicyDay = useWatch({ control, name: 'returnPolicyDay' });
-    const status = useWatch({ control, name: 'status' });
 
     const handleWarrantyChange = useCallback((v: string | number) => setValue('warrantyPolicyDay', Number(v), { shouldValidate: true }), [setValue]);
     const handleReturnChange = useCallback((v: string | number) => setValue('returnPolicyDay', Number(v), { shouldValidate: true }), [setValue]);
-    const handleStatusChange = useCallback((v: string) => setValue('status', v, { shouldValidate: true }), [setValue]);
 
     return (
         <TabsContent value="policy" className="mt-0 outline-none animate-in fade-in-50 duration-300">
@@ -173,12 +174,9 @@ const PolicyTabContent = memo(({
             <PolicyStatusSection
                 warrantyPolicyDay={warrantyPolicyDay || 0}
                 returnPolicyDay={returnPolicyDay || 0}
-                status={(status as ProductStatus) || 'Draft'}
                 isLoading={isLoading}
-                isEdit={isEdit}
                 onWarrantyChange={handleWarrantyChange}
                 onReturnChange={handleReturnChange}
-                onStatusChange={handleStatusChange}
             />
         </TabsContent>
     );
@@ -191,6 +189,7 @@ export default function ProductDialogForm({
     onSubmit,
     isLoading = false,
     categories = [],
+    certificates = [],
 }: ProductDialogFormProps) {
     const isEdit = !!product;
     const [activeTab, setActiveTab] = useState("general");
@@ -209,18 +208,23 @@ export default function ProductDialogForm({
             warrantyPolicyDay: product?.warrantyPolicyDay || 0,
             returnPolicyDay: product?.returnPolicyDay || 0,
             status: product?.status || 'Draft',
+            CertificateIds: product?.CertificateIds || product?.certificateIds || [],
         },
         mode: 'onChange'
     });
 
     const { errors } = form.formState;
 
+    const hasGeneralErrors = !!(errors.name || errors.slug || errors.summary || errors.description);
+    const hasClassificationErrors = !!(errors.cateId || errors.material);
+    const hasPolicyErrors = !!(errors.warrantyPolicyDay || errors.returnPolicyDay);
+
     /* ── Reactive watchers for top-level logic only ── */
     const watchStatus = useWatch({ control: form.control, name: 'status' });
     const watchCateId = useWatch({ control: form.control, name: 'cateId' });
     const watchName = useWatch({ control: form.control, name: 'name' });
     const watchDescription = useWatch({ control: form.control, name: 'description' });
-    const watchMaterial = useWatch({ control: form.control, name: 'material' });
+    const watchSubCateId = useWatch({ control: form.control, name: 'subCateId' });
 
     /* ── Variant Count Check ── */
     const variantCount = useMemo(() => {
@@ -232,29 +236,38 @@ export default function ProductDialogForm({
     const { flatCategories, findTopLevelParent, childCategories, buildSlug } =
         useCategoryTree(categories, String(watchCateId || ''));
 
+    // ── Senior Logic: Initial Data Patching ──
     useEffect(() => {
-        if (isEdit && product?.cateId && flatCategories.length > 0) {
-            const currentId = String(product.cateId);
-            const foundCat = flatCategories.find(c => String(c.cateId) === currentId);
+        if (!isEdit || !product || categories.length === 0) return;
 
-            if (foundCat && foundCat.depth > 0) {
-                const parentId = findTopLevelParent(currentId);
-                form.setValue('cateId', Number(parentId), { shouldValidate: true });
-                form.setValue('subCateId', Number(currentId), { shouldValidate: true });
-            } else if (foundCat && foundCat.depth === 0 && product.material) {
-                const parentId = product.cateId;
-                const foundParent = categories.find(c => String(c.cateId) === String(parentId));
-                const children = foundParent?.childCategoryList || [];
-                const matchedChild = children.find(
-                    child => child.name.toLowerCase() === product.material.toLowerCase()
-                );
-                if (matchedChild) {
-                    form.setValue('cateId', Number(parentId), { shouldValidate: true });
-                    form.setValue('subCateId', Number(matchedChild.cateId), { shouldValidate: true });
-                }
+        const currentCateId = product.cateId ? Number(product.cateId) : null;
+        if (!currentCateId) return;
+
+        // Find where this ID sits in the tree
+        const node = flatCategories.find(c => c.cateId === currentCateId);
+        if (!node) return;
+
+        if (node.depth > 0) {
+            // It's a subcategory (Leaf Node)
+            const topId = findTopLevelParent(String(currentCateId));
+            form.setValue('cateId', Number(topId), { shouldDirty: false });
+            form.setValue('subCateId', currentCateId, { shouldDirty: false });
+            form.setValue('material', node.name, { shouldDirty: false });
+        } else {
+            // It's a top-level category
+            form.setValue('cateId', currentCateId, { shouldDirty: false });
+            form.setValue('subCateId', null, { shouldDirty: false });
+
+            // If it has material string but no subCateId matching it, keep material
+            if (product.material) {
+                form.setValue('material', product.material, { shouldDirty: false });
             }
         }
-    }, [isEdit, product?.id, product?.cateId, product?.material, flatCategories, findTopLevelParent, categories, form]);
+
+        // Sync Certificates - check both casing variants from API
+        const certs = product.CertificateIds || product.certificateIds || [];
+        form.setValue('CertificateIds', certs, { shouldDirty: false });
+    }, [isEdit, product, categories.length, flatCategories, findTopLevelParent, form]);
 
     /* ── Handlers ── */
     const handleNameChange = useCallback(
@@ -310,18 +323,24 @@ export default function ProductDialogForm({
     const onFormSubmit = (values: ProductFormValues) => {
         if (isPublishingWithoutVariants) return;
 
-        onSubmit({
+        // Senior Guard: Final CateID is always the leaf-most selection
+        const submissionCateId = values.subCateId || values.cateId;
+
+        const payload = {
             name: values.name.trim(),
             slug: values.slug.trim(),
             summary: values.summary.trim(),
             description: values.description.trim(),
-            material: values.material.trim(),
-            ageGroup: values.ageGroup || null,
-            warrantyPolicyDay: values.warrantyPolicyDay,
-            returnPolicyDay: values.returnPolicyDay,
-            status: values.status as ProductStatus,
-            cateId: values.cateId,
-        });
+            material: values.material?.trim() || "",
+            status: values.status,
+            ageGroup: String(values.ageGroup || "0"),
+            warrantyPolicyDay: Number(values.warrantyPolicyDay || 0),
+            returnPolicyDay: Number(values.returnPolicyDay || 0),
+            cateId: submissionCateId > 0 ? submissionCateId : null,
+            CertificateIds: values.CertificateIds || []
+        };
+
+        onSubmit(payload as unknown as CreateProductRequest);
     };
 
     // Calculate Form Completion %
@@ -330,13 +349,13 @@ export default function ProductDialogForm({
         if (watchName?.trim()) score += 20;
         if (watchDescription?.trim()) score += 20;
         if (watchCateId) score += 20;
-        if (watchMaterial?.trim()) score += 20;
+        if (watchSubCateId) score += 20;
         if (watchStatus !== 'Draft') score += 20;
         return score;
-    }, [watchName, watchDescription, watchCateId, watchMaterial, watchStatus]);
+    }, [watchName, watchDescription, watchCateId, watchSubCateId, watchStatus]);
 
     return (
-        <div className="flex flex-col min-h-0">
+        <div className="flex flex-col min-h-0 h-full flex-1">
             <DialogHeader
                 isEdit={isEdit}
                 status={(watchStatus as ProductStatus) || 'Draft'}
@@ -345,14 +364,24 @@ export default function ProductDialogForm({
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mt-4 flex-1 flex flex-col min-h-0">
                 <TabsList className="grid grid-cols-3 w-full h-12 bg-gray-100/50 p-1 rounded-xl border border-gray-200/50 shrink-0">
-                    <TabsTrigger value="general" className="rounded-lg data-[state=active]:bg-[#4988c4] data-[state=active]:text-white data-[state=active]:shadow-sm text-xs font-bold gap-2 transition-all">
+                    <TabsTrigger value="general" className="relative rounded-lg data-[state=active]:bg-[#4988c4] data-[state=active]:text-white data-[state=active]:shadow-sm text-xs font-bold gap-2 transition-all">
                         <Info className="h-4 w-4" /> General
+                        {hasGeneralErrors && (
+                            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white shadow-sm animate-pulse" />
+                        )}
                     </TabsTrigger>
-                    <TabsTrigger value="classification" className="rounded-lg data-[state=active]:bg-[#4988c4] data-[state=active]:text-white data-[state=active]:shadow-sm text-xs font-bold gap-2 transition-all">
+                    <TabsTrigger value="classification" className="relative rounded-lg data-[state=active]:bg-[#4988c4] data-[state=active]:text-white data-[state=active]:shadow-sm text-xs font-bold gap-2 transition-all">
                         <LayoutGrid className="h-4 w-4" /> Attributes
+                        {hasClassificationErrors && (
+                            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white shadow-sm animate-pulse" />
+                        )}
                     </TabsTrigger>
-                    <TabsTrigger value="policy" className="rounded-lg data-[state=active]:bg-[#4988c4] data-[state=active]:text-white data-[state=active]:shadow-sm text-xs font-bold gap-2 transition-all">
-                        <ShieldCheck className="h-4 w-4" /> {isPublishingWithoutVariants ? <span className="text-rose-500">Policies *</span> : "Policies"}
+                    <TabsTrigger value="policy" className="relative rounded-lg data-[state=active]:bg-[#4988c4] data-[state=active]:text-white data-[state=active]:shadow-sm text-xs font-bold gap-2 transition-all">
+                        <ShieldCheck className="h-4 w-4" /> Policies
+                        {hasPolicyErrors && (
+                            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white shadow-sm animate-pulse" />
+                        )}
+                        {isPublishingWithoutVariants && <AlertCircle className="h-3 w-3 text-rose-500 ml-0.5" />}
                     </TabsTrigger>
                 </TabsList>
 
@@ -374,8 +403,10 @@ export default function ProductDialogForm({
                         isLoading={isLoading}
                         flatCategories={flatCategories}
                         childCategories={childCategories}
+                        allCertificates={certificates}
                         onCateChange={handleCateChange}
                         onSubCateIdChange={handleSubCateIdChange}
+                        onCertificatesChange={(v) => form.setValue('CertificateIds', v, { shouldValidate: true })}
                         setValue={form.setValue}
                         errors={errors}
                     />
@@ -383,7 +414,6 @@ export default function ProductDialogForm({
                     <PolicyTabContent
                         control={form.control}
                         isLoading={isLoading}
-                        isEdit={isEdit}
                         isPublishingWithoutVariants={isPublishingWithoutVariants}
                         setValue={form.setValue}
                     />

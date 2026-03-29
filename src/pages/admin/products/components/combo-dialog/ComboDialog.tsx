@@ -5,11 +5,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs';
+import { Tabs } from '@/components/ui/tabs';
 import { useComboForm } from './useComboForm';
 import ComboFormFields from './ComboFormFields';
 import ComboDialogFooter from './ComboDialogFooter';
@@ -17,7 +13,7 @@ import ComboDialogHeader from './ComboDialogHeader';
 import type { Combo } from '../../types';
 import type { CreateComboRequest } from '@/api/services/comboService';
 import type { ComboDialogMode } from './index';
-import { Loader2, Info, Settings2, Coins } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export interface ComboDialogProps {
@@ -56,7 +52,8 @@ const ComboDialog = memo(({
     setField,
     handleSubmit,
     watchValues,
-    completionScore
+    completionScore,
+    parentPriceRange
   } = useComboForm({
     open,
     combo,
@@ -68,9 +65,9 @@ const ComboDialog = memo(({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className={cn(
-        "rounded-[1.5rem] p-7 gap-0 outline-none flex flex-col overflow-hidden transition-all duration-500",
+        "rounded-[1.5rem] p-7 gap-0 outline-none flex flex-col overflow-hidden transition-all duration-500 h-[800px] max-h-[90vh]",
         activeMode === 'variant' ? "max-w-[1240px] w-[95vw]" : "max-w-[680px]"
-      )} style={{ maxHeight: '90vh' }}>
+      )}>
         <VisuallyHidden.Root>
           <DialogTitle>
             {isEdit ? 'Edit Combo' : 'New Combo'}
@@ -85,7 +82,7 @@ const ComboDialog = memo(({
             <p className="text-sm font-bold text-slate-400 animate-pulse">Synchronizing Data...</p>
           </div>
         ) : (
-          <div className="flex flex-col min-h-0">
+          <div className="flex flex-col min-h-0 h-full flex-1">
             <ComboDialogHeader
               mode={activeMode}
               isEdit={isEdit}
@@ -103,35 +100,7 @@ const ComboDialog = memo(({
                 onValueChange={setActiveTab}
                 className="w-full mt-4 flex-1 flex flex-col min-h-0"
               >
-                {activeMode === 'parent' && (
-                  <TabsList className="grid grid-cols-3 w-full h-12 bg-slate-100/50 p-1 rounded-xl border border-slate-200/50 shrink-0 mb-4">
-                    <TabsTrigger
-                      value="general"
-                      className={cn(
-                        "rounded-lg data-[state=active]:bg-primary-500 data-[state=active]:text-white data-[state=active]:shadow-sm text-xs font-bold gap-2 transition-all"
-                      )}
-                    >
-                      <Info className="h-4 w-4" /> Identity
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="config"
-                      className={cn(
-                        "rounded-lg data-[state=active]:bg-primary-500 data-[state=active]:text-white data-[state=active]:shadow-sm text-xs font-bold gap-2 transition-all"
-                      )}
-                    >
-                      <Settings2 className="h-4 w-4" /> Attributes
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="pricing"
-                      className={cn(
-                        "rounded-lg data-[state=active]:bg-primary-500 data-[state=active]:text-white data-[state=active]:shadow-sm text-xs font-bold gap-2 transition-all"
-                      )}
-                    >
-                      <Coins className="h-4 w-4" />
-                      Pricing
-                    </TabsTrigger>
-                  </TabsList>
-                )}
+
 
                 <div className="flex-1 py-1 no-scrollbar min-h-0 overflow-y-auto">
                   <ComboFormFields
@@ -147,6 +116,7 @@ const ComboDialog = memo(({
                     isLoadingVariants={isLoadingVariants}
                     watchValues={watchValues}
                     comboId={combo?.id}
+                    parentPriceRange={parentPriceRange}
                   />
                 </div>
               </Tabs>

@@ -1,7 +1,7 @@
 import type { ComboItem } from '../../types';
 import type { ComboResponse, ProductItemResponse, ComboItemResponse } from '@/api/services/comboService';
 
-import { getColorHex } from '@/pages/admin/products/utils/variant-utils';
+import { getColorHex } from '@/utils/color-utils';
 export { getColorHex };
 
 /**
@@ -20,7 +20,19 @@ export function parseVariantLabel(label: string): { color: string; size: string 
 export function toComboItems(combo?: ComboResponse | null): ComboItem[] {
     if (!combo) return [];
 
-    // Prioritize productItems (returned by detailed getById API)
+    // Prioritize standard items array (matched with backend ComboItemResponse schema)
+    const items = combo.items || [];
+    if (Array.isArray(items) && items.length > 0) {
+        return items.map((pi: ComboItemResponse) => ({
+            productId: pi.productId || '',
+            productName: pi.productName || 'Unknown',
+            variantId: pi.variantId || '',
+            variantLabel: pi.variantLabel || '',
+            quantity: pi.quantity || 1,
+        }));
+    }
+
+    // Fallback to deprecated productItems if needed
     const productItems = combo.productItems || [];
     if (Array.isArray(productItems) && productItems.length > 0) {
         return productItems.map((pi: ProductItemResponse) => ({
@@ -31,18 +43,6 @@ export function toComboItems(combo?: ComboResponse | null): ComboItem[] {
             quantity: pi.quantity || 1,
             basePrice: pi.basePrice || 0,
             salePrice: pi.salePrice || 0,
-        }));
-    }
-
-    // Fallback to standard items array
-    const items = combo.items || [];
-    if (Array.isArray(items) && items.length > 0) {
-        return items.map((pi: ComboItemResponse) => ({
-            productId: pi.productId || '',
-            productName: pi.productName || 'Unknown',
-            variantId: pi.variantId || '',
-            variantLabel: pi.variantLabel || '',
-            quantity: pi.quantity || 1,
         }));
     }
 

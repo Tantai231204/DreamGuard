@@ -1,11 +1,22 @@
 // src/api/types/customizeType.types.ts
 
+export type CustomizeTypeCategory = "Other" | "Size" | "Color" | "Pattern" | "Material" | "Embroidery";
+export type CustomizeCalculationMode = "FixedAmount" | "Multiplier";
+export type ApplicableProductType = "None" | "Mattresses" | "Pillows" | "Cribs";
+export type CustomizeTypeStatus = "Active" | "Inactive" | "Archived";
+
 export interface CustomizeTypeResponse {
   id: string;
   name: string;
   summary: string;
   defaultPrice: number;
-  status: string; // "Active" | "Inactive" | etc.
+  category: CustomizeTypeCategory;
+  calculationMode: CustomizeCalculationMode;
+  defaultMultiplier: number;
+  applicableProductType: ApplicableProductType;
+  status: CustomizeTypeStatus;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CustomizeTypePageResponse {
@@ -29,7 +40,11 @@ export interface CreateCustomizeTypeRequest {
   name: string;
   summary: string;
   defaultPrice: number;
-  status?: string;
+  category: CustomizeTypeCategory;
+  calculationMode: CustomizeCalculationMode;
+  defaultMultiplier: number;
+  applicableProductType: ApplicableProductType;
+  status: CustomizeTypeStatus;
 }
 
 export interface UpdateCustomizeTypeRequest extends CreateCustomizeTypeRequest {

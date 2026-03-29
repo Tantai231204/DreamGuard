@@ -8,6 +8,16 @@ export const certificateKeys = {
   all: ['certificates'] as const,
   admin: (params: CertificateParams) => ['certificates', 'admin', params] as const,
   detail: (id: string) => ['certificates', id] as const,
+  byProduct: (productId: string) => ['certificates', 'product', productId] as const,
+};
+
+/** Fetch certificates by product ID */
+export const useProductCertificates = (productId: string) => {
+  return useQuery({
+    queryKey: certificateKeys.byProduct(productId),
+    queryFn: () => certificateService.getByProductId(productId),
+    enabled: !!productId,
+  });
 };
 
 /** Fetch paginated certificates */
@@ -57,6 +67,23 @@ export const useUpdateCertificate = () => {
     },
     onError: (error) => {
       toast.error('Failed to update certificate: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
+  });
+};
+
+/** Update certificate status */
+export const useUpdateCertificateStatus = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, isActive }: { id: string; isActive: boolean }) =>
+      certificateService.updateStatus(id, isActive),
+    onSuccess: () => {
+      toast.success('Certificate status updated successfully');
+      queryClient.invalidateQueries({ queryKey: certificateKeys.all });
+    },
+    onError: (error) => {
+      toast.error('Failed to update status: ' + (error instanceof Error ? error.message : 'Unknown error'));
     }
   });
 };

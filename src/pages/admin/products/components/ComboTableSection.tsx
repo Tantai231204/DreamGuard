@@ -19,13 +19,14 @@ interface ComboTableSectionProps {
   onPaginationChange: (p: PaginationState | ((prev: PaginationState) => PaginationState)) => void;
   onBulkDelete: (table: Table<Combo>) => void;
   onExport: () => void;
+  onUpdateStatus?: (id: string, status: string, name?: string, cur?: string) => void;
   hideHeaderActions?: boolean;
 }
 
 export const ComboTableSection = memo(({
   combos, columns, pageData, state,
   onSortingChange, onGlobalFilterChange, onRowSelectionChange, onExpandedChange, onPaginationChange,
-  onBulkDelete, onExport, hideHeaderActions
+  onBulkDelete, onExport, onUpdateStatus, hideHeaderActions
 }: ComboTableSectionProps) => {
   const table = useReactTable({
     data: combos,
@@ -102,6 +103,7 @@ export const ComboTableSection = memo(({
           onDeleteCombo={(combo: Combo) => {
             state.setDeleteCombo(combo);
           }}
+          onUpdateStatus={onUpdateStatus}
         />
       </div>
 

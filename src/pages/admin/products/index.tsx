@@ -19,7 +19,7 @@ import { ProductTableSection } from './components/ProductTableSection';
 import { ComboTableSection } from './components/ComboTableSection';
 import { CertificateTableSection } from './components/CertificateTableSection';
 
-import type { Product, Combo, Certificate } from './types';
+import type { Product, Combo, Certificate, ProductStatus } from './types';
 
 export default function ProductsPage() {
   const navigate = useNavigate();
@@ -46,7 +46,7 @@ export default function ProductsPage() {
       if (activeTab === 'combo') {
         state.setEditingCombo(null);
         state.setComboDialogMode(null);
-        state.setComboDialogKey((k: number) => k + 1);
+        state.setComboDialogKey((k: number = 0) => k + 1);
         state.setComboDialogOpen(true);
       } else {
         state.setEditingProduct(null);
@@ -67,40 +67,60 @@ export default function ProductsPage() {
 
   // Table Column Definitions
   const productColumns = useProductColumns({
-    onView: (p: Product) => navigate(`/admin/products/${p.id}`),
-    onEdit: (p: Product) => { state.setEditingProduct(p); state.setDialogOpen(true); },
-    onDelete: (p: Product) => state.setDeleteProduct(p),
-    onAddVariant: (p: Product) => {
+    onView: useCallback((p: Product) => navigate(`/admin/products/${p.id}`), [navigate]),
+    onEdit: useCallback((p: Product) => { state.setEditingProduct(p); state.setDialogOpen(true); }, [state]),
+    onDelete: useCallback((p: Product) => state.setDeleteProduct(p), [state]),
+    onAddVariant: useCallback((p: Product) => {
       state.setEditingVariant(null);
       state.setVariantProductId(p.id);
       state.setVariantProductName(p.name);
       state.setVariantProductSlug(p.slug);
       state.setVariantCount(p.variantCount ?? p.variants?.length ?? 0);
       state.setVariantDialogOpen(true);
-    }
+    }, [state]),
+                    onUpdateStatus: useCallback((id: string, s: string, name?: string, cur?: string) => {
+      mutations.handleStatusChangeRequest({
+        id,
+        name: name || 'Product',
+        type: 'product',
+        currentStatus: (cur || 'Draft') as ProductStatus,
+        newStatus: s as ProductStatus,
+      });
+    }, [mutations]),
   });
 
+  const handleUpdateStatus = useCallback((id: string, status: string, name?: string, cur?: string) => {
+    mutations.handleStatusChangeRequest({
+      id,
+      name: name || 'Combo',
+      type: 'combo',
+      currentStatus: (cur || 'Draft') as ProductStatus,
+      newStatus: status as ProductStatus,
+    });
+  }, [mutations]);
+
   const comboColumns = useComboColumns({
-    onView: (c: Combo) => navigate(`/admin/products/combo/${c.id}`),
-    onEdit: (c: Combo) => {
+    onView: useCallback((c: Combo) => navigate(`/admin/products/combo/${c.id}`), [navigate]),
+    onEdit: useCallback((c: Combo) => {
       state.setEditingCombo(c);
       state.setComboDialogMode(c.comboParentId ? 'variant' : 'parent');
-      state.setComboDialogKey((k: number) => k + 1);
+      state.setComboDialogKey((k: number = 0) => k + 1);
       state.setComboDialogOpen(true);
-    },
-    onDelete: (c: Combo) => state.setDeleteCombo(c),
-    onAddVariant: (parent: Combo) => {
+    }, [state]),
+    onDelete: useCallback((c: Combo) => state.setDeleteCombo(c), [state]),
+    onAddVariant: useCallback((parent: Combo) => {
       state.setEditingCombo(null);
       state.setComboDialogMode('variant');
       state.setComboDefaultParentId(parent.id);
-      state.setComboDialogKey((k: number) => k + 1);
+      state.setComboDialogKey((k: number = 0) => k + 1);
       state.setComboDialogOpen(true);
-    }
+    }, [state]),
+    onUpdateStatus: handleUpdateStatus,
   });
 
   const certificateColumns = useCertificateColumns({
-    onEdit: (c: Certificate) => { state.setEditingCert(c); state.setCertDialogOpen(true); },
-    onDelete: (c: Certificate) => state.setDeleteCert(c),
+    onEdit: useCallback((c: Certificate) => { state.setEditingCert(c); state.setCertDialogOpen(true); }, [state]),
+    onDelete: useCallback((c: Certificate) => state.setDeleteCert(c), [state]),
   });
 
   // Calculate high-level stats based on ALL data available
@@ -205,6 +225,15 @@ export default function ProductsPage() {
                           onPaginationChange={state.setPagination}
                           onBulkDelete={(table) => mutations.handleBulkDelete(table as unknown as Table<Product | Combo | Certificate>, 'single')}
                           onExport={handleExport}
+                          onUpdateStatus={(id, s, name, cur) => {
+                            mutations.handleStatusChangeRequest({
+                              id,
+                              name: name || 'Product',
+                              type: 'product',
+                              currentStatus: (cur || 'Draft') as ProductStatus,
+                              newStatus: s as ProductStatus,
+                            });
+                          }}
                           hideHeaderActions
                         />
                       ) : activeTab === 'combo' ? (
@@ -221,6 +250,7 @@ export default function ProductsPage() {
                           onPaginationChange={state.setComboPagination}
                           onBulkDelete={(table) => mutations.handleBulkDelete(table as unknown as Table<Product | Combo | Certificate>, 'combo')}
                           onExport={handleExport}
+                          onUpdateStatus={handleUpdateStatus}
                           hideHeaderActions
                         />
                       ) : (

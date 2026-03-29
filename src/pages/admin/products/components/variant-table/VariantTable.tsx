@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -371,7 +371,8 @@ function VariantRow({
   onReduceStock: () => void;
   onStatusChange: (variantId: string, sku: string, status: string) => void;
 }) {
-  const hasSale = variant.salePrice < variant.basePrice;
+  const hasSale = variant.salePrice > 0 && variant.salePrice < variant.basePrice;
+  const displayPrice = variant.salePrice > 0 ? variant.salePrice : variant.basePrice;
   const toast = useToast();
   const hasZeroStock = !variant.stockQuantity || variant.stockQuantity <= 0;
 
@@ -389,66 +390,35 @@ function VariantRow({
   const currentStatus = variant.status || 'Draft';
   const statusStyle = variantStatusStyles[currentStatus] || variantStatusStyles.Draft;
 
-  /** ─── Senior Optimization: Identify Customization Types ─── */
-  const customInfo = useMemo(() => {
-    const types = variant.customizeTypes || (variant as { customizeOptions?: { customizeTypeName?: string; name?: string; customizeOptionName?: string; typeName?: string }[] }).customizeOptions || [];
-    const hasColorType = types.some((t: { customizeTypeName?: string; name?: string; customizeOptionName?: string; typeName?: string }) => {
-      const n = (t.customizeTypeName || t.name || t.customizeOptionName || t.typeName || '').toLowerCase();
-      return n.includes('color') || n.includes('màu');
-    });
-    const hasSizeType = types.some((t: { customizeTypeName?: string; name?: string; customizeOptionName?: string; typeName?: string }) => {
-      const n = (t.customizeTypeName || t.name || t.customizeOptionName || t.typeName || '').toLowerCase();
-      return n.includes('size') || n.includes('kích thước');
-    });
-
-    const isNoSize = variant.dimensions === 'N/A' || !variant.dimensions || variant.dimensions === '';
-
-    // A variant is "Full Custom" if it has BOTH color AND size customization types
-    const isFull = hasColorType && hasSizeType;
-
-    // Fallback: If it's customizable and has no size, it's at least "Custom Size"
-    const isCustomSize = hasSizeType || isNoSize;
-
-    return { isFull, isCustomSize };
-  }, [variant]);
-
-  const isVariantCustomizable =
-    variant.isCustomizable ||
-    (variant as { is_customizable?: boolean }).is_customizable ||
-    (variant.customizeTypes && variant.customizeTypes.length > 0) ||
-    ((variant as { customizeOptions?: unknown[] }).customizeOptions && ((variant as { customizeOptions?: unknown[] }).customizeOptions?.length ?? 0) > 0) ||
-    (!variant.attributes?.width && !variant.attributes?.length && !variant.dimensions || variant.dimensions === 'N/A');
-
   const getBadgeConfig = () => {
-    if (!isVariantCustomizable) {
+    if (!variant.isVariantCustomizable) {
       return {
         label: variant.dimensions || 'N/A',
-        cls: "bg-white border-slate-200 text-slate-700 group-hover/vrow:border-indigo-200 group-hover/vrow:bg-indigo-50/30"
+        cls: "bg-white border-slate-200 text-slate-700 group-hover/vrow:border-indigo-200 group-hover/vrow:bg-indigo-50/30 font-medium"
       };
     }
 
-    // Bespoke logic: Full Custom vs Size Only
-    const types = variant.customizeTypes || (variant as { customizeOptions?: { customizeTypeName?: string; name?: string; customizeOptionName?: string; typeName?: string }[] }).customizeOptions || [];
-    const typeNames = types.map(t => {
-      const item = t as { customizeTypeName?: string; name?: string; customizeOptionName?: string; typeName?: string };
-      return item.customizeTypeName || item.name || item.customizeOptionName || item.typeName;
-    }).filter(Boolean).join(', ');
+    // Bespoke logic using pre-calculated flags from variant-utils.ts
+    const displayNames = variant.typeNames || 'Custom';
 
-    if (customInfo.isFull) {
+    if (variant.isFullBespoke) {
       return {
-        label: `Full: ${typeNames || 'Custom'}`,
+        label: `Full: ${displayNames}`,
         cls: "bg-indigo-50 border-indigo-200 text-indigo-700 group-hover/vrow:bg-indigo-100/50 shadow-sm font-black"
       };
     }
 
-    if (customInfo.isCustomSize) {
+    if (variant.isCustomSize) {
       return {
-        label: typeNames ? `Custom: ${typeNames}` : 'Custom Size',
+        label: `Custom: ${displayNames}`,
         cls: "bg-blue-50 border-blue-200 text-blue-600 group-hover/vrow:bg-blue-100/50 shadow-xs"
       };
     }
 
-    return { label: typeNames ? `Custom: ${typeNames}` : (variant.dimensions || 'N/A'), cls: "bg-white border-slate-200 text-slate-700" };
+    return {
+      label: `Custom: ${displayNames}`,
+      cls: "bg-white border-slate-200 text-slate-700 font-bold"
+    };
   };
 
   const badgeConfig = getBadgeConfig();
@@ -474,7 +444,7 @@ function VariantRow({
         <span className="font-mono text-[11px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded border border-slate-100 truncate block uppercase tracking-tighter">
           {variant.sku}
         </span>
-        {isVariantCustomizable && (
+        {variant.isVariantCustomizable && (
           <div className="flex items-center gap-1 mt-0.5">
             <Sparkles className="h-2.5 w-2.5 text-blue-500" />
             <span className="text-[9px] font-semibold text-blue-500 uppercase tracking-wider">Customizable</span>
@@ -485,7 +455,7 @@ function VariantRow({
       {/* Price */}
       <div className="text-right">
         <div className="text-[14px] font-black text-slate-900">
-          {variant.salePrice.toLocaleString('en-US')} <span className="text-[10px] text-slate-400">₫</span>
+          {displayPrice.toLocaleString('en-US')} <span className="text-[10px] text-slate-400">₫</span>
         </div>
         {hasSale && (
           <div className="text-[11px] text-slate-300 line-through">

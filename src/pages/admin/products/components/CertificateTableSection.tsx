@@ -3,7 +3,7 @@
 import { memo } from 'react';
 import { useReactTable, getCoreRowModel, getFilteredRowModel, getSortedRowModel } from '@tanstack/react-table';
 import type { SortingState, PaginationState, ColumnDef, Table, RowSelectionState } from '@tanstack/react-table';
-import { CertificateTableContent } from './certificate/CertificateTableContent';
+import { ProductTableContent as CertificateTableContent } from './product-table';
 import { AdminTableSearch, AdminTablePagination, AdminBulkActions } from '@/components/admin';
 import { Button } from '@/components/ui/button';
 import { Download, Plus } from 'lucide-react';
@@ -52,7 +52,7 @@ export const CertificateTableSection = memo(({
   });
 
   return (
-    <div className="flex flex-col h-full bg-slate-50/50 backdrop-blur-sm">
+    <div className="flex flex-col h-full">
       <AdminTableSearch
         placeholder="Search certificate name..."
         value={state.certGlobalFilter}
@@ -88,7 +88,7 @@ export const CertificateTableSection = memo(({
       />
 
       <div className="flex-1 overflow-auto min-h-0 text-[13px]">
-        <CertificateTableContent table={table} />
+        <CertificateTableContent table={table} emptyMessage="No certificates found" />
       </div>
 
       <AdminTablePagination

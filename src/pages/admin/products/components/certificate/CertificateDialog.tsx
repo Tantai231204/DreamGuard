@@ -16,6 +16,7 @@ const certificateSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   summary: z.string().min(5, "Summary must be at least 5 characters"),
   description: z.string().min(10, "Description must be at least 10 characters"),
+  organization: z.string(),
 });
 
 const ErrorMsg = memo(({ error }: { error?: { message?: string } }) => {
@@ -45,6 +46,7 @@ export function CertificateDialog({
       name: '',
       summary: '',
       description: '',
+      organization: '',
     },
     mode: 'onBlur'
   });
@@ -58,12 +60,14 @@ export function CertificateDialog({
           name: editingCert.name,
           summary: editingCert.summary,
           description: editingCert.description,
+          organization: editingCert.organization || '',
         });
       } else {
         form.reset({
           name: '',
           summary: '',
           description: '',
+          organization: '',
         });
       }
     }
@@ -75,7 +79,7 @@ export function CertificateDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[640px] w-[95vw] rounded-2xl p-7 flex flex-col gap-0 border-slate-100 shadow-2xl overflow-hidden bg-white">
+      <DialogContent className="max-w-[640px] w-[95vw] h-[740px] max-h-[90vh] rounded-2xl p-7 flex flex-col gap-0 border-slate-100 shadow-2xl overflow-hidden bg-white">
         {/* Header - Standardized with other dialogs */}
         <div className="flex items-center gap-4 pb-6 border-b border-slate-100/60 shrink-0">
           <div className="w-12 h-12 rounded-2xl bg-primary-500 flex items-center justify-center shadow-lg shadow-primary-500/20 shrink-0 text-white">
@@ -98,11 +102,11 @@ export function CertificateDialog({
               Certificate Name
               <span className="text-red-500 text-xs">*</span>
             </Label>
-            <Input 
+            <Input
               id="cert-name"
-              placeholder="e.g. ASTM F963-17 Safety Standard" 
-              className="h-12 rounded-xl border-slate-200 bg-slate-50/30 focus:bg-white focus:border-primary-500 focus:ring-4 focus:ring-primary-100/20 transition-all font-semibold text-slate-900 placeholder:text-slate-300 placeholder:font-medium shadow-none" 
-              {...form.register('name')} 
+              placeholder="e.g. ASTM F963-17 Safety Standard"
+              className="h-12 rounded-xl border-slate-200 bg-slate-50/30 focus:bg-white focus:border-primary-500 focus:ring-4 focus:ring-primary-100/20 transition-all font-semibold text-slate-900 placeholder:text-slate-300 placeholder:font-medium shadow-none"
+              {...form.register('name')}
             />
             <ErrorMsg error={errors.name} />
           </div>
@@ -112,11 +116,11 @@ export function CertificateDialog({
             <Label htmlFor="cert-summary" className="text-[11px] font-black text-slate-500 tracking-wider uppercase pl-1">
               Short Summary
             </Label>
-            <Input 
+            <Input
               id="cert-summary"
-              placeholder="Brief overview of the certification's scope..." 
-              className="h-12 rounded-xl border-slate-200 bg-slate-50/30 focus:bg-white focus:border-primary-500 focus:ring-4 focus:ring-primary-100/20 transition-all font-semibold text-slate-900 placeholder:text-slate-300 placeholder:font-medium shadow-none" 
-              {...form.register('summary')} 
+              placeholder="Brief overview of the certification's scope..."
+              className="h-12 rounded-xl border-slate-200 bg-slate-50/30 focus:bg-white focus:border-primary-500 focus:ring-4 focus:ring-primary-100/20 transition-all font-semibold text-slate-900 placeholder:text-slate-300 placeholder:font-medium shadow-none"
+              {...form.register('summary')}
             />
             <ErrorMsg error={errors.summary} />
           </div>
@@ -126,11 +130,11 @@ export function CertificateDialog({
             <Label htmlFor="cert-description" className="text-[11px] font-black text-slate-500 tracking-wider uppercase pl-1">
               Detailed Description
             </Label>
-            <Textarea 
+            <Textarea
               id="cert-description"
-              placeholder="Full details about process, authority, and safety benefits..." 
-              className="min-h-[140px] rounded-xl border-slate-200 bg-slate-50/30 focus:bg-white focus:border-primary-500 focus:ring-4 focus:ring-primary-100/20 transition-all font-medium text-slate-800 p-4 resize-none placeholder:text-slate-300 shadow-none leading-relaxed" 
-              {...form.register('description')} 
+              placeholder="Full details about process, authority, and safety benefits..."
+              className="min-h-[140px] rounded-xl border-slate-200 bg-slate-50/30 focus:bg-white focus:border-primary-500 focus:ring-4 focus:ring-primary-100/20 transition-all font-medium text-slate-800 p-4 resize-none placeholder:text-slate-300 shadow-none leading-relaxed"
+              {...form.register('description')}
             />
             <ErrorMsg error={errors.description} />
           </div>

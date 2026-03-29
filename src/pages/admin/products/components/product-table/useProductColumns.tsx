@@ -21,23 +21,22 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { SortableHeader, AdminStatusBadge } from '@/components/admin';
-import { formatDate } from '@/lib/utils';
+import { formatDate, cn } from '@/lib/utils';
 import type { Product } from '../../types';
-import { formatAgeGroup } from '../../types';
+import { formatAgeGroup, PRODUCT_STATUSES } from '../../types';
 import { VariantInfoCell, PriceRangeCell, StockCell } from './cells';
 
 const columnHelper = createColumnHelper<Product>();
-
-
 
 interface UseProductColumnsProps {
   onView: (product: Product) => void;
   onEdit: (product: Product) => void;
   onDelete: (product: Product) => void;
   onAddVariant: (product: Product) => void;
+  onUpdateStatus?: (id: string, status: string, name?: string, cur?: string) => void;
 }
 
-export function useProductColumns({ onView, onEdit, onDelete, onAddVariant }: UseProductColumnsProps) {
+export function useProductColumns({ onView, onEdit, onDelete, onAddVariant, onUpdateStatus }: UseProductColumnsProps) {
   const columns = useMemo(
     () => [
       columnHelper.display({
@@ -46,7 +45,7 @@ export function useProductColumns({ onView, onEdit, onDelete, onAddVariant }: Us
           <div className="flex items-center justify-center">
             <Checkbox
               checked={table.getIsAllPageRowsSelected()}
-              onChange={(e) => table.toggleAllPageRowsSelected(e.target.checked)}
+              onCheckedChange={(checked) => table.toggleAllPageRowsSelected(!!checked)}
               aria-label="Select all"
               className="data-[state=checked]:bg-[var(--color-primary)] data-[state=checked]:border-[var(--color-primary)]"
             />
@@ -56,7 +55,7 @@ export function useProductColumns({ onView, onEdit, onDelete, onAddVariant }: Us
           <div className="flex items-center justify-center">
             <Checkbox
               checked={row.getIsSelected()}
-              onChange={(e) => row.toggleSelected(e.target.checked)}
+              onCheckedChange={(checked) => row.toggleSelected(!!checked)}
               aria-label="Select row"
               className="data-[state=checked]:bg-[var(--color-primary)] data-[state=checked]:border-[var(--color-primary)]"
             />
@@ -68,7 +67,6 @@ export function useProductColumns({ onView, onEdit, onDelete, onAddVariant }: Us
         id: 'expand',
         header: () => null,
         cell: ({ row }) => {
-          // Check both variants array and variantCount (API may return count without full array)
           const hasVariants = (row.original.variants?.length ?? 0) > 0 || (row.original.variantCount ?? 0) > 0;
           if (!hasVariants) return null;
           return (
@@ -187,8 +185,44 @@ export function useProductColumns({ onView, onEdit, onDelete, onAddVariant }: Us
         header: 'Status',
         cell: (info) => {
           const status = info.getValue();
+          const p = info.row.original;
+          
+          if (!onUpdateStatus) return <AdminStatusBadge status={status} />;
+
           return (
-            <AdminStatusBadge status={status} />
+            <DropdownMenu>
+              <DropdownMenuTrigger className="outline-none group/sbadge">
+                <AdminStatusBadge 
+                  status={status} 
+                  className="cursor-pointer hover:shadow-md transition-all group-hover/sbadge:ring-2 group-hover/sbadge:ring-blue-100" 
+                />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-40 p-1 rounded-xl shadow-xl border-slate-200">
+                <div className="px-2 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Select status</div>
+                {PRODUCT_STATUSES.map((s) => (
+                  <DropdownMenuItem
+                    key={s.value}
+                    className={cn(
+                      "rounded-lg px-2 py-2 gap-2 cursor-pointer transition-colors",
+                      status === s.value ? "bg-blue-50 text-blue-700 font-bold" : "text-slate-600 hover:bg-slate-50"
+                    )}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (status !== s.value) {
+                        onUpdateStatus(p.id, s.value, p.name, status as string);
+                      }
+                    }}
+                  >
+                    <div className={cn("h-1.5 w-1.5 rounded-full", 
+                      s.value === 'Published' ? 'bg-emerald-500' : 
+                      s.value === 'Draft' ? 'bg-amber-500' : 
+                      s.value === 'OutOfStock' ? 'bg-rose-500' : 'bg-slate-400'
+                    )} />
+                    <span className="text-[13px]">{s.label}</span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           );
         },
       }),
@@ -206,7 +240,6 @@ export function useProductColumns({ onView, onEdit, onDelete, onAddVariant }: Us
         header: () => <div className="text-right pr-4 uppercase text-[10px] font-black tracking-widest text-slate-400">Actions</div>,
         cell: ({ row }) => (
           <div className="flex justify-end items-center gap-1 pr-2">
-            {/* Direct Hover Actions for Admin Efficiency */}
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
               <Button
                 variant="ghost"
@@ -274,8 +307,9 @@ export function useProductColumns({ onView, onEdit, onDelete, onAddVariant }: Us
         ),
       }),
     ],
-    [onView, onEdit, onDelete, onAddVariant]
+    [onView, onEdit, onDelete, onAddVariant, onUpdateStatus]
   );
 
   return columns;
 }
+

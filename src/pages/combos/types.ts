@@ -1,4 +1,5 @@
-import type { ComboResponse } from "@/api/services/comboService";
+import type { ComboResponse, ComboItemResponse, ProductItemResponse } from "@/api/services/comboService";
+import type { VariantResponse } from "@/api/services/variantService";
 
 /**
  * The Combo interface used throughout the UI.
@@ -11,6 +12,19 @@ export interface Combo extends Omit<ComboResponse, 'childCombos'> {
   // UI derived fields
   isNew?: boolean;
   reviewCount?: number;
+}
+
+export interface RichComboItem extends Partial<ComboItemResponse>, Partial<ProductItemResponse> {
+  productId?: string;
+  productName?: string;
+  variantId?: string;
+  variantLabel?: string;
+  quantity: number;
+  imageUrl?: string;
+  enrichedDetail?: VariantResponse | null;
+  // Keep original fields for safety
+  productVariantId?: string;
+  sku?: string;
 }
 
 export interface ComboFilterOptions {

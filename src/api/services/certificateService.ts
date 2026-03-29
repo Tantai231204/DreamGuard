@@ -40,6 +40,14 @@ const certificateService = {
   /** Delete certificate */
   delete: (id: string): Promise<void> =>
     apiClient.delete(`/certificate/${id}`).then((res) => res.data),
+
+  /** Update certificate status */
+  updateStatus: (id: string, isActive: boolean): Promise<Certificate> =>
+    apiClient.put(`/certificate/${id}/status`, null, { params: { isActive } }).then((res) => res.data),
+
+  /** Get certificates by product ID */
+  getByProductId: (productId: string): Promise<Certificate[]> =>
+    apiClient.get<Certificate[]>(`/certificate/product/${productId}`).then((res) => res.data),
 };
 
 export default certificateService;

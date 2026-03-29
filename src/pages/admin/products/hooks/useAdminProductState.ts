@@ -4,13 +4,17 @@ import type { SortingState, ColumnFiltersState, RowSelectionState, ExpandedState
 import { useAdminProducts } from '@/hooks/queries/useProduct';
 import { useAdminCombos } from '@/hooks/queries/useCombo';
 import { useAdminCertificates } from '@/hooks/queries/useCertificate';
+import { useCategories } from '@/hooks/queries/useCategory';
 import { mapCombosToSubRows } from '../components/combo';
 import type { ComboDialogMode } from '../components/combo-dialog';
-import type { Product, Combo, ProductVariant, AdminProductState, Certificate } from '../types';
+import type { Product, Combo, ProductVariant, AdminProductState, Certificate, StatusChangeData } from '../types';
 
 export function useAdminProductState(): AdminProductState {
   const [searchParams, setSearchParams] = useSearchParams();
-  
+
+  // Categories
+  const { data: categories, isLoading: isLoadingCategories } = useCategories();
+
   // Tabs
   const activeTab = (searchParams.get('tab') as 'single' | 'combo' | 'certificate') || 'single';
   const setActiveTab = (tab: 'single' | 'combo' | 'certificate') => {
@@ -72,9 +76,9 @@ export function useAdminProductState(): AdminProductState {
     name: certGlobalFilter,
   });
 
-  const combos = useMemo(() => 
+  const combos = useMemo(() =>
     rawComboData?.items ? mapCombosToSubRows(rawComboData.items as Combo[]) : []
-  , [rawComboData]);
+    , [rawComboData]);
 
   // ── DIALOG STATES ────────────────────────────────────
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -111,6 +115,7 @@ export function useAdminProductState(): AdminProductState {
   const [deleteCombo, setDeleteCombo] = useState<Combo | null>(null);
   const [deleteVariant, setDeleteVariant] = useState<ProductVariant | null>(null);
   const [bulkDeleteData, setBulkDeleteData] = useState<{ ids: string[], type: 'single' | 'combo' | 'certificate' } | null>(null);
+  const [statusChangeData, setStatusChangeData] = useState<StatusChangeData | null>(null);
 
   const handleAddImagesFromSuccess = useCallback(() => {
     setUploadProductId(createdProductId);
@@ -135,10 +140,10 @@ export function useAdminProductState(): AdminProductState {
     certPagination, setCertPagination,
     certRowSelection, setCertRowSelection,
     // Data
-    products: (productData?.items as Product[]) || [], 
+    products: (productData?.items as Product[]) || [],
     productPageData: productData ? { totalPages: productData.totalPages, totalCount: productData.totalCount } : undefined,
     isLoadingProducts, refetchProducts,
-    combos, 
+    combos,
     comboPageData: rawComboData ? { totalPages: rawComboData.totalPages, totalCount: rawComboData.totalCount } : undefined,
     isLoadingCombos, refetchCombos,
     certificates: (rawCertData?.items as Certificate[]) || [],
@@ -149,7 +154,7 @@ export function useAdminProductState(): AdminProductState {
     variantDialogOpen, setVariantDialogOpen, editingVariant, setEditingVariant,
     variantProductId, setVariantProductId, variantProductName, setVariantProductName,
     variantProductSlug, setVariantProductSlug, variantCount, setVariantCount,
-    comboDialogOpen, setComboDialogOpen, editingCombo, setEditingCombo, 
+    comboDialogOpen, setComboDialogOpen, editingCombo, setEditingCombo,
     comboDialogMode, setComboDialogMode, comboDialogKey, setComboDialogKey,
     comboDefaultParentId, setComboDefaultParentId,
     certDialogOpen, setCertDialogOpen, editingCert, setEditingCert, deleteCert, setDeleteCert,
@@ -160,6 +165,8 @@ export function useAdminProductState(): AdminProductState {
     uploadProductIdRef,
     deleteProduct, setDeleteProduct, deleteCombo, setDeleteCombo,
     deleteVariant, setDeleteVariant, bulkDeleteData, setBulkDeleteData,
-    handleAddImagesFromSuccess, handleSkipImages
+    statusChangeData, setStatusChangeData,
+    handleAddImagesFromSuccess, handleSkipImages,
+    categories: categories || [], isLoadingCategories
   } as AdminProductState;
 }

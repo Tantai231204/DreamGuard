@@ -48,7 +48,7 @@ export function useCategoryTree(categories: CategoryResponse[], cateId: string) 
             const productSlug = toSlug(productName);
             if (!productSlug) return '';
             const cat = flatCategories.find(c => String(c.cateId) === catId);
-            const catSlug = cat?.slug?.trim() || (cat ? toSlug(cat.name) : '');
+            const catSlug = cat ? toSlug(cat.slug || cat.name) : '';
             return catSlug ? `${catSlug}-${productSlug}` : productSlug;
         },
         [flatCategories],

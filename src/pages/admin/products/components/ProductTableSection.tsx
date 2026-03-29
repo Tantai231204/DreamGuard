@@ -20,13 +20,14 @@ interface ProductTableSectionProps {
   onPaginationChange: (p: PaginationState | ((prev: PaginationState) => PaginationState)) => void;
   onBulkDelete: (table: Table<Product>) => void;
   onExport: () => void;
+  onUpdateStatus?: (id: string, status: string, name?: string, cur?: string) => void;
   hideHeaderActions?: boolean;
 }
 
 export const ProductTableSection = memo(({
   products, columns, pageData, state,
   onSortingChange, onGlobalFilterChange, onColumnFiltersChange, onRowSelectionChange, onExpandedChange, onPaginationChange,
-  onBulkDelete, onExport, hideHeaderActions
+  onBulkDelete, onExport, onUpdateStatus, hideHeaderActions
 }: ProductTableSectionProps) => {
   const table = useReactTable({
     data: products,
@@ -101,6 +102,7 @@ export const ProductTableSection = memo(({
             state.setVariantDialogOpen(true);
           }}
           onDeleteVariant={(v) => state.setDeleteVariant(v)}
+          onUpdateStatus={onUpdateStatus}
         />
       </div>
 

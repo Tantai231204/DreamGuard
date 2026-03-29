@@ -1,10 +1,10 @@
-// src/pages/admin/products/components/certificate/useCertificateColumns.tsx
 import { useMemo } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
 import type { Certificate } from '../../types';
 import { Button } from '@/components/ui/button';
 import { Edit2, Trash2, Eye } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { CertificateStatusCell } from './CertificateStatusCell';
 
 const columnHelper = createColumnHelper<Certificate>();
 
@@ -54,13 +54,12 @@ export const useCertificateColumns = ({ onEdit, onDelete, onView }: UseCertifica
       header: 'Description',
       cell: (info) => <div className="max-w-[400px] truncate text-slate-500">{info.getValue()}</div>,
     }),
-    columnHelper.accessor('createdAt', {
-      header: 'Added Date',
-      cell: (info) => (
-        <span className="font-medium text-slate-500">
-          {info.getValue() ? new Date(info.getValue()!).toLocaleDateString() : '—'}
-        </span>
-      ),
+    columnHelper.accessor('isActive', {
+      header: 'Status',
+      cell: ({ row }) => {
+        const cert = row.original;
+        return <CertificateStatusCell cert={cert} />;
+      },
     }),
     columnHelper.display({
       id: 'actions',

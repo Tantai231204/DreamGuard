@@ -6,7 +6,7 @@ import { useAllVariantOptions, type VariantOption } from '@/hooks/queries/usePro
 import { comboSchema } from './comboSchema';
 import type { Combo } from '../../types';
 import type { CreateComboRequest, ComboItemRequest } from '@/api/services/comboService';
-import { normalizeStatus, toSlug, getInitialState, type ComboFormValues } from './index';
+import { toSlug, getInitialState, type ComboFormValues } from './index';
 
 interface UseComboFormProps {
     open: boolean;
@@ -33,7 +33,7 @@ export function useComboForm({
     const form = useForm<ComboFormValues>({
         resolver: zodResolver(comboSchema),
         defaultValues: useMemo(() => getInitialState(comboResp || combo), [comboResp, combo]),
-        mode: 'onChange'
+        mode: 'onTouched'
     });
 
     // Explicitly typed form for generic stability - casting through unknown to ensure safety
@@ -152,12 +152,14 @@ export function useComboForm({
             ageGroup: Number(values.ageGroup),
             color: values.color || "",
             size: values.size || "",
-            basePrice: Number(values.basePrice),
-            salePrice: Number(values.salePrice),
+            basePrice: mode === 'parent' ? 0 : Number(values.basePrice || 0),
+            salePrice: mode === 'parent' ? 0 : Number(values.salePrice || 0),
             description: (values.description || "").trim(),
             imageUrl: values.imageUrl || "",
             imagePublicId: values.imagePublicId || "",
-            status: normalizeStatus(values.status),
+            // Variants don't have a status selector, default to parent's published state.
+            // Parents DO have a selector again, so we use their selected value.
+            status: mode === 'parent' ? (values.status || "Published") : "Published",
             comboParentId: mode === 'variant' ? values.comboParentId : undefined,
             items: mode === 'variant'
                 ? (values.items || [])
@@ -171,6 +173,26 @@ export function useComboForm({
         onSubmit(payload);
     };
 
+    const rawChildren = useMemo(() => {
+        if (mode !== 'parent' || !combo) return [];
+        const rawCombo = combo as unknown as Record<string, unknown>;
+        return (rawCombo.subRows || rawCombo.childCombos || []) as Record<string, unknown>[];
+    }, [mode, combo]);
+
+    const hasChildCombos = rawChildren.length > 0;
+
+    const parentPriceRange = useMemo(() => {
+        if (!hasChildCombos) return null;
+
+        const childPrices = rawChildren.map(c => Number(c.baseSalePrice ?? c.salePrice ?? 0)).filter(p => p > 0);
+        if (childPrices.length === 0) return null;
+
+        const min = Math.min(...childPrices);
+        const max = Math.max(...childPrices);
+        if (min === max) return `${min.toLocaleString("en-US")}₫`;
+        return `${min.toLocaleString("en-US")}₫ - ${max.toLocaleString("en-US")}₫`;
+    }, [hasChildCombos, rawChildren]);
+
     return {
         form: typedForm,
         register: typedForm.register,
@@ -178,6 +200,8 @@ export function useComboForm({
         isValid: typedForm.formState.isValid,
         isLoadingDetail,
         isLoadingVariants,
+        parentPriceRange,
+        hasChildCombos,
         comboParents,
         variantOptions: (variantsResp || []) as VariantOption[],
         handleNameChange,
@@ -185,7 +209,7 @@ export function useComboForm({
         completionScore,
         handleSubmit: typedForm.handleSubmit(onFormSubmit),
         // Selective Watch exports
-        watchValues: {
+        watchValues: useMemo(() => ({
             name: watchName,
             description: watchDescription,
             basePrice: watchBasePrice,
@@ -198,6 +222,10 @@ export function useComboForm({
             color: watchColor,
             size: watchSize,
             ageGroup: watchAgeGroup
-        }
+        }), [
+            watchName, watchDescription, watchBasePrice, watchSalePrice, watchStatus, 
+            watchImageUrl, watchComboParentId, watchItems, watchImagePublicId, 
+            watchColor, watchSize, watchAgeGroup
+        ])
     };
 }

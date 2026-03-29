@@ -30,6 +30,8 @@ export interface ProductResponse {
   minPrice?: number;
   assets?: AssetResponse[];
   imageUrls?: string[];
+  certificateIds?: string[];
+  CertificateIds?: string[];
 }
 
 export interface AdminProductPageResponse {
@@ -64,6 +66,15 @@ export interface CustomizeOptionResponse {
   summary: string;
   defaultPrice: number;
   overridePrice: number;
+  calculationMode?: string;
+  defaultMultiplier?: number;
+  overrideMultiplier?: number | null;
+}
+
+export interface CustomizeOptionGroupResponse {
+  category: string;
+  categoryName: string;
+  options: CustomizeOptionResponse[];
 }
 
 export interface ProductVariantResponse {
@@ -84,7 +95,8 @@ export interface ProductVariantResponse {
   // Optional stock fields (may be present on some endpoints)
   stockQuantity?: number;
   stockStatus?: string;
-  customizeOptions: CustomizeOptionResponse[];
+  customizeOptions?: CustomizeOptionResponse[];
+  customizeOptionGroups?: CustomizeOptionGroupResponse[];
 }
 
 export interface CreateProductRequest {
@@ -98,6 +110,7 @@ export interface CreateProductRequest {
   returnPolicyDay: number | null;
   status: string;
   cateId: number | null;
+  CertificateIds?: string[];
 }
 
 export interface UpdateProductRequest {
@@ -112,6 +125,8 @@ export interface UpdateProductRequest {
   warrantyPolicyDay: number | null;
   returnPolicyDay: number | null;
   cateId: number | null;
+  CertificateIds?: string[];
+  certificateIds?: string[];
 }
 
 export interface UpdateProductStatusParams {

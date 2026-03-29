@@ -99,7 +99,7 @@ export default function ImageUploadDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-[680px] rounded-[1.5rem] p-7 gap-0 outline-none">
+            <DialogContent className="max-w-[680px] h-[650px] max-h-[90vh] flex flex-col rounded-[1.5rem] p-7 gap-0 outline-none">
                 <DialogHeader className="pb-4 border-b flex-shrink-0">
                     <div className="flex items-center gap-3">
                         <div className="w-11 h-11 rounded-lg bg-primary flex items-center justify-center">

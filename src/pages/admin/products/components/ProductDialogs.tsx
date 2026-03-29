@@ -27,7 +27,9 @@ export const ProductDialogs = memo(({ state, mutations, onRefresh }: ProductDial
           onOpenChange={state.setDialogOpen}
           product={state.editingProduct}
           onSubmit={mutations.handleSubmit}
-          isLoading={mutations.createMutation?.isPending || mutations.updateMutation?.isPending}
+          isLoading={mutations.createMutation?.isPending || mutations.updateMutation?.isPending || state.isLoadingCategories}
+          categories={state.categories}
+          certificates={state.certificates}
         />
       )}
 
@@ -141,6 +143,25 @@ export const ProductDialogs = memo(({ state, mutations, onRefresh }: ProductDial
         onConfirm={() => onRefresh()}
         confirmText="Confirm Bulk"
         variant="danger"
+      />
+
+      <ConfirmDialog
+        open={!!state.statusChangeData}
+        onOpenChange={(open) => !open && state.setStatusChangeData(null)}
+        title="Confirm Status Change"
+        description={
+          state.statusChangeData
+            ? `Change "${state.statusChangeData.name}" from ${state.statusChangeData.currentStatus} → ${state.statusChangeData.newStatus}? This affects product visibility and availability.`
+            : ''
+        }
+        onConfirm={() => mutations.handleConfirmStatusChange()}
+        confirmText="Confirm Change"
+        variant="warning"
+        isLoading={
+          mutations.updateProductStatusMutation.isPending ||
+          mutations.updateVariantStatusMutation.isPending ||
+          mutations.updateComboStatusMutation.isPending
+        }
       />
     </>
   );

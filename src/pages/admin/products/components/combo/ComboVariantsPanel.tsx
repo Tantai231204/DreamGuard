@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -19,24 +19,24 @@ import {
     Trash2,
     Copy,
     MoreVertical,
-    ShoppingBag,
 } from 'lucide-react';
 import { useComboDetail } from '@/hooks/queries/useCombo';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn, formatNumber } from '@/lib/utils';
 import type { Combo } from '../../types';
 
 /* ─── Status config (reuse same style as variant table) ── */
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-    Draft: { label: 'Draft', className: 'bg-amber-50 text-amber-700 border-amber-300' },
-    Published: { label: 'Published', className: 'bg-green-50 text-green-700 border-green-300' },
-    OutOfStock: { label: 'Out of Stock', className: 'bg-red-50 text-red-700 border-red-300' },
-    Hidden: { label: 'Hidden', className: 'bg-gray-50 text-gray-600 border-gray-300' },
+    draft: { label: 'Draft', className: 'bg-amber-50 text-amber-700 border-amber-300' },
+    published: { label: 'Published', className: '!bg-green-50 !text-green-700 !border-green-300' },
+    outofstock: { label: 'Out of Stock', className: 'bg-red-50 text-red-700 border-red-300' },
+    hidden: { label: 'Hidden', className: 'bg-gray-50 text-gray-600 border-gray-300' },
 };
 
 /* ─── Inline items for a single variant ─────────────────── */
-function VariantItemsPanel({ variantId }: { variantId: string }) {
+const VariantItemsPanel = memo(({ variantId }: { variantId: string }) => {
     const { data, isLoading } = useComboDetail(variantId);
-    const items = data?.productItems ?? [];
+    const items = data?.items ?? [];
 
     if (isLoading) {
         return (
@@ -50,7 +50,7 @@ function VariantItemsPanel({ variantId }: { variantId: string }) {
     if (!items.length) {
         return (
             <div className="px-6 py-3 text-xs text-gray-400 italic">
-                No product items configured for this variant.
+                No product items configured for this combo variant.
             </div>
         );
     }
@@ -59,166 +59,152 @@ function VariantItemsPanel({ variantId }: { variantId: string }) {
         <div className="px-6 py-3 space-y-1.5">
             {items.map((item, idx) => (
                 <div
-                    key={item.productVariantId ?? idx}
-                    className="flex items-center gap-3 bg-white border border-gray-100 rounded-lg px-3 py-2 hover:border-[var(--color-primary)]/60 hover:bg-primary-50/30 transition-colors"
+                    key={item.variantId ?? item.productId ?? idx}
+                    className="flex items-center gap-3 bg-white border border-gray-100 rounded-lg px-4 py-2.5 hover:border-[var(--color-primary)]/60 hover:bg-primary-50/30 transition-colors shadow-sm"
                 >
-                    <div className="h-6 w-6 rounded-md bg-primary-50 flex items-center justify-center flex-shrink-0">
-                        <Package className="h-3.5 w-3.5 text-primary-500" />
+                    <div className="h-7 w-7 rounded-md bg-primary-50 flex items-center justify-center flex-shrink-0 border border-primary-100">
+                        <Package className="h-4 w-4 text-primary-500" />
                     </div>
-                    <span className="flex-1 text-[13px] font-semibold text-gray-700 truncate">
-                        {item.productName}
-                    </span>
-                    {item.sku && (
-                        <span className="font-mono text-[10px] text-gray-400 bg-gray-50 border border-gray-200 px-1.5 py-0.5 rounded">
-                            {item.sku}
+                    
+                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                        <span className="text-[13px] font-bold text-gray-700 truncate leading-tight">
+                            {item.productName}
                         </span>
-                    )}
-                    <span className="text-[12px] text-gray-500 flex-shrink-0">
-                        ×{item.quantity}
-                    </span>
-                    <div className="text-right flex-shrink-0 min-w-[80px]">
-                        <div className="text-[12px] font-bold text-primary-700">
-                            {item.salePrice.toLocaleString('en-US')}₫
-                        </div>
-                        {item.salePrice < item.basePrice && (
-                            <div className="text-[10px] text-gray-400 line-through">
-                                {item.basePrice.toLocaleString('en-US')}₫
-                            </div>
+                        {item.variantLabel && (
+                            <span className="text-[11px] font-medium text-gray-400 mt-0.5 truncate">
+                                Variant: <strong className="text-gray-500 font-bold">{item.variantLabel}</strong>
+                            </span>
                         )}
+                    </div>
+                    
+                    <div className="flex items-center gap-1.5 flex-shrink-0 bg-slate-50 px-2.5 py-1 rounded-md border border-slate-100">
+                        <span className="text-[10px] uppercase font-black tracking-wider text-slate-400">
+                            QTY
+                        </span>
+                        <span className="text-[13px] font-black text-primary-600">
+                            {item.quantity}
+                        </span>
                     </div>
                 </div>
             ))}
-            <div className="pt-1 flex items-center gap-3 text-[11px] text-gray-400">
-                <span>{items.length} product{items.length !== 1 ? 's' : ''}</span>
-                <span>·</span>
-                <span>
-                    Total qty:{' '}
-                    <span className="font-bold text-gray-600">
-                        {items.reduce((s, i) => s + i.quantity, 0)}
-                    </span>
+            <div className="pt-2 flex items-center justify-between text-[11px] text-gray-500 px-1">
+                <span className="font-semibold">
+                    Total Distinct Items: <span className="text-gray-800">{items.length}</span>
+                </span>
+                <span className="font-semibold">
+                    Total Units: <span className="text-primary-600 font-bold">{items.reduce((s, i) => s + (i.quantity ?? 1), 0)}</span>
                 </span>
             </div>
         </div>
     );
-}
+});
 
 /* ─── Single variant row ─────────────────────────────────── */
-function ComboVariantRow({
+const ComboVariantRowInternal = memo(({
     variant,
     isEven,
     onEdit,
     onDelete,
     onDuplicate,
+    onUpdateStatus,
 }: {
     variant: Combo;
     isEven: boolean;
     onEdit?: (v: Combo) => void;
     onDelete?: (v: Combo) => void;
     onDuplicate?: (v: Combo) => void;
-}) {
+    onUpdateStatus?: (id: string, status: string, name?: string, currentStatus?: string) => void;
+}) => {
     const [expanded, setExpanded] = useState(false);
-    const statusConfig = STATUS_CONFIG[variant.status] ?? STATUS_CONFIG['Draft'];
-    const hasSale = variant.baseSalePrice != null && variant.baseSalePrice < variant.basePrice;
-    const itemCount = variant.productItems?.length ?? 0;
+    const statusKey = (variant.status || 'Draft').toLowerCase().replace(' ', '');
+    const status = STATUS_CONFIG[statusKey] || STATUS_CONFIG.draft;
 
     return (
-        <div>
-            {/* Row */}
-            <div
-                className={[
-                    'grid grid-cols-[40px_1fr_140px_120px_100px_60px] gap-4 items-center',
-                    'px-6 py-3 transition-colors group cursor-pointer',
-                    isEven ? 'bg-white hover:bg-primary-50/30' : 'bg-gray-50/40 hover:bg-primary-50/30',
-                    expanded ? 'bg-primary-50/40 border-b-0' : '',
-                ].join(' ')}
-                onClick={() => setExpanded((v) => !v)}
-            >
-                {/* Expand toggle */}
-                <div className="flex items-center justify-center">
-                    {expanded
-                        ? <ChevronDown className="h-4 w-4 text-primary-500" />
-                        : <ChevronRight className="h-4 w-4 text-gray-400 group-hover:text-primary-500 transition-colors" />
-                    }
-                </div>
+        <div className={cn(
+            'flex flex-col border-l-2',
+            expanded ? 'border-primary-500 bg-primary-50/10' : 'border-transparent'
+        )}>
+            <div className={cn(
+                'grid grid-cols-[40px_1fr_140px_120px_100px_60px] gap-4 items-center px-6 py-4 transition-colors',
+                isEven ? 'bg-white' : 'bg-gray-50/40',
+                'hover:bg-primary-50/40'
+            )}>
+                <button
+                    onClick={() => setExpanded(!expanded)}
+                    className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-gray-200 text-gray-400 transition-colors"
+                >
+                    {expanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                </button>
 
-                {/* Name + attributes */}
                 <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[13px] font-semibold text-gray-800 truncate">
-                            {variant.name}
-                        </span>
-                        {variant.color && (
-                            <Badge variant="outline" className="text-[10px] bg-primary-50 text-primary-600 border-primary-200">
-                                🎨 {variant.color}
-                            </Badge>
-                        )}
-                        {variant.size && (
-                            <Badge variant="outline" className="text-[10px] bg-slate-50 text-slate-500 border-slate-200">
-                                📐 {variant.size}
-                            </Badge>
-                        )}
-                    </div>
-                    <div className="text-[11px] text-gray-400 mt-0.5 font-mono">
-                        {variant.sku || '—'}
-                        {itemCount > 0 && <span className="ml-2 not-italic">· {itemCount} items</span>}
+                    <div className="text-[13px] font-bold text-gray-800 truncate">{variant.name}</div>
+                    <div className="flex items-center gap-1.5 mt-1">
+                        <Badge variant="outline" className="text-[9px] h-4 bg-white font-bold opacity-70">
+                            {variant.color} / {variant.size}
+                        </Badge>
+                        <span className="text-[10px] text-gray-400 font-mono tracking-tighter uppercase">{variant.sku}</span>
                     </div>
                 </div>
 
-                {/* Price */}
-                <div className="text-right">
-                    <div className="text-sm font-bold text-blue-600">
-                        {(hasSale ? variant.baseSalePrice! : variant.basePrice).toLocaleString('en-US')}₫
+                <div className="text-right flex flex-col items-end">
+                    <div className="text-[14px] font-black text-gray-900 leading-none">
+                        {formatNumber(variant.salePrice)}₫
                     </div>
-                    {hasSale && (
-                        <div className="text-[10px] text-gray-400 line-through">
-                            {variant.basePrice.toLocaleString('en-US')}₫
+                    {variant.basePrice > variant.salePrice && (
+                        <div className="text-[10px] text-gray-400 line-through mt-1">
+                            {formatNumber(variant.basePrice)}₫
                         </div>
                     )}
                 </div>
 
-                {/* Status */}
-                <div className="text-center">
-                    <Badge variant="outline" className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusConfig.className}`}>
-                        {statusConfig.label}
-                    </Badge>
-                </div>
-
-                {/* Item count badge */}
-                <div className="text-center">
-                    <span className="inline-flex items-center gap-1 text-[12px] font-bold text-primary-700">
-                        <ShoppingBag className="h-3.5 w-3.5" />
-                        {itemCount}
-                    </span>
-                </div>
-
-                {/* Actions */}
-                <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
+                <div className="flex justify-center">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 w-7 p-0 rounded-md hover:bg-gray-100 opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                                <MoreVertical className="h-4 w-4" />
+                            <button className={cn(
+                                "px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border transition-all hover:ring-2",
+                                status.className
+                            )}>
+                                {status.label}
+                            </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="center" className="w-32 rounded-xl">
+                            {Object.entries(STATUS_CONFIG).map(([key, config]) => (
+                                <DropdownMenuItem
+                                    key={key}
+                                    onClick={() => onUpdateStatus?.(variant.id, config.label, variant.name, variant.status)}
+                                    className="text-[11px] font-bold"
+                                >
+                                    {config.label}
+                                </DropdownMenuItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+
+                <div className="flex justify-center">
+                    <div className="bg-slate-50 px-2 py-1 rounded-lg border border-slate-100 flex items-center gap-1.5 grayscale opacity-60">
+                        <Package className="h-3 w-3 text-slate-400" />
+                        <span className="text-[11px] font-black text-slate-600">{(variant.items ?? []).length}</span>
+                    </div>
+                </div>
+
+                <div className="flex justify-end pr-2">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-white hover:shadow-sm rounded-lg border border-transparent hover:border-gray-100">
+                                <MoreVertical className="h-4 w-4 text-gray-400" />
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-44 shadow-xl border rounded-xl">
-                            <DropdownMenuItem className="cursor-pointer" onClick={() => onEdit?.(variant)}>
-                                <Edit className="h-4 w-4 mr-2 text-gray-600" />
-                                Edit Variant
+                        <DropdownMenuContent align="end" className="w-44 p-1.5 rounded-xl shadow-xl border-gray-100">
+                            <DropdownMenuItem onClick={() => onEdit?.(variant)} className="rounded-lg h-9 gap-2.5 text-[12px] font-semibold">
+                                <Edit className="h-3.5 w-3.5 text-blue-500" /> Edit Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="cursor-pointer" onClick={() => onDuplicate?.(variant)}>
-                                <Copy className="h-4 w-4 mr-2 text-gray-600" />
-                                Duplicate
+                            <DropdownMenuItem onClick={() => onDuplicate?.(variant)} className="rounded-lg h-9 gap-2.5 text-[12px] font-semibold">
+                                <Copy className="h-3.5 w-3.5 text-amber-500" /> Duplicate Variant
                             </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                                className="cursor-pointer text-red-600 font-semibold focus:bg-red-50 focus:text-red-700"
-                                onClick={() => onDelete?.(variant)}
-                            >
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
+                            <DropdownMenuSeparator className="my-1.5 opacity-50" />
+                            <DropdownMenuItem onClick={() => onDelete?.(variant)} className="rounded-lg h-9 gap-2.5 text-[12px] font-semibold text-rose-600 focus:bg-rose-50 focus:text-rose-700">
+                                <Trash2 className="h-3.5 w-3.5" /> Delete Variant
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -242,7 +228,7 @@ function ComboVariantRow({
             </AnimatePresence>
         </div>
     );
-}
+});
 
 /* ─── Main panel rendered below the parent combo row ────── */
 interface ComboVariantsPanelProps {
@@ -252,16 +238,18 @@ interface ComboVariantsPanelProps {
     onEditVariant?: (variant: Combo) => void;
     onDeleteVariant?: (variant: Combo) => void;
     onDuplicateVariant?: (variant: Combo) => void;
+    onUpdateStatus?: (id: string, status: string, name?: string, currentStatus?: string) => void;
 }
 
-export default function ComboVariantsPanel({
+const ComboVariantsPanel = memo(({
     parentCombo,
     variants,
     onAddVariant,
     onEditVariant,
     onDeleteVariant,
     onDuplicateVariant,
-}: ComboVariantsPanelProps) {
+    onUpdateStatus,
+}: ComboVariantsPanelProps) => {
     return (
         <motion.div
             initial={{ opacity: 0, height: 0 }}
@@ -318,13 +306,14 @@ export default function ComboVariantsPanel({
                             {/* Variant rows */}
                             <div className="divide-y divide-gray-100">
                                 {variants.map((v, idx) => (
-                                    <ComboVariantRow
+                                    <ComboVariantRowInternal
                                         key={v.id}
                                         variant={v}
                                         isEven={idx % 2 === 0}
                                         onEdit={onEditVariant}
                                         onDelete={onDeleteVariant}
                                         onDuplicate={onDuplicateVariant}
+                                        onUpdateStatus={onUpdateStatus}
                                     />
                                 ))}
                             </div>
@@ -358,4 +347,6 @@ export default function ComboVariantsPanel({
             </div>
         </motion.div>
     );
-}
+});
+
+export default ComboVariantsPanel;

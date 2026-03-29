@@ -23,6 +23,7 @@ import {
     Trash2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { getAllowedStatusTransitions } from "../../types"
 import type { Combo, ComboItem } from "../../types"
 import type { ProductItemResponse } from "@/api/services/comboService"
 
@@ -74,10 +75,11 @@ interface UseComboColumnsOptions {
     onDelete?: (combo: Combo) => void
     onDuplicate?: (combo: Combo) => void
     onAddVariant?: (combo: Combo) => void
+    onUpdateStatus?: (id: string, status: string, comboName?: string, currentStatus?: string) => void
 }
 
 export function useComboColumns(options: UseComboColumnsOptions = {}) {
-    const { onView, onEdit, onDelete, onDuplicate, onAddVariant } = options
+    const { onView, onEdit, onDelete, onDuplicate, onAddVariant, onUpdateStatus } = options
 
     return useMemo(
         () => [
@@ -109,7 +111,7 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
                     const canExpand = info.row.getCanExpand()
                     const isExpanded = info.row.getIsExpanded()
                     const depth = info.row.depth
-                    const isParent = !combo.comboParentId
+                    const isParent = depth === 0
 
                     return (
                         <div
@@ -253,15 +255,39 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
                 id: "price",
                 header: () => <div className="text-right">Price Value</div>,
                 cell: ({ row }) => {
-                    const combo = row.original
-                    const basePrice = combo.basePrice
-                    const salePrice = combo.baseSalePrice ?? combo.salePrice ?? null
+                    const combo = row.original;
+                    const isParent = row.depth === 0;
 
-                    if (!basePrice)
-                        return <span className="text-slate-300 text-[11px] block text-right font-black">N/A</span>
+                    if (isParent && row.subRows?.length) {
+                        const childPrices = row.subRows.map(r => r.original.baseSalePrice ?? r.original.salePrice ?? 0).filter(p => p > 0);
+                        if (childPrices.length > 0) {
+                            const minPrice = Math.min(...childPrices);
+                            const maxPrice = Math.max(...childPrices);
+                            return (
+                                <div className="text-right flex flex-col items-end">
+                                    <div className="font-black text-[13px] text-slate-900 bg-slate-100 px-2 py-1 rounded-md border border-slate-200">
+                                        {minPrice === maxPrice 
+                                            ? <>{minPrice.toLocaleString("en-US")}<span className="ml-0.5 text-[9px] font-bold text-slate-400">₫</span></>
+                                            : <>{minPrice.toLocaleString("en-US")} - {maxPrice.toLocaleString("en-US")}<span className="ml-0.5 text-[9px] font-bold text-slate-400">₫</span></>
+                                        }
+                                    </div>
+                                    <span className="text-[9px] text-slate-400 font-black uppercase tracking-tighter mt-1">
+                                        Options Range
+                                    </span>
+                                </div>
+                            );
+                        }
+                    }
 
-                    const hasSale = salePrice != null && salePrice < basePrice
-                    const isParent = !combo.comboParentId
+                    const basePrice = combo.basePrice;
+                    const salePrice = combo.baseSalePrice ?? combo.salePrice ?? null;
+
+                    if (!basePrice && !isParent)
+                        return <span className="text-slate-300 text-[11px] block text-right font-black">N/A</span>;
+                    if (!basePrice && isParent)
+                        return <span className="text-slate-300 text-[11px] block text-right font-black whitespace-nowrap">No variants</span>;
+
+                    const hasSale = salePrice != null && salePrice < basePrice;
 
                     return (
                         <div className="text-right flex flex-col">
@@ -277,13 +303,8 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
                                     {basePrice.toLocaleString("en-US")}₫
                                 </div>
                             )}
-                            {isParent && (
-                                <span className="text-[9px] text-slate-400 font-black uppercase tracking-tighter mt-0.5">
-                                    Base Collection
-                                </span>
-                            )}
                         </div>
-                    )
+                    );
                 },
             }),
 
@@ -312,8 +333,64 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
                 header: "Status",
                 cell: (info) => {
                     const status = info.getValue()
+                    const combo = info.row.original
+                    const isParent = info.row.depth === 0;
+                    const hasChildCombos = isParent && info.row.subRows && info.row.subRows.length > 0;
+
+                    if (!onUpdateStatus) return <AdminStatusBadge status={status} />
+
+                    const allowed = getAllowedStatusTransitions(status)
+
                     return (
-                        <AdminStatusBadge status={status} />
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <AdminStatusBadge
+                                    status={status}
+                                    className="cursor-pointer hover:border-slate-300 transition-colors shadow-sm"
+                                />
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="center" className="w-36 shadow-xl border-slate-200/60 rounded-xl p-1 animate-in fade-in zoom-in-95 duration-100">
+                                {allowed.map((s) => {
+                                    const normalized = s.toLowerCase();
+                                    const isDisabledOption = status === s || (s === 'Published' && isParent && !hasChildCombos);
+                                    const colorCls =
+                                        normalized === 'published' ? "text-emerald-600 hover:bg-emerald-50" :
+                                            normalized === 'draft' ? "text-amber-600 hover:bg-amber-50" :
+                                                normalized === 'hidden' ? "text-blue-600 hover:bg-blue-50" :
+                                                    normalized === 'archived' ? "text-slate-500 hover:bg-slate-50" :
+                                                        normalized === 'outofstock' ? "text-rose-600 hover:bg-rose-50" :
+                                                            "text-slate-600 text-opacity-70 hover:bg-slate-50";
+
+                                    return (
+                                        <DropdownMenuItem
+                                            key={s}
+                                            disabled={isDisabledOption}
+                                            className={cn(
+                                                "rounded-lg cursor-pointer py-1.5 px-3 text-[12px] font-bold transition-colors mb-0.5 last:mb-0",
+                                                isDisabledOption ? "bg-slate-100/50 text-slate-400 opacity-60" : colorCls
+                                            )}
+                                            onClick={() => status !== s && onUpdateStatus(combo.id, s, combo.name, status)}
+                                        >
+                                            <div className="flex items-center gap-2 w-full">
+                                                <div className={cn(
+                                                    "w-1.5 h-1.5 rounded-full shrink-0",
+                                                    normalized === 'published' ? "bg-emerald-500" :
+                                                        normalized === 'draft' ? "bg-amber-500" :
+                                                            normalized === 'hidden' ? "bg-blue-500" :
+                                                                normalized === 'archived' ? "bg-slate-400" :
+                                                                    normalized === 'outofstock' ? "bg-rose-500" :
+                                                                        "bg-slate-300"
+                                                )} />
+                                                <span>{s}</span>
+                                                {s === 'Published' && isParent && !hasChildCombos && (
+                                                    <span className="text-[9px] text-red-500 opacity-80">(Empty)</span>
+                                                )}
+                                            </div>
+                                        </DropdownMenuItem>
+                                    );
+                                })}
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     )
                 },
             }),
@@ -324,7 +401,7 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
                 header: () => <div className="text-right">Actions</div>,
                 cell: ({ row }) => {
                     const combo = row.original
-                    const isParent = !combo.comboParentId
+                    const isParent = row.depth === 0
 
                     return (
                         <div className="flex justify-end gap-1">
@@ -384,6 +461,6 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
                 },
             }),
         ],
-        [onView, onEdit, onDelete, onDuplicate, onAddVariant]
+        [onView, onEdit, onDelete, onDuplicate, onAddVariant, onUpdateStatus]
     )
 }

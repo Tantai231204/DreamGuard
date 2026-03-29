@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
-import type { ProductVariantResponse, ProductResponse, CustomizeOptionResponse } from "@/api/types/product.types";
+import type { ProductVariantResponse, ProductResponse } from "@/api/types/product.types";
 import { useCartStore } from "@/store/useCartStore";
 import { useCartAnimation } from "@/store/useCartAnimation";
 import { calculateTradeInValue } from "../utils/tradeIn";
@@ -86,56 +86,82 @@ export function useProductDetailState({ product, productImageRef }: UseProductDe
         const sizeSet = new Set<string>();
         const availableSizesByColor = new Map<string, Set<string>>();
         const colorsWithStock = new Set<string>();
-        const customizableByColor = new Map<string, { size: boolean; color: boolean; sizeId?: string; colorId?: string }>();
+        const customizableByColor = new Map<string, { size: boolean; color: boolean; sizeId?: string; colorId?: string; sizePrice?: number; colorPrice?: number }>();
 
         let firstAvailable: ProductVariantResponse | null = null;
         let firstStandard: ProductVariantResponse | null = null;
 
         variants.forEach(v => {
-            const rawColor = getVariantColor(v);
+            const attrs = (v.attributes || {}) as Record<string, unknown>;
+            const rawColor = (attrs.color || attrs.Color || getAttr(v, ["color", "colorName"])) ? String(attrs.color || attrs.Color || getAttr(v, ["color", "colorName"])).trim() : "Default";
             const colorKey = rawColor.toLowerCase();
             const sizeLabel = getVariantSize(v);
             const sizeKey = sizeLabel.toLowerCase();
             const hasStock = (v.stockQuantity ?? 0) > 0;
-            const isCustom = !!v.isCustomizable || !!v.is_customizable || (v.customizeOptions && v.customizeOptions.length > 0);
+            const isCustom = !!v.isCustomizable || !!v.is_customizable || (v.customizeOptions && v.customizeOptions.length > 0) || (v.customizeOptionGroups && v.customizeOptionGroups.length > 0);
 
             if (sizeLabel) {
                 registry.set(`${colorKey}:${sizeKey}`, v);
                 sizeSet.add(sizeLabel);
             }
 
-            if (!colorMeta.has(colorKey)) {
+            const currentHex = (() => {
+                const h = String(attrs.hexColor || attrs.HexColor || getAttr(v, ["hexColor", "colorHex"]) || "").trim().replace(/^#/, '');
+                return /^[0-9A-Fa-f]{3}$|^[0-9A-Fa-f]{6}$/.test(h) ? `#${h}` : undefined;
+            })();
+
+            const existingMeta = colorMeta.get(colorKey);
+            if (!existingMeta) {
                 colorMeta.set(colorKey, {
                     label: rawColor,
-                    hex: (() => {
-                        const h = String(getAttr(v, ["hexColor", "colorHex"]) || "").trim().replace(/^#/, '');
-                        return /^[0-9A-Fa-f]{3}$|^[0-9A-Fa-f]{6}$/.test(h) ? `#${h}` : undefined;
-                    })()
+                    hex: currentHex
                 });
+            } else if (!existingMeta.hex && currentHex) {
+                // Prioritize finding a valid hex from ANY variant of this color color
+                existingMeta.hex = currentHex;
+                // Update label to capitalized Color if current variant has it and previous didn't
+                if (attrs.Color && !existingMeta.label.includes(String(attrs.Color))) {
+                    existingMeta.label = String(attrs.Color);
+                }
             }
 
-            if (isCustom && v.customizeOptions) {
-                const colorOpt = v.customizeOptions.find(o =>
+            if (isCustom) {
+                const allOptions = [
+                    ...(v.customizeOptions || []),
+                    ...(v.customizeOptionGroups?.flatMap(g => g.options || []) || [])
+                ];
+
+                const colorOpt = allOptions.find(o =>
                     o.name.toLowerCase().includes('color') || o.name.toLowerCase().includes('màu')
                 );
-                const sizeOpt = v.customizeOptions.find(o =>
-                    o.name.toLowerCase().includes('size') || o.name.toLowerCase().includes('kích thước')
+                const sizeOpt = allOptions.find(o =>
+                    o.name.toLowerCase().includes('size') || o.name.toLowerCase().includes('kích')
                 );
 
                 const prev = customizableByColor.get(colorKey) || { size: false, color: false };
+
                 customizableByColor.set(colorKey, {
-                    size: prev.size || !!sizeOpt,
-                    color: prev.color || !!colorOpt,
+                    size: prev.size || !!sizeOpt || (v.isCustomizable && !sizeLabel),
+                    color: prev.color || !!colorOpt || (v.isCustomizable && rawColor === "Default"),
                     sizeId: sizeOpt?.customizeTypeId || prev.sizeId,
-                    colorId: colorOpt?.customizeTypeId || prev.colorId
+                    colorId: colorOpt?.customizeTypeId || prev.colorId,
+                    sizePrice: (sizeOpt?.overridePrice ?? sizeOpt?.defaultPrice) || prev.sizePrice || 0,
+                    colorPrice: (colorOpt?.overridePrice ?? colorOpt?.defaultPrice) || prev.colorPrice || 0,
                 });
             }
 
-            const sizeOpt = isCustom ? v.customizeOptions?.find(o =>
-                o.name.toLowerCase().includes('size') || o.name.toLowerCase().includes('kích thước')
+            const allOptions = [
+                ...(v.customizeOptions || []),
+                ...(v.customizeOptionGroups?.flatMap(g => g.options || []) || [])
+            ];
+
+            const sizeOpt = isCustom ? allOptions.find(o =>
+                o.name.toLowerCase().includes('size') || o.name.toLowerCase().includes('kích')
             ) : null;
 
-            if (hasStock && (sizeLabel || sizeOpt)) {
+            const isActuallyAvailable = hasStock || isCustom;
+
+            if (isActuallyAvailable && (sizeLabel || sizeOpt)) {
                 colorsWithStock.add(colorKey);
                 if (sizeLabel) {
                     if (!availableSizesByColor.has(colorKey)) availableSizesByColor.set(colorKey, new Set());
@@ -159,7 +185,7 @@ export function useProductDetailState({ product, productImageRef }: UseProductDe
             registry, colorOptions, sizeOptions, colorsWithStock,
             availableSizesByColor, customizableByColor, fallbackVariant
         };
-    }, [product, getVariantSize, getVariantColor, getAttr]);
+    }, [product, getVariantSize, getAttr]);
 
     // ── DYNAMIC SELECTION RESOLUTION ──
     const selectedColor = useMemo(() => {
@@ -200,10 +226,11 @@ export function useProductDetailState({ product, productImageRef }: UseProductDe
         if (isCustomSize && canCustomizeSize) {
             const colorKey = selectedColor.toLowerCase();
             const variants = product?.variants ?? [];
-            const specificCustomizable = variants.find(v =>
-                getVariantColor(v).toLowerCase() === colorKey &&
-                (!!v.isCustomizable || !!v.is_customizable || (v.customizeOptions && v.customizeOptions.length > 0))
-            );
+            const specificCustomizable = variants.find(v => {
+                const color = getVariantColor(v).toLowerCase();
+                const isCustom = !!v.isCustomizable || !!v.is_customizable || (v.customizeOptions && v.customizeOptions.length > 0) || (v.customizeOptionGroups && v.customizeOptionGroups.length > 0);
+                return color === colorKey && isCustom;
+            });
             return specificCustomizable || processedData.fallbackVariant || undefined;
         }
 
@@ -214,14 +241,8 @@ export function useProductDetailState({ product, productImageRef }: UseProductDe
         if (!product) return { price: 0, originalPrice: undefined, colorSurcharge: 0, sizeSurcharge: 0 };
         const basePrice = currentVariant?.salePrice ?? currentVariant?.basePrice ?? product.minPrice ?? 0;
 
-        const getTypePrice = (typeId: string | undefined) => {
-            if (!typeId) return 0;
-            const opt = currentVariant?.customizeOptions?.find((o: CustomizeOptionResponse) => o.customizeTypeId === typeId);
-            return opt ? (opt.overridePrice ?? opt.defaultPrice) : 0;
-        };
-
-        const colorSurcharge = isCustomColor ? getTypePrice(customizationCaps.colorId) : 0;
-        const sizeSurcharge = (isCustomSize && canCustomizeSize) ? getTypePrice(customizationCaps.sizeId) : 0;
+        const colorSurcharge = isCustomColor ? (customizationCaps.colorPrice || 0) : 0;
+        const sizeSurcharge = (isCustomSize && canCustomizeSize) ? (customizationCaps.sizePrice || 0) : 0;
         const totalPrice = basePrice + colorSurcharge + sizeSurcharge;
 
         return {

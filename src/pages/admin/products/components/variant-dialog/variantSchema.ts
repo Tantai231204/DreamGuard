@@ -7,7 +7,7 @@ export const variantSchema = z.object({
         .regex(/^[A-Z0-9_-]+$/, "SKU contains invalid characters (Caps, numbers, _ - only)"),
     basePrice: z.coerce.number()
         .positive("Base price must be greater than 0")
-        .min(1000, "Price must be at least 1,000 VND"),
+        .min(1000, "Price must be at least 1.000 ₫"),
     salePrice: z.coerce.number()
         .min(0, "Sale price cannot be negative"),
     weight: z.coerce.number()
@@ -25,14 +25,18 @@ export const variantSchema = z.object({
     thickness: z.coerce.number().min(0).optional().nullable(),
     colorName: z.string().optional().nullable(),
     colorHex: z.string().optional().nullable(),
-}).refine((data) => {
+    pendingCustoms: z.array(z.object({
+        customizeTypeId: z.string(),
+        overridePrice: z.number().nullable()
+    })).optional().default([]),
+}).superRefine((data, ctx) => {
     if (data.salePrice > 0 && data.salePrice > data.basePrice) {
-        return false;
+        ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Sale price cannot exceed base price",
+            path: ["salePrice"],
+        });
     }
-    return true;
-}, {
-    message: "Sale price cannot exceed base price",
-    path: ["salePrice"]
 });
 
 export type VariantFormValues = z.infer<typeof variantSchema>;
