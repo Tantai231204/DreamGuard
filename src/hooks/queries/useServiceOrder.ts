@@ -54,3 +54,15 @@ export const useReOrderFailedServiceOrder = () => {
     },
   });
 };
+
+export const useCancelServiceOrder = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (serviceOrderId: string) => serviceOrderService.cancelServiceOrder(serviceOrderId),
+    onSuccess: (_, serviceOrderId) => {
+      queryClient.invalidateQueries({ queryKey: serviceOrderKeys.detail(serviceOrderId) });
+      queryClient.invalidateQueries({ queryKey: serviceOrderKeys.all });
+    },
+  });
+};
