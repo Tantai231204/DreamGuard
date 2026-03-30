@@ -1,9 +1,19 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 // @ts-nocheck
-import React, { Suspense, useMemo, useState, memo, useRef, useEffect } from "react";
-import { Canvas, useFrame, extend } from "@react-three/fiber";
-import { motion } from "framer-motion";
+import React, {
+  Suspense,
+  useMemo,
+  useState,
+  memo,
+  useRef,
+  useEffect,
+  useCallback,
+  useLayoutEffect,
+} from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { motion, AnimatePresence } from "framer-motion";
+
 import {
   OrbitControls,
   Environment,
@@ -11,505 +21,514 @@ import {
   Html,
   PerspectiveCamera,
   ContactShadows,
-  Float,
   Decal,
   useTexture,
 } from "@react-three/drei";
 import * as THREE from "three";
-import { Sparkles, ShoppingCart } from "lucide-react";
+import { Sparkles, ShoppingCart, Camera, RefreshCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { CustomizableProduct, DesignConfig, EmbroideryPosition } from "../types";
+import type { CustomizableProduct, DesignConfig } from "../types";
 
-/* ═══════════════════════════════════════════
-   SHADERS & CUSTOM MATERIALS
-   ═══════════════════════════════════════════ */
-const FabricShader = {
-  uniforms: {
-    uColor: { value: new THREE.Color("#B0D4F1") },
-    uPattern: { value: 0 },
-    uPatternScale: { value: 20.0 },
-    uPatternOpacity: { value: 0.12 },
-  },
-  vertexShader: `
-    varying vec2 vUv;
-    varying vec3 vNormal;
-    varying vec3 vViewDir;
-    void main() {
-      vUv = uv;
-      vec4 worldPosition = modelMatrix * vec4(position, 1.0);
-      vNormal = normalize(normalMatrix * normal);
-      vViewDir = normalize(cameraPosition - worldPosition.xyz);
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }
-  `,
-  fragmentShader: `
-    uniform vec3 uColor;
-    uniform int uPattern;
-    uniform float uPatternScale;
-    uniform float uPatternOpacity;
-    varying vec2 vUv;
-    varying vec3 vNormal;
-    varying vec3 vViewDir;
-
-    void main() {
-      vec3 color = uColor;
-      vec2 uv = vUv * uPatternScale;
-      float pattern = 0.0;
-
-      if (uPattern == 4) { // Dots
-        vec2 p = fract(uv) - 0.5;
-        pattern = smoothstep(0.3, 0.25, length(p));
-      } else if (uPattern == 2) { // Stripes
-        pattern = smoothstep(0.45, 0.5, sin(uv.x * 2.5 + uv.y * 2.5));
-      } else if (uPattern == 1) { // Stars
-        vec2 p = fract(uv * 1.5) - 0.5;
-        pattern = smoothstep(0.2, 0.1, length(p));
-      }
-
-      float lum = dot(uColor, vec3(0.299, 0.587, 0.114));
-      vec3 patternColor = lum > 0.6 ? vec3(0.0) : vec3(1.0);
-      color = mix(color, patternColor, pattern * uPatternOpacity);
-      
-      float fresnel = 1.0 - max(dot(vNormal, vViewDir),   0.0);
-      fresnel = pow(fresnel, 3.0); 
-      color = mix(color, color * 1.25, fresnel * 0.3);
-      
-      float diff = max(dot(vNormal, vec3(0.5, 0.7, 1.0)), 0.0);
-      color += diff * 0.03;
-
-      gl_FragColor = vec4(color, 1.0);
-    }
-  `
-};
-
-class FabricMaterial extends THREE.ShaderMaterial {
-  constructor() {
-    super({
-      ...FabricShader,
-      side: THREE.DoubleSide,
-    });
+// ================== SHADER ==================
+const LUXURY_VERTEX = `
+  varying vec2 vUv;
+  varying vec3 vNormal;
+  varying vec3 vWorldPos;
+  varying vec3 vViewDir;
+  varying vec3 vWorldNormal;
+  
+  void main() {
+    vUv = uv;
+    vec4 worldPos = modelMatrix * vec4(position, 1.0);
+    vWorldPos = worldPos.xyz;
+    vNormal = normalize(normalMatrix * normal);
+    vWorldNormal = normalize(vec3(modelMatrix * vec4(normal, 0.0)));
+    vViewDir = normalize(cameraPosition - worldPos.xyz);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   }
-}
+`;
 
-extend({ FabricMaterial });
+const LUXURY_FRAGMENT = `
+  uniform vec3 uColor;
+  uniform float uPattern;
+  uniform float uPatternScale;
+  uniform float uPatternOpacity;
+  uniform sampler2D uMap;
+  uniform float uUseMap;
+  uniform float uMapRepeat;
+  uniform vec2 uMapOffset;
+  uniform float uMapScale;
+  uniform float uMapOpacity;
+  uniform float uTime;
+  uniform float uWarpStrength;
+  
+  varying vec2 vUv;
+  varying vec3 vNormal;
+  varying vec3 vWorldPos;
+  varying vec3 vViewDir;
+  varying vec3 vWorldNormal;
 
-interface ProductPreview3DProps {
-  product: CustomizableProduct;
-  design: DesignConfig;
-  totalPrice: number;
-  onPositionChange: (pos: EmbroideryPosition) => void;
-}
-
-const CRIB_POSITIONS = {
-  "front-rail": { pos: [0, 0.45, 0.35], rot: [0, 0, 0], plateSize: [0.5, 0.12, 0.02], label: "Front Rail" },
-  "side-rail": { pos: [0.7, 0.45, 0], rot: [0, Math.PI / 2, 0], plateSize: [0.4, 0.12, 0.02], label: "Side Rail" },
-  "headboard": { pos: [0, 0.55, -0.35], rot: [0, Math.PI, 0], plateSize: [0.55, 0.14, 0.02], label: "Headboard" },
-};
-
-const PILLOW_POSITIONS = {
-  "center": { pos: [0, 0.60, 0], rot: [-Math.PI / 2, 0, 0], label: "Center" },
-  "corner": { pos: [0.35, 0.60, 0.22], rot: [-Math.PI / 2, 0, 0], label: "Corner" },
-  "bottom-edge": { pos: [0, 0.55, 0.50], rot: [-Math.PI / 2, 0, 0], label: "Bottom Edge" },
-};
-
-const isLightColor = (hex: string) => {
-  const c = new THREE.Color(hex);
-  return (c.r * 0.299 + c.g * 0.587 + c.b * 0.114) > 0.6;
-};
-
-/* ═══════════════════════════════════════════
-   SUB-COMPONENTS
-   ═══════════════════════════════════════════ */
-const generateEngravingTex = (text: string, isLight: boolean, isEmbroidery = false) => {
-  const S = 512;
-  const canvas = document.createElement("canvas"); canvas.width = S; canvas.height = isEmbroidery ? 128 : 160;
-  const ctx = canvas.getContext("2d")!;
-
-  if (!isEmbroidery) {
-    const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    grad.addColorStop(0, "#d4a76a"); grad.addColorStop(1, "#8b6914");
-    ctx.fillStyle = grad; ctx.fillRect(0, 0, S, canvas.height);
+  vec4 tri(sampler2D m, vec3 p, vec3 n, float s, vec2 off, float sc) {
+    vec3 w = abs(n);
+    w = w / (w.x + w.y + w.z + 0.0001);
+    vec3 st = p * s * sc;
+    vec4 cx = texture2D(m, st.yz + off);
+    vec4 cy = texture2D(m, st.xz + off);
+    vec4 cz = texture2D(m, st.xy + off);
+    return cx * w.x + cy * w.y + cz * w.z;
   }
 
-  ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  const fontSize = Math.min(isEmbroidery ? 48 : 56, (S - 40) / text.length * 1.6);
-  ctx.font = `bold ${fontSize}px "Inter", sans-serif`;
-  ctx.fillStyle = isLight ? "rgba(0,0,0,0.2)" : "rgba(255,255,255,0.1)";
-  ctx.fillText(text.toUpperCase(), S / 2, canvas.height / 2 + 2);
-  ctx.fillStyle = isEmbroidery ? (isLight ? "#1e293b" : "#f8fafc") : "#2a190a";
-  ctx.fillText(text.toUpperCase(), S / 2, canvas.height / 2);
+  void main() {
+    vec3 base = uColor;
+    
+    // 1. Safe Image Wrap
+    vec3 wPos = vWorldPos;
+    wPos += sin(vWorldPos.y * 4.0 + uTime) * uWarpStrength;
+    vec4 tex = tri(uMap, wPos, vWorldNormal, uMapRepeat, uMapOffset, uMapScale);
+    base = mix(base, tex.rgb, tex.a * uMapOpacity * uUseMap);
+    
+    // 2. Optimized Procedural Patterns (Step-based for Mobile)
+    vec2 safeUv = (vUv.x + vUv.y < 0.001) ? vWorldPos.xz * 1.5 : vUv;
+    vec2 pUv = fract(safeUv * uPatternScale);
+    float pM = 0.0;
+    float pIdx = floor(uPattern + 0.5);
+    
+    if (pIdx > 3.5) pM = 1.0 - smoothstep(0.2, 0.25, length(pUv - 0.5));
+    else if (pIdx > 1.5) pM = step(0.5, sin(safeUv.x * 20.0 + safeUv.y * 20.0));
+    else if (pIdx > 0.5) pM = 1.0 - smoothstep(0.15, 0.2, length(pUv - 0.5));
+    base = mix(base, vec3(1.0), pM * uPatternOpacity);
+    
+    // 3. Nike-Style Luxury Fabric Lighting
+    float dotNV = max(dot(vNormal, vViewDir), 0.0);
+    float sheen = pow(1.0 - dotNV, 3.5);
+    vec3 finalLit = base * (0.85 + vNormal.y * 0.15); // Global soft light
+    finalLit += base * sheen * 0.35; // Sheen fabric effect
+    
+    gl_FragColor = vec4(finalLit, 1.0);
+  }
+`;
 
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
-};
-
-const PositionHotspot = memo(({ position, rotation, label, isActive, onClick }: any) => {
-  const [hovered, setHovered] = useState(false);
-  const color = isActive ? "#4988c4" : hovered ? "#6ba3d6" : "#cbd5e1";
-
-  return (
-    <group position={position} rotation={rotation}>
-      <mesh
-        onPointerOver={() => { setHovered(true); document.body.style.cursor = "pointer"; }}
-        onPointerOut={() => { setHovered(false); document.body.style.cursor = ""; }}
-        onClick={(e) => { e.stopPropagation(); onClick(); }}
-      >
-        <sphereGeometry args={[isActive ? 0.045 : 0.035, 32, 32]} />
-        <meshStandardMaterial
-          color={color}
-          emissive={color}
-          emissiveIntensity={isActive ? 2 : hovered ? 1 : 0.4}
-          transparent
-          opacity={0.8}
-        />
-      </mesh>
-
-      {/* Outer Pulse Ring */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.05, 0.06, 32]} />
-        <meshBasicMaterial color={color} transparent opacity={0.3} side={THREE.DoubleSide} />
-      </mesh>
-
-      {(hovered || isActive) && (
-        <Html center distanceFactor={4} pointerEvents="none">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            className={cn(
-              "px-4 py-2 rounded-2xl backdrop-blur-2xl border flex items-center gap-2 whitespace-nowrap shadow-2xl transition-all duration-500",
-              isActive
-                ? "bg-[#4988c4]/90 border-[#4988c4]/50 text-white"
-                : "bg-white/80 border-white/40 text-slate-800"
-            )}
-          >
-            <div className={cn("h-1.5 w-1.5 rounded-full animate-pulse", isActive ? "bg-white" : "bg-[#4988c4]")} />
-            <span className="text-[10px] font-black uppercase tracking-widest">{label}</span>
-          </motion.div>
-        </Html>
-      )}
-    </group>
-  );
-});
-
-const DecalLayer = ({ url, position, rotation, scale }: { url: string; position: any; rotation: any; scale: any }) => {
+// ================== SAFE DECAL ==================
+const SafeDecal = ({ url, position, rotation, scale }: any) => {
   const texture = useTexture(url);
+
   return (
     <Decal
       position={position}
       rotation={rotation}
       scale={scale}
     >
-      <meshBasicMaterial map={texture} transparent polygonOffset polygonOffsetFactor={-10} />
+      <meshPhysicalMaterial
+        map={texture}
+        transparent
+        polygonOffset
+        polygonOffsetFactor={-10}
+        polygonOffsetUnits={-10}
+        roughness={0.7}
+        metalness={0.05}
+        clearcoat={0.3}
+        clearcoatRoughness={0.2}
+      />
     </Decal>
   );
 };
 
-const WrappedMaterialChild = ({ url }: { url: string }) => {
+// ================== TEXTURE SAMPLER ==================
+const TextureSampler = ({ url, onLoaded }: any) => {
   const texture = useTexture(url);
-  const clonedTexture = useMemo(() => {
-    if (!texture) return null;
-    const t = texture.clone();
-    t.wrapS = t.wrapT = THREE.RepeatWrapping;
-    t.repeat.set(3.5, 3.5);
-    t.colorSpace = THREE.SRGBColorSpace;
-    t.needsUpdate = true;
-    return t;
-  }, [texture]);
-  if (!clonedTexture) return null;
-  return <meshPhysicalMaterial map={clonedTexture} roughness={0.8} metalness={0.05} />;
+
+  useEffect(() => {
+    if (!texture) return;
+
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.needsUpdate = true;
+
+    onLoaded(texture);
+  }, [texture, onLoaded]);
+
+  return null;
 };
 
-const GLTFModel = memo(({ url, designRef, customImage, imageMode, isCrib }: { url: string; designRef: React.MutableRefObject<DesignConfig>; customImage?: string; imageMode: "print" | "wrap"; isCrib: boolean }) => {
-  const { scene } = useGLTF(url);
-  const materialRef = useRef<THREE.ShaderMaterial>(null);
+// ================== GLTF MODEL ==================
+const GLTFModel = ({
+  url,
+  designRef,
+  customImage,
+  imageMode,
+  transform = { x: 0, y: 0, scale: 1 },
+}: any) => {
+  const gltf = useGLTF(url) as any;
+  const { scene } = gltf;
 
-  const woodTex = useMemo(() => {
-    const canvas = document.createElement("canvas"); canvas.width = 128; canvas.height = 128;
-    const ctx = canvas.getContext("2d")!;
-    ctx.fillStyle = "#E5C299"; ctx.fillRect(0, 0, 128, 128);
-    for (let i = 0; i < 128; i++) { ctx.fillStyle = `rgba(139,105,20, 0.05)`; ctx.fillRect(0, i, 128, 1); }
-    return new THREE.CanvasTexture(canvas);
+  const clonedScene = useMemo(() => scene.clone(true), [scene]);
+
+  const [texture, setTexture] = useState<THREE.Texture | null>(null);
+
+  const luxuryMat = useMemo(() => {
+    const d = new THREE.DataTexture(
+      new Uint8Array([255, 255, 255, 255]),
+      1,
+      1,
+      THREE.RGBAFormat
+    );
+    d.needsUpdate = true;
+
+    return new THREE.ShaderMaterial({
+      uniforms: {
+        uColor: { value: new THREE.Color("#B0D4F1") },
+        uPattern: { value: 0 },
+        uPatternScale: { value: 12 },
+        uPatternOpacity: { value: 0.15 },
+        uMap: { value: d },
+        uUseMap: { value: 0 },
+        uMapRepeat: { value: 2.2 },
+        uMapOffset: { value: new THREE.Vector2(0, 0) },
+        uMapScale: { value: 1 },
+        uMapOpacity: { value: 1 },
+        uTime: { value: 0 },
+        uWarpStrength: { value: 0.012 },
+      },
+      vertexShader: LUXURY_VERTEX,
+      fragmentShader: LUXURY_FRAGMENT,
+      side: THREE.DoubleSide,
+    });
   }, []);
 
-  const wMat = useMemo(() => new THREE.MeshPhysicalMaterial({ map: woodTex, roughness: 0.5, metalness: 0.1 }), [woodTex]);
+  // Reset khi đổi model
+  useEffect(() => {
+    setTexture(null);
+    const u = luxuryMat.uniforms;
+    u.uUseMap.value = 0;
+    u.uMapOffset.value.set(0, 0);
+    u.uMapScale.value = 1;
+  }, [url, luxuryMat]);
 
-  const targetMesh = useMemo(() => {
-    let best: THREE.Mesh | null = null;
-    let maxV = 0;
-    scene.traverse((c: any) => {
-      if (c.isMesh && !c.name.toLowerCase().includes("wood") && !c.name.toLowerCase().includes("leg")) {
-        const count = c.geometry.attributes.position.count;
-        if (count > maxV) { maxV = count; best = c; }
+  // Apply material
+  useLayoutEffect(() => {
+    clonedScene.traverse((c: any) => {
+      if (c.isMesh) {
+        c.material = luxuryMat;
+        c.castShadow = true;
+        c.receiveShadow = true;
       }
     });
+  }, [clonedScene, luxuryMat]);
+
+  // Tìm mesh chính
+  const tMesh = useMemo(() => {
+    let best: any = null;
+    let max = 0;
+
+    clonedScene.traverse((c: any) => {
+      if (c.isMesh && c.geometry?.attributes?.position) {
+        const count = c.geometry.attributes.position.count;
+        if (count > max) {
+          max = count;
+          best = c;
+        }
+      }
+    });
+
     return best;
-  }, [scene]);
+  }, [clonedScene]);
 
-  useFrame(() => {
-    if (materialRef.current?.uniforms && designRef.current) {
-      const color = designRef.current.baseColor || "#B0D4F1";
-      materialRef.current.uniforms.uColor.value.set(color);
+  // Update shader
+  useFrame((state) => {
+    const d = designRef.current;
+    if (!d) return;
 
-      const patternIdx = ["solid", "stars", "stripes", "clouds", "dots"].indexOf(designRef.current.pattern);
-      materialRef.current.uniforms.uPattern.value = patternIdx >= 0 ? patternIdx : 0;
+    const u = luxuryMat.uniforms;
+    u.uTime.value = state.clock.elapsedTime;
+    u.uColor.value.set(d.baseColor || "#B0D4F1");
 
-      // If we are wrapping, make the base shader material invisible
-      materialRef.current.visible = !(customImage && imageMode === 'wrap');
+    const idx = ["solid", "stars", "stripes", "clouds", "dots"].indexOf(d.pattern);
+    u.uPattern.value = idx >= 0 ? idx : 0;
+
+    const isWrap = customImage && texture && imageMode === "wrap";
+    u.uUseMap.value = isWrap ? 1 : 0;
+
+    if (isWrap) {
+      u.uMapScale.value = transform.scale;
+      u.uMapOffset.value.set(transform.x, transform.y);
     }
   });
 
+  // Apply texture cho Wrap mode
   useEffect(() => {
-    if (scene && materialRef.current) {
-      scene.traverse((c: any) => {
-        if (c.isMesh) {
-          const n = (c.name || "").toLowerCase();
-          const isWood = n.includes("wood") || n.includes("frame") || n.includes("leg");
-          c.material = isWood ? wMat : materialRef.current;
-          c.castShadow = c.receiveShadow = true;
-        }
-      });
+    if (texture) {
+      luxuryMat.uniforms.uMap.value = texture;
     }
-  }, [scene, wMat]);
+  }, [texture, luxuryMat]);
 
   return (
     <group>
-      <primitive object={scene} />
-      {/* @ts-ignore */}
-      <fabricMaterial ref={materialRef} transparent={false} />
+      <primitive object={clonedScene} />
 
-      {customImage && targetMesh && (
-        <Suspense fallback={null}>
-          {imageMode === 'wrap' ? (
-            <mesh
-              geometry={targetMesh.geometry}
-              position={targetMesh.position}
-              rotation={targetMesh.rotation}
-              scale={targetMesh.scale}
-            >
-              <WrappedMaterialChild url={customImage} />
-            </mesh>
-          ) : (
-            <mesh
-              geometry={targetMesh.geometry}
-              position={targetMesh.position}
-              rotation={targetMesh.rotation}
-              scale={targetMesh.scale}
-            >
-              <DecalLayer
-                url={customImage}
-                position={isCrib ? [0, 0.45, 0.35] : [0, 0.8, 0.3]}
-                rotation={isCrib ? [0, 0, 0] : [-Math.PI / 8, 0, 0]}
-                scale={isCrib ? [0.35, 0.35, 0.35] : [0.4, 0.4, 0.4]}
-              />
-            </mesh>
-          )}
-        </Suspense>
+      {/* WRAP MODE */}
+      {customImage && imageMode === "wrap" && (
+        <TextureSampler
+          key={`wrap-${customImage}`}
+          url={customImage}
+          onLoaded={setTexture}
+        />
+      )}
+
+      {/* PRINT MODE - ĐÃ SỬA */}
+      {customImage && imageMode === "print" && tMesh && (
+        <mesh
+          geometry={tMesh.geometry}
+          position={tMesh.position}
+          rotation={tMesh.rotation}
+          scale={tMesh.scale}
+        >
+          <Suspense fallback={null}>
+            <SafeDecal
+              key={`print-${customImage}`}
+              url={customImage}
+              position={[transform.x, transform.y, 0.3]}
+              rotation={[0, 0, 0]}
+              scale={[0.4 * transform.scale, 0.4 * transform.scale, 0.4]}
+            />
+          </Suspense>
+        </mesh>
       )}
     </group>
   );
-});
+};
 
-const PersonalizationLayer = memo(({ isCrib, text, color, position, onPositionChange }: any) => {
-  const positions: any = isCrib ? CRIB_POSITIONS : PILLOW_POSITIONS;
-  const light = isLightColor(color);
-  const tex = useMemo(() => generateEngravingTex(text, light, !isCrib), [text, light, isCrib]);
-  const activeCfg = positions[position] || (isCrib ? CRIB_POSITIONS["front-rail"] : PILLOW_POSITIONS["center"]);
-
-  return (
-    <group>
-      {Object.entries(positions).map(([key, cfg]: [string, any]) => (
-        <PositionHotspot key={key} position={cfg.pos} rotation={cfg.rot} label={cfg.label}
-          isActive={position === key} onClick={() => onPositionChange(key)} />
-      ))}
-      <Float speed={1.5} rotationIntensity={0.05} floatIntensity={0.1}>
-        <group position={activeCfg.pos} rotation={activeCfg.rot}>
-          <mesh castShadow>
-            {isCrib ? <boxGeometry args={activeCfg.plateSize} /> : <planeGeometry args={[0.6, 0.12]} />}
-            <meshPhysicalMaterial map={tex} transparent={!isCrib} roughness={isCrib ? 0.3 : 0.95} side={THREE.DoubleSide} polygonOffset polygonOffsetFactor={-5} depthWrite={isCrib} />
-          </mesh>
-        </group>
-      </Float>
-    </group>
-  );
-});
-
-const SceneRoot = memo(({ product, designRef, onPositionChange, currentDesign }: any) => {
+// ================== SCENE ROOT ==================
+const SceneRoot = memo(({ product, designRef, currentDesign, transform }: any) => {
   const isCrib = product.id === "crib_bedding_set";
-  const [showLayer, setShowLayer] = useState(!!currentDesign.embroideryText.trim());
-  const [localDesign, setLocalDesign] = useState<DesignConfig>(currentDesign);
 
-  useFrame(() => {
-    if (designRef.current) {
-      const hasText = designRef.current.embroideryText.trim().length > 0;
-      if (hasText !== showLayer) setShowLayer(hasText);
-
-      // detect all properties that require a React re-render of the subtree
-      const needsUpdate =
-        designRef.current.embroideryText !== localDesign.embroideryText ||
-        designRef.current.embroideryPosition !== localDesign.embroideryPosition ||
-        designRef.current.customImage !== localDesign.customImage ||
-        designRef.current.imageMode !== localDesign.imageMode;
-
-      if (needsUpdate) {
-        setLocalDesign({ ...designRef.current });
-      }
-    }
-  });
+  const autoRotate = !currentDesign.embroideryText?.trim();
 
   return (
     <>
-      <PerspectiveCamera makeDefault position={[2.8, 1.8, 2.8]} fov={28} />
+      <PerspectiveCamera makeDefault position={[3, 2, 3]} fov={25} />
+
       <OrbitControls
-        makeDefault
         enablePan={false}
         minDistance={2}
-        maxDistance={5.5}
+        maxDistance={6}
         enableDamping
-        dampingFactor={0.05}
-        autoRotate={!showLayer}
-        autoRotateSpeed={0.4}
+        dampingFactor={0.06}
+        autoRotate={autoRotate && transform.scale === 1}
       />
+
       <Environment preset="apartment" />
-      <ambientLight intensity={0.5} />
-      <spotLight position={[5, 10, 5]} intensity={2} castShadow />
+
+      <ambientLight intensity={0.4} />
+      <spotLight position={[10, 10, 10]} intensity={1.5} castShadow />
 
       <group position={[0, -0.4, 0]}>
-        <Suspense fallback={null}>
-          <GLTFModel
-            url={isCrib ? "/models/real_bumper.glb" : "/models/real_pillow.glb"}
-            designRef={designRef}
-            customImage={localDesign.customImage}
-            imageMode={localDesign.imageMode}
-            isCrib={isCrib}
-          />
-        </Suspense>
-        {showLayer && localDesign && (
-          <PersonalizationLayer
-            isCrib={isCrib}
-            text={localDesign.embroideryText}
-            color={localDesign.baseColor}
-            position={localDesign.embroideryPosition}
-            onPositionChange={onPositionChange}
-          />
-        )}
+        <GLTFModel
+          key={product.id}
+          url={isCrib ? "/models/real_bumper.glb" : "/models/real_pillow.glb"}
+          designRef={designRef}
+          customImage={currentDesign.customImage}
+          imageMode={currentDesign.imageMode}
+          transform={transform}
+        />
       </group>
-      <ContactShadows resolution={256} scale={10} blur={2.5} opacity={0.25} far={1} color="#000" />
+
+      <ContactShadows opacity={0.3} blur={2.5} />
     </>
   );
 });
 
-/* ═══════════════════════════════════════════
-   PREMIUM UI OVERLAYS (MEMOIZED)
-   ═══════════════════════════════════════════ */
-
-const TopHUD = memo(({ productId }: { productId: string }) => (
-  <div className="absolute top-8 left-8 z-10 flex flex-col gap-4 pointer-events-none">
-    <motion.div
-      initial={{ x: -20, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      className="flex items-center gap-4 bg-white/40 backdrop-blur-3xl border border-white/40 p-1.5 pr-5 rounded-2xl shadow-2xl"
-    >
-      <div className="h-10 w-10 rounded-xl bg-[#4988c4] flex items-center justify-center shadow-lg shadow-[#4988c4]/20">
-        <Sparkles className="h-5 w-5 text-white" />
-      </div>
-      <div>
-        <p className="text-[9px] font-black text-[#4988c4] uppercase tracking-[0.2em] mb-0.5">Engine Status</p>
-        <div className="flex items-center gap-2">
-          <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-[10px] font-black text-slate-800 uppercase tracking-widest">Active • Optimized</span>
-        </div>
-      </div>
-    </motion.div>
-
-    <motion.div
-      initial={{ x: -20, opacity: 0 }}
-      animate={{ x: 0, opacity: 1 }}
-      transition={{ delay: 0.1 }}
-      className="flex items-center gap-3 bg-white/40 backdrop-blur-3xl border border-white/40 px-4 py-2.5 rounded-xl shadow-xl"
-    >
-      <div className="text-[10px] font-black text-slate-400 font-mono">SKU:</div>
-      <div className="text-[10px] font-black text-slate-800 uppercase tracking-widest">{productId}</div>
-    </motion.div>
-  </div>
-));
-
-const InteractionGuide = memo(() => (
-  <motion.div
-    initial={{ opacity: 0 }}
-    animate={{ opacity: [0, 1, 1, 0] }}
-    transition={{ duration: 4, times: [0, 0.1, 0.8, 1] }}
-    className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"
-  >
-    <div className="flex flex-col items-center gap-4">
-      <div className="h-16 w-16 rounded-full border-2 border-dashed border-[#4988c4]/30 animate-spin-slow flex items-center justify-center">
-        <div className="h-2 w-2 rounded-full bg-[#4988c4]" />
-      </div>
-      <p className="text-[10px] font-black text-[#4988c4] uppercase tracking-[0.3em]">Drag to Explore 360°</p>
-    </div>
-  </motion.div>
-));
-
-const BottomHUD = memo(({ price }: { price: number }) => (
-  <div className="absolute bottom-10 left-10 right-10 z-10 flex justify-center pointer-events-none">
-    <motion.div
-      initial={{ y: 50, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      className="bg-white/40 backdrop-blur-3xl border border-white/60 p-2 rounded-[2.5rem] shadow-2xl flex items-center gap-6 pointer-events-auto"
-    >
-      <div className="pl-8 py-4">
-        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1 font-mono">Total Customization</p>
-        <div className="flex items-baseline gap-2">
-          <span className="text-2xl font-black text-slate-900 tracking-tight">
-            {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(price)}
-          </span>
-          <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">GOTS Certified</span>
-        </div>
-      </div>
-      <div className="h-12 w-px bg-slate-200/50" />
-      <button className="h-14 px-10 rounded-[2rem] bg-[#0f172a] text-white text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all shadow-xl shadow-slate-900/10 flex items-center gap-3 active:scale-95 group">
-        <ShoppingCart className="h-4 w-4" />
-        Add to Selection
-      </button>
-    </motion.div>
-  </div>
-));
-
-const ProductPreview3D = memo(({ product, design, totalPrice, onPositionChange }: ProductPreview3DProps) => {
+// ================== MAIN COMPONENT ==================
+const ProductPreview3D = memo(({ product, design, totalPrice }: any) => {
   const designRef = useRef(design);
-  const invalidateRef = useRef<(() => void) | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
 
   useEffect(() => {
     designRef.current = design;
-    if (invalidateRef.current) {
-      invalidateRef.current();
-    }
   }, [design]);
 
-  const canvasContent = useMemo(() => {
-    return (
-      <Canvas
-        gl={{ antialias: false, powerPreference: "high-performance", alpha: true }}
-        dpr={1}
-        frameloop="demand"
-        onCreated={({ invalidate }) => { invalidateRef.current = invalidate; }}
-      >
-        <SceneRoot product={product} designRef={designRef} onPositionChange={onPositionChange} currentDesign={design} />
-      </Canvas>
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product.id, onPositionChange]);
+  useEffect(() => {
+    setTransform({ x: 0, y: 0, scale: 1 });
+  }, [product.id]);
+
+  const handleScreenshot = useCallback(() => {
+    if (!canvasRef.current) return;
+    const link = document.createElement("a");
+    link.download = `DreamGuard-Design-${Date.now()}.png`;
+    link.href = canvasRef.current.toDataURL("image/png", 1.0);
+    link.click();
+  }, []);
 
   return (
-    <div className="w-full h-full flex flex-col bg-[#f8fafc] overflow-hidden relative group">
+    <div className="w-full h-full flex flex-col bg-[#f8fafc] overflow-hidden relative group font-sans">
       <div className="flex-1 relative cursor-grab active:cursor-grabbing">
-        {canvasContent}
-        <TopHUD productId={product.id} />
-        <InteractionGuide />
+        <Canvas
+          ref={canvasRef}
+          gl={{
+            antialias: true,
+            powerPreference: "high-performance",
+            preserveDrawingBuffer: true,
+            alpha: true,
+          }}
+          dpr={[1, 2]}
+          shadows={{ type: THREE.PCFShadowMap }}
+        >
+          <SceneRoot
+            key={product.id}
+            product={product}
+            designRef={designRef}
+            currentDesign={design}
+            transform={transform}
+          />
+        </Canvas>
+
+        {/* UI Overlay */}
+        <div className="absolute top-6 left-6 z-10 flex flex-col gap-3 pointer-events-none">
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="flex items-center gap-4 bg-white/70 backdrop-blur-3xl border border-white p-2 pr-6 rounded-2xl shadow-2xl"
+          >
+            <div className="h-10 w-10 rounded-xl bg-[#4988c4] flex items-center justify-center shadow-lg">
+              <RefreshCcw className="h-5 w-5 text-white animate-spin-slow" />
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-[#4988c4] uppercase tracking-widest">Engine</p>
+              <span className="text-[10px] font-black text-slate-800 uppercase tracking-tighter">
+                NIKE-TECH PBR 2.1
+              </span>
+            </div>
+          </motion.div>
+        </div>
+
+        <div className="absolute top-6 right-6 z-10 flex flex-col gap-3 pointer-events-auto">
+          <button
+            onClick={handleScreenshot}
+            title="Capture 4K Snapshot"
+            className="h-12 w-12 rounded-2xl bg-white shadow-xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all text-slate-600 hover:text-[#4988c4] border border-slate-100"
+          >
+            <Camera className="h-6 w-6" />
+          </button>
+        </div>
+
+        {/* Image Adjustment Panel */}
+        <AnimatePresence>
+          {design.customImage && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="absolute bottom-32 left-8 z-20 pointer-events-auto"
+            >
+              <div className="bg-white/80 backdrop-blur-2xl p-6 rounded-[2rem] border border-white shadow-2xl w-64 space-y-6">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-[11px] font-black uppercase text-slate-400 tracking-widest">
+                    Adjust Image
+                  </h4>
+                  <button
+                    onClick={() => setTransform({ x: 0, y: 0, scale: 1 })}
+                    className="text-[10px] font-bold text-[#4988c4] hover:underline"
+                  >
+                    Reset
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex justify-between text-[9px] font-black uppercase text-slate-500">
+                    <span>Zoom</span>
+                    <span className="text-slate-800">{Math.round(transform.scale * 100)}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.1"
+                    max="3"
+                    step="0.01"
+                    value={transform.scale}
+                    onChange={(e) =>
+                      setTransform((t) => ({ ...t, scale: parseFloat(e.target.value) }))
+                    }
+                    className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#4988c4]"
+                  />
+                </div>
+
+                <div className="space-y-3">
+                  <p className="text-[9px] font-black uppercase text-slate-500 tracking-widest">Position</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[8px] font-bold text-slate-400 uppercase">Horizontal</span>
+                      <input
+                        type="range"
+                        min="-1"
+                        max="1"
+                        step="0.01"
+                        value={transform.x}
+                        onChange={(e) =>
+                          setTransform((t) => ({ ...t, x: parseFloat(e.target.value) }))
+                        }
+                        className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#4988c4]"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-[8px] font-bold text-slate-400 uppercase">Vertical</span>
+                      <input
+                        type="range"
+                        min="-1"
+                        max="1"
+                        step="0.01"
+                        value={transform.y}
+                        onChange={(e) =>
+                          setTransform((t) => ({ ...t, y: parseFloat(e.target.value) }))
+                        }
+                        className="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#4988c4]"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <InteractionLayer />
       </div>
-      <BottomHUD price={totalPrice} />
+
+      {/* Bottom Bar */}
+      <div className="absolute bottom-10 left-10 right-10 z-10 flex justify-center pointer-events-none">
+        <motion.div
+          initial={{ y: 50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="bg-[#0f172a]/95 backdrop-blur-xl p-2 pl-10 pr-2 rounded-[3rem] shadow-2xl flex items-center gap-10 pointer-events-auto border border-white/10"
+        >
+          <div className="py-4">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">
+              Configuration Price
+            </p>
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-black text-white leading-tight font-mono">
+                {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(totalPrice)}
+              </span>
+            </div>
+          </div>
+          <button className="h-16 px-12 rounded-[2.5rem] bg-white text-slate-950 text-[11px] font-black uppercase hover:bg-slate-100 transition-all shadow-xl active:scale-95 flex items-center gap-3">
+            <ShoppingCart className="h-4 w-4" />
+            Add to Selection
+          </button>
+        </motion.div>
+      </div>
     </div>
   );
 });
+
+const InteractionLayer = memo(() => (
+  <motion.div
+    initial={{ opacity: 0 }}
+    animate={{ opacity: [0, 1, 0] }}
+    transition={{ duration: 3, times: [0, 0.2, 1] }}
+    className="absolute inset-0 flex items-center justify-center pointer-events-none"
+  >
+    <p className="text-[11px] font-black text-[#4988c4] uppercase tracking-[0.4em] bg-white/40 backdrop-blur-sm px-6 py-2 rounded-full border border-white/50">
+      360° Studio
+    </p>
+  </motion.div>
+));
 
 export default ProductPreview3D;
