@@ -113,7 +113,7 @@ export function useAdminProductMutations({ state }: MutationProps) {
   }, [assignCustomMutation, updateCustomPriceMutation, removeCustomMutation]);
 
   const handleVariantSubmit = useCallback(async (formData: VariantSubmitData) => {
-    const { status, isNew, color, hexColor, colorHex, ...coreBody } = formData;
+    const { status, isNew, color, hexColor, colorHex, baseprice, saleprice, productid, ...coreBody } = formData;
     const commonData = {
       ...coreBody,
       isNew: !!isNew,
@@ -122,6 +122,9 @@ export function useAdminProductMutations({ state }: MutationProps) {
       colorHex: colorHex || undefined,
       isCustomizable: !!formData.isCustomizable,
       customizeLabel: formData.customizeLabel || '',
+      basePrice: baseprice,
+      salePrice: saleprice,
+      productId: productid,
     };
 
     try {
@@ -146,20 +149,11 @@ export function useAdminProductMutations({ state }: MutationProps) {
         if (hasCustoms && formData.isCustomizable) {
           const res = await createVariantWithCustomizeMutation.mutateAsync({
             ...commonData,
-            basePrice: formData.baseprice,
-            salePrice: formData.saleprice,
-            weight: formData.weight,
-            productId: formData.productid,
             customizeTypeIds: formData.pendingCustoms?.map(p => p.customizeTypeId) || []
           });
           newVariantId = res.id;
         } else {
-          const res = await createVariantMutation.mutateAsync({
-            ...commonData,
-            baseprice: formData.baseprice,
-            saleprice: formData.saleprice,
-            weight: formData.weight,
-          });
+          const res = await createVariantMutation.mutateAsync(commonData);
           newVariantId = res.id;
         }
         const initialStock = Number(formData.stockQuantity) || 0;

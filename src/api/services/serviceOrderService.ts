@@ -65,6 +65,10 @@ const serviceOrderService = {
 
     return (res.data?.data ?? res.data) as ReOrderFailedServiceOrderResponse;
   },
+
+  cancelServiceOrder: async (serviceOrderId: string): Promise<void> => {
+    await apiClient.patch(`/ServiceOrders/${serviceOrderId}/cancel`);
+  },
 };
 
 export default serviceOrderService;

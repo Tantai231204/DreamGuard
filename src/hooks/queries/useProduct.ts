@@ -249,10 +249,10 @@ export const useCreateVariant = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: productKeys.all });
       queryClient.invalidateQueries({
-        queryKey: variantKeys.byProduct(variables.productid),
+        queryKey: variantKeys.byProduct(variables.productId),
       });
       queryClient.invalidateQueries({
-        queryKey: variantKeys.adminByProduct(variables.productid),
+        queryKey: variantKeys.adminByProduct(variables.productId),
       });
     },
   });
@@ -283,7 +283,7 @@ export const useUpdateVariant = () => {
     onSuccess: (_, { data }) => {
       queryClient.invalidateQueries({ queryKey: productKeys.all });
       queryClient.invalidateQueries({ queryKey: variantKeys.all });
-      queryClient.invalidateQueries({ queryKey: variantKeys.adminByProduct(data.productid) });
+      queryClient.invalidateQueries({ queryKey: variantKeys.adminByProduct(data.productId) });
     },
   });
 };
