@@ -57,3 +57,20 @@ export function unformatNumber(value: string | number | undefined): number {
     const cleanNum = value.toString().replace(/\D/g, "");
     return parseInt(cleanNum, 10) || 0;
 }
+/**
+ * Robust slug generation handling Vietnamese characters and special symbols
+ */
+export function toSlug(str: string) {
+    if (!str) return "";
+    str = str.toLowerCase();
+    // Normalize and remove accents
+    str = str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    // Replace Đ/đ
+    str = str.replace(/[đĐ]/g, "d");
+    // Replace special characters and spacing
+    str = str.replace(/([^0-9a-z-\s])/g, "");
+    str = str.replace(/(\s+)/g, "-");
+    str = str.replace(/-+/g, "-");
+    str = str.replace(/^-+|-+$/g, "");
+    return str;
+}

@@ -52,8 +52,8 @@ export const useServiceBookingCard = ({
       name: staff.fullName,
       phone: staff.phoneNumber || "",
       avatar: staff.avatarUrl,
-      rating: 5, // Default for now
-      completedJobs: 0,
+      rating: staff.averageRating ?? 5,
+      completedJobs: staff.totalRating ?? 0,
     };
   }, [staff]);
 

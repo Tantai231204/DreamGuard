@@ -1,9 +1,12 @@
-import { User, Phone, MapPin, Calendar, Clock, Briefcase, ShieldCheck, AlertCircle, CreditCard } from 'lucide-react';
+import { User, Phone, MapPin, Calendar, Clock, Briefcase, ShieldCheck, AlertCircle, CreditCard, Star, CheckCircle2, Quote } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { AdminStatusBadge } from '@/components/admin';
 import { formatPrice, formatDate } from '@/lib/utils';
+import { statusConfig } from '../../constants';
+import type { ServiceStatus } from '../../types';
 import type { DetailOrder, TaskDetail } from './types';
 import type { Staff } from '../../types';
 
@@ -18,11 +21,11 @@ interface OrderSidebarProps {
 
 import { memo } from 'react';
 
-export const OrderSidebar = memo(function OrderSidebar({ 
-  order, 
-  task, 
-  technician, 
-  scheduledDate, 
+export const OrderSidebar = memo(function OrderSidebar({
+  order,
+  task,
+  technician,
+  scheduledDate,
   scheduledTime,
   onAssign
 }: OrderSidebarProps) {
@@ -94,26 +97,78 @@ export const OrderSidebar = memo(function OrderSidebar({
               </Avatar>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2">
-                   <p className="font-black text-slate-800 text-sm truncate">{technician.fullName}</p>
-                   <ShieldCheck className="h-4 w-4 text-blue-600 shrink-0" />
+                  <p className="font-black text-slate-800 text-sm truncate">{technician.fullName}</p>
+                  <ShieldCheck className="h-4 w-4 text-blue-600 shrink-0" />
                 </div>
-                <p className="text-xs font-bold text-slate-400 mt-0.5 flex items-center gap-1">
-                   <Phone className="h-3 w-3" /> {technician.phoneNumber || 'N/A'}
-                </p>
+                <div className="flex items-center gap-3 mt-0.5">
+                  <p className="text-xs font-bold text-slate-400 flex items-center gap-1">
+                    <Phone className="h-3 w-3" /> {technician.phoneNumber || 'N/A'}
+                  </p>
+                  {technician.averageRating !== undefined && (
+                    <div className="flex items-center gap-1 bg-yellow-50 px-2 py-0.5 rounded-md border border-yellow-100/50">
+                      <Star className="h-2.5 w-2.5 fill-yellow-500 text-yellow-500" />
+                      <span className="text-[10px] font-black text-yellow-700">{technician.averageRating}</span>
+                      {technician.totalRating !== undefined && (
+                        <span className="text-[8px] text-yellow-600 font-bold ml-0.5">({technician.totalRating})</span>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
             {task && (
-              <div className="flex items-center justify-between p-3 bg-blue-50/50 rounded-xl border border-blue-100/30">
-                <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Task Status</span>
-                <Badge className="bg-blue-600 text-white border-0 font-black px-2.5 rounded-full h-5 text-[10px] uppercase tracking-wide">
-                  {task.status || 'Active'}
-                </Badge>
+              <div className="flex items-center justify-between p-3 bg-slate-50/50 rounded-xl border border-slate-100/30">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Task Status</span>
+                {(() => {
+                  const cfg = statusConfig[(task.status?.toLowerCase() as ServiceStatus) || 'pending'] || statusConfig.pending;
+                  return (
+                    <Badge className={`${cfg.bg} ${cfg.text} ${cfg.border} border font-black px-2.5 rounded-full h-5 text-[10px] uppercase tracking-wide`}>
+                      {task.status || 'Active'}
+                    </Badge>
+                  );
+                })()}
+              </div>
+            )}
+
+            {(task?.checkIn || task?.checkOut) && (
+              <div className="pt-2 flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="h-px bg-slate-100 flex-1" />
+                  <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest shrink-0">Performance Log</span>
+                  <div className="h-px bg-slate-100 flex-1" />
+                </div>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {task?.checkIn && (
+                    <div className="bg-slate-50/80 p-2.5 rounded-xl border border-slate-100 flex flex-col items-center gap-0.5">
+                      <div className="flex items-center gap-1 text-[8px] font-black text-blue-600 uppercase tracking-tighter">
+                        <Clock className="h-2.5 w-2.5" /> Start
+                      </div>
+                      <span className="text-xs font-black text-slate-800">
+                        {(() => {
+                          try { return format(parseISO(task.checkIn as string), 'hh:mm a'); } catch { return 'N/A'; }
+                        })()}
+                      </span>
+                    </div>
+                  )}
+                  {task?.checkOut && (
+                    <div className="bg-emerald-50/60 p-2.5 rounded-xl border border-emerald-100/50 flex flex-col items-center gap-0.5">
+                      <div className="flex items-center gap-1 text-[8px] font-black text-emerald-700 uppercase tracking-tighter">
+                        <CheckCircle2 className="h-2.5 w-2.5 text-emerald-600" /> End
+                      </div>
+                      <span className="text-xs font-black text-emerald-900">
+                        {(() => {
+                          try { return format(parseISO(task.checkOut as string), 'hh:mm a'); } catch { return 'N/A'; }
+                        })()}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
         ) : (
-          <button 
+          <button
             onClick={onAssign}
             className="w-full h-full flex flex-col items-center justify-center py-8 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 text-center hover:bg-white hover:border-blue-400 group transition-all duration-300"
           >
@@ -159,13 +214,62 @@ export const OrderSidebar = memo(function OrderSidebar({
             </div>
           )}
 
+          {order.rating && (
+            <div className="relative overflow-hidden bg-gradient-to-br from-amber-50 to-white p-5 rounded-[2rem] border border-amber-100 shadow-sm group">
+              {/* Decorative Glow Background */}
+              <div className="absolute -top-12 -right-12 w-24 h-24 bg-yellow-200/20 blur-3xl rounded-full" />
+
+              <div className="relative space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-xl bg-amber-100/50 text-amber-600 shadow-inner">
+                      <Quote className="h-4 w-4" />
+                    </div>
+                    <span className="text-[10px] font-black text-amber-700 uppercase tracking-[0.15em] leading-none">
+                      EXPERIENCE FEEDBACK
+                    </span>
+                  </div>
+
+                  {/* High Impact Rating Display */}
+                  <div className="flex items-baseline gap-0.5">
+                    <span className="text-2xl font-black text-amber-600 tracking-tighter">
+                      {typeof order.rating === 'object' ? order.rating.score.toFixed(1) : Number(order.rating).toFixed(1)}
+                    </span>
+                    <span className="text-[10px] font-bold text-amber-400">/5.0</span>
+                  </div>
+                </div>
+
+                {typeof order.rating === 'object' && order.rating.comment && (
+                  <div className="bg-white/60 backdrop-blur-sm p-4 rounded-2xl border border-amber-50 shadow-inner relative">
+                    <p className="text-sm text-slate-700 font-bold leading-relaxed italic text-center">
+                      "{order.rating.comment}"
+                    </p>
+                    {/* Stars Bar */}
+                    <div className="flex justify-center gap-0.5 mt-3">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`h-2.5 w-2.5 ${(i < (order.rating && typeof order.rating === 'object' ? order.rating.score : Number(order.rating || 0))) ? 'fill-amber-500 text-amber-500' : 'text-slate-200 font-light'}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-center gap-2 text-[8px] font-black text-amber-400/80 uppercase tracking-widest pt-1">
+                  <ShieldCheck className="h-3 w-3" /> Verified Customer Review
+                </div>
+              </div>
+            </div>
+          )}
+
           {task?.staffNote && (
             <div className="bg-sky-50/30 p-3.5 rounded-xl border border-sky-100/50 flex flex-col gap-2 shadow-inner">
               <div className="flex items-center gap-1.5 text-[10px] font-black text-sky-700 uppercase tracking-widest leading-none">
-                 <Briefcase className="h-3.5 w-3.5" /> Staff Internal Note
+                <Briefcase className="h-3.5 w-3.5" /> Staff Internal Note
               </div>
               <p className="text-xs text-slate-600 leading-relaxed italic">
-                 "{task.staffNote}"
+                "{task.staffNote}"
               </p>
             </div>
           )}

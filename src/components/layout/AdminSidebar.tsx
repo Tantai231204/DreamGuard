@@ -59,6 +59,7 @@ const navSections: NavSection[] = [
     label: 'Inventory',
     items: [
       { title: 'Products', href: '/admin/products', icon: Boxes },
+      { title: '3D Customization', href: '/admin/fully-customize', icon: Sparkles },
       { title: 'Categories', href: '/admin/categories', icon: FolderTree },
       { title: 'Product Types', href: '/admin/product-types', icon: ProductAssetIcons.PRODUCT_CATEGORIES },
     ],
@@ -109,13 +110,13 @@ export default function AdminSidebar() {
         stiffness: 260,
         damping: 30
       }}
-      className="relative flex flex-col bg-white border-r border-gray-100 shadow-[20px_0_50px_-20px_rgba(0,0,0,0.05)] h-screen flex-shrink-0 z-50 transition-colors"
+      className="relative flex flex-col bg-white border-r border-gray-100 h-screen flex-shrink-0 z-50 transition-colors"
     >
       {/* Dynamic Toggle Button (Middle Floating) */}
       <button
         onClick={() => setCollapsed(!collapsed)}
         className={cn(
-          "absolute -right-3 top-1/2 -translate-y-1/2 z-[100] w-6 h-12 bg-white border border-gray-200 rounded-full flex items-center justify-center shadow-md transition-all duration-300 group hover:scale-110 hover:shadow-lg hover:border-[var(--color-primary)]/50",
+          "absolute -right-3 top-1/2 -translate-y-1/2 z-[100] w-6 h-12 bg-white border border-gray-200 rounded-full flex items-center justify-center transition-all duration-300 group hover:scale-110 hover:border-[var(--color-primary)]/50",
           collapsed ? "px-0.5" : ""
         )}
       >
@@ -133,7 +134,7 @@ export default function AdminSidebar() {
       )}>
         <Link to="/admin" className="flex items-center gap-4 group/logo">
           <div className={cn(
-            "rounded-2xl bg-gradient-to-br from-[var(--color-primary)] via-[var(--color-primary-hover)] to-[var(--color-primary)] flex items-center justify-center shadow-xl shadow-[var(--color-primary)]/20 transition-all duration-700 group-hover/logo:rotate-[360deg]",
+            "rounded-2xl bg-[#4988c4] flex items-center justify-center transition-all duration-700",
             collapsed ? "w-12 h-12 p-2.5" : "w-11 h-11 p-2"
           )}>
             <img src="/images/logo_no_name.svg" alt="DG" className="w-full h-full brightness-0 invert" />
@@ -147,7 +148,6 @@ export default function AdminSidebar() {
               <h1 className="text-xl font-black text-gray-900 tracking-tight leading-none">DreamGuard</h1>
               <div className="flex items-center gap-2 mt-2">
                 <div className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                 </div>
                 <p className="text-[10px] font-bold text-[var(--color-primary)] uppercase tracking-[0.2em] leading-none">Management</p>
@@ -195,10 +195,10 @@ export default function AdminSidebar() {
                             <motion.div
                               layoutId="active-highlight"
                               className={cn(
-                                "absolute inset-0 -z-10 shadow-[0_4px_20px_-10px_rgba(var(--color-primary-rgb),0.3)]",
+                                "absolute inset-0 -z-10",
                                 collapsed 
                                   ? "bg-[var(--color-primary)] rounded-2xl" 
-                                  : "bg-gradient-to-r from-[var(--color-primary-light)]/40 to-transparent rounded-xl"
+                                  : "bg-gray-100 rounded-xl"
                               )}
                               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                             />
@@ -208,7 +208,7 @@ export default function AdminSidebar() {
                           {active && !collapsed && (
                             <motion.div
                               layoutId="indicator"
-                              className="absolute left-[-4px] top-1/4 bottom-1/4 w-1 bg-[var(--color-primary)] rounded-full shadow-[2px_0_10px_var(--color-primary)]"
+                              className="absolute left-[-4px] top-1/4 bottom-1/4 w-1 bg-[var(--color-primary)] rounded-full"
                             />
                           )}
 
@@ -235,7 +235,7 @@ export default function AdminSidebar() {
                             )}
 
                             {item.badge && collapsed && (
-                              <div className="absolute -top-2 -right-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 border-2 border-white px-1 text-[9px] font-black text-white shadow-lg">
+                              <div className="absolute -top-2 -right-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 border-2 border-white px-1 text-[9px] font-black text-white">
                                 {item.badge}
                               </div>
                             )}
@@ -248,18 +248,18 @@ export default function AdminSidebar() {
                           )}
 
                           {item.badge && !collapsed && (
-                            <div className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[var(--color-primary)] px-1.5 text-[10px] font-black text-white shadow-lg shadow-[var(--color-primary)]/20 animate-pulse">
+                            <div className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[var(--color-primary)] px-1.5 text-[10px] font-black text-white">
                               {item.badge}
                             </div>
                           )}
                           
                           {/* Tooltip Enhanced (Visible only in collapsed state) */}
                           {collapsed && (
-                            <div className="absolute left-[calc(100%+0.5rem)] invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-500 px-3 py-2 bg-gray-900 border border-white/10 text-white text-[11px] font-bold rounded-xl shadow-[0_10px_35px_-5px_rgba(0,0,0,0.5)] whitespace-nowrap z-[100] translate-x-[-10px] group-hover:translate-x-0">
+                            <div className="absolute left-[calc(100%+0.5rem)] invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-500 px-3 py-2 bg-gray-900 border border-white/10 text-white text-[11px] font-bold rounded-xl whitespace-nowrap z-[100] translate-x-[-10px] group-hover:translate-x-0">
                               <span className="relative z-10">{item.title}</span>
                               <div className="absolute top-1/2 left-0 -translate-x-1/2 -translate-y-1/2 border-[5px] border-transparent border-r-gray-900 shadow-sm" />
                               {/* Glowing Backdrop for Tooltip */}
-                              <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-50 rounded-xl" />
+                              <div className="absolute inset-0 bg-white/10 opacity-50 rounded-xl" />
                             </div>
                           )}
                         </motion.div>
@@ -277,10 +277,10 @@ export default function AdminSidebar() {
       <div className="p-4 bg-gray-50/30 border-t border-gray-50">
          <div className={cn(
            "mb-4 flex items-center transition-all duration-300",
-           collapsed ? "justify-center" : "bg-white p-2.5 rounded-2xl shadow-sm border border-gray-100 gap-3"
+           collapsed ? "justify-center" : "bg-white p-2.5 rounded-2xl border border-gray-100 gap-3"
          )}>
            <div className="relative group/avatar">
-             <Avatar className="h-10 w-10 border-2 border-white shadow-md ring-2 ring-[var(--color-primary-light)] ring-offset-2 flex-shrink-0 transition-transform hover:scale-105">
+             <Avatar className="h-10 w-10 border-2 border-white ring-2 ring-[var(--color-primary-light)] ring-offset-2 flex-shrink-0 transition-transform hover:scale-105">
                 <AvatarImage src={profile?.avatarUrl} alt={profile?.fullName || "Admin"} />
                 <AvatarFallback className="bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-hover)] text-white font-black text-xs">
                   {profile?.fullName ? profile.fullName[0].toUpperCase() : 'AD'}
@@ -289,7 +289,7 @@ export default function AdminSidebar() {
               <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 border-2 border-white rounded-full" />
               
               {collapsed && (
-                <div className="absolute left-full invisible group-hover/avatar:visible opacity-0 group-hover/avatar:opacity-100 transition-all duration-500 ml-5 px-4 py-3 bg-white border border-gray-100 text-gray-900 text-xs rounded-2xl shadow-2xl whitespace-nowrap z-[100] translate-x-[-10px] group-hover/avatar:translate-x-0 min-w-[150px]">
+                <div className="absolute left-full invisible group-hover/avatar:visible opacity-0 group-hover/avatar:opacity-100 transition-all duration-500 ml-5 px-4 py-3 bg-white border border-gray-100 text-gray-900 text-xs rounded-2xl whitespace-nowrap z-[100] translate-x-[-10px] group-hover/avatar:translate-x-0 min-w-[150px]">
                   <p className="font-black text-sm">{profile?.fullName || 'Administrator'}</p>
                   <p className="text-[10px] text-gray-500 font-medium mt-0.5">{profile?.email || 'admin@dreamguard.com'}</p>
                 </div>

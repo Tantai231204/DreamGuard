@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   format,
   startOfMonth,
@@ -51,23 +51,21 @@ const STATUS_CONFIG: Record<
 };
 
 // ─── Booking Card ───────────────────────────────────────────────────────────
-const BookingCard = ({
-  booking,
-  onView,
-  onConfirm,
-  onCancel,
-  onAssign,
-}: {
-  booking: ServiceBooking;
-  onView: () => void;
-  onConfirm: () => void;
-  onCancel: () => void;
-  onAssign: () => void;
-}) => {
+const BookingCard = React.forwardRef<
+  HTMLDivElement,
+  {
+    booking: ServiceBooking;
+    onView: () => void;
+    onConfirm: () => void;
+    onCancel: () => void;
+    onAssign: () => void;
+  }
+>(({ booking, onView, onConfirm, onCancel, onAssign }, ref) => {
   const cfg = STATUS_CONFIG[booking.status] ?? STATUS_CONFIG.pending;
 
   return (
     <motion.div
+      ref={ref}
       layout
       initial={{ opacity: 0, y: 5 }}
       animate={{ opacity: 1, y: 0 }}
@@ -127,7 +125,7 @@ const BookingCard = ({
       </div>
     </motion.div>
   );
-};
+});
 
 // ─── Timeline Panel ─────────────────────────────────────────────────────────
 const TimelinePanel = ({

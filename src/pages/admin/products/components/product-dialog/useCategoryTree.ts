@@ -1,5 +1,6 @@
 import { useMemo, useCallback } from 'react';
 import type { CategoryResponse } from '@/api';
+import { toSlug } from '@/lib/utils';
 
 export interface FlatCategory {
     cateId: number;
@@ -8,9 +9,6 @@ export interface FlatCategory {
     depth: number;
     parentId?: number;
 }
-
-const toSlug = (text: string) =>
-    text.toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
 
 export function useCategoryTree(categories: CategoryResponse[], cateId: string) {
     const flatCategories = useMemo(() => {

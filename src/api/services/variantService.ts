@@ -13,11 +13,11 @@ export interface VariantAttributes {
 
 export interface CreateVariantRequest {
   sku: string;
-  baseprice: number;
-  saleprice: number;
+  basePrice: number;
+  salePrice: number;
   weight: number;
   attributes: VariantAttributes | null;
-  productid: string;
+  productId: string;
   color?: string;
   hexColor?: string;
   colorHex?: string;
@@ -28,11 +28,11 @@ export interface CreateVariantRequest {
 
 export interface UpdateVariantRequest {
   sku: string;
-  baseprice: number;
-  saleprice: number;
+  basePrice: number;
+  salePrice: number;
   weight: number;
   attributes: VariantAttributes | null;
-  productid: string;
+  productId: string;
   color?: string;
   hexColor?: string;
   colorHex?: string;
