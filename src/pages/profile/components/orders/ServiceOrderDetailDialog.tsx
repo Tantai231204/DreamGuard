@@ -214,7 +214,7 @@ function ServiceOrderDetailContent({
 
     // Customer can only cancel before service execution starts.
     const canCancelService = canView && (
-        ['pending', 'confirmed'].includes(normalizedOrderStatus)
+        normalizedOrderStatus === 'pending'
     ) && !hasCheckIn && ![
         'assigned',
         'processing',
