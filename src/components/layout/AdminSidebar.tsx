@@ -59,7 +59,6 @@ const navSections: NavSection[] = [
     label: 'Inventory',
     items: [
       { title: 'Products', href: '/admin/products', icon: Boxes },
-      { title: '3D Customization', href: '/admin/fully-customize', icon: Sparkles },
       { title: 'Categories', href: '/admin/categories', icon: FolderTree },
       { title: 'Product Types', href: '/admin/product-types', icon: ProductAssetIcons.PRODUCT_CATEGORIES },
     ],

@@ -20,6 +20,8 @@ export default function CustomizeSummary({ product, design }: CustomizeSummaryPr
   const totalPrice = calculateCustomPrice(
     product.basePrice,
     currentSize?.priceAdd ?? 0,
+    100000, // Color add-on fee
+    currentMaterial?.priceAdd ?? 0,
     currentMaterial?.priceMultiplier ?? 1,
     hasEmbroidery
   );

@@ -17,6 +17,12 @@ export function PricingSummary({ order }: PricingSummaryProps) {
                 <span>Shipping Fee</span>
                 <span className="text-gray-900">{formatPrice(0)}</span>
             </div>
+            {order.totalAddonPrice !== undefined && order.totalAddonPrice > 0 && (
+                <div className="flex justify-between items-center text-[13px] font-bold text-amber-600">
+                    <span>Manufacturing Addons</span>
+                    <span>+{formatPrice(order.totalAddonPrice)}</span>
+                </div>
+            )}
             {order.discountAmount !== undefined && order.discountAmount > 0 && (
                 <div className="flex justify-between items-center text-[13px] font-medium text-gray-500">
                     <span>Promotion Discount</span>

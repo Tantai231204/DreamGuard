@@ -307,9 +307,9 @@ export default function OrdersTab() {
                         <TabsTrigger
                             key={tab.id}
                             value={tab.id}
-                            className="flex-1 rounded-lg data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm font-bold text-[11px] uppercase tracking-wider h-full transition-all px-4"
+                            className="flex-1 rounded-lg data-[state=active]:bg-[#4988c4] data-[state=active]:text-white data-[state=active]:shadow-md font-bold text-[11px] uppercase tracking-widest h-full transition-all duration-300 px-4 group"
                         >
-                            {tab.label}
+                            <span className="relative z-10 transition-transform group-active:scale-95">{tab.label}</span>
                         </TabsTrigger>
                     ))}
                 </TabsList>

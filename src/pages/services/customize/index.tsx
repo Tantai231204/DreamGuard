@@ -1,431 +1,497 @@
-import { useState, Suspense, lazy, memo, useRef, useMemo, useCallback, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, ChevronDown, ShoppingCart, ArrowLeft, Palette, Ruler, Layers, Type, Camera, Plus } from "lucide-react";
+import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { cn } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
-import type { DesignConfig, CustomizableProduct, EmbroideryPosition } from "./types";
+import { toast } from "sonner";
 import {
-  customizableProducts, patternOptions,
-  materialOptions, calculateCustomPrice,
+  ArrowLeft,
+  ShoppingCart
+} from "lucide-react";
+
+import { useCartStore } from "@/store/useCartStore";
+import { useFullyCustomizedProducts, useProductVariants } from "@/hooks/queries/useProduct";
+import { PageLoader } from "@/components/common/PageLoader";
+import ProductPreview3D from "./components/ProductPreview3D";
+import { SizeSelector } from "./components/SizeSelector";
+import { Button } from "@/components/ui/button";
+import { ChromaProfile } from "./components/ChromaProfile";
+import { TextureLab } from "./components/TextureLab";
+import { cn } from "@/lib/utils";
+
+import {
+  generateConfigHash
+} from "@/store/useCartStore";
+
+import {
+  customizableProducts
 } from "./data";
 
-const ProductPreview3D = lazy(() => import("./components/ProductPreview3D"));
+import type {
+  DesignConfig,
+  MaterialOption,
+  CustomizableProduct,
+  ProductVariant
+} from "./types";
 
-/* ===================================================================
-   MEMOIZED UI COMPONENTS (PREVENTS SIDEBAR JANK)
-   =================================================================== */
+import type { CustomizeOptionGroupResponse, CustomizeOptionResponse } from "@/api/types/product.types";
 
-const ConfigSection = memo(({ title, step, icon, defaultOpen = false, children }: {
-  title: string; step: number; icon: React.ReactNode; defaultOpen?: boolean; children: React.ReactNode;
-}) => {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <div className="border-b border-slate-100/60 last:border-0 overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        className={cn(
-          "w-full flex items-center justify-between px-6 py-4.5 transition-all duration-300",
-          open ? "bg-slate-50/50" : "hover:bg-slate-50/30"
-        )}
-      >
-        <div className="flex items-center gap-3">
-          <div className={cn(
-            "h-7 w-7 rounded-lg flex items-center justify-center text-[10px] font-black transition-all duration-300",
-            open ? "bg-[#4988c4] text-white shadow-md shadow-[#4988c4]/20" : "bg-slate-100 text-slate-400"
-          )}>
-            {step}
-          </div>
-          <div className="flex items-center gap-2 text-slate-700">
-            <span className="text-slate-400">{icon}</span>
-            <span className="text-[11px] font-black uppercase tracking-[0.1em]">{title}</span>
-          </div>
-        </div>
-        <ChevronDown className={cn("h-4 w-4 text-slate-400 transition-transform duration-300 ease-out", open && "rotate-180")} />
-      </button>
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-          >
-            <div className="px-6 pb-6 space-y-5">{children}</div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-});
-
-const Chip = memo(({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) => {
-  return (
-    <button type="button" onClick={onClick} className={cn("px-3 py-1.5 rounded-full border-2 text-[11px] font-black transition-all duration-150", active ? "border-[#4988c4] bg-[#4988c4]/10 text-[#4988c4] shadow-sm" : "border-slate-100 text-slate-500 hover:border-[#4988c4]/30")}>
-      {children}
-    </button>
-  );
-});
-
-const MemoizedProductGrid = memo(({ selectedId, onSelect }: { selectedId?: string; onSelect: (p: CustomizableProduct) => void }) => (
-  <ConfigSection title="Choice Product" step={1} icon={<ShoppingCart className="h-3.5 w-3.5" />} defaultOpen={true}>
-    <div className="grid grid-cols-2 gap-3">
-      {customizableProducts.map(p => (
-        <button
-          key={p.id}
-          type="button"
-          onClick={() => onSelect(p)}
-          className={cn(
-            "flex flex-col items-center p-4 rounded-2xl border-2 transition-all duration-300 text-center relative group",
-            selectedId === p.id
-              ? "border-[#4988c4] bg-[#4988c4]/[0.03] shadow-lg shadow-[#4988c4]/10"
-              : "border-slate-50 bg-white hover:border-slate-200 hover:shadow-sm"
-          )}
-        >
-          <div className={cn(
-            "h-12 w-12 rounded-xl flex items-center justify-center text-3xl mb-3 transition-transform duration-300 group-hover:scale-110",
-            selectedId === p.id ? "bg-white shadow-sm" : "bg-slate-50"
-          )}>
-            {p.icon}
-          </div>
-          <span className={cn(
-            "text-[11px] font-black tracking-tight",
-            selectedId === p.id ? "text-[#4988c4]" : "text-slate-700"
-          )}>
-            {p.name}
-          </span>
-          <span className="text-[10px] font-bold text-slate-400 mt-1">
-            From {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(p.basePrice)}
-          </span>
-        </button>
-      ))}
-    </div>
-  </ConfigSection>
-));
-
-const MemoizedSizeChips = memo(({ product, selectedSize, onSelect }: { product: CustomizableProduct; selectedSize: string; onSelect: (s: string) => void }) => (
-  <div className="space-y-2">
-    <div className="flex items-center gap-1.5 px-0.5">
-      <Ruler className="h-3 w-3 text-slate-400" />
-      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono">Select Size</p>
-    </div>
-    <div className="flex flex-wrap gap-2">
-      {product.availableSizes.map(s => (
-        <Chip key={s.id} active={selectedSize === s.id} onClick={() => onSelect(s.id)}>
-          {s.label}
-        </Chip>
-      ))}
-    </div>
-  </div>
-));
-
-const MemoizedPatternChips = memo(({ selectedPattern, onSelect }: { selectedPattern: string; onSelect: (p: string) => void }) => (
-  <div className="space-y-2">
-    <div className="flex items-center gap-1.5 px-0.5">
-      <Sparkles className="h-3 w-3 text-slate-400" />
-      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono">Texture Pattern</p>
-    </div>
-    <div className="flex flex-wrap gap-2">
-      {patternOptions.map(p => (
-        <Chip key={p.id} active={selectedPattern === p.id} onClick={() => onSelect(p.id)}>
-          {p.emoji} {p.name}
-        </Chip>
-      ))}
-    </div>
-  </div>
-));
-
-const MemoizedMaterialGrid = memo(({ selectedMaterial, onSelect }: { selectedMaterial: string; onSelect: (m: string) => void }) => (
-  <div className="space-y-2">
-    <div className="flex items-center gap-1.5 px-0.5">
-      <Layers className="h-3 w-3 text-slate-400" />
-      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono">Fabric Material</p>
-    </div>
-    <div className="grid grid-cols-1 gap-2.5">
-      {materialOptions.map(m => (
-        <button
-          key={m.id}
-          type="button"
-          onClick={() => onSelect(m.id)}
-          className={cn(
-            "w-full flex items-start gap-3 p-3.5 rounded-2xl border-2 text-left transition-all relative overflow-hidden group",
-            selectedMaterial === m.id
-              ? "border-[#4988c4] bg-[#4988c4]/[0.03] shadow-md shadow-[#4988c4]/5"
-              : "border-slate-50 bg-white hover:border-slate-200"
-          )}
-        >
-          <div className={cn(
-            "h-10 w-10 shrink-0 rounded-xl flex items-center justify-center bg-slate-50 transition-colors",
-            selectedMaterial === m.id && "bg-[#4988c4]/10 text-[#4988c4]"
-          )}>
-            <Layers className="h-4 w-4 opacity-50" />
-          </div>
-          <div className="min-w-0 pr-8">
-            <div className="flex items-center gap-1.5 mb-1">
-              <span className={cn(
-                "text-[11px] font-black uppercase tracking-tight",
-                selectedMaterial === m.id ? "text-[#4988c4]" : "text-slate-800"
-              )}>
-                {m.name}
-              </span>
-              {m.badge && (
-                <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full bg-[#4988c4]/10 text-[#4988c4] animate-pulse">
-                  {m.badge}
-                </span>
-              )}
-            </div>
-            <p className="text-[10px] font-medium text-slate-400 leading-relaxed">{m.description}</p>
-          </div>
-          {m.priceMultiplier !== 1 && (
-            <div className="absolute top-3 right-3 text-[10px] font-black text-slate-300">
-              ×{m.priceMultiplier.toFixed(2)}
-            </div>
-          )}
-        </button>
-      ))}
-    </div>
-  </div>
-));
-
-const ColorPickerModule = memo(({ color, onChange }: { color: string; onChange: (c: string) => void }) => {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [localColor, setLocalColor] = useState(color);
-  useEffect(() => { setLocalColor(color); }, [color]);
-
-  return (
-    <div className="relative group">
-      <div className="bg-slate-50/50 p-1.5 rounded-[1.75rem] border border-slate-100/50">
-        <div className="flex items-center gap-4 bg-white p-3 rounded-2xl shadow-sm border border-slate-100 group-hover:border-[#4988c4]/30 transition-all">
-          <div className="relative">
-            <input
-              type="color"
-              ref={inputRef}
-              value={localColor}
-              onInput={(e: React.ChangeEvent<HTMLInputElement>) => {
-                setLocalColor(e.target.value);
-                onChange(e.target.value);
-              }}
-              className="w-14 h-14 rounded-2xl border-4 border-slate-50 shadow-inner cursor-pointer p-0 appearance-none bg-transparent overflow-hidden"
-            />
-            <div className="absolute -bottom-1 -right-1 h-6 w-6 bg-white rounded-full border border-slate-100 flex items-center justify-center shadow-sm pointer-events-none">
-              <Palette className="h-3 w-3 text-[#4988c4]" />
-            </div>
-          </div>
-          <div className="flex-1 min-w-0 pr-2">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] font-mono">Hex Code</span>
-              <button
-                type="button"
-                onClick={() => inputRef.current?.click()}
-                className="text-[9px] font-black text-[#4988c4] uppercase h-5 px-2 bg-[#4988c4]/5 rounded-md hover:bg-[#4988c4]/10 transition-colors"
-              >
-                Edit
-              </button>
-            </div>
-            <div className="text-sm font-black text-slate-800 font-mono tracking-tight">{localColor.toUpperCase()}</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-});
-
-const ImageUploadModule = memo(({ value, mode, onChange, onModeChange }: { value?: string; mode: "print" | "wrap"; onChange: (v?: string) => void; onModeChange: (m: "print" | "wrap") => void }) => {
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      onChange(url);
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-      <div 
-        onClick={() => !value && fileRef.current?.click()}
-        className={cn(
-          "relative h-28 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-1.5 transition-all cursor-pointer overflow-hidden group",
-          value 
-            ? "border-[#4988c4] bg-[#4988c4]/[0.02]" 
-            : "border-slate-100 hover:border-slate-300 hover:bg-slate-50"
-        )}
-      >
-        <input type="file" ref={fileRef} onChange={handleUpload} accept="image/*" className="hidden" />
-        
-        {value ? (
-          <>
-            <img src={value} alt="Preview" className={cn("h-full w-full object-cover", mode === 'wrap' ? "opacity-100" : "opacity-40")} />
-            <div className="absolute inset-0 bg-white/20 backdrop-blur-sm flex items-center justify-center gap-3">
-              <button onClick={(e) => { e.stopPropagation(); fileRef.current?.click(); }} className="h-8 px-3 rounded-lg bg-white border border-slate-200 text-[10px] font-black uppercase tracking-widest text-slate-700 hover:shadow-lg transition-all">Replace</button>
-              <button onClick={(e) => { e.stopPropagation(); onChange(undefined); }} className="h-8 px-3 rounded-lg bg-red-500 text-white text-[10px] font-black uppercase tracking-widest hover:bg-red-600 transition-all">Remove</button>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:scale-110 transition-all">
-              <Plus className="h-4 w-4" />
-            </div>
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Upload Custom Logo</p>
-          </>
-        )}
-      </div>
-      
-      {value && (
-        <div className="bg-slate-50 p-1 rounded-xl flex gap-1 border border-slate-100">
-          {(["print", "wrap"] as const).map((m) => (
-            <button
-              key={m}
-              onClick={() => onModeChange(m)}
-              className={cn(
-                "flex-1 py-2 text-[9px] font-black uppercase tracking-[0.2em] rounded-lg transition-all",
-                mode === m 
-                  ? "bg-white text-[#4988c4] shadow-sm border border-slate-100" 
-                  : "text-slate-400 hover:text-slate-600"
-              )}
-            >
-              {m === 'print' ? 'Logo Print' : 'Full Wrap'}
-            </button>
-          ))}
-        </div>
-      )}
-      <p className="text-[9px] font-medium text-slate-400 text-center uppercase tracking-widest leading-relaxed">
-        {mode === 'wrap' ? "Image will repeat as fabric pattern" : "Image will be printed at center front"}
-      </p>
-    </div>
-  );
-});
-
-/* ===================================================================
-   MAIN PAGE
-   =================================================================== */
-
-export default function CustomizePage() {
+const CustomizeStudio = () => {
   const navigate = useNavigate();
-  const [selectedProduct, setSelectedProduct] = useState<CustomizableProduct | null>(null);
-  const [design, setDesign] = useState<DesignConfig>({ 
-    size: "", baseColor: "#B0D4F1", pattern: "solid", embroideryText: "", embroideryPosition: "center", material: "organic_cotton", customImage: undefined, imageMode: "print"
+  const { addItem } = useCartStore();
+  const [isAdding, setIsAdding] = useState(false);
+
+  // 1. Fetch Dynamic Data from API
+  const { data: apiProducts, isLoading: productsLoading } = useFullyCustomizedProducts();
+
+  // 🔥 Reactive Selection Logic
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+
+  const derivedProducts = useMemo(() => {
+    if (!apiProducts) return [];
+    return apiProducts.map((p) => {
+      const lowerName = p.name.toLowerCase();
+      let icon = "✨";
+      let localSlug = "";
+      if (lowerName.includes('pillow')) { icon = "☁️"; localSlug = "pillow"; }
+      else if (lowerName.includes('crib')) { icon = "🛏️"; localSlug = "crib_bedding_set"; }
+      else if (lowerName.includes('mattress')) { icon = "🛏️"; localSlug = "mattress"; }
+
+      const localRef = customizableProducts.find(lp => lp.id === localSlug);
+      const sizes = localRef ? [...localRef.availableSizes] : [];
+      if (sizes.length === 0) sizes.push({ id: "std", label: "Standard", priceAdd: 0 });
+
+      return {
+        id: p.id,
+        name: p.name,
+        description: p.summary,
+        icon,
+        basePrice: p.basePrice,
+        salePrice: p.salePrice || 0,
+        availableSizes: sizes,
+        type: localSlug,
+        image: p.imageUrls?.[0] || ""
+      } as CustomizableProduct;
+    });
+  }, [apiProducts]);
+
+  const selectedProduct = useMemo(() => {
+    if (selectedId) return derivedProducts.find(p => p.id === selectedId) || derivedProducts[0];
+    return derivedProducts[0];
+  }, [selectedId, derivedProducts]);
+
+  const { data: variantsData } = useProductVariants(selectedProduct?.id || "");
+
+  const customSchema = useMemo(() => {
+    if (!selectedProduct || !variantsData || !Array.isArray(variantsData) || variantsData.length === 0) return null;
+    const custom = variantsData.find((v) => v.isCustomizable || v.is_customizable);
+    if (custom) return custom;
+    const withGroups = variantsData.find(v => v.customizeOptionGroups && v.customizeOptionGroups.length > 0);
+    return withGroups || variantsData[0];
+  }, [selectedProduct, variantsData]);
+
+  const variantPresets = useMemo(() => {
+    if (!variantsData || !Array.isArray(variantsData)) return [];
+    return variantsData.map(v => ({
+      id: v.id,
+      sku: v.sku,
+      color: (v.attributes?.color as string) || "Standard",
+      colorCode: (v.attributes?.colorCode as string) || "#FFFFFF",
+      salePrice: v.salePrice,
+      basePrice: v.basePrice
+    })) as ProductVariant[];
+  }, [variantsData]);
+
+  const derivedMaterials = useMemo(() => {
+    const materialGroup = customSchema?.customizeOptionGroups?.find((g: CustomizeOptionGroupResponse) => g.category === 'Material');
+    if (!materialGroup) return [];
+
+    return materialGroup.options.map((o: CustomizeOptionResponse) => ({
+      id: o.customizeTypeId,
+      name: o.name,
+      description: o.summary,
+      priceMultiplier: o.calculationMode === 'Multiplier' ? (o.overrideMultiplier ?? o.defaultMultiplier ?? 1.0) : 1.0,
+      priceAdd: o.calculationMode === 'FixedAmount' ? (o.overridePrice ?? o.defaultPrice ?? 0) : 0,
+      badge: 'Custom'
+    })) as MaterialOption[];
+  }, [customSchema]);
+
+  const availableSizes = useMemo(() => {
+    if (!selectedProduct) return [];
+
+    // API Options
+    const apiOptions = customSchema?.customizeOptionGroups?.find((g: CustomizeOptionGroupResponse) => g.category === 'Size')?.options || [];
+    const localSizes = selectedProduct.availableSizes || [];
+
+    const combined = [...(apiOptions.length > 0 ? apiOptions.map((o: CustomizeOptionResponse) => ({
+      id: o.customizeTypeId,
+      label: o.name,
+      priceAdd: o.overridePrice ?? o.defaultPrice ?? 0
+    })) : []), ...localSizes];
+
+    // Robust merging logic: Only use labels to avoid duplicate UI entries, but keep API IDs if they exist
+    const uniqueMap = new Map();
+    combined.forEach(item => {
+      const labelKey = item.label.toLowerCase().trim().replace(/ /g, '');
+      if (!uniqueMap.has(labelKey)) {
+        uniqueMap.set(labelKey, item);
+      }
+    });
+
+    return Array.from(uniqueMap.values()).filter(s => s.label.toLowerCase() !== 'size');
+  }, [selectedProduct, customSchema]);
+
+  const colorAddOnFee = useMemo(() => {
+    const colorGroup = customSchema?.customizeOptionGroups?.find((g: CustomizeOptionGroupResponse) => g.category === 'Color');
+    if (colorGroup && colorGroup.options.length > 0) {
+      const opt = colorGroup.options[0];
+      return opt.overridePrice ?? opt.defaultPrice ?? 0;
+    }
+    return 0;
+  }, [customSchema]);
+
+  const sizeAddOnFee = useMemo(() => {
+    const group = customSchema?.customizeOptionGroups?.find(g => g.category === 'Size');
+    if (group && group.options.length > 0) {
+      const opt = group.options[0];
+      return opt.overridePrice ?? opt.defaultPrice ?? 0;
+    }
+    return 0;
+  }, [customSchema]);
+
+  const sizeOptionId = useMemo(() => {
+    const group = customSchema?.customizeOptionGroups?.find(g => g.category === 'Size');
+    return group?.options[0]?.customizeTypeId;
+  }, [customSchema]);
+
+  const colorOptionId = useMemo(() => {
+    const group = customSchema?.customizeOptionGroups?.find(g => g.category === 'Color');
+    return group?.options[0]?.customizeTypeId;
+  }, [customSchema]);
+
+  const embroideryAddOnFee = useMemo(() => {
+    const group = customSchema?.customizeOptionGroups?.find(g => g.category === 'Embroidery');
+    if (group && group.options.length > 0) {
+      const opt = group.options[0];
+      return opt.overridePrice ?? opt.defaultPrice ?? 0;
+    }
+    return 80000; // Final Fallback
+  }, [customSchema]);
+
+
+
+  const [designState, setDesignState] = useState<Partial<DesignConfig>>({
+    baseColor: "#B0D4F1", pattern: "solid", embroideryText: "", embroideryPosition: "center", size: ""
   });
 
-  const currentMaterial = useMemo(() => materialOptions.find(m => m.id === design.material) || materialOptions[0], [design.material]);
-  const currentSize = useMemo(() => selectedProduct?.availableSizes.find(s => s.id === design.size), [selectedProduct, design.size]);
-  const totalPrice = useMemo(() => selectedProduct ? calculateCustomPrice(selectedProduct.basePrice, currentSize?.priceAdd ?? 0, currentMaterial?.priceMultiplier ?? 1, design.embroideryText.trim().length > 0) : 0, [selectedProduct, currentSize, currentMaterial, design.embroideryText]);
+  const [sizeMode, setSizeMode] = useState<'mock' | 'input'>('mock');
+  const [customDims, setCustomDims] = useState<{ width: string; height: string }>({ width: "", height: "" });
 
-  const selectProduct = useCallback((p: CustomizableProduct) => {
-    setSelectedProduct(p);
-    const defaultPos: EmbroideryPosition = p.id === "crib_bedding_set" ? "front-rail" : "center";
-    setDesign(prev => ({ ...prev, size: p.availableSizes[0]?.id || "", embroideryPosition: defaultPos }));
-  }, []);
+  const activeDesign = useMemo(() => {
+    if (!selectedProduct) return { ...designState, size: "", material: "", imageMode: "wrap" } as DesignConfig;
+    return {
+      ...designState,
+      size: designState.size || availableSizes[0]?.id || "",
+      material: designState.material || derivedMaterials[0]?.id || "",
+      embroideryPosition: designState.embroideryPosition || (selectedProduct.id.includes('crib') ? "front-rail" : "center"),
+      imageMode: designState.imageMode || "wrap"
+    } as DesignConfig;
+  }, [selectedProduct, designState, derivedMaterials, availableSizes]);
+
+  const currentMaterial = useMemo(() => derivedMaterials.find(m => m.id === activeDesign.material) || derivedMaterials[0], [activeDesign.material, derivedMaterials]);
+  const currentSize = useMemo(() => availableSizes.find((s: { id: string }) => s.id === activeDesign.size), [availableSizes, activeDesign.size]);
+
+  const pricingResults = useMemo(() => {
+    if (!selectedProduct) return { current: 0 };
+    const baseSale = selectedProduct.salePrice && selectedProduct.salePrice > 0 ? selectedProduct.salePrice : selectedProduct.basePrice;
+
+    // TRUY XUẤT PHÍ SIZE CHÍNH XÁC (NẾU CHỌN SIZE SẼ CỘNG PHÍ TỪ CATEGORY)
+    const sizeFee = (activeDesign.size || currentSize) ? sizeAddOnFee : 0;
+
+    const colorAdd = activeDesign.baseColor ? colorAddOnFee : 0;
+
+
+    // HỖ TRỢ CẢ HAI: CÔNG THỨC PHÉP CỘNG VÀ HỆ SỐ NHÂN (DỰA TRÊN JSON API)
+    const matAdd = currentMaterial?.priceAdd ?? 0;
+    const mult = currentMaterial?.priceMultiplier ?? 1.0;
+    const embAdd = activeDesign.embroideryText.trim().length > 0 ? embroideryAddOnFee : 0;
+
+    // Logic chuẩn Backend: (Base * Hệ số chất liệu) + Phí Size + Phí Màu + Phí Thêu + MaterialAddon
+    // Giải thích: Tiền vật liệu = Base * (Multiplier - 1)
+    const currentTotal = Math.round(baseSale * mult + matAdd) + sizeFee + colorAdd + embAdd;
+
+    return { current: currentTotal };
+  }, [selectedProduct, currentSize, currentMaterial, activeDesign, colorAddOnFee, embroideryAddOnFee, sizeAddOnFee]);
+
+  const totalPrice = pricingResults.current;
 
   const updateDesign = useCallback((updates: Partial<DesignConfig>) => {
-    setDesign(prev => ({ ...prev, ...updates }));
+    setDesignState(prev => ({ ...prev, ...updates }));
   }, []);
 
-  const updatePosition = useCallback((pos: EmbroideryPosition) => {
-    updateDesign({ embroideryPosition: pos });
-  }, [updateDesign]);
+  const handleAddToCart = () => {
+    if (!selectedProduct || !customSchema) return;
 
-  const formatCurrency = (v: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(v);
+    // Build the Bespoke Detail List
+    const customizeDetails = [];
+
+    const isGuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+
+    // 1. Size (Luôn lấy, nếu không có ID cụ thể thì dùng ID mặc định của nhóm Size)
+    const activeSizeId = (currentSize && isGuid(currentSize.id)) ? currentSize.id : sizeOptionId;
+    if (activeSizeId && isGuid(activeSizeId)) {
+      customizeDetails.push({
+        ProductCustomizeTypeId: activeSizeId,
+        CustomizeContent: activeDesign.size === 'custom' ? `${customDims.width}x${customDims.height}cm` : (currentSize?.label || "Standard Size")
+      });
+    }
+
+    // 2. Color (Luôn lấy)
+    if (colorOptionId && isGuid(colorOptionId)) {
+      customizeDetails.push({
+        ProductCustomizeTypeId: colorOptionId,
+        CustomizeContent: activeDesign.baseColor || "#B0D4F1"
+      });
+    }
+
+    // 3. Material
+    if (currentMaterial && isGuid(currentMaterial.id)) {
+      customizeDetails.push({
+        ProductCustomizeTypeId: currentMaterial.id,
+        CustomizeContent: currentMaterial.name
+      });
+    }
+
+    const configHash = generateConfigHash(customSchema.id, null, customizeDetails);
+
+    setIsAdding(true);
+    addItem({
+      productVariantId: customSchema.id,
+      comboId: null,
+      quantity: 1,
+      ProductCustomizeDetailRequest: customizeDetails,
+      id: `item_${customSchema.id}_bespoke_${configHash}`,
+      productId: selectedProduct.id,
+      name: selectedProduct.name,
+      image: selectedProduct.image,
+      price: totalPrice,
+      color: activeDesign.baseColor,
+      size: activeDesign.size === 'custom' ? `${customDims.width}x${customDims.height}x15 cm` : (currentSize?.label || ""),
+      customAttributes: {
+        colorHex: activeDesign.baseColor,
+        material: currentMaterial?.name || "",
+        embroidery: activeDesign.embroideryText || "",
+        // Keep dimensions ONLY as numbers for the specialized chip to detect but avoid the redundant loop display
+        length: parseInt(customDims.height) || undefined,
+        width: parseInt(customDims.width) || undefined,
+        thickness: 15, // Standard thickness for now or parse from customDims
+      },
+      configHash: configHash,
+      isCustom: true,
+    }).then(() => {
+      toast.success("Design saved to sanctuary.");
+      // Small delay to allow store to settle before navigation
+      setTimeout(() => navigate("/cart"), 50);
+    }).catch(() => {
+      toast.error("Failed to add bespoke design.");
+    }).finally(() => {
+      // Keep isAdding true for a bit longer to prevent double clicks during navigation
+      setTimeout(() => setIsAdding(false), 500);
+    });
+  };
+
+  if (productsLoading) {
+    return <PageLoader />;
+  }
 
   return (
-    <div className="h-screen flex flex-col bg-[#fcfcfd] overflow-hidden">
-      <div className="flex-shrink-0 h-16 bg-white/80 backdrop-blur-xl border-b border-slate-100 flex items-center justify-between px-8 z-20">
-        <button type="button" onClick={() => navigate(-1)} className="group flex items-center gap-3 text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-800 transition-all">
-          <div className="h-8 w-8 rounded-full border border-slate-100 flex items-center justify-center group-hover:scale-110 group-hover:border-slate-200 transition-all">
-            <ArrowLeft className="h-4 w-4" />
-          </div>
-          Exit
-        </button>
-        <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-xl bg-gradient-to-tr from-[#4988c4] to-[#6ba3d6] flex items-center justify-center shadow-lg shadow-[#4988c4]/20">
-            <Sparkles className="h-4 w-4 text-white" />
-          </div>
-          <span className="text-sm font-black text-slate-800 tracking-[-0.03em]">Bespoke Studio</span>
-        </div>
-        <div className="px-5 py-2 rounded-2xl bg-slate-50 border border-slate-100">
-          <motion.p key={totalPrice} initial={{ y: 5 }} animate={{ y: 0 }} className="text-[13px] font-black text-slate-800 tabular-nums">
-            {formatCurrency(totalPrice || 0)}
-          </motion.p>
-        </div>
-      </div>
+    <div className="fixed inset-0 bg-slate-50 flex flex-col font-sans selection:bg-blue-100 selection:text-blue-900 overflow-hidden">
+      <header className="sticky top-0 z-[60] h-20 w-full bg-white/70 backdrop-blur-2xl border-b border-slate-200/50 flex items-center justify-between px-10 transition-all duration-700">
+        <div className="flex items-center gap-8">
+          <button
+            onClick={() => navigate(-1)}
+            className="h-10 w-10 rounded-2xl bg-white border border-slate-100 flex items-center justify-center hover:bg-slate-50 hover:shadow-xl hover:-translate-x-1 active:scale-90 transition-all duration-500 group"
+          >
+            <ArrowLeft className="h-4 w-4 text-slate-400 group-hover:text-slate-900 transition-colors" />
+          </button>
 
-      <div className="flex-1 flex overflow-hidden">
-        <div className="w-[340px] flex-shrink-0 bg-white border-r border-slate-100 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full">
-          <MemoizedProductGrid selectedId={selectedProduct?.id} onSelect={selectProduct} />
-
-          <ConfigSection title="Brand & Visuals" step={4} icon={<Camera className="h-3.5 w-3.5" />}>
-            <ImageUploadModule 
-              value={design.customImage}
-              mode={design.imageMode}
-              onChange={(v) => updateDesign({ customImage: v })}
-              onModeChange={(m) => updateDesign({ imageMode: m })}
-            />
-          </ConfigSection>
-
-          <ConfigSection title="Custom Design" step={2} icon={<Palette className="h-3.5 w-3.5" />} defaultOpen={true}>
-            {selectedProduct && <MemoizedSizeChips product={selectedProduct} selectedSize={design.size} onSelect={(s) => updateDesign({ size: s })} />}
-            <div className="space-y-3">
-              <div className="flex items-center gap-1.5 px-0.5">
-                <Palette className="h-3 w-3 text-slate-400" /><p className="text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono">Base Color</p>
+          <div className="flex flex-col gap-1">
+            <h1 className="text-[14px] font-black text-slate-900 leading-none tracking-tight flex items-center gap-2.5 uppercase">
+              DreamGuard <span className="text-[#4988c4]">Studio</span>
+              <div className="flex gap-0.5">
+                <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+                <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse delay-75" />
+                <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse delay-150" />
               </div>
-              <ColorPickerModule color={design.baseColor} onChange={(c) => updateDesign({ baseColor: c })} />
+            </h1>
+            <p className="text-[8px] font-black text-slate-300 uppercase tracking-[0.3em] font-mono">Bespoke System v4.5</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-10">
+          <div className="text-right flex flex-col items-end">
+            <span className="text-[8px] font-black text-slate-300 uppercase tracking-[0.25em] mb-1.5 font-mono">Estimated total</span>
+            <div className="flex items-center gap-2.5">
+              <span className="text-3xl font-black font-mono tracking-tighter text-slate-900 transition-all duration-500 hover:scale-105">
+                {new Intl.NumberFormat("vi-VN").format(totalPrice)}
+              </span>
+              <span className="text-[10px] font-black text-[#4988c4] font-mono uppercase tracking-widest bg-blue-50/50 px-2.5 py-1 rounded-lg border border-[#4988c4]/20">Vnd</span>
             </div>
-            <MemoizedPatternChips selectedPattern={design.pattern} onSelect={(p) => updateDesign({ pattern: p })} />
-            <MemoizedMaterialGrid selectedMaterial={design.material} onSelect={(m) => updateDesign({ material: m })} />
+          </div>
 
-            <div className="space-y-3">
-              <div className="flex items-center gap-1.5 px-0.5">
-                <Type className="h-3 w-3 text-slate-400" />
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest font-mono">{selectedProduct?.id === "crib_bedding_set" ? "Wooden Engraving" : "Bespoke Embroidery"}</p>
-              </div>
-              <div className="space-y-2.5">
-                <div className="relative">
-                  <Input value={design.embroideryText} onChange={e => updateDesign({ embroideryText: e.target.value.slice(0, 15) })} placeholder="Enter custom text..." maxLength={15} className="h-11 rounded-xl border-2 border-slate-50 bg-white px-4 text-xs font-black placeholder:text-slate-300 focus:border-[#4988c4]/40 focus:ring-0 shadow-sm transition-all" />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black text-slate-300">{design.embroideryText.length}/15</div>
+          <Button
+            onClick={handleAddToCart}
+            disabled={isAdding}
+            className="relative h-14 px-10 rounded-3xl bg-[#4988c4] hover:bg-[#3a71a3] text-white shadow-2xl shadow-[#4988c4]/30 border-0 overflow-hidden group transition-all duration-500 active:scale-95"
+          >
+             <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
+             <div className="relative z-10 flex items-center gap-3">
+                <ShoppingCart className="w-5 h-5 transition-transform duration-500 group-hover:-rotate-12 group-hover:scale-110" />
+                <span className="text-[13px] font-black uppercase tracking-[0.15em] shrink-0">
+                  {isAdding ? "Finalizing..." : "Confirm Creation"}
+                </span>
+             </div>
+          </Button>
+        </div>
+      </header>
+
+      <main className="flex-1 overflow-hidden relative bg-[#f8fafc]">
+        <div className="h-full flex overflow-hidden">
+          {/* LEFT SIDEBAR */}
+          <aside className="w-[480px] bg-white border-r border-slate-100 flex flex-col h-full relative z-20 shadow-4xl shadow-slate-200/40">
+            <div className="flex-1 overflow-y-auto px-12 py-16 space-y-16 scroll-smooth no-scrollbar select-none will-change-transform">
+              {/* FOUNDATION SECTION */}
+              <div className="space-y-8">
+                <div className="flex items-center justify-between px-1">
+                  <div className="space-y-1.5 flex-1">
+                    <p className="text-[11px] font-black text-slate-900 uppercase tracking-[0.25em]">Foundation</p>
+                    <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest leading-none">Base Template Selection</p>
+                  </div>
+                  <div className="h-px bg-slate-100 flex-1 ml-4" />
                 </div>
-                <AnimatePresence>
-                  {design.embroideryText.trim() && (
-                    <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-2.5 bg-slate-50/50 p-4 rounded-2xl border border-slate-100">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">📍 Preferred Position</p>
-                      <div className="flex flex-wrap gap-2">
-                        {(selectedProduct?.id === "crib_bedding_set" ? [{ id: "front-rail", label: "Front Rail", icon: "🪵" }, { id: "side-rail", label: "Side Rail", icon: "📐" }, { id: "headboard", label: "Headboard", icon: "🛏️" }] : [{ id: "center", label: "Center", icon: "⊕" }, { id: "corner", label: "Corner", icon: "◳" }, { id: "bottom-edge", label: "Bottom Edge", icon: "▁" }]).map(pos => (
-                          <Chip key={pos.id} active={design.embroideryPosition === pos.id} onClick={() => updateDesign({ embroideryPosition: pos.id as EmbroideryPosition })}>{pos.icon} {pos.label}</Chip>
-                        ))}
+                <div className="grid grid-cols-2 gap-4">
+                  {derivedProducts.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => setSelectedId(p.id)}
+                      className={cn(
+                        "flex flex-col items-start p-6 rounded-[2.5rem] border-2 transition-all duration-500 relative overflow-hidden group",
+                        selectedProduct?.id === p.id
+                          ? "border-[#4988c4] bg-blue-50/20 shadow-xl shadow-blue-100/40"
+                          : "border-slate-50 bg-slate-50/30 hover:border-slate-100 hover:bg-white hover:shadow-2xl hover:shadow-slate-100"
+                      )}
+                    >
+                      <div className={cn(
+                        "h-12 w-12 rounded-2xl flex items-center justify-center text-2xl transition-all duration-700 group-hover:rotate-12",
+                        selectedProduct?.id === p.id ? "bg-white shadow-md scale-110" : "bg-slate-100 grayscale opacity-40"
+                      )}>
+                        {p.icon}
                       </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-          </ConfigSection>
-        </div>
 
-        <div className="flex-1 flex flex-col relative overflow-hidden bg-gradient-to-br from-[#f8fafc] via-white to-[#f1f5f9]">
-          {!selectedProduct ? (
-            <div className="flex-1 flex items-center justify-center">
-              <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center space-y-6 px-8">
-                <div className="relative inline-block"><div className="text-8xl animate-float">🎨</div><div className="absolute -top-4 -right-4 h-12 w-12 rounded-full bg-[#4988c4]/10 flex items-center justify-center animate-pulse"><Sparkles className="h-6 w-6 text-[#4988c4]" /></div></div>
-                <div className="space-y-2"><h2 className="text-4xl font-black text-slate-800 tracking-tight">Studio Experience</h2><p className="text-sm text-slate-400 font-medium max-w-sm mx-auto leading-relaxed">Select a product from the left panel to begin your immersive 3D custom design journey.</p></div>
-              </motion.div>
-            </div>
-          ) : (
-            <div className="flex-1 relative">
-              <Suspense fallback={<div className="w-full h-full flex items-center justify-center"><div className="text-center space-y-4"><div className="relative h-16 w-16 mx-auto"><div className="absolute inset-0 border-4 border-slate-100 rounded-full" /><div className="absolute inset-0 border-4 border-[#4988c4] border-t-transparent rounded-full animate-spin" /></div><p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] animate-pulse">Initializing 3D World</p></div></div>}>
-                <ProductPreview3D product={selectedProduct} design={design} totalPrice={totalPrice} onPositionChange={updatePosition} />
-              </Suspense>
+                      <div className="mt-6 space-y-1.5 flex-1">
+                        <span className={cn(
+                          "text-[10px] font-black uppercase tracking-widest transition-colors block leading-tight",
+                          selectedProduct?.id === p.id ? "text-slate-900" : "text-slate-400 group-hover:text-slate-600"
+                        )}>{p.name}</span>
 
-              <div className="absolute bottom-6 left-6 right-6 z-10">
-                <motion.div initial={{ y: 50, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="bg-white/70 backdrop-blur-2xl border border-white/50 px-8 py-5 rounded-[2.5rem] flex items-center justify-between shadow-2xl shadow-slate-300/40">
-                  <div><p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 font-mono">Current Valuation</p><motion.p key={totalPrice} initial={{ scale: 1.1 }} animate={{ scale: 1 }} className="text-3xl font-black tracking-tight tabular-nums">{new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(totalPrice)}</motion.p></div>
-                  <button type="button" className="flex items-center gap-3 px-10 py-4 rounded-[2rem] text-xs font-black text-white bg-[#0f172a] hover:bg-slate-800 shadow-xl shadow-slate-900/10 transition-all active:scale-95 group"><ShoppingCart className="h-4 w-4" /> Proceed to Checkout</button>
-                </motion.div>
+                        <div className="flex items-center gap-2">
+                          <span className={cn(
+                            "text-[13px] font-black font-mono tracking-tighter",
+                            selectedProduct?.id === p.id ? "text-[#4988c4]" : "text-slate-300"
+                          )}>
+                            {new Intl.NumberFormat("vi-VN").format(p.salePrice || p.basePrice)}
+                          </span>
+                          <span className="text-[8px] font-black text-slate-300 uppercase tracking-tighter">Vnd</span>
+                        </div>
+                      </div>
+
+                      {selectedProduct?.id === p.id && (
+                        <div className="absolute -top-6 -right-6 h-12 w-12 bg-[#4988c4] rotate-45 flex items-end justify-center pb-1">
+                          <div className="h-1.5 w-1.5 rounded-full bg-white mb-1.5" />
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
+
+              <SizeSelector
+                sizes={availableSizes}
+                selectedSize={activeDesign.size}
+                mode={sizeMode}
+                onModeChange={setSizeMode}
+                customDimensions={customDims}
+                onDimensionsChange={setCustomDims}
+                onSelect={(id: string) => updateDesign({ size: id })}
+              />
+              <ChromaProfile
+                variants={variantPresets}
+                selectedColor={activeDesign.baseColor}
+                addOnFee={colorAddOnFee}
+                onSelect={(hex) => updateDesign({ baseColor: hex })}
+              />
+              <TextureLab
+                selectedPattern={activeDesign.pattern}
+                selectedMaterial={activeDesign.material}
+                materials={derivedMaterials}
+                basePrice={(selectedProduct?.salePrice || selectedProduct?.basePrice || 0) + (activeDesign.size === "custom" ? 50000 : (currentSize?.priceAdd || 0))}
+                onPatternSelect={(p) => updateDesign({ pattern: p })}
+                onMaterialSelect={(m) => updateDesign({ material: m })}
+                onImageUpload={(f) => {
+                  if (f) {
+                    const url = URL.createObjectURL(f);
+                    updateDesign({ customImage: url, imageMode: "wrap" });
+                  } else {
+                    updateDesign({ customImage: undefined });
+                  }
+                }}
+              />
             </div>
-          )}
+
+            {/* STICKY BOTTOM ACTION RAIL */}
+            <div className="p-10 pt-8 border-t border-slate-50 bg-gradient-to-b from-white/0 via-white to-white relative z-30">
+               <div className="flex items-center justify-between mb-8 px-2">
+                  <div className="flex flex-col">
+                     <span className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em] mb-1">Total Valuation</span>
+                     <div className="flex items-baseline gap-2">
+                        <span className="text-2xl font-black text-slate-900 font-mono tracking-tighter">
+                           {new Intl.NumberFormat("vi-VN").format(totalPrice)}
+                        </span>
+                        <span className="text-[9px] font-black text-slate-400">VND</span>
+                     </div>
+                  </div>
+                  <div className="h-12 w-px bg-slate-100" />
+                  <div className="flex flex-col items-end">
+                     <span className="text-[9px] font-black text-emerald-500 uppercase tracking-[0.2em] mb-1">Status</span>
+                     <span className="text-[11px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-1.5">
+                        Ready <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                     </span>
+                  </div>
+               </div>
+
+               <Button
+                  onClick={handleAddToCart}
+                  disabled={isAdding}
+                  className="w-full h-16 rounded-[2rem] bg-slate-900 text-white shadow-2xl shadow-slate-200/50 hover:bg-[#4988c4] transition-all duration-500 flex items-center justify-center gap-4 group"
+               >
+                  <span className="text-[13px] font-black uppercase tracking-[0.25em]">Add to Sanctuary</span>
+                  <div className="h-6 w-6 rounded-full bg-white/10 flex items-center justify-center group-hover:scale-110 transition-all">
+                     <ShoppingCart className="w-3.5 h-3.5" />
+                  </div>
+               </Button>
+               
+               <p className="text-center mt-6 text-[8px] font-black text-slate-300 uppercase tracking-[0.3em] font-mono leading-none">
+                  Finalized in Sanctuary by DreamGuard
+               </p>
+            </div>
+          </aside>
+
+          {/* MAIN PREVIEW AREA */}
+          <div className="flex-1 relative overflow-hidden bg-white">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(73,136,196,0.03)_0%,rgba(255,255,255,1)_100%)] pointer-events-none" />
+            <ProductPreview3D product={selectedProduct} design={activeDesign} />
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
-}
+};
+
+export default CustomizeStudio;

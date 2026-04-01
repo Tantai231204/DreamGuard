@@ -1,7 +1,9 @@
 import { useParams } from 'react-router-dom';
+import { useState } from 'react';
 import { Printer, Loader2, Truck, History, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useOrderDetail, useUpdateOrderStatus, useCancelOrder } from '@/hooks/queries';
+import { useOrderDetail, useUpdateOrderStatus, useAdminCancelOrder } from '@/hooks/queries';
+import { useAuthStore } from '@/store/authStore';
 import { formatPrice } from '@/pages/profile/utils';
 import { formatDate } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -19,6 +21,7 @@ import {
   ShippingAddressCard,
   QuickActionsCard,
   OrderNotFound,
+  CancelOrderDialog,
 } from './components';
 import { AdminStatusBadge } from '@/components/admin';
 import { OrderStatus, ORDER_STATUS_MAP, ADMIN_ALLOWED_TRANSITION_STATUSES, ADMIN_ORDER_STATUS_THEME } from './constants';
@@ -28,7 +31,11 @@ export default function OrderDetail() {
 
   const { data: order, isLoading, isError } = useOrderDetail(id!);
   const updateStatus = useUpdateOrderStatus();
-  const cancelOrder = useCancelOrder();
+  const cancelOrder = useAdminCancelOrder();
+  const { role } = useAuthStore();
+  const isAdmin = ['Admin', 'Staff'].includes(role || '');
+
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
 
   if (isLoading) {
     return (
@@ -50,9 +57,12 @@ export default function OrderDetail() {
     });
   };
 
-  const handleCancelOrder = () => {
-    cancelOrder.mutate(order.id, {
-      onSuccess: () => toast.success('Order cancelled successfully'),
+  const handleCancelOrder = (reason: string) => {
+    cancelOrder.mutate({ id: order.id, reason }, {
+      onSuccess: () => {
+          toast.success('Order cancelled successfully');
+          setShowCancelDialog(false);
+      },
     });
   };
 
@@ -154,8 +164,16 @@ export default function OrderDetail() {
               <QuickActionsCard
                 currentStatusEnum={currentStatusEnum}
                 onUpdateStatus={handleUpdateStatus}
-                onCancelOrder={handleCancelOrder}
-                canCancel={canCancel}
+                onCancelOrder={() => setShowCancelDialog(true)}
+                canCancel={canCancel && isAdmin}
+              />
+
+              <CancelOrderDialog
+                open={showCancelDialog}
+                onOpenChange={setShowCancelDialog}
+                onConfirm={handleCancelOrder}
+                isLoading={cancelOrder.isPending}
+                orderCode={order.orderCode}
               />
 
               {/* Logistics Block */}

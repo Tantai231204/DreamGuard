@@ -79,4 +79,7 @@ export type {
   RatingResponse,
   RatingSearchParams,
   RatingListResponse,
+  FullyCustomizedProductResponse,
+  CreateFullyCustomizedProductRequest,
+  UpdateFullyCustomizedProductRequest,
 } from "./types";

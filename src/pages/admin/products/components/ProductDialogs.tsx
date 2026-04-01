@@ -5,6 +5,7 @@ import VariantDialog from './variant-dialog/VariantDialog';
 import { ComboDialog } from './combo-dialog';
 import { CertificateDialog } from './certificate/CertificateDialog';
 import { ImageUploadDialog, ProductCreationSuccess } from './dialogs';
+import { TemplateDialog } from '../../templates/components/TemplateDialog';
 import type { AdminProductState, AdminProductMutations } from '../types';
 
 interface ProductDialogsProps {
@@ -21,7 +22,7 @@ interface ProductDialogsProps {
 export const ProductDialogs = memo(({ state, mutations, onRefresh }: ProductDialogsProps) => {
   return (
     <>
-      {state.dialogOpen && (
+      {state.dialogOpen && state.activeTab !== 'customize' && (
         <ProductDialog
           open={state.dialogOpen}
           onOpenChange={state.setDialogOpen}
@@ -30,6 +31,18 @@ export const ProductDialogs = memo(({ state, mutations, onRefresh }: ProductDial
           isLoading={mutations.createMutation?.isPending || mutations.updateMutation?.isPending || state.isLoadingCategories}
           categories={state.categories}
           certificates={state.certificates}
+          takenCustomTypes={state.takenCustomTypes}
+        />
+      )}
+
+      {state.dialogOpen && state.activeTab === 'customize' && (
+        <TemplateDialog
+          open={state.dialogOpen}
+          onOpenChange={state.setDialogOpen}
+          product={state.editingProduct as import('@/api/types').FullyCustomizedProductResponse}
+          onSubmit={mutations.handleSubmit as (data: import('@/api/types').CreateFullyCustomizedProductRequest | import('@/api/types').UpdateFullyCustomizedProductRequest) => Promise<void>}
+          isSubmitting={mutations.createMutation?.isPending || mutations.updateMutation?.isPending}
+          takenCustomTypes={state.takenCustomTypes}
         />
       )}
 
@@ -44,6 +57,7 @@ export const ProductDialogs = memo(({ state, mutations, onRefresh }: ProductDial
           variantCount={state.variantCount}
           onSubmit={mutations.handleVariantSubmit}
           isLoading={mutations.updateVariantMutation?.isPending || mutations.createVariantMutation?.isPending || mutations.createVariantWithCustomizeMutation?.isPending}
+          productType={state.variantProductType}
         />
       )}
 

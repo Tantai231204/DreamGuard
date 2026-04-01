@@ -27,6 +27,7 @@ import type {
   VariantCustomizeTypeResponse,
   CreateVariantWithCustomizeRequest,
   ProductResponse,
+  CreateFullyCustomizedProductRequest,
 } from "@/api";
 
 // ========================
@@ -36,6 +37,7 @@ export const productKeys = {
   all: ["products"] as const,
   admin: (params: AdminProductParams) => ["products", "admin", params] as const,
   byFilter: (params: ProductParams) => ["products", "filter", params] as const,
+  fullyCustomized: () => ["products", "fully-customized"] as const,
   detail: (slug: string) => ["products", slug] as const,
 };
 
@@ -91,6 +93,14 @@ export const useProductsByFilter = (params: ProductParams, enabled = true) => {
     staleTime: 1000 * 60 * 2, // 2 minutes
     enabled,
   });
+};
+
+/** Fetch all fully customized products (for 3D Studio) */
+export const useFullyCustomizedProducts = () => {
+    return useQuery({
+      queryKey: productKeys.fullyCustomized(),
+      queryFn: () => productService.getAllFullyCustomize(),
+    });
 };
 
 /** Fetch variants by product ID */
@@ -232,6 +242,47 @@ export const useUploadProductImages = () => {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: productKeys.all });
       queryClient.invalidateQueries({ queryKey: productKeys.detail(variables.productId) });
+    },
+  });
+};
+
+// ========================
+// Fully Customized Product Mutations
+// ========================
+
+/** Create fully customized product template */
+export const useCreateFullyCustomize = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: CreateFullyCustomizedProductRequest) => productService.createFullyCustomize(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+    },
+  });
+};
+
+/** Update fully customized product template */
+export const useUpdateFullyCustomize = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<CreateFullyCustomizedProductRequest> }) =>
+      productService.updateFullyCustomize(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+    },
+  });
+};
+
+/** Delete fully customized product template */
+export const useDeleteFullyCustomize = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => productService.deleteFullyCustomize(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
     },
   });
 };

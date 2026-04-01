@@ -50,6 +50,7 @@ interface VariantTableProps {
   onAddVariant: () => void;
   onEditVariant: (variantId: string) => void;
   onDeleteVariant: (variantId: string) => void;
+  isTemplate?: boolean;
 }
 
 /* ─── Component ────────────────────────────────────────── */
@@ -59,6 +60,7 @@ export default function VariantTable({
   onAddVariant,
   onEditVariant,
   onDeleteVariant,
+  isTemplate = false,
 }: VariantTableProps) {
   const { data, isLoading } = useRichAdminVariants(productId);
   const {
@@ -154,14 +156,16 @@ export default function VariantTable({
               {totalVariants} variant{totalVariants !== 1 ? 's' : ''}
             </Badge>
           </div>
-          <Button
-            size="sm"
-            onClick={onAddVariant}
-            className="h-8 px-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg shadow-sm"
-          >
-            <Plus className="h-3.5 w-3.5 mr-1.5" />
-            Add Variant
-          </Button>
+          {!isTemplate && (
+            <Button
+              size="sm"
+              onClick={onAddVariant}
+              className="h-8 px-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg shadow-sm"
+            >
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
+              Add Variant
+            </Button>
+          )}
         </div>
 
         {/* Variant Groups Container */}

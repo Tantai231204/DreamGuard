@@ -346,7 +346,7 @@ export function useProductDetailState({ product, productImageRef }: UseProductDe
             });
         }
 
-        const configHash = generateConfigHash(currentVariant?.id || null, null, customizeDetails, colorLabel);
+        const configHash = generateConfigHash(currentVariant?.id || null, null, customizeDetails);
 
         addItem({
             id: (isCustomSize || isCustomColor) ? `item_${product.id}_bespoke_${configHash}` : (currentVariant?.id || product.id),
@@ -356,6 +356,7 @@ export function useProductDetailState({ product, productImageRef }: UseProductDe
             image: images[0],
             price: currentPriceInfo.price,
             quantity,
+            comboId: null,
             color: colorLabel,
             size: isCustomSize ? "Bespoke" : (selectedSize || undefined),
             isCustom: isCustomSize || isCustomColor,

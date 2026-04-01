@@ -11,6 +11,7 @@ interface OrderStepFlowProps {
 export function OrderStepFlow({ step, color, isCancelled = false }: OrderStepFlowProps) {
     const steps = [
         { s: 0, label: "Ordered", icon: <Clock className="w-5 h-5" /> },
+        { s: 1, label: "Confirmed", icon: <CheckCircle2 className="w-5 h-5 text-emerald-500" /> },
         { s: 2, label: "Packed", icon: <Package className="w-5 h-5" /> },
         { s: 3, label: "Transit", icon: <Truck className="w-5 h-5" /> },
         { s: 5, label: "Arrived", icon: <CheckCircle2 className="w-5 h-5" /> }

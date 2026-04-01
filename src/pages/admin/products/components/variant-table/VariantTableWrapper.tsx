@@ -10,6 +10,7 @@ interface VariantTableWrapperProps {
     onAddVariant: () => void;
     onEditVariant: (variant: ProductVariant) => void;
     onDeleteVariant: (variant: ProductVariant) => void;
+    isTemplate?: boolean;
 }
 
 /**
@@ -33,6 +34,7 @@ export default function VariantTableWrapper({
     onAddVariant,
     onEditVariant,
     onDeleteVariant,
+    isTemplate = false,
 }: VariantTableWrapperProps) {
     // Use admin endpoint — returns ALL statuses (Draft, OutOfStock, Published...)
     const { data: adminData } = useAdminProductVariants(productId);
@@ -124,6 +126,7 @@ export default function VariantTableWrapper({
             onAddVariant={onAddVariant}
             onEditVariant={handleEditVariant}
             onDeleteVariant={handleDeleteVariant}
+            isTemplate={isTemplate}
         />
     );
 }

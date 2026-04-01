@@ -10,6 +10,7 @@ export type EmbroideryPosition =
 
 export interface DesignConfig {
   size: string;
+  customSizeLabel?: string;
   baseColor: string;
   pattern: string;
   embroideryText: string;
@@ -25,7 +26,10 @@ export interface CustomizableProduct {
   description: string;
   icon: string;
   basePrice: number;
+  salePrice: number;
   availableSizes: { id: string; label: string; priceAdd: number }[];
+  type: string;
+  image: string;
 }
 
 export interface MaterialOption {
@@ -33,6 +37,7 @@ export interface MaterialOption {
   name: string;
   description: string;
   priceMultiplier: number;
+  priceAdd: number;
   badge?: string;
 }
 
@@ -46,4 +51,14 @@ export interface PatternOption {
 export interface CustomizationState {
   product: CustomizableProduct | null;
   design: DesignConfig;
+}
+
+export interface ProductVariant {
+  id: string;
+  sku: string;
+  color: string;
+  colorCode: string;
+  dimensions: string;
+  salePrice: number;
+  basePrice: number;
 }

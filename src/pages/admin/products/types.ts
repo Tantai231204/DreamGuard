@@ -1,6 +1,6 @@
 import type { CreateComboRequest } from "@/api/services/comboService";
 import type { ComboDialogMode } from "./components/combo-dialog";
-import type { SortingState, ColumnFiltersState, RowSelectionState, ExpandedState, PaginationState } from "@tanstack/react-table";
+import type { ColumnFiltersState, ExpandedState, PaginationState, RowSelectionState, SortingState } from "@tanstack/react-table";
 
 // ── Product ──────────────────────────────────────────────
 export type ProductStatus = "Draft" | "Published" | "OutOfStock" | "Hidden";
@@ -200,6 +200,11 @@ export interface Product {
   averageRating: number;
   cateId: number | null;
   CertificateIds?: string[];
+  fullyCustomizedProductType?: import("@/api/types/product.types").FullyCustomizedProductType;
+  sku?: string;
+  basePrice?: number;
+  salePrice?: number;
+  weight?: number;
   // Joined / computed (from admin endpoint)
   categoryName?: string;
   variantCount?: number;
@@ -220,6 +225,11 @@ export interface CreateProductRequest {
   status: string;
   cateId: number | null;
   CertificateIds?: string[];
+  fullyCustomizedProductType?: import("@/api/types/product.types").FullyCustomizedProductType;
+  sku?: string;
+  basePrice?: number;
+  salePrice?: number;
+  weight?: number;
 }
 
 export interface UpdateProductRequest {
@@ -235,6 +245,11 @@ export interface UpdateProductRequest {
   returnPolicyDay: number | null;
   cateId: number | null;
   CertificateIds?: string[];
+  fullyCustomizedProductType?: import("@/api/types/product.types").FullyCustomizedProductType;
+  sku?: string;
+  basePrice?: number;
+  salePrice?: number;
+  weight?: number;
 }
 
 // ── Product Variant ──────────────────────────────────────
@@ -266,6 +281,25 @@ export interface ProductVariant {
   stockStatus?: string;
   customizeTypes?: (import('@/api').VariantCustomizeTypeResponse | import('@/api/types/product.types').CustomizeOptionResponse)[];
   customizeOptions?: (import('@/api').VariantCustomizeTypeResponse | import('@/api/types/product.types').CustomizeOptionResponse)[];
+  customizeOptionGroups?: import('@/api/types/product.types').CustomizeOptionGroupResponse[];
+}
+
+export interface SimpleCustomizeType {
+    customizeTypeId: string;
+    name?: string;
+    summary?: string;
+    defaultPrice?: number;
+    overridePrice?: number | null;
+    customizeTypeName?: string;
+    customizeType?: { name: string };
+}
+
+export interface ExtendedProductVariant extends Omit<ProductVariant, 'customizeTypes' | 'customizeOptions' | 'customizeOptionGroups'> {
+    pendingCustoms?: { customizeTypeId: string; overridePrice: number | null }[];
+    is_customizable?: boolean;
+    customizeOptions?: SimpleCustomizeType[];
+    customizeTypes?: SimpleCustomizeType[];
+    customizeOptionGroups?: { category: string; categoryName?: string; options: SimpleCustomizeType[] }[];
 }
 
 export interface CreateVariantRequest {
@@ -355,7 +389,7 @@ export interface VariantSubmitData {
   stockQuantity: number;
   stockStatus: string;
   customizeTypeIds?: string[];
-  pendingCustoms?: { customizeTypeId: string; overridePrice: number | null }[];
+  pendingCustoms?: { customizeTypeId: string; overridePrice: number | null; overrideMultiplier?: number | null }[];
 }
 
 export interface StatusChangeData {
@@ -367,8 +401,8 @@ export interface StatusChangeData {
 }
 
 export interface AdminProductState {
-  activeTab: 'single' | 'combo' | 'certificate';
-  setActiveTab: (tab: 'single' | 'combo' | 'certificate') => void;
+  activeTab: 'single' | 'combo' | 'certificate' | 'customize';
+  setActiveTab: (tab: 'single' | 'combo' | 'certificate' | 'customize') => void;
 
   // Products Table State
   sorting: SortingState;
@@ -435,6 +469,8 @@ export interface AdminProductState {
   setVariantProductName: (n: string) => void;
   variantProductSlug: string;
   setVariantProductSlug: (s: string) => void;
+  variantProductType?: import("@/api/types/product.types").FullyCustomizedProductType;
+  setVariantProductType: (t: import("@/api/types/product.types").FullyCustomizedProductType | undefined) => void;
   variantCount: number;
   setVariantCount: (c: number) => void;
   comboDialogOpen: boolean;
@@ -459,6 +495,10 @@ export interface AdminProductState {
   setCreatedProductId: (id: string) => void;
   createdProductName: string;
   setCreatedProductName: (n: string) => void;
+  
+  // Customization Logic
+  takenCustomTypes: string[];
+
   imageUploadOpen: boolean;
   setImageUploadOpen: (o: boolean) => void;
   uploadProductId: string;

@@ -118,6 +118,14 @@ const productService = {
   /** Create new fully customized product */
   createFullyCustomize: (data: CreateFullyCustomizedProductRequest): Promise<FullyCustomizedProductResponse> =>
     apiClient.post<FullyCustomizedProductResponse>('/product/fully-customize', data).then(res => res.data),
+
+  /** Update fully customized product */
+  updateFullyCustomize: (id: string, data: Partial<CreateFullyCustomizedProductRequest>): Promise<FullyCustomizedProductResponse> =>
+    apiClient.put<FullyCustomizedProductResponse>(`/product/fully-customize/${id}`, data).then(res => res.data),
+
+  /** Delete fully customized product */
+  deleteFullyCustomize: (id: string): Promise<void> =>
+    apiClient.delete(`/product/fully-customize/${id}`).then(res => res.data),
 };
 
 export default productService;

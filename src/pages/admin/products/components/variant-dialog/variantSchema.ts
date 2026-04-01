@@ -4,7 +4,7 @@ export const variantSchema = z.object({
     sku: z.string()
         .min(3, "SKU must be at least 3 characters")
         .max(50, "SKU too long")
-        .regex(/^[A-Z0-9_-]+$/, "SKU contains invalid characters (Caps, numbers, _ - only)"),
+        .regex(/^[a-zA-Z0-9\s_-]+$/, "SKU contains invalid characters"),
     basePrice: z.coerce.number()
         .positive("Base price must be greater than 0")
         .min(1000, "Price must be at least 1.000 ₫"),
@@ -27,7 +27,8 @@ export const variantSchema = z.object({
     colorHex: z.string().optional().nullable(),
     pendingCustoms: z.array(z.object({
         customizeTypeId: z.string(),
-        overridePrice: z.number().nullable()
+        overridePrice: z.number().nullable(),
+        overrideMultiplier: z.number().nullable().optional(),
     })).optional().default([]),
 }).superRefine((data, ctx) => {
     if (data.salePrice > 0 && data.salePrice > data.basePrice) {

@@ -2,6 +2,7 @@ import { Minus, Plus, Trash2, ShoppingBag, ShieldCheck, RefreshCw, ChevronRight,
 import { Button } from "@/components/ui/button";
 import type { CartItem } from "@/store/cartTypes";
 import { cn, formatPrice } from "@/lib/utils";
+import { getColorHex } from "@/utils/color-utils";
 
 interface CartTableProps {
     cart: CartItem[];
@@ -11,25 +12,9 @@ interface CartTableProps {
     syncingIds?: string[];
 }
 
-// Map tên màu thông dụng → hex (giống CartDrawer)
-const COLOR_HEX: Record<string, string> = {
-    red: '#ef4444', blue: '#3b82f6', green: '#22c55e', yellow: '#eab308',
-    black: '#111827', white: '#ffffff', gray: '#6b7280', grey: '#6b7280',
-    pink: '#ec4899', purple: '#a855f7', orange: '#f97316', brown: '#92400e',
-    navy: '#1e3a5f', teal: '#14b8a6', gold: '#d97706', silver: '#9ca3af',
-    beige: '#d4b896', cream: '#fffdd0', coral: '#ff6b6b', mint: '#98d8c8',
-}
+// Using central color-utils for dot resolution
 
-function resolveColor(item: CartItem): string {
-    const color = item.color || '';
-    const key = color.toLowerCase().trim();
-    if (key === 'custom' && item.customAttributes?.colorHex) {
-        return item.customAttributes.colorHex;
-    }
-    return COLOR_HEX[key] ?? (key.startsWith('#') ? key : '#e2e8f0');
-}
-
-export function CartTable({ cart, onQuantity, onRemove, loadingIds = [] }: CartTableProps) {
+export function CartTable({ cart, onQuantity, onRemove, loadingIds = [], syncingIds = [] }: CartTableProps) {
     if (cart.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center py-20 bg-white rounded-[2rem] border-2 border-dashed border-slate-100 relative overflow-hidden">
@@ -59,17 +44,19 @@ export function CartTable({ cart, onQuantity, onRemove, loadingIds = [] }: CartT
         <div className="flex flex-col gap-6">
             {cart.map((item) => {
                 const isLoading = loadingIds.includes(item.id);
+                // Use configHash as key for zero-flicker during sync
+                const itemKey = item.configHash || item.id;
                 const isOutOfStock = item.availableStock !== undefined && item.availableStock < item.quantity;
                 const isLowStock = item.availableStock !== undefined && item.availableStock > 0 && item.availableStock < 5;
                 const hasTradeIn = !!(item.tradeIn?.totalValue && item.tradeIn.totalValue > 0);
 
                 return (
                     <div
-                        key={item.id}
+                        key={itemKey}
                         className={cn(
                             "group relative overflow-hidden bg-white rounded-2xl border border-slate-100 p-3 sm:p-4 transition-all duration-300 hover:border-[#4988c4]/30",
                             hasTradeIn && "bg-emerald-50/10 border-emerald-100/50",
-                            item.isCustom && "bg-amber-50/50 border-amber-100/50", // Added for custom items
+                            item.isCustom && "bg-amber-50/50 border-amber-100/50",
                             isLoading && "opacity-70 pointer-events-none"
                         )}
                     >
@@ -86,10 +73,15 @@ export function CartTable({ cart, onQuantity, onRemove, loadingIds = [] }: CartT
                             </div>
                         )}
 
-                        {/* Loading State Overlay - Sharp & Clean */}
-                        {isLoading && (
-                            <div className="absolute inset-0 z-10 bg-white/60 flex items-center justify-center backdrop-blur-[1px]">
-                                <RefreshCw className="w-6 h-6 text-[#4988c4] animate-spin" />
+                        {/* Loading/Syncing State Overlay */}
+                        {(isLoading || syncingIds.includes(item.id)) && (
+                            <div className="absolute inset-0 z-10 bg-white/40 flex items-center justify-center backdrop-blur-[1px] transition-all">
+                                <div className="flex flex-col items-center gap-2">
+                                    <RefreshCw className="w-6 h-6 text-[#4988c4] animate-spin" />
+                                    <span className="text-[8px] font-black uppercase tracking-widest text-[#4988c4]">
+                                        {isLoading ? "Saving..." : "Updating..."}
+                                    </span>
+                                </div>
                             </div>
                         )}
 
@@ -156,8 +148,8 @@ export function CartTable({ cart, onQuantity, onRemove, loadingIds = [] }: CartT
                                         {(item.customAttributes?.colorHex || item.color) && (
                                             <div className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-50/50 rounded-lg border border-slate-100">
                                                 <div
-                                                    className="w-2.5 h-2.5 rounded-full border border-white shadow-sm"
-                                                    style={{ backgroundColor: item.customAttributes?.colorHex || resolveColor(item) }}
+                                                    className="w-3 h-3 rounded-full border border-slate-200 shadow-sm transition-transform group-hover:scale-110"
+                                                    style={{ backgroundColor: getColorHex(item.color || item.customAttributes?.colorHex) }}
                                                 />
                                                 <span className="text-[8px] font-black text-slate-900 uppercase">{item.customAttributes?.colorHex || item.color}</span>
                                             </div>
@@ -172,6 +164,19 @@ export function CartTable({ cart, onQuantity, onRemove, loadingIds = [] }: CartT
                                                 </span>
                                             </div>
                                         )}
+                                        {/* Custom Traits (Silk, Size, Material, etc) */}
+                                        {item.customAttributes && Object.entries(item.customAttributes).map(([k, v]) => {
+                                            // Luôn bỏ qua các mã hex và ID nội bộ, nhưng hiện mọi thứ BE trả về
+                                            if (['length', 'width', 'thickness', 'size', 'colorHex', 'imageMode', 'productVariantId'].includes(k) || !v) return null;
+                                            // Nếu k là color/size mà đã có badge riêng thì cân nhắc (nhưng hiện tại cứ hiện cho chắc)
+                                            return (
+                                                <div key={k} className="flex items-center gap-1.5 px-2 py-0.5 bg-slate-50/80 rounded-lg border border-slate-100 shadow-sm">
+                                                    <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest pl-1">
+                                                        <span className="opacity-40">{k}:</span> <span className="text-slate-900">{v}</span>
+                                                    </span>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
 
                                     <div className="mt-auto pt-3 relative">

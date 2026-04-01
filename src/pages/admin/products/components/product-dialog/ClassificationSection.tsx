@@ -29,6 +29,7 @@ interface ClassificationSectionProps {
     onSubCateIdChange: (value: string) => void;
     onMaterialChange: (value: string) => void;
     onCertificatesChange: (value: string[]) => void;
+    takenCustomTypes?: string[];
 }
 
 /**
@@ -275,9 +276,7 @@ const ClassificationSection = memo(function ClassificationSection({
                                     )}
                                 />
                             )}
-                        </div>
-
-                        {/* Age Group */}
+                        </div>                        {/* Age Group */}
                         <div className="space-y-2">
                             <Label htmlFor="p-age" className="text-[11px] uppercase tracking-widest font-bold text-gray-400 flex items-center gap-1.5 ml-1">
                                 <Baby className="h-3 w-3" /> Target Age

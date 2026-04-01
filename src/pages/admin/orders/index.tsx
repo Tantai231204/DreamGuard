@@ -16,16 +16,23 @@ import { ShoppingCart } from 'lucide-react'
 import AdminPageHeader from '@/components/layout/AdminPageHeader'
 import { AdminTableSearch, AdminTableContent, AdminTablePagination, AdminActions } from '@/components/admin'
 
-import { useOrderColumns } from './components'
-import { useAdminOrders } from '@/hooks/queries'
+import { useOrderColumns, CancelOrderDialog } from './components'
+import { useAdminOrders, useAdminCancelOrder } from '@/hooks/queries'
 import { useDebounce } from '@/hooks/useDebounce'
 import { downloadCSV } from '@/lib/export'
+import { toast } from 'sonner'
+import type { OrderResponse } from '@/api/types/order'
 
 export default function OrderManagement() {
     const [searchParams, setSearchParams] = useSearchParams()
     const [sorting, setSorting] = useState<SortingState>([])
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-    
+
+    // Cancellation State
+    const [isCancelOpen, setIsCancelOpen] = useState(false)
+    const [orderToCancel, setOrderToCancel] = useState<OrderResponse | null>(null)
+    const cancelOrderMutation = useAdminCancelOrder()
+
     const pagination = useMemo(() => ({
         pageIndex: parseInt(searchParams.get('page') || '1') - 1,
         pageSize: parseInt(searchParams.get('pageSize') || '10'),
@@ -60,7 +67,12 @@ export default function OrderManagement() {
 
     const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
 
-    const columns = useOrderColumns()
+    const onCancelRequested = useCallback((order: OrderResponse) => {
+        setOrderToCancel(order);
+        setIsCancelOpen(true);
+    }, []);
+
+    const columns = useOrderColumns(onCancelRequested)
 
     const { data: orderData, isPending } = useAdminOrders({
         pageNumber: pagination.pageIndex + 1,
@@ -70,6 +82,17 @@ export default function OrderManagement() {
         sortBy: sorting[0]?.id,
         sortOrder: sorting[0]?.desc ? 'desc' : 'asc'
     })
+
+    const handleConfirmCancel = async (reason: string) => {
+        if (!orderToCancel) return;
+        cancelOrderMutation.mutate({ id: orderToCancel.id, reason }, {
+            onSuccess: () => {
+                toast.success(`Order ${orderToCancel.orderCode} cancelled successfully`);
+                setIsCancelOpen(false);
+                setOrderToCancel(null);
+            }
+        });
+    };
 
     const data = useMemo(() => orderData?.items ?? [], [orderData])
     const pageCount = orderData?.totalPages ?? -1
@@ -164,6 +187,14 @@ export default function OrderManagement() {
                     />
                 </motion.div>
             </div>
+
+            <CancelOrderDialog
+                open={isCancelOpen}
+                onOpenChange={setIsCancelOpen}
+                orderCode={orderToCancel?.orderCode}
+                onConfirm={handleConfirmCancel}
+                isLoading={cancelOrderMutation.isPending}
+            />
         </div>
     )
 }
