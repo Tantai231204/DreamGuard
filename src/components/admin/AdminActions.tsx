@@ -11,6 +11,7 @@ interface AdminActionsProps {
   showFilter?: boolean;
   showExport?: boolean;
   showImport?: boolean;
+  addDisabled?: boolean;
 }
 
 export function AdminActions({
@@ -22,6 +23,7 @@ export function AdminActions({
   showFilter = true,
   showExport = true,
   showImport = true,
+  addDisabled = false,
 }: AdminActionsProps) {
   return (
     <AdminActionToolbar>
@@ -62,7 +64,8 @@ export function AdminActions({
         <Button
           size="sm"
           onClick={onAdd}
-          className="gap-2 rounded-xl bg-gradient-to-r from-[var(--color-primary)] to-blue-600 hover:from-[var(--color-primary-hover)] hover:to-blue-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+          disabled={addDisabled}
+          className="gap-2 rounded-xl bg-gradient-to-r from-[var(--color-primary)] to-blue-600 hover:from-[var(--color-primary-hover)] hover:to-blue-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105 disabled:opacity-50 disabled:grayscale disabled:scale-100 disabled:cursor-not-allowed"
         >
           <Plus className="h-4 w-4" />
           {addLabel}

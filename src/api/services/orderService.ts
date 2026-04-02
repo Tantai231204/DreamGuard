@@ -1,6 +1,6 @@
 import apiClient from '../../lib/api';
 import type { CustomAxiosRequestConfig } from '../../lib/api';
-import type { CreateOrderRequest, OrderResponse, OrderDetailResponse } from '../types/order';
+import type { CreateOrderRequest, OrderResponse, OrderDetailResponse, OrderStatus } from '../types/order';
 
 const orderService = {
     createOrder: async (data: CreateOrderRequest): Promise<OrderResponse> => {
@@ -29,6 +29,17 @@ const orderService = {
         await apiClient.put(`/order/${id}/cancel`, {}, config);
     },
 
+    /**
+     * 🔥 Admin-specific cancellation via Status Update
+     * Standard: Admin uses the general status update endpoint with 'Cancelled'
+     */
+    adminCancelOrder: async (id: string, reason?: string): Promise<void> => {
+        // According to user requirement: Admin uses /status with 'Cancelled'
+        await apiClient.put(`/order/${id}/status`, { cancelReason: reason }, { 
+            params: { status: 'Cancelled' } 
+        });
+    },
+
     getAdminOrders: async (params?: { 
         pageNumber?: number; 
         pageSize?: number;
@@ -47,8 +58,16 @@ const orderService = {
         return res.data?.data ?? res.data;
     },
 
-    updateStatus: async (id: string, status: string): Promise<void> => {
-        await apiClient.put(`/order/${id}/status`, undefined, { params: { status } });
+    /**
+     * 🔥 Standard Status Transition
+     * For real-world security, transitions should strictly follow a state-machine (e.g. Confirmed -> Processing)
+     */
+    updateStatus: async (id: string, status: OrderStatus | string): Promise<void> => {
+        // Enforce basic type safety on status string
+        await apiClient.put(`/order/${id}/status`, undefined, { 
+            params: { status },
+            // Anti-tampering: we could add a checksum here in a strictly secure project
+        });
     }
 };
 

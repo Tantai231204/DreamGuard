@@ -15,26 +15,25 @@ export interface CartItem {
     quantity: number
     subtotal: number
     productVariantId: string | null
-    tradeIn?: {
-        products: TradeInItem[]
-        totalValue: number
-    }
+    comboId: string | null
+    isAvailable?: boolean
+    availableStock?: number
+    sku?: string
     color?: string
     size?: string
-    comboId?: string | null
-    sku?: string
-    availableStock?: number
-    isAvailable?: boolean
     isCustom?: boolean
+    ProductCustomizeDetailRequest?: Array<{ ProductCustomizeTypeId: string; CustomizeContent: string }>
     customAttributes?: {
         length?: number;
         width?: number;
         thickness?: number;
         colorHex?: string;
+        [key: string]: string | number | undefined;
     }
-    customizeTypeIds?: string[]
-    ProductCustomizeDetailRequest?: Array<{
-        ProductCustomizeTypeId: string;
-        CustomizeContent: string;
-    }>
+    attributeSignature?: string
+    configHash?: string
+    tradeIn?: {
+        totalValue: number;
+        products: TradeInItem[];
+    };
 }

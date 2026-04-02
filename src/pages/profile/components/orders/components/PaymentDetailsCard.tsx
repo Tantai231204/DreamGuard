@@ -1,13 +1,12 @@
 import { CreditCard, Clock } from "lucide-react"
-import { AdminStatusBadge } from "@/components/admin"
 import { formatPrice } from "../../../utils"
 import { formatDateTime, cn } from "@/lib/utils"
 import type { OrderDetailResponse } from "@/api/types/order"
 import type { PaymentDetailResponse } from "@/api/types/payment"
 
 interface PaymentDetailsCardProps {
-  order: OrderDetailResponse
-  payment?: PaymentDetailResponse
+    order: OrderDetailResponse
+    payment?: PaymentDetailResponse
 }
 
 // Helper internally
@@ -25,21 +24,19 @@ export function PaymentDetailsCard({ order, payment }: PaymentDetailsCardProps) 
                     <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0 text-left">
                         <CreditCard className="w-5 h-5 text-[#4988c4]" />
                     </div>
-                    <div className="text-left">
-                        <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1.5">Payment Method</p>
-                        <AdminStatusBadge
-                            status={payment?.paymentMethod || order.paymentMethod || 'Standard Checkout'}
-                            type="neutral"
-                            className="group"
-                        />
+                    <div className="text-left space-y-1">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.1em] mb-1">Settlement</p>
+                        <div className="flex items-center gap-2">
+                            <span className="text-[13px] font-black text-gray-900">{payment?.paymentMethod || order.paymentMethod || 'Checkout'}</span>
+                        </div>
                     </div>
                 </div>
                 {payment && (
                     <div className={cn(
-                        "px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border",
-                        payment.status === "Paid" ? "bg-emerald-50 border-emerald-100 text-emerald-600" :
-                        payment.status === "Failed" ? "bg-rose-50 border-rose-100 text-rose-600" :
-                        "bg-amber-50 border-amber-100 text-amber-600"
+                        "px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm",
+                        payment.status === "Paid" ? "bg-emerald-500 border-emerald-600 text-white" :
+                        payment.status === "Failed" || payment.status === "Cancelled" ? "bg-rose-600 border-rose-700 text-white" :
+                        "bg-[#f59e0b] border-[#d97706] text-white"
                     )}>
                         {payment.status}
                     </div>

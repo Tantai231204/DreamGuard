@@ -4,6 +4,7 @@ import {
   useMemo,
   useCallback
 } from 'react';
+import { format, parseISO } from 'date-fns';
 import {
   ChevronDown,
   ChevronUp,
@@ -213,7 +214,15 @@ export const OrderItemsArea = memo(function OrderItemsArea({
             </h3>
             <div className="flex gap-2">
               <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 border-none font-bold text-[10px]">
-                Completed {task.checkOut || 'N/A'}
+                Completed {(() => {
+                  try {
+                    return task.checkOut 
+                      ? format(parseISO(task.checkOut), 'MMM dd, yyyy - hh:mm a')
+                      : 'N/A';
+                  } catch {
+                    return task.checkOut || 'N/A';
+                  }
+                })()}
               </Badge>
             </div>
           </div>

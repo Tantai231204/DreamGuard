@@ -33,3 +33,9 @@ export interface RatingListResponse {
   totalPages: number;
   totalCount: number;
 }
+
+export interface StaffRatingSummary {
+  staffId: string;
+  averageStars: number;
+  totalRatings: number;
+}

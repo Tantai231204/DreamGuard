@@ -13,6 +13,11 @@ export const productSchema = z.object({
     returnPolicyDay: z.coerce.number().min(0).default(0),
     status: z.string().default('Draft'),
     CertificateIds: z.array(z.string()).default([]),
+    fullyCustomizedProductType: z.enum(["None", "Mattresses", "Pillows", "Cribs"]).default("None"),
+    sku: z.string().optional(),
+    basePrice: z.coerce.number().min(0).default(0),
+    salePrice: z.coerce.number().min(0).default(0),
+    weight: z.coerce.number().min(0).default(0),
 });
 
 export type ProductFormValues = z.infer<typeof productSchema>;

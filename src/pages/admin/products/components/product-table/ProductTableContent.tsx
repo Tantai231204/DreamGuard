@@ -27,8 +27,8 @@ interface ProductTableContentProps<T = unknown> {
   table: Table<T>;
   emptyMessage?: string;
   type?: 'single' | 'combo';
-  onAddVariant?: (productId: string, productName: string, productSlug: string, variantCount: number) => void;
-  onEditVariant?: (variant: ProductVariant) => void;
+  onAddVariant?: (productId: string, productName: string, productSlug: string, variantCount: number, productType?: import("@/api/types/product.types").FullyCustomizedProductType) => void;
+  onEditVariant?: (variant: ProductVariant, productName?: string, productSlug?: string, productType?: import("@/api/types/product.types").FullyCustomizedProductType) => void;
   onDeleteVariant?: (variant: ProductVariant) => void;
   onAddComboVariant?: (parent: Combo) => void;
   onEditCombo?: (combo: Combo) => void;
@@ -152,15 +152,17 @@ export default function ProductTableContent<T = unknown>({
                                   <VariantTableWrapper
                                     productId={item.id}
                                     productName={item.name}
+                                    isTemplate={!!item.fullyCustomizedProductType && item.fullyCustomizedProductType !== 'None'}
                                     onAddVariant={() =>
                                       onAddVariant?.(
                                         item.id,
                                         item.name,
                                         item.slug,
                                         item.variants?.length ?? item.variantCount ?? 0,
+                                        item.fullyCustomizedProductType
                                       )
                                     }
-                                    onEditVariant={(v) => onEditVariant?.(v)}
+                                    onEditVariant={(v) => onEditVariant?.(v, item.name, item.slug, item.fullyCustomizedProductType)}
                                     onDeleteVariant={(v) => onDeleteVariant?.(v)}
                                   />
                                 )}

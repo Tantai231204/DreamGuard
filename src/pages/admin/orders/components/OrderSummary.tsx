@@ -6,10 +6,11 @@ import { motion } from 'framer-motion';
 interface OrderSummaryProps {
   subTotal?: number;
   discountAmount?: number;
+  totalAddonPrice?: number;
   totalAmount: number;
 }
 
-export function OrderSummary({ subTotal, discountAmount, totalAmount }: OrderSummaryProps) {
+export function OrderSummary({ subTotal, discountAmount, totalAddonPrice, totalAmount }: OrderSummaryProps) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.98 }}
@@ -40,6 +41,15 @@ export function OrderSummary({ subTotal, discountAmount, totalAmount }: OrderSum
                 <span className="text-xs font-black text-slate-700 font-mono tracking-tighter">{formatPrice(subTotal)}</span>
               </div>
             )}
+
+            {totalAddonPrice !== undefined && totalAddonPrice > 0 && (
+                <div className="flex justify-between items-center group/line">
+                  <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black text-amber-500 uppercase tracking-widest">Bespoke Addons</span>
+                  </div>
+                  <span className="text-xs font-black text-amber-600 font-mono tracking-tighter">+{formatPrice(totalAddonPrice)}</span>
+                </div>
+              )}
 
             {discountAmount !== undefined && discountAmount > 0 && (
               <div className="flex justify-between items-center group/line">

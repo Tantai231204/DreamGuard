@@ -94,36 +94,58 @@ function OrderItemRow({ item, index }: OrderItemRowProps) {
                     </span>
                 )}
                 <h3 className="text-sm font-black text-slate-800 truncate leading-tight">
-                    {item.itemName}
+                    {item.itemName.replace(/\s*-\s*$/, '')}
                 </h3>
-                <div className="flex items-center gap-2 flex-wrap">
-                    <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded bg-slate-50 border border-slate-100">
-                        <Layers className="w-2.5 h-2.5 text-slate-400" />
-                        <span className="text-[9px] font-bold text-slate-500 font-mono tracking-tighter">
-                            {isCombo ? (comboDetail?.sku || 'COMBO-SKU') : (variant?.sku || '--')}
-                        </span>
-                    </div>
-                    {!isCombo && (
-                        <>
-                            {variant?.size && (
-                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-100/50 px-1.5 rounded">
-                                    {variant.size}
-                                </span>
-                            )}
-                            {!!attributes.color && (
-                                <div className="flex items-center gap-1">
-                                    <div 
-                                        className="w-1.5 h-1.5 rounded-full ring-1 ring-slate-100 shadow-sm"
-                                        style={{ backgroundColor: String(attributes.color) }}
-                                    />
-                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
-                                    {String(attributes.color)}
+                <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                        <div className="flex items-center gap-1.5 px-1.5 py-0.5 rounded bg-slate-50 border border-slate-100">
+                            <Layers className="w-2.5 h-2.5 text-slate-400" />
+                            <span className="text-[9px] font-bold text-slate-500 font-mono tracking-tighter">
+                                {isCombo ? (comboDetail?.sku || 'COMBO-SKU') : (variant?.sku || '--')}
+                            </span>
+                        </div>
+                        {!isCombo && (
+                            <>
+                                {variant?.size && (
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-100/50 px-1.5 rounded">
+                                        {variant.size}
                                     </span>
-                                </div>
-                            )}
-                        </>
-                    )}
+                                )}
+                                {!!attributes.color && (
+                                    <div className="flex items-center gap-1 bg-slate-100/50 px-1.5 py-0.5 rounded">
+                                        <div 
+                                            className="w-1.5 h-1.5 rounded-full ring-1 ring-white shadow-sm"
+                                            style={{ backgroundColor: String(attributes.color) }}
+                                        />
+                                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-tighter ml-1">
+                                            {String(attributes.color)}
+                                        </span>
+                                    </div>
+                                )}
+                            </>
+                        )}
+                    </div>
                 </div>
+
+                {/* Bespoke Manufacturing Section */}
+                {item.productCustomizeDetails && item.productCustomizeDetails.length > 0 && (
+                    <div className="flex flex-wrap gap-2.5 pt-1.5">
+                        {item.productCustomizeDetails.map((detail, idx) => (
+                            <div key={idx} className="flex items-center overflow-hidden rounded-lg border border-slate-100 bg-white shadow-sm hover:border-[#4988c4]/30 transition-all">
+                                <div className="px-3 py-1.5 bg-slate-50/50 border-r border-slate-100 flex flex-col justify-center">
+                                    <span className="text-[7.5px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none mb-1 opacity-70">{detail.customizeTypeName}</span>
+                                    <span className="text-[11px] font-bold text-slate-800 leading-none">{detail.customizeContent}</span>
+                                </div>
+                                {detail.addOnPrice > 0 && (
+                                    <div className="px-3 py-1.5 bg-[#4988c4] flex flex-col justify-center">
+                                        <span className="text-[7px] font-black text-white/50 uppercase tracking-[0.1em] leading-none mb-0.5">Premium</span>
+                                        <span className="text-[10px] font-black text-white leading-none tabular-nums">+{formatPrice(detail.addOnPrice)}</span>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
 
@@ -139,18 +161,26 @@ function OrderItemRow({ item, index }: OrderItemRowProps) {
 
         <div className="col-span-2 text-right hidden md:block">
             <span className="text-sm font-black text-slate-900 tracking-tighter">
-                {formatPrice(item.unitPrice * item.quantity)}
+                {formatPrice(
+                    (item.unitPrice * item.quantity) + 
+                    (item.productCustomizeDetails?.reduce((acc, curr) => acc + curr.addOnPrice, 0) || 0)
+                )}
             </span>
         </div>
 
         <div className="flex md:hidden items-center justify-between mt-4 pt-4 border-t border-slate-50">
             <div className="flex items-center gap-2">
-                <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Quantity:</span>
+                <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Qty:</span>
                 <span className="text-xs font-black text-slate-900">{item.quantity}</span>
             </div>
             <div className="flex items-center gap-2">
                 <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Total:</span>
-                <span className="text-sm font-black text-primary tracking-tighter">{formatPrice(item.unitPrice * item.quantity)}</span>
+                <span className="text-sm font-black text-primary tracking-tighter">
+                    {formatPrice(
+                        (item.unitPrice * item.quantity) + 
+                        (item.productCustomizeDetails?.reduce((acc, curr) => acc + curr.addOnPrice, 0) || 0)
+                    )}
+                </span>
             </div>
         </div>
       </div>

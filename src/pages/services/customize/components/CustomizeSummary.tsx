@@ -1,11 +1,10 @@
-import { Sparkles, ShieldCheck, Heart } from "lucide-react";
-import type { CustomizableProduct, ChildProfile, DesignConfig } from "../types";
-import { colorOptions, patternOptions, materialOptions, calculateCustomPrice } from "../data";
+import { Sparkles, Heart } from "lucide-react";
+import type { CustomizableProduct, DesignConfig } from "../types";
+import { patternOptions, materialOptions, calculateCustomPrice } from "../data";
 import ProductPreview from "./ProductPreview";
 
 interface CustomizeSummaryProps {
   product: CustomizableProduct;
-  childProfile: ChildProfile;
   design: DesignConfig;
 }
 
@@ -13,27 +12,16 @@ function formatPrice(value: number) {
   return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(value);
 }
 
-const ageLabels: Record<string, string> = {
-  newborn: "Newborn (0–6 months)",
-  infant: "Infant (6–12 months)",
-  toddler: "Toddler (1–3 years)",
-};
-
-const sensitivityLabels: Record<number, string> = {
-  1: "Normal",
-  2: "Sensitive",
-  3: "Very Sensitive",
-};
-
-export default function CustomizeSummary({ product, childProfile, design }: CustomizeSummaryProps) {
+export default function CustomizeSummary({ product, design }: CustomizeSummaryProps) {
   const currentSize = product.availableSizes.find((s) => s.id === design.size);
-  const currentColor = colorOptions.find((c) => c.id === design.baseColor);
   const currentPattern = patternOptions.find((p) => p.id === design.pattern);
   const currentMaterial = materialOptions.find((m) => m.id === design.material);
   const hasEmbroidery = design.embroideryText.trim().length > 0;
   const totalPrice = calculateCustomPrice(
     product.basePrice,
     currentSize?.priceAdd ?? 0,
+    100000, // Color add-on fee
+    currentMaterial?.priceAdd ?? 0,
     currentMaterial?.priceMultiplier ?? 1,
     hasEmbroidery
   );
@@ -49,28 +37,6 @@ export default function CustomizeSummary({ product, childProfile, design }: Cust
         <ProductPreview product={product} design={design} totalPrice={totalPrice} />
 
         <div className="space-y-5">
-          {/* Health Safety Card */}
-          <div className="bg-emerald-50/80 border border-emerald-200/50 rounded-2xl p-5 space-y-3">
-            <div className="flex items-center gap-2 text-emerald-700">
-              <ShieldCheck className="h-5 w-5" />
-              <span className="text-sm font-black">Health-Safe Configuration</span>
-            </div>
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div>
-                <p className="font-black text-emerald-600/60 text-[10px] uppercase tracking-wider">Age Group</p>
-                <p className="font-black text-emerald-800">{ageLabels[childProfile.ageGroup]}</p>
-              </div>
-              <div>
-                <p className="font-black text-emerald-600/60 text-[10px] uppercase tracking-wider">Skin Sensitivity</p>
-                <p className="font-black text-emerald-800">{sensitivityLabels[childProfile.skinSensitivity]}</p>
-              </div>
-              <div className="col-span-2">
-                <p className="font-black text-emerald-600/60 text-[10px] uppercase tracking-wider">Protected Against</p>
-                <p className="font-black text-emerald-800">{childProfile.allergies.filter((a) => a !== "none").join(", ") || "No allergies noted"}</p>
-              </div>
-            </div>
-          </div>
-
           {/* Design Details Card */}
           <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-lg shadow-slate-100/20 space-y-4">
             <div className="flex items-center gap-2 text-[#4988c4]">
@@ -81,7 +47,7 @@ export default function CustomizeSummary({ product, childProfile, design }: Cust
               {[
                 { label: "Product", value: product.name },
                 { label: "Size", value: currentSize?.label || "–" },
-                { label: "Color", value: currentColor?.name || "–", swatch: currentColor?.hex },
+                { label: "Color", value: design.baseColor, swatch: design.baseColor },
                 { label: "Pattern", value: `${currentPattern?.emoji} ${currentPattern?.name}` },
                 { label: "Material", value: currentMaterial?.name || "–", badge: currentMaterial?.badge },
                 ...(hasEmbroidery ? [{ label: "Embroidery", value: `"${design.embroideryText}"` }] : []),

@@ -30,10 +30,20 @@ export default function CartPage() {
                     if (detail?.items) {
                         const itemsToPush = detail.items.map((item: OrderItem) => {
                             const isCombo = Boolean(item.comboId);
+                            const isCustom = !!(item.productCustomizeDetails && item.productCustomizeDetails.length > 0);
+
+                            // Map bespoke details back to the cart-friendly customAttributes object
+                            const customAttributes: Record<string, string> = {};
+                            if (isCustom) {
+                                item.productCustomizeDetails?.forEach(d => {
+                                    customAttributes[d.customizeTypeName.toLowerCase()] = d.customizeContent;
+                                });
+                            }
+
                             // Craft high-fidelity snapshot for immediate visual injection
                             const _optimisticData = {
-                                id: `temp_${Date.now()}_${Math.random()}`,
-                                name: item.itemName,
+                                id: `reorder_${Date.now()}_${Math.random()}`,
+                                name: item.itemName.replace(/\s*-\s*$/, ''),
                                 image: item.image || "https://placehold.co/100x100?text=Restoring",
                                 price: item.unitPrice,
                                 quantity: item.quantity,
@@ -42,13 +52,16 @@ export default function CartPage() {
                                 comboId: item.comboId,
                                 availableStock: 99,
                                 isAvailable: true,
-                                sku: isCombo ? "COMBO-PACKAGE" : "PRODUCT-ITEM"
+                                sku: isCombo ? "COMBO-PACKAGE" : "PRODUCT-ITEM",
+                                isCustom,
+                                customAttributes
                             }
 
                             return {
                                 productVariantId: item.productVariantId,
                                 comboId: item.comboId,
                                 quantity: item.quantity,
+                                customAttributes: isCustom ? customAttributes : undefined,
                                 _optimisticData
                             }
                         });

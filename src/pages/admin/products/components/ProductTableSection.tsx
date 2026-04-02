@@ -87,18 +87,21 @@ export const ProductTableSection = memo(({
       <div className="flex-1 overflow-auto min-h-0 text-[13px]">
         <ProductTableContent
           table={table}
-          onAddVariant={columns.find(c => c.id === 'variants_info')?.cell ? (productId, name, slug, count) => {
+          onAddVariant={columns.find(c => c.id === 'variants_info')?.cell ? (productId, name, slug, count, productType) => {
             state.setEditingVariant(null);
             state.setVariantProductId(productId);
             state.setVariantProductName(name);
             state.setVariantProductSlug(slug);
             state.setVariantCount(count);
+            state.setVariantProductType(productType);
             state.setVariantDialogOpen(true);
           } : undefined}
-          onEditVariant={(v) => {
+          onEditVariant={(v, name, slug, productType) => {
             state.setEditingVariant(v);
             state.setVariantProductId(v.productId);
-            state.setVariantProductName(""); // Will be fetched or passed
+            if (name) state.setVariantProductName(name);
+            if (slug) state.setVariantProductSlug(slug);
+            state.setVariantProductType(productType);
             state.setVariantDialogOpen(true);
           }}
           onDeleteVariant={(v) => state.setDeleteVariant(v)}

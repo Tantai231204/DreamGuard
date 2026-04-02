@@ -83,6 +83,12 @@ export const ServiceBookingCard = memo(function ServiceBookingCard({
                   <StatusIcon className="h-3 w-3 mr-1" />
                   {statusCfg.label}
                 </Badge>
+                {booking.rating && (
+                  <Badge variant="secondary" className="bg-yellow-50 text-yellow-700 border-yellow-100/50 text-[10px] font-black gap-1 h-5 px-2 rounded-md">
+                    <Star className="h-2.5 w-2.5 fill-yellow-500 text-yellow-500" />
+                    {typeof booking.rating === 'object' ? booking.rating.score : booking.rating}
+                  </Badge>
+                )}
               </div>
               <p className={`text-xs ${serviceTypeCfg.color} truncate`}>
                 {booking.notes || 'Service Order'}

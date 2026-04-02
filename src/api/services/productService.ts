@@ -1,6 +1,16 @@
 // src/api/services/productService.ts
 import apiClient, { type CustomAxiosRequestConfig } from '../../lib/api';
-import type { ProductResponse, CreateProductRequest, UpdateProductRequest, AdminProductPageResponse, AdminProductParams, ProductParams, UpdateProductStatusParams } from '../types';
+import type {
+  ProductResponse,
+  CreateProductRequest,
+  UpdateProductRequest,
+  AdminProductPageResponse,
+  AdminProductParams,
+  ProductParams,
+  UpdateProductStatusParams,
+  FullyCustomizedProductResponse,
+  CreateFullyCustomizedProductRequest,
+} from '../types';
 
 const productService = {
   /** Get paginated products for admin */
@@ -71,7 +81,7 @@ const productService = {
 
   /** Update product */
   update: (data: UpdateProductRequest): Promise<ProductResponse> =>
-    apiClient.put('/product', data).then((res) => res.data),
+    apiClient.put(`/product/${data.id}`, data).then((res) => res.data),
 
   /** Update product status */
   updateStatus: ({ productId, status }: UpdateProductStatusParams): Promise<void> =>
@@ -100,6 +110,22 @@ const productService = {
   /** Delete product image by assetId */
   deleteImage: (assetId: string): Promise<void> =>
     apiClient.delete(`/asset/product/${assetId}`).then((res) => res.data),
+
+  /** Get all fully customized products */
+  getAllFullyCustomize: (): Promise<FullyCustomizedProductResponse[]> =>
+    apiClient.get<FullyCustomizedProductResponse[]>('/product/fully-customized').then(res => res.data),
+
+  /** Create new fully customized product */
+  createFullyCustomize: (data: CreateFullyCustomizedProductRequest): Promise<FullyCustomizedProductResponse> =>
+    apiClient.post<FullyCustomizedProductResponse>('/product/fully-customize', data).then(res => res.data),
+
+  /** Update fully customized product */
+  updateFullyCustomize: (id: string, data: Partial<CreateFullyCustomizedProductRequest>): Promise<FullyCustomizedProductResponse> =>
+    apiClient.put<FullyCustomizedProductResponse>(`/product/fully-customize/${id}`, data).then(res => res.data),
+
+  /** Delete fully customized product */
+  deleteFullyCustomize: (id: string): Promise<void> =>
+    apiClient.delete(`/product/fully-customize/${id}`).then(res => res.data),
 };
 
 export default productService;

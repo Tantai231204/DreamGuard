@@ -1,29 +1,11 @@
 import { useCallback, useMemo, useEffect } from 'react';
 import { useForm, useWatch, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import type { ProductVariant, VariantStatus, VariantAttributes } from '../../types';
+import type { VariantStatus, VariantAttributes, ExtendedProductVariant } from '../../types';
 import type { VariantSubmitData } from './VariantDialog';
 import { useRichAdminVariants } from '@/hooks/queries/useProduct';
 import { useCustomizeTypes } from '@/hooks/queries/useCustomizeType';
 import { variantSchema, type VariantFormValues } from './variantSchema';
-
-interface SimpleCustomizeType {
-    customizeTypeId: string;
-    name?: string;
-    summary?: string;
-    defaultPrice?: number;
-    overridePrice?: number | null;
-    customizeTypeName?: string;
-    customizeType?: { name: string };
-}
-
-export interface ExtendedProductVariant extends Omit<ProductVariant, 'customizeTypes' | 'customizeOptions'> {
-    pendingCustoms?: { customizeTypeId: string; overridePrice: number | null }[];
-    is_customizable?: boolean;
-    customizeOptions?: SimpleCustomizeType[];
-    customizeTypes?: SimpleCustomizeType[];
-    customizeOptionGroups?: { category: string; options: SimpleCustomizeType[] }[];
-}
 
 interface UseVariantFormProps {
     variant: ExtendedProductVariant | null;
@@ -52,10 +34,18 @@ export function useVariantForm({
             ...(variant.customizeOptionGroups?.flatMap(g => g.options || []) || [])
         ];
 
-        return allOpts.map(o => ({
-            customizeTypeId: o.customizeTypeId,
-            overridePrice: o.overridePrice ?? o.defaultPrice ?? null
-        }));
+        // Deduplicate by ID to avoid form issues
+        const seenIds = new Set();
+        return allOpts.reduce((acc: { customizeTypeId: string; overridePrice: number | null; overrideMultiplier?: number | null }[], o) => {
+            if (!o || !o.customizeTypeId || seenIds.has(o.customizeTypeId)) return acc;
+            seenIds.add(o.customizeTypeId);
+            acc.push({
+                customizeTypeId: o.customizeTypeId,
+                overridePrice: (o as { overridePrice?: number | null }).overridePrice ?? null,
+                overrideMultiplier: (o as { overrideMultiplier?: number | null }).overrideMultiplier ?? null
+            });
+            return acc;
+        }, []);
     }, [variant]);
 
     const form = useForm<VariantFormValues>({
@@ -81,10 +71,10 @@ export function useVariantForm({
         reValidateMode: 'onChange',
     });
 
-    const isCustomizable = useWatch({ control: form.control, name: 'isCustomizable' });
-    const basePrice = useWatch({ control: form.control, name: 'basePrice' });
-    const salePrice = useWatch({ control: form.control, name: 'salePrice' });
-    const watchCustoms = useWatch({ control: form.control, name: 'pendingCustoms' });
+    const [isCustomizable, basePrice, salePrice, watchCustoms] = useWatch({ 
+        control: form.control, 
+        name: ['isCustomizable', 'basePrice', 'salePrice', 'pendingCustoms'] 
+    });
     const pendingCustoms = useMemo(() => watchCustoms || [], [watchCustoms]);
 
     // ── Business Logic: Auto-trigger cross-field validation ──────────
@@ -257,8 +247,10 @@ export function useVariantForm({
         }
     }, [isCustomSize, form]);
 
-    const colorName = useWatch({ control: form.control, name: 'colorName' });
-    const colorHex = useWatch({ control: form.control, name: 'colorHex' });
+    const [colorName, colorHex] = useWatch({ 
+        control: form.control, 
+        name: ['colorName', 'colorHex'] 
+    });
 
     const pendingCustomsMemo = useMemo(() => pendingCustoms || [], [pendingCustoms]);
 
@@ -270,6 +262,7 @@ export function useVariantForm({
             Object.keys(form.formState.errors).length === 0 &&
             !hasAttributeCollision &&
             !isColorWithoutSize,
+        isDirty: form.formState.isDirty,
         handleRegenerateSku,
         handleColorChange,
         handleSubmit: form.handleSubmit(onFormSubmit),

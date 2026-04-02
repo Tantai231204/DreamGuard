@@ -1,41 +1,70 @@
-/* Vaul Drawer Styles - Optimized for Performance */
+/* Vaul Drawer Styles - Optimized for High-End Performance */
 [vaul-drawer] {
   touch-action: none;
   will-change: transform;
   backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  /* Remove custom transition to let Vaul handle spring physics smoothly */
 }
 
 [vaul-drawer][vaul-drawer-direction="right"] {
   right: 0;
   top: 0;
   bottom: 0;
+  box-shadow: -20px 0 50px -10px rgba(0, 0, 0, 0.08); /* Sophisticated Shadow */
 }
 
-[vaul-drawer-visible="true"][vaul-drawer-direction="right"] {
-  transform: translate3d(0, 0, 0);
-}
-
-[vaul-drawer][vaul-drawer-visible="false"][vaul-drawer-direction="right"] {
-  transform: translate3d(100%, 0, 0);
-}
-
+/* Glassmorphism Overlay */
 [vaul-overlay] {
-  opacity: 0;
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  will-change: opacity, backdrop-filter;
-  transition: opacity 0.4s cubic-bezier(0.32, 0.72, 0, 1), backdrop-filter 0.4s cubic-bezier(0.32, 0.72, 0, 1) !important;
+  background: rgba(15, 23, 42, 0.2) !important;
+  backdrop-filter: blur(8px) saturate(120%);
+  -webkit-backdrop-filter: blur(8px) saturate(120%);
+  transition: opacity 0.5s cubic-bezier(0.32, 0.72, 0, 1) !important;
 }
 
-[vaul-overlay][vaul-drawer-visible="true"] {
-  opacity: 1;
+/* Premium Button Styling */
+.cart-checkout-btn {
+  background: linear-gradient(135deg, #4988c4 0%, #3b71a8 100%);
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-/* Custom Scrollbar - Lightweight */
+.cart-checkout-btn::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%);
+  transform: scale(0);
+  transition: transform 0.6s ease-out;
+  pointer-events: none;
+}
+
+.cart-checkout-btn:hover::after {
+  transform: scale(1);
+}
+
+.cart-checkout-btn:hover {
+  box-shadow: 0 12px 24px -6px rgba(73, 136, 196, 0.4);
+  transform: translateY(-2px);
+}
+
+/* Micro-interactions for Items */
+.cart-drawer-item {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-left: 2px solid transparent;
+}
+
+.cart-drawer-item:hover {
+  background: rgba(248, 250, 252, 0.8);
+  border-left-color: #4988c4;
+  padding-left: 1.25rem;
+}
+
+/* Custom Scrollbar - Sleek & Minimal */
 .cart-drawer-scroll::-webkit-scrollbar {
-  width: 4px;
+  width: 3px;
 }
 
 .cart-drawer-scroll::-webkit-scrollbar-track {
@@ -43,70 +72,32 @@
 }
 
 .cart-drawer-scroll::-webkit-scrollbar-thumb {
-  background-color: rgba(156, 163, 175, 0.5);
-  border-radius: 2px;
+  background: linear-gradient(to bottom, transparent, rgba(73, 136, 196, 0.2), transparent);
+  border-radius: 10px;
 }
 
-.cart-drawer-scroll::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(107, 114, 128, 0.7);
+/* Animation Refinement */
+@keyframes drawerSlideIn {
+  from { opacity: 0; transform: translateX(30px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
-/* Performance optimizations */
-.cart-drawer-content {
-  contain: paint layout;
-  content-visibility: auto;
-  overscroll-behavior-y: contain; /* Prevents scroll chaining to the body */
+.animate-item-entry {
+  animation: drawerSlideIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
-.cart-drawer-scroll {
-  scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
-  scroll-padding-bottom: 20px;
+/* Footer Hierarchy Enhancement */
+.cart-drawer-footer-label {
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: #94a3b8;
 }
 
-/* Hardware acceleration for cart items */
-.cart-item {
-  transform: translateZ(0);
-  will-change: transform, opacity;
-  backface-visibility: hidden;
-}
-
-/* Optimized animations */
-@keyframes slideInItem {
-  from {
-    opacity: 0;
-    transform: translate3d(20px, 0, 0); /* Slide from right for lateral feel */
-  }
-  to {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-  }
-}
-
-.animate-slide-in-item {
-  animation: slideInItem 0.4s cubic-bezier(0.32, 0.72, 0, 1) both;
-}
-
-/* Smooth hover transitions */
-.smooth-hover {
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-              border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.smooth-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 25px -5px rgba(73, 136, 196, 0.15), 0 8px 10px -6px rgba(73, 136, 196, 0.1);
-  border-color: rgba(73, 136, 196, 0.3);
-}
-
-/* Image hover effect */
-.smooth-hover:hover img {
-  transform: scale(1.08);
-}
-
-/* Button press effect */
-.btn-press-effect:active {
-  transform: scale(0.97);
-  transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+.cart-drawer-footer-value {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0f172a;
+    font-variant-numeric: tabular-nums;
 }

@@ -27,6 +27,7 @@ interface ProductDialogProps {
     isLoading?: boolean;
     categories?: CategoryResponse[];
     certificates?: import('../../types').Certificate[];
+    takenCustomTypes?: string[];
 }
 
 export default function ProductDialog({
@@ -37,6 +38,7 @@ export default function ProductDialog({
     isLoading,
     categories,
     certificates,
+    takenCustomTypes,
 }: ProductDialogProps) {
     const isEdit = Boolean(product);
 
@@ -122,6 +124,7 @@ export default function ProductDialog({
                         isLoading={isLoading}
                         categories={categories}
                         certificates={certificates}
+                        takenCustomTypes={takenCustomTypes}
                     />
                 )}
             </DialogContent>

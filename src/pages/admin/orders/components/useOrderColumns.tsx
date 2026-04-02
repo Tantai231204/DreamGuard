@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Eye, Trash2 } from 'lucide-react';
 import { SortableHeader, AdminRowActions, AdminStatusBadge } from '@/components/admin';
@@ -7,13 +7,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import type { OrderResponse } from '@/api/types/order';
 import { formatPrice } from '@/pages/profile/utils';
-import { useCancelOrder } from '@/hooks/queries';
-import { toast } from 'sonner';
 import { OrderStatus, ORDER_STATUS_MAP, ADMIN_ORDER_STATUS_THEME } from '../constants';
 import { formatDate, formatTime } from '@/lib/utils';
+import { useAuthStore } from '@/store/authStore';
 
-export const useOrderColumns = () => {
-    const cancelOrder = useCancelOrder();
+export const useOrderColumns = (onCancelRequested: (order: OrderResponse) => void) => {
+    const { role } = useAuthStore();
+    const isAdmin = ['Admin', 'Staff'].includes(role || '');
 
     const columns: ColumnDef<OrderResponse>[] = useMemo(
         () => [
@@ -23,9 +23,9 @@ export const useOrderColumns = () => {
                     <div className="flex items-center justify-center">
                         <Checkbox
                             checked={table.getIsAllPageRowsSelected()}
-                            onChange={(e) => table.toggleAllPageRowsSelected(e.target.checked)}
+                            onCheckedChange={(val) => table.toggleAllPageRowsSelected(!!val)}
                             aria-label="Select all"
-                            className="data-[state=checked]:bg-[var(--color-primary)] data-[state=checked]:border-[var(--color-primary)] opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="data-[state=checked]:bg-[#4988c4] data-[state=checked]:border-[#4988c4] opacity-0 group-hover:opacity-100 transition-opacity"
                         />
                     </div>
                 ),
@@ -33,9 +33,9 @@ export const useOrderColumns = () => {
                     <div className="flex items-center justify-center">
                         <Checkbox
                             checked={row.getIsSelected()}
-                            onChange={(e) => row.toggleSelected(e.target.checked)}
+                            onCheckedChange={(val) => row.toggleSelected(!!val)}
                             aria-label="Select row"
-                            className="data-[state=checked]:bg-[var(--color-primary)] data-[state=checked]:border-[var(--color-primary)]"
+                            className="data-[state=checked]:bg-[#4988c4] data-[state=checked]:border-[#4988c4]"
                         />
                     </div>
                 ),
@@ -47,18 +47,18 @@ export const useOrderColumns = () => {
                 enableSorting: true,
                 header: ({ column }) => <SortableHeader column={column} label="Order ID" />,
                 cell: ({ row }) => (
-                    <div className="font-mono text-sm font-bold text-[var(--color-primary)]">
+                    <div className="font-mono text-sm font-bold text-[#4988c4]">
                         #{row.original.orderCode}
                     </div>
                 ),
             },
             {
-                accessorKey: 'id',
+                id: 'customer',
                 header: ({ column }) => <SortableHeader column={column} label="Customer" />,
                 cell: ({ row }) => (
                     <div className="flex items-center gap-3">
                         <Avatar className="h-9 w-9 border-2 border-gray-200">
-                            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white text-xs font-semibold">
+                            <AvatarFallback className="bg-gradient-to-br from-[#4988c4] to-[#3a6da0] text-white text-xs font-semibold">
                                 {row.original.orderCode.charAt(row.original.orderCode.length - 1)}
                             </AvatarFallback>
                         </Avatar>
@@ -123,14 +123,6 @@ export const useOrderColumns = () => {
                     const currentStatusEnum = ORDER_STATUS_MAP[row.original.status.toString()];
                     const canCancel = currentStatusEnum === OrderStatus.Pending || currentStatusEnum === OrderStatus.Confirmed;
 
-                    const handleCancel = () => {
-                        if (confirm('Are you sure you want to cancel this order?')) {
-                            cancelOrder.mutate(row.original.id, {
-                                onSuccess: () => toast.success('Order cancelled successfully')
-                            });
-                        }
-                    };
-
                     const actions: React.ComponentProps<typeof AdminRowActions>['actions'] = [
                         {
                             label: 'View Details',
@@ -144,12 +136,12 @@ export const useOrderColumns = () => {
                         }
                     ];
 
-                    if (canCancel) {
+                    if (canCancel && isAdmin) {
                         actions.push({
                             label: 'Cancel Order',
-                            icon: <Trash2 className="h-4 w-4" />,
+                            icon: <Trash2 className="h-4 w-4 text-rose-500" />,
                             variant: 'danger',
-                            onClick: handleCancel
+                            onClick: () => onCancelRequested(row.original)
                         });
                     }
 
@@ -161,7 +153,7 @@ export const useOrderColumns = () => {
                 },
             },
         ],
-        [cancelOrder]
+        [onCancelRequested, isAdmin]
     );
 
     return columns;

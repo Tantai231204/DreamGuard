@@ -1,5 +1,15 @@
 // Types for cleaning service management
 
+export interface RatingInfo {
+  ratingId: string;
+  staffId: string;
+  serviceOrderId: string;
+  score: number;
+  comment: string;
+  createdAt: string;
+  updatedAt?: string | null;
+}
+
 export type ServiceStatus =
   | 'pending'      // Chờ xác nhận
   | 'confirmed'    // Đã xác nhận
@@ -41,6 +51,7 @@ export interface ServiceBooking {
   imageUrl?: string[];
   totalPrice: number;
   notes?: string;
+  rating?: number | RatingInfo | null;
   createdAt: string;
   updatedAt: string;
   soId?: string;
@@ -88,6 +99,8 @@ export interface Staff {
   dateOfBirth?: string;
   email?: string;
   status?: string;
+  averageRating?: number;
+  totalRating?: number;
 }
 
 export interface ServiceTask {
@@ -145,6 +158,7 @@ export interface AdminSearchOrderServiceItem {
   items?: ServiceItem[];
   orderDetails?: ServiceItem[];
   serviceOrderItems?: ServiceItem[];
+  rating?: number | RatingInfo | null;
 }
 
 export interface PaginatedAdminSearchOrderServiceResponse {

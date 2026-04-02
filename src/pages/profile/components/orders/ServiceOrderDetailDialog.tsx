@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { CalendarDays, MapPin, Phone, Package2, CreditCard, Star } from 'lucide-react';
 import { useProfile } from '@/hooks/queries';
-import { useServiceOrderDetail } from '@/hooks/queries/useServiceOrder';
-import { useCreateRating, useRatingByServiceOrder, useUpdateRating } from '@/hooks/queries/useRating';
+import { useCancelServiceOrder, useServiceOrderDetail } from '@/hooks/queries/useServiceOrder';
+import { useCreateRating, useRatingByServiceOrder, useStaffRatingSummary, useUpdateRating } from '@/hooks/queries/useRating';
 import { useToast } from '@/hooks/useToast';
 import { formatDate, formatPrice } from '../../utils';
 import { STATUS_THEME } from '../../constants';
@@ -90,6 +90,10 @@ function normalizePhone(phone?: string) {
   return (phone || '').replace(/\D/g, '');
 }
 
+function normalizeStatus(status?: string) {
+    return String(status || '').trim().toLowerCase().replace(/[\s_-]/g, '');
+}
+
 export function ServiceOrderDetailDialog({ serviceOrderId, orderCode, trigger }: ServiceOrderDetailDialogProps) {
   const [open, setOpen] = useState(false);
 
@@ -141,14 +145,15 @@ function ServiceOrderDetailContent({
 
     const isCompletedOrder = (data?.status || '').toLowerCase() === 'completed';
     const shouldLoadRating = open && canView && isCompletedOrder && !!serviceOrderId;
+    const cancelMutation = useCancelServiceOrder();
 
     const task = data?.serviceTask || data?.task || data?.orderTask || data?.serviceOrderTask;
     const assignedStaff = data?.staff || data?.technician || null;
     const assignedStaffId = String(assignedStaff?.staffId || task?.staffId || '').trim();
     const assignedStaffNameFromOrder = String(assignedStaff?.fullName || '').trim();
 
-    const { data: existingRating, isPending: isRatingPending } = useRatingByServiceOrder(serviceOrderId, {
-        enabled: shouldLoadRating,
+    const { data: existingRating, isPending: isRatingPending } = useRatingByServiceOrder(serviceOrderId, assignedStaffId, {
+        enabled: shouldLoadRating && !!assignedStaffId,
     });
 
     const embeddedRating = useMemo(
@@ -164,6 +169,14 @@ function ServiceOrderDetailContent({
     const hasAssignedStaff = !!assignedStaffId;
     const taskStatus = String(task?.status || '').trim();
     const canRateAssignedStaff = !!serviceOrderId && isCompletedOrder;
+
+    const { data: staffRatingSummary, isPending: isStaffRatingSummaryPending } = useStaffRatingSummary(assignedStaffId, {
+        enabled: open && hasAssignedStaff,
+    });
+
+    const staffAverageStars = Number(staffRatingSummary?.averageStars || 0);
+    const staffTotalRatings = Number(staffRatingSummary?.totalRatings || 0);
+    const displayAverage = staffTotalRatings > 0 ? staffAverageStars.toFixed(1) : '0.0';
 
     const createRatingMutation = useCreateRating();
     const updateRatingMutation = useUpdateRating();
@@ -193,6 +206,28 @@ function ServiceOrderDetailContent({
     const isAlreadyRated = !!ratingId;
 
     const isSubmitting = createRatingMutation.isPending || updateRatingMutation.isPending;
+    const isCancelling = cancelMutation.isPending;
+
+    const normalizedOrderStatus = normalizeStatus(data?.status);
+    const normalizedTaskStatus = normalizeStatus(task?.status);
+    const hasCheckIn = !!String(task?.checkIn || '').trim();
+
+    // Customer can only cancel before service execution starts.
+    const canCancelService = canView && (
+        ['pending', 'confirmed'].includes(normalizedOrderStatus)
+    ) && !hasCheckIn && ![
+        'assigned',
+        'processing',
+        'inprogress',
+        'onroute',
+        'working',
+        'completed',
+        'cancelled',
+        'canceled',
+        'forcedcancelled',
+        'managercancel',
+        'managerforcecancel',
+    ].includes(normalizedTaskStatus);
 
     const handleSubmitRating = async () => {
         if (!isCompletedOrder) {
@@ -233,6 +268,21 @@ function ServiceOrderDetailContent({
         } catch (error) {
             const message = error instanceof Error ? error.message : 'Unable to submit rating at the moment.';
             toast.error('Rating submission failed.', message);
+        }
+    };
+
+    const handleCancelService = async () => {
+        if (!canCancelService) return;
+
+        const confirmed = window.confirm('Are you sure you want to cancel this service order?');
+        if (!confirmed) return;
+
+        try {
+            await cancelMutation.mutateAsync(serviceOrderId);
+            toast.success('Service order has been cancelled.');
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Unable to cancel service order at the moment.';
+            toast.error('Cancel service failed.', message);
         }
     };
 
@@ -347,6 +397,28 @@ function ServiceOrderDetailContent({
                                         <span className="text-slate-500">Task Status:</span> {taskStatus}
                                     </p>
                                 )}
+
+                                <div className="mt-2 rounded-lg p-3">
+                                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700 mb-1">Staff Reputation</p>
+                                    {isStaffRatingSummaryPending ? (
+                                        <p className="text-sm text-slate-500">Loading staff ratings...</p>
+                                    ) : (
+                                        <div className="space-y-1.5">
+                                            <div className="flex items-center gap-2">
+                                                {[1, 2, 3, 4, 5].map((value) => (
+                                                    <Star
+                                                        key={`staff-summary-${value}`}
+                                                        className={`h-4 w-4 ${value <= Math.round(staffAverageStars) ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`}
+                                                    />
+                                                ))}
+                                                <span className="text-sm font-bold text-slate-800">{displayAverage}/5</span>
+                                            </div>
+                                            <p className="text-xs text-slate-600">
+                                                {staffTotalRatings} review{staffTotalRatings === 1 ? '' : 's'} from customers
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         ) : (
                             <p className="text-sm text-slate-500">No staff has been assigned to this service order yet.</p>
@@ -403,9 +475,9 @@ function ServiceOrderDetailContent({
                     )}
 
                     {(data?.customerNote || data?.note) && (
-                        <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700 mb-1">Customer Note</p>
-                            <p className="text-sm text-amber-800">{data.customerNote || data.note}</p>
+                        <div className="rounded-xl border border-green-200 bg-green-50/50 p-4">
+                            <p className="text-[10px] font-bold uppercase tracking-wider text-green-700 mb-1">Customer Note</p>
+                            <p className="text-sm text-black-800">{data.customerNote || data.note}</p>
                         </div>
                     )}
 
@@ -484,6 +556,20 @@ function ServiceOrderDetailContent({
                                     )}
                                 </>
                             )}
+                        </div>
+                    )}
+
+                    {canCancelService && (
+                        <div className="pt-1">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleCancelService}
+                                disabled={isCancelling}
+                                className="w-full rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
+                            >
+                                {isCancelling ? 'Cancelling...' : 'Cancel Service'}
+                            </Button>
                         </div>
                     )}
                 </div>

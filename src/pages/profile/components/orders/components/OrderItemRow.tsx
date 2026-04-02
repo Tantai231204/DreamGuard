@@ -35,7 +35,7 @@ export function OrderItemRow({ item }: OrderItemRowProps) {
                                     Bundle
                                 </span>
                             )}
-                            <h4 className="text-[15px] font-black text-gray-900 leading-tight">{item.itemName}</h4>
+                            <h4 className="text-[15px] font-black text-gray-900 leading-tight">{item.itemName.replace(/\s*-\s*$/, '')}</h4>
                         </div>
                         <span className="text-[15px] font-black text-[#4988c4] tabular-nums whitespace-nowrap">
                             {formatPrice(item.unitPrice)}
@@ -56,28 +56,61 @@ export function OrderItemRow({ item }: OrderItemRowProps) {
                              ) : (
                                 <>
                                     {variant?.size && (
-                                        <span className="px-2 py-0.5 bg-gray-50 border border-gray-100 text-[10px] text-gray-500 rounded font-black uppercase">
-                                            Size: {variant.size}
+                                        <span className="px-2 py-0.5 bg-gray-50 border border-gray-100 text-[10px] text-gray-500 rounded font-black uppercase tracking-tight">
+                                            {variant.size}
                                         </span>
                                     )}
                                     {variant?.attributes?.color && (
-                                        <span className="px-2 py-0.5 bg-gray-50 border border-gray-100 text-[10px] text-gray-500 rounded font-black uppercase">
-                                            Color: {variant.attributes.color}
-                                        </span>
+                                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-gray-50 border border-gray-100 rounded">
+                                            <div 
+                                                className="w-2.5 h-2.5 rounded-full ring-1 ring-white shadow-sm border border-black/5" 
+                                                style={{ backgroundColor: String(variant.attributes.color) }}
+                                            />
+                                            <span className="text-[9px] font-black text-gray-500 uppercase tracking-tighter">
+                                                {String(variant.attributes.color)}
+                                            </span>
+                                        </div>
                                     )}
                                 </>
                              )}
                         </div>
                     )}
 
+                    {/* Bespoke Manufacturing Section */}
+                    {item.productCustomizeDetails && item.productCustomizeDetails.length > 0 && (
+                        <div className="flex flex-wrap gap-3 mt-4">
+                            {item.productCustomizeDetails.map((detail, idx) => (
+                                <div key={idx} className="group relative flex items-center bg-white rounded-xl border-2 border-slate-100/80 hover:border-[#4988c4]/40 hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-500 overflow-hidden">
+                                    <div className="flex flex-col px-4 py-2 bg-gradient-to-br from-white to-slate-50/50">
+                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.25em] leading-none mb-1.5 peer-hover:text-[#4988c4] transition-colors">{detail.customizeTypeName}</span>
+                                        <div className="flex items-baseline gap-1.5">
+                                            <span className="text-sm font-bold text-slate-900 tracking-tight">{detail.customizeContent}</span>
+                                        </div>
+                                    </div>
+                                    {detail.addOnPrice > 0 && (
+                                        <div className="h-full px-3.5 py-2 bg-[#4988c4] flex flex-col justify-center border-l-2 border-[#4988c4]">
+                                             <span className="text-[8px] font-black text-white/60 uppercase tracking-[0.1em] leading-none mb-1">Premium</span>
+                                             <span className="text-[12px] font-black text-white leading-none tabular-nums">+{formatPrice(detail.addOnPrice)}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
                     <div className="flex items-center justify-between mt-4">
                         <div className="flex items-center gap-2">
-                             <span className="text-[11px] font-black text-gray-300 uppercase tracking-widest">Quantity</span>
+                             <span className="text-[11px] font-black text-gray-300 uppercase tracking-widest">Qty</span>
                              <span className="text-[13px] font-black text-gray-900">x{item.quantity}</span>
                         </div>
                         <div className="flex flex-col items-end">
                             <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">Line Total</span>
-                            <span className="text-[15px] font-black text-gray-900 tabular-nums">{formatPrice(item.unitPrice * item.quantity)}</span>
+                            <span className="text-[16px] font-black text-gray-900 tabular-nums tracking-tighter">
+                                {formatPrice(
+                                    (item.unitPrice * item.quantity) + 
+                                    (item.productCustomizeDetails?.reduce((acc, curr) => acc + curr.addOnPrice, 0) || 0)
+                                )}
+                            </span>
                         </div>
                     </div>
                 </div>

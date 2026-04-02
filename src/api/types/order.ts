@@ -31,6 +31,12 @@ export interface OrderResponse {
     updatedAt?: string;
 }
 
+export interface ProductCustomizeDetail {
+    customizeTypeName: string;
+    customizeContent: string;
+    addOnPrice: number;
+}
+
 export interface OrderItem {
     id: string;
     productVariantId: string;
@@ -39,7 +45,9 @@ export interface OrderItem {
     quantity: number;
     unitPrice: number;
     totalPrice: number;
-    image?: string; // Optional image URL if available later
+    image?: string;
+    productCustomizeDetails?: ProductCustomizeDetail[];
+    customizeHash?: string;
 }
 
 export interface OrderDetailResponse extends OrderResponse {
@@ -51,6 +59,7 @@ export interface OrderDetailResponse extends OrderResponse {
     city: string;
     province: string;
     items: OrderItem[];
+    totalAddonPrice?: number;
     voucherCode: string | null;
     voucherDiscountValue: number | null;
     note: string;

@@ -6,39 +6,40 @@ import { Package, Layers, Star } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface ProductTabsProps {
-  activeTab: "single" | "combo" | "certificate"
-  onTabChange: (tab: "single" | "combo" | "certificate") => void
+  activeTab: "single" | "combo" | "certificate" | "customize"
+  onTabChange: (tab: "single" | "combo" | "certificate" | "customize") => void
   singleCount: number
   comboCount: number
   certCount: number
+  customizeCount: number
   children: React.ReactNode
   actions?: React.ReactNode
 }
 
 const TAB_CONFIG = {
   single: {
-    indicator: "bg-blue-600 shadow-sm border border-blue-700/50",
-    icon: "text-blue-50",
+    indicator: "bg-[#4988c4] shadow-sm",
+    icon: "text-white",
     label: "text-white",
-    badge: "bg-white text-blue-700 border-white/20 shadow-sm",
-    content: "bg-blue-50/50 border-blue-100",
-    contentTitle: "text-blue-900",
+    badge: "bg-white/20 text-white border-white/10",
+  },
+  customize: {
+    indicator: "bg-sky-500 shadow-sm",
+    icon: "text-white",
+    label: "text-white",
+    badge: "bg-white/20 text-white border-white/10",
   },
   combo: {
-    indicator: "bg-slate-900 shadow-sm border border-slate-950/50",
-    icon: "text-slate-100",
+    indicator: "bg-slate-900 shadow-sm",
+    icon: "text-white",
     label: "text-white",
-    badge: "bg-white text-slate-900 border-white/20 shadow-sm",
-    content: "bg-slate-50/50 border-slate-200",
-    contentTitle: "text-slate-900",
+    badge: "bg-white/20 text-white border-white/10",
   },
   certificate: {
-    indicator: "bg-emerald-600 shadow-sm border border-emerald-700/50",
-    icon: "text-emerald-50",
+    indicator: "bg-emerald-600 shadow-sm",
+    icon: "text-white",
     label: "text-white",
-    badge: "bg-white text-emerald-700 border-white/20 shadow-sm",
-    content: "bg-emerald-50/50 border-emerald-100",
-    contentTitle: "text-emerald-800",
+    badge: "bg-white/20 text-white border-white/10",
   },
 }
 
@@ -48,19 +49,21 @@ export default function ProductTabs({
   singleCount,
   comboCount,
   certCount,
+  customizeCount,
   children,
   actions,
 }: ProductTabsProps) {
   const tabs = useMemo(() => [
-    { key: "single" as const, label: "Single Products", count: singleCount, icon: Package },
-    { key: "combo" as const, label: "Combo Products", count: comboCount, icon: Layers },
+    { key: "single" as const, label: "Regular Products", count: singleCount, icon: Package },
+    { key: "customize" as const, label: "Product Templates", count: customizeCount, icon: Star },
+    { key: "combo" as const, label: "Combo Packs", count: comboCount, icon: Layers },
     { key: "certificate" as const, label: "Certificates", count: certCount, icon: Star },
-  ], [singleCount, comboCount, certCount])
+  ], [singleCount, customizeCount, comboCount, certCount])
 
   return (
     <Tabs
       value={activeTab}
-      onValueChange={(v) => onTabChange(v as "single" | "combo" | "certificate")}
+      onValueChange={(v) => onTabChange(v as "single" | "combo" | "certificate" | "customize")}
       className="flex h-full w-full flex-col"
     >
       {/* Header */}
@@ -88,18 +91,18 @@ export default function ProductTabs({
                 )}
 
                 <div className="relative z-10 flex items-center gap-2.5">
-                  <Icon
-                    className={cn(
-                      "h-3.5 w-3.5 transition-colors",
-                      isActive ? cfg.icon : "text-slate-400 group-hover:text-slate-500"
-                    )}
-                  />
+                    <Icon
+                      className={cn(
+                        "h-3.5 w-3.5 transition-colors",
+                        isActive ? cfg.icon : "text-slate-400 group-hover:text-slate-500"
+                      )}
+                    />
                   <span>{label}</span>
                   <Badge
                     variant="secondary"
                     className={cn(
                       "h-5 min-w-[20px] px-1.5 flex items-center justify-center text-[10px] font-bold rounded-full border transition-all duration-200",
-                      isActive ? cfg.badge : "bg-slate-100 text-slate-600 border-slate-200/60 shadow-none"
+                      isActive ? cfg.badge : "bg-slate-200/50 text-slate-600 border-transparent shadow-none"
                     )}
                   >
                     {count}

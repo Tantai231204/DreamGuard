@@ -59,7 +59,10 @@ export default function CustomizeTypesPage() {
     const [searchParams, setSearchParams] = useSearchParams();
 
     // 1. Table State (Sync with URL Params)
-    const [sorting, setSorting] = useState<SortingState>([]);
+    const [sorting, setSorting] = useState<SortingState>([
+        { id: 'category', desc: false },
+        { id: 'applicableProductType', desc: false }
+    ]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
@@ -113,6 +116,10 @@ export default function CustomizeTypesPage() {
     const [editingType, setEditingType] = useState<CustomizeType | null>(null);
     const [viewingType, setViewingType] = useState<CustomizeType | null>(null);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    
+    // Fetch all for unique validation in the dialog
+    const { data: allTypesData } = useCustomizeTypes({ pageSize: 120 });
+    const allTypes = useMemo(() => allTypesData?.items || [], [allTypesData]);
 
     const handleAdd = useCallback(() => {
         setEditingType(null);
@@ -329,6 +336,7 @@ export default function CustomizeTypesPage() {
                 customizeType={editingType}
                 onSubmit={handleSubmit}
                 isLoading={createMutation.isPending || updateMutation.isPending}
+                existingTypes={allTypes}
             />
 
             <CustomizeTypeDetails

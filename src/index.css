@@ -214,7 +214,7 @@ body {
 }
 /* Fix Radix Select không làm giật layout */
 html {
-  overflow-y: scroll !important;
+  /* overflow-y: scroll !important; */
   overflow-x: hidden !important;
   width: 100% !important;
 }

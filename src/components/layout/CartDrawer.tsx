@@ -1,27 +1,22 @@
-import { useState, useMemo, useCallback } from "react"
+import { useMemo, useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import { Drawer } from "vaul"
 import { ShoppingCart, X, Minus, Plus, ShoppingBag, Trash2, RefreshCcw, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useCart } from "@/store/useCart"
+import { useCartStore } from "@/store/useCartStore"
+import { type CartItem } from "@/store/cartTypes"
 import { useCartAnimation } from "@/store/useCartAnimation"
 import { AppRoute } from "@/lib/constants"
 import { formatPrice } from "@/lib/utils"
+import { getColorHex } from "@/utils/color-utils"
 import "./cart-drawer.css"
-
-const C: Record<string, string> = {
-    red: '#ef4444', blue: '#3b82f6', green: '#22c55e', yellow: '#eab308', black: '#111827',
-    white: '#fff', gray: '#6b7280', grey: '#6b7280', pink: '#ec4899', purple: '#a855f7',
-    orange: '#f97316', brown: '#92400e', navy: '#1e3a5f', teal: '#14b8a6', gold: '#d97706',
-    silver: '#9ca3af', cream: '#fffdd0', coral: '#ff6b6b', beige: '#d4b896', peru: '#CD853F',
-}
-const hex = (c: string) => { const k = c.toLowerCase().trim(); return k.startsWith('#') ? k : C[k] ?? '#e2e8f0' }
 
 export function CartDrawer() {
     const { cart, updateQuantity, removeItem, totalItems, totalPrice, totalTradeInDiscount, finalTotal, loadingIds, syncingIds } = useCart()
+    const { isCartOpen: open, setCartOpen: setOpen } = useCartStore()
     const { cartIconRef, isCartBouncing } = useCartAnimation()
-    const [open, setOpen] = useState(false)
     const navigate = useNavigate()
 
     const handleUpdateQuantity = useCallback((id: string, delta: number) => {
@@ -35,17 +30,18 @@ export function CartDrawer() {
     const handleCheckout = useCallback(() => {
         setOpen(false)
         navigate(AppRoute.CHECKOUT)
-    }, [navigate])
+    }, [navigate, setOpen])
 
     const cartItems = useMemo(() => (
-        cart.map((item: import("@/store/useCartStore").CartItem) => {
+        cart.map((item: CartItem) => {
             const hasTradeIn = !!(item.tradeIn?.totalValue)
+            const itemKey = item.configHash || item.id;
             const isLoading = loadingIds?.includes(item.id) ?? false
             const isSyncing = syncingIds?.includes(item.id) ?? false
 
             return (
                 <div
-                    key={item.id}
+                    key={itemKey}
                     className={`group relative flex gap-3 py-4 transition-opacity duration-150 animate-slide-in-item ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}
                     style={{ contain: 'content' }}
                 >
@@ -67,7 +63,7 @@ export function CartDrawer() {
                                 Custom
                             </div>
                         )}
-                        {/* Loading overlay trên ảnh - Chỉ dành cho Load (Add/Remove) */}
+                        {/* Loading overlay trên ảnh - Chỉ dành for Load (Add/Remove) */}
                         {isLoading && (
                             <div className="absolute inset-0 flex items-center justify-center bg-white/70">
                                 <Loader2 className="h-4 w-4 text-[#4988c4] animate-spin" />
@@ -109,7 +105,7 @@ export function CartDrawer() {
                             {/* Color — resolve from customAttributes.colorHex or item.color */}
                             {(item.customAttributes?.colorHex || item.color) && (
                                 <span className="text-[10px] font-medium text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded flex items-center gap-1">
-                                    <div className="w-2 h-2 rounded-full border border-gray-200" style={{ backgroundColor: item.customAttributes?.colorHex || hex(item.color || '') }} />
+                                    <div className="w-2 h-2 rounded-full border border-gray-200" style={{ backgroundColor: getColorHex(item.color || item.customAttributes?.colorHex) }} />
                                     {item.customAttributes?.colorHex || item.color}
                                 </span>
                             )}
@@ -121,6 +117,16 @@ export function CartDrawer() {
                                         : item.size}
                                 </span>
                             )}
+                            {/* General Custom Attributes (e.g. Silk, Material, etc) */}
+                            {item.customAttributes && Object.entries(item.customAttributes).map(([k, v]) => {
+                                // Bỏ qua các trường đã xử lý riêng ở trên hoặc trường nội bộ
+                                if (['length', 'width', 'thickness', 'size', 'colorHex', 'imageMode', 'productVariantId'].includes(k) || !v) return null;
+                                return (
+                                    <span key={k} className="text-[10px] font-bold text-amber-600 bg-amber-50/50 px-1.5 py-0.5 rounded border border-amber-100/30 shadow-sm">
+                                        <span className="opacity-50 uppercase text-[8px]">{k}:</span> {v}
+                                    </span>
+                                );
+                            })}
                         </div>
 
                         {/* Trade-in */}
@@ -298,8 +304,8 @@ export function CartDrawer() {
                         <div className="border-t border-gray-100 bg-white px-6 py-5 shadow-[0_-4px_12px_rgba(0,0,0,0.04)]">
                             <div className="space-y-2.5 mb-5 text-sm">
                                 <div className="flex justify-between">
-                                    <span className="text-gray-500">Subtotal</span>
-                                    <span className="font-medium text-gray-900">{formatPrice(totalPrice)}</span>
+                                    <span className="cart-drawer-footer-label">Subtotal</span>
+                                    <span className="cart-drawer-footer-value">{formatPrice(totalPrice)}</span>
                                 </div>
                                 {totalTradeInDiscount > 0 && (
                                     <div className="flex justify-between items-center px-3 py-2 bg-emerald-50 rounded-lg">
@@ -317,7 +323,7 @@ export function CartDrawer() {
                                 <div className="relative py-2">
                                     <div className="absolute inset-x-0 top-0 h-px border-t border-dashed border-slate-100" />
                                     <div className="flex justify-between items-center pt-2">
-                                        <span className="font-black text-[10px] uppercase tracking-[0.2em] text-slate-400">Total</span>
+                                        <span className="cart-drawer-footer-label !text-slate-500">Total</span>
                                         <span className="text-xl font-black text-[#4988c4] tracking-tighter tabular-nums">
                                             {formatPrice(finalTotal)}
                                         </span>
@@ -328,9 +334,8 @@ export function CartDrawer() {
                             <div className="space-y-2.5">
                                 <Button
                                     onClick={handleCheckout}
-                                    className="relative w-full h-12 font-black text-[10px] uppercase tracking-[0.2em] rounded-xl bg-[#4988c4] text-white shadow-lg shadow-blue-500/10 transition-all duration-300 hover:shadow-blue-500/20 hover:-translate-y-0.5 active:scale-[0.98] group overflow-hidden"
+                                    className="cart-checkout-btn relative w-full h-12 font-black text-[10px] uppercase tracking-[0.2em] rounded-xl text-white group overflow-hidden"
                                 >
-                                    <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/15 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
                                     <span className="relative z-10 flex items-center justify-center gap-2">
                                         Proceed to Checkout
                                     </span>

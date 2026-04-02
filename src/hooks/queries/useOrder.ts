@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { orderService } from '@/api/services';
+import { useAuthStore } from '@/store/authStore';
 import type { CreateOrderRequest } from '@/api/types/order';
 import { cartKeys } from './useCart';
 
@@ -77,6 +78,29 @@ export const useUpdateOrderStatus = () => {
             orderService.updateStatus(id, status),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: orderKeys.all });
+        }
+    });
+};
+
+/**
+ * 🔥 Reinforced Admin-only Cancel Order
+ * Checks permissions before making the request.
+ */
+export const useAdminCancelOrder = () => {
+    const queryClient = useQueryClient();
+    const { role } = useAuthStore.getState();
+
+    return useMutation({
+        mutationFn: async ({ id, reason }: { id: string, reason: string }) => {
+            const isAdmin = ['Admin', 'Staff'].includes(role || '');
+            if (!isAdmin) {
+                throw new Error('Forbidden: Insufficient privileges to cancel orders.');
+            }
+            return orderService.adminCancelOrder(id, reason);
+        },
+        onSuccess: (_, { id }) => {
+            queryClient.invalidateQueries({ queryKey: orderKeys.all });
+            queryClient.invalidateQueries({ queryKey: orderKeys.detail(id) });
         }
     });
 };

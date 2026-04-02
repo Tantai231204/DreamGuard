@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, useMemo, memo } from 'react';
 import { useForm, useWatch, type Resolver, type Control, type FieldErrors, type UseFormSetValue } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { motion } from 'framer-motion';
 import type { Product, CreateProductRequest, ProductStatus } from '../../types';
 import type { CategoryResponse } from '@/api';
 import { useCategoryTree, type FlatCategory } from './useCategoryTree';
@@ -12,10 +13,15 @@ import PolicyStatusSection from './PolicyStatusSection';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Info, LayoutGrid, ShieldCheck, AlertCircle } from 'lucide-react';
 import { productSchema, type ProductFormValues } from './productSchema';
+import { cn } from '@/lib/utils';
 
 interface ProductWithSubCate extends Product {
     subCateId?: number | null;
     certificateIds?: string[];
+    sku?: string;
+    basePrice?: number;
+    salePrice?: number;
+    weight?: number;
 }
 
 interface ProductDialogFormProps {
@@ -25,6 +31,7 @@ interface ProductDialogFormProps {
     isLoading?: boolean;
     categories?: CategoryResponse[];
     certificates?: import('../../types').Certificate[];
+    takenCustomTypes?: string[];
 }
 
 // ── Shared Sub-Components (Outside Render) ──
@@ -92,7 +99,8 @@ const ClassificationTabContent = memo(({
     onCertificatesChange,
     allCertificates,
     setValue,
-    errors
+    errors,
+    takenCustomTypes
 }: {
     control: Control<ProductFormValues>;
     isLoading: boolean;
@@ -104,6 +112,7 @@ const ClassificationTabContent = memo(({
     allCertificates: import('../../types').Certificate[];
     setValue: UseFormSetValue<ProductFormValues>;
     errors: FieldErrors<ProductFormValues>;
+    takenCustomTypes?: string[];
 }) => {
     const cateId = useWatch({ control, name: 'cateId' });
     const ageGroup = useWatch({ control, name: 'ageGroup' });
@@ -131,6 +140,7 @@ const ClassificationTabContent = memo(({
                 onSubCateIdChange={onSubCateIdChange}
                 onMaterialChange={handleMaterialChange}
                 onCertificatesChange={onCertificatesChange}
+                takenCustomTypes={takenCustomTypes}
             />
             <div className="space-y-2 px-1">
                 <ErrorMsg error={errors.cateId} />
@@ -190,6 +200,7 @@ export default function ProductDialogForm({
     isLoading = false,
     categories = [],
     certificates = [],
+    takenCustomTypes = [],
 }: ProductDialogFormProps) {
     const isEdit = !!product;
     const [activeTab, setActiveTab] = useState("general");
@@ -209,6 +220,11 @@ export default function ProductDialogForm({
             returnPolicyDay: product?.returnPolicyDay || 0,
             status: product?.status || 'Draft',
             CertificateIds: product?.CertificateIds || product?.certificateIds || [],
+            fullyCustomizedProductType: product?.fullyCustomizedProductType || 'None',
+            sku: product?.sku || '',
+            basePrice: product?.basePrice || 0,
+            salePrice: product?.salePrice || 0,
+            weight: product?.weight || 0,
         },
         mode: 'onChange'
     });
@@ -337,7 +353,12 @@ export default function ProductDialogForm({
             warrantyPolicyDay: Number(values.warrantyPolicyDay || 0),
             returnPolicyDay: Number(values.returnPolicyDay || 0),
             cateId: submissionCateId > 0 ? submissionCateId : null,
-            CertificateIds: values.CertificateIds || []
+            CertificateIds: values.CertificateIds || [],
+            fullyCustomizedProductType: values.fullyCustomizedProductType,
+            sku: values.sku,
+            basePrice: values.basePrice,
+            salePrice: values.salePrice,
+            weight: values.weight,
         };
 
         onSubmit(payload as unknown as CreateProductRequest);
@@ -363,26 +384,47 @@ export default function ProductDialogForm({
             />
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mt-4 flex-1 flex flex-col min-h-0">
-                <TabsList className="grid grid-cols-3 w-full h-12 bg-gray-100/50 p-1 rounded-xl border border-gray-200/50 shrink-0">
-                    <TabsTrigger value="general" className="relative rounded-lg data-[state=active]:bg-[#4988c4] data-[state=active]:text-white data-[state=active]:shadow-sm text-xs font-bold gap-2 transition-all">
-                        <Info className="h-4 w-4" /> General
-                        {hasGeneralErrors && (
-                            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white shadow-sm animate-pulse" />
-                        )}
-                    </TabsTrigger>
-                    <TabsTrigger value="classification" className="relative rounded-lg data-[state=active]:bg-[#4988c4] data-[state=active]:text-white data-[state=active]:shadow-sm text-xs font-bold gap-2 transition-all">
-                        <LayoutGrid className="h-4 w-4" /> Attributes
-                        {hasClassificationErrors && (
-                            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white shadow-sm animate-pulse" />
-                        )}
-                    </TabsTrigger>
-                    <TabsTrigger value="policy" className="relative rounded-lg data-[state=active]:bg-[#4988c4] data-[state=active]:text-white data-[state=active]:shadow-sm text-xs font-bold gap-2 transition-all">
-                        <ShieldCheck className="h-4 w-4" /> Policies
-                        {hasPolicyErrors && (
-                            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white shadow-sm animate-pulse" />
-                        )}
-                        {isPublishingWithoutVariants && <AlertCircle className="h-3 w-3 text-rose-500 ml-0.5" />}
-                    </TabsTrigger>
+                <TabsList className="relative grid grid-cols-3 w-full h-12 bg-slate-100/40 p-1.5 rounded-[1rem] border border-slate-200/40 gap-1 shrink-0 overflow-hidden">
+                    {/* Animated Indicator Background */}
+                    <div className="absolute inset-y-1.5 left-1.5 right-1.5 grid grid-cols-3 pointer-events-none">
+                        {['general', 'classification', 'policy'].map((tab) => (
+                            <div key={tab} className="relative flex items-center justify-center">
+                                {activeTab === tab && (
+                                    <motion.div
+                                        layoutId="active-tab-bg"
+                                        className="absolute inset-0 bg-white rounded-lg shadow-[0_2px_10px_rgba(0,0,0,0.06)] border border-slate-200/10"
+                                        initial={false}
+                                        transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
+                                    />
+                                )}
+                            </div>
+                        ))}
+                    </div>
+
+                    {[
+                        { id: 'general', label: 'General', icon: Info, hasError: hasGeneralErrors },
+                        { id: 'classification', label: 'Attributes', icon: LayoutGrid, hasError: hasClassificationErrors },
+                        { id: 'policy', label: 'Policies', icon: ShieldCheck, hasError: hasPolicyErrors, warning: isPublishingWithoutVariants }
+                    ].map(({ id, label, icon: Icon, hasError, warning }) => (
+                        <TabsTrigger
+                            key={id}
+                            value={id}
+                            className={cn(
+                                "relative z-10 rounded-lg text-[11px] font-bold gap-2 transition-all duration-300",
+                                "data-[state=active]:text-[#4988c4] text-slate-400 hover:text-slate-600",
+                                "flex items-center justify-center h-full outline-none"
+                            )}
+                        >
+                            <Icon className={cn("h-4 w-4 transition-transform duration-300", activeTab === id ? "scale-110" : "scale-100")} />
+                            {label}
+                            {hasError && (
+                                <span className="absolute top-2 right-4 w-2 h-2 bg-rose-500 rounded-full border-2 border-white shadow-sm" />
+                            )}
+                            {warning && (
+                                <AlertCircle className="h-3 w-3 text-rose-500 ml-0.5 animate-pulse" />
+                            )}
+                        </TabsTrigger>
+                    ))}
                 </TabsList>
 
                 <form
@@ -409,6 +451,7 @@ export default function ProductDialogForm({
                         onCertificatesChange={(v) => form.setValue('CertificateIds', v, { shouldValidate: true })}
                         setValue={form.setValue}
                         errors={errors}
+                        takenCustomTypes={takenCustomTypes}
                     />
 
                     <PolicyTabContent
