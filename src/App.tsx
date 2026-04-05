@@ -10,12 +10,12 @@ import AppRouter from "./router/AppRouter";
 import { useEffect, useRef } from "react";
 import { useAuthStore } from "./store/authStore";
 import { useCartStore } from "./store/useCart";
-import { isStaffRole } from "./lib/role";
+import { isStaffRole, isAdminRole } from "./lib/role";
 
 function App() {
   const { isAuthenticated, role } = useAuthStore();
   const prevAuth = useRef(isAuthenticated);
-  const isStaff = isStaffRole(role);
+  const shouldSkipCart = isStaffRole(role) || isAdminRole(role);
 
   useEffect(() => {
     // 1. Just Logged Out: Wipe state for privacy
@@ -26,7 +26,7 @@ function App() {
     }
 
     // 2. Staff/Admin: Skip cart logic
-    if (isStaff) {
+    if (shouldSkipCart) {
       prevAuth.current = isAuthenticated;
       return;
     }
@@ -64,7 +64,7 @@ function App() {
         window.removeEventListener('visibilitychange', handleSync);
       };
     }
-  }, [isAuthenticated, isStaff]);
+  }, [isAuthenticated, shouldSkipCart]);
 
   return (
     <ErrorBoundary>

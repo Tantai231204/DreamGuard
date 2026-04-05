@@ -1,8 +1,8 @@
 import { cn } from "@/lib/utils";
-import { Check, Clock4, X, Package, Minus, RotateCcw } from "lucide-react";
+import { Check, Clock4, X, Package, Minus, RotateCcw, Truck, MapPin, History, ShieldAlert, FileEdit, PackageX, EyeOff, ShieldCheck, PackageCheck } from "lucide-react";
 import React from "react";
 
-export type StatusType = 'success' | 'warning' | 'danger' | 'info' | 'neutral';
+export type StatusType = 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'sky' | 'indigo' | 'amber' | 'rose' | 'emerald';
 
 interface AdminStatusBadgeProps {
   status: string;
@@ -13,52 +13,42 @@ interface AdminStatusBadgeProps {
 }
 
 const STATUS_MAP: Record<string, StatusType> = {
-  // Green for success
-  'published': 'success',
-  'Published': 'success',
-  'PUBLISHED': 'success',
-  'active': 'success',
-  'Active': 'success',
-  'ACTIVE': 'success',
-  'enabled': 'success',
-  'success': 'success',
-  'Success': 'success',
-  'true': 'success',
+  // Color mappings for specific business states
+  '0': 'warning',
+  '1': 'sky',
+  '2': 'amber',
+  '3': 'info',
+  '4': 'indigo',
   '5': 'success',
-  '6': 'success',
-
-  // Amber for warning
-  'draft': 'warning',
-  'Draft': 'warning',
-  'pending': 'warning',
-  'Pending': 'warning',
-  'warning': 'warning',
-  '1': 'warning',
-  '3': 'warning',
-  '4': 'warning',
-  'false': 'warning',
-
-  // Red for danger
-  'outofstock': 'danger',
-  'OutOfStock': 'danger',
-  'cancelled': 'danger',
-  'failed': 'danger',
-  'error': 'danger',
-  'rejected': 'danger',
-  '2': 'danger',
+  '6': 'rose',
   '7': 'danger',
+  '8': 'indigo',
+  '9': 'success',
+  '10': 'rose',
+  'refundedandrestocked': 'success',
+  'refundedanddamaged': 'rose',
 
-  // Blue for info
-  'hidden': 'info',
-  'Hidden': 'info',
-  'confirmed': 'info',
-  'processing': 'info',
+  'pending': 'warning',
+  'processing': 'amber',
+  'confirmed': 'sky',
+  'delivering': 'info',
   'shipping': 'info',
-  'info': 'info',
+  'arrived': 'sky',
+  'completed': 'success',
+  'cancelled': 'rose',
+  'returning': 'indigo',
+  'returned': 'danger',
+  'success': 'success',
+  'delivered': 'indigo',
+  'active': 'success',
+  'published': 'success',
+  'draft': 'sky',
+  'inactive': 'neutral',
+  'outofstock': 'danger',
+  'deleted': 'danger',
 
   // Neutral for fallback
   'archived': 'neutral',
-  'Archived': 'neutral',
   'none': 'neutral',
   'null': 'neutral',
   'undefined': 'neutral',
@@ -79,12 +69,26 @@ const TYPE_CONFIG: Record<StatusType, {
     textColor: "text-emerald-700",
     icon: Check,
   },
+  emerald: {
+    container: "bg-emerald-50 border-emerald-200 shadow-sm",
+    iconBg: "bg-emerald-600",
+    iconColor: "text-white",
+    textColor: "text-emerald-800",
+    icon: Check,
+  },
   warning: {
     container: "bg-amber-50 border-amber-100",
     iconBg: "bg-amber-500",
     iconColor: "text-white",
     textColor: "text-amber-700",
     icon: Clock4,
+  },
+  amber: {
+    container: "bg-orange-50 border-orange-100",
+    iconBg: "bg-orange-500",
+    iconColor: "text-white",
+    textColor: "text-orange-800",
+    icon: Package,
   },
   danger: {
     container: "bg-rose-50 border-rose-100",
@@ -93,12 +97,33 @@ const TYPE_CONFIG: Record<StatusType, {
     textColor: "text-rose-700",
     icon: X,
   },
+  rose: {
+    container: "bg-rose-50 border-rose-200",
+    iconBg: "bg-rose-600",
+    iconColor: "text-white",
+    textColor: "text-rose-800",
+    icon: X,
+  },
   info: {
     container: "bg-blue-50 border-blue-100",
     iconBg: "bg-blue-600",
     iconColor: "text-white",
     textColor: "text-blue-700",
+    icon: Truck,
+  },
+  sky: {
+    container: "bg-sky-50 border-sky-200 shadow-sm",
+    iconBg: "bg-sky-500",
+    iconColor: "text-white",
+    textColor: "text-sky-700",
     icon: Package,
+  },
+  indigo: {
+    container: "bg-indigo-50 border-indigo-200 shadow-sm",
+    iconBg: "bg-indigo-600",
+    iconColor: "text-white",
+    textColor: "text-indigo-800",
+    icon: ShieldAlert,
   },
   neutral: {
     container: "bg-slate-50 border-slate-100",
@@ -112,36 +137,37 @@ const TYPE_CONFIG: Record<StatusType, {
 const ICON_MAP: Record<string, React.ElementType> = {
   'paid': Check,
   'codpaid': Check,
-  'completed': Check,
-  'active': Check,
-  'enabled': Check,
-  'success': Check,
-  'confirmed': Check,
-  'published': Check,
-  'delivered': Check,
-  '2': Check,
-  '5': Check,
-  '6': Check,
+  'completed': ShieldCheck,
+  '5': ShieldCheck,
+  'refundedandrestocked': History,
+  '9': History,
   'cancelled': X,
-  'failed': X,
-  'rejected': X,
-  'void': X,
-  'inactive': X,
-  'expired': X,
-  'banned': X,
-  'outofstock': X,
-  '7': X,
-  'refunded': RotateCcw,
-  'refund': RotateCcw,
-  'processing': Package,
-  'shipped': Package,
-  'shipping': Package,
-  '3': Package,
-  '4': Package,
+  'error': X,
+  '6': X,
+  'refundedanddamaged': ShieldAlert,
+  '10': ShieldAlert,
+  'returned': RotateCcw,
+  '7': RotateCcw,
+  'returning': RotateCcw,
+  '8': RotateCcw,
+  'delivering': Truck,
+  '3': Truck,
+  'shipping': Truck,
+  'arrived': MapPin,
   'pending': Clock4,
-  'draft': Clock4,
-  'unpaid': Clock4,
-  'codunpaid': Clock4,
+  '0': Clock4,
+  'draft': FileEdit,
+  'processing': Package,
+  '2': Package,
+  'confirmed': Package,
+  '1': Package,
+  'published': Check,
+  'active': Check,
+  'delivered': PackageCheck,
+  '4': PackageCheck,
+  'outofstock': PackageX,
+  'inactive': EyeOff,
+  'archived': Package,
 };
 
 const PAYMENT_CONFIG: Record<string, { container: string, textColor: string, iconBg: string, icon: string }> = {
@@ -160,14 +186,29 @@ const PAYMENT_CONFIG: Record<string, { container: string, textColor: string, ico
 };
 
 const PAYMENT_STATUS_MAP: Record<string, { type: StatusType, label: string, icon: React.ElementType }> = {
-  '0': { type: 'warning', label: 'Pending Payment', icon: Clock4 },
-  '1': { type: 'success', label: 'Paid', icon: Check },
-  '2': { type: 'danger', label: 'Payment Failed', icon: X },
-  '3': { type: 'neutral', label: 'COD (Collect on Delivery)', icon: Clock4 },
-  '4': { type: 'success', label: 'COD Paid', icon: Check },
-  'cod': { type: 'neutral', label: 'COD Unpaid', icon: Clock4 },
+  'pending_payment': { type: 'warning', label: 'Pending Payment', icon: Clock4 },
+  'paid': { type: 'success', label: 'Paid', icon: Check },
+  'failed': { type: 'danger', label: 'Payment Failed', icon: X },
 };
 
+const LABEL_MAP: Record<string, string> = {
+  '0': 'Pending',
+  '1': 'Confirmed',
+  '2': 'Processing',
+  '3': 'Delivering',
+  '4': 'Delivered',
+  '5': 'Completed',
+  '6': 'Cancelled',
+  '7': 'Returned',
+  '8': 'Returning',
+  '9': 'Refunded (Restocked)',
+  '10': 'Refunded (Damaged)',
+  'refundedandrestocked': 'Refunded (Restocked)',
+  'refundedanddamaged': 'Refunded (Damaged)',
+  'pending_payment': 'Pending Payment',
+  'paid': 'Paid',
+  'failed': 'Payment Failed',
+};
 
 export const AdminStatusBadge = React.forwardRef<HTMLDivElement, AdminStatusBadgeProps>(({
   status,
@@ -181,28 +222,21 @@ export const AdminStatusBadge = React.forwardRef<HTMLDivElement, AdminStatusBadg
 
   let finalType: StatusType = type || 'neutral';
 
-  // Absolute Force Keyword Match for safety
-  if (searchStr.includes('publish') || searchStr.includes('active') || searchStr.includes('success') || searchStr === '6' || searchStr === '5') {
-    finalType = 'success';
-  } else if (searchStr.includes('draft') || searchStr.includes('pending') || searchStr === '0' || searchStr === '1') {
-    finalType = 'warning';
-  } else if (searchStr.includes('hidden') || searchStr.includes('hide')) {
-    finalType = 'info';
-  } else if (searchStr.includes('out') || searchStr.includes('stock') || searchStr.includes('cancel') || searchStr.includes('fail') || searchStr.includes('error') || searchStr === '2') {
-    finalType = 'danger';
-  } else if (finalType === 'neutral') {
-    const fromMap = STATUS_MAP[normalizedStatus] || STATUS_MAP[searchStr];
-    if (fromMap && fromMap !== 'neutral') {
-      finalType = fromMap;
-    }
+  const fromMap = STATUS_MAP[normalizedStatus] || STATUS_MAP[searchStr];
+  if (fromMap) {
+    finalType = fromMap;
+  } else {
+    // Basic force keywords
+    if (searchStr.includes('success') || searchStr.includes('active')) finalType = 'success';
+    else if (searchStr.includes('cancel') || searchStr.includes('fail') || searchStr.includes('error')) finalType = 'rose';
+    else if (searchStr.includes('pending')) finalType = 'warning';
   }
 
-  // 2. Select Icon based on type or status
+  // Icons and Labels
   let Icon = ICON_MAP[normalizedStatus] || ICON_MAP[searchStr] || TYPE_CONFIG[finalType as StatusType]?.icon || Check;
-  let displayLabel = status;
+  let displayLabel = LABEL_MAP[normalizedStatus] || LABEL_MAP[searchStr] || status;
 
-  // Payment config is only used if mode is 'method' or not specified but matches perfectly
-  // and is NOT a known status keyword.
+  // Payment overrides
   let payConfig = null;
   const isStrictMethod = normalizedStatus === 'vnpay' || normalizedStatus === 'cod';
 
@@ -219,23 +253,22 @@ export const AdminStatusBadge = React.forwardRef<HTMLDivElement, AdminStatusBadg
     displayLabel = cfg.label;
     finalType = cfg.type;
     Icon = cfg.icon;
+  } else if (mode === 'payment' && status === '0') {
+    displayLabel = 'Pending Payment';
+    finalType = 'warning';
+    Icon = Clock4;
+  } else if (mode === 'payment' && status === '1') {
+    displayLabel = 'Paid';
+    finalType = 'success';
+    Icon = Check;
   }
 
   const config = TYPE_CONFIG[finalType as StatusType] || TYPE_CONFIG.neutral;
 
-  let containerClass = payConfig?.container || config.container;
-  let textClass = payConfig?.textColor || config.textColor;
-  let iconBgClass = payConfig?.iconBg || config.iconBg;
-  let iconColorClass = config.iconColor;
-
-  // Force !important for success to prevent any grey list-item / row overrides
-  if (finalType === 'success') {
-    containerClass = "!bg-emerald-50 !border-emerald-200";
-    textClass = "!text-emerald-700";
-    iconBgClass = "!bg-emerald-500";
-    iconColorClass = "!text-white";
-    Icon = Check;
-  }
+  const containerClass = payConfig?.container || config.container;
+  const textClass = payConfig?.textColor || config.textColor;
+  const iconBgClass = payConfig?.iconBg || config.iconBg;
+  const iconColorClass = config.iconColor;
 
   return (
     <div
@@ -251,7 +284,7 @@ export const AdminStatusBadge = React.forwardRef<HTMLDivElement, AdminStatusBadg
     >
       {dot && (
         <div className={cn(
-          "flex items-center justify-center h-6 w-6 rounded-full shrink-0 shadow-sm overflow-hidden transition-transform group-hover:scale-110",
+          "flex items-center justify-center h-6 w-6 rounded-full shrink-0 shadow-sm overflow-hidden",
           iconBgClass
         )}>
           {payConfig ? (

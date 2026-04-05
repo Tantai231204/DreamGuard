@@ -5,7 +5,7 @@ export interface CreateOrderRequest {
     paymentMethod: "VnPay" | "COD";
 }
 
-export type OrderStatus = 0 | 1 | 2 | 3 | 4 | 5 | 6 | "Pending" | "Confirmed" | "Processing" | "Shipping" | "Delivered" | "Completed" | "Cancelled";
+export type OrderStatus = number | string;
 
 export const OrderStatusValue = {
     Pending: 0,
@@ -14,7 +14,11 @@ export const OrderStatusValue = {
     Shipping: 3,
     Delivered: 4,
     Completed: 5,
-    Cancelled: 6
+    Cancelled: 6,
+    Returned: 7,
+    Returning: 8,
+    RefundedAndRestocked: 9,
+    RefundedAndDamaged: 10
 } as const;
 
 export interface OrderResponse {

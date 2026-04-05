@@ -13,7 +13,7 @@ interface ShippingAddressCardProps {
 
 export function ShippingAddressCard({ fullName, phone, street, ward, district, city }: ShippingAddressCardProps) {
   return (
-    <Card className="border border-blue-100/50 bg-white rounded-2xl shadow-sm overflow-hidden relative group">
+    <Card className="border border-blue-100/50 bg-white rounded-2xl shadow-sm overflow-hidden relative group h-full flex flex-col">
       <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-primary/10 transition-colors" />
 
       <div className="p-5 flex flex-col gap-4 relative z-10">

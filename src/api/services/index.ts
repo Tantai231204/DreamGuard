@@ -12,6 +12,9 @@ export { default as orderService } from './orderService';
 export { default as ratingService } from './ratingService';
 export { default as customizeTypeService } from './customizeTypeService';
 export { default as certificateService } from './certificateService';
+export { default as chatService } from './chatService';
+export { default as staffService } from './staffService';
+export { default as shippingService } from './shippingService';
 export * as addressService from './address.service';
 
 export type {

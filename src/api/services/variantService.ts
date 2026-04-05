@@ -78,6 +78,7 @@ export interface VariantResponse {
   is_customizable?: boolean;
   customizeLabel?: string;
   stockQuantity?: number;
+  defectQuantity?: number;
   stockStatus?: string;
   customizeTypes?: VariantCustomizeTypeResponse[];
   customizeOptionGroups?: import("../types/product.types").CustomizeOptionGroupResponse[];
@@ -90,6 +91,7 @@ export interface AdminVariantItem {
   salePrice: number;
   basePrice: number;
   stockQuantity: number;
+  defectQuantity?: number;
   stockStatus: string;
   status: string;
   weight: number | null;

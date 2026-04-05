@@ -8,7 +8,14 @@ export const paymentKeys = {
     byOrder: (orderId: string) => [...paymentKeys.all, 'byOrder', orderId] as const,
 };
 
-export const useAdminPayments = (params?: { pageNumber?: number; pageSize?: number }) => {
+export const useAdminPayments = (params?: {
+    pageNumber?: number;
+    pageSize?: number;
+    status?: string;
+    method?: string;
+    orderCode?: string;
+    key?: string;
+}) => {
     return useQuery({
         queryKey: paymentKeys.list(params),
         queryFn: () => paymentService.getAdminPayments(params),

@@ -1,125 +1,237 @@
-import { Send, Paperclip, Smile, Image as ImageIcon } from 'lucide-react';
+import {
+  memo,
+  useRef,
+  useState,
+  useCallback,
+  useEffect,
+} from 'react';
+import { Send, Paperclip, Smile, Image as ImageIcon, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { QUICK_REPLIES, MAX_MESSAGE_LENGTH } from '../constants';
 
 interface MessageInputProps {
-    message: string;
-    onMessageChange: (message: string) => void;
-    onSendMessage: () => void;
+  draft: string;
+  isSending: boolean;
+  onDraftChange: (val: string) => void;
+  onSend: () => void;
+  onTyping?: (isTyping: boolean) => void;
 }
 
-export default function MessageInput({
-    message,
-    onMessageChange,
-    onSendMessage,
+function MessageInputInner({
+  draft,
+  isSending,
+  onDraftChange,
+  onSend,
+  onTyping,
 }: MessageInputProps) {
-    const [isFocused, setIsFocused] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const typingTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [charCount, setCharCount] = useState(0);
 
-    const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            onSendMessage();
-        }
-    };
+  /* ---- Auto-grow textarea --------------------------------- */
+  const autoResize = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
+  }, []);
 
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex-shrink-0 p-4 border-t border-gray-200 bg-white"
-        >
-            <div
-                className={`flex items-center gap-2 p-2 rounded-xl border-2 transition-all ${isFocused
-                        ? 'border-[var(--color-primary)] bg-blue-50/30'
-                        : 'border-gray-200 bg-gray-50 hover:border-gray-300'
-                    }`}
+  useEffect(() => autoResize(), [draft, autoResize]);
+
+  /* ---- Handle input --------------------------------------- */
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const val = e.target.value;
+      if (val.length > MAX_MESSAGE_LENGTH) return;
+      onDraftChange(val);
+      setCharCount(val.length);
+
+      // Emit typing events (debounced stop)
+      onTyping?.(true);
+      clearTimeout(typingTimeout.current);
+      typingTimeout.current = setTimeout(() => onTyping?.(false), 2000);
+    },
+    [onDraftChange, onTyping]
+  );
+
+  /* ---- Keyboard send -------------------------------------- */
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSend();
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [draft, isSending]
+  );
+
+  const handleSend = useCallback(() => {
+    if (!draft.trim() || isSending) return;
+    onSend();
+    setCharCount(0);
+    clearTimeout(typingTimeout.current);
+    onTyping?.(false);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.focus();
+    }
+  }, [draft, isSending, onSend, onTyping]);
+
+  const isOverLimit = charCount > MAX_MESSAGE_LENGTH * 0.9;
+
+  return (
+    <div className="flex-shrink-0 bg-white border-t border-gray-100 px-4 pt-2.5 pb-4">
+      {/* Hint bar */}
+      <div className="flex items-center justify-between h-5 mb-2 px-0.5">
+        <p className="text-[10px] text-gray-300 select-none">
+          <kbd className="px-1 py-0.5 bg-gray-50 border border-gray-200 rounded text-[10px] font-mono">Enter</kbd>
+          {' '}to send ·{' '}
+          <kbd className="px-1 py-0.5 bg-gray-50 border border-gray-200 rounded text-[10px] font-mono">⇧ Enter</kbd>
+          {' '}new line
+        </p>
+        {charCount > 0 && (
+          <span className={`text-[10px] tabular-nums ${isOverLimit ? 'text-amber-500' : 'text-gray-300'}`}>
+            {charCount}/{MAX_MESSAGE_LENGTH}
+          </span>
+        )}
+      </div>
+
+      {/* Input bar */}
+      <div className="chat-input-wrapper flex items-end gap-2 border border-gray-200 rounded-2xl bg-gray-50/60 px-3 py-2">
+        {/* Tool buttons */}
+        <div className="flex items-center flex-shrink-0 mb-0.5">
+          <Button
+            variant="ghost" size="sm"
+            className="h-7 w-7 p-0 rounded-lg text-gray-400 hover:text-[var(--color-primary)] hover:bg-blue-50 transition-all"
+            title="Attach file"
+          >
+            <Paperclip className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="ghost" size="sm"
+            className="h-7 w-7 p-0 rounded-lg text-gray-400 hover:text-[var(--color-primary)] hover:bg-blue-50 transition-all"
+            title="Upload image"
+          >
+            <ImageIcon className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="ghost" size="sm"
+            className="h-7 w-7 p-0 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-50 transition-all"
+            title="Emoji"
+          >
+            <Smile className="h-3.5 w-3.5" />
+          </Button>
+
+          {/* Quick replies */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost" size="sm"
+                className="h-7 w-7 p-0 rounded-lg text-gray-400 hover:text-violet-500 hover:bg-violet-50 transition-all"
+                title="Quick replies"
+              >
+                <Zap className="h-3.5 w-3.5" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent
+              align="start"
+              side="top"
+              className="w-72 p-2 rounded-xl shadow-xl border-gray-100"
             >
-                {/* Action Buttons */}
-                <div className="flex items-center gap-1">
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 hover:bg-gradient-to-br hover:from-white hover:to-blue-50 hover:text-[var(--color-primary)] transition-all duration-300 rounded-xl hover:shadow-md"
-                    >
-                        <Paperclip className="h-4 w-4" />
-                    </Button>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-2 mb-1.5">
+                Quick Replies
+              </p>
+              <div className="space-y-0.5 max-h-48 overflow-y-auto chat-scrollbar">
+                {QUICK_REPLIES.map((reply) => (
+                  <button
+                    key={reply}
+                    onClick={() => {
+                      onDraftChange(reply);
+                      setCharCount(reply.length);
+                      textareaRef.current?.focus();
+                    }}
+                    className="w-full text-left text-xs text-gray-700 px-2.5 py-2 rounded-lg
+                               hover:bg-blue-50 hover:text-[var(--color-primary)] transition-colors truncate"
+                  >
+                    {reply}
+                  </button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
 
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 hover:bg-gradient-to-br hover:from-white hover:to-blue-50 hover:text-[var(--color-primary)] transition-all duration-300 rounded-xl hover:shadow-md"
-                    >
-                        <ImageIcon className="h-4 w-4" />
-                    </Button>
+        {/* Divider */}
+        <div className="w-px h-5 bg-gray-200 self-center flex-shrink-0" />
 
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0 hover:bg-gradient-to-br hover:from-white hover:to-blue-50 hover:text-[var(--color-primary)] transition-all duration-300 rounded-xl hover:shadow-md"
-                    >
-                        <Smile className="h-4 w-4" />
-                    </Button>
-                </div>
+        {/* Textarea */}
+        <textarea
+          ref={textareaRef}
+          rows={1}
+          value={draft}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          placeholder="Type a message..."
+          disabled={isSending}
+          className="flex-1 resize-none bg-transparent border-0 outline-none text-sm text-gray-800
+                     placeholder:text-gray-400 leading-relaxed py-0.5 max-h-32 chat-scrollbar
+                     disabled:opacity-50"
+          style={{ minHeight: '28px' }}
+        />
 
-                {/* Input Field */}
-                <Input
-                    placeholder="Type a message..."
-                    value={message}
-                    onChange={(e) => onMessageChange(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    onFocus={() => setIsFocused(true)}
-                    onBlur={() => setIsFocused(false)}
-                    className="flex-1 h-9 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-gray-400"
-                />
-
-                {/* Send Button */}
-                <AnimatePresence>
-                    {message.trim() ? (
-                        <motion.div
-                            initial={{ scale: 0, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0, opacity: 0 }}
-                            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                        >
-                            <Button
-                                onClick={onSendMessage}
-                                disabled={!message.trim()}
-                                className="bg-gradient-to-r from-[var(--color-primary)] to-blue-600 hover:from-blue-600 hover:to-[var(--color-primary)] h-9 px-4 shadow-md hover:shadow-lg transition-all"
-                            >
-                                <Send className="h-4 w-4 mr-1" />
-                                <span className="text-sm font-medium">Send</span>
-                            </Button>
-                        </motion.div>
-                    ) : (
-                        <motion.div
-                            initial={{ scale: 0, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0, opacity: 0 }}
-                        >
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-9 w-9 p-0"
-                                disabled
-                            >
-                                <Send className="h-4 w-4" />
-                            </Button>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
-
-            {/* Typing Indicator or Tips */}
-            <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="text-xs text-gray-400 mt-2 ml-1"
+        {/* Send button */}
+        <AnimatePresence mode="wait">
+          {draft.trim() ? (
+            <motion.button
+              key="active"
+              initial={{ scale: 0.6, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.6, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+              onClick={handleSend}
+              disabled={isSending}
+              className="flex-shrink-0 h-8 w-8 rounded-xl flex items-center justify-center
+                         bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-hover)]
+                         text-white shadow-md hover:shadow-lg transition-shadow disabled:opacity-60"
             >
-                Press Enter to send, Shift + Enter for new line
-            </motion.p>
-        </motion.div>
-    );
+              {isSending ? (
+                <span className="flex gap-0.5">
+                  {[0, 1, 2].map((i) => (
+                    <span
+                      key={i}
+                      className="w-1 h-1 bg-white rounded-full animate-bounce"
+                      style={{ animationDelay: `${i * 0.15}s` }}
+                    />
+                  ))}
+                </span>
+              ) : (
+                <Send className="h-3.5 w-3.5" />
+              )}
+            </motion.button>
+          ) : (
+            <motion.div
+              key="inactive"
+              initial={{ scale: 0.6, opacity: 0 }}
+              animate={{ scale: 1, opacity: 0.4 }}
+              exit={{ scale: 0.6, opacity: 0 }}
+              className="flex-shrink-0 h-8 w-8 rounded-xl flex items-center justify-center text-gray-400"
+            >
+              <Send className="h-3.5 w-3.5" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
 }
+
+export const MessageInput = memo(MessageInputInner);
+MessageInput.displayName = 'MessageInput';
+export default MessageInput;

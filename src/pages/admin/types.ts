@@ -60,8 +60,11 @@ export interface Conversation {
   id: string;
   customerId: string;
   customerName: string;
+  customerAvatar?: string;
   lastMessage: string;
   lastMessageTime: string;
   unreadCount: number;
-  status: 'active' | 'closed';
+  status: 'active' | 'resolved' | 'pending' | 'archived';
+  isOnline?: boolean;
+  tags?: string[];
 }

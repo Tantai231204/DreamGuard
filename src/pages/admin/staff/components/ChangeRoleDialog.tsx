@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogTitle, DialogFooter } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, Loader2 } from "lucide-react";
+import { ShieldCheck, Loader2, User } from "lucide-react";
 import { useUpdateStaffRole } from "@/hooks/queries/useStaff";
 import { useToast } from "@/hooks/useToast";
 
@@ -15,9 +15,19 @@ interface ChangeRoleDialogProps {
 }
 
 export function ChangeRoleDialog({ open, onOpenChange, staffId, currentRole }: ChangeRoleDialogProps) {
+  const [prevOpen, setPrevOpen] = useState(open);
   const [newRole, setNewRole] = useState<string>(currentRole);
   const { mutate: updateRole, isPending } = useUpdateStaffRole();
   const { success } = useToast();
+
+  // Modern React pattern: Adjust state during render when a key prop changes
+  // This avoids the "cascading renders" error from useEffect
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) {
+      setNewRole(currentRole || "");
+    }
+  }
 
   const handleUpdate = () => {
     if (!newRole) return;
@@ -60,46 +70,64 @@ export function ChangeRoleDialog({ open, onOpenChange, staffId, currentRole }: C
               <SelectTrigger className="h-14 px-4 rounded-xl border-2 border-slate-100 bg-white hover:border-primary transition-all focus:ring-primary/10">
                 <SelectValue placeholder="Select a role" />
               </SelectTrigger>
-              <SelectContent className="rounded-xl shadow-xl border-slate-100 p-1.5 max-h-[300px]">
-                <SelectItem value="Manager" className="rounded-lg font-medium cursor-pointer py-2.5 focus:bg-slate-50 mb-1 last:mb-0">
+              <SelectContent className="rounded-xl shadow-xl border-slate-100 p-1.5 max-h-[400px] overflow-y-auto">
+                <SelectItem value="Manager" className="rounded-lg font-medium cursor-pointer py-2.5 focus:bg-slate-50 mb-1">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-full flex items-center justify-center bg-indigo-50 shadow-sm flex-shrink-0">
-                      <div className="w-3.5 h-3.5 bg-indigo-600" style={{ 
-                        maskImage: "url(/images/manager.svg)", 
-                        maskSize: "contain", 
-                        WebkitMaskImage: "url(/images/manager.svg)", 
-                        WebkitMaskSize: "contain" 
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-indigo-50 shadow-sm flex-shrink-0">
+                      <div className="w-4 h-4 bg-indigo-600" style={{
+                        maskImage: "url(/images/manager.svg)",
+                        maskSize: "contain",
+                        WebkitMaskImage: "url(/images/manager.svg)",
+                        WebkitMaskSize: "contain"
                       }} />
                     </div>
                     <span className="font-bold text-slate-800 text-sm">Manager</span>
                   </div>
                 </SelectItem>
-                
-                <SelectItem value="Seller" className="rounded-lg font-medium cursor-pointer py-2.5 focus:bg-slate-50 mb-1 last:mb-0">
+
+                <SelectItem value="Seller" className="rounded-lg font-medium cursor-pointer py-2.5 focus:bg-slate-50 mb-1">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-full flex items-center justify-center bg-emerald-50 shadow-sm flex-shrink-0">
-                      <div className="w-3.5 h-3.5 bg-emerald-600" style={{ 
-                        maskImage: "url(/images/seller.svg)", 
-                        maskSize: "contain", 
-                        WebkitMaskImage: "url(/images/seller.svg)", 
-                        WebkitMaskSize: "contain" 
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-emerald-50 shadow-sm flex-shrink-0">
+                      <div className="w-4 h-4 bg-emerald-600" style={{
+                        maskImage: "url(/images/seller.svg)",
+                        maskSize: "contain",
+                        WebkitMaskImage: "url(/images/seller.svg)",
+                        WebkitMaskSize: "contain"
                       }} />
                     </div>
                     <span className="font-bold text-slate-800 text-sm">Seller</span>
                   </div>
                 </SelectItem>
 
-                <SelectItem value="CleaningStaff" className="rounded-lg font-medium cursor-pointer py-2.5 focus:bg-slate-50 last:mb-0">
+                <SelectItem value="DeliveryStaff" className="rounded-lg font-medium cursor-pointer py-2.5 focus:bg-slate-50 mb-1">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-full flex items-center justify-center bg-amber-50 shadow-sm flex-shrink-0">
-                      <div className="w-3.5 h-3.5 bg-amber-500" style={{ 
-                        maskImage: "url(/images/cleanning-staff.svg)", 
-                        maskSize: "contain", 
-                        WebkitMaskImage: "url(/images/cleanning-staff.svg)", 
-                        WebkitMaskSize: "contain" 
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-blue-50 shadow-sm flex-shrink-0">
+                      <img src="/images/delivery.png" alt="Delivery" className="w-4 h-4 object-contain" />
+                    </div>
+                    <span className="font-bold text-slate-800 text-sm">Delivery Staff</span>
+                  </div>
+                </SelectItem>
+
+                <SelectItem value="CleaningStaff" className="rounded-lg font-medium cursor-pointer py-2.5 focus:bg-slate-50 mb-1">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-amber-50 shadow-sm flex-shrink-0">
+                      <div className="w-4 h-4 bg-amber-500" style={{
+                        maskImage: "url(/images/cleanning-staff.svg)",
+                        maskSize: "contain",
+                        WebkitMaskImage: "url(/images/cleanning-staff.svg)",
+                        WebkitMaskSize: "contain"
                       }} />
                     </div>
                     <span className="font-bold text-slate-800 text-sm">Cleaning Staff</span>
+                  </div>
+                </SelectItem>
+
+                <SelectItem value="User" className="rounded-lg font-medium cursor-pointer py-2.5 focus:bg-slate-50">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-slate-100 text-slate-600 shadow-sm flex-shrink-0">
+                      <User className="w-4 h-4" />
+                    </div>
+                    <span className="font-bold text-slate-800 text-sm">Standard User</span>
                   </div>
                 </SelectItem>
               </SelectContent>

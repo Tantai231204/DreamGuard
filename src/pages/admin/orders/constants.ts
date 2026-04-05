@@ -1,11 +1,18 @@
 export const OrderStatus = {
-  Pending: 1,
-  Confirmed: 2,
-  Processing: 3,
-  Shipping: 4,
-  Delivered: 5,
-  Completed: 6,
-  Cancelled: 7,
+  Pending: 0,
+  Confirmed: 1,
+  Processing: 2,
+  Shipping: 3,
+  Delivered: 4,
+  Completed: 5,
+  Cancelled: 6,
+  Returned: 7,
+  Returning: 8,
+  RefundedAndRestocked: 9,
+  RefundedAndDamaged: 10,
+  // Mapping Delivering/Arrived to existing numeric steps for UI flow
+  Delivering: 3,
+  Arrived: 4,
 } as const;
 
 export type OrderStatus = typeof OrderStatus[keyof typeof OrderStatus];
@@ -16,35 +23,58 @@ export const ORDER_STATUS_MAP: Record<string, OrderStatus> = {
   'Confirmed': OrderStatus.Confirmed,
   'Processing': OrderStatus.Processing,
   'Shipping': OrderStatus.Shipping,
+  'Delivering': OrderStatus.Shipping, // Map label to numeric
+  'Arrived': OrderStatus.Delivered,    // Map label to numeric
   'Delivered': OrderStatus.Delivered,
   'Completed': OrderStatus.Completed,
   'Cancelled': OrderStatus.Cancelled,
-  '1': OrderStatus.Pending,
-  '2': OrderStatus.Confirmed,
-  '3': OrderStatus.Processing,
-  '4': OrderStatus.Shipping,
-  '5': OrderStatus.Delivered,
-  '6': OrderStatus.Completed,
-  '7': OrderStatus.Cancelled
+  'Returned': OrderStatus.Returned,
+  'Returning': OrderStatus.Returning,
+  'RefundedAndRestocked': OrderStatus.RefundedAndRestocked,
+  'RefundedAndDamaged': OrderStatus.RefundedAndDamaged,
+
+  '0': OrderStatus.Pending,
+  '1': OrderStatus.Confirmed,
+  '2': OrderStatus.Processing,
+  '3': OrderStatus.Shipping,
+  '4': OrderStatus.Delivered,
+  '5': OrderStatus.Completed,
+  '6': OrderStatus.Cancelled,
+  '7': OrderStatus.Returned,
+  '8': OrderStatus.Returning,
+  '9': OrderStatus.RefundedAndRestocked,
+  '10': OrderStatus.RefundedAndDamaged,
 };
 
-// Admin is only allowed to manually transition to these statuses before third party shipping takes over
-export const ADMIN_ALLOWED_TRANSITION_STATUSES = ['Confirmed', 'Processing'];
+// Admin allowed manual transitions
+export const ADMIN_ALLOWED_TRANSITION_STATUSES = [
+  'Processing',
+  'Cancelled'
+];
 
 export const ADMIN_ORDER_STATUS_THEME: Record<string, { label: string }> = {
-  'Pending': { label: 'Pending' },
-  'Confirmed': { label: 'Confirmed' },
-  'Processing': { label: 'Processing' },
-  'Shipping': { label: 'Shipping' },
-  'Delivered': { label: 'Delivered' },
-  'Completed': { label: 'Completed' },
-  'Cancelled': { label: 'Cancelled' },
+  '0': { label: 'Pending' },
+  '1': { label: 'Confirmed' },
+  '2': { label: 'Processing' },
+  '3': { label: 'Delivering' },
+  '4': { label: 'Delivered' },
+  '5': { label: 'Completed' },
+  '6': { label: 'Cancelled' },
+  '7': { label: 'Returned' },
+  '8': { label: 'Returning' },
+  '9': { label: 'Refunded (Restocked)' },
+  '10': { label: 'Refunded (Damaged)' },
 
-  '1': { label: 'Pending' },
-  '2': { label: 'Confirmed' },
-  '3': { label: 'Processing' },
-  '4': { label: 'Shipping' },
-  '5': { label: 'Delivered' },
-  '6': { label: 'Completed' },
-  '7': { label: 'Cancelled' }
+  'Pending': { label: 'Pending' },
+  'Processing': { label: 'Processing' },
+  'Shipping': { label: 'Delivering' },
+  'Delivering': { label: 'Delivering' },
+  'Arrived': { label: 'Arrived' },
+  'Delivered': { label: 'Delivered' },
+  'Returned': { label: 'Returned' },
+  'Cancelled': { label: 'Cancelled' },
+  'Completed': { label: 'Completed' },
+  'Returning': { label: 'Returning' },
+  'RefundedAndRestocked': { label: 'Refunded (Restocked)' },
+  'RefundedAndDamaged': { label: 'Refunded (Damaged)' }
 };

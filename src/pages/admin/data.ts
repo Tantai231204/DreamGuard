@@ -204,14 +204,14 @@ export const mockOrderDetails: OrderDetail = {
     tax: 14.00,
     timeline: [
       {
-        title: 'Đơn hàng đã được đặt',
-        description: 'Đơn hàng của bạn đã được xác nhận',
+        title: 'Order Placed',
+        description: 'Your order has been confirmed',
         timestamp: '2026-01-28T10:30:00',
         icon: 'check',
       },
       {
-        title: 'Đang xử lý',
-        description: 'Đơn hàng đang được chuẩn bị',
+        title: 'Processing',
+        description: 'Order is being prepared',
         timestamp: '2026-01-28T14:00:00',
         icon: 'package',
       },
@@ -223,91 +223,173 @@ export const mockConversations: Conversation[] = [
     id: 'CONV-001',
     customerId: 'CUST-001',
     customerName: 'Sarah Johnson',
-    lastMessage: 'Khi nào đơn hàng của tôi được giao?',
+    lastMessage: 'When will my order be delivered?',
     lastMessageTime: '2026-02-01T10:30:00',
     unreadCount: 2,
-    status: 'active'
+    status: 'active',
+    isOnline: true,
   },
   {
     id: 'CONV-002',
     customerId: 'CUST-002',
     customerName: 'Michael Chen',
-    lastMessage: 'Cảm ơn bạn đã hỗ trợ!',
+    lastMessage: 'Thanks for your help!',
     lastMessageTime: '2026-02-01T09:15:00',
     unreadCount: 0,
-    status: 'active'
+    status: 'resolved',
+    isOnline: false,
   },
   {
     id: 'CONV-003',
     customerId: 'CUST-003',
     customerName: 'Emily Davis',
-    lastMessage: 'Tôi muốn đổi sản phẩm',
+    lastMessage: "I'd like to exchange a product",
     lastMessageTime: '2026-01-31T16:45:00',
     unreadCount: 1,
-    status: 'active'
-  }
+    status: 'pending',
+    isOnline: true,
+  },
+  {
+    id: 'CONV-004',
+    customerId: 'CUST-004',
+    customerName: 'James Wilson',
+    lastMessage: 'I need assistance with payment',
+    lastMessageTime: '2026-02-01T08:00:00',
+    unreadCount: 3,
+    status: 'active',
+    isOnline: true,
+  },
 ];
 
-export const mockMessages: Record<string, Array<{
-  id: string;
-  conversationId: string;
-  senderId: string;
-  senderName: string;
-  senderRole: 'customer' | 'admin';
-  content: string;
-  timestamp: string;
-  isRead: boolean;
-}>> = {
+import type { Message } from './chat/types';
+
+export const mockMessages: Record<string, Message[]> = {
   'CONV-001': [
     {
       id: 'MSG-001',
       conversationId: 'CONV-001',
       senderId: 'CUST-001',
       senderName: 'Sarah Johnson',
-      senderRole: 'customer' as const,
-      content: 'Xin chào, tôi đã đặt hàng từ 3 ngày trước nhưng chưa nhận được thông báo gì.',
+      senderRole: 'customer',
+      content: "Hello, I placed an order 3 days ago but haven't received any notification.",
       timestamp: '2026-02-01T10:00:00',
-      isRead: true
+      status: 'read',
     },
     {
       id: 'MSG-002',
       conversationId: 'CONV-001',
       senderId: 'ADMIN-001',
       senderName: 'Admin Support',
-      senderRole: 'admin' as const,
-      content: 'Xin chào! Cho tôi kiểm tra đơn hàng của bạn. Vui lòng cung cấp mã đơn hàng.',
+      senderRole: 'admin',
+      content: 'Hello! Let me check your order status. Please provide your order ID.',
       timestamp: '2026-02-01T10:15:00',
-      isRead: true
+      status: 'read',
     },
     {
       id: 'MSG-003',
       conversationId: 'CONV-001',
       senderId: 'CUST-001',
       senderName: 'Sarah Johnson',
-      senderRole: 'customer' as const,
-      content: 'Mã đơn hàng của tôi là ORD-001',
+      senderRole: 'customer',
+      content: 'My order ID is ORD-001',
       timestamp: '2026-02-01T10:20:00',
-      isRead: true
+      status: 'read',
     },
     {
       id: 'MSG-004',
       conversationId: 'CONV-001',
       senderId: 'ADMIN-001',
       senderName: 'Admin Support',
-      senderRole: 'admin' as const,
-      content: 'Cảm ơn bạn! Đơn hàng của bạn đã được giao thành công hôm qua. Bạn có nhận được không?',
+      senderRole: 'admin',
+      content: 'Thank you! Your order was successfully delivered yesterday. Did you receive it?',
       timestamp: '2026-02-01T10:25:00',
-      isRead: false
+      status: 'delivered',
     },
     {
       id: 'MSG-005',
       conversationId: 'CONV-001',
       senderId: 'CUST-001',
       senderName: 'Sarah Johnson',
-      senderRole: 'customer' as const,
-      content: 'Khi nào đơn hàng của tôi được giao?',
+      senderRole: 'customer',
+      content: 'When will my order be delivered?',
       timestamp: '2026-02-01T10:30:00',
-      isRead: false
-    }
-  ]
+      status: 'delivered',
+    },
+  ],
+  'CONV-002': [
+    {
+      id: 'MSG-010',
+      conversationId: 'CONV-002',
+      senderId: 'CUST-002',
+      senderName: 'Michael Chen',
+      senderRole: 'customer',
+      content: 'Hi, I have a question about the return policy.',
+      timestamp: '2026-02-01T09:00:00',
+      status: 'read',
+    },
+    {
+      id: 'MSG-011',
+      conversationId: 'CONV-002',
+      senderId: 'ADMIN-001',
+      senderName: 'Admin Support',
+      senderRole: 'admin',
+      content: 'Hello Michael! We support returns within 30 days of purchase.',
+      timestamp: '2026-02-01T09:10:00',
+      status: 'read',
+    },
+    {
+      id: 'MSG-012',
+      conversationId: 'CONV-002',
+      senderId: 'CUST-002',
+      senderName: 'Michael Chen',
+      senderRole: 'customer',
+      content: 'Thanks for your help!',
+      timestamp: '2026-02-01T09:15:00',
+      status: 'read',
+    },
+  ],
+  'CONV-003': [
+    {
+      id: 'MSG-020',
+      conversationId: 'CONV-003',
+      senderId: 'CUST-003',
+      senderName: 'Emily Davis',
+      senderRole: 'customer',
+      content: 'Can I exchange my DreamGuard from size L to XL?',
+      timestamp: '2026-01-31T16:45:00',
+      status: 'delivered',
+    },
+  ],
+  'CONV-004': [
+    {
+      id: 'MSG-030',
+      conversationId: 'CONV-004',
+      senderId: 'CUST-004',
+      senderName: 'James Wilson',
+      senderRole: 'customer',
+      content: "I can't pay with my Visa card. The system shows an error.",
+      timestamp: '2026-02-01T07:50:00',
+      status: 'delivered',
+    },
+    {
+      id: 'MSG-031',
+      conversationId: 'CONV-004',
+      senderId: 'CUST-004',
+      senderName: 'James Wilson',
+      senderRole: 'customer',
+      content: 'The error code is: PAYMENT_DECLINED_05',
+      timestamp: '2026-02-01T07:52:00',
+      status: 'delivered',
+    },
+    {
+      id: 'MSG-032',
+      conversationId: 'CONV-004',
+      senderId: 'CUST-004',
+      senderName: 'James Wilson',
+      senderRole: 'customer',
+      content: 'I need assistance with payment',
+      timestamp: '2026-02-01T08:00:00',
+      status: 'delivered',
+    },
+  ],
 };

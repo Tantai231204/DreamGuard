@@ -1,8 +1,9 @@
 import { useParams } from 'react-router-dom';
 import { useState } from 'react';
-import { Printer, Loader2, Truck, History, ChevronDown } from 'lucide-react';
+import { Printer, Truck, History, ChevronDown, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useOrderDetail, useUpdateOrderStatus, useAdminCancelOrder } from '@/hooks/queries';
+import { useOrderDetail, useUpdateOrderStatus, useAdminCancelOrder, useAdminPayments, useUpdatePaymentStatus } from '@/hooks/queries';
+import { useShippingTasksByOrder } from '@/hooks/queries/useShippingTask';
 import { useAuthStore } from '@/store/authStore';
 import { formatPrice } from '@/pages/profile/utils';
 import { formatDate } from '@/lib/utils';
@@ -17,11 +18,16 @@ import {
   OrderItemsList,
   OrderSummary,
   OrderTimeline,
-  CustomerInfoCard,
   ShippingAddressCard,
   QuickActionsCard,
   OrderNotFound,
   CancelOrderDialog,
+  ShippingAssignmentCard,
+  PaymentInfoCard,
+  AssignShippingStaffDialog,
+  ProcessReturnDialog,
+  OrderDetailSkeleton,
+  ShippingLogisticsEvidence
 } from './components';
 import { AdminStatusBadge } from '@/components/admin';
 import { OrderStatus, ORDER_STATUS_MAP, ADMIN_ALLOWED_TRANSITION_STATUSES, ADMIN_ORDER_STATUS_THEME } from './constants';
@@ -32,17 +38,23 @@ export default function OrderDetail() {
   const { data: order, isLoading, isError } = useOrderDetail(id!);
   const updateStatus = useUpdateOrderStatus();
   const cancelOrder = useAdminCancelOrder();
+  const updatePayment = useUpdatePaymentStatus();
+
   const { role } = useAuthStore();
   const isAdmin = ['Admin', 'Staff'].includes(role || '');
 
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showAssignDialog, setShowAssignDialog] = useState(false);
+  const [showProcessReturnDialog, setShowProcessReturnDialog] = useState(false);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="h-10 w-10 text-[var(--color-primary)] animate-spin" />
-      </div>
-    );
+  const { data: shippingTasks, isLoading: isTasksLoading } = useShippingTasksByOrder(id!);
+  const { data: paymentResponse } = useAdminPayments({ orderCode: order?.orderCode });
+
+  // Find active task to process return on
+  const activeTask = shippingTasks?.find(t => t.status !== "Reassigned");
+
+  if (isLoading || isTasksLoading) {
+    return <OrderDetailSkeleton />;
   }
 
   if (isError || !order) {
@@ -52,31 +64,140 @@ export default function OrderDetail() {
   const handlePrint = () => window.print();
 
   const handleUpdateStatus = (newStatus: string) => {
+    const hasActiveTask = !!shippingTasks && shippingTasks.length > 0;
+
+    // Business Logic: Require staff assignment for processing/shipping
+    if ((newStatus === 'Processing' || newStatus === 'Delivering') && !hasActiveTask) {
+      toast.error('Logistics Constraint', {
+        description: 'You must assign a technical agent before transitioning to this state.'
+      });
+      return;
+    }
+
+    // Business Logic: For COD orders, completing the order requires settling the payment first.
+    // The backend automatically completes the order when the COD payment is marked as 'CODPaid'.
+    if (newStatus === 'Completed') {
+      const orderMethod = order?.paymentMethod?.toLowerCase();
+      const hasVNPay = paymentResponse?.items?.some(p => p.paymentMethod?.toLowerCase() === 'vnpay');
+      const isCOD = orderMethod === 'cod' || (!hasVNPay && paymentResponse?.items?.some(p => p.paymentMethod?.toLowerCase() === 'cod')) || (!orderMethod && !hasVNPay);
+
+      if (isCOD) {
+        const codPayment = paymentResponse?.items?.find(p => p.paymentMethod?.toLowerCase() === 'cod') || paymentResponse?.items?.[0];
+        if (codPayment) {
+          updatePayment.mutate({ id: codPayment.id, status: 'CODPaid' }, {
+            onSuccess: () => toast.success('COD Payment Settled. Engagement finalized.'),
+            onError: () => toast.error('Failed to sync COD payment status.')
+          });
+        } else {
+          toast.error('Payment Ledger Error', { description: 'Could not locate associated COD payment record.' });
+        }
+      } else {
+        toast.info('System Automated', { description: 'VNPay orders are finalized automatically by the system.' });
+      }
+      return; // Never call updateStatus manually for 'Completed'
+    }
+
     updateStatus.mutate({ id: order.id, status: newStatus }, {
-      onSuccess: () => toast.success(`Order status updated to ${newStatus}`),
+      onSuccess: () => toast.success(`Order status synchronized to ${newStatus}`),
     });
   };
 
   const handleCancelOrder = (reason: string) => {
     cancelOrder.mutate({ id: order.id, reason }, {
       onSuccess: () => {
-          toast.success('Order cancelled successfully');
-          setShowCancelDialog(false);
+        toast.success('Order cancelled successfully');
+        setShowCancelDialog(false);
       },
     });
   };
 
-  const theme = ADMIN_ORDER_STATUS_THEME[order.status.toString()] || ADMIN_ORDER_STATUS_THEME["1"];
   const currentStatusEnum = ORDER_STATUS_MAP[order.status.toString()];
 
-  // Flow rule: Admin can cancel when Pending or Confirmed.
+  // Flow rule: Admin can cancel before delivery staff takes over (Pending or Confirmed).
   const canCancel = currentStatusEnum === OrderStatus.Pending || currentStatusEnum === OrderStatus.Confirmed;
+
+  const getTimelineItems = () => {
+    const items = [
+      {
+        title: 'Order Placed',
+        description: 'The engagement has been initiated.',
+        timestamp: order.createdAt,
+        icon: 'check',
+      }
+    ];
+
+    // Build high-fidelity timeline based on actual shipping tasks
+    if (shippingTasks && shippingTasks.length > 0) {
+      const sortedTasks = [...shippingTasks].sort((a, b) => new Date(a.shippingDate || '').getTime() - new Date(b.shippingDate || '').getTime());
+
+      sortedTasks.forEach(task => {
+        // 1. Initial assignment -> Dispatched
+        if (task.shippingDate) {
+          items.push({
+            title: 'Dispatched',
+            description: `Handed over to delivery personnel.`,
+            timestamp: task.shippingDate,
+            icon: 'package',
+          });
+        }
+
+        // 2. Specific end states mapped properly
+        if (task.status === "Arrived" && task.completionDate) {
+          items.push({
+            title: 'Arrived',
+            description: 'Agent has reached the destination.',
+            timestamp: task.completionDate,
+            icon: 'check',
+          });
+        } else if (task.status === "Delivered" && task.completionDate) {
+          items.push({
+            title: 'Delivered',
+            description: 'Engagement completed successfully.',
+            timestamp: task.completionDate,
+            icon: 'check',
+          });
+        } else if (task.status === "Returned" && task.completionDate) {
+          items.push({
+            title: 'Returned',
+            description: `Items received at central hub. ${task.staffNote ? `(${task.staffNote})` : ''}`,
+            timestamp: task.completionDate,
+            icon: 'check',
+          });
+        } else if ((task.status === "RefundedAndRestocked" || task.status === "RefundedAndDamaged" || task.status === "Returning") && task.completionDate) {
+          items.push({
+            title: 'Returning',
+            description: `Return procedure initiated. ${task.staffNote ? `(${task.staffNote})` : ''}`,
+            timestamp: task.completionDate,
+            icon: 'package',
+          });
+        } else if (task.status === "Cancelled" && task.completionDate) {
+          items.push({
+            title: 'Cancelled',
+            description: `Engagement terminated. ${task.staffNote ? `(${task.staffNote})` : ''}`,
+            timestamp: task.completionDate,
+            icon: 'check',
+          });
+        }
+      });
+    } else {
+      // Fallback legacy static states if no tasks exist
+      if (currentStatusEnum === OrderStatus.Cancelled) {
+        items.push({
+          title: 'Cancelled',
+          description: 'Engagement terminated by administration.',
+          timestamp: order.updatedAt,
+          icon: 'check',
+        });
+      }
+    }
+
+    return items.reverse();
+  };
 
   return (
     <div className="flex flex-col h-full bg-slate-50">
       {/* High-Authority Header */}
       <div className="flex-shrink-0 bg-white border-b border-blue-100/50 px-8 py-4 shadow-sm relative overflow-hidden">
-        {/* Subtle Brand Background Accent */}
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -mr-32 -mt-32 blur-3xl opacity-50" />
 
         <div className="max-w-[1600px] mx-auto flex items-center justify-between relative z-10">
@@ -87,45 +208,56 @@ export default function OrderDetail() {
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="p-0 h-auto hover:bg-transparent flex items-center gap-1 group/badge"
-                  >
-                    <AdminStatusBadge status={theme.label} />
+                  <Button variant="ghost" className="p-0 h-auto hover:bg-transparent flex items-center gap-1 group/badge">
+                    <AdminStatusBadge status={order.status.toString()} />
                     <ChevronDown className="w-3 h-3 text-slate-400 group-hover/badge:text-slate-600 transition-colors" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-48 shadow-xl border border-slate-200/60 rounded-xl p-1 animate-in fade-in zoom-in-95 duration-100 z-50">
                   <div className="px-3 py-2 border-b border-slate-50 mb-1">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Transition State</span>
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Transition Override</span>
                   </div>
                   {Object.entries(ADMIN_ORDER_STATUS_THEME)
-                    .filter(([status]) => ADMIN_ALLOWED_TRANSITION_STATUSES.includes(status))
-                    .map(([status, style]) => (
-                    <DropdownMenuItem
-                      key={status}
-                      onClick={() => handleUpdateStatus(status)}
-                      className="rounded-lg cursor-pointer py-1.5 px-2 hover:bg-slate-50 transition-colors"
-                    >
-                      <AdminStatusBadge status={style.label} className="w-full justify-start" />
-                    </DropdownMenuItem>
-                  ))}
+                    .filter(([status]) => {
+                      if (!ADMIN_ALLOWED_TRANSITION_STATUSES.includes(status)) return false;
+
+                      const targetStatusEnum = ORDER_STATUS_MAP[status];
+
+                      // Business Rule 1: Cannot move status backward
+                      if (targetStatusEnum <= currentStatusEnum) return false;
+
+                      // Business Rule 2: Cannot cancel if past Confirmed
+                      if (targetStatusEnum === OrderStatus.Cancelled) {
+                        return currentStatusEnum === OrderStatus.Pending || currentStatusEnum === OrderStatus.Confirmed;
+                      }
+
+                      return true;
+                    })
+                    .map(([status]) => (
+                      <DropdownMenuItem
+                        key={status}
+                        onClick={() => status === 'Cancelled' ? setShowCancelDialog(true) : handleUpdateStatus(status)}
+                        className="rounded-lg cursor-pointer py-1.5 px-2 hover:bg-slate-50 transition-colors"
+                      >
+                        <AdminStatusBadge status={status} className="w-full justify-start" />
+                      </DropdownMenuItem>
+                    ))}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-              Order Details <span className="text-slate-400 font-medium">#{order.id.substring(0, 8).toUpperCase()}</span>
+              Logistic Intelligence <span className="text-slate-400 font-medium">#{order.id.substring(0, 8).toUpperCase()}</span>
             </h1>
           </div>
 
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-6 border-r border-slate-100 pr-8">
               <div className="text-right">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Amount</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Valuation</p>
                 <p className="text-xl font-black text-primary tracking-tighter">{formatPrice(order.totalAmount)}</p>
               </div>
               <div className="text-right">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Date Added</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Timestamp</p>
                 <p className="text-sm font-bold text-slate-700">{formatDate(order.createdAt)}</p>
               </div>
             </div>
@@ -134,129 +266,114 @@ export default function OrderDetail() {
               variant="outline"
               onClick={handlePrint}
               size="sm"
-              className="h-10 rounded-xl border-blue-100 bg-white text-primary font-black text-[10px] uppercase tracking-widest hover:bg-blue-50/50 hover:border-primary/30 transition-all shadow-sm ring-1 ring-transparent hover:ring-primary/10 px-5 gap-2"
+              className="h-10 rounded-xl border-blue-100 bg-white text-primary font-black text-[10px] uppercase tracking-widest hover:bg-blue-50/50 hover:border-primary/30 transition-all shadow-sm px-5 gap-2"
             >
               <Printer className="h-4 w-4" />
-              Print Invoice
+              Intelligence Report
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Designer-Pro Dashboard Grid */}
       <div className="flex-1 overflow-auto custom-scrollbar p-8">
         <div className="max-w-[1600px] mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-
-            {/* LEFT COLUMN: THE MANIFEST (8cols) */}
             <div className="col-span-12 lg:col-span-8 space-y-8">
               <OrderItemsList items={order.items} />
 
-              <OrderSummary
-                subTotal={order.subTotal}
-                discountAmount={order.discountAmount}
-                totalAmount={order.totalAmount}
-              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="flex flex-col space-y-4 h-full">
+                  <div className="flex items-center justify-between px-2">
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                      <CreditCard className="w-3.5 h-3.5 text-primary" />
+                      Financial Vault
+                    </h3>
+                    <div className="h-px bg-slate-100 flex-1 ml-4" />
+                  </div>
+                  <div className="flex-1">
+                    <PaymentInfoCard
+                      orderCode={order.orderCode}
+                      delay={0.15}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col space-y-4 h-full">
+                  <div className="flex items-center justify-between px-2">
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                      <Truck className="w-3.5 h-3.5 text-primary" />
+                      Deployment Site
+                    </h3>
+                    <div className="h-px bg-slate-100 flex-1 ml-4" />
+                  </div>
+                  <div className="flex-1">
+                    <ShippingAddressCard fullName={order.receiverName} phone={order.phoneNumber} street={order.street} ward={order.ward} district={order.district} city={order.city} />
+                  </div>
+                </div>
+              </div>
+
+              <OrderSummary subTotal={order.subTotal} discountAmount={order.discountAmount} totalAmount={order.totalAmount} />
             </div>
 
-            {/* RIGHT COLUMN: OPERATIONS & LOGISTICS (4cols) */}
             <div className="col-span-12 lg:col-span-4 space-y-8">
               <QuickActionsCard
                 currentStatusEnum={currentStatusEnum}
                 onUpdateStatus={handleUpdateStatus}
                 onCancelOrder={() => setShowCancelDialog(true)}
+                onProcessReturn={() => setShowProcessReturnDialog(true)}
                 canCancel={canCancel && isAdmin}
+                hasTask={!!shippingTasks && shippingTasks.length > 0}
               />
 
-              <CancelOrderDialog
-                open={showCancelDialog}
-                onOpenChange={setShowCancelDialog}
-                onConfirm={handleCancelOrder}
-                isLoading={cancelOrder.isPending}
-                orderCode={order.orderCode}
-              />
+              {currentStatusEnum !== OrderStatus.Cancelled && (
+                <ShippingAssignmentCard
+                  orderId={order.id}
+                  onOpenAssign={() => setShowAssignDialog(true)}
+                  delay={0.1}
+                  canAssign={currentStatusEnum === OrderStatus.Confirmed}
+                />
+              )}
 
-              {/* Logistics Block */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between px-2">
-                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                    <Truck className="w-3.5 h-3.5 text-primary" />
-                    Shipping Address
-                  </h3>
-                  <div className="h-px bg-slate-100 flex-1 ml-4" />
-                </div>
-                <div className="space-y-4">
-                  <ShippingAddressCard
-                    fullName={order.receiverName}
-                    phone={order.phoneNumber}
-                    street={order.street}
-                    ward={order.ward}
-                    district={order.district}
-                    city={order.city}
-                  />
-                  <CustomerInfoCard
-                    name={order.receiverName}
-                    email="Sync pending..."
-                    phone={order.phoneNumber}
-                  />
-                </div>
-              </div>
+              {activeTask?.shippingTaskId && (
+                <ShippingLogisticsEvidence taskId={activeTask.shippingTaskId} delay={0.15} />
+              )}
 
-              {/* Audit Block */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between px-2">
                   <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
                     <History className="w-3.5 h-3.5 text-primary" />
-                    Fulfillment Log
+                    Engagement Timeline
                   </h3>
                   <div className="h-px bg-slate-100 flex-1 ml-4" />
                 </div>
-                <OrderTimeline
-                  timeline={[
-                    {
-                      title: 'Order Placed',
-                      description: 'The order has been created successfully.',
-                      timestamp: order.createdAt,
-                      icon: 'check',
-                    },
-                    ...(order.status !== 'Pending' && order.status !== 'Cancelled'
-                      ? [
-                        {
-                          title: 'Payment Confirmed',
-                          description: 'The payment has been confirmed.',
-                          timestamp: new Date(new Date(order.createdAt).getTime() + 1000 * 60 * 30).toISOString(),
-                          icon: 'check',
-                        },
-                      ]
-                      : []),
-                    ...(order.status === 'Shipping' || order.status === 'Delivered' || order.status === 'Completed'
-                      ? [
-                        {
-                          title: 'Shipped',
-                          description: 'The order has been handed over to the logistics partner.',
-                          timestamp: new Date(new Date(order.createdAt).getTime() + 1000 * 60 * 60 * 2).toISOString(),
-                          icon: 'package',
-                        },
-                      ]
-                      : []),
-                    ...(order.status === 'Delivered' || order.status === 'Completed'
-                      ? [
-                        {
-                          title: 'Delivered',
-                          description: 'The order has been delivered successfully.',
-                          timestamp: order.updatedAt,
-                          icon: 'check',
-                        },
-                      ]
-                      : []),
-                  ].reverse()}
-                />
+                <OrderTimeline timeline={getTimelineItems()} />
               </div>
             </div>
-
           </div>
         </div>
       </div>
+
+      <CancelOrderDialog
+        open={showCancelDialog}
+        onOpenChange={setShowCancelDialog}
+        onConfirm={handleCancelOrder}
+        isLoading={cancelOrder.isPending}
+        orderCode={order.orderCode}
+      />
+
+      <AssignShippingStaffDialog
+        isOpen={showAssignDialog}
+        onClose={() => setShowAssignDialog(false)}
+        orderId={order.id}
+      />
+
+      <ProcessReturnDialog
+        isOpen={showProcessReturnDialog}
+        onClose={() => setShowProcessReturnDialog(false)}
+        orderId={order.id}
+        taskId={activeTask?.shippingTaskId || ''}
+        items={order.items || []}
+      />
     </div>
   );
 }

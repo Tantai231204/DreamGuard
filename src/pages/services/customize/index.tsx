@@ -302,110 +302,86 @@ const CustomizeStudio = () => {
   }
 
   return (
-    <div className="fixed inset-0 bg-slate-50 flex flex-col font-sans selection:bg-blue-100 selection:text-blue-900 overflow-hidden">
-      <header className="sticky top-0 z-[60] h-20 w-full bg-white/70 backdrop-blur-2xl border-b border-slate-200/50 flex items-center justify-between px-10 transition-all duration-700">
-        <div className="flex items-center gap-8">
+    <div className="fixed inset-0 bg-slate-50 flex flex-col font-sans overflow-hidden">
+      <header className="sticky top-0 z-[60] h-16 w-full bg-white border-b border-slate-100 flex items-center justify-between px-8">
+        <div className="flex items-center gap-5">
           <button
             onClick={() => navigate(-1)}
-            className="h-10 w-10 rounded-2xl bg-white border border-slate-100 flex items-center justify-center hover:bg-slate-50 hover:shadow-xl hover:-translate-x-1 active:scale-90 transition-all duration-500 group"
+            className="h-9 w-9 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center hover:bg-white hover:border-slate-200 hover:-translate-x-0.5 active:scale-95 transition-all duration-200 group"
           >
-            <ArrowLeft className="h-4 w-4 text-slate-400 group-hover:text-slate-900 transition-colors" />
+            <ArrowLeft className="h-4 w-4 text-slate-400 group-hover:text-slate-700 transition-colors" />
           </button>
 
-          <div className="flex flex-col gap-1">
-            <h1 className="text-[14px] font-black text-slate-900 leading-none tracking-tight flex items-center gap-2.5 uppercase">
+          <div>
+            <h1 className="text-[13px] font-bold text-slate-900 tracking-tight flex items-center gap-2 uppercase">
               DreamGuard <span className="text-[#4988c4]">Studio</span>
-              <div className="flex gap-0.5">
-                <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
-                <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse delay-75" />
-                <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse delay-150" />
+              <div className="flex gap-0.5 ml-1">
+                <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
+                <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse delay-75" />
+                <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse delay-150" />
               </div>
             </h1>
-            <p className="text-[8px] font-black text-slate-300 uppercase tracking-[0.3em] font-mono">Bespoke System v4.5</p>
+            <p className="text-[8px] font-bold text-slate-300 uppercase tracking-[0.25em] font-mono">Bespoke System v4.5</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-10">
-          <div className="text-right flex flex-col items-end">
-            <span className="text-[8px] font-black text-slate-300 uppercase tracking-[0.25em] mb-1.5 font-mono">Estimated total</span>
-            <div className="flex items-center gap-2.5">
-              <span className="text-3xl font-black font-mono tracking-tighter text-slate-900 transition-all duration-500 hover:scale-105">
-                {new Intl.NumberFormat("vi-VN").format(totalPrice)}
-              </span>
-              <span className="text-[10px] font-black text-[#4988c4] font-mono uppercase tracking-widest bg-blue-50/50 px-2.5 py-1 rounded-lg border border-[#4988c4]/20">Vnd</span>
-            </div>
+        {/* Header: only show price — single CTA is in sidebar */}
+        <div className="text-right">
+          <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">Estimated total</p>
+          <div className="flex items-baseline gap-2 justify-end">
+            <span className="text-2xl font-bold font-mono tracking-tight text-slate-900">
+              {new Intl.NumberFormat("vi-VN").format(totalPrice)}
+            </span>
+            <span className="text-[9px] font-bold text-[#4988c4] font-mono uppercase bg-blue-50 px-2 py-0.5 rounded border border-[#4988c4]/20">VND</span>
           </div>
-
-          <Button
-            onClick={handleAddToCart}
-            disabled={isAdding}
-            className="relative h-14 px-10 rounded-3xl bg-[#4988c4] hover:bg-[#3a71a3] text-white shadow-2xl shadow-[#4988c4]/30 border-0 overflow-hidden group transition-all duration-500 active:scale-95"
-          >
-             <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out" />
-             <div className="relative z-10 flex items-center gap-3">
-                <ShoppingCart className="w-5 h-5 transition-transform duration-500 group-hover:-rotate-12 group-hover:scale-110" />
-                <span className="text-[13px] font-black uppercase tracking-[0.15em] shrink-0">
-                  {isAdding ? "Finalizing..." : "Confirm Creation"}
-                </span>
-             </div>
-          </Button>
         </div>
       </header>
 
       <main className="flex-1 overflow-hidden relative bg-[#f8fafc]">
         <div className="h-full flex overflow-hidden">
           {/* LEFT SIDEBAR */}
-          <aside className="w-[480px] bg-white border-r border-slate-100 flex flex-col h-full relative z-20 shadow-4xl shadow-slate-200/40">
-            <div className="flex-1 overflow-y-auto px-12 py-16 space-y-16 scroll-smooth no-scrollbar select-none will-change-transform">
-              {/* FOUNDATION SECTION */}
-              <div className="space-y-8">
-                <div className="flex items-center justify-between px-1">
-                  <div className="space-y-1.5 flex-1">
-                    <p className="text-[11px] font-black text-slate-900 uppercase tracking-[0.25em]">Foundation</p>
-                    <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest leading-none">Base Template Selection</p>
-                  </div>
-                  <div className="h-px bg-slate-100 flex-1 ml-4" />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
+          <aside className="w-[340px] bg-white border-r border-slate-100 flex flex-col h-full relative z-20">
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5 no-scrollbar scroll-smooth" style={{ WebkitOverflowScrolling: 'touch', willChange: 'scroll-position' }}>
+
+              {/* FOUNDATION — Product picker */}
+              <div className="space-y-3">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Foundation</p>
+                <div className="grid grid-cols-2 gap-2">
                   {derivedProducts.map((p) => (
                     <button
                       key={p.id}
                       onClick={() => setSelectedId(p.id)}
                       className={cn(
-                        "flex flex-col items-start p-6 rounded-[2.5rem] border-2 transition-all duration-500 relative overflow-hidden group",
+                        "flex flex-col items-start p-4 rounded-xl border transition-all duration-200 relative overflow-hidden group text-left",
                         selectedProduct?.id === p.id
-                          ? "border-[#4988c4] bg-blue-50/20 shadow-xl shadow-blue-100/40"
-                          : "border-slate-50 bg-slate-50/30 hover:border-slate-100 hover:bg-white hover:shadow-2xl hover:shadow-slate-100"
+                          ? "border-[#4988c4] bg-blue-50 shadow-sm"
+                          : "border-slate-100 bg-slate-50 hover:border-slate-200 hover:bg-white hover:shadow-sm"
                       )}
                     >
                       <div className={cn(
-                        "h-12 w-12 rounded-2xl flex items-center justify-center text-2xl transition-all duration-700 group-hover:rotate-12",
-                        selectedProduct?.id === p.id ? "bg-white shadow-md scale-110" : "bg-slate-100 grayscale opacity-40"
+                        "h-10 w-10 rounded-lg flex items-center justify-center text-xl mb-3 transition-all duration-200",
+                        selectedProduct?.id === p.id ? "bg-white shadow-sm" : "bg-slate-100 grayscale opacity-50"
                       )}>
                         {p.icon}
                       </div>
 
-                      <div className="mt-6 space-y-1.5 flex-1">
-                        <span className={cn(
-                          "text-[10px] font-black uppercase tracking-widest transition-colors block leading-tight",
-                          selectedProduct?.id === p.id ? "text-slate-900" : "text-slate-400 group-hover:text-slate-600"
-                        )}>{p.name}</span>
+                      <span className={cn(
+                        "text-[10px] font-bold uppercase tracking-wide leading-tight block mb-1 transition-colors",
+                        selectedProduct?.id === p.id ? "text-slate-900" : "text-slate-500"
+                      )}>{p.name}</span>
 
-                        <div className="flex items-center gap-2">
-                          <span className={cn(
-                            "text-[13px] font-black font-mono tracking-tighter",
-                            selectedProduct?.id === p.id ? "text-[#4988c4]" : "text-slate-300"
-                          )}>
-                            {new Intl.NumberFormat("vi-VN").format(p.salePrice || p.basePrice)}
-                          </span>
-                          <span className="text-[8px] font-black text-slate-300 uppercase tracking-tighter">Vnd</span>
-                        </div>
+                      <div className="flex items-baseline gap-1">
+                        <span className={cn(
+                          "text-[11px] font-bold font-mono",
+                          selectedProduct?.id === p.id ? "text-[#4988c4]" : "text-slate-300"
+                        )}>
+                          {new Intl.NumberFormat("vi-VN").format(p.salePrice || p.basePrice)}
+                        </span>
+                        <span className="text-[8px] font-bold text-slate-300 uppercase">₫</span>
                       </div>
 
                       {selectedProduct?.id === p.id && (
-                        <div className="absolute -top-6 -right-6 h-12 w-12 bg-[#4988c4] rotate-45 flex items-end justify-center pb-1">
-                          <div className="h-1.5 w-1.5 rounded-full bg-white mb-1.5" />
-                        </div>
+                        <div className="absolute top-2 right-2 h-2 w-2 rounded-full bg-[#4988c4]" />
                       )}
                     </button>
                   ))}
@@ -421,12 +397,14 @@ const CustomizeStudio = () => {
                 onDimensionsChange={setCustomDims}
                 onSelect={(id: string) => updateDesign({ size: id })}
               />
+
               <ChromaProfile
                 variants={variantPresets}
                 selectedColor={activeDesign.baseColor}
                 addOnFee={colorAddOnFee}
                 onSelect={(hex) => updateDesign({ baseColor: hex })}
               />
+
               <TextureLab
                 selectedPattern={activeDesign.pattern}
                 selectedMaterial={activeDesign.material}
@@ -443,43 +421,39 @@ const CustomizeStudio = () => {
                   }
                 }}
               />
+
+              {/* Bottom spacer */}
+              <div className="h-4" />
             </div>
 
             {/* STICKY BOTTOM ACTION RAIL */}
-            <div className="p-10 pt-8 border-t border-slate-50 bg-gradient-to-b from-white/0 via-white to-white relative z-30">
-               <div className="flex items-center justify-between mb-8 px-2">
-                  <div className="flex flex-col">
-                     <span className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em] mb-1">Total Valuation</span>
-                     <div className="flex items-baseline gap-2">
-                        <span className="text-2xl font-black text-slate-900 font-mono tracking-tighter">
-                           {new Intl.NumberFormat("vi-VN").format(totalPrice)}
-                        </span>
-                        <span className="text-[9px] font-black text-slate-400">VND</span>
-                     </div>
+            <div className="border-t border-slate-100 bg-white px-6 py-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-0.5">Total</p>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-xl font-bold text-slate-900 font-mono tracking-tight">
+                      {new Intl.NumberFormat("vi-VN").format(totalPrice)}
+                    </span>
+                    <span className="text-[9px] font-bold text-slate-400">VND</span>
                   </div>
-                  <div className="h-12 w-px bg-slate-100" />
-                  <div className="flex flex-col items-end">
-                     <span className="text-[9px] font-black text-emerald-500 uppercase tracking-[0.2em] mb-1">Status</span>
-                     <span className="text-[11px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-1.5">
-                        Ready <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                     </span>
-                  </div>
-               </div>
+                </div>
+                <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-wider">Ready</span>
+                </div>
+              </div>
 
-               <Button
-                  onClick={handleAddToCart}
-                  disabled={isAdding}
-                  className="w-full h-16 rounded-[2rem] bg-slate-900 text-white shadow-2xl shadow-slate-200/50 hover:bg-[#4988c4] transition-all duration-500 flex items-center justify-center gap-4 group"
-               >
-                  <span className="text-[13px] font-black uppercase tracking-[0.25em]">Add to Sanctuary</span>
-                  <div className="h-6 w-6 rounded-full bg-white/10 flex items-center justify-center group-hover:scale-110 transition-all">
-                     <ShoppingCart className="w-3.5 h-3.5" />
-                  </div>
-               </Button>
-               
-               <p className="text-center mt-6 text-[8px] font-black text-slate-300 uppercase tracking-[0.3em] font-mono leading-none">
-                  Finalized in Sanctuary by DreamGuard
-               </p>
+              <Button
+                variant="premium"
+                size="premiumLg"
+                onClick={handleAddToCart}
+                disabled={isAdding}
+                className="w-full h-14 rounded-2xl shadow-xl shadow-[#4988c4]/10 hover:shadow-[#4988c4]/20"
+              >
+                <ShoppingCart className="w-5 h-5 transition-transform group-hover:-rotate-12" />
+                {isAdding ? "Saving..." : "Add to Sanctuary"}
+              </Button>
             </div>
           </aside>
 
