@@ -97,10 +97,10 @@ export const useProductsByFilter = (params: ProductParams, enabled = true) => {
 
 /** Fetch all fully customized products (for 3D Studio) */
 export const useFullyCustomizedProducts = () => {
-    return useQuery({
-      queryKey: productKeys.fullyCustomized(),
-      queryFn: () => productService.getAllFullyCustomize(),
-    });
+  return useQuery({
+    queryKey: productKeys.fullyCustomized(),
+    queryFn: () => productService.getAllFullyCustomize(),
+  });
 };
 
 /** Fetch variants by product ID */
@@ -485,6 +485,33 @@ export const useReduceStock = () => {
   return useMutation({
     mutationFn: (data: ReduceStockRequest) =>
       inventoryService.reduceStock(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+      queryClient.invalidateQueries({ queryKey: variantKeys.all });
+    },
+  });
+};
+
+/** Add defect stock to a variant */
+export const useAddDefectStock = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: AddStockRequest) => inventoryService.addDefectStock(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: productKeys.all });
+      queryClient.invalidateQueries({ queryKey: variantKeys.all });
+    },
+  });
+};
+
+/** Reduce defect stock from a variant */
+export const useReduceDefectStock = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: ReduceStockRequest) =>
+      inventoryService.reduceDefectStock(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: productKeys.all });
       queryClient.invalidateQueries({ queryKey: variantKeys.all });

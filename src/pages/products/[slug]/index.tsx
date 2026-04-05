@@ -20,7 +20,7 @@ import {
   mockReviews,
   mockEligibleTradeInProducts,
 } from "./constants";
-import type { ProductSpec, TradeInProduct } from "./types";
+import type { ProductSpec } from "./types";
 import { motion } from "framer-motion";
 
 export default function ProductDetail() {
@@ -201,10 +201,6 @@ export default function ProductDetail() {
               onToggleProduct={(id: string) => actions.setSelectedTradeInProducts((prev: string[]) =>
                 prev.includes(id) ? prev.filter((x: string) => x !== id) : [...prev, id]
               )}
-              onSelectAll={() => actions.setSelectedTradeInProducts(
-                mockEligibleTradeInProducts.filter((p: TradeInProduct) => p.canTradeIn).map((p: TradeInProduct) => p.id)
-              )}
-              onClearAll={() => actions.setSelectedTradeInProducts([])}
               tradeInPercentage={30}
             />
           </div>

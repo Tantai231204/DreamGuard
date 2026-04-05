@@ -1,14 +1,31 @@
 import { motion } from 'framer-motion'
 import { TrendingUp, CreditCard, AlertCircle } from 'lucide-react'
 import { formatPrice } from '@/pages/profile/utils'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface PaymentStatsProps {
     totalRevenue: number
     pendingAmount: number
     failedCount: number
+    isLoading?: boolean
 }
 
-export function PaymentStats({ totalRevenue, pendingAmount, failedCount }: PaymentStatsProps) {
+export function PaymentStats({ totalRevenue, pendingAmount, failedCount, isLoading }: PaymentStatsProps) {
+    if (isLoading) {
+        return (
+            <div className="px-6 py-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+                {[1, 2, 3].map(i => (
+                    <div key={i} className="bg-white p-6 rounded-2xl border border-slate-200/60 flex items-center gap-5">
+                        <Skeleton className="h-12 w-12 rounded-xl" />
+                        <div className="space-y-2 flex-1">
+                            <Skeleton className="h-3 w-20" />
+                            <Skeleton className="h-6 w-32" />
+                        </div>
+                    </div>
+                ))}
+            </div>
+        )
+    }
     return (
         <div className="px-6 py-6 grid grid-cols-1 md:grid-cols-3 gap-6">
             <StatCard

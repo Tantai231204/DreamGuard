@@ -47,7 +47,7 @@ export function CancelOrderDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[440px] p-0 overflow-hidden rounded-2xl border border-white/7 bg-[#0f0f11] shadow-2xl">
+      <DialogContent className="sm:max-w-[440px] p-0 overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-3xl">
 
         {/* Accent bar */}
         <div className="h-[3px] w-full bg-gradient-to-r from-rose-500 via-orange-500 to-amber-400" />
@@ -60,28 +60,28 @@ export function CancelOrderDialog({
               <AlertCircle className="w-5 h-5 text-rose-500" strokeWidth={2} />
             </div>
             <div>
-              <DialogTitle className="text-[19px] font-semibold text-neutral-100 tracking-tight leading-tight">
-                Cancel Order
+              <DialogTitle className="text-[19px] font-black text-slate-900 tracking-tight leading-tight uppercase tracking-tighter">
+                Cancel Dispatch Order
               </DialogTitle>
-              <DialogDescription className="text-[11px] font-mono text-white/25 mt-1 tracking-wide">
-                ref: {orderCode || 'N/A'}
+              <DialogDescription className="text-[11px] font-mono text-slate-400 mt-1 tracking-wide font-bold">
+                LOGISTIC REF: {orderCode || 'N/A'}
               </DialogDescription>
             </div>
           </div>
 
           {/* Warning */}
-          <div className="flex items-start gap-2.5 px-3.5 py-3 bg-amber-500/5 border border-amber-500/18 rounded-xl">
-            <div className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-[5px] shrink-0" />
-            <p className="text-[12px] text-amber-300/85 leading-relaxed">
-              This action is irreversible. All active logistics will be aborted and the customer will be notified immediately.
+          <div className="flex items-start gap-2.5 px-3.5 py-3 bg-amber-50 border border-amber-100 rounded-xl">
+            <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-[5px] shrink-0 animate-pulse" />
+            <p className="text-[12px] text-amber-700 leading-relaxed font-medium">
+              This action is <span className="font-black underline underline-offset-2">irreversible</span>. All active logistics will be aborted and the customer will be notified immediately.
             </p>
           </div>
 
           {/* Textarea */}
           <div className="space-y-2">
             <div className="flex items-center justify-between px-0.5">
-              <label className="text-[11px] font-medium text-white/35 uppercase tracking-widest">
-                Audit reason
+              <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest">
+                Audit Audit Reason
               </label>
               <span className="text-[10px] font-mono text-rose-500/50 tracking-wider">
                 required
@@ -90,8 +90,8 @@ export function CancelOrderDialog({
             <div className="relative">
               <textarea
                 rows={4}
-                placeholder="Describe why this order is being cancelled..."
-                className="w-full bg-white/4 border border-white/8 rounded-xl px-4 py-3.5 text-[13.5px] text-neutral-200 placeholder:text-white/20 resize-none outline-none focus:border-rose-500/35 focus:bg-white/6 transition-all duration-200 leading-relaxed font-sans"
+                placeholder="Describe why this dispatch is being terminated..."
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-[13.5px] text-slate-900 placeholder:text-slate-300 resize-none outline-none focus:border-rose-300 focus:bg-white transition-all duration-200 leading-relaxed font-bold shadow-inner"
                 value={reason}
                 disabled={isLoading}
                 onChange={(e) => {
@@ -99,8 +99,8 @@ export function CancelOrderDialog({
                   if (e.target.value.trim().length >= 10) setError('');
                 }}
               />
-              <span className="absolute bottom-2.5 right-3 text-[10px] font-mono text-white/20 pointer-events-none">
-                {reason.length}
+              <span className="absolute bottom-2.5 right-3 text-[10px] font-black text-slate-300 pointer-events-none">
+                {reason.length} CHARS
               </span>
             </div>
             <AnimatePresence>
@@ -119,27 +119,24 @@ export function CancelOrderDialog({
           </div>
         </div>
 
-        {/* Divider */}
-        <div className="h-px bg-white/6 mx-7" />
-
         {/* Footer */}
-        <div className="px-7 py-5 flex items-center gap-2.5">
+        <div className="px-7 py-5 bg-slate-50 border-t border-slate-100 flex items-center gap-2.5">
           <button
             onClick={() => handleClose(false)}
             disabled={isLoading}
-            className="flex-1 h-11 rounded-xl bg-white/5 border border-white/8 text-[13px] font-medium text-white/45 hover:bg-white/8 hover:text-white/65 hover:border-white/12 transition-all duration-200 disabled:opacity-40"
+            className="flex-1 h-11 rounded-xl bg-white border border-slate-200 text-[11px] font-black uppercase tracking-widest text-slate-400 hover:bg-slate-50 hover:text-slate-900 transition-all duration-200 shadow-sm"
           >
-            Keep order
+            Keep Order
           </button>
           <button
             onClick={handleConfirm}
             disabled={isLoading}
-            className="flex-1 h-11 rounded-xl bg-rose-500 text-[13px] font-semibold text-white hover:shadow-lg hover:shadow-rose-500/35 hover:brightness-110 transition-all duration-200 active:scale-[0.98] disabled:opacity-60 flex items-center justify-center"
+            className="flex-1 h-11 rounded-xl bg-rose-600 text-[11px] font-black uppercase tracking-widest text-white hover:bg-rose-700 shadow-lg shadow-rose-500/20 active:scale-[0.98] transition-all flex items-center justify-center border-none"
           >
             {isLoading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
-              'Cancel order'
+              'Abort Logistics'
             )}
           </button>
         </div>

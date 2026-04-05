@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
+    "@microsoft/signalr": "^10.0.0",
     "@radix-ui/react-accordion": "^1.2.12",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-aspect-ratio": "^1.1.8",
@@ -31,6 +32,7 @@
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@radix-ui/react-visually-hidden": "^1.2.4",
+    "@react-spring/web": "^10.0.3",
     "@react-three/drei": "^9.114.3",
     "@react-three/fiber": "^8.17.10",
     "@tanstack/react-query": "^5.0.0",
@@ -47,6 +49,7 @@
     "embla-carousel-autoplay": "^8.6.0",
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.29.2",
+    "gsap": "^3.14.2",
     "lucide-react": "^0.367.0",
     "react": "^18.2.0",
     "react-colorful": "^5.6.1",

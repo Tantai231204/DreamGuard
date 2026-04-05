@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import type { OrderResponse } from '@/api/types/order';
 import { formatPrice } from '@/pages/profile/utils';
-import { OrderStatus, ORDER_STATUS_MAP, ADMIN_ORDER_STATUS_THEME } from '../constants';
+import { OrderStatus, ORDER_STATUS_MAP } from '../constants';
 import { formatDate, formatTime } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
 
@@ -90,13 +90,7 @@ export const useOrderColumns = (onCancelRequested: (order: OrderResponse) => voi
             {
                 accessorKey: 'status',
                 header: () => <span className="font-semibold">Status</span>,
-                cell: ({ row }) => {
-                    const status = row.original.status.toString();
-                    const theme = ADMIN_ORDER_STATUS_THEME[status] || ADMIN_ORDER_STATUS_THEME["1"];
-                    return (
-                        <AdminStatusBadge status={theme.label} />
-                    );
-                },
+                cell: ({ row }) => <AdminStatusBadge status={row.original.status.toString()} />,
             },
             {
                 accessorKey: 'createdAt',

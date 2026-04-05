@@ -1,74 +1,102 @@
-import { Clock, CheckCheck, UserCircle2 } from 'lucide-react';
-import { Avatar } from '@/components/ui/avatar';
-import { motion } from 'framer-motion';
+import { memo, useMemo } from 'react';
+import { Check, CheckCheck, Clock, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type { Message } from '../types';
+import { getAvatarGradient } from '../constants';
 
 interface MessageBubbleProps {
-  content: string;
-  timestamp: string;
-  senderRole: 'admin' | 'customer';
-  isRead?: boolean;
-  formatTime: (date: string) => string;
+  message: Message;
+  formatTime: (iso: string) => string;
 }
 
-export default function MessageBubble({
-  content,
-  timestamp,
-  senderRole,
-  isRead = false,
-  formatTime,
-}: MessageBubbleProps) {
+const STATUS_ICON = {
+  sending:   <Clock       className="h-3 w-3 text-gray-300"                   />,
+  sent:      <Check       className="h-3 w-3 text-gray-300"                   />,
+  delivered: <CheckCheck  className="h-3 w-3 text-gray-300"                   />,
+  read:      <CheckCheck  className="h-3 w-3 text-[var(--color-primary)]"     />,
+  failed:    <AlertCircle className="h-3 w-3 text-red-400"                    />,
+};
+
+function MessageBubbleInner({ message, formatTime }: MessageBubbleProps) {
+  const { content, timestamp, senderRole, senderName, status } = message;
   const isAdmin = senderRole === 'admin';
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-      className={cn('flex items-start gap-2', isAdmin ? 'flex-row-reverse' : 'flex-row')}
-    >
-      {!isAdmin && (
-        <Avatar className="h-8 w-8 bg-gray-200 flex items-center justify-center flex-shrink-0">
-          <UserCircle2 className="h-5 w-5 text-gray-600" />
-        </Avatar>
-      )}
+  const avatarGradient = useMemo(() => getAvatarGradient(senderName), [senderName]);
+  const initial        = senderName.charAt(0).toUpperCase();
+  const timeStr        = useMemo(() => formatTime(timestamp), [timestamp, formatTime]);
 
-      <motion.div
-        whileHover={{ scale: 1.01 }}
+  return (
+    <div
+      className={cn(
+        'flex items-end gap-2.5 w-full group',
+        isAdmin ? 'flex-row-reverse' : 'flex-row'
+      )}
+    >
+      {/* Avatar */}
+      <div
+        title={senderName}
         className={cn(
-          'max-w-[75%] rounded-2xl px-4 py-2.5 shadow-sm',
-          isAdmin
-            ? 'bg-gradient-to-br from-[var(--color-primary)] to-blue-600 text-white'
-            : 'bg-white text-gray-900 border border-gray-200'
+          'w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center',
+          'text-[11px] font-bold shadow-sm mb-5 select-none',
+          isAdmin ? `bg-gradient-to-br ${avatarGradient} text-white` : 'bg-gray-200 text-gray-600'
         )}
       >
-        <p className="text-sm whitespace-pre-wrap leading-relaxed">
-          {content}
-        </p>
+        {isAdmin ? 'A' : initial}
+      </div>
 
-        <div
+      {/* Content column */}
+      <div
+        className={cn(
+          'flex flex-col max-w-[68%]',
+          isAdmin ? 'items-end msg-anim-admin' : 'items-start msg-anim-customer'
+        )}
+      >
+        {/* Sender label */}
+        <span
           className={cn(
-            'flex items-center gap-1.5 mt-1.5 text-xs',
-            isAdmin ? 'text-blue-100 justify-end' : 'text-gray-500'
+            'text-[10px] font-semibold mb-1 tracking-wide uppercase',
+            isAdmin ? 'text-[var(--color-primary)] opacity-80 mr-1' : 'text-gray-400 ml-1'
           )}
         >
-          <Clock className="h-3 w-3" />
-          <span>{formatTime(timestamp)}</span>
-          {isAdmin && (
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ delay: 0.2 }}
-            >
-              {isRead ? (
-                <CheckCheck className="h-3.5 w-3.5 ml-1 text-blue-200" />
-              ) : (
-                <CheckCheck className="h-3.5 w-3.5 ml-1 opacity-50" />
-              )}
-            </motion.div>
+          {isAdmin ? 'Support' : senderName}
+        </span>
+
+        {/* Bubble */}
+        <div
+          className={cn(
+            'relative px-3.5 py-2 rounded-2xl text-sm leading-relaxed shadow-sm',
+            'whitespace-pre-wrap break-words',
+            isAdmin
+              ? 'bg-gradient-to-br from-[#4988c4] to-[#3a73a8] text-white rounded-br-sm bubble-admin'
+              : 'bg-white text-gray-800 border border-gray-200 rounded-bl-sm bubble-customer'
+          )}
+        >
+          {content}
+
+          {/* Failed retry hint */}
+          {status === 'failed' && (
+            <span className="block text-[10px] text-red-300 mt-1">
+              Failed to send — tap to retry
+            </span>
           )}
         </div>
-      </motion.div>
-    </motion.div>
+
+        {/* Time + status */}
+        <div
+          className={cn(
+            'flex items-center gap-1 mt-1 text-[10px] text-gray-400',
+            'opacity-0 group-hover:opacity-100 transition-opacity duration-200',
+            isAdmin ? 'flex-row-reverse mr-1' : 'ml-1'
+          )}
+        >
+          <span>{timeStr}</span>
+          {isAdmin && STATUS_ICON[status ?? 'sent']}
+        </div>
+      </div>
+    </div>
   );
 }
+
+export const MessageBubble = memo(MessageBubbleInner);
+MessageBubble.displayName = 'MessageBubble';
+export default MessageBubble;

@@ -1,5 +1,5 @@
 import { memo, useMemo, useState } from "react";
-import { Upload, X, Box } from "lucide-react";
+import { Upload, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { patternOptions } from "../data";
 import type { MaterialOption } from "../types";
@@ -32,19 +32,103 @@ export const TextureLab = memo(({
   }, [basePrice, currentMaterial]);
 
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-2 duration-700">
-      {/* WRAP SECTION */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between px-1">
-          <div className="space-y-1">
-            <p className="text-[11px] font-black text-slate-900 uppercase tracking-[0.25em]">Bespoke Wrap</p>
-            <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Image Overlay Projection</p>
-          </div>
-          <div className="h-px bg-slate-100 flex-1 ml-6" />
+    <div className="space-y-5">
+
+      {/* PATTERN */}
+      <div className="space-y-3">
+        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Pattern</p>
+        <div className="flex flex-wrap gap-1.5">
+          {patternOptions.map((p) => {
+            const active = selectedPattern === p.id;
+            return (
+              <button
+                key={p.id}
+                onClick={() => onPatternSelect(p.id)}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-2 rounded-lg border text-[10px] font-bold uppercase tracking-wide transition-all duration-200",
+                  active
+                    ? "border-[#4988c4] bg-[#4988c4]/8 text-[#4988c4]"
+                    : "border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200 hover:bg-white hover:text-slate-600"
+                )}
+              >
+                <span className={cn("text-sm transition-all duration-200", active ? "" : "grayscale opacity-50")}>
+                  {p.emoji}
+                </span>
+                {p.name}
+              </button>
+            );
+          })}
         </div>
+      </div>
+
+      {/* MATERIAL */}
+      {materials.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Material</p>
+            {addOnAmount > 0 && (
+              <span className="text-[9px] font-bold text-[#4988c4] font-mono bg-[#4988c4]/8 px-2 py-0.5 rounded-md border border-[#4988c4]/20">
+                +{new Intl.NumberFormat("vi-VN").format(addOnAmount)}
+              </span>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            {materials.map((m) => {
+              const active = selectedMaterial === m.id;
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => onMaterialSelect(m.id)}
+                  className={cn(
+                    "group w-full flex items-center gap-3 p-3 rounded-xl border transition-all duration-200 text-left",
+                    active
+                      ? "border-[#4988c4] bg-[#4988c4]/5 shadow-sm"
+                      : "border-slate-100 bg-white hover:border-slate-200 hover:shadow-sm"
+                  )}
+                >
+                  {/* Material dot/icon */}
+                  <div className={cn(
+                    "h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold transition-all duration-200",
+                    active ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-400"
+                  )}>
+                    {m.name.slice(0, 2).toUpperCase()}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <p className={cn(
+                      "text-[11px] font-bold uppercase tracking-wide transition-colors",
+                      active ? "text-slate-900" : "text-slate-600"
+                    )}>{m.name}</p>
+                    {m.description && (
+                      <p className="text-[9px] text-slate-400 truncate mt-0.5">{m.description}</p>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    {m.priceMultiplier !== 1 && (
+                      <span className={cn(
+                        "text-[10px] font-bold font-mono",
+                        active ? "text-[#4988c4]" : "text-slate-400"
+                      )}>×{m.priceMultiplier.toFixed(1)}</span>
+                    )}
+                    {m.badge && (
+                      <span className="text-[7px] font-bold uppercase tracking-wide bg-emerald-50 text-emerald-600 border border-emerald-100 px-1.5 py-0.5 rounded-full">{m.badge}</span>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* BESPOKE WRAP */}
+      <div className="space-y-2">
+        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Bespoke Wrap</p>
 
         {!preview ? (
-          <label className="group block w-full h-32 rounded-[2.5rem] border-2 border-dashed border-slate-100 bg-slate-50/20 hover:bg-white hover:border-blue-600 hover:shadow-2xl hover:shadow-blue-50/50 transition-all duration-700 cursor-pointer relative overflow-hidden">
+          <label className="group flex items-center justify-center gap-2 w-full h-16 rounded-xl border-2 border-dashed border-slate-200 hover:border-[#4988c4]/50 hover:bg-[#4988c4]/3 transition-all duration-200 cursor-pointer">
             <input type="file" className="hidden" accept="image/*" onChange={(e) => {
               const f = e.target.files?.[0];
               if (f) {
@@ -52,115 +136,22 @@ export const TextureLab = memo(({
                 onImageUpload(f);
               }
             }} />
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-              <div className="h-14 w-14 rounded-3xl bg-white shadow-xl flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-700">
-                <Upload className="h-6 w-6 text-blue-600" />
-              </div>
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Drop Visual Asset</p>
-            </div>
+            <Upload className="h-4 w-4 text-slate-300 group-hover:text-[#4988c4] transition-colors" />
+            <span className="text-[10px] font-bold text-slate-300 group-hover:text-[#4988c4] uppercase tracking-wider transition-colors">Upload Image</span>
           </label>
         ) : (
-          <div className="relative h-32 w-full rounded-[2.5rem] overflow-hidden border-2 border-blue-600 shadow-2xl group animate-in zoom-in-95 duration-700">
-            <img src={preview} alt="Preview" className="w-full h-full object-cover grayscale-[0.1] contrast-[1.05]" />
-            <div className="absolute inset-0 bg-blue-900/40 opacity-0 group-hover:opacity-100 transition-all duration-500 flex items-center justify-center backdrop-blur-sm">
+          <div className="relative h-16 w-full rounded-xl overflow-hidden border-2 border-[#4988c4] group">
+            <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+            <div className="absolute inset-0 bg-slate-900/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
               <button
                 onClick={() => { setPreview(null); onImageUpload(null); }}
-                className="h-12 w-12 rounded-2xl bg-white flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all duration-300"
+                className="h-7 w-7 rounded-lg bg-white flex items-center justify-center shadow-md hover:scale-105 transition-transform"
               >
-                <X className="h-5 w-5 text-rose-500" />
+                <X className="h-3.5 w-3.5 text-rose-500" />
               </button>
             </div>
           </div>
         )}
-      </div>
-
-      {/* PATTERNS SECTION */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between px-1">
-          <div className="space-y-1">
-            <p className="text-[11px] font-black text-slate-900 uppercase tracking-[0.25em]">Organic Textures</p>
-            <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Generative Pattern Lab</p>
-          </div>
-          <div className="h-px bg-slate-100 flex-1 ml-6" />
-        </div>
-        
-        <div className="flex flex-wrap gap-3">
-          {patternOptions.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => onPatternSelect(p.id)}
-              className={cn(
-                "px-5 py-3 rounded-2xl border-2 transition-all duration-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-3 group relative overflow-hidden",
-                selectedPattern === p.id
-                  ? "border-blue-600 bg-white text-blue-600 shadow-xl shadow-blue-50"
-                  : "border-slate-50 bg-slate-50/30 text-slate-400 hover:border-slate-200 hover:bg-white"
-              )}
-            >
-              <span className={cn(
-                  "text-lg transition-transform duration-500",
-                  selectedPattern === p.id ? "scale-125" : "grayscale opacity-40 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-110"
-              )}>{p.emoji}</span>
-              <span>{p.name}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* MATERIALS SECTION */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between px-1">
-          <div className="space-y-1">
-            <p className="text-[11px] font-black text-slate-900 uppercase tracking-[0.25em]">Textile Select</p>
-            <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Premium Fiber Calibration</p>
-          </div>
-          {addOnAmount > 0 && (
-            <div className="flex flex-col items-end animate-in fade-in duration-500">
-               <span className="text-[10px] font-black text-blue-600 font-mono tracking-tighter bg-blue-50 px-2 py-0.5 rounded-md border border-blue-100 shadow-sm">
-                + {new Intl.NumberFormat("vi-VN").format(addOnAmount)}
-              </span>
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-4">
-          {materials.map((m) => (
-            <button
-              key={m.id}
-              onClick={() => onMaterialSelect(m.id)}
-              className={cn(
-                "group w-full flex items-center justify-between p-5 rounded-[2.25rem] border-2 transition-all duration-700",
-                selectedMaterial === m.id
-                  ? "border-blue-600 bg-blue-50/10 shadow-2xl shadow-blue-100/40"
-                  : "border-slate-50 bg-slate-50/20 hover:border-slate-200 hover:bg-white hover:shadow-xl hover:shadow-slate-100"
-              )}
-            >
-              <div className="flex items-center gap-5">
-                <div className={cn(
-                  "h-14 w-14 rounded-[1.25rem] flex items-center justify-center transition-all duration-700",
-                  selectedMaterial === m.id ? "bg-slate-900 text-white shadow-2xl rotate-3 scale-110" : "bg-white text-slate-300 shadow-sm"
-                )}>
-                  <Box className="h-6 w-6" />
-                </div>
-                <div className="text-left space-y-1">
-                  <p className={cn(
-                    "text-[12px] font-black uppercase tracking-tight transition-colors",
-                    selectedMaterial === m.id ? "text-slate-900" : "text-slate-600"
-                  )}>{m.name}</p>
-                  <p className="text-[9px] font-bold text-slate-400 group-hover:text-slate-500 transition-colors leading-tight max-w-[180px]">{m.description}</p>
-                </div>
-              </div>
-
-              <div className="flex flex-col items-end gap-1.5">
-                 {m.priceMultiplier !== 1 && (
-                    <span className="text-[13px] font-black font-mono text-blue-600 tracking-tighter mb-1">x{m.priceMultiplier.toFixed(2)}</span>
-                 )}
-                 {m.badge && (
-                    <span className="text-[7px] font-black uppercase tracking-[0.2em] bg-emerald-50 text-emerald-600 border border-emerald-100 px-2 py-0.5 rounded-full shadow-sm">{m.badge}</span>
-                 )}
-              </div>
-            </button>
-          ))}
-        </div>
       </div>
     </div>
   );

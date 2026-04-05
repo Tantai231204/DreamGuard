@@ -1,16 +1,33 @@
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
-
+import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import type { QuickAction } from "../types";
 
 interface QuickActionsProps {
   actions: QuickAction[];
+  isLoading?: boolean;
 }
 
-export default function QuickActions({ actions }: QuickActionsProps) {
+export default function QuickActions({ actions, isLoading }: QuickActionsProps) {
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[1, 2, 3, 4].map((i) => (
+          <Card key={i} className="p-6 bg-white border border-slate-100 flex items-center gap-4">
+             <Skeleton className="h-14 w-14 rounded-xl" />
+             <div className="space-y-2 flex-1">
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-3 w-1/2" />
+             </div>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}

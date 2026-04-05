@@ -62,7 +62,7 @@ export function useStaffColumns({ onEdit, onChangeRole }: StaffColumnsProps = {}
         cell: ({ row }) => {
           const staff = row.original;
           const randomAvatarUrl = `https://api.dicebear.com/9.x/glass/svg?seed=${encodeURIComponent(staff.email || staff.fullName || row.id)}`;
-          
+
           return (
             <div className="flex items-center gap-3">
               <Avatar className="h-9 w-9 border-2 border-slate-100 shadow-sm">
@@ -102,10 +102,13 @@ export function useStaffColumns({ onEdit, onChangeRole }: StaffColumnsProps = {}
         header: ({ column }) => <SortableHeader column={column} label="Position" />,
         cell: ({ row }) => {
           const position = row.getValue('position') as string | undefined;
+          // Split camelCase/PascalCase into words (e.g. DeliveryStaff -> Delivery Staff)
+          const formattedPosition = position?.replace(/([A-Z])/g, ' $1').trim() || 'N/A';
+
           return (
             <div className="flex items-center gap-1.5 text-sm text-gray-600">
               <Briefcase className="h-3.5 w-3.5 text-gray-400" />
-              <span className="font-medium">{position || 'N/A'}</span>
+              <span className="font-medium">{formattedPosition}</span>
             </div>
           );
         },

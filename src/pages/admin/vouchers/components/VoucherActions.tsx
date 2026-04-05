@@ -14,12 +14,14 @@ export default function VoucherActions({
   onFilter,
 }: VoucherActionsProps) {
   return (
-    <AdminActions
-      onFilter={onFilter}
-      onExport={onExport}
-      onImport={onImport}
-      onAdd={onAdd}
-      addLabel="Add Voucher"
-    />
+    <div className="py-4 px-1">
+      <AdminActions
+        onFilter={onFilter}
+        onExport={onExport}
+        onImport={onImport}
+        onAdd={onAdd}
+        addLabel="Add Voucher"
+      />
+    </div>
   );
 }

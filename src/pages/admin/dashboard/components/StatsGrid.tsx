@@ -1,15 +1,35 @@
 import { motion } from "framer-motion";
 import { TrendingUp } from "lucide-react";
-
+import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
 import type { DashboardStat } from "../types";
 import { containerVariants, itemVariants } from "../data";
 
 interface StatsGridProps {
   stats: DashboardStat[];
+  isLoading?: boolean;
 }
 
-export default function StatsGrid({ stats }: StatsGridProps) {
+export default function StatsGrid({ stats, isLoading }: StatsGridProps) {
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[1, 2, 3, 4].map((i) => (
+          <Card key={i} className="p-6 bg-white border border-slate-100 shadow-sm flex flex-col gap-4">
+             <div className="flex justify-between">
+                <Skeleton className="h-12 w-12 rounded-xl" />
+                <Skeleton className="h-6 w-16 rounded-full" />
+             </div>
+             <div className="space-y-2 text-right">
+                <Skeleton className="h-4 w-24 ml-auto" />
+                <Skeleton className="h-8 w-32 ml-auto" />
+             </div>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <motion.div
       variants={containerVariants}

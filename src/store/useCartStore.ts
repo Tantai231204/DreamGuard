@@ -206,8 +206,11 @@ export const useCartStore = create<CartState>()(
 
             fetchCart: async () => {
                 if (get().isFetching) return;
-                const { isAuthenticated } = useAuthStore.getState();
-                if (!isAuthenticated) return;
+                const { isAuthenticated, role } = useAuthStore.getState();
+                
+                // Security Guard: Admins and Staff do not have a functional shopping cart via api/cart
+                const isManagement = role === 'Admin' || role === 'Staff' || (role && !['user', 'customer'].includes(role.toLowerCase()));
+                if (!isAuthenticated || isManagement) return;
 
                 set({ isFetching: true });
                 try {
@@ -330,8 +333,10 @@ export const useCartStore = create<CartState>()(
             },
 
             syncWithServer: async () => {
-                const { isAuthenticated } = useAuthStore.getState();
-                if (!isAuthenticated || get().isSyncing) return;
+                const { isAuthenticated, role } = useAuthStore.getState();
+                const isManagement = role === 'Admin' || role === 'Staff' || (role && !['user', 'customer'].includes(role.toLowerCase()));
+                if (!isAuthenticated || isManagement || get().isSyncing) return;
+
                 const localItems = get().cart.filter(i => i.id.startsWith('c_') || i.id.startsWith('l_'));
                 if (localItems.length === 0) return;
 

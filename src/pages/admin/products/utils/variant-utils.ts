@@ -31,6 +31,7 @@ export function transformAdminVariants(data: AdminVariantsByProductResponse | nu
   let inStock = 0;
   let lowStock = 0;
   let outOfStock = 0;
+  let totalDefects = 0;
   const sizeSet = new Set<string>();
   const prices: number[] = [];
 
@@ -68,6 +69,7 @@ export function transformAdminVariants(data: AdminVariantsByProductResponse | nu
       rawColorLow.includes('mặc định');
 
     let groupStock = 0;
+    let groupDefects = 0;
     let hasGroupBespoke = false;
 
     const variants = normalizedVariants.map((v) => {
@@ -125,6 +127,9 @@ export function transformAdminVariants(data: AdminVariantsByProductResponse | nu
 
       totalStock += q;
       groupStock += q;
+      const d = v.defectQuantity ?? 0;
+      groupDefects += d;
+      totalDefects += d;
       const displayPrice = v.salePrice > 0 ? v.salePrice : (v.basePrice || 0);
       prices.push(displayPrice);
 
@@ -160,6 +165,7 @@ export function transformAdminVariants(data: AdminVariantsByProductResponse | nu
       variants,
       variantCount: variants.length,
       groupStock,
+      groupDefects,
     };
   });
 
@@ -177,7 +183,8 @@ export function transformAdminVariants(data: AdminVariantsByProductResponse | nu
       inStock,
       lowStock,
       outOfStock,
-      hasIssue: lowStock > 0 || outOfStock > 0
+      totalDefects,
+      hasIssue: lowStock > 0 || outOfStock > 0 || totalDefects > 0
     }
   };
 }

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { createColumnHelper } from '@tanstack/react-table';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Pencil, Power, Eye, Copy, Percent, DollarSign } from 'lucide-react';
+import { Pencil, Eye, Copy, Trash2 } from 'lucide-react';
 import { SortableHeader, AdminRowActions, AdminStatusBadge } from '@/components/admin';
 import type { Voucher } from '../types';
 import { formatDate, formatPrice } from '@/lib/utils';
@@ -22,7 +22,6 @@ export function useVoucherColumns(options?: {
                             checked={table.getIsAllPageRowsSelected()}
                             onChange={(e) => table.toggleAllPageRowsSelected(e.target.checked)}
                             aria-label="Select all"
-                            className="data-[state=checked]:bg-[var(--color-primary)] data-[state=checked]:border-[var(--color-primary)]"
                         />
                     </div>
                 ),
@@ -32,7 +31,6 @@ export function useVoucherColumns(options?: {
                             checked={row.getIsSelected()}
                             onChange={(e) => row.toggleSelected(e.target.checked)}
                             aria-label="Select row"
-                            className="data-[state=checked]:bg-[var(--color-primary)] data-[state=checked]:border-[var(--color-primary)]"
                         />
                     </div>
                 ),
@@ -42,25 +40,15 @@ export function useVoucherColumns(options?: {
             columnHelper.accessor('code', {
                 header: ({ column }) => <SortableHeader column={column} label="Code" />,
                 cell: (info) => (
-                    <span className="font-mono font-bold text-sm text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                    <span className="font-mono font-bold text-xs text-gray-900 border border-gray-100 px-2 py-1 rounded bg-gray-50 uppercase tracking-wider">
                         {info.getValue()}
                     </span>
                 ),
             }),
 
             columnHelper.accessor('name', {
-                header: ({ column }) => <SortableHeader column={column} label="Name" />,
-                cell: (info) => {
-                    const voucher = info.row.original;
-                    return (
-                        <div>
-                            <p className="font-semibold text-gray-900">{info.getValue()}</p>
-                            <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">
-                                {voucher.description}
-                            </p>
-                        </div>
-                    );
-                },
+                header: ({ column }) => <SortableHeader column={column} label="Promotion Name" />,
+                cell: (info) => <span className="font-medium text-gray-700">{info.getValue()}</span>,
             }),
 
             columnHelper.accessor('discountValue', {
@@ -69,56 +57,24 @@ export function useVoucherColumns(options?: {
                     const voucher = info.row.original;
                     const isPercent = voucher.discountType === 'percent';
                     return (
-                        <div className="flex items-center gap-1.5">
-                            {isPercent ? (
-                                <Percent className="h-4 w-4 text-green-600" />
-                            ) : (
-                                <DollarSign className="h-4 w-4 text-green-600" />
-                            )}
-                            <span className="font-bold text-green-700">
-                                {isPercent ? `${info.getValue()}%` : formatPrice(info.getValue() as number)}
-                            </span>
-                        </div>
-                    );
-                },
-            }),
-
-            columnHelper.accessor('minDiscountAmount', {
-                header: 'Min Amount',
-                cell: (info) => (
-                    <span className="text-sm text-gray-600">{formatPrice(info.getValue() as number)}</span>
-                ),
-            }),
-
-            columnHelper.accessor('maxDiscountAmount', {
-                header: 'Max Amount',
-                cell: (info) => (
-                    <span className="text-sm text-gray-600">{formatPrice(info.getValue() as number)}</span>
-                ),
-            }),
-
-            columnHelper.accessor('startDate', {
-                header: ({ column }) => <SortableHeader column={column} label="Start Date" />,
-                cell: (info) => (
-                    <span className="text-sm text-gray-600">
-                        {formatDate(info.getValue())}
-                    </span>
-                ),
-            }),
-
-            columnHelper.accessor('endDate', {
-                header: ({ column }) => <SortableHeader column={column} label="End Date" />,
-                cell: (info) => {
-                    const endDate = new Date(info.getValue());
-                    const isExpired = endDate < new Date();
-                    return (
-                        <span className={`text-sm ${isExpired ? 'text-red-600 font-semibold' : 'text-gray-600'}`}>
-                            {formatDate(info.getValue())}
+                        <span className="font-bold text-gray-900">
+                             {isPercent ? `${info.getValue()}%` : formatPrice(info.getValue() as number)}
                         </span>
                     );
                 },
             }),
 
+            columnHelper.accessor('endDate', {
+                header: ({ column }) => <SortableHeader column={column} label="Valid Until" />,
+                cell: (info) => {
+                    const isExpired = new Date(info.getValue()) < new Date();
+                    return (
+                        <span className={`text-xs ${isExpired ? 'text-red-500 font-bold' : 'text-gray-500'}`}>
+                            {formatDate(info.getValue())}
+                        </span>
+                    );
+                },
+            }),
 
             columnHelper.accessor('isActive', {
                 header: 'Status',
@@ -142,12 +98,12 @@ export function useVoucherColumns(options?: {
                             <AdminRowActions
                                 sections={[
                                     [
-                                        { label: 'View Details', icon: <Eye className="h-4 w-4" />, onClick: () => console.log('View', voucher.voucherId) },
-                                        { label: 'Edit Voucher', icon: <Pencil className="h-4 w-4" />, onClick: () => options?.onEdit?.(voucher) },
-                                        { label: 'Duplicate', icon: <Copy className="h-4 w-4" />, onClick: () => console.log('Duplicate', voucher.voucherId) },
+                                        { label: 'View', icon: <Eye className="h-4 w-4" />, onClick: () => console.log('View', voucher.voucherId) },
+                                        { label: 'Edit', icon: <Pencil className="h-4 w-4" />, onClick: () => options?.onEdit?.(voucher) },
+                                        { label: 'Copy Code', icon: <Copy className="h-4 w-4" />, onClick: () => navigator.clipboard.writeText(voucher.code) },
                                     ],
                                     [
-                                        { label: voucher.isActive ? 'Deactivate' : 'Activate', icon: <Power className="h-4 w-4" />, variant: voucher.isActive ? 'warning' : 'success', onClick: () => options?.onDelete?.(voucher.voucherId) }
+                                        { label: 'Delete', icon: <Trash2 className="h-4 w-4" />, variant: 'danger', onClick: () => options?.onDelete?.(voucher.voucherId) }
                                     ]
                                 ]}
                             />

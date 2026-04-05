@@ -1,66 +1,108 @@
-import { MoreVertical, Phone, Video, Info } from 'lucide-react';
+import { memo, useMemo } from 'react';
+import { Phone, Video, MoreVertical, Shield, Star, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Avatar } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { motion } from 'framer-motion';
+import type { Conversation } from '../types';
+import { getAvatarGradient } from '../constants';
+import { cn } from '@/lib/utils';
 
 interface ChatHeaderProps {
-  customerName: string;
-  isOnline?: boolean;
+  conversation: Conversation;
+  isTyping?: boolean;
 }
 
-export default function ChatHeader({ customerName, isOnline = true }: ChatHeaderProps) {
+function ChatHeaderInner({ conversation, isTyping = false }: ChatHeaderProps) {
+  const { customerName, isOnline, status } = conversation;
+
+  const gradient = useMemo(() => getAvatarGradient(customerName), [customerName]);
+  const initials = useMemo(
+    () =>
+      customerName
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2),
+    [customerName]
+  );
+
+  const statusLabel = isTyping
+    ? 'Typing…'
+    : isOnline !== false
+      ? 'Online'
+      : 'Offline';
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="flex-shrink-0 px-4 py-3 border-b border-gray-200 flex items-center justify-between bg-white"
-    >
+    <div className="chat-glass-header flex-shrink-0 px-5 py-3 flex items-center justify-between">
+      {/* Left */}
       <div className="flex items-center gap-3">
         <div className="relative">
-          <Avatar className="h-10 w-10 bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold shadow-md">
-            {customerName.charAt(0)}
-          </Avatar>
-          {isOnline && (
-            <motion.span
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"
-            />
+          <div
+            className={cn(
+              'w-9 h-9 rounded-full flex items-center justify-center',
+              'text-white font-bold text-sm shadow-md select-none bg-gradient-to-br',
+              gradient
+            )}
+          >
+            {initials}
+          </div>
+          {isOnline !== false && (
+            <span className="online-dot absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-400 border-2 border-white rounded-full" />
           )}
         </div>
 
         <div>
-          <h3 className="font-semibold text-sm text-gray-900">
-            {customerName}
-          </h3>
-          <p className="text-xs text-gray-500 flex items-center gap-1.5">
-            <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-green-500' : 'bg-gray-400'}`}></span>
-            {isOnline ? 'Online' : 'Offline'}
+          <h3 className="font-semibold text-gray-900 text-sm leading-tight">{customerName}</h3>
+          <p className="text-[11px] text-gray-500 flex items-center gap-1 mt-0.5">
+            <span
+              className={cn(
+                'inline-block w-1.5 h-1.5 rounded-full',
+                isTyping ? 'bg-amber-400 animate-pulse' : isOnline !== false ? 'bg-emerald-400' : 'bg-gray-300'
+              )}
+            />
+            {statusLabel}
           </p>
         </div>
       </div>
 
-      <div className="flex items-center gap-1">
+      {/* Right — Actions */}
+      <div className="flex items-center gap-0.5">
+        {/* Conversation status badge */}
+        <span
+          className={cn(
+            'hidden sm:flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full mr-2',
+            status === 'active' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' :
+              status === 'pending' ? 'bg-amber-50   text-amber-600   border border-amber-200' :
+                status === 'resolved' ? 'bg-gray-100   text-gray-500    border border-gray-200' :
+                  'bg-gray-100   text-gray-400    border border-gray-200'
+          )}
+        >
+          {status.charAt(0).toUpperCase() + status.slice(1)}
+          <ChevronDown className="h-2.5 w-2.5" />
+        </span>
+
         <Button
           variant="ghost"
           size="sm"
-          className="h-9 w-9 p-0 hover:bg-blue-50 hover:text-[var(--color-primary)] transition-colors"
+          className="h-8 w-8 p-0 rounded-xl hover:bg-blue-50 hover:text-[var(--color-primary)] transition-all"
+          title="Voice call"
         >
-          <Phone className="h-4 w-4" />
+          <Phone className="h-3.5 w-3.5" />
         </Button>
 
         <Button
           variant="ghost"
           size="sm"
-          className="h-9 w-9 p-0 hover:bg-blue-50 hover:text-[var(--color-primary)] transition-colors"
+          className="h-8 w-8 p-0 rounded-xl hover:bg-blue-50 hover:text-[var(--color-primary)] transition-all"
+          title="Video call"
         >
-          <Video className="h-4 w-4" />
+          <Video className="h-3.5 w-3.5" />
         </Button>
 
         <DropdownMenu>
@@ -68,25 +110,31 @@ export default function ChatHeader({ customerName, isOnline = true }: ChatHeader
             <Button
               variant="ghost"
               size="sm"
-              className="h-9 w-9 p-0 hover:bg-blue-50 hover:text-[var(--color-primary)] transition-colors"
+              className="h-8 w-8 p-0 rounded-xl hover:bg-blue-50 hover:text-[var(--color-primary)] transition-all"
             >
-              <MoreVertical className="h-4 w-4" />
+              <MoreVertical className="h-3.5 w-3.5" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem>
-              <Info className="h-4 w-4 mr-2" />
-              View Profile
+          <DropdownMenuContent align="end" className="w-52 shadow-lg rounded-xl border-gray-100">
+            <DropdownMenuItem className="gap-2 text-xs cursor-pointer rounded-lg">
+              <Star className="h-3.5 w-3.5 text-amber-400" />
+              Mark as priority
             </DropdownMenuItem>
-            <DropdownMenuItem>
-              Mute Conversation
+            <DropdownMenuItem className="gap-2 text-xs cursor-pointer rounded-lg">
+              <Shield className="h-3.5 w-3.5 text-blue-500" />
+              View customer profile
             </DropdownMenuItem>
-            <DropdownMenuItem className="text-red-600">
-              Delete Conversation
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="gap-2 text-xs cursor-pointer text-red-500 rounded-lg focus:text-red-500 focus:bg-red-50">
+              Delete conversation
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-    </motion.div>
+    </div>
   );
 }
+
+export const ChatHeader = memo(ChatHeaderInner);
+ChatHeader.displayName = 'ChatHeader';
+export default ChatHeader;

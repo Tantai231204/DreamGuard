@@ -2,7 +2,14 @@ import apiClient from '../../lib/api';
 import type { PaymentResponse, PaymentDetailResponse } from '../types/payment';
 
 const paymentService = {
-    getAdminPayments: async (params?: { pageNumber?: number; pageSize?: number }): Promise<{
+    getAdminPayments: async (params?: {
+        pageNumber?: number;
+        pageSize?: number;
+        status?: string;
+        method?: string;
+        orderCode?: string;
+        key?: string;
+    }): Promise<{
         items: PaymentResponse[];
         pageNumber: number;
         pageSize: number;

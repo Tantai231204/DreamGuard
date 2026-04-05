@@ -218,9 +218,9 @@ export function useProductColumns({ onView, onEdit, onDelete, onAddVariant, onUp
                               key={s.value}
                               disabled={isDisabledOption}
                               className={cn(
-                                "rounded-lg px-2 py-2 gap-2 cursor-pointer transition-colors w-full",
-                                status === s.value ? "bg-blue-50 text-blue-700 font-bold" : "text-slate-600 hover:bg-slate-50",
-                                isDisabledOption && "opacity-50 cursor-not-allowed bg-slate-50/50"
+                                "rounded-lg px-2 py-1.5 cursor-pointer transition-all w-full",
+                                status === s.value ? "bg-blue-50/50" : "hover:bg-slate-50",
+                                isDisabledOption && "opacity-50 cursor-not-allowed"
                               )}
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -229,15 +229,8 @@ export function useProductColumns({ onView, onEdit, onDelete, onAddVariant, onUp
                                 }
                               }}
                             >
-                              <div className="flex items-center gap-2 w-full justify-between">
-                                <div className="flex items-center gap-2">
-                                  <div className={cn("h-1.5 w-1.5 rounded-full",
-                                    s.value === 'Published' ? 'bg-emerald-500' :
-                                      s.value === 'Draft' ? 'bg-amber-500' :
-                                        s.value === 'OutOfStock' ? 'bg-rose-500' : 'bg-slate-400'
-                                  )} />
-                                  <span className="text-[13px]">{s.label}</span>
-                                </div>
+                              <div className="flex items-center justify-between w-full gap-3">
+                                <AdminStatusBadge status={s.value} className="border-none shadow-none bg-transparent pl-0 py-0" />
                                 {isDisabledOption && (
                                   <span className="text-[9px] font-black text-rose-500 uppercase tracking-tighter bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100 italic">
                                     Locked

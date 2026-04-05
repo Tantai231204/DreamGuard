@@ -24,4 +24,12 @@ export const inventoryService = {
   /** Reduce stock from a variant */
   reduceStock: (data: ReduceStockRequest): Promise<InventoryResponse> =>
     apiClient.post("/inventory/reduce-stock", data),
+
+  /** Add defect stock to a variant */
+  addDefectStock: (data: AddStockRequest): Promise<InventoryResponse> =>
+    apiClient.post("/inventory/add-defect-stock", data),
+
+  /** Reduce defect stock from a variant */
+  reduceDefectStock: (data: ReduceStockRequest): Promise<InventoryResponse> =>
+    apiClient.post("/inventory/reduce-defect-stock", data),
 };

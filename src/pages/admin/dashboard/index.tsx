@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { DollarSign, Package, ShoppingCart, Users } from "lucide-react";
 
 import AdminPageHeader from "@/components/layout/AdminPageHeader";
@@ -10,6 +11,12 @@ import { formatPrice } from "@/lib/utils";
 
 export default function Dashboard() {
   const role = useAuthStore((state) => state.role);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 800);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Calculate live stats from mock data
   const orderStats = {
@@ -66,9 +73,9 @@ export default function Dashboard() {
 
       {/* Content */}
       <div className="flex-1 px-6 pb-6 overflow-y-auto space-y-6">
-        <StatsGrid stats={statsConfig} />
-        <QuickActions actions={quickActions} />
-        <RecentOrders orders={recentOrders} />
+        <StatsGrid stats={statsConfig} isLoading={isLoading} />
+        <QuickActions actions={quickActions} isLoading={isLoading} />
+        <RecentOrders orders={recentOrders} isLoading={isLoading} />
       </div>
     </div>
   );

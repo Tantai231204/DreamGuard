@@ -10,6 +10,7 @@ interface RoleConfigType {
   glowColor: string;
   iconSrc?: string;
   fallbackIcon?: React.ReactNode;
+  useImageDirectly?: boolean;
 }
 
 const roleConfig: Record<string, RoleConfigType> = {
@@ -31,6 +32,16 @@ const roleConfig: Record<string, RoleConfigType> = {
     glowColor: "shadow-[0_4px_12px_rgba(5,150,105,0.25)]",
     iconSrc: "/images/seller.svg",
   },
+  DeliveryStaff: {
+    label: "Delivery Staff",
+    bgColor: "bg-blue-600",
+    textColor: "text-white",
+    iconColor: "bg-blue-600",
+    borderColor: "border-transparent",
+    glowColor: "shadow-[0_4px_12px_rgba(37,99,235,0.25)]",
+    iconSrc: "/images/delivery.png",
+    useImageDirectly: true,
+  },
   CleaningStaff: {
     label: "Cleaning Staff",
     bgColor: "bg-amber-500",
@@ -49,6 +60,15 @@ const roleConfig: Record<string, RoleConfigType> = {
     glowColor: "shadow-[0_4px_12px_rgba(225,29,72,0.25)]",
     fallbackIcon: <ShieldCheck className="w-3.5 h-3.5" />,
   },
+  User: {
+    label: "User",
+    bgColor: "bg-slate-600",
+    textColor: "text-white",
+    iconColor: "bg-slate-600",
+    borderColor: "border-transparent",
+    glowColor: "shadow-[0_4px_12px_rgba(71,85,105,0.25)]",
+    fallbackIcon: <User className="w-3.5 h-3.5" />,
+  }
 };
 
 const defaultConfig: RoleConfigType = {
@@ -91,19 +111,27 @@ export function StaffRoleBadge({ role, className }: StaffRoleBadgeProps) {
     >
       <div className="w-7 h-7 rounded-full flex items-center justify-center bg-white shadow-[0_2px_4px_rgba(0,0,0,0.08)] flex-shrink-0 transition-transform group-hover:scale-105">
         {config.iconSrc ? (
-          <div
-            className={cn("w-3.5 h-3.5 transition-transform group-hover:rotate-3", config.iconColor)}
-            style={{
-              maskImage: `url(${config.iconSrc})`,
-              maskSize: 'contain',
-              maskPosition: 'center',
-              maskRepeat: 'no-repeat',
-              WebkitMaskImage: `url(${config.iconSrc})`,
-              WebkitMaskSize: 'contain',
-              WebkitMaskPosition: 'center',
-              WebkitMaskRepeat: 'no-repeat'
-            }}
-          />
+          config.useImageDirectly ? (
+            <img
+              src={config.iconSrc}
+              alt={config.label}
+              className="w-4 h-4 object-contain transition-transform group-hover:rotate-3"
+            />
+          ) : (
+            <div
+              className={cn("w-3.5 h-3.5 transition-transform group-hover:rotate-3", config.iconColor)}
+              style={{
+                maskImage: `url(${config.iconSrc})`,
+                maskSize: 'contain',
+                maskPosition: 'center',
+                maskRepeat: 'no-repeat',
+                WebkitMaskImage: `url(${config.iconSrc})`,
+                WebkitMaskSize: 'contain',
+                WebkitMaskPosition: 'center',
+                WebkitMaskRepeat: 'no-repeat'
+              }}
+            />
+          )
         ) : (
           <div className={cn("transition-transform group-hover:rotate-3 flex items-center justify-center", config.iconColor.replace('bg-', 'text-'))}>
             {config.fallbackIcon}
