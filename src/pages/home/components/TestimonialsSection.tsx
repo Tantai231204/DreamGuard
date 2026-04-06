@@ -1,6 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight, Quote, Star } from "lucide-react";
 import * as Avatar from "@radix-ui/react-avatar";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+gsap.registerPlugin(ScrollTrigger);
 
 interface Testimonial {
     id: number;
@@ -50,6 +54,35 @@ const testimonials: Testimonial[] = [
 
 export default function TestimonialsSection() {
     const [currentIndex, setCurrentIndex] = useState(0);
+    const sectionRef = useRef<HTMLElement>(null);
+
+    useEffect(() => {
+        const ctx = gsap.context(() => {
+            gsap.from(".anim-header", {
+                scrollTrigger: {
+                    trigger: ".anim-header",
+                    start: "top 85%",
+                },
+                y: 30,
+                opacity: 0,
+                duration: 0.8,
+                ease: "power2.out"
+            });
+
+            gsap.from(".anim-testimonials", {
+                scrollTrigger: {
+                    trigger: ".anim-testimonials",
+                    start: "top 80%",
+                },
+                y: 40,
+                opacity: 0,
+                duration: 0.8,
+                ease: "power2.out"
+            });
+        }, sectionRef);
+
+        return () => ctx.revert();
+    }, []);
 
     const nextSlide = () => {
         setCurrentIndex((prev) => (prev + 1) % Math.max(1, testimonials.length - 2));
@@ -62,10 +95,10 @@ export default function TestimonialsSection() {
     const visibleTestimonials = testimonials.slice(currentIndex, currentIndex + 3);
 
     return (
-        <section className="py-12 bg-gradient-to-b from-[var(--color-testimonials-bg-start)] to-[var(--color-testimonials-bg-end)]">
+        <section ref={sectionRef} className="py-12 bg-gradient-to-b from-[var(--color-testimonials-bg-start)] to-[var(--color-testimonials-bg-end)]">
             <div className="container mx-auto max-w-6xl px-4">
                 {/* Header */}
-                <div className="text-center mb-8">
+                <div className="anim-header text-center mb-8">
                     <h2 className="text-3xl md:text-4xl font-bold text-[var(--color-testimonials-title)] mb-1 drop-shadow-sm">
                         Hear from Other Happy Parents
                     </h2>
@@ -73,7 +106,7 @@ export default function TestimonialsSection() {
                 </div>
 
                 {/* Testimonials Carousel */}
-                <div className="relative px-12">
+                <div className="anim-testimonials relative px-12">
                     {/* Navigation Buttons */}
                     <button
                         onClick={prevSlide}

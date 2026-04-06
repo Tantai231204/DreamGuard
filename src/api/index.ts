@@ -14,6 +14,7 @@ export {
   ratingService,
   customizeTypeService,
   certificateService,
+  clientChatService,
   type VerifyOtpRequest,
   type ResetPasswordRequest,
   type ChangePasswordRequest,

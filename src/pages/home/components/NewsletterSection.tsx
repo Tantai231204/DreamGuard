@@ -1,8 +1,44 @@
+import { useEffect, useRef } from 'react'
 import { Mail } from 'lucide-react'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+
+gsap.registerPlugin(ScrollTrigger)
 
 export default function NewsletterSection() {
+    const sectionRef = useRef<HTMLElement>(null)
+
+    useEffect(() => {
+        const ctx = gsap.context(() => {
+            gsap.from(".anim-left > *", {
+                scrollTrigger: {
+                    trigger: ".anim-left",
+                    start: "top 80%",
+                },
+                y: 30,
+                opacity: 0,
+                duration: 0.8,
+                stagger: 0.15,
+                ease: "power2.out"
+            });
+
+            gsap.from(".anim-right", {
+                scrollTrigger: {
+                    trigger: ".anim-right",
+                    start: "top 80%",
+                },
+                x: 40,
+                opacity: 0,
+                duration: 0.8,
+                ease: "power2.out"
+            });
+        }, sectionRef)
+
+        return () => ctx.revert()
+    }, [])
+
     return (
-        <section className="relative w-full overflow-hidden border-t border-[var(--color-border)] bg-gradient-to-b from-[var(--color-footer-gradient-start)] via-[var(--color-footer-gradient-mid)] to-[var(--color-footer-gradient-end)]">
+        <section ref={sectionRef} className="relative w-full overflow-hidden border-t border-[var(--color-border)] bg-gradient-to-b from-[var(--color-footer-gradient-start)] via-[var(--color-footer-gradient-mid)] to-[var(--color-footer-gradient-end)]">
             {/* Background Image Watermark */}
             <div
                 className="absolute inset-x-0 inset-y-0 bg-contain bg-no-repeat opacity-[0.6] pointer-events-none select-none"
@@ -12,7 +48,7 @@ export default function NewsletterSection() {
             <div className="relative container mx-auto max-w-7xl px-8 py-16 md:py-24">
                 <div className="grid md:grid-cols-2 gap-12 md:gap-16 items-center">
                     {/* ================= LEFT: Clean Typography ================= */}
-                    <div className="flex flex-col gap-6 w-full text-left">
+                    <div className="anim-left flex flex-col gap-6 w-full text-left">
                         <div className="space-y-3">
                             <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-slate-800 leading-none tracking-tight">
                                 Stay in the loop <br className="hidden md:block" /> with us
@@ -52,7 +88,7 @@ export default function NewsletterSection() {
                     </div>
 
                     {/* ================= RIGHT: Offset Wireframe Concept ================= */}
-                    <div className="relative flex justify-center items-center h-full">
+                    <div className="anim-right relative flex justify-center items-center h-full">
                         <div className="relative w-full max-w-md">
 
                             {/* Accent Frame Underlying Wireframe */}
