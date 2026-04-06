@@ -2,6 +2,7 @@ import type { CartItem } from "@/store/cartTypes"
 import { ShoppingBag, RefreshCcw, Package, ShieldCheck } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { formatPrice } from "@/lib/utils"
+import { getColorHex } from "@/utils/color-utils"
 
 interface OrderSummaryProps {
     cart: CartItem[]
@@ -14,7 +15,7 @@ interface OrderSummaryProps {
 export function OrderSummary({ cart, totalPrice, tradeInDiscount = 0, finalTotal, estimatedDeliveryDate }: OrderSummaryProps) {
     const shipping = 0
     const baseTotal = finalTotal ?? totalPrice
-    const tax = baseTotal * 0.1
+    const tax = 0 // Resolved: UI matches API total directly, no manual tax injection
     const total = baseTotal + shipping + tax
 
     const tradeInItems = cart.filter(item => item.tradeIn && item.tradeIn.totalValue > 0)
@@ -69,28 +70,31 @@ export function OrderSummary({ cart, totalPrice, tradeInDiscount = 0, finalTotal
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <h4 className="text-sm font-black text-slate-900 truncate">{item.name}</h4>
-                                            <div className="mt-1 flex flex-wrap items-center gap-2">
-                                                <span className="text-xs font-black text-emerald-600">{formatPrice(item.subtotal)}</span>
-                                                <span className="text-[10px] text-slate-400 line-through font-bold">{formatPrice(item.quantity * item.price)}</span>
-                                                {item.isCustom && (
-                                                    <span className="px-1.5 py-0.5 rounded bg-amber-50 text-[8px] font-black text-amber-600 uppercase tracking-tighter">Custom</span>
+                                            
+                                            {/* Attributes Section */}
+                                            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                                                {item.size && (
+                                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100/50">
+                                                        {item.size}
+                                                    </span>
+                                                )}
+                                                {item.color && (
+                                                    <div className="flex items-center gap-1.5 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100/50">
+                                                        <div 
+                                                            className="w-2 h-2 rounded-full border border-slate-200 shadow-sm" 
+                                                            style={{ backgroundColor: getColorHex(item.color || item.customAttributes?.colorHex) }} 
+                                                        />
+                                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                                                            {item.color}
+                                                        </span>
+                                                    </div>
                                                 )}
                                             </div>
-                                            {(item.size === 'Custom' || item.color === 'Custom') && (
-                                                <div className="mt-1 flex flex-col gap-0.5">
-                                                    {item.size === 'Custom' && item.customAttributes?.length && (
-                                                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">
-                                                            {item.customAttributes.length}x{item.customAttributes.width}x{item.customAttributes.thickness} cm
-                                                        </span>
-                                                    )}
-                                                    {item.color === 'Custom' && item.customAttributes?.colorHex && (
-                                                        <div className="flex items-center gap-1">
-                                                            <div className="w-2 h-2 rounded-full border border-slate-200" style={{ backgroundColor: item.customAttributes.colorHex }} />
-                                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">{item.customAttributes.colorHex}</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
+
+                                            <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                                                <span className="text-xs font-black text-emerald-600">{formatPrice(item.subtotal)}</span>
+                                                <span className="text-[10px] text-slate-400 line-through font-bold">{formatPrice(item.quantity * item.price)}</span>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -123,7 +127,7 @@ export function OrderSummary({ cart, totalPrice, tradeInDiscount = 0, finalTotal
 
                     {/* Regular Items - Fixed & Sharp Design */}
                     {regularItems.map((item) => (
-                        <div key={item.id} className="flex gap-5 group/item items-center py-4 border-b border-slate-50 last:border-0">
+                        <div key={item.id} className="flex gap-5 group/item items-start py-4 border-b border-slate-50 last:border-0">
                              <div className="relative h-16 w-16 shrink-0">
                                  <div className="h-full w-full overflow-hidden rounded-xl bg-slate-50 border border-slate-100 relative">
                                      <img 
@@ -143,38 +147,37 @@ export function OrderSummary({ cart, totalPrice, tradeInDiscount = 0, finalTotal
                                     </span>
                                 </div>
                             </div>
-                             <div className="flex-1 min-w-0 pr-2">
-                                <h4 className="text-[13px] font-black text-slate-900 truncate uppercase tracking-tight">{item.name}</h4>
-                                <div className="flex flex-wrap items-center gap-2 mt-1">
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                        Qty: {item.quantity}
-                                    </p>
-                                    <span className="h-1 w-1 rounded-full bg-slate-200" />
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                        {formatPrice(item.price)}
-                                    </p>
-                                    {item.isCustom && (
-                                        <span className="px-1.5 py-0.5 rounded bg-amber-50 text-[8px] font-black text-amber-600 uppercase tracking-tighter">Custom Build</span>
+                             <div className="flex-1 min-w-0">
+                                <h4 className="text-[13px] font-black text-slate-900 truncate uppercase tracking-tight mb-1">{item.name}</h4>
+                                
+                                {/* Attributes Section */}
+                                <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                                    {item.size && (
+                                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100/50">
+                                            {item.size}
+                                        </span>
+                                    )}
+                                    {item.color && (
+                                        <div className="flex items-center gap-1 bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100/50">
+                                            <div 
+                                                className="w-1.5 h-1.5 rounded-full border border-slate-200" 
+                                                style={{ backgroundColor: getColorHex(item.color || item.customAttributes?.colorHex) }} 
+                                            />
+                                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">
+                                                {item.color}
+                                            </span>
+                                        </div>
                                     )}
                                 </div>
-                                {(item.size === 'Custom' || item.color === 'Custom') && (
-                                    <div className="mt-1.5 flex flex-col gap-1">
-                                        {item.size === 'Custom' && item.customAttributes?.length && (
-                                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none bg-slate-50 px-2 py-1 rounded w-fit">
-                                                Size: {item.customAttributes.length}x{item.customAttributes.width}x{item.customAttributes.thickness} cm
-                                            </span>
-                                        )}
-                                        {item.color === 'Custom' && item.customAttributes?.colorHex && (
-                                            <div className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded w-fit">
-                                                <div className="w-2 h-2 rounded-full border border-slate-200 shadow-sm" style={{ backgroundColor: item.customAttributes.colorHex }} />
-                                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">Color: {item.customAttributes.colorHex}</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
+
+                                <div className="flex flex-col">
+                                    <span className="text-[8px] font-black text-slate-300 uppercase tracking-[0.1em] mb-0.5">Unit Price</span>
+                                    <span className="text-[11px] font-black text-slate-900 tracking-tight">{formatPrice(item.price)}</span>
+                                </div>
                             </div>
-                            <div className="text-right">
-                                <span className="text-sm font-black text-slate-900 tracking-tight">
+                            <div className="text-right flex flex-col items-end">
+                                <span className="text-[8px] font-black text-[#4988c4] uppercase tracking-[0.1em] mb-0.5">Subtotal</span>
+                                <span className="text-sm font-black text-[#4988c4] tracking-tighter">
                                     {formatPrice(item.subtotal)}
                                 </span>
                             </div>
@@ -185,7 +188,7 @@ export function OrderSummary({ cart, totalPrice, tradeInDiscount = 0, finalTotal
                 {/* Totals Section */}
                 <div className="space-y-4 pt-10 border-t border-slate-50">
                     <div className="flex justify-between items-center px-2">
-                        <span className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 font-bold">Base Price</span>
+                        <span className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Base Price</span>
                         <span className="text-sm font-black text-slate-900">{formatPrice(totalPrice)}</span>
                     </div>
 

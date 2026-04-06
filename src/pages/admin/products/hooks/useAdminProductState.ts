@@ -16,8 +16,8 @@ export function useAdminProductState(): AdminProductState {
   const { data: categories, isLoading: isLoadingCategories } = useCategories();
 
   // Tabs
-  const activeTab = (searchParams.get('tab') as 'single' | 'combo' | 'certificate') || 'single';
-  const setActiveTab = (tab: 'single' | 'combo' | 'certificate') => {
+  const activeTab = (searchParams.get('tab') as 'single' | 'combo' | 'certificate' | 'customize') || 'single';
+  const setActiveTab = (tab: 'single' | 'combo' | 'certificate' | 'customize') => {
     setSearchParams((prev) => {
       prev.set('tab', tab);
       prev.set('page', '1');
@@ -89,6 +89,7 @@ export function useAdminProductState(): AdminProductState {
   const [variantProductId, setVariantProductId] = useState('');
   const [variantProductName, setVariantProductName] = useState('');
   const [variantProductSlug, setVariantProductSlug] = useState('');
+  const [variantProductType, setVariantProductType] = useState<import("@/api/types/product.types").FullyCustomizedProductType | undefined>();
   const [variantCount, setVariantCount] = useState(0);
 
   const [comboDialogOpen, setComboDialogOpen] = useState(false);
@@ -128,6 +129,14 @@ export function useAdminProductState(): AdminProductState {
     setSuccessDialogOpen(false);
   }, []);
 
+  const products = useMemo(() => (productData?.items as Product[]) || [], [productData]);
+
+  const takenCustomTypes = useMemo(() => {
+    return products
+      .filter((p: Product) => p.fullyCustomizedProductType && p.fullyCustomizedProductType !== 'None')
+      .map((p: Product) => p.fullyCustomizedProductType as string);
+  }, [products]);
+
   return {
     activeTab, setActiveTab,
     // Tables
@@ -140,7 +149,7 @@ export function useAdminProductState(): AdminProductState {
     certPagination, setCertPagination,
     certRowSelection, setCertRowSelection,
     // Data
-    products: (productData?.items as Product[]) || [],
+    products,
     productPageData: productData ? { totalPages: productData.totalPages, totalCount: productData.totalCount } : undefined,
     isLoadingProducts, refetchProducts,
     combos,
@@ -154,12 +163,14 @@ export function useAdminProductState(): AdminProductState {
     variantDialogOpen, setVariantDialogOpen, editingVariant, setEditingVariant,
     variantProductId, setVariantProductId, variantProductName, setVariantProductName,
     variantProductSlug, setVariantProductSlug, variantCount, setVariantCount,
+    variantProductType, setVariantProductType,
     comboDialogOpen, setComboDialogOpen, editingCombo, setEditingCombo,
     comboDialogMode, setComboDialogMode, comboDialogKey, setComboDialogKey,
     comboDefaultParentId, setComboDefaultParentId,
     certDialogOpen, setCertDialogOpen, editingCert, setEditingCert, deleteCert, setDeleteCert,
     successDialogOpen, setSuccessDialogOpen, createdProductId, setCreatedProductId,
     createdProductName, setCreatedProductName,
+    takenCustomTypes,
     imageUploadOpen, setImageUploadOpen, uploadProductId, setUploadProductId,
     uploadProductName, setUploadProductName, comboIsCurrentUpload, setComboIsCurrentUpload,
     uploadProductIdRef,

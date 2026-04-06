@@ -85,16 +85,7 @@ import { normalizeStatus, getAllowedStatusTransitions } from "../../types";
 // ── Status Helpers (Re-exported from types.ts) ─────────
 export { normalizeStatus, getAllowedStatusTransitions };
 
-export function toSlug(str: string) {
-  return str
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/đ/g, "d")
-    .replace(/Đ/g, "d")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
+export { toSlug } from "@/lib/utils";
 
 let _id = 0;
 export const nextItemId = () => `item-${++_id}-${Date.now()}`;

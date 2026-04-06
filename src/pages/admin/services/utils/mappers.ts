@@ -1,7 +1,7 @@
-import type { 
-  AdminSearchOrderServiceItem, 
-  ServiceBooking, 
-  ServiceStatus, 
+import type {
+  AdminSearchOrderServiceItem,
+  ServiceBooking,
+  ServiceStatus,
   PaymentStatus,
   ServiceAddress
 } from '../types';
@@ -21,7 +21,7 @@ export const parseAddress = (rawAddress: string | undefined): ServiceAddress => 
   // Junior way: split(',')
   // Senior way: RegEx or smarter split for Vietnam addresses
   const fullAddress = rawAddress.split(',')[0] || '';
-  
+
   return {
     street: fullAddress,
     ward: '',
@@ -32,14 +32,14 @@ export const parseAddress = (rawAddress: string | undefined): ServiceAddress => 
 
 export const mapStatus = (apiStatus: string | undefined): ServiceStatus => {
   const status = (apiStatus || '').toLowerCase();
-  
+
   // Custom mapping for legacy or inconsistent strings
   let mappedStatus = status;
   if (status === 'in_progress') mappedStatus = 'processing';
   if (status === 'refund') mappedStatus = 'refunded';
 
   const validStatus: ServiceStatus[] = [
-    'pending', 'confirmed', 'processing', 'completed', 
+    'pending', 'confirmed', 'processing', 'completed',
     'cancelled', 'rejected', 'refunded', 'forcedcancelled'
   ];
   return (validStatus.includes(mappedStatus as ServiceStatus) ? mappedStatus : 'pending') as ServiceStatus;
@@ -51,7 +51,7 @@ export const mapPaymentStatus = (apiPaymentStatus: string | undefined): PaymentS
   // If payment status is literally "COD" (meaning unpaid COD) or "CODPaid"
   if (norm === 'cod') return 'COD Unpaid';
   if (norm === 'codpaid') return 'COD Paid';
-  
+
   return apiPaymentStatus;
 };
 
@@ -81,6 +81,7 @@ export const mapApiItemToServiceOrder = (item: AdminSearchOrderServiceItem): Ser
     imageUrl: item.imageUrl || [],
     totalPrice: item.totalPrice || 0,
     notes: item.customerNote || "",
+    rating: item.rating,
     createdAt: item.createdAt || "",
     updatedAt: item.updatedAt || "",
   };

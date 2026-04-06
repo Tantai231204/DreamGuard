@@ -1,6 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useToast } from '@/hooks/useToast';
-import type { ApiError } from '@/lib/api';
 import {
     useReactTable,
     getCoreRowModel,
@@ -20,98 +19,122 @@ import {
     AdminTablePagination,
     AdminBulkActions,
 } from '@/components/admin';
-import { LoadingSpinner } from '@/components/common';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import VoucherActions from './components/VoucherActions';
 import VoucherDialog from './components/VoucherDialog';
 import { useVoucherColumns } from './components/useVoucherColumns';
 import { useVouchers, useCreateVoucher, useUpdateVoucher, useDeleteVoucher } from '@/hooks/queries/useVoucher';
 import type { Voucher } from './types';
+import { useAdminTableSync } from '@/hooks/admin/useAdminTableSync';
 
 export default function VouchersPage() {
     const toast = useToast();
-    const [globalFilter, setGlobalFilter] = useState('');
+    const {
+        pagination,
+        setPagination,
+        globalFilter,
+        setGlobalFilter,
+    } = useAdminTableSync(10);
+
     const [sorting, setSorting] = useState<SortingState>([]);
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
     const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
-    // Dialog state
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingVoucher, setEditingVoucher] = useState<Voucher | null>(null);
 
-    // Delete confirmation state
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const [voucherToDelete, setVoucherToDelete] = useState<string | string[] | null>(null);
 
-    // Gọi API lấy danh sách vouchers qua TanStack Query (trang 1)
-    const { data: vouchersData, isLoading, isError, error } = useVouchers(1);
+    const { data: vouchersData, isLoading } = useVouchers(pagination.pageIndex + 1);
 
-    // Mutations
     const createMutation = useCreateVoucher();
     const updateMutation = useUpdateVoucher();
     const deleteMutation = useDeleteVoucher();
 
     const vouchers = useMemo(() => vouchersData?.items ?? [], [vouchersData?.items]);
 
-    // Mở dialog tạo mới
     const handleAdd = useCallback(() => {
         setEditingVoucher(null);
         setDialogOpen(true);
     }, []);
 
-    // Mở dialog chỉnh sửa
     const handleEdit = useCallback((voucher: Voucher) => {
         setEditingVoucher(voucher);
         setDialogOpen(true);
     }, []);
 
-    // Xóa voucher (single)
-    const handleDelete = useCallback(
-        (voucherId: string) => {
-            setVoucherToDelete(voucherId);
-            setDeleteConfirmOpen(true);
-        },
-        []
-    );
+    const handleDelete = useCallback((voucherId: string) => {
+        setVoucherToDelete(voucherId);
+        setDeleteConfirmOpen(true);
+    }, []);
 
+    const columns = useVoucherColumns({ onEdit: handleEdit, onDelete: handleDelete });
 
+    const table = useReactTable({
+        data: vouchers,
+        columns,
+        state: { sorting, globalFilter, columnFilters, rowSelection, pagination },
+        onSortingChange: setSorting,
+        onGlobalFilterChange: setGlobalFilter,
+        onColumnFiltersChange: setColumnFilters,
+        onRowSelectionChange: setRowSelection,
+        onPaginationChange: setPagination,
+        getCoreRowModel: getCoreRowModel(),
+        getFilteredRowModel: getFilteredRowModel(),
+        getSortedRowModel: getSortedRowModel(),
+        getPaginationRowModel: getPaginationRowModel(),
+    });
 
-    // Submit form (create hoặc update)
+    const handleBulkDelete = useCallback(() => {
+        const selectedIds = table.getFilteredSelectedRowModel().rows.map((row) => (row.original as Voucher).voucherId);
+        setVoucherToDelete(selectedIds);
+        setDeleteConfirmOpen(true);
+    }, [table]);
+
+    const stats = useMemo(() => {
+        const total = vouchers.length;
+        const active = vouchers.filter((v) => v.isActive).length;
+        return { total, active };
+    }, [vouchers]);
+
+    const handleConfirmDelete = useCallback(() => {
+        if (!voucherToDelete) return;
+        if (Array.isArray(voucherToDelete)) {
+            Promise.all(voucherToDelete.map((id) => deleteMutation.mutateAsync(id)))
+                .then(() => {
+                    toast.success('Vouchers deleted', `${voucherToDelete.length} vouchers have been deleted.`);
+                    setDeleteConfirmOpen(false);
+                    setVoucherToDelete(null);
+                    setRowSelection({});
+                })
+                .catch(() => toast.error('Deletion failed', 'Some vouchers could not be deleted.'));
+        } else {
+            deleteMutation.mutate(voucherToDelete, {
+                onSuccess: () => {
+                    setDeleteConfirmOpen(false);
+                    setVoucherToDelete(null);
+                    toast.success('Voucher deleted', 'The voucher has been deleted successfully.');
+                },
+            });
+        }
+    }, [voucherToDelete, deleteMutation, toast]);
+
     const handleSubmit = useCallback(
-        (data: {
-            code: string;
-            name: string;
-            description: string;
-            discountType: 'percent' | 'fixed';
-            discountValue: number;
-            minDiscountAmount: number;
-            maxDiscountAmount: number;
-            startDate: string;
-            endDate: string;
-            isActive: boolean;
-        }) => {
-            // Convert dates to ISO datetime format for API
-            const formattedData = {
-                ...data,
-                startDate: `${data.startDate}T00:00:00Z`,
-                endDate: `${data.endDate}T23:59:59Z`,
-            };
-
+        (data: { code: string; name: string; description: string; discountType: 'percent' | 'fixed'; discountValue: number; minDiscountAmount: number; maxDiscountAmount: number; startDate: string; endDate: string; isActive: boolean; }) => {
+            const formattedData = { ...data, startDate: `${data.startDate}T00:00:00Z`, endDate: `${data.endDate}T23:59:59Z`, };
             if (editingVoucher) {
-                updateMutation.mutate(
-                    { id: editingVoucher.voucherId, data: formattedData },
-                    {
-                        onSuccess: () => {
-                            setDialogOpen(false);
-                            toast.success('Voucher updated', 'The voucher has been successfully updated.');
-                        },
-                    }
-                );
+                updateMutation.mutate({ id: editingVoucher.voucherId, data: formattedData }, {
+                    onSuccess: () => {
+                        setDialogOpen(false);
+                        toast.success('Voucher updated', 'The voucher was updated successfully.');
+                    },
+                });
             } else {
                 createMutation.mutate(formattedData, {
                     onSuccess: () => {
                         setDialogOpen(false);
-                        toast.success('Voucher created', 'The new voucher has been successfully created.');
+                        toast.success('Voucher created', 'A new voucher has been successfully created.');
                     },
                 });
             }
@@ -119,201 +142,32 @@ export default function VouchersPage() {
         [editingVoucher, createMutation, updateMutation, toast]
     );
 
-    const columns = useVoucherColumns({ onEdit: handleEdit, onDelete: handleDelete });
-
-    // Stats
-    const stats = useMemo(() => {
-        const total = vouchersData?.totalCount ?? 0;
-        const active = vouchers.filter((v) => v.isActive).length;
-        const inactive = vouchers.filter((v) => !v.isActive).length;
-        const expired = vouchers.filter((v) => new Date(v.endDate) < new Date()).length;
-        return { total, active, inactive, expired };
-    }, [vouchers, vouchersData]);
-
-    const table = useReactTable({
-        data: vouchers,
-        columns,
-        state: {
-            sorting,
-            globalFilter,
-            columnFilters,
-            rowSelection,
-        },
-        onSortingChange: setSorting,
-        onGlobalFilterChange: setGlobalFilter,
-        onColumnFiltersChange: setColumnFilters,
-        onRowSelectionChange: setRowSelection,
-        enableRowSelection: true,
-        getCoreRowModel: getCoreRowModel(),
-        getFilteredRowModel: getFilteredRowModel(),
-        getSortedRowModel: getSortedRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
-        globalFilterFn: (row, _columnId, filterValue) => {
-            const search = filterValue.toLowerCase();
-            const item = row.original as Voucher;
-            return (
-                item.code.toLowerCase().includes(search) ||
-                item.name.toLowerCase().includes(search) ||
-                item.description.toLowerCase().includes(search)
-            );
-        },
-        initialState: {
-            pagination: {
-                pageSize: 10,
-            },
-        },
-    });
-
-    // Xóa nhiều vouchers (bulk)
-    const handleBulkDelete = useCallback(() => {
-        const selectedRows = table.getFilteredSelectedRowModel().rows;
-        const ids = selectedRows.map(row => (row.original as Voucher).voucherId);
-        setVoucherToDelete(ids);
-        setDeleteConfirmOpen(true);
-    }, [table]);
-
-    const confirmDelete = useCallback(async () => {
-        if (!voucherToDelete) return;
-
-        const ids = Array.isArray(voucherToDelete) ? voucherToDelete : [voucherToDelete];
-
-        try {
-            await Promise.all(ids.map(id => deleteMutation.mutateAsync(id)));
-            toast.success('Deleted', `${ids.length} voucher(s) successfully deleted.`);
-            if (Array.isArray(voucherToDelete)) {
-                table.resetRowSelection();
-            }
-            setDeleteConfirmOpen(false);
-        } catch {
-            toast.error('Deletion Failed', 'Some vouchers could not be deleted.');
-        } finally {
-            setVoucherToDelete(null);
-        }
-    }, [voucherToDelete, deleteMutation, toast, table]);
-
-    // Loading state
-    if (isLoading) {
-        return (
-            <div className="flex flex-col h-full">
-                <AdminPageHeader
-                    title="Vouchers"
-                    description="Manage discount vouchers and promotional codes"
-                    icon={Ticket}
-                    stats={[]}
-                />
-                <div className="flex-1 flex items-center justify-center">
-                    <LoadingSpinner />
-                </div>
-            </div>
-        );
-    }
-
-    // Error state (Skip error rendering if it's just a 404 Not Found, so the table shows "No vouchers found" gracefully)
-    const isNotFoundError = (error as ApiError)?.status === 404;
-
-    if (isError && !isNotFoundError) {
-        return (
-            <div className="flex flex-col h-full">
-                <AdminPageHeader
-                    title="Vouchers"
-                    description="Manage discount vouchers and promotional codes"
-                    icon={Ticket}
-                    stats={[]}
-                />
-                <div className="flex-1 flex items-center justify-center">
-                    <div className="text-center">
-                        <p className="text-red-500 font-semibold text-lg">Failed to load vouchers</p>
-                        <p className="text-gray-500 mt-2">{error?.message || 'An unexpected error occurred'}</p>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
     const headerStats = [
-        { label: 'Total', value: stats.total },
         { label: 'Active', value: stats.active },
-        { label: 'Inactive', value: stats.inactive },
-        { label: 'Expired', value: stats.expired },
+        { label: 'Total', value: stats.total },
     ];
 
     return (
-        <div className="flex flex-col h-full">
-            <AdminPageHeader
-                title="Vouchers"
-                description="Manage discount vouchers and promotional codes"
-                icon={Ticket}
-                stats={headerStats}
-            />
+        <div className="flex flex-col h-full bg-white">
+            <AdminPageHeader title="Vouchers" description="Manage promotion codes and discounts" icon={Ticket} stats={headerStats} />
 
-            <div className="flex-1 overflow-hidden flex flex-col bg-gradient-to-br from-gray-50/50 via-white to-blue-50/30">
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex-1 bg-white rounded-2xl border-2 border-gray-100 overflow-hidden shadow-xl m-6 flex flex-col"
-                >
-                    <div className="flex flex-col h-full overflow-hidden">
-                        {/* Bulk Actions */}
-                        <AdminBulkActions
-                            table={table}
-                            itemLabel="voucher"
-                            accentColor="black"
-                            onDelete={handleBulkDelete}
-                        />
+            <div className="flex-1 overflow-hidden flex flex-col px-6">
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex-1 flex flex-col min-h-0 bg-white">
+                    <AdminBulkActions table={table} itemLabel="voucher" accentColor="black" onDelete={handleBulkDelete} />
+                    <VoucherActions onAdd={handleAdd} onExport={() => { }} onImport={() => { }} onFilter={() => { }} />
 
-                        {/* Actions Toolbar */}
-                        <VoucherActions
-                            onAdd={handleAdd}
-                            onExport={() => console.log('Export')}
-                            onImport={() => console.log('Import')}
-                            onFilter={() => console.log('Filter')}
-                        />
+                    <AdminTableSearch table={table} value={globalFilter} onChange={setGlobalFilter} placeholder="Search by code or name..." />
 
-                        {/* Search */}
-                        <AdminTableSearch
-                            table={table}
-                            value={globalFilter}
-                            onChange={setGlobalFilter}
-                            placeholder="Search vouchers by code, name, or description..."
-                            resultCount={table.getFilteredRowModel().rows.length}
-                            resultLabel="vouchers"
-                        />
-
-                        {/* Table */}
-                        <div className="flex-1 overflow-auto">
-                            <AdminTableContent
-                                table={table}
-                                emptyMessage="No vouchers found"
-                            />
-                        </div>
-
-                        {/* Pagination */}
-                        <AdminTablePagination table={table} itemLabel="vouchers" />
+                    <div className="flex-1 overflow-auto border rounded-xl mt-4">
+                        <AdminTableContent table={table} emptyMessage="No vouchers found" isLoading={isLoading} />
                     </div>
+
+                    <AdminTablePagination table={table} itemLabel="vouchers" />
                 </motion.div>
             </div>
 
-            {/* Create / Edit Dialog */}
-            <VoucherDialog
-                open={dialogOpen}
-                onOpenChange={setDialogOpen}
-                voucher={editingVoucher}
-                onSubmit={handleSubmit}
-                isLoading={createMutation.isPending || updateMutation.isPending}
-            />
-
-            {/* Delete Confirmation Dialog */}
-            <ConfirmDialog
-                open={deleteConfirmOpen}
-                onOpenChange={setDeleteConfirmOpen}
-                title="Delete Voucher?"
-                description="Are you sure you want to delete this voucher? This action cannot be undone and customers will no longer be able to use this voucher code."
-                confirmText="Delete Voucher"
-                cancelText="Keep Voucher"
-                onConfirm={confirmDelete}
-                variant="danger"
-                isLoading={deleteMutation.isPending}
-            />
+            <VoucherDialog open={dialogOpen} onOpenChange={setDialogOpen} voucher={editingVoucher} onSubmit={handleSubmit} isLoading={createMutation.isPending || updateMutation.isPending} />
+            <ConfirmDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen} title="Delete Voucher" description={Array.isArray(voucherToDelete) ? `Are you sure you want to delete ${voucherToDelete.length} vouchers?` : "Are you sure you want to delete this voucher?"} confirmText="Delete" onConfirm={handleConfirmDelete} variant="danger" isLoading={deleteMutation.isPending} />
         </div>
     );
 }

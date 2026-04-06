@@ -133,3 +133,49 @@ export interface UpdateProductStatusParams {
   productId: string;
   status: string;
 }
+
+// ── Fully Customized Product ──────────────────────────────────────────
+
+export type FullyCustomizedProductType = "None" | "Mattresses" | "Pillows" | "Cribs";
+
+export interface FullyCustomizedProductResponse {
+  id: string;
+  name: string;
+  slug: string;
+  summary: string;
+  description?: string;
+  material?: string;
+  ageGroup?: string | number | null;
+  averageRating?: number;
+  warrantyPolicyDay?: number | null;
+  returnPolicyDay?: number | null;
+  fullyCustomizedProductType?: FullyCustomizedProductType;
+  sku?: string;
+  basePrice: number;
+  salePrice: number;
+  weight?: number;
+  imageUrls?: string[];
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateFullyCustomizedProductRequest {
+  name: string;
+  slug: string;
+  summary: string;
+  description: string;
+  warrantyPolicyDay: number;
+  returnPolicyDay: number;
+  fullyCustomizedProductType: FullyCustomizedProductType;
+  sku: string;
+  basePrice: number;
+  salePrice: number;
+  weight: number;
+  ageGroup?: string | null;
+  cateId?: number | null;
+}
+
+export interface UpdateFullyCustomizedProductRequest extends CreateFullyCustomizedProductRequest {
+  id: string;
+}

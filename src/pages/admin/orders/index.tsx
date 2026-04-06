@@ -1,5 +1,4 @@
 import { useState, useMemo, useCallback } from 'react'
-import { useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
     useReactTable,
@@ -8,112 +7,99 @@ import {
     type SortingState,
     type ColumnFiltersState,
     type RowSelectionState,
-    type Updater,
-    type PaginationState,
 } from '@tanstack/react-table'
 import { ShoppingCart } from 'lucide-react'
 
 import AdminPageHeader from '@/components/layout/AdminPageHeader'
 import { AdminTableSearch, AdminTableContent, AdminTablePagination, AdminActions } from '@/components/admin'
 
-import { useOrderColumns } from './components'
-import { useAdminOrders } from '@/hooks/queries'
-import { useDebounce } from '@/hooks/useDebounce'
+import { useOrderColumns, CancelOrderDialog } from './components'
+import { useAdminOrders, useAdminCancelOrder } from '@/hooks/queries'
 import { downloadCSV } from '@/lib/export'
+import { toast } from 'sonner'
+import type { OrderResponse } from '@/api/types/order'
+import { useAdminTableSync } from '@/hooks/admin/useAdminTableSync'
 
+/**
+ * High-Performance Order Management
+ * Optimized with useAdminTableSync for atomic URL synchronization
+ * Features unified loading skeletons and streamlined state logic
+ */
 export default function OrderManagement() {
-    const [searchParams, setSearchParams] = useSearchParams()
+    const {
+        pagination,
+        setPagination,
+        globalFilter,
+        setGlobalFilter,
+        debouncedFilter
+    } = useAdminTableSync(10);
+
     const [sorting, setSorting] = useState<SortingState>([])
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-    
-    const pagination = useMemo(() => ({
-        pageIndex: parseInt(searchParams.get('page') || '1') - 1,
-        pageSize: parseInt(searchParams.get('pageSize') || '10'),
-    }), [searchParams])
+    const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
 
-    const globalFilter = searchParams.get('search') || ''
-
-    const setPagination = useCallback((updaterOrValue: Updater<PaginationState>) => {
-        const next = typeof updaterOrValue === 'function' ? updaterOrValue(pagination) : updaterOrValue;
-        setSearchParams((prev) => {
-            prev.set('page', String(next.pageIndex + 1));
-            prev.set('pageSize', String(next.pageSize));
-            return prev;
-        });
-    }, [pagination, setSearchParams]);
-
-    const setGlobalFilter = useCallback((value: string) => {
-        setSearchParams((prev) => {
-            if (value) prev.set('search', value);
-            else prev.delete('search');
-            prev.set('page', '1');
-            return prev;
-        });
-    }, [setSearchParams]);
-
-    const debouncedSearch = useDebounce(globalFilter, 500)
+    // Cancellation State
+    const [isCancelOpen, setIsCancelOpen] = useState(false)
+    const [orderToCancel, setOrderToCancel] = useState<OrderResponse | null>(null)
+    const cancelOrderMutation = useAdminCancelOrder()
 
     const statusFilter = useMemo(() => {
         const filter = columnFilters.find(f => f.id === 'status')
         return filter ? (filter.value as string[]) : undefined
     }, [columnFilters])
 
-    const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
+    const onCancelRequested = useCallback((order: OrderResponse) => {
+        setOrderToCancel(order);
+        setIsCancelOpen(true);
+    }, []);
 
-    const columns = useOrderColumns()
+    const columns = useOrderColumns(onCancelRequested)
 
     const { data: orderData, isPending } = useAdminOrders({
         pageNumber: pagination.pageIndex + 1,
         pageSize: pagination.pageSize,
-        search: debouncedSearch,
+        search: debouncedFilter,
         status: statusFilter,
         sortBy: sorting[0]?.id,
         sortOrder: sorting[0]?.desc ? 'desc' : 'asc'
     })
+
+    const handleConfirmCancel = async (reason: string) => {
+        if (!orderToCancel) return;
+        cancelOrderMutation.mutate({ id: orderToCancel.id, reason }, {
+            onSuccess: () => {
+                toast.success(`Order ${orderToCancel.orderCode} cancelled successfully`);
+                setIsCancelOpen(false);
+                setOrderToCancel(null);
+            }
+        });
+    };
 
     const data = useMemo(() => orderData?.items ?? [], [orderData])
     const pageCount = orderData?.totalPages ?? -1
 
     const handleExport = useCallback(() => {
         const exportData = data.map(order => ({
-            ID: order.id || '',
-            Code: order.orderCode || '',
-            ItemCount: order.itemCount || 0,
-            Total: order.totalAmount || 0,
-            Status: order.status || '',
-            Date: order.createdAt || ''
-        }));
-        downloadCSV(exportData, 'Orders');
-    }, [data]);
+            Code: order.orderCode,
+            Total: order.totalAmount,
+            Status: order.status,
+            Date: order.createdAt
+        }))
+        downloadCSV(exportData, 'Orders_Export')
+    }, [data])
 
     const table = useReactTable({
         data,
         columns,
-        state: {
-            sorting,
-            columnFilters,
-            globalFilter,
-            rowSelection,
-            pagination,
-        },
-
+        pageCount,
+        state: { sorting, columnFilters, globalFilter, rowSelection, pagination },
         onPaginationChange: setPagination,
-        manualPagination: true,
-        pageCount: pageCount,
-
         onSortingChange: setSorting,
-        manualSorting: true,
-        enableSorting: true,
-
         onColumnFiltersChange: setColumnFilters,
-        manualFiltering: true,
-
         onGlobalFilterChange: setGlobalFilter,
-        enableGlobalFilter: true,
-
-        onRowSelectionChange: setRowSelection,
+        manualPagination: true,
         enableRowSelection: true,
-
+        onRowSelectionChange: setRowSelection,
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
     })
@@ -122,48 +108,47 @@ export default function OrderManagement() {
         <div className="flex flex-col h-full">
             <AdminPageHeader
                 title="Order Management"
-                description="Track and manage all customer orders"
+                description="Monitor and process customer orders in real-time"
                 icon={ShoppingCart}
                 stats={[
-                    { label: 'Total Orders', value: orderData?.totalCount || 0 },
-                    { label: 'Total Pages', value: orderData?.totalPages || 0 },
-                    { label: 'Current Page', value: orderData?.pageNumber || 0 },
+                    { label: 'Today', value: orderData?.totalCount || 0 },
+                    { label: 'Pending', value: data.filter(o => o.status === 0).length }
                 ]}
             />
 
-            <div className="flex-1 overflow-hidden bg-gradient-to-br from-gray-50/50 via-white to-blue-50/30">
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="m-6 bg-white rounded-2xl border-2 border-gray-100 overflow-hidden shadow-xl flex flex-col h-[calc(100%-3rem)]"
-                >
-
-
-                    <AdminActions
-                        onFilter={() => console.log('Filter')}
-                        onExport={handleExport}
-                        onImport={() => console.log('Import')}
-                    />
-
+            <div className="flex-1 overflow-hidden flex flex-col bg-gradient-to-br from-gray-50/50 via-white to-blue-50/30">
+                <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="flex-1 bg-white rounded-2xl border-2 border-gray-100 overflow-hidden shadow-xl m-6 flex flex-col">
                     <AdminTableSearch
+                        table={table}
                         value={globalFilter}
                         onChange={setGlobalFilter}
-                        placeholder="Search orders by order ID or code..."
-                        table={table}
+                        placeholder="Search orders, customers..."
+                        resultCount={orderData?.totalCount || 0}
+                        resultLabel="orders"
+                        actions={<AdminActions onExport={handleExport} />}
                     />
-                    <div className="flex-1 overflow-auto">
+
+                    <div className="flex-1 overflow-auto bg-white border-y border-gray-100">
                         <AdminTableContent
                             table={table}
-                            emptyMessage="No orders found"
+                            emptyMessage="No results match your current inquiry."
                             isLoading={isPending}
                         />
                     </div>
-                    <AdminTablePagination
-                        table={table}
-                        itemLabel="orders"
-                    />
+
+                    <div className="p-4 bg-white border-t border-gray-100">
+                        <AdminTablePagination table={table} itemLabel="orders" />
+                    </div>
                 </motion.div>
             </div>
+
+            <CancelOrderDialog
+                open={isCancelOpen}
+                onOpenChange={setIsCancelOpen}
+                orderCode={orderToCancel?.orderCode || ''}
+                onConfirm={handleConfirmCancel}
+                isLoading={cancelOrderMutation.isPending}
+            />
         </div>
     )
 }

@@ -85,10 +85,22 @@ export function useCustomizeTypeColumns({ onView, onEdit, onDelete }: UseCustomi
         accessorKey: 'category',
         header: ({ column }) => <SortableHeader column={column} label="Category" />,
         cell: ({ row }) => (
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-50 border border-slate-200 shadow-sm">
-                <div className="w-1.5 h-1.5 rounded-full bg-[#4988c4]" />
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-50 border border-slate-200 shadow-sm animate-in fade-in zoom-in duration-300">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#4988c4] shadow-[0_0_5px_rgba(73,136,196,0.5)]" />
                 <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">
                     {row.original.category}
+                </span>
+            </div>
+        ),
+        size: 130,
+    },
+    {
+        accessorKey: 'applicableProductType',
+        header: ({ column }) => <SortableHeader column={column} label="Target Type" />,
+        cell: ({ row }) => (
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 border border-indigo-100 shadow-sm">
+                <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600">
+                    {row.original.applicableProductType}
                 </span>
             </div>
         ),

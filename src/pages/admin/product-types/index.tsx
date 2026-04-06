@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useAdminTableSync } from '@/hooks/admin/useAdminTableSync';
 import {
     useReactTable,
     getCoreRowModel,
@@ -11,8 +11,6 @@ import type {
     SortingState,
     ColumnFiltersState,
     RowSelectionState,
-    PaginationState,
-    Updater,
 } from '@tanstack/react-table';
 import { CheckCircle2, Filter, Check } from 'lucide-react';
 import { ProductAssetIcons } from '@/components/common/icons';
@@ -44,24 +42,26 @@ import {
     useDeleteProductType
 } from '@/hooks/queries/useProductType';
 import { useToast } from '@/hooks/useToast';
-import { useDebounce } from '@/hooks/useDebounce';
 import { downloadCSV } from '@/lib/export';
 import { cn } from '@/lib/utils';
 import type { ProductType } from '@/api/services/productTypeService';
 
 export default function ProductTypePage() {
     const toast = useToast();
-    const [searchParams, setSearchParams] = useSearchParams();
+    const {
+        pagination,
+        setPagination,
+        globalFilter,
+        debouncedFilter,
+        setGlobalFilter,
+        setFieldFilter,
+        getFieldFilter,
+    } = useAdminTableSync(10);
+
     const [sorting, setSorting] = useState<SortingState>([]);
     const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
-    const pagination = useMemo(() => ({
-        pageIndex: parseInt(searchParams.get('page') || '1') - 1,
-        pageSize: parseInt(searchParams.get('pageSize') || '10'),
-    }), [searchParams]);
-
-    const globalFilter = searchParams.get('search') || '';
-    const statusFilter = searchParams.get('status') || 'all';
+    const statusFilter = getFieldFilter('status');
 
     // Standard ColumnFilters for TanStack Table
     const columnFilters = useMemo<ColumnFiltersState>(() => {
@@ -72,45 +72,16 @@ export default function ProductTypePage() {
         return filters;
     }, [statusFilter]);
 
-    const setPagination = useCallback((updaterOrValue: Updater<PaginationState>) => {
-        const next = typeof updaterOrValue === 'function' ? updaterOrValue(pagination) : updaterOrValue;
-        setSearchParams((prev) => {
-            prev.set('page', String(next.pageIndex + 1));
-            prev.set('pageSize', String(next.pageSize));
-            return prev;
-        }, { replace: true });
-    }, [pagination, setSearchParams]);
-
-    const setGlobalFilter = useCallback((value: string) => {
-        setSearchParams((prev) => {
-            if (value) prev.set('search', value);
-            else prev.delete('search');
-            prev.set('page', '1');
-            return prev;
-        }, { replace: true });
-    }, [setSearchParams]);
-
-    const handleStatusFilterChange = useCallback((value: string) => {
-        setSearchParams((prev) => {
-            if (value === 'all') prev.delete('status');
-            else prev.set('status', value);
-            prev.set('page', '1');
-            return prev;
-        }, { replace: true });
-    }, [setSearchParams]);
-
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingProductType, setEditingProductType] = useState<ProductType | null>(null);
 
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [confirmTarget, setConfirmTarget] = useState<ProductType | null>(null);
 
-    const debouncedSearch = useDebounce(globalFilter, 500);
-
     const { data, isLoading } = useProductTypes({
         pageNumber: pagination.pageIndex + 1,
         pageSize: pagination.pageSize,
-        Key: debouncedSearch || undefined,
+        Key: debouncedFilter || undefined,
         isActive: statusFilter === 'active' ? true : statusFilter === 'inactive' ? false : undefined
     });
 
@@ -265,15 +236,15 @@ export default function ProductTypePage() {
             <DropdownMenuContent align="end" className="w-[200px] rounded-xl shadow-xl border-slate-200">
                 <DropdownMenuLabel>Filter by Status</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => handleStatusFilterChange('all')} className="flex items-center justify-between">
+                <DropdownMenuItem onClick={() => setFieldFilter('status', 'all')} className="flex items-center justify-between">
                     Show All
                     {statusFilter === 'all' && <Check className="h-4 w-4 text-[#4988c4]" />}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleStatusFilterChange('active')} className="flex items-center justify-between text-emerald-600 font-medium">
+                <DropdownMenuItem onClick={() => setFieldFilter('status', 'active')} className="flex items-center justify-between text-emerald-600 font-medium">
                     Active Only
                     {statusFilter === 'active' && <Check className="h-4 w-4" />}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleStatusFilterChange('inactive')} className="flex items-center justify-between text-rose-600 font-medium">
+                <DropdownMenuItem onClick={() => setFieldFilter('status', 'inactive')} className="flex items-center justify-between text-rose-600 font-medium">
                     Inactive Only
                     {statusFilter === 'inactive' && <Check className="h-4 w-4" />}
                 </DropdownMenuItem>

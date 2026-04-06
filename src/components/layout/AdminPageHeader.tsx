@@ -75,7 +75,7 @@ export default function AdminPageHeader({
           {/* Title */}
           <div className="flex items-center gap-4">
             {Icon && (
-              <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center shadow-md">
+              <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center">
                 {typeof Icon === 'string' ? (
                   <img src={Icon} alt="Icon" className={cn("h-6 w-6 filter brightness-0 invert object-contain", iconClassName)} />
                 ) : (
@@ -106,9 +106,8 @@ export default function AdminPageHeader({
                   whileHover={{ 
                     backgroundColor: "white",
                     borderColor: "#3b82f6",
-                    boxShadow: "0 10px 15px -3px rgba(59, 131, 246, 0.05)"
                   }}
-                  className="text-center px-4 py-2 rounded-xl bg-slate-50 border border-slate-100 shadow-sm transition-colors duration-200"
+                  className="text-center px-4 py-2 rounded-xl bg-slate-50 border border-slate-100 transition-colors duration-200"
                 >
                   <div className="flex items-center gap-2 mb-0.5 justify-center">
                     {StatIcon && (

@@ -50,6 +50,7 @@ interface VariantTableProps {
   onAddVariant: () => void;
   onEditVariant: (variantId: string) => void;
   onDeleteVariant: (variantId: string) => void;
+  isTemplate?: boolean;
 }
 
 /* ─── Component ────────────────────────────────────────── */
@@ -59,6 +60,7 @@ export default function VariantTable({
   onAddVariant,
   onEditVariant,
   onDeleteVariant,
+  isTemplate = false,
 }: VariantTableProps) {
   const { data, isLoading } = useRichAdminVariants(productId);
   const {
@@ -154,14 +156,16 @@ export default function VariantTable({
               {totalVariants} variant{totalVariants !== 1 ? 's' : ''}
             </Badge>
           </div>
-          <Button
-            size="sm"
-            onClick={onAddVariant}
-            className="h-8 px-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg shadow-sm"
-          >
-            <Plus className="h-3.5 w-3.5 mr-1.5" />
-            Add Variant
-          </Button>
+          {!isTemplate && (
+            <Button
+              size="sm"
+              onClick={onAddVariant}
+              className="h-8 px-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg shadow-sm"
+            >
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
+              Add Variant
+            </Button>
+          )}
         </div>
 
         {/* Variant Groups Container */}
@@ -174,14 +178,15 @@ export default function VariantTable({
             <div className="overflow-x-auto">
               {/* Sticky Header */}
               <div className="sticky top-0 z-10 bg-gray-100 border-b border-gray-300">
-                <div className="grid grid-cols-[50px_120px_1fr_120px_100px_100px_50px] gap-2 sm:gap-4 items-center px-4 sm:px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <div className="grid grid-cols-[50px_100px_1fr_110px_130px_130px_110px_50px] gap-2 sm:gap-4 items-center px-4 sm:px-6 py-3 text-xs font-semibold text-gray-600 uppercase tracking-wider">
                   <div></div>
                   <div>Size</div>
                   <div>SKU</div>
-                  <div className="text-center">Price</div>
+                  <div className="text-right pr-4">Price</div>
                   <div className="text-center">Stock</div>
+                  <div className="text-center">Defect</div>
                   <div className="text-center">Status</div>
-                  <div className="text-center">Actions</div>
+                  <div className="text-right pr-2">Actions</div>
                 </div>
               </div>
 
@@ -222,6 +227,14 @@ export default function VariantTable({
             <span>
               OOS: <span className="font-bold text-red-500">{stats.outOfStock}</span>
             </span>
+            {stats.totalDefects > 0 && (
+              <>
+                <span className="text-gray-300">|</span>
+                <span>
+                  Defects: <span className="font-bold text-rose-500">{stats.totalDefects}</span>
+                </span>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -266,7 +279,7 @@ function ColorGroupRow({
   onToggle: () => void;
   onEditVariant: (variantId: string) => void;
   onDeleteVariant: (variantId: string) => void;
-  onStockAdjust: (type: 'add' | 'reduce', variantId: string, sku: string, currentStock: number) => void;
+  onStockAdjust: (type: 'add' | 'reduce' | 'add-defect' | 'reduce-defect', variantId: string, sku: string, currentStock: number) => void;
   onStatusChange: (variantId: string, sku: string, status: string) => void;
 }) {
   return (
@@ -311,8 +324,14 @@ function ColorGroupRow({
               <Package2 className="h-3 w-3" />
               Inventory
             </div>
-            <div className="text-sm font-black text-slate-900">
-              {group.groupStock} <span className="text-[10px] text-slate-400 font-medium">units</span>
+            <div className="text-sm font-black text-slate-900 flex items-center gap-2">
+              {group.groupStock} 
+              <span className="text-[10px] text-slate-400 font-medium">units</span>
+              {group.groupDefects > 0 && (
+                <span className="flex items-center gap-1 text-[11px] text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded ml-2">
+                  <AlertTriangle className="h-3 w-3" /> {group.groupDefects}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -337,6 +356,8 @@ function ColorGroupRow({
                   onDelete={() => onDeleteVariant(variant.id)}
                   onAddStock={() => onStockAdjust('add', variant.id, variant.sku, variant.stockQuantity)}
                   onReduceStock={() => onStockAdjust('reduce', variant.id, variant.sku, variant.stockQuantity)}
+                  onAddDefect={() => onStockAdjust('add-defect', variant.id, variant.sku, variant.defectQuantity ?? 0)}
+                  onReduceDefect={() => onStockAdjust('reduce-defect', variant.id, variant.sku, variant.defectQuantity ?? 0)}
                   onStatusChange={onStatusChange}
                 />
               ))}
@@ -362,6 +383,8 @@ function VariantRow({
   onDelete,
   onAddStock,
   onReduceStock,
+  onAddDefect,
+  onReduceDefect,
   onStatusChange,
 }: {
   variant: NonNullable<TransformedAdminVariants>['colorGroups'][number]['variants'][number];
@@ -369,6 +392,8 @@ function VariantRow({
   onDelete: () => void;
   onAddStock: () => void;
   onReduceStock: () => void;
+  onAddDefect: () => void;
+  onReduceDefect: () => void;
   onStatusChange: (variantId: string, sku: string, status: string) => void;
 }) {
   const hasSale = variant.salePrice > 0 && variant.salePrice < variant.basePrice;
@@ -424,10 +449,13 @@ function VariantRow({
   const badgeConfig = getBadgeConfig();
 
   return (
-    <div className="grid grid-cols-[80px_100px_1fr_120px_140px_120px_60px] gap-4 items-center px-10 py-3.5 hover:bg-slate-50/50 transition-all group/vrow relative">
+    <div className="grid grid-cols-[50px_100px_1fr_110px_130px_130px_110px_50px] gap-2 sm:gap-4 items-center px-4 sm:px-6 py-3.5 hover:bg-slate-50/50 transition-all group/vrow relative">
       {/* Visual Connector for nesting */}
       <div className="absolute left-6 top-0 bottom-0 w-px bg-slate-100" />
       <div className="absolute left-6 top-1/2 -translate-y-1/2 w-4 h-px bg-slate-100" />
+
+      {/* Spacer slot corresponding to the 50px empty header column */}
+      <div />
 
       {/* Size badge */}
       <div>
@@ -441,7 +469,7 @@ function VariantRow({
 
       {/* SKU */}
       <div className="min-w-0">
-        <span className="font-mono text-[11px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded border border-slate-100 truncate block uppercase tracking-tighter">
+        <span className="font-mono text-[11px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded border border-slate-100 truncate inline-block uppercase tracking-tighter">
           {variant.sku}
         </span>
         {variant.isVariantCustomizable && (
@@ -453,7 +481,7 @@ function VariantRow({
       </div>
 
       {/* Price */}
-      <div className="text-right">
+      <div className="text-right pr-4">
         <div className="text-[14px] font-black text-slate-900">
           {displayPrice.toLocaleString('en-US')} <span className="text-[10px] text-slate-400">₫</span>
         </div>
@@ -508,12 +536,51 @@ function VariantRow({
         </div>
       </div>
 
+      {/* Defect Quantity */}
+      <div className="flex items-center justify-center">
+        <div className="flex items-center gap-1.5 bg-slate-50 rounded-xl p-1 border border-slate-100 group-hover/vrow:border-rose-200 group-hover/vrow:bg-rose-50/50 transition-all shadow-inner">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => { e.stopPropagation(); onReduceDefect(); }}
+            disabled={(variant.defectQuantity ?? 0) <= 0}
+            className={cn(
+              "h-7 w-7 p-0 rounded-lg transition-all scale-90",
+              (variant.defectQuantity ?? 0) <= 0
+                ? "invisible opacity-0 pointer-events-none"
+                : "opacity-0 group-hover/vrow:opacity-100 hover:bg-slate-200 hover:text-slate-700"
+            )}
+          >
+            <Minus className="h-3.5 w-3.5" />
+          </Button>
+
+          <div className="min-w-[40px] flex items-center justify-center gap-1 px-1">
+            {(variant.defectQuantity ?? 0) > 0 && <AlertTriangle className="h-3 w-3 text-rose-500 animate-pulse" />}
+            <span className={cn(
+              "text-sm font-black tracking-tight",
+              (variant.defectQuantity ?? 0) > 0 ? "text-rose-500" : "text-slate-400"
+            )}>
+              {variant.defectQuantity ?? 0}
+            </span>
+          </div>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={(e) => { e.stopPropagation(); onAddDefect(); }}
+            className="h-7 w-7 p-0 rounded-lg transition-all scale-90 opacity-0 group-hover/vrow:opacity-100 hover:bg-rose-100 hover:text-rose-600"
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      </div>
+
       {/* Stock + Variant Status Badges */}
       <div className="flex flex-col items-center gap-1">
         <Badge
           variant="outline"
           className={cn(
-            "text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border shadow-none",
+            "text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full border shadow-none whitespace-nowrap",
             variant.isOutOfStock
               ? stockStatusConfig['Out of Stock'].className
               : variant.isLowStock
@@ -523,8 +590,8 @@ function VariantRow({
         >
           {variant.isOutOfStock ? 'Out of Stock' : variant.isLowStock ? 'Low Stock' : 'In Stock'}
         </Badge>
-        <span className="flex items-center gap-1 text-[10px] text-slate-400 font-medium">
-          <span className={cn('w-1.5 h-1.5 rounded-full', statusStyle.dot)} />
+        <span className="flex items-center gap-1 text-[10px] text-slate-400 font-medium whitespace-nowrap">
+          <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', statusStyle.dot)} />
           {statusStyle.label}
         </span>
       </div>

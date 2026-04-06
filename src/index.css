@@ -6,22 +6,29 @@
 
 /* Custom Scrollbar Styles */
 @layer utilities {
+
+  /* Premium Custom Scrollbar */
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
+    height: 6px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 10px;
+    background: transparent;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: linear-gradient(180deg, #4988c4, #3a73a8);
-    border-radius: 10px;
+    background: #e2e8f0;
+    border-radius: 20px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+    transition: all 0.3s ease;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(180deg, #3a73a8, #2d5a8a);
+    background: #cbd5e1;
+    border: 1px solid transparent;
+    background-clip: content-box;
   }
 
   /* Thin scrollbar for dialogs and small containers */
@@ -36,13 +43,13 @@
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background: #d1d5db;
-    border-radius: 8px;
-    transition: background 0.2s ease;
+    background: #e2e8f0;
+    border-radius: 10px;
+    transition: all 0.3s ease;
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background: #9ca3af;
+    background: #cbd5e1;
   }
 
   .scrollbar-thumb-gray-300::-webkit-scrollbar-thumb {
@@ -195,16 +202,20 @@ body {
 
   display: flex;
   flex-direction: column;
-   font-family: 'Comfortaa', sans-serif;
+  font-family: 'Comfortaa', sans-serif;
 }
-.scroll-hidden, .no-scrollbar {
+
+.scroll-hidden,
+.no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
 
-.scroll-hidden::-webkit-scrollbar, .no-scrollbar::-webkit-scrollbar {
+.scroll-hidden::-webkit-scrollbar,
+.no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
 #root {
   flex: 1;
   display: flex;
@@ -212,9 +223,10 @@ body {
   max-width: 100vw;
   width: 100%;
 }
+
 /* Fix Radix Select không làm giật layout */
 html {
-  overflow-y: scroll !important;
+  /* overflow-y: scroll !important; */
   overflow-x: hidden !important;
   width: 100% !important;
 }
@@ -236,7 +248,30 @@ body {
 html,
 body {
   scroll-behavior: smooth;
+  scrollbar-color: #e2e8f0 transparent;
+  scrollbar-width: thin;
 }
+
+/* Global Premium Scrollbar for Chromium */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: white;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #e5e7eb;
+  border: 3px solid white;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #d1d5db;
+}
+
 img,
 picture,
 video,
@@ -348,6 +383,7 @@ svg {
     opacity: 0;
     transform: translateX(-30px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -355,10 +391,12 @@ svg {
 }
 
 @keyframes float {
+
   0%,
   100% {
     transform: translateY(0px);
   }
+
   50% {
     transform: translateY(-20px);
   }
@@ -370,6 +408,7 @@ svg {
     opacity: 0;
     transform: scale(0.96) translateY(-4px);
   }
+
   to {
     opacity: 1;
     transform: scale(1) translateY(0);
@@ -381,6 +420,7 @@ svg {
     opacity: 1;
     transform: scale(1) translateY(0);
   }
+
   to {
     opacity: 0;
     transform: scale(0.96) translateY(-4px);
@@ -422,10 +462,12 @@ svg {
     transform: translate(0, 0) scale(1) rotate(0deg);
     opacity: 1;
   }
+
   50% {
     transform: translate(calc(var(--fly-x) * 0.5), calc(var(--fly-y) * 0.3)) scale(0.6) rotate(15deg);
     opacity: 1;
   }
+
   100% {
     transform: translate(var(--fly-x), var(--fly-y)) scale(0.1) rotate(30deg);
     opacity: 0;
@@ -436,21 +478,27 @@ svg {
   0% {
     background-position: -200% 0;
   }
+
   100% {
     background-position: 200% 0;
   }
 }
 
 @keyframes cartBounce {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1);
   }
+
   25% {
     transform: scale(1.3);
   }
+
   50% {
     transform: scale(0.9);
   }
+
   75% {
     transform: scale(1.1);
   }
@@ -466,12 +514,10 @@ svg {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.4) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.4) 50%,
+      transparent 100%);
   background-size: 200% 100%;
   animation: shimmer 0.8s ease-in-out;
 }
@@ -487,11 +533,15 @@ svg {
 .cart-icon-container:hover {
   transform: scale(1.05);
 }
+
 @keyframes pulse-subtle {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1);
   }
+
   50% {
     opacity: 0.85;
     transform: scale(0.98);
@@ -499,9 +549,12 @@ svg {
 }
 
 @keyframes float-slow {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-4px);
   }

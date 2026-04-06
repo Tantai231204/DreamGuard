@@ -13,11 +13,11 @@ export interface VariantAttributes {
 
 export interface CreateVariantRequest {
   sku: string;
-  baseprice: number;
-  saleprice: number;
+  basePrice: number;
+  salePrice: number;
   weight: number;
   attributes: VariantAttributes | null;
-  productid: string;
+  productId: string;
   color?: string;
   hexColor?: string;
   colorHex?: string;
@@ -28,11 +28,11 @@ export interface CreateVariantRequest {
 
 export interface UpdateVariantRequest {
   sku: string;
-  baseprice: number;
-  saleprice: number;
+  basePrice: number;
+  salePrice: number;
   weight: number;
   attributes: VariantAttributes | null;
-  productid: string;
+  productId: string;
   color?: string;
   hexColor?: string;
   colorHex?: string;
@@ -75,10 +75,13 @@ export interface VariantResponse {
   isNew: boolean;
   productId: string;
   isCustomizable?: boolean;
+  is_customizable?: boolean;
   customizeLabel?: string;
   stockQuantity?: number;
+  defectQuantity?: number;
   stockStatus?: string;
   customizeTypes?: VariantCustomizeTypeResponse[];
+  customizeOptionGroups?: import("../types/product.types").CustomizeOptionGroupResponse[];
 }
 
 export interface AdminVariantItem {
@@ -88,6 +91,7 @@ export interface AdminVariantItem {
   salePrice: number;
   basePrice: number;
   stockQuantity: number;
+  defectQuantity?: number;
   stockStatus: string;
   status: string;
   weight: number | null;
@@ -129,10 +133,12 @@ export interface VariantCustomizeTypeResponse {
 export interface AssignVariantCustomizeTypeRequest {
   customizeTypeId: string;
   overridePrice?: number;
+  overrideMultiplier?: number;
 }
 
 export interface UpdateVariantCustomizeTypePriceRequest {
   overridePrice: number;
+  overrideMultiplier?: number;
 }
 
 const variantService = {
@@ -170,9 +176,25 @@ const variantService = {
 
   /* ─── Variant Customization Methods ─── */
 
-  /** Fetch customization types assigned to this variant - using detail endpoint as fallback to avoid 405 */
+  /** Fetch customization types assigned to this variant - extracts from flat and nested groups */
   getCustomizeTypes: (variantId: string): Promise<VariantCustomizeTypeResponse[]> =>
-    apiClient.get(`/variants/${variantId}`).then((res) => res.data?.customizeTypes || []),
+    apiClient.get(`/variants/${variantId}`).then((res) => {
+      const data = res.data;
+      if (!data) return [];
+
+      const flat = (data.customizeTypes || []) as VariantCustomizeTypeResponse[];
+      const opts = (data.customizeOptions || []) as VariantCustomizeTypeResponse[];
+      const grouped = (data.customizeOptionGroups?.flatMap((g: { options?: VariantCustomizeTypeResponse[] }) => g.options || []) || []) as VariantCustomizeTypeResponse[];
+
+      // Merge all, filter out nulls, and deduplicate by customizeTypeId
+      const all = [...flat, ...opts, ...grouped].filter(Boolean);
+      const seen = new Set<string>();
+      return all.filter(item => {
+        if (!item.customizeTypeId || seen.has(item.customizeTypeId)) return false;
+        seen.add(item.customizeTypeId);
+        return true;
+      });
+    }),
 
   /** Link a customization type to a variant */
   assignCustomizeType: (variantId: string, data: AssignVariantCustomizeTypeRequest): Promise<void> =>

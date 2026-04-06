@@ -32,6 +32,9 @@ export type {
   AdminProductParams,
   ProductParams,
   UpdateProductStatusParams,
+  FullyCustomizedProductResponse,
+  CreateFullyCustomizedProductRequest,
+  UpdateFullyCustomizedProductRequest,
 } from "./product.types";
 export type { PaymentResponse, PaymentDetailResponse } from "./payment";
 export type {

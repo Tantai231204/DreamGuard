@@ -1,117 +1,149 @@
-/* Custom Scrollbar Styles - Softer Version */
-.custom-scrollbar {
+/* ===============================================
+   DREAMGUARD CHAT — PREMIUM STYLES
+   =============================================== */
+
+/* ---- Scrollbar ---- */
+.chat-scrollbar {
   scrollbar-width: thin;
-  scrollbar-color: rgba(191, 219, 254, 0.5) transparent;
+  scrollbar-color: rgba(73, 136, 196, 0.35) transparent;
 }
-
-.custom-scrollbar::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+.chat-scrollbar::-webkit-scrollbar {
+  width: 5px;
 }
-
-.custom-scrollbar::-webkit-scrollbar-track {
+.chat-scrollbar::-webkit-scrollbar-track {
   background: transparent;
   border-radius: 20px;
-  margin: 8px;
+  margin: 6px 0;
 }
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: linear-gradient(
-    180deg,
-    rgba(191, 219, 254, 0.6),
-    rgba(147, 197, 253, 0.8)
-  );
+.chat-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, rgba(73, 136, 196, 0.4), rgba(58, 115, 168, 0.6));
   border-radius: 20px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
-  transition: all 0.3s ease;
+  transition: background 0.25s ease;
+}
+.chat-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, rgba(73, 136, 196, 0.7), rgba(58, 115, 168, 0.9));
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(
-    180deg,
-    rgba(147, 197, 253, 0.8),
-    rgba(59, 130, 246, 0.9)
-  );
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+/* ---- Online Pulse ---- */
+@keyframes online-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6); transform: scale(1); }
+  50%       { box-shadow: 0 0 0 5px rgba(34, 197, 94, 0);  transform: scale(1.05); }
+}
+.online-dot {
+  animation: online-pulse 2.4s ease-in-out infinite;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:active {
-  background: linear-gradient(
-    180deg,
-    rgba(59, 130, 246, 0.9),
-    rgba(37, 99, 235, 1)
-  );
+/* ---- Typing Bounce ---- */
+@keyframes typing-bounce {
+  0%, 80%, 100% { transform: translateY(0);   opacity: 0.4; }
+  40%           { transform: translateY(-7px); opacity: 1;   }
 }
-
-/* Pulse animation for online status */
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.7;
-    transform: scale(1.1);
-  }
-}
-
-.animate-pulse {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-/* Typing indicator animation */
-@keyframes typing {
-  0%,
-  80%,
-  100% {
-    transform: translateY(0);
-    opacity: 0.4;
-  }
-  40% {
-    transform: translateY(-8px);
-    opacity: 1;
-  }
-}
-
 .typing-dot {
-  animation: typing 1.4s infinite;
-  background: linear-gradient(135deg, #3b82f6, #60a5fa);
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  background: var(--color-primary);
+  animation: typing-bounce 1.3s ease-in-out infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.18s; }
+.typing-dot:nth-child(3) { animation-delay: 0.36s; }
+
+/* ---- Message Bubble Tail ---- */
+.bubble-admin::after {
+  content: '';
+  position: absolute;
+  bottom: 10px;
+  right: -8px;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 6px 0 6px 9px;
+  border-color: transparent transparent transparent #4988c4;
 }
 
-.typing-dot:nth-child(2) {
-  animation-delay: 0.2s;
+.bubble-customer::after {
+  content: '';
+  position: absolute;
+  bottom: 10px;
+  left: -8px;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 6px 9px 6px 0;
+  border-color: transparent #f3f4f6 transparent transparent;
 }
 
-.typing-dot:nth-child(3) {
-  animation-delay: 0.4s;
+/* ---- Conversation Item hover glow ---- */
+.conv-item-selected {
+  background: linear-gradient(90deg, rgba(73, 136, 196, 0.12), rgba(73, 136, 196, 0.04));
+  border-left: 3px solid var(--color-primary) !important;
 }
 
-/* Soft border animations */
-@keyframes border-flow {
-  0%,
-  100% {
-    border-color: rgba(59, 130, 246, 0.3);
-  }
-  50% {
-    border-color: rgba(59, 130, 246, 0.6);
-  }
+/* ---- Message enter animation ---- */
+@keyframes msg-in-admin {
+  from { opacity: 0; transform: translateX(18px) scale(0.96); }
+  to   { opacity: 1; transform: translateX(0)   scale(1);    }
+}
+@keyframes msg-in-customer {
+  from { opacity: 0; transform: translateX(-18px) scale(0.96); }
+  to   { opacity: 1; transform: translateX(0)     scale(1);    }
+}
+.msg-anim-admin    { animation: msg-in-admin    0.28s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+.msg-anim-customer { animation: msg-in-customer 0.28s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+
+/* ---- Input focus ring ---- */
+.chat-input-wrapper {
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.chat-input-wrapper:focus-within {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 3px rgba(73, 136, 196, 0.18);
 }
 
-.border-animate {
-  animation: border-flow 3s ease-in-out infinite;
+/* ---- Glass header ---- */
+.chat-glass-header {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.88);
+  border-bottom: 1px solid rgba(73, 136, 196, 0.12);
 }
 
-/* Shimmer effect for loading */
-@keyframes shimmer {
-  0% {
-    background-position: -1000px 0;
-  }
-  100% {
-    background-position: 1000px 0;
-  }
+/* ---- Date chip ---- */
+.date-chip {
+  background: rgba(255,255,255,0.9);
+  border: 1px solid rgba(73, 136, 196, 0.18);
+  backdrop-filter: blur(6px);
+  border-radius: 99px;
+  padding: 3px 14px;
+  font-size: 11px;
+  color: #6b7280;
+  letter-spacing: 0.03em;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
+/* ---- Avatar gradient helpers ---- */
+.avatar-admin {
+  background: linear-gradient(135deg, #4988c4, #3a73a8);
+}
+.avatar-customer {
+  background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+}
+
+/* ---- Send button shimmer ---- */
+@keyframes btn-shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200%  center; }
+}
+.send-btn-shimmer:hover {
+  background-size: 200% auto;
+  animation: btn-shimmer 1.6s linear infinite;
+}
+
+/* ---- Unread badge pulse ---- */
+@keyframes badge-pulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.15); }
+}
+.badge-unread {
+  animation: badge-pulse 1.8s ease-in-out infinite;
+}

@@ -7,10 +7,10 @@ interface PaymentTableProps {
     table: Table<PaymentResponse>
     globalFilter: string
     setGlobalFilter: (value: string) => void
-    isPending: boolean
+    isLoading: boolean
 }
 
-export function PaymentTable({ table, globalFilter, setGlobalFilter, isPending }: PaymentTableProps) {
+export function PaymentTable({ table, globalFilter, setGlobalFilter, isLoading }: PaymentTableProps) {
     return (
         <div className="flex-1 px-6 pb-6 min-h-0 flex flex-col">
             <motion.div
@@ -34,7 +34,8 @@ export function PaymentTable({ table, globalFilter, setGlobalFilter, isPending }
                 <div className="flex-1 overflow-auto">
                     <AdminTableContent
                         table={table}
-                        emptyMessage={isPending ? "Loading financial data..." : "No transactions record found"}
+                        emptyMessage="No transactions record found"
+                        isLoading={isLoading}
                     />
                 </div>
 

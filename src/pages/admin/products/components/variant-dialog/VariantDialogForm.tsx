@@ -27,11 +27,12 @@ import {
     AlertCircle,
     type LucideIcon
 } from 'lucide-react';
-import { VARIANT_STATUS_OPTIONS, PRODUCT_STATUS_COLORS, type VariantStatus } from '../../types';
+import { VARIANT_STATUS_OPTIONS, PRODUCT_STATUS_COLORS } from '../../types';
+import type { VariantStatus, ExtendedProductVariant } from '../../types';
 import ColorPicker from './ColorPicker';
 import SectionHeading from '../shared/SectionHeading';
 import type { VariantSubmitData } from './VariantDialog';
-import { useVariantForm, type ExtendedProductVariant } from './useVariantForm';
+import { useVariantForm } from './useVariantForm';
 import { AdminStatusBadge } from '@/components/admin';
 import VariantCustomization from './VariantCustomization';
 import { type VariantFormValues } from './variantSchema';
@@ -55,8 +56,6 @@ const ErrorMsg = memo(({ error }: { error?: FormFieldError }) => {
         </p>
     );
 });
-
-ErrorMsg.displayName = 'ErrorMsg';
 
 const FieldGroup = memo(({
     label,
@@ -82,8 +81,6 @@ const FieldGroup = memo(({
         {children}
     </div>
 ));
-
-FieldGroup.displayName = 'FieldGroup';
 
 /* ─── Optimized Sub-Sections for Performance ─── */
 
@@ -134,7 +131,7 @@ const LogisticsSection = memo(({
                     ) : (
                         <Select
                             value={status}
-                            onValueChange={(val) => setValue('status', val as VariantStatus, { shouldValidate: true })}
+                            onValueChange={(val) => setValue('status', val as VariantStatus, { shouldDirty: true, shouldValidate: true })}
                         >
                             <SelectTrigger className={cn(INPUT_CLS, "font-bold text-slate-700", errors.status && "border-red-400")}>
                                 <SelectValue />
@@ -204,8 +201,6 @@ const LogisticsSection = memo(({
         </section>
     );
 });
-LogisticsSection.displayName = 'LogisticsSection';
-
 const AttributesSection = memo(({
     register,
     errors,
@@ -322,8 +317,6 @@ const AttributesSection = memo(({
     );
 });
 
-AttributesSection.displayName = 'AttributesSection';
-
 interface VariantDialogFormProps {
     variant?: ExtendedProductVariant | null;
     productId: string;
@@ -333,6 +326,7 @@ interface VariantDialogFormProps {
     onSubmit: (data: VariantSubmitData) => void;
     onOpenChange: (open: boolean) => void;
     isLoading?: boolean;
+    productType?: import("@/api/types/product.types").FullyCustomizedProductType;
 }
 
 const VariantDialogForm = memo(({
@@ -344,15 +338,17 @@ const VariantDialogForm = memo(({
     onSubmit,
     onOpenChange,
     isLoading = false,
+    productType,
 }: VariantDialogFormProps) => {
     const {
         form,
         register,
         errors,
+        isValid,
+        isDirty,
         handleRegenerateSku,
         handleColorChange,
         handleSubmit,
-        isValid,
         isCustomColor,
         isCustomSize,
         hasAttributeCollision,
@@ -421,7 +417,7 @@ const VariantDialogForm = memo(({
                                             <p className="text-xs text-slate-400 font-medium tracking-tight">Allow customers to request variations based on this product.</p>
                                         </div>
                                     </div>
-                                    <Switch checked={!!isCustomizable} onCheckedChange={(v: boolean) => form.setValue('isCustomizable', v)} className="data-[state=checked]:bg-[#4988c4]" />
+                                    <Switch checked={!!isCustomizable} onCheckedChange={(v: boolean) => form.setValue('isCustomizable', v, { shouldDirty: true, shouldValidate: true })} className="data-[state=checked]:bg-[#4988c4]" />
                                 </div>
 
                                 {isCustomizable && (
@@ -470,7 +466,11 @@ const VariantDialogForm = memo(({
                                                 render={({ field }) => (
                                                     <VariantCustomization
                                                         pendingCustomizations={field.value}
-                                                        onPendingChange={field.onChange}
+                                                        onPendingChange={(val) => {
+                                                            field.onChange(val);
+                                                            form.setValue('pendingCustoms', val, { shouldDirty: true, shouldValidate: true });
+                                                        }}
+                                                        productType={productType}
                                                     />
                                                 )}
                                             />
@@ -510,8 +510,11 @@ const VariantDialogForm = memo(({
                 <Button
                     type="submit"
                     form="variant-form"
-                    disabled={isLoading || !isValid}
-                    className="flex-1 h-11 bg-[#4988c4] hover:bg-[#3a6fa0] text-white font-bold rounded-xl shadow-lg shadow-blue-100 transition-all active:scale-95 disabled:opacity-50 border-none"
+                    disabled={isLoading || !isValid || (isEdit && !isDirty)}
+                    className={cn(
+                        "flex-1 h-11 font-bold rounded-xl shadow-lg transition-all active:scale-95 disabled:opacity-50 border-none relative overflow-hidden",
+                        (isEdit && !isDirty) ? "bg-slate-100 text-slate-400 shadow-none cursor-not-allowed" : "bg-[#4988c4] hover:bg-[#3a6fa0] text-white shadow-blue-100"
+                    )}
                 >
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     {isEdit ? 'Save Changes' : 'Initialize Variant'}
@@ -520,7 +523,5 @@ const VariantDialogForm = memo(({
         </div>
     );
 });
-
-VariantDialogForm.displayName = 'VariantDialogForm';
 
 export default VariantDialogForm;

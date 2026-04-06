@@ -13,6 +13,7 @@ import {
     ShieldCheck, ClipboardCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type { StockDialogState } from './useStockAdjustment';
 import {
     Select,
     SelectContent,
@@ -22,13 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from '@/components/ui/label';
 
-interface StockDialogState {
-    isOpen: boolean;
-    type: 'add' | 'reduce';
-    variantId: string;
-    sku: string;
-    currentStock: number;
-}
+
 
 interface StockAdjustmentDialogProps {
     stockDialog: StockDialogState;
@@ -57,8 +52,8 @@ export default function StockAdjustmentDialog({
     onSubmit,
 }: StockAdjustmentDialogProps) {
     const [reason, setReason] = useState<string>('restock');
-
-    const isAdd = stockDialog.type === 'add';
+    const isAdd = stockDialog.type === 'add' || stockDialog.type === 'add-defect';
+    const isDefect = stockDialog.type.includes('defect');
     const newStock = isAdd
         ? stockDialog.currentStock + stockQuantity
         : Math.max(0, stockDialog.currentStock - stockQuantity);
@@ -74,10 +69,12 @@ export default function StockAdjustmentDialog({
                     <div className="flex items-start justify-between">
                         <div className="space-y-1">
                             <DialogTitle className="text-xl font-bold text-gray-900 tracking-tight leading-none">
-                                {isAdd ? 'Inventory Add' : 'Inventory Reduce'}
+                                {isDefect
+                                    ? (isAdd ? 'Defect Addition' : 'Defect Removal')
+                                    : (isAdd ? 'Inventory Add' : 'Inventory Reduce')}
                             </DialogTitle>
                             <div className="flex items-center gap-2 mt-2">
-                                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-gray-100 border border-gray-200">
+                                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-gray-100 border border-gray-200 w-fit">
                                     <Hash className="h-3 w-3 text-slate-400" />
                                     <span className="text-[10px] font-bold text-slate-500 font-mono tracking-tighter">{stockDialog.sku}</span>
                                 </div>
@@ -86,9 +83,10 @@ export default function StockAdjustmentDialog({
                         </div>
                         <div className={cn(
                             "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm",
-                            isAdd ? "bg-emerald-50 text-emerald-600 border border-emerald-100" : "bg-rose-50 text-rose-600 border border-rose-100"
+                            isAdd ? (isDefect ? "bg-rose-50 text-rose-600 border border-rose-100" : "bg-emerald-50 text-emerald-600 border border-emerald-100")
+                                : "bg-rose-50 text-rose-600 border border-rose-100"
                         )}>
-                            {isAdd ? 'Standard In' : 'Standard Out'}
+                            {isDefect ? (isAdd ? 'Lost Found' : 'Defect Fix') : (isAdd ? 'Standard In' : 'Standard Out')}
                         </div>
                     </div>
                 </div>
@@ -111,7 +109,7 @@ export default function StockAdjustmentDialog({
                             <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">Projected</span>
                             <span className={cn(
                                 "text-3xl font-black tabular-nums leading-none tracking-tight",
-                                isAdd ? "text-emerald-500" : "text-rose-500"
+                                isAdd ? (isDefect ? "text-rose-500" : "text-emerald-500") : "text-rose-500"
                             )}>
                                 {newStock}
                             </span>
@@ -230,7 +228,7 @@ export default function StockAdjustmentDialog({
                         {isSubmitting ? (
                             <Loader2 className="h-5 w-5 animate-spin mx-auto" />
                         ) : (
-                            <span>Confirm Updates</span>
+                            <span>{isDefect ? 'Update Defect Stock' : 'Confirm Updates'}</span>
                         )}
                     </Button>
                 </div>

@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden';
 import { Loader2 } from 'lucide-react';
-import type { ProductVariant, VariantStatus, VariantAttributes } from '../../types';
+import type { ProductVariant, VariantStatus, VariantAttributes, ExtendedProductVariant } from '../../types';
 import { useVariantDetail } from '@/hooks/queries/useProduct';
 import VariantDialogForm from './VariantDialogForm';
 
@@ -36,6 +36,7 @@ interface VariantDialogProps {
     variantCount?: number;
     onSubmit: (data: VariantSubmitData) => void;
     isLoading?: boolean;
+    productType?: import("@/api/types/product.types").FullyCustomizedProductType;
 }
 
 export default function VariantDialog({
@@ -48,6 +49,7 @@ export default function VariantDialog({
     variantCount,
     onSubmit,
     isLoading,
+    productType,
 }: VariantDialogProps) {
     const isEdit = Boolean(variant);
 
@@ -59,16 +61,20 @@ export default function VariantDialog({
     const resolvedVariant = useMemo(() => {
         if (!variant) return null;
         if (!fullData) return variant;
+        
+        const typedDetail = fullData as ExtendedProductVariant;
+        
         return {
             ...variant,
-            ...fullData,
-            weight: fullData.weight ?? variant.weight,
-            isNew: fullData.isNew ?? variant.isNew,
-            attributes: fullData.attributes ?? variant.attributes,
-            status: (fullData.status || variant.status) as VariantStatus,
-            isCustomizable: fullData.isCustomizable ?? variant.isCustomizable,
-            customizeLabel: fullData.customizeLabel ?? variant.customizeLabel,
-            customizeTypes: fullData.customizeTypes ?? variant.customizeTypes,
+            ...typedDetail,
+            weight: typedDetail.weight ?? variant.weight,
+            isNew: typedDetail.isNew ?? variant.isNew,
+            attributes: typedDetail.attributes ?? variant.attributes,
+            status: (typedDetail.status || variant.status) as VariantStatus,
+            isCustomizable: typedDetail.isCustomizable ?? variant.isCustomizable,
+            customizeLabel: typedDetail.customizeLabel ?? variant.customizeLabel,
+            customizeTypes: typedDetail.customizeTypes ?? variant.customizeTypes,
+            customizeOptionGroups: typedDetail.customizeOptionGroups ?? (variant as ExtendedProductVariant).customizeOptionGroups,
         } as ProductVariant;
     }, [variant, fullData]);
 
@@ -90,7 +96,7 @@ export default function VariantDialog({
                 ) : (
                     <VariantDialogForm
                         key={resolvedVariant?.id ? `${resolvedVariant.id}-${!!fullData}` : 'new-variant'}
-                        variant={resolvedVariant}
+                        variant={resolvedVariant as ExtendedProductVariant}
                         productId={productId}
                         productName={productName}
                         productSlug={productSlug}
@@ -98,6 +104,7 @@ export default function VariantDialog({
                         onOpenChange={onOpenChange}
                         onSubmit={onSubmit}
                         isLoading={isLoading}
+                        productType={productType}
                     />
                 )}
             </DialogContent>

@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
-
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatDate } from "@/lib/utils";
@@ -9,9 +9,41 @@ import type { Order } from "../../types";
 
 interface RecentOrdersProps {
   orders: Order[];
+  isLoading?: boolean;
 }
 
-export default function RecentOrders({ orders }: RecentOrdersProps) {
+export default function RecentOrders({ orders, isLoading }: RecentOrdersProps) {
+  if (isLoading) {
+    return (
+      <Card className="p-8 shadow-xl border-slate-100">
+        <div className="flex justify-between mb-8">
+           <div className="space-y-2">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-4 w-32" />
+           </div>
+           <Skeleton className="h-10 w-24 rounded-xl" />
+        </div>
+        <div className="space-y-4">
+           {[1, 2, 3, 4, 5].map((i) => (
+             <div key={i} className="flex items-center justify-between p-5 border-2 border-slate-50 rounded-2xl">
+                <div className="flex gap-4 items-center">
+                   <Skeleton className="h-12 w-12 rounded-xl" />
+                   <div className="space-y-2">
+                      <Skeleton className="h-5 w-40" />
+                      <Skeleton className="h-4 w-24" />
+                   </div>
+                </div>
+                <div className="space-y-2 text-right">
+                   <Skeleton className="h-6 w-24 ml-auto" />
+                   <Skeleton className="h-4 w-20 ml-auto" />
+                </div>
+             </div>
+           ))}
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}

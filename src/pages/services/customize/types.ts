@@ -1,12 +1,3 @@
-export type AgeGroup = "newborn" | "infant" | "toddler";
-
-export interface ChildProfile {
-  ageGroup: AgeGroup;
-  allergies: string[];
-  skinSensitivity: number; // 1 = Normal, 2 = Sensitive, 3 = Very Sensitive
-  healthConditions: string[];
-}
-
 export type EmbroideryPosition =
   // Crib positions (khắc gỗ)
   | "front-rail"
@@ -19,11 +10,14 @@ export type EmbroideryPosition =
 
 export interface DesignConfig {
   size: string;
+  customSizeLabel?: string;
   baseColor: string;
   pattern: string;
   embroideryText: string;
   embroideryPosition: EmbroideryPosition;
   material: string;
+  customImage?: string;
+  imageMode: "print" | "wrap";
 }
 
 export interface CustomizableProduct {
@@ -32,7 +26,10 @@ export interface CustomizableProduct {
   description: string;
   icon: string;
   basePrice: number;
+  salePrice: number;
   availableSizes: { id: string; label: string; priceAdd: number }[];
+  type: string;
+  image: string;
 }
 
 export interface MaterialOption {
@@ -40,8 +37,7 @@ export interface MaterialOption {
   name: string;
   description: string;
   priceMultiplier: number;
-  safeFor: string[];
-  sensitivityMax: number;
+  priceAdd: number;
   badge?: string;
 }
 
@@ -52,15 +48,17 @@ export interface PatternOption {
   cssPattern: string;
 }
 
-export interface ColorOption {
-  id: string;
-  name: string;
-  hex: string;
-  tailwind: string;
-}
-
 export interface CustomizationState {
   product: CustomizableProduct | null;
-  childProfile: ChildProfile;
   design: DesignConfig;
+}
+
+export interface ProductVariant {
+  id: string;
+  sku: string;
+  color: string;
+  colorCode: string;
+  dimensions: string;
+  salePrice: number;
+  basePrice: number;
 }

@@ -1,394 +1,471 @@
-import { useState, useMemo, Suspense, lazy, memo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, ChevronDown, ShoppingCart, ArrowLeft } from "lucide-react";
+import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { cn } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
-import type { ChildProfile, DesignConfig, CustomizableProduct, EmbroideryPosition } from "./types";
+import { toast } from "sonner";
 import {
-  customizableProducts, colorOptions, patternOptions,
-  getRecommendedMaterials, calculateCustomPrice,
-  allergyOptions, healthConditionOptions,
+  ArrowLeft,
+  ShoppingCart
+} from "lucide-react";
+
+import { useCartStore } from "@/store/useCartStore";
+import { useFullyCustomizedProducts, useProductVariants } from "@/hooks/queries/useProduct";
+import { PageLoader } from "@/components/common/PageLoader";
+import ProductPreview3D from "./components/ProductPreview3D";
+import { SizeSelector } from "./components/SizeSelector";
+import { Button } from "@/components/ui/button";
+import { ChromaProfile } from "./components/ChromaProfile";
+import { TextureLab } from "./components/TextureLab";
+import { cn } from "@/lib/utils";
+
+import {
+  generateConfigHash
+} from "@/store/useCartStore";
+
+import {
+  customizableProducts
 } from "./data";
 
-const ProductPreview3D = lazy(() => import("./components/ProductPreview3D"));
+import type {
+  DesignConfig,
+  MaterialOption,
+  CustomizableProduct,
+  ProductVariant
+} from "./types";
 
-const ConfigSection = memo(({ title, step, icon, defaultOpen = false, children }: {
-  title: string; step: number; icon: string; defaultOpen?: boolean; children: React.ReactNode;
-}) => {
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <div className="border-b border-slate-100/80 last:border-0">
-      <button type="button" onClick={() => setOpen(!open)} className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-slate-50/60 transition-colors">
-        <div className="flex items-center gap-2.5">
-          <span className="h-6 w-6 rounded-lg bg-[#4988c4]/10 text-[#4988c4] flex items-center justify-center text-xs font-black">{step}</span>
-          <span className="text-xs font-black text-slate-700 uppercase tracking-wider">{icon} {title}</span>
-        </div>
-        <ChevronDown className={cn("h-4 w-4 text-slate-400 transition-transform duration-200", open && "rotate-180")} />
-      </button>
-      <AnimatePresence>
-        {open && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
-            <div className="px-5 pb-4 space-y-3">{children}</div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-});
+import type { CustomizeOptionGroupResponse, CustomizeOptionResponse } from "@/api/types/product.types";
 
-const Chip = memo(({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) => {
-  return (
-    <button type="button" onClick={onClick} className={cn("px-3 py-1.5 rounded-full border-2 text-[11px] font-black transition-all duration-150", active ? "border-[#4988c4] bg-[#4988c4]/10 text-[#4988c4] shadow-sm" : "border-slate-100 text-slate-500 hover:border-[#4988c4]/30")}>
-      {children}
-    </button>
-  );
-});
-
-const ColorSwatch = memo(({ hex, name, active, onClick }: { hex: string; name: string; active: boolean; onClick: () => void }) => {
-  return (
-    <button type="button" onClick={onClick} title={name} className={cn("h-8 w-8 rounded-lg border-2 transition-all duration-150 relative", active ? "border-[#4988c4] scale-110 ring-2 ring-[#4988c4]/20 shadow-md" : "border-slate-200/60 hover:scale-105")} style={{ backgroundColor: hex }}>
-      {active && (
-        <div className="absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full bg-[#4988c4] flex items-center justify-center">
-          <svg className="h-2 w-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-        </div>
-      )}
-    </button>
-  );
-});
-
-/* ===== Helpers ===== */
-function formatPrice(v: number) {
-  return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(v);
-}
-
-/* ===================================================================
-   MAIN PAGE COMPONENT
-   =================================================================== */
-export default function CustomizePage() {
+const CustomizeStudio = () => {
   const navigate = useNavigate();
+  const { addItem } = useCartStore();
+  const [isAdding, setIsAdding] = useState(false);
 
-  const [selectedProduct, setSelectedProduct] = useState<CustomizableProduct | null>(null);
-  const [childProfile, setChildProfile] = useState<ChildProfile>({ ageGroup: "infant", allergies: [], skinSensitivity: 1, healthConditions: [] });
-  const [design, setDesign] = useState<DesignConfig>({ size: "", baseColor: "sky", pattern: "solid", embroideryText: "", embroideryPosition: "center", material: "organic_cotton" });
+  // 1. Fetch Dynamic Data from API
+  const { data: apiProducts, isLoading: productsLoading } = useFullyCustomizedProducts();
 
-  // Derived
-  const recommendedMaterials = useMemo(() => getRecommendedMaterials(
-    childProfile.allergies.length > 0 ? childProfile.allergies : ["none"],
-    childProfile.skinSensitivity
-  ), [childProfile.allergies, childProfile.skinSensitivity]);
+  // 🔥 Reactive Selection Logic
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const currentColor = colorOptions.find(c => c.id === design.baseColor)!;
-  const currentMaterial = recommendedMaterials.find(m => m.id === design.material) || recommendedMaterials[0];
-  const currentSize = selectedProduct?.availableSizes.find(s => s.id === design.size);
+  const derivedProducts = useMemo(() => {
+    if (!apiProducts) return [];
+    return apiProducts.map((p) => {
+      const lowerName = p.name.toLowerCase();
+      let icon = "✨";
+      let localSlug = "";
+      if (lowerName.includes('pillow')) { icon = "☁️"; localSlug = "pillow"; }
+      else if (lowerName.includes('crib')) { icon = "🛏️"; localSlug = "crib_bedding_set"; }
+      else if (lowerName.includes('mattress')) { icon = "🛏️"; localSlug = "mattress"; }
 
-  const totalPrice = selectedProduct ? calculateCustomPrice(
-    selectedProduct.basePrice,
-    currentSize?.priceAdd ?? 0,
-    currentMaterial?.priceMultiplier ?? 1,
-    design.embroideryText.trim().length > 0
-  ) : 0;
+      const localRef = customizableProducts.find(lp => lp.id === localSlug);
+      const sizes = localRef ? [...localRef.availableSizes] : [];
+      if (sizes.length === 0) sizes.push({ id: "std", label: "Standard", priceAdd: 0 });
 
-  // Handlers
-  const selectProduct = (p: CustomizableProduct) => {
-    setSelectedProduct(p);
-    const defaultPos: EmbroideryPosition = p.id === "crib_bedding_set" ? "front-rail" : "center";
-    setDesign(prev => ({ ...prev, size: p.availableSizes[0]?.id || "", embroideryPosition: defaultPos }));
-  };
+      return {
+        id: p.id,
+        name: p.name,
+        description: p.summary,
+        icon,
+        basePrice: p.basePrice,
+        salePrice: p.salePrice || 0,
+        availableSizes: sizes,
+        type: localSlug,
+        image: p.imageUrls?.[0] || ""
+      } as CustomizableProduct;
+    });
+  }, [apiProducts]);
 
-  const toggleAllergy = (id: string) => {
-    if (id === "none") { setChildProfile(p => ({ ...p, allergies: ["none"] })); return; }
-    setChildProfile(p => {
-      const filtered = p.allergies.filter(a => a !== "none");
-      return { ...p, allergies: filtered.includes(id) ? filtered.filter(a => a !== id) : [...filtered, id] };
+  const selectedProduct = useMemo(() => {
+    if (selectedId) return derivedProducts.find(p => p.id === selectedId) || derivedProducts[0];
+    return derivedProducts[0];
+  }, [selectedId, derivedProducts]);
+
+  const { data: variantsData } = useProductVariants(selectedProduct?.id || "");
+
+  const customSchema = useMemo(() => {
+    if (!selectedProduct || !variantsData || !Array.isArray(variantsData) || variantsData.length === 0) return null;
+    const custom = variantsData.find((v) => v.isCustomizable || v.is_customizable);
+    if (custom) return custom;
+    const withGroups = variantsData.find(v => v.customizeOptionGroups && v.customizeOptionGroups.length > 0);
+    return withGroups || variantsData[0];
+  }, [selectedProduct, variantsData]);
+
+  const variantPresets = useMemo(() => {
+    if (!variantsData || !Array.isArray(variantsData)) return [];
+    return variantsData.map(v => ({
+      id: v.id,
+      sku: v.sku,
+      color: (v.attributes?.color as string) || "Standard",
+      colorCode: (v.attributes?.colorCode as string) || "#FFFFFF",
+      salePrice: v.salePrice,
+      basePrice: v.basePrice
+    })) as ProductVariant[];
+  }, [variantsData]);
+
+  const derivedMaterials = useMemo(() => {
+    const materialGroup = customSchema?.customizeOptionGroups?.find((g: CustomizeOptionGroupResponse) => g.category === 'Material');
+    if (!materialGroup) return [];
+
+    return materialGroup.options.map((o: CustomizeOptionResponse) => ({
+      id: o.customizeTypeId,
+      name: o.name,
+      description: o.summary,
+      priceMultiplier: o.calculationMode === 'Multiplier' ? (o.overrideMultiplier ?? o.defaultMultiplier ?? 1.0) : 1.0,
+      priceAdd: o.calculationMode === 'FixedAmount' ? (o.overridePrice ?? o.defaultPrice ?? 0) : 0,
+      badge: 'Custom'
+    })) as MaterialOption[];
+  }, [customSchema]);
+
+  const availableSizes = useMemo(() => {
+    if (!selectedProduct) return [];
+
+    // API Options
+    const apiOptions = customSchema?.customizeOptionGroups?.find((g: CustomizeOptionGroupResponse) => g.category === 'Size')?.options || [];
+    const localSizes = selectedProduct.availableSizes || [];
+
+    const combined = [...(apiOptions.length > 0 ? apiOptions.map((o: CustomizeOptionResponse) => ({
+      id: o.customizeTypeId,
+      label: o.name,
+      priceAdd: o.overridePrice ?? o.defaultPrice ?? 0
+    })) : []), ...localSizes];
+
+    // Robust merging logic: Only use labels to avoid duplicate UI entries, but keep API IDs if they exist
+    const uniqueMap = new Map();
+    combined.forEach(item => {
+      const labelKey = item.label.toLowerCase().trim().replace(/ /g, '');
+      if (!uniqueMap.has(labelKey)) {
+        uniqueMap.set(labelKey, item);
+      }
+    });
+
+    return Array.from(uniqueMap.values()).filter(s => s.label.toLowerCase() !== 'size');
+  }, [selectedProduct, customSchema]);
+
+  const colorAddOnFee = useMemo(() => {
+    const colorGroup = customSchema?.customizeOptionGroups?.find((g: CustomizeOptionGroupResponse) => g.category === 'Color');
+    if (colorGroup && colorGroup.options.length > 0) {
+      const opt = colorGroup.options[0];
+      return opt.overridePrice ?? opt.defaultPrice ?? 0;
+    }
+    return 0;
+  }, [customSchema]);
+
+  const sizeAddOnFee = useMemo(() => {
+    const group = customSchema?.customizeOptionGroups?.find(g => g.category === 'Size');
+    if (group && group.options.length > 0) {
+      const opt = group.options[0];
+      return opt.overridePrice ?? opt.defaultPrice ?? 0;
+    }
+    return 0;
+  }, [customSchema]);
+
+  const sizeOptionId = useMemo(() => {
+    const group = customSchema?.customizeOptionGroups?.find(g => g.category === 'Size');
+    return group?.options[0]?.customizeTypeId;
+  }, [customSchema]);
+
+  const colorOptionId = useMemo(() => {
+    const group = customSchema?.customizeOptionGroups?.find(g => g.category === 'Color');
+    return group?.options[0]?.customizeTypeId;
+  }, [customSchema]);
+
+  const embroideryAddOnFee = useMemo(() => {
+    const group = customSchema?.customizeOptionGroups?.find(g => g.category === 'Embroidery');
+    if (group && group.options.length > 0) {
+      const opt = group.options[0];
+      return opt.overridePrice ?? opt.defaultPrice ?? 0;
+    }
+    return 80000; // Final Fallback
+  }, [customSchema]);
+
+
+
+  const [designState, setDesignState] = useState<Partial<DesignConfig>>({
+    baseColor: "#B0D4F1", pattern: "solid", embroideryText: "", embroideryPosition: "center", size: ""
+  });
+
+  const [sizeMode, setSizeMode] = useState<'mock' | 'input'>('mock');
+  const [customDims, setCustomDims] = useState<{ width: string; height: string }>({ width: "", height: "" });
+
+  const activeDesign = useMemo(() => {
+    if (!selectedProduct) return { ...designState, size: "", material: "", imageMode: "wrap" } as DesignConfig;
+    return {
+      ...designState,
+      size: designState.size || availableSizes[0]?.id || "",
+      material: designState.material || derivedMaterials[0]?.id || "",
+      embroideryPosition: designState.embroideryPosition || (selectedProduct.id.includes('crib') ? "front-rail" : "center"),
+      imageMode: designState.imageMode || "wrap"
+    } as DesignConfig;
+  }, [selectedProduct, designState, derivedMaterials, availableSizes]);
+
+  const currentMaterial = useMemo(() => derivedMaterials.find(m => m.id === activeDesign.material) || derivedMaterials[0], [activeDesign.material, derivedMaterials]);
+  const currentSize = useMemo(() => availableSizes.find((s: { id: string }) => s.id === activeDesign.size), [availableSizes, activeDesign.size]);
+
+  const pricingResults = useMemo(() => {
+    if (!selectedProduct) return { current: 0 };
+    const baseSale = selectedProduct.salePrice && selectedProduct.salePrice > 0 ? selectedProduct.salePrice : selectedProduct.basePrice;
+
+    // TRUY XUẤT PHÍ SIZE CHÍNH XÁC (NẾU CHỌN SIZE SẼ CỘNG PHÍ TỪ CATEGORY)
+    const sizeFee = (activeDesign.size || currentSize) ? sizeAddOnFee : 0;
+
+    const colorAdd = activeDesign.baseColor ? colorAddOnFee : 0;
+
+
+    // HỖ TRỢ CẢ HAI: CÔNG THỨC PHÉP CỘNG VÀ HỆ SỐ NHÂN (DỰA TRÊN JSON API)
+    const matAdd = currentMaterial?.priceAdd ?? 0;
+    const mult = currentMaterial?.priceMultiplier ?? 1.0;
+    const embAdd = activeDesign.embroideryText.trim().length > 0 ? embroideryAddOnFee : 0;
+
+    // Logic chuẩn Backend: (Base * Hệ số chất liệu) + Phí Size + Phí Màu + Phí Thêu + MaterialAddon
+    // Giải thích: Tiền vật liệu = Base * (Multiplier - 1)
+    const currentTotal = Math.round(baseSale * mult + matAdd) + sizeFee + colorAdd + embAdd;
+
+    return { current: currentTotal };
+  }, [selectedProduct, currentSize, currentMaterial, activeDesign, colorAddOnFee, embroideryAddOnFee, sizeAddOnFee]);
+
+  const totalPrice = pricingResults.current;
+
+  const updateDesign = useCallback((updates: Partial<DesignConfig>) => {
+    setDesignState(prev => ({ ...prev, ...updates }));
+  }, []);
+
+  const handleAddToCart = () => {
+    if (!selectedProduct || !customSchema) return;
+
+    // Build the Bespoke Detail List
+    const customizeDetails = [];
+
+    const isGuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+
+    // 1. Size (Luôn lấy, nếu không có ID cụ thể thì dùng ID mặc định của nhóm Size)
+    const activeSizeId = (currentSize && isGuid(currentSize.id)) ? currentSize.id : sizeOptionId;
+    if (activeSizeId && isGuid(activeSizeId)) {
+      customizeDetails.push({
+        ProductCustomizeTypeId: activeSizeId,
+        CustomizeContent: activeDesign.size === 'custom' ? `${customDims.width}x${customDims.height}cm` : (currentSize?.label || "Standard Size")
+      });
+    }
+
+    // 2. Color (Luôn lấy)
+    if (colorOptionId && isGuid(colorOptionId)) {
+      customizeDetails.push({
+        ProductCustomizeTypeId: colorOptionId,
+        CustomizeContent: activeDesign.baseColor || "#B0D4F1"
+      });
+    }
+
+    // 3. Material
+    if (currentMaterial && isGuid(currentMaterial.id)) {
+      customizeDetails.push({
+        ProductCustomizeTypeId: currentMaterial.id,
+        CustomizeContent: currentMaterial.name
+      });
+    }
+
+    const configHash = generateConfigHash(customSchema.id, null, customizeDetails);
+
+    setIsAdding(true);
+    addItem({
+      productVariantId: customSchema.id,
+      comboId: null,
+      quantity: 1,
+      ProductCustomizeDetailRequest: customizeDetails,
+      id: `item_${customSchema.id}_bespoke_${configHash}`,
+      productId: selectedProduct.id,
+      name: selectedProduct.name,
+      image: selectedProduct.image,
+      price: totalPrice,
+      color: activeDesign.baseColor,
+      size: activeDesign.size === 'custom' ? `${customDims.width}x${customDims.height}x15 cm` : (currentSize?.label || ""),
+      customAttributes: {
+        colorHex: activeDesign.baseColor,
+        material: currentMaterial?.name || "",
+        embroidery: activeDesign.embroideryText || "",
+        // Keep dimensions ONLY as numbers for the specialized chip to detect but avoid the redundant loop display
+        length: parseInt(customDims.height) || undefined,
+        width: parseInt(customDims.width) || undefined,
+        thickness: 15, // Standard thickness for now or parse from customDims
+      },
+      configHash: configHash,
+      isCustom: true,
+    }).then(() => {
+      toast.success("Design saved to sanctuary.");
+      // Small delay to allow store to settle before navigation
+      setTimeout(() => navigate("/cart"), 50);
+    }).catch(() => {
+      toast.error("Failed to add bespoke design.");
+    }).finally(() => {
+      // Keep isAdding true for a bit longer to prevent double clicks during navigation
+      setTimeout(() => setIsAdding(false), 500);
     });
   };
 
-  const toggleCondition = (id: string) => {
-    if (id === "none") { setChildProfile(p => ({ ...p, healthConditions: ["none"] })); return; }
-    setChildProfile(p => {
-      const filtered = p.healthConditions.filter(c => c !== "none");
-      return { ...p, healthConditions: filtered.includes(id) ? filtered.filter(c => c !== id) : [...filtered, id] };
-    });
-  };
-
-  // Smart recommendation
-  const getRecommendation = () => {
-    if (childProfile.skinSensitivity >= 3) return { text: "Hypoallergenic Silk is ideal for very sensitive skin", level: "warning" as const };
-    if (childProfile.allergies.includes("wool")) return { text: "Wool-free materials have been auto-selected", level: "info" as const };
-    if (childProfile.healthConditions.includes("eczema")) return { text: "We recommend Bamboo Fiber for eczema-prone skin", level: "info" as const };
-    return null;
-  };
-  const recommendation = getRecommendation();
+  if (productsLoading) {
+    return <PageLoader />;
+  }
 
   return (
-    <div className="h-screen flex flex-col bg-slate-50/50 overflow-hidden">
-      {/* Top Bar */}
-      <div className="flex-shrink-0 h-14 bg-white border-b border-slate-100 flex items-center justify-between px-6 z-20">
-        <button type="button" onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm font-black text-slate-500 hover:text-slate-800 transition-colors">
-          <ArrowLeft className="h-4 w-4" /> Back
-        </button>
-        <div className="flex items-center gap-2 text-[#4988c4]">
-          <Sparkles className="h-4 w-4" />
-          <span className="text-sm font-black tracking-tight">DreamGuard Studio</span>
+    <div className="fixed inset-0 bg-slate-50 flex flex-col font-sans overflow-hidden">
+      <header className="sticky top-0 z-[60] h-16 w-full bg-white border-b border-slate-100 flex items-center justify-between px-8">
+        <div className="flex items-center gap-5">
+          <button
+            onClick={() => navigate(-1)}
+            className="h-9 w-9 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center hover:bg-white hover:border-slate-200 hover:-translate-x-0.5 active:scale-95 transition-all duration-200 group"
+          >
+            <ArrowLeft className="h-4 w-4 text-slate-400 group-hover:text-slate-700 transition-colors" />
+          </button>
+
+          <div>
+            <h1 className="text-[13px] font-bold text-slate-900 tracking-tight flex items-center gap-2 uppercase">
+              DreamGuard <span className="text-[#4988c4]">Studio</span>
+              <div className="flex gap-0.5 ml-1">
+                <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
+                <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse delay-75" />
+                <div className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse delay-150" />
+              </div>
+            </h1>
+            <p className="text-[8px] font-bold text-slate-300 uppercase tracking-[0.25em] font-mono">Bespoke System v4.5</p>
+          </div>
         </div>
+
+        {/* Header: only show price — single CTA is in sidebar */}
         <div className="text-right">
-          {totalPrice > 0 && (
-            <motion.span key={totalPrice} initial={{ scale: 1.1 }} animate={{ scale: 1 }} className="text-sm font-black text-slate-800">
-              {formatPrice(totalPrice)}
-            </motion.span>
-          )}
+          <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-1">Estimated total</p>
+          <div className="flex items-baseline gap-2 justify-end">
+            <span className="text-2xl font-bold font-mono tracking-tight text-slate-900">
+              {new Intl.NumberFormat("vi-VN").format(totalPrice)}
+            </span>
+            <span className="text-[9px] font-bold text-[#4988c4] font-mono uppercase bg-blue-50 px-2 py-0.5 rounded border border-[#4988c4]/20">VND</span>
+          </div>
         </div>
-      </div>
+      </header>
 
-      {/* Main Split */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* ======= LEFT: Config Sidebar ======= */}
-        <div className="w-[340px] flex-shrink-0 bg-white border-r border-slate-100 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-slate-200 [&::-webkit-scrollbar-thumb]:rounded-full">
+      <main className="flex-1 overflow-hidden relative bg-[#f8fafc]">
+        <div className="h-full flex overflow-hidden">
+          {/* LEFT SIDEBAR */}
+          <aside className="w-[340px] bg-white border-r border-slate-100 flex flex-col h-full relative z-20">
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5 no-scrollbar scroll-smooth" style={{ WebkitOverflowScrolling: 'touch', willChange: 'scroll-position' }}>
 
-          {/* Smart Recommendation Banner */}
-          <AnimatePresence>
-            {recommendation && (
-              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                <div className={cn("px-5 py-3 text-[10px] font-black tracking-wide border-b flex items-center gap-2",
-                  recommendation.level === "warning" ? "bg-amber-50 text-amber-700 border-amber-100" : "bg-blue-50 text-blue-700 border-blue-100"
-                )}>
-                  <span className="text-base">{recommendation.level === "warning" ? "⚠️" : "💡"}</span>
-                  {recommendation.text}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              {/* FOUNDATION — Product picker */}
+              <div className="space-y-3">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Foundation</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {derivedProducts.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => setSelectedId(p.id)}
+                      className={cn(
+                        "flex flex-col items-start p-4 rounded-xl border transition-all duration-200 relative overflow-hidden group text-left",
+                        selectedProduct?.id === p.id
+                          ? "border-[#4988c4] bg-blue-50 shadow-sm"
+                          : "border-slate-100 bg-slate-50 hover:border-slate-200 hover:bg-white hover:shadow-sm"
+                      )}
+                    >
+                      <div className={cn(
+                        "h-10 w-10 rounded-lg flex items-center justify-center text-xl mb-3 transition-all duration-200",
+                        selectedProduct?.id === p.id ? "bg-white shadow-sm" : "bg-slate-100 grayscale opacity-50"
+                      )}>
+                        {p.icon}
+                      </div>
 
-          {/* Section 1: Product */}
-          <ConfigSection title="Product" step={1} icon="🛍️" defaultOpen={true}>
-            <div className="grid grid-cols-2 gap-2">
-              {customizableProducts.map(p => (
-                <button key={p.id} type="button" onClick={() => selectProduct(p)}
-                  className={cn("flex flex-col items-center p-3 rounded-xl border-2 transition-all text-center",
-                    selectedProduct?.id === p.id
-                      ? "border-[#4988c4] bg-[#4988c4]/[0.04] shadow-sm"
-                      : "border-slate-100/80 border-dashed hover:border-[#4988c4]/30"
-                  )}>
-                  <span className="text-2xl">{p.icon}</span>
-                  <span className={cn("text-[10px] font-black mt-1", selectedProduct?.id === p.id ? "text-[#4988c4]" : "text-slate-700")}>{p.name}</span>
-                  <span className="text-[9px] font-bold text-slate-400">{(p.basePrice / 1000).toFixed(0)}K</span>
-                </button>
-              ))}
-            </div>
-          </ConfigSection>
+                      <span className={cn(
+                        "text-[10px] font-bold uppercase tracking-wide leading-tight block mb-1 transition-colors",
+                        selectedProduct?.id === p.id ? "text-slate-900" : "text-slate-500"
+                      )}>{p.name}</span>
 
-          {/* Section 2: Health Profile */}
-          <ConfigSection title="Health Profile" step={2} icon="🩺">
-            <div className="space-y-1.5">
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Age Group</p>
-              <div className="flex gap-1.5">
-                {(["newborn", "infant", "toddler"] as const).map(a => (
-                  <Chip key={a} active={childProfile.ageGroup === a} onClick={() => setChildProfile(p => ({ ...p, ageGroup: a }))}>
-                    {a === "newborn" ? "👶 0-6m" : a === "infant" ? "🍼 6-12m" : "🧒 1-3y"}
-                  </Chip>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Allergies</p>
-              <div className="flex flex-wrap gap-1.5">
-                {allergyOptions.map(o => (
-                  <Chip key={o.id} active={childProfile.allergies.includes(o.id)} onClick={() => toggleAllergy(o.id)}>
-                    {o.emoji} {o.label}
-                  </Chip>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Skin Sensitivity</p>
-              <div className="flex gap-1.5">
-                {[{ v: 1, l: "Normal", c: "bg-emerald-400" }, { v: 2, l: "Sensitive", c: "bg-amber-400" }, { v: 3, l: "Very Sensitive", c: "bg-rose-400" }].map(s => (
-                  <button key={s.v} type="button" onClick={() => setChildProfile(p => ({ ...p, skinSensitivity: s.v }))}
-                    className={cn("flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg border-2 text-[10px] font-black transition-all",
-                      childProfile.skinSensitivity === s.v ? "border-[#4988c4] bg-[#4988c4]/[0.04] text-[#4988c4]" : "border-slate-100 text-slate-500 hover:border-[#4988c4]/30"
-                    )}>
-                    <div className={cn("h-2 w-2 rounded-full", s.c)} /> {s.l}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Conditions</p>
-              <div className="flex flex-wrap gap-1.5">
-                {healthConditionOptions.map(o => (
-                  <Chip key={o.id} active={childProfile.healthConditions.includes(o.id)} onClick={() => toggleCondition(o.id)}>
-                    {o.emoji} {o.label}
-                  </Chip>
-                ))}
-              </div>
-            </div>
-          </ConfigSection>
+                      <div className="flex items-baseline gap-1">
+                        <span className={cn(
+                          "text-[11px] font-bold font-mono",
+                          selectedProduct?.id === p.id ? "text-[#4988c4]" : "text-slate-300"
+                        )}>
+                          {new Intl.NumberFormat("vi-VN").format(p.salePrice || p.basePrice)}
+                        </span>
+                        <span className="text-[8px] font-bold text-slate-300 uppercase">₫</span>
+                      </div>
 
-          {/* Section 3: Design */}
-          <ConfigSection title="Design" step={3} icon="🎨" defaultOpen={true}>
-            {selectedProduct && (
-              <div className="space-y-1.5">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Size</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {selectedProduct.availableSizes.map(s => (
-                    <Chip key={s.id} active={design.size === s.id} onClick={() => setDesign(d => ({ ...d, size: s.id }))}>
-                      {s.label} {s.priceAdd !== 0 && `(${s.priceAdd > 0 ? "+" : ""}${(s.priceAdd / 1000).toFixed(0)}K)`}
-                    </Chip>
+                      {selectedProduct?.id === p.id && (
+                        <div className="absolute top-2 right-2 h-2 w-2 rounded-full bg-[#4988c4]" />
+                      )}
+                    </button>
                   ))}
                 </div>
               </div>
-            )}
-            <div className="space-y-1.5">
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Color — {currentColor.name}</p>
-              <div className="flex flex-wrap gap-2">
-                {colorOptions.map(c => (
-                  <ColorSwatch key={c.id} hex={c.hex} name={c.name} active={design.baseColor === c.id} onClick={() => setDesign(d => ({ ...d, baseColor: c.id }))} />
-                ))}
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Pattern</p>
-              <div className="flex flex-wrap gap-1.5">
-                {patternOptions.map(p => (
-                  <Chip key={p.id} active={design.pattern === p.id} onClick={() => setDesign(d => ({ ...d, pattern: p.id }))}>
-                    {p.emoji} {p.name}
-                  </Chip>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Material <span className="text-[#4988c4]">({recommendedMaterials.length} safe)</span></p>
-              <div className="space-y-1.5">
-                {recommendedMaterials.map(m => (
-                  <button key={m.id} type="button" onClick={() => setDesign(d => ({ ...d, material: m.id }))}
-                    className={cn("w-full flex items-center justify-between p-2.5 rounded-xl border-2 text-left transition-all",
-                      design.material === m.id ? "border-[#4988c4] bg-[#4988c4]/[0.04]" : "border-slate-100/80 border-dashed hover:border-[#4988c4]/30"
-                    )}>
-                    <div className="min-w-0">
-                      <span className={cn("text-[11px] font-black", design.material === m.id ? "text-[#4988c4]" : "text-slate-700")}>{m.name}</span>
-                      {m.badge && <span className="ml-1.5 text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full bg-[#4988c4]/10 text-[#4988c4]">{m.badge}</span>}
-                      <p className="text-[9px] font-bold text-slate-400 mt-0.5 truncate">{m.description}</p>
-                    </div>
-                    {m.priceMultiplier !== 1 && <span className="text-[9px] font-black text-slate-400 ml-2">×{m.priceMultiplier.toFixed(2)}</span>}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                {selectedProduct?.id === "crib_bedding_set" ? "✏️ Name Engraving (+80K)" : "🧵 Embroidery (+80K)"}
-              </p>
-              <Input
-                value={design.embroideryText}
-                onChange={e => setDesign(d => ({ ...d, embroideryText: e.target.value.slice(0, 15) }))}
-                placeholder="Baby's name..."
-                maxLength={15}
-                className="h-9 rounded-lg border-slate-200 text-xs font-black placeholder:text-slate-300 focus:border-[#4988c4] focus:ring-1 focus:ring-[#4988c4]/20"
+
+              <SizeSelector
+                sizes={availableSizes}
+                selectedSize={activeDesign.size}
+                mode={sizeMode}
+                onModeChange={setSizeMode}
+                customDimensions={customDims}
+                onDimensionsChange={setCustomDims}
+                onSelect={(id: string) => updateDesign({ size: id })}
               />
-              <p className="text-[9px] font-bold text-slate-400 text-right">{design.embroideryText.length}/15</p>
 
-              {/* Position Picker */}
-              {design.embroideryText.trim() && (
-                <div className="space-y-1.5 mt-2">
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-                    📍 {selectedProduct?.id === "crib_bedding_set" ? "Nameplate Position" : "Embroidery Position"}
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {(selectedProduct?.id === "crib_bedding_set"
-                      ? [
-                        { id: "front-rail" as EmbroideryPosition, label: "Front Rail", icon: "🪵" },
-                        { id: "side-rail" as EmbroideryPosition, label: "Side Rail", icon: "📐" },
-                        { id: "headboard" as EmbroideryPosition, label: "Headboard", icon: "🛏️" },
-                      ]
-                      : [
-                        { id: "center" as EmbroideryPosition, label: "Center", icon: "⊕" },
-                        { id: "corner" as EmbroideryPosition, label: "Corner", icon: "◳" },
-                        { id: "bottom-edge" as EmbroideryPosition, label: "Bottom Edge", icon: "▁" },
-                      ]
-                    ).map(pos => (
-                      <Chip
-                        key={pos.id}
-                        active={design.embroideryPosition === pos.id}
-                        onClick={() => setDesign(d => ({ ...d, embroideryPosition: pos.id }))}
-                      >
-                        {pos.icon} {pos.label}
-                      </Chip>
-                    ))}
-                  </div>
-                  <p className="text-[8px] font-bold text-slate-300 italic">
-                    {selectedProduct?.id === "crib_bedding_set"
-                      ? "💡 Click a hotspot on the 3D model to place the nameplate"
-                      : "💡 Click a hotspot on the 3D model to place the embroidery"}
-                  </p>
-                </div>
-              )}
+              <ChromaProfile
+                variants={variantPresets}
+                selectedColor={activeDesign.baseColor}
+                addOnFee={colorAddOnFee}
+                onSelect={(hex) => updateDesign({ baseColor: hex })}
+              />
+
+              <TextureLab
+                selectedPattern={activeDesign.pattern}
+                selectedMaterial={activeDesign.material}
+                materials={derivedMaterials}
+                basePrice={(selectedProduct?.salePrice || selectedProduct?.basePrice || 0) + (activeDesign.size === "custom" ? 50000 : (currentSize?.priceAdd || 0))}
+                onPatternSelect={(p) => updateDesign({ pattern: p })}
+                onMaterialSelect={(m) => updateDesign({ material: m })}
+                onImageUpload={(f) => {
+                  if (f) {
+                    const url = URL.createObjectURL(f);
+                    updateDesign({ customImage: url, imageMode: "wrap" });
+                  } else {
+                    updateDesign({ customImage: undefined });
+                  }
+                }}
+              />
+
+              {/* Bottom spacer */}
+              <div className="h-4" />
             </div>
-          </ConfigSection>
-        </div>
 
-        {/* ======= CENTER: 3D Visual Preview ======= */}
-        <div className="flex-1 flex flex-col relative overflow-hidden bg-gradient-to-br from-slate-50 via-white to-slate-100/50">
-          {!selectedProduct ? (
-            <div className="flex-1 flex items-center justify-center">
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center space-y-4 px-8">
-                <div className="text-7xl">🎨</div>
-                <h2 className="text-3xl font-black text-slate-800 tracking-tight">Start Designing</h2>
-                <p className="text-sm text-slate-400 font-medium max-w-sm mx-auto">Select a product from the panel to begin your 3D custom design experience.</p>
-              </motion.div>
-            </div>
-          ) : (
-            <>
-              {/* Live Preview Badge */}
-              <div className="absolute top-4 left-4 z-10">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 backdrop-blur-sm border border-slate-100 shadow-sm">
-                  <div className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">3D Preview</span>
-                </div>
-              </div>
-              <div className="absolute top-4 right-4 z-10">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 backdrop-blur-sm border border-slate-100 shadow-sm">
-                  <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{selectedProduct.name}</span>
-                </div>
-              </div>
-
-              {/* 3D Canvas Area */}
-              <div className="flex-1">
-                <Suspense fallback={
-                  <div className="w-full h-full flex items-center justify-center">
-                    <div className="text-center space-y-3">
-                      <div className="h-10 w-10 mx-auto border-3 border-[#4988c4] border-t-transparent rounded-full animate-spin" />
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Loading 3D Engine...</p>
-                    </div>
-                  </div>
-                }>
-                  <ProductPreview3D
-                    product={selectedProduct}
-                    design={design}
-                    totalPrice={totalPrice}
-                    onPositionChange={(pos: EmbroideryPosition) => setDesign(d => ({ ...d, embroideryPosition: pos }))}
-                  />
-                </Suspense>
-              </div>
-
-              {/* Bottom Price Bar */}
-              <div className="absolute bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-slate-100 px-8 py-4 flex items-center justify-between z-10">
+            {/* STICKY BOTTOM ACTION RAIL */}
+            <div className="border-t border-slate-100 bg-white px-6 py-4 space-y-3">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Estimated Total</p>
-                  <motion.p key={totalPrice} initial={{ scale: 1.05, color: "#4988c4" }} animate={{ scale: 1, color: "#0f172a" }} className="text-2xl font-black">
-                    {formatPrice(totalPrice)}
-                  </motion.p>
+                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] mb-0.5">Total</p>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-xl font-bold text-slate-900 font-mono tracking-tight">
+                      {new Intl.NumberFormat("vi-VN").format(totalPrice)}
+                    </span>
+                    <span className="text-[9px] font-bold text-slate-400">VND</span>
+                  </div>
                 </div>
-                <button type="button" className="flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-black text-white bg-gradient-to-r from-[#4988c4] to-[#3a73a8] hover:from-[#3a73a8] hover:to-[#2d5d8a] shadow-lg shadow-[#4988c4]/25 transition-all active:scale-95">
-                  <ShoppingCart className="h-4 w-4" /> Add to Cart
-                </button>
+                <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 rounded-full px-3 py-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-wider">Ready</span>
+                </div>
               </div>
-            </>
-          )}
+
+              <Button
+                variant="premium"
+                size="premiumLg"
+                onClick={handleAddToCart}
+                disabled={isAdding}
+                className="w-full h-14 rounded-2xl shadow-xl shadow-[#4988c4]/10 hover:shadow-[#4988c4]/20"
+              >
+                <ShoppingCart className="w-5 h-5 transition-transform group-hover:-rotate-12" />
+                {isAdding ? "Saving..." : "Add to Sanctuary"}
+              </Button>
+            </div>
+          </aside>
+
+          {/* MAIN PREVIEW AREA */}
+          <div className="flex-1 relative overflow-hidden bg-white">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(73,136,196,0.03)_0%,rgba(255,255,255,1)_100%)] pointer-events-none" />
+            <ProductPreview3D product={selectedProduct} design={activeDesign} />
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
-}
+};
+
+export default CustomizeStudio;

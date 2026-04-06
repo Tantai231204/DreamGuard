@@ -218,9 +218,9 @@ export function useProductColumns({ onView, onEdit, onDelete, onAddVariant, onUp
                               key={s.value}
                               disabled={isDisabledOption}
                               className={cn(
-                                "rounded-lg px-2 py-2 gap-2 cursor-pointer transition-colors w-full",
-                                status === s.value ? "bg-blue-50 text-blue-700 font-bold" : "text-slate-600 hover:bg-slate-50",
-                                isDisabledOption && "opacity-50 cursor-not-allowed bg-slate-50/50"
+                                "rounded-lg px-2 py-1.5 cursor-pointer transition-all w-full",
+                                status === s.value ? "bg-blue-50/50" : "hover:bg-slate-50",
+                                isDisabledOption && "opacity-50 cursor-not-allowed"
                               )}
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -229,15 +229,8 @@ export function useProductColumns({ onView, onEdit, onDelete, onAddVariant, onUp
                                 }
                               }}
                             >
-                              <div className="flex items-center gap-2 w-full justify-between">
-                                <div className="flex items-center gap-2">
-                                  <div className={cn("h-1.5 w-1.5 rounded-full",
-                                    s.value === 'Published' ? 'bg-emerald-500' :
-                                      s.value === 'Draft' ? 'bg-amber-500' :
-                                        s.value === 'OutOfStock' ? 'bg-rose-500' : 'bg-slate-400'
-                                  )} />
-                                  <span className="text-[13px]">{s.label}</span>
-                                </div>
+                              <div className="flex items-center justify-between w-full gap-3">
+                                <AdminStatusBadge status={s.value} className="border-none shadow-none bg-transparent pl-0 py-0" />
                                 {isDisabledOption && (
                                   <span className="text-[9px] font-black text-rose-500 uppercase tracking-tighter bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100 italic">
                                     Locked
@@ -276,73 +269,100 @@ export function useProductColumns({ onView, onEdit, onDelete, onAddVariant, onUp
       columnHelper.display({
         id: 'actions',
         header: () => <div className="text-right pr-4 uppercase text-[10px] font-black tracking-widest text-slate-400">Actions</div>,
-        cell: ({ row }) => (
-          <div className="flex justify-end items-center gap-1 pr-2">
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 rounded hover:bg-slate-100 text-slate-500 hover:text-blue-600"
-                onClick={(e) => { e.stopPropagation(); onView(row.original); }}
-                title="View Details"
-              >
-                <Eye className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0 rounded hover:bg-slate-100 text-slate-500 hover:text-blue-600"
-                onClick={(e) => { e.stopPropagation(); onEdit(row.original); }}
-                title="Edit Product"
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-            </div>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+        cell: ({ row }) => {
+          const isTemplate = !!row.original.fullyCustomizedProductType && row.original.fullyCustomizedProductType !== 'None';
+          return (
+            <div className="flex justify-end items-center gap-1 pr-2">
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 w-8 p-0 rounded hover:bg-slate-100 dropdown-trigger transition-colors"
+                  className="h-8 w-8 p-0 rounded hover:bg-slate-100 text-slate-500 hover:text-blue-600"
+                  onClick={(e) => { e.stopPropagation(); onView(row.original); }}
+                  title="View Details"
                 >
-                  <MoreVertical className="h-4 w-4 text-slate-400" />
+                  <Eye className="h-4 w-4" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 shadow-xl border border-slate-200/60 rounded-xl p-1 animate-in fade-in zoom-in-95 duration-100">
-                <DropdownMenuItem
-                  className="rounded-lg cursor-pointer py-2 px-3 font-medium text-slate-600 hover:text-blue-600 focus:bg-blue-50 focus:text-blue-700 transition-colors gap-2.5"
-                  onClick={() => onView(row.original)}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 rounded hover:bg-slate-100 text-slate-500 hover:text-blue-600"
+                  onClick={(e) => { e.stopPropagation(); onEdit(row.original); }}
+                  title="Edit Product"
                 >
-                  <Eye className="h-4 w-4 opacity-70" />
-                  <span className="text-[13px]">View Details</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="rounded-lg cursor-pointer py-2 px-3 font-medium text-slate-600 hover:text-blue-600 focus:bg-blue-50 focus:text-blue-700 transition-colors gap-2.5"
-                  onClick={() => onEdit(row.original)}
-                >
-                  <Edit className="h-4 w-4 opacity-70" />
-                  <span className="text-[13px]">Edit Product</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="rounded-lg cursor-pointer py-2 px-3 font-medium text-slate-600 hover:text-blue-600 focus:bg-blue-50 focus:text-blue-700 transition-colors gap-2.5"
-                  onClick={() => onAddVariant(row.original)}
-                >
-                  <Plus className="h-4 w-4 opacity-70" />
-                  <span className="text-[13px]">Add Variant</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator className="my-1 bg-slate-100" />
-                <DropdownMenuItem
-                  className="rounded-lg cursor-pointer py-2 px-3 font-medium text-red-500 focus:bg-red-50 focus:text-red-600 transition-colors gap-2.5"
-                  onClick={() => onDelete(row.original)}
-                >
-                  <Trash2 className="h-4 w-4 opacity-70" />
-                  <span className="text-[13px]">Delete Item</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        ),
+                  <Edit className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0 rounded hover:bg-slate-100 dropdown-trigger transition-colors"
+                  >
+                    <MoreVertical className="h-4 w-4 text-slate-400" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48 shadow-xl border border-slate-200/60 rounded-xl p-1 animate-in fade-in zoom-in-95 duration-100">
+                  <DropdownMenuItem
+                    className="rounded-lg cursor-pointer py-2 px-3 font-medium text-slate-600 hover:text-blue-600 focus:bg-blue-50 focus:text-blue-700 transition-colors gap-2.5"
+                    onClick={() => onView(row.original)}
+                  >
+                    <Eye className="h-4 w-4 opacity-70" />
+                    <span className="text-[13px]">View Details</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="rounded-lg cursor-pointer py-2 px-3 font-medium text-slate-600 hover:text-blue-600 focus:bg-blue-50 focus:text-blue-700 transition-colors gap-2.5"
+                    onClick={() => onEdit(row.original)}
+                  >
+                    <Edit className="h-4 w-4 opacity-70" />
+                    <span className="text-[13px]">Edit Product</span>
+                  </DropdownMenuItem>
+                  <TooltipProvider delayDuration={0}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="w-full">
+                          <DropdownMenuItem
+                            className={cn(
+                              "rounded-lg cursor-pointer py-2 px-3 font-medium transition-colors gap-2.5 w-full",
+                              isTemplate
+                                ? "text-slate-300 cursor-not-allowed opacity-50 grayscale"
+                                : "text-slate-600 hover:text-blue-600 focus:bg-blue-50 focus:text-blue-700"
+                            )}
+                            disabled={isTemplate}
+                            onClick={() => !isTemplate && onAddVariant(row.original)}
+                          >
+                            <Plus className="h-4 w-4 opacity-70" />
+                            <span className="text-[13px]">Add Variant</span>
+                            {isTemplate && (
+                              <span className="ml-auto text-[9px] font-black text-blue-500 uppercase tracking-tighter bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">
+                                Fixed
+                              </span>
+                            )}
+                          </DropdownMenuItem>
+                        </div>
+                      </TooltipTrigger>
+                      {isTemplate && (
+                        <TooltipContent side="left" className="bg-slate-900 text-white border-none text-[11px] font-bold px-3 py-1.5 rounded-lg shadow-xl z-[100]">
+                          Templates only support one master configuration.
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
+                  <DropdownMenuSeparator className="my-1 bg-slate-100" />
+                  <DropdownMenuItem
+                    className="rounded-lg cursor-pointer py-2 px-3 font-medium text-red-500 focus:bg-red-50 focus:text-red-600 transition-colors gap-2.5"
+                    onClick={() => onDelete(row.original)}
+                  >
+                    <Trash2 className="h-4 w-4 opacity-70" />
+                    <span className="text-[13px]">Delete Item</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          );
+        },
       }),
     ],
     [onView, onEdit, onDelete, onAddVariant, onUpdateStatus]

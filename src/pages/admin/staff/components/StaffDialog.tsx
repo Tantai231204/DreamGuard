@@ -11,9 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { DatePicker } from "@/components/ui/date-picker";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, UserPlus, Phone, Mail, Building, Briefcase, Key, User, ShieldCheck, BadgeCheck, Eye, EyeOff, Lock, ShieldAlert } from "lucide-react";
-import { FaMars, FaVenus, FaVenusMars, FaTransgender } from "react-icons/fa";
+import { Loader2, UserPlus, Phone, Mail, Building, Key, User, ShieldCheck, Eye, EyeOff, Lock, ShieldAlert, Briefcase, Store, Sparkles } from "lucide-react";
 import type { Staff } from "../types";
 
 const baseStaffSchema = z.object({
@@ -24,7 +24,7 @@ const baseStaffSchema = z.object({
   dateOfBirth: z.string().optional().nullable().or(z.literal("")),
   address: z.string().optional().nullable().or(z.literal("")),
   position: z.string().optional().nullable().or(z.literal("")),
-  role: z.enum(["Manager", "Seller", "CleaningStaff"]),
+  role: z.enum(["Admin", "Manager", "Seller", "CleaningStaff", "User", "DeliveryStaff"]),
 });
 
 const createStaffSchema = baseStaffSchema.extend({
@@ -68,6 +68,7 @@ export function StaffDialog({ open, onOpenChange, staff, onSubmit, isLoading }: 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSecurityUnlocked, setIsSecurityUnlocked] = useState(false);
+  const [activeTab, setActiveTab] = useState("profile");
   const [prevOpen, setPrevOpen] = useState(open);
 
   if (open !== prevOpen) {
@@ -79,7 +80,9 @@ export function StaffDialog({ open, onOpenChange, staff, onSubmit, isLoading }: 
 
   const schema = isEdit ? updateStaffSchema : createStaffSchema;
 
-  const { register, handleSubmit, reset, control, formState: { errors } } = useForm<StaffFormValues>({
+
+
+  const { register, handleSubmit, reset, control, setValue, watch, formState: { errors } } = useForm<StaffFormValues>({
     resolver: zodResolver(schema) as Resolver<StaffFormValues>,
     mode: "onChange",
     defaultValues: {
@@ -91,44 +94,105 @@ export function StaffDialog({ open, onOpenChange, staff, onSubmit, isLoading }: 
       gender: "Male",
       dateOfBirth: "",
       address: "",
-      position: "",
+      position: "Seller",
       role: "Seller"
     }
   });
 
+  const selectedRole = watch("role");
+
+  const getRoleHeader = () => {
+    switch (selectedRole) {
+      case "DeliveryStaff":
+        return {
+          icon: <img src="/images/delivery.png" alt="Delivery" className="w-6 h-6 object-contain z-10" />,
+          title: "Logistics Registry",
+          bgColor: "bg-blue-600/10",
+          borderColor: "border-blue-600",
+          iconColor: "text-blue-600"
+        };
+      case "Admin":
+        return {
+          icon: <ShieldCheck className="h-5 w-5 text-indigo-600 z-10" />,
+          title: "Privilege Registry",
+          bgColor: "bg-indigo-600/10",
+          borderColor: "border-indigo-600",
+          iconColor: "text-indigo-600"
+        };
+      case "Manager":
+        return {
+          icon: <Briefcase className="h-5 w-5 text-emerald-600 z-10" />,
+          title: "Executive Registry",
+          bgColor: "bg-emerald-600/10",
+          borderColor: "border-emerald-600",
+          iconColor: "text-emerald-600"
+        };
+      case "Seller":
+        return {
+          icon: <Store className="h-5 w-5 text-amber-600 z-10" />,
+          title: "Commerce Hub",
+          bgColor: "bg-amber-600/10",
+          borderColor: "border-amber-600",
+          iconColor: "text-amber-600"
+        };
+      case "CleaningStaff":
+        return {
+          icon: <Sparkles className="h-5 w-5 text-sky-600 z-10" />,
+          title: "Sanctuary Care",
+          bgColor: "bg-sky-600/10",
+          borderColor: "border-sky-600",
+          iconColor: "text-sky-600"
+        };
+      default:
+        return {
+          icon: <UserPlus className="h-5 w-5 text-blue-600 z-10" />,
+          title: "Staff Identity",
+          bgColor: "bg-blue-600/10",
+          borderColor: "border-blue-600",
+          iconColor: "text-blue-600"
+        };
+    }
+  };
+
+  const header = getRoleHeader();
+
   useEffect(() => {
-    if (staff && open) {
-      reset({
-        fullName: staff.fullName || "",
-        email: staff.email || "",
-        phoneNumber: staff.phoneNumber || "",
-        gender: (staff.gender as "Male" | "Female" | "Other") || "Male",
-        dateOfBirth: staff.dateOfBirth ? staff.dateOfBirth.split('T')[0] : "",
-        address: staff.address || "",
-        position: staff.position || "",
-        role: ((staff.role || staff.position) as "Manager" | "Seller" | "CleaningStaff") || "Seller",
-        password: "",
-        confirmPassword: ""
-      });
-    } else if (!open) {
-      reset({
-        fullName: "",
-        email: "",
-        password: "",
-        confirmPassword: "",
-        phoneNumber: "",
-        gender: "Male",
-        dateOfBirth: "",
-        address: "",
-        position: "",
-        role: "Seller"
-      });
+    if (open) {
+      if (staff) {
+        // Edit mode data mapping
+        reset({
+          fullName: staff.fullName || "",
+          email: staff.email || "",
+          phoneNumber: staff.phoneNumber || "",
+          gender: (staff.gender as "Male" | "Female" | "Other") || "Male",
+          dateOfBirth: staff.dateOfBirth ? staff.dateOfBirth.split('T')[0] : "",
+          address: staff.address || "",
+          position: staff.position || staff.role || "Seller",
+          role: (staff.role as StaffFormValues["role"]) || "Seller",
+          password: "",
+          confirmPassword: ""
+        });
+      } else {
+        // Create mode - force clear everything
+        reset({
+          fullName: "",
+          email: "",
+          password: "",
+          confirmPassword: "",
+          phoneNumber: "",
+          gender: "Male",
+          dateOfBirth: "",
+          address: "",
+          position: "Seller",
+          role: "Seller"
+        });
+      }
     }
   }, [staff, open, reset]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[480px] w-full p-0 gap-0 border-none shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08)] bg-gray-50 max-h-[85vh] flex flex-col overflow-hidden rounded-2xl">
+      <DialogContent className="max-w-[480px] w-full p-0 gap-0 border-none shadow-[0_20px_50px_-12px_rgba(0,0,0,0.08)] bg-gray-50 max-h-[85vh] flex flex-col overflow-hidden rounded-2xl animate-in fade-in zoom-in-95 duration-200">
         <VisuallyHidden>
           <DialogTitle>{isEdit ? "Edit Staff" : "Add New Staff"}</DialogTitle>
         </VisuallyHidden>
@@ -136,291 +200,319 @@ export function StaffDialog({ open, onOpenChange, staff, onSubmit, isLoading }: 
         {/* Floating Header Panel */}
         <div className="flex flex-col px-6 pt-6 pb-4 bg-white border-b border-gray-100/80 flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-primary)]/10 border border-[var(--color-primary)]/20 shadow-sm flex-shrink-0">
-              <UserPlus className="h-4.5 w-4.5 text-[var(--color-primary)]" />
+            <div className={cn("flex h-11 w-11 items-center justify-center rounded-2xl border shadow-sm flex-shrink-0 relative overflow-hidden transition-colors duration-500", header.bgColor, header.borderColor)}>
+              {header.icon}
+              {selectedRole === "DeliveryStaff" && <div className="absolute inset-0 bg-blue-500/5 animate-pulse" />}
             </div>
             <div>
-              <h2 className="text-lg font-black text-gray-900 tracking-tight">
-                {isEdit ? "Edit Profile" : "New Account"}
+              <h2 className={cn("text-lg font-black tracking-tight leading-tight uppercase transition-colors duration-500", header.iconColor)}>
+                {header.title}
               </h2>
-              <p className="text-[10px] text-gray-500 font-bold mt-0.5">
-                {isEdit ? "Update access security details." : "Provision a new staff access account."}
+              <p className="text-[10px] text-gray-500 font-bold mt-1 uppercase tracking-widest opacity-60">
+                {isEdit ? "Update profile credentials" : "Configure new system account"}
               </p>
             </div>
           </div>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex-1 flex flex-col overflow-hidden">
-          <Tabs defaultValue="profile" className="flex-1 flex flex-col overflow-hidden">
-            <div className="px-7 pt-4">
-              <TabsList className="grid grid-cols-2 p-1 bg-gray-100/80 border border-gray-200/50 rounded-xl w-full">
-                <TabsTrigger value="profile" className="flex items-center justify-center rounded-lg text-xs font-black text-gray-700 data-[state=active]:bg-white data-[state=active]:text-[var(--color-primary)] data-[state=active]:shadow-sm transition-all py-1.5">
-                  <User className="w-3.5 h-3.5 mr-1.5 text-gray-500 data-[state=active]:text-[var(--color-primary)]" /> Info Profile
+          <Tabs defaultValue="profile" className="flex-1 flex flex-col overflow-hidden" onValueChange={setActiveTab} value={activeTab}>
+            <div className="px-6 pt-3 bg-white/50 backdrop-blur-sm shrink-0">
+              <TabsList className="relative grid grid-cols-2 w-full h-12 bg-slate-100/40 p-1.5 rounded-[1rem] border border-slate-200/40 gap-1 overflow-hidden">
+                {/* Animated Indicator Background */}
+                <div className="absolute inset-y-1.5 left-1.5 right-1.5 grid grid-cols-2 pointer-events-none">
+                  {['profile', 'security'].map((tab) => (
+                    <div key={tab} className="relative flex items-center justify-center">
+                      {activeTab === tab && (
+                        <motion.div
+                          layoutId="staff-tab-bg"
+                          className="absolute inset-0 bg-white rounded-lg shadow-[0_2px_10px_rgba(0,0,0,0.06)] border border-slate-200/10"
+                          initial={false}
+                          transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <TabsTrigger
+                  value="profile"
+                  className="relative z-10 rounded-lg text-[11px] font-bold gap-2 transition-all duration-300 data-[state=active]:text-[#4988c4] text-slate-400 hover:text-slate-600 flex items-center justify-center h-full outline-none"
+                >
+                  <User className={cn("h-4 w-4 transition-transform duration-300", activeTab === 'profile' ? "scale-110" : "scale-100")} />
+                  Profile Info
                 </TabsTrigger>
-                <TabsTrigger value="security" className="flex items-center justify-center rounded-lg text-xs font-black text-gray-700 data-[state=active]:bg-white data-[state=active]:text-[var(--color-primary)] data-[state=active]:shadow-sm transition-all py-1.5">
-                  <Lock className="w-3.5 h-3.5 mr-1.5 text-gray-500 data-[state=active]:text-[var(--color-primary)]" /> Security
+                <TabsTrigger
+                  value="security"
+                  className="relative z-10 rounded-lg text-[11px] font-bold gap-2 transition-all duration-300 data-[state=active]:text-[#4988c4] text-slate-400 hover:text-slate-600 flex items-center justify-center h-full outline-none"
+                >
+                  <Lock className={cn("h-4 w-4 transition-transform duration-300", activeTab === 'security' ? "scale-110" : "scale-100")} />
+                  Security
                 </TabsTrigger>
               </TabsList>
             </div>
 
             <div className="flex-1 flex flex-col overflow-hidden">
-              {/* Profile Information Tab */}
-              <TabsContent value="profile" className="flex-1 overflow-y-auto mt-0 px-7 pt-5 pb-7 space-y-7 focus-visible:outline-none no-scrollbar">
-                {/* 1. Personal & Profile Information */}
-                <div className="space-y-4">
-                  <h3 className="flex items-center gap-2 text-xs font-black text-gray-800 uppercase tracking-widest pb-1 border-b border-gray-100">
-                    <User className="w-3.5 h-3.5 text-[var(--color-primary)]" /> Personal Details
-                  </h3>
-                  <div className="grid grid-cols-1 gap-y-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="fullName" className="text-[11px] font-bold text-gray-500 uppercase tracking-wider ml-1">Full Name <span className="text-red-500">*</span></Label>
-                      <div className="relative">
-                        <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <TabsContent value="profile" className="flex-1 overflow-y-auto mt-0 px-8 pt-6 pb-10 space-y-9 focus-visible:outline-none scrollbar-hide no-scrollbar">
+                {/* 1. Core Identity */}
+                <div className="space-y-5">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="h-px bg-gray-200 flex-1" />
+                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-[0.25em]">Personal Metrics</span>
+                    <div className="h-px bg-gray-200 flex-1" />
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-y-5">
+                    <div className="space-y-2">
+                      <Label htmlFor="fullName" className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Full Name *</Label>
+                      <div className="relative group">
+                        <User className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-[var(--color-primary)] transition-colors" />
                         <Input
                           id="fullName"
-                          placeholder="e.g. John Doe"
+                          placeholder="e.g. Vu Dat"
                           {...register("fullName")}
                           className={cn(
-                            "pl-10 h-11 rounded-xl bg-white border-gray-200 focus:bg-white focus:border-[var(--color-primary)]/50 focus:ring-4 focus:ring-[var(--color-primary)]/10 transition-all font-medium text-sm shadow-sm",
-                            errors.fullName && "border-red-300 focus:border-red-400 focus:ring-red-500/10 bg-red-50/50"
+                            "pl-11 h-12 rounded-[18px] bg-white border-gray-200 focus:bg-white focus:border-[var(--color-primary)] focus:ring-4 focus:ring-[var(--color-primary)]/10 transition-all font-bold text-sm shadow-sm",
+                            errors.fullName && "border-red-300 focus:border-red-400 focus:ring-red-500/10"
                           )}
                         />
                       </div>
-                      {errors.fullName && <p className="text-[10px] text-red-500 font-bold ml-1">{errors.fullName.message}</p>}
+                      {errors.fullName && <p className="text-[10px] text-red-500 font-bold ml-2">{errors.fullName.message}</p>}
                     </div>
 
-                    <div className="space-y-1.5">
-                      <Label htmlFor="gender" className="text-[11px] font-bold text-gray-500 uppercase tracking-wider ml-1">Gender</Label>
-                      <Controller
-                        control={control}
-                        name="gender"
-                        render={({ field }) => (
-                          <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
-                            <SelectTrigger className="h-11 rounded-xl bg-white border-gray-200 focus:bg-white focus:border-[var(--color-primary)]/50 focus:ring-4 focus:ring-[var(--color-primary)]/10 transition-all font-medium shadow-sm">
-                              <div className="flex items-center gap-2 text-sm">
-                                <FaVenusMars className="w-4 h-4 text-gray-400" />
-                                <SelectValue placeholder="Select gender" />
-                              </div>
-                            </SelectTrigger>
-                            <SelectContent className="rounded-xl shadow-xl border-gray-100">
-                              <SelectItem value="Male" className="rounded-lg font-medium cursor-pointer">
-                                <div className="flex items-center gap-2"><FaMars className="w-4 h-4 text-blue-500" /> Male</div>
-                              </SelectItem>
-                              <SelectItem value="Female" className="rounded-lg font-medium cursor-pointer">
-                                <div className="flex items-center gap-2"><FaVenus className="w-4 h-4 text-pink-500" /> Female</div>
-                              </SelectItem>
-                              <SelectItem value="Other" className="rounded-lg font-medium cursor-pointer">
-                                <div className="flex items-center gap-2"><FaTransgender className="w-4 h-4 text-purple-500" /> Other</div>
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        )}
-                      />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="gender" className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Gender</Label>
+                        <Controller
+                          control={control}
+                          name="gender"
+                          render={({ field }) => (
+                            <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value}>
+                              <SelectTrigger className="h-12 rounded-[18px] bg-white border-gray-200 font-bold shadow-sm">
+                                <SelectValue placeholder="Gender" />
+                              </SelectTrigger>
+                              <SelectContent className="rounded-2xl shadow-2xl border-gray-100">
+                                <SelectItem value="Male" className="font-bold cursor-pointer">Male</SelectItem>
+                                <SelectItem value="Female" className="font-bold cursor-pointer">Female</SelectItem>
+                                <SelectItem value="Other" className="font-bold cursor-pointer">Other</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="dateOfBirth" className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">DOB</Label>
+                        <Controller
+                          control={control}
+                          name="dateOfBirth"
+                          render={({ field }) => (
+                            <DatePicker
+                              mode="single"
+                              value={field.value ? new Date(field.value) : undefined}
+                              onChange={(date) => field.onChange(date ? format(date, "yyyy-MM-dd") : "")}
+                              placeholder="YYYY-MM-DD"
+                              className="h-12 rounded-[18px] font-bold"
+                            />
+                          )}
+                        />
+                      </div>
                     </div>
 
-                    <div className="space-y-1.5">
-                      <Label htmlFor="dateOfBirth" className="text-[11px] font-bold text-gray-500 uppercase tracking-wider ml-1">Date of Birth</Label>
-                      <Controller
-                        control={control}
-                        name="dateOfBirth"
-                        render={({ field }) => (
-                          <DatePicker
-                            mode="single"
-                            value={field.value ? new Date(field.value) : undefined}
-                            onChange={(date) => {
-                              if (date && date instanceof Date) {
-                                field.onChange(format(date, "yyyy-MM-dd"));
-                              } else {
-                                field.onChange("");
-                              }
-                            }}
-                            placeholder="DD/MM/YYYY"
-                          />
-                        )}
-                      />
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label htmlFor="address" className="text-[11px] font-bold text-gray-500 uppercase tracking-wider ml-1">Address</Label>
-                      <div className="relative">
-                        <Building className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <div className="space-y-2">
+                      <Label htmlFor="address" className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Residential Address</Label>
+                      <div className="relative group">
+                        <Building className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-[var(--color-primary)] transition-colors" />
                         <Input
                           id="address"
-                          placeholder="Street name, City..."
+                          placeholder="e.g. 123, KP.2, HN"
                           {...register("address")}
-                          className="pl-10 h-11 rounded-xl bg-white border-gray-200 focus:bg-white focus:border-[var(--color-primary)]/50 focus:ring-4 focus:ring-[var(--color-primary)]/10 transition-all font-medium text-sm shadow-sm"
+                          className="pl-11 h-12 rounded-[18px] bg-white border-gray-200 font-bold text-sm shadow-sm"
                         />
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* 2. Employment Information */}
-                <div className="space-y-4">
-                  <h3 className="flex items-center gap-2 text-xs font-black text-gray-800 uppercase tracking-widest pb-1 border-b border-gray-100">
-                    <Briefcase className="w-3.5 h-3.5 text-[var(--color-primary)]" /> Employment Profile
-                  </h3>
-                  <div className="grid grid-cols-1 gap-y-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="role" className="text-[11px] font-bold text-gray-500 uppercase tracking-wider ml-1">System Role <span className="text-red-500">*</span></Label>
-                      <Controller
-                        control={control}
-                        name="role"
-                        render={({ field }) => (
-                          <Select onValueChange={field.onChange} defaultValue={field.value} value={field.value} disabled={isEdit}>
-                            <SelectTrigger className="h-11 rounded-xl bg-white border-gray-200 disabled:opacity-75 disabled:bg-gray-50 focus:bg-white focus:border-[var(--color-primary)]/50 focus:ring-4 focus:ring-[var(--color-primary)]/10 transition-all font-medium shadow-sm">
-                              <div className="flex items-center gap-2 text-sm">
-                                <ShieldCheck className="w-4 h-4 text-gray-400" />
-                                <SelectValue placeholder="Select a role" />
-                              </div>
-                            </SelectTrigger>
-                            <SelectContent className="rounded-xl shadow-xl border-gray-100">
-                              <SelectItem value="Manager" className="rounded-lg font-medium cursor-pointer">Manager</SelectItem>
-                              <SelectItem value="Seller" className="rounded-lg font-medium cursor-pointer">Seller</SelectItem>
-                              <SelectItem value="CleaningStaff" className="rounded-lg font-medium cursor-pointer">Cleaning Staff</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        )}
-                      />
-                    </div>
+                {/* 2. System Level Assignment */}
+                <div className="space-y-5">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="h-px bg-gray-200 flex-1" />
+                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-[0.25em]">System Delegation</span>
+                    <div className="h-px bg-gray-200 flex-1" />
+                  </div>
 
-                    <div className="space-y-1.5">
-                      <Label htmlFor="position" className="text-[11px] font-bold text-gray-500 uppercase tracking-wider ml-1">Position / Title</Label>
-                      <div className="relative">
-                        <BadgeCheck className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        <Input
-                          id="position"
-                          placeholder="e.g. Senior Associate"
-                          {...register("position")}
-                          className="pl-10 h-11 rounded-xl bg-white border-gray-200 focus:bg-white focus:border-[var(--color-primary)]/50 focus:ring-4 focus:ring-[var(--color-primary)]/10 transition-all font-medium text-sm shadow-sm"
-                        />
-                      </div>
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="role" className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Role & Position *</Label>
+                    <Controller
+                      control={control}
+                      name="role"
+                      render={({ field }) => (
+                        <Select
+                          onValueChange={(val) => {
+                            field.onChange(val);
+                            // Sync Role with Position automatically
+                            setValue("position", val);
+                          }}
+                          defaultValue={field.value}
+                          value={field.value}
+                          disabled={isEdit}
+                        >
+                          <SelectTrigger className="h-12 rounded-[18px] bg-white border-gray-200 focus:ring-4 focus:ring-[var(--color-primary)]/10 font-black uppercase text-xs tracking-wider shadow-sm transition-all overflow-hidden">
+                            <div className="flex items-center gap-3">
+                              {field.value === "DeliveryStaff" ? (
+                                <img src="/images/delivery.png" alt="Delivery" className="w-5 h-5 object-contain" />
+                              ) : (
+                                <ShieldCheck className="w-4 h-4 text-[var(--color-primary)]" />
+                              )}
+                              <SelectValue placeholder="System Delegation" />
+                            </div>
+                          </SelectTrigger>
+                          <SelectContent className="rounded-2xl shadow-3xl border-gray-100 p-1">
+                            <SelectItem value="Manager" className="rounded-xl font-bold cursor-pointer my-0.5 px-3">
+                              <div className="flex items-center gap-3">
+                                <Briefcase className="w-4 h-4 text-slate-400" />
+                                Manager
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="Seller" className="rounded-xl font-bold cursor-pointer my-0.5 px-3">
+                              <div className="flex items-center gap-3">
+                                <Store className="w-4 h-4 text-slate-400" />
+                                Seller
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="DeliveryStaff" className="rounded-xl font-bold cursor-pointer my-0.5 text-blue-600 px-3">
+                              <div className="flex items-center gap-3">
+                                <img src="/images/delivery.png" alt="v" className="w-4 h-4 object-contain" />
+                                Delivery Staff
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="CleaningStaff" className="rounded-xl font-bold cursor-pointer my-0.5 px-3">
+                              <div className="flex items-center gap-3">
+                                <Sparkles className="w-4 h-4 text-slate-400" />
+                                Cleaning Staff
+                              </div>
+                            </SelectItem>
+                            <SelectItem value="User" className="rounded-xl font-bold cursor-pointer my-0.5 px-3">
+                              <div className="flex items-center gap-3">
+                                <User className="w-4 h-4 text-slate-400" />
+                                Standard User
+                              </div>
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
                   </div>
                 </div>
               </TabsContent>
 
-              {/* Account Security Tab */}
-              <TabsContent value="security" className="flex-1 overflow-y-auto mt-0 px-7 pt-5 pb-7 space-y-7 focus-visible:outline-none no-scrollbar">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between border-b border-gray-100 pb-1">
-                    <h3 className="flex items-center gap-2 text-xs font-black text-gray-800 uppercase tracking-widest">
-                      <Key className="w-3.5 h-3.5 text-[var(--color-primary)]" /> Account Identity
-                    </h3>
+              <TabsContent value="security" className="flex-1 overflow-y-auto mt-0 px-8 pt-6 pb-10 space-y-7 focus-visible:outline-none scrollbar-hide no-scrollbar">
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                    <h3 className="text-[10px] font-black text-gray-800 uppercase tracking-[0.25em]">Account Credentials</h3>
                     {isEdit && (
                       <button
                         type="button"
                         onClick={() => setIsSecurityUnlocked(!isSecurityUnlocked)}
                         className={cn(
-                          "inline-flex items-center gap-1.5 h-6 px-2.5 text-[10px] font-extrabold rounded-lg border transition-all shadow-sm select-none",
+                          "inline-flex items-center gap-2 h-7 px-3 text-[9px] font-black uppercase tracking-widest rounded-full border transition-all shadow-sm",
                           isSecurityUnlocked
-                            ? "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100"
-                            : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                            ? "bg-amber-100 border-amber-300 text-amber-800"
+                            : "bg-white border-gray-200 text-gray-500 hover:bg-gray-50"
                         )}
                       >
-                        {isSecurityUnlocked ? <ShieldAlert className="w-3 h-3 text-amber-600" /> : <Lock className="w-3 h-3" />}
-                        {isSecurityUnlocked ? "Lock" : "Unlock"}
+                        {isSecurityUnlocked ? <ShieldAlert className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
+                        {isSecurityUnlocked ? "Lock Safety" : "Modify Auth"}
                       </button>
                     )}
                   </div>
 
-                  {isEdit && isSecurityUnlocked && (
-                    <div className="p-2.5 bg-amber-50/70 border border-amber-200/40 rounded-xl flex items-start gap-2 shadow-sm animate-in fade-in-50 duration-200">
-                      <ShieldAlert className="w-3.5 h-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
-                      <div className="space-y-0.5">
-                        <p className="text-[10px] font-extrabold text-amber-800">Caution: Sensitive Updates</p>
-                        <p className="text-[9px] text-amber-700/90 font-medium">Changing credentials directly impacts logs.</p>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-1 gap-y-4">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="email" className="text-[11px] font-bold text-gray-500 uppercase tracking-wider ml-1">Corporate Email <span className="text-red-500">*</span></Label>
-                      <div className="relative">
-                        <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <div className="grid grid-cols-1 gap-y-5">
+                    <div className="space-y-2">
+                      <Label htmlFor="email" className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Email Identifier *</Label>
+                      <div className="relative group">
+                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-blue-600 transition-colors" />
                         <Input
                           id="email"
                           type="email"
-                          placeholder="admin@example.com"
-                          disabled={true}
+                          placeholder="staff@dreamguard.com"
+                          disabled={isEdit}
                           {...register("email")}
-                          className="pl-10 h-11 rounded-xl bg-gray-50 border-gray-200 disabled:opacity-75 disabled:cursor-not-allowed disabled:bg-gray-50 focus:bg-white focus:border-[var(--color-primary)]/50 focus:ring-4 focus:ring-[var(--color-primary)]/10 transition-all font-medium text-sm shadow-sm"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5">
-                      <Label htmlFor="phoneNumber" className="text-[11px] font-bold text-gray-500 uppercase tracking-wider ml-1">Phone Number <span className="text-red-500">*</span></Label>
-                      <div className="relative">
-                        <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        <Input
-                          id="phoneNumber"
-                          placeholder="+84..."
-                          disabled={isEdit && !isSecurityUnlocked}
-                          {...register("phoneNumber")}
+                          autoComplete="off"
                           className={cn(
-                            "pl-10 h-11 rounded-xl bg-white border-gray-200 focus:bg-white focus:border-[var(--color-primary)]/50 focus:ring-4 focus:ring-[var(--color-primary)]/10 transition-all font-medium text-sm shadow-sm",
-                            errors.phoneNumber && "border-red-300 focus:border-red-400 focus:ring-red-500/10 bg-red-50/50",
-                            isEdit && !isSecurityUnlocked && "bg-gray-50 border-gray-100 opacity-75 shadow-none"
+                            "pl-11 h-12 rounded-[18px] bg-white border-gray-200 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 transition-all font-bold text-sm shadow-sm",
+                            isEdit && "bg-gray-50 opacity-60 cursor-not-allowed"
                           )}
                         />
                       </div>
-                      {errors.phoneNumber && <p className="text-[10px] text-red-500 font-bold ml-1">{errors.phoneNumber.message}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="phoneNumber" className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Emergency Phone *</Label>
+                      <div className="relative group">
+                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-blue-600 transition-colors" />
+                        <Input
+                          id="phoneNumber"
+                          placeholder="e.g. 09xxxxxxxx"
+                          disabled={isEdit && !isSecurityUnlocked}
+                          {...register("phoneNumber")}
+                          autoComplete="off"
+                          className={cn(
+                            "pl-11 h-12 rounded-[18px] bg-white border-gray-200 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 font-bold text-sm shadow-sm transition-all",
+                            errors.phoneNumber && "border-red-300 focus:ring-red-500/10"
+                          )}
+                        />
+                      </div>
+                      {errors.phoneNumber && <p className="text-[10px] text-red-500 font-bold ml-2">{errors.phoneNumber.message}</p>}
                     </div>
 
                     {(!isEdit || isSecurityUnlocked) && (
-                      <div className="grid grid-cols-1 gap-y-4">
-                        <div className="space-y-1.5">
-                          <Label htmlFor="password" className="text-[11px] font-bold text-gray-500 uppercase tracking-wider ml-1">
-                            {isEdit ? "Set New Password" : "Secure Password"} <span className="text-red-500">*</span>
-                          </Label>
-                          <div className="relative">
-                            <Key className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <div className="grid grid-cols-1 gap-y-5 animate-in slide-in-from-top-2 duration-300">
+                        <div className="space-y-2">
+                          <Label htmlFor="password" className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Secure Password *</Label>
+                          <div className="relative group">
+                            <Key className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-blue-600 transition-colors" />
                             <Input
                               id="password"
                               type={showPassword ? "text" : "password"}
-                              placeholder={isEdit ? "Leave empty to keep" : "••••••••"}
+                              placeholder="••••••••"
                               {...register("password")}
-                              className={cn(
-                                "pl-10 pr-10 h-11 rounded-xl bg-white border-gray-200 focus:bg-white focus:border-[var(--color-primary)]/50 focus:ring-4 focus:ring-[var(--color-primary)]/10 transition-all font-medium text-sm tracking-widest shadow-sm",
-                                errors.password && "border-red-300 focus:border-red-400 focus:ring-red-500/10 bg-red-50/50"
-                              )}
+                              autoComplete="new-password"
+                              className="pl-11 pr-11 h-12 rounded-[18px] bg-white border-gray-200 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 font-bold text-sm tracking-widest shadow-sm"
                             />
                             <button
                               type="button"
                               onClick={() => setShowPassword(!showPassword)}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
                             >
                               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                             </button>
                           </div>
-                          {errors.password && <p className="text-[10px] text-red-500 font-bold ml-1">{errors.password.message}</p>}
+                          {errors.password && <p className="text-[10px] text-red-500 font-bold ml-2">{errors.password.message}</p>}
                         </div>
 
-                        <div className="space-y-1.5">
-                          <Label htmlFor="confirmPassword" className="text-[11px] font-bold text-gray-500 uppercase tracking-wider ml-1">Confirm Password <span className="text-red-500">*</span></Label>
-                          <div className="relative">
-                            <Key className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <div className="space-y-2">
+                          <Label htmlFor="confirmPassword" className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Confirm Identity *</Label>
+                          <div className="relative group">
+                            <Key className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-focus-within:text-blue-600 transition-colors" />
                             <Input
                               id="confirmPassword"
                               type={showConfirmPassword ? "text" : "password"}
-                              placeholder={isEdit ? "Repeat new password" : "Re-enter password"}
+                              placeholder="••••••••"
                               {...register("confirmPassword")}
-                              className={cn(
-                                "pl-10 pr-10 h-11 rounded-xl bg-white border-gray-200 focus:bg-white focus:border-[var(--color-primary)]/50 focus:ring-4 focus:ring-[var(--color-primary)]/10 transition-all font-medium text-sm tracking-widest shadow-sm",
-                                errors.confirmPassword && "border-red-300 focus:border-red-400 focus:ring-red-500/10 bg-red-50/50"
-                              )}
+                              autoComplete="new-password"
+                              className="pl-11 pr-11 h-12 rounded-[18px] bg-white border-gray-200 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-600/10 font-bold text-sm tracking-widest shadow-sm"
                             />
                             <button
                               type="button"
                               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
                             >
                               {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                             </button>
                           </div>
-                          {errors.confirmPassword && <p className="text-[10px] text-red-500 font-bold ml-1">{errors.confirmPassword.message}</p>}
+                          {errors.confirmPassword && <p className="text-[10px] text-red-500 font-bold ml-2">{errors.confirmPassword.message}</p>}
                         </div>
                       </div>
                     )}
@@ -430,27 +522,25 @@ export function StaffDialog({ open, onOpenChange, staff, onSubmit, isLoading }: 
             </div>
           </Tabs>
 
-          {/* Sticky Actions Footer */}
-          <div className="px-7 py-4 bg-white border-t border-gray-100 flex items-center gap-3">
+          <footer className="px-8 py-5 bg-white border-t border-gray-100 flex items-center gap-3 shrink-0 shadow-[0_-4px_12px_rgba(0,0,0,0.02)]">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={isLoading}
-              className="flex-1 h-11 font-black text-xs uppercase tracking-wider text-gray-600 hover:text-gray-800 border border-gray-200 shadow-sm rounded-xl"
+              className="flex-1 h-11 font-black text-[10px] uppercase tracking-[0.2em] text-gray-400 hover:text-gray-900 border-gray-200 rounded-[18px] shadow-sm transform active:scale-[0.98] transition-all"
             >
-              Cancel
+              Abort
             </Button>
             <Button
               type="submit"
-              variant="premium"
               disabled={isLoading}
-              className="flex-1 h-11 font-black text-xs uppercase tracking-wider shadow-md rounded-xl"
+              className="flex-[1.5] h-11 font-black text-[10px] uppercase tracking-[0.2em] shadow-[0_4px_12px_rgba(37,99,235,0.2)] rounded-[18px] gap-2 transform active:scale-[0.98] transition-all bg-blue-600 hover:bg-blue-700 text-white border-none"
             >
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              {isEdit ? "Save Profile" : "Create Staff"}
+              {isLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              {isEdit ? "Update Staff" : "Initialize Agent"}
             </Button>
-          </div>
+          </footer>
         </form>
       </DialogContent>
     </Dialog>

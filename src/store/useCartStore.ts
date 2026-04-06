@@ -2,46 +2,34 @@ import { create } from "zustand"
 import { persist, createJSONStorage } from "zustand/middleware"
 import cartService, { type CartResponse, type CartItemResponse, type AddCartItemRequest } from "@/api/services/cartService"
 import { toast } from "sonner"
-import type { CartItem as BaseCartItem } from "./cartTypes"
+import type { CartItem } from "./cartTypes"
 import { useAuthStore } from "./authStore"
 import * as CryptoJS from "crypto-js"
 
 // ── Types & Interfaces ──
 
-export type CartItem = BaseCartItem & {
-    isCustom?: boolean;
-    ProductCustomizeDetailRequest?: Array<{ ProductCustomizeTypeId: string; CustomizeContent: string }>;
-    customAttributes?: {
-        [key: string]: string | number | undefined;
-        length?: number;
-        width?: number;
-        thickness?: number;
-        colorHex?: string;
-    };
-    attributeSignature?: string;
-    configHash?: string;
-};
-
 interface CartState {
-    // Core State
     cart: CartItem[]
     loadingIds: string[]
     syncingIds: string[]
     isFetching: boolean
     isSyncing: boolean
+    isCartOpen: boolean
 
-    // Computed State (Derived)
     totalItems: number
     totalPrice: number
     totalTradeInDiscount: number
     finalTotal: number
 
-    // Actions
     fetchCart: () => Promise<void>
-    addItem: (item: Omit<CartItem, 'quantity' | 'subtotal' | 'productVariantId'> & {
+    setCartOpen: (open: boolean) => void
+    addItem: (item: Omit<CartItem, 'quantity' | 'subtotal' | 'productVariantId' | 'comboId' | 'isAvailable' | 'availableStock' | 'sku'> & {
         quantity?: number;
         productVariantId?: string | null;
-        comboId?: string | null
+        comboId?: string | null;
+        isAvailable?: boolean;
+        availableStock?: number;
+        sku?: string;
     }) => Promise<void>
     updateQuantity: (id: string, delta: number) => Promise<void>
     removeItem: (id: string) => Promise<void>
@@ -52,19 +40,8 @@ interface CartState {
     batchAddItems: (items: Array<{ productVariantId: string | null; comboId: string | null; quantity: number; configHash?: string; _optimisticData?: CartItem }>) => Promise<void>
 }
 
-// Internal type for normalization
-type CustomizeDetailEntry = {
-    ProductCustomizeTypeId?: string;
-    customizeTypeName?: string;
-    CustomizeContent?: string;
-    customizeContent?: string;
-};
+// ── Helpers (Private) ──
 
-// ── Helpers (Private/Internal) ──
-
-/**
- * Normalizes attribute names for consistent internal mapping
- */
 const normalizeAttrKey = (name: string): string => {
     const n = name.toLowerCase().trim();
     if (n === 'color' || n === 'màu sắc' || n === 'màu') return 'color';
@@ -72,71 +49,37 @@ const normalizeAttrKey = (name: string): string => {
     return n;
 };
 
-/**
- * Generates a deterministic Config Hash for the item.
- * Used for BE deduplication and logic grouping.
- * SENIOR STANDARD: Fixed-length 32-char Hex string is O(1) for DB indexing.
- */
 export const generateConfigHash = (
     productVariantId: string | null | undefined,
     comboId: string | null | undefined,
-    customDetails?: Array<{ ProductCustomizeTypeId?: string; CustomizeContent?: string; customizeTypeName?: string; customizeContent?: string }>,
-    metadata?: string
+    customDetails?: Array<{ ProductCustomizeTypeId?: string; CustomizeContent?: string; customizeTypeName?: string; customizeContent?: string }>
 ) => {
     const base = comboId ? `combo:${comboId}` : `var:${productVariantId || 'base'}`;
-    const meta = metadata ? `meta:${metadata.toLowerCase().trim()}` : "meta:none";
-    if (!customDetails || customDetails.length === 0) return CryptoJS.MD5(`${base}|${meta}|std`).toString();
+    if (!customDetails || customDetails.length === 0) return CryptoJS.MD5(`${base}|std`).toString();
 
-    // Key-agnostic normalization: Use ONLY content values for hashing
-    // This ensures Local (UUID keys) and Server (name keys) produce identical hashes
     const normalized = customDetails
         .map(d => (d.CustomizeContent || d.customizeContent || "").trim().toLowerCase().replace(/\s+/g, ''))
         .filter(Boolean)
         .sort((a, b) => a.localeCompare(b))
         .join('&');
 
-    return CryptoJS.MD5(`${base}|${normalized}|${meta}`).toString();
+    return CryptoJS.MD5(`${base}|${normalized}`).toString();
 };
 
-/**
- * Generate a signature for UI matching/display
- */
-const generateAttributeSignature = (customDetails?: CustomizeDetailEntry[], metadata?: string) => {
-    const metaStr = metadata ? `meta:${metadata.toLowerCase().trim()}` : "";
-    if (!customDetails || customDetails.length === 0) return metaStr || "standard";
-
-    const parts = customDetails.map(d => {
-        const type = normalizeAttrKey(d.ProductCustomizeTypeId || d.customizeTypeName || "");
-        const content = (d.CustomizeContent || d.customizeContent || "").toLowerCase().trim();
-        return `${type}:${content}`;
-    });
-
-    if (metaStr) parts.push(metaStr);
-    return parts.sort().join('|');
-};
-
-/**
- * Single-pass totals calculation for performance.
- * O(N) where N is cart size.
- */
 const calculateTotals = (cart: CartItem[]) => {
     let totalItems = 0, totalPrice = 0, totalTradeInDiscount = 0, finalTotal = 0;
-
     for (const item of cart) {
         const qty = item.quantity || 0;
         const price = item.price || 0;
         const discount = item.tradeIn?.totalValue || 0;
-
         totalItems += qty;
         totalPrice += qty * price;
         totalTradeInDiscount += discount;
         finalTotal += Math.max(0, qty * price - discount);
     }
-
     return { totalItems, totalPrice, totalTradeInDiscount, finalTotal };
 }
 
-// Global debouncing map
 const debounceTimers: Map<string, ReturnType<typeof setTimeout>> = new Map()
 
 // ── Store Implementation ──
@@ -149,6 +92,7 @@ export const useCartStore = create<CartState>()(
             syncingIds: [],
             isFetching: false,
             isSyncing: false,
+            isCartOpen: false,
             totalItems: 0,
             totalPrice: 0,
             totalTradeInDiscount: 0,
@@ -164,114 +108,116 @@ export const useCartStore = create<CartState>()(
                     syncingIds: [],
                     loadingIds: [],
                     isSyncing: false,
-                    isFetching: false
+                    isFetching: false,
+                    isCartOpen: false
                 })
             },
 
-            /**
-             * Reconciliation Engine (O(N)): Maps Server Response to Local State.
-             * Uses Map-based lookup for maximum performance.
-             */
+            setCartOpen: (open: boolean) => set({ isCartOpen: open }),
+
             updateStoreFromResponse: (response: unknown) => {
                 const responseData = (response as { data?: { items: CartItemResponse[] } })?.data ?? (response as { items: CartItemResponse[] });
                 if (!responseData || !Array.isArray(responseData.items)) return;
 
-                // 1. Index local pool by configHash for O(1) match
-                const localPool = new Map<string, CartItem>();
                 const currentCart = get().cart;
-                for (const item of currentCart) {
-                    if (item.configHash) localPool.set(item.configHash, item);
+                const serverPool = new Map<string, CartItemResponse>();
+                
+                for (const sItem of responseData.items) {
+                    const apiCustoms = sItem.productCustomizeDetails || [];
+                    const hash = (sItem as CartItemResponse & { configHash?: string }).configHash || 
+                                generateConfigHash(sItem.productVariantId, sItem.comboId, apiCustoms);
+                    serverPool.set(hash, sItem);
                 }
 
-                const mappedItems: CartItem[] = responseData.items.map((item: CartItemResponse) => {
-                    const apiCustoms = item.productCustomizeDetails || [];
+                const newCart: CartItem[] = [];
+                const localHashesProcessed = new Set<string>();
 
-                    // Normalize server data once
-                    const normalizedForHash: Array<{ customizeContent?: string }> = [];
-                    const apiAttrs: CartItem['customAttributes'] = {};
-                    let apiColor: string | undefined;
-                    let apiSize: string | undefined;
+                for (const localItem of currentCart) {
+                    const hash = localItem.configHash;
+                    if (!hash) {
+                        newCart.push(localItem);
+                        continue;
+                    }
 
-                    for (const d of apiCustoms) {
-                        const content = (d.customizeContent || "").trim();
-                        if (!content) continue;
+                    const serverMatch = serverPool.get(hash);
+                    if (serverMatch) {
+                        const unitPrice = (serverMatch.unitPrice || 0) + (serverMatch.totalAddOnPrice || 0);
+                        const apiAttrs: Record<string, string | number | undefined> = { ...localItem.customAttributes };
+                        
+                        // Ánh xạ mọi chi tiết tùy chỉnh từ Server vào thuộc tính hiển thị
+                        serverMatch.productCustomizeDetails?.forEach(d => {
+                            const key = normalizeAttrKey(d.customizeTypeName);
+                            apiAttrs[key] = d.customizeContent;
+                        });
 
-                        normalizedForHash.push({ customizeContent: content });
-
-                        const key = normalizeAttrKey(d.customizeTypeName);
-                        if (key === 'color') {
-                            apiColor = content;
-                            apiAttrs.colorHex = content;
-                        } else if (key === 'size') {
-                            apiSize = content;
-                            const dims = content.split('x');
-                            if (dims.length >= 2) {
-                                apiAttrs.length = parseInt(dims[0]);
-                                apiAttrs.width = parseInt(dims[1]);
-                                if (dims[2]) apiAttrs.thickness = parseInt(dims[2]);
-                            }
+                        newCart.push({
+                            ...localItem,
+                            id: serverMatch.id,
+                            quantity: serverMatch.quantity,
+                            price: unitPrice,
+                            subtotal: unitPrice * serverMatch.quantity,
+                            sku: serverMatch.sku || localItem.sku,
+                            customAttributes: apiAttrs,
+                            isAvailable: serverMatch.isAvailable,
+                            availableStock: serverMatch.availableStock,
+                        });
+                        localHashesProcessed.add(hash);
+                    } else {
+                        const isPending = localItem.id.startsWith('c_') || localItem.id.startsWith('l_') || localItem.id.includes('_');
+                        if (isPending) {
+                            newCart.push(localItem);
+                            localHashesProcessed.add(hash);
                         }
                     }
+                }
 
-                    // Senior Parsing: Split once
-                    const fullName = item.itemName || "";
-                    const firstDashIdx = fullName.indexOf(' - ');
-                    const serverName = firstDashIdx > -1 ? fullName.substring(0, firstDashIdx) : fullName;
-                    const rest = firstDashIdx > -1 ? fullName.substring(firstDashIdx + 3) : "";
-                    const secondDashIdx = rest.indexOf(' - ');
-                    const serverColorLabel = secondDashIdx > -1 ? rest.substring(0, secondDashIdx) : (rest || undefined);
-                    const serverSizeLabel = secondDashIdx > -1 ? rest.substring(secondDashIdx + 3) : undefined;
+                for (const [hash, sItem] of serverPool.entries()) {
+                    if (localHashesProcessed.has(hash)) continue;
 
-                    const apiConfigHash = generateConfigHash(item.productVariantId, item.comboId, normalizedForHash, serverColorLabel);
+                    const unitPrice = (sItem.unitPrice || 0) + (sItem.totalAddOnPrice || 0);
+                    const apiAttrs: Record<string, string | number | undefined> = {};
+                    
+                    sItem.productCustomizeDetails?.forEach(d => {
+                        apiAttrs[normalizeAttrKey(d.customizeTypeName)] = d.customizeContent;
+                    });
 
-                    // Fast Identity Match
-                    let local = localPool.get(apiConfigHash);
-                    if (!local && (item.productVariantId || item.comboId)) {
-                        const apiSignature = item.productVariantId ? generateAttributeSignature(apiCustoms as CustomizeDetailEntry[], serverColorLabel) : "standard";
-                        local = currentCart.find(l => {
-                            if (item.comboId) return l.comboId === item.comboId;
-                            return l.productVariantId === item.productVariantId && l.attributeSignature === apiSignature;
-                        });
-                    }
-
-                    const unitPrice = (item.unitPrice || 0) + (item.totalAddOnPrice || 0);
-                    return {
-                        id: item.id,
-                        name: serverName,
-                        image: item.imageUrl || local?.image || "",
+                    newCart.push({
+                        id: sItem.id,
+                        name: sItem.itemName || "Bespoke Product",
+                        image: sItem.imageUrl || "",
                         price: unitPrice,
-                        quantity: item.quantity || 0,
-                        subtotal: unitPrice * item.quantity,
-                        productVariantId: item.productVariantId || null,
-                        comboId: item.comboId || null,
-                        color: apiColor || serverColorLabel || local?.color || "",
-                        size: apiSize || serverSizeLabel || local?.size || "",
-                        isCustom: apiCustoms.length > 0 || (item.totalAddOnPrice || 0) > 0,
-                        customAttributes: Object.keys(apiAttrs).length > 0 ? apiAttrs : local?.customAttributes,
-                        attributeSignature: local?.attributeSignature,
-                        configHash: local?.configHash || apiConfigHash,
-                        sku: item.sku || local?.sku,
-                        availableStock: item.availableStock ?? 0,
-                        isAvailable: item.isAvailable ?? true,
-                        tradeIn: local?.tradeIn,
-                        ProductCustomizeDetailRequest: normalizedForHash.length > 0 ? normalizedForHash : undefined,
-                    } as CartItem;
-                });
+                        quantity: sItem.quantity,
+                        subtotal: unitPrice * sItem.quantity,
+                        productVariantId: sItem.productVariantId ?? null,
+                        comboId: sItem.comboId ?? null,
+                        color: (apiAttrs.color as string) || "",
+                        size: (apiAttrs.size as string) || "",
+                        customAttributes: apiAttrs,
+                        configHash: hash,
+                        sku: sItem.sku,
+                        availableStock: sItem.availableStock,
+                        isAvailable: sItem.isAvailable,
+                        isCustom: sItem.productCustomizeDetails && sItem.productCustomizeDetails.length > 0
+                    } as CartItem);
+                }
 
-                set({ cart: mappedItems, ...calculateTotals(mappedItems) });
+                set({ cart: newCart, ...calculateTotals(newCart) });
             },
 
             fetchCart: async () => {
                 if (get().isFetching) return;
-                const { isAuthenticated } = useAuthStore.getState();
-                if (!isAuthenticated) return;
+                const { isAuthenticated, role } = useAuthStore.getState();
+                
+                // Security Guard: Admins and Staff do not have a functional shopping cart via api/cart
+                const isManagement = role === 'Admin' || role === 'Staff' || (role && !['user', 'customer'].includes(role.toLowerCase()));
+                if (!isAuthenticated || isManagement) return;
 
                 set({ isFetching: true });
                 try {
-                    const response = await cartService.getCart();
-                    get().updateStoreFromResponse(response);
-                } catch (error) {
-                    console.error("[Cart] Fetch failed:", error);
+                    const res = await cartService.getCart();
+                    get().updateStoreFromResponse(res);
+                } catch {
+                    console.error("[Cart] Fetch error");
                 } finally {
                     set({ isFetching: false });
                 }
@@ -280,150 +226,101 @@ export const useCartStore = create<CartState>()(
             addItem: async (newItem) => {
                 const { isAuthenticated } = useAuthStore.getState();
                 const currentCart = get().cart;
-
                 const qty = newItem.quantity || 1;
-                // Senior Fix: Never use local bespoke ID (item_...) as the API variant ID
                 const pVariantId = newItem.comboId ? null : newItem.productVariantId;
                 const cId = newItem.comboId || null;
                 const baseId = cId || pVariantId || newItem.productId;
-
                 const isCustom = !!newItem.isCustom || (newItem.ProductCustomizeDetailRequest?.length ?? 0) > 0;
-                const signature = generateAttributeSignature(newItem.ProductCustomizeDetailRequest as CustomizeDetailEntry[], newItem.color);
+                const configHash = newItem.configHash || generateConfigHash(pVariantId, cId, newItem.ProductCustomizeDetailRequest);
 
-                // Priority 1: Use pre-calculated hash from the action caller (e.g. useProductDetailState)
-                // Priority 2: Recalculate locally with full metadata context
-                const configHash = newItem.configHash || generateConfigHash(pVariantId, cId, newItem.ProductCustomizeDetailRequest, newItem.color);
-
-                // Optimistic Local ID
-                const localId = (newItem.tradeIn || isCustom)
-                    ? `c_${baseId}_${configHash}`
-                    : `l_${baseId}`;
-
-                // 1. OPTIMISTIC UI: Update EVERYTHING immediately (including count badge)
+                const localId = (newItem.tradeIn || isCustom) ? `c_${baseId}_${configHash}` : `l_${baseId}`;
                 const newItemEntry = {
                     ...newItem,
                     id: localId,
                     productVariantId: pVariantId,
                     comboId: cId,
                     isCustom,
-                    attributeSignature: signature,
                     configHash: configHash,
                     quantity: qty,
-                    subtotal: Math.max(0, qty * (newItem.price || 0) - (newItem.tradeIn?.totalValue || 0)),
+                    subtotal: qty * (newItem.price || 0),
                 } as CartItem;
 
-                // MERGE OPTIMIZATION (O(1) instead of O(N))
                 const updatedCart = [...currentCart];
                 let merged = false;
-
-                // Standard Bespoke/Variant merge logic
                 if (!newItem.tradeIn) {
                     for (let i = 0; i < updatedCart.length; i++) {
                         if (updatedCart[i].configHash === configHash) {
                             const e = updatedCart[i];
                             const nextQty = e.quantity + qty;
-                            updatedCart[i] = {
-                                ...e,
-                                quantity: nextQty,
-                                subtotal: nextQty * (e.price || 0)
-                            };
+                            updatedCart[i] = { ...e, quantity: nextQty, subtotal: nextQty * e.price };
                             merged = true;
                             break;
                         }
                     }
                 }
-
-                if (!merged) {
-                    updatedCart.push(newItemEntry);
-                }
-
+                if (!merged) updatedCart.push(newItemEntry);
                 set({ cart: updatedCart, ...calculateTotals(updatedCart) });
 
-                // 2. CONSOLIDATED FEEDBACK
-                const toastId = `addItem-${localId}`;
-                toast.loading("Syncing with cart...", { id: toastId });
-
                 if (isAuthenticated) {
+                    set(s => ({ loadingIds: [...s.loadingIds, localId] }));
                     try {
-                        const response = await cartService.addItem({
+                        const res = await cartService.addItem({
                             productVariantId: pVariantId ?? null,
-                            comboId: cId,
+                            comboId: cId ?? null,
                             quantity: qty,
                             ProductCustomizeDetailRequest: newItem.ProductCustomizeDetailRequest,
-                            configHash: configHash
+                            configHash
                         });
-
-                        get().updateStoreFromResponse(response);
-                        toast.success("Item added successfully", { id: toastId });
-
-                    } catch (error: unknown) {
-                        const apiError = error as { response?: { data?: { message?: string } }; message?: string };
-                        const errorMessage = apiError.response?.data?.message || apiError.message || "Failed to sync cart";
-
-                        toast.error(errorMessage, { id: toastId });
+                        get().updateStoreFromResponse(res);
+                        toast.success(`${newItem.name} added to your sanctuary.`, {
+                            description: "Your selection has been synchronized.",
+                            duration: 3000,
+                        });
+                        // Auto-open drawer after animation
+                        setTimeout(() => get().setCartOpen(true), 1000);
+                    } catch {
+                        toast.error("Sync failed, retrying...");
                         await get().fetchCart();
+                    } finally {
+                        set(s => ({ loadingIds: s.loadingIds.filter(id => id !== localId) }));
                     }
-                } else {
-                    toast.success("Item added to cart", { id: toastId });
                 }
             },
 
-            /**
-             * Optimistic quantity updates with server debouncing.
-             */
             updateQuantity: async (id, delta) => {
-                const { cart, syncingIds } = get();
+                const { cart } = get();
                 const item = cart.find(i => i.id === id);
                 if (!item) return;
-
                 const newQty = Math.max(1, item.quantity + delta);
                 if (newQty === item.quantity) return;
 
-                // ── STEP 1: Optimistic Local Update (Immediate gratification) ──
-                const updatedCart = cart.map(i => i.id === id ? {
-                    ...i,
-                    quantity: newQty,
-                    subtotal: Math.max(0, newQty * i.price - (i.tradeIn?.totalValue || 0))
-                } : i);
-
+                const updatedCart = cart.map(i => i.id === id ? { ...i, quantity: newQty, subtotal: newQty * i.price } : i);
                 set({ cart: updatedCart, ...calculateTotals(updatedCart) });
 
-                // ── STEP 2: Server Sync (Throttled/Debounced) ──
                 const { isAuthenticated } = useAuthStore.getState();
-                if (isAuthenticated && !id.startsWith('l_') && !id.includes('_')) {
+                if (isAuthenticated && !id.startsWith('c_') && !id.startsWith('l_')) {
                     if (debounceTimers.has(id)) clearTimeout(debounceTimers.get(id));
-
-                    set({ syncingIds: [...syncingIds, id] });
+                    set(s => ({ syncingIds: [...s.syncingIds, id] }));
                     const timer = setTimeout(async () => {
                         try {
                             await cartService.updateItem(id, newQty);
                         } catch {
-                            toast.error("Cloud sync failed");
                             await get().fetchCart();
                         } finally {
                             set(s => ({ syncingIds: s.syncingIds.filter(sid => sid !== id) }));
-                            debounceTimers.delete(id);
                         }
                     }, 800);
                     debounceTimers.set(id, timer);
                 }
             },
 
-            /**
-             * Optimistic removal.
-             */
             removeItem: async (id) => {
                 const { isAuthenticated } = useAuthStore.getState();
                 const updatedCart = get().cart.filter(i => i.id !== id);
                 set({ cart: updatedCart, ...calculateTotals(updatedCart) });
 
-                if (isAuthenticated && !id.includes('_')) {
-                    try {
-                        await cartService.removeItem(id);
-                    } catch {
-                        toast.error("Failed to remove item from cloud");
-                        await get().fetchCart();
-                    }
+                if (isAuthenticated && !id.startsWith('c_') && !id.startsWith('l_')) {
+                    try { await cartService.removeItem(id); } catch { await get().fetchCart(); }
                 }
             },
 
@@ -431,22 +328,23 @@ export const useCartStore = create<CartState>()(
                 const { isAuthenticated } = useAuthStore.getState();
                 get().resetLocalCart();
                 if (isAuthenticated) {
-                    try { await cartService.clearCart(); } catch { console.error("Server clear failed"); }
+                    try { await cartService.clearCart(); } catch (e) { console.error(e); }
                 }
             },
 
             syncWithServer: async () => {
-                const { isAuthenticated } = useAuthStore.getState();
-                if (!isAuthenticated || get().isSyncing) return;
+                const { isAuthenticated, role } = useAuthStore.getState();
+                const isManagement = role === 'Admin' || role === 'Staff' || (role && !['user', 'customer'].includes(role.toLowerCase()));
+                if (!isAuthenticated || isManagement || get().isSyncing) return;
 
-                const localItems = get().cart;
+                const localItems = get().cart.filter(i => i.id.startsWith('c_') || i.id.startsWith('l_'));
                 if (localItems.length === 0) return;
 
                 set({ isSyncing: true });
                 try {
                     const payload: AddCartItemRequest[] = localItems.map(i => ({
-                        productVariantId: i.productVariantId || null,
-                        comboId: i.comboId || null,
+                        productVariantId: i.productVariantId ?? null,
+                        comboId: i.comboId ?? null,
                         quantity: i.quantity,
                         ProductCustomizeDetailRequest: i.ProductCustomizeDetailRequest,
                         configHash: i.configHash
@@ -454,7 +352,7 @@ export const useCartStore = create<CartState>()(
                     await cartService.syncCart(payload);
                     await get().fetchCart();
                 } catch (e) {
-                    console.error("[Cart] Global sync error", e);
+                    console.error("[Cart] Sync error", e);
                 } finally {
                     set({ isSyncing: false });
                 }
@@ -463,13 +361,11 @@ export const useCartStore = create<CartState>()(
             batchAddItems: async (items) => {
                 const { isAuthenticated } = useAuthStore.getState();
                 if (!isAuthenticated) return;
-
                 set({ isSyncing: true });
                 try {
-                    const res = await cartService.syncCart(items);
+                    const res = await cartService.syncCart(items as (CartItemResponse | AddCartItemRequest)[]);
                     get().updateStoreFromResponse(res);
-                } catch (e) {
-                    console.error("[Cart] Batch error", e);
+                } catch {
                     await get().fetchCart();
                 } finally {
                     set({ isSyncing: false });
@@ -479,13 +375,6 @@ export const useCartStore = create<CartState>()(
         {
             name: "dreamguard-cart-storage",
             storage: createJSONStorage(() => localStorage),
-            partialize: (s) => ({ cart: s.cart }),
-            onRehydrateStorage: () => (s) => {
-                if (s) {
-                    const t = calculateTotals(s.cart);
-                    useCartStore.setState({ ...t });
-                }
-            }
         }
     )
 )

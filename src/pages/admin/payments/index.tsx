@@ -74,13 +74,13 @@ export default function PaymentManagement() {
             />
 
             <div className="flex-1 flex flex-col min-h-0">
-                <PaymentStats {...stats} />
+                <PaymentStats {...stats} isLoading={isPending} />
 
                 <PaymentTable
                     table={table}
                     globalFilter={globalFilter}
                     setGlobalFilter={setGlobalFilter}
-                    isPending={isPending}
+                    isLoading={isPending}
                 />
             </div>
 

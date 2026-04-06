@@ -35,6 +35,7 @@ export const AppRoute = {
   ADMIN: "/admin",
   ADMIN_PRODUCT_TYPES: "/admin/product-types",
   ADMIN_CUSTOMIZE_TYPES: "/admin/customize-types",
+  ADMIN_TEMPLATES: "/admin/templates",
 
   // Error Routes
   NOT_FOUND: "*",

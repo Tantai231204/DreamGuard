@@ -10,29 +10,61 @@ import AppRouter from "./router/AppRouter";
 import { useEffect, useRef } from "react";
 import { useAuthStore } from "./store/authStore";
 import { useCartStore } from "./store/useCart";
-import { isStaffRole } from "./lib/role";
+import { isStaffRole, isAdminRole } from "./lib/role";
 
 function App() {
   const { isAuthenticated, role } = useAuthStore();
   const prevAuth = useRef(isAuthenticated);
-  const isStaff = isStaffRole(role);
+  const shouldSkipCart = isStaffRole(role) || isAdminRole(role);
 
   useEffect(() => {
-    if (isStaff) return; // Không đồng bộ giỏ hàng cho Staff/Admin
-
-    // Determine Auth Transition state
-    if (isAuthenticated && !prevAuth.current) {
-      // Just logged in: merge guest cart
-      useCartStore.getState().syncWithServer();
-    } else if (!isAuthenticated && prevAuth.current) {
-      // Just logged out (explictly or via 401 token expiry): protect user privacy
+    // 1. Just Logged Out: Wipe state for privacy
+    if (!isAuthenticated && prevAuth.current) {
       useCartStore.getState().resetLocalCart();
-    } else if (isAuthenticated && prevAuth.current) {
-      // App mounted while already logged in: fetch fresh cart
-      useCartStore.getState().syncWithServer();
+      prevAuth.current = isAuthenticated;
+      return;
     }
-    prevAuth.current = isAuthenticated;
-  }, [isAuthenticated, isStaff]);
+
+    // 2. Staff/Admin: Skip cart logic
+    if (shouldSkipCart) {
+      prevAuth.current = isAuthenticated;
+      return;
+    }
+
+    // 3. Global Sync Function
+    const refreshCart = () => {
+      const state = useCartStore.getState();
+      const { isAuthenticated: isAuth } = useAuthStore.getState();
+      
+      if (!isAuth) return;
+
+      const hasGuestItems = state.cart.some(i => i.id.startsWith('l_') || i.id.startsWith('c_'));
+      if (hasGuestItems) {
+        state.syncWithServer();
+      } else {
+        state.fetchCart();
+      }
+    };
+
+    // 4. Auth Transition Sync
+    if (isAuthenticated !== prevAuth.current) {
+      if (isAuthenticated) refreshCart();
+      prevAuth.current = isAuthenticated;
+    }
+
+    // 5. Keep-Alive Sync (Focus/Visibility)
+    if (isAuthenticated) {
+      const handleSync = () => {
+        if (document.visibilityState === 'visible') refreshCart();
+      };
+      window.addEventListener('focus', handleSync);
+      window.addEventListener('visibilitychange', handleSync);
+      return () => {
+        window.removeEventListener('focus', handleSync);
+        window.removeEventListener('visibilitychange', handleSync);
+      };
+    }
+  }, [isAuthenticated, shouldSkipCart]);
 
   return (
     <ErrorBoundary>

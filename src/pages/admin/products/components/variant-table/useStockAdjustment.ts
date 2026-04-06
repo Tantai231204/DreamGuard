@@ -1,11 +1,11 @@
 // src/pages/admin/products/components/useStockAdjustment.ts
 import { useState } from 'react';
-import { useAddStock, useReduceStock } from '@/hooks/queries/useProduct';
+import { useAddStock, useReduceStock, useAddDefectStock, useReduceDefectStock } from '@/hooks/queries/useProduct';
 import { useToast } from '@/hooks/useToast';
 
-interface StockDialogState {
+export interface StockDialogState {
   isOpen: boolean;
-  type: 'add' | 'reduce';
+  type: 'add' | 'reduce' | 'add-defect' | 'reduce-defect';
   variantId: string;
   sku: string;
   currentStock: number;
@@ -15,6 +15,9 @@ export function useStockAdjustment() {
   const toast = useToast();
   const addStockMutation = useAddStock();
   const reduceStockMutation = useReduceStock();
+
+  const addDefectMutation = useAddDefectStock();
+  const reduceDefectMutation = useReduceDefectStock();
 
   const [stockDialog, setStockDialog] = useState<StockDialogState>({
     isOpen: false,
@@ -26,7 +29,7 @@ export function useStockAdjustment() {
   const [stockQuantity, setStockQuantity] = useState<number>(1);
 
   const openDialog = (
-    type: 'add' | 'reduce',
+    type: 'add' | 'reduce' | 'add-defect' | 'reduce-defect',
     variantId: string,
     sku: string,
     currentStock: number
@@ -51,13 +54,34 @@ export function useStockAdjustment() {
       return;
     }
 
-    const mutation = stockDialog.type === 'add' ? addStockMutation : reduceStockMutation;
+    let mutation = null;
+    let action = '';
+
+    switch (stockDialog.type) {
+      case 'add':
+        mutation = addStockMutation;
+        action = 'Added Stock';
+        break;
+      case 'reduce':
+        mutation = reduceStockMutation;
+        action = 'Reduced Stock';
+        break;
+      case 'add-defect':
+        mutation = addDefectMutation;
+        action = 'Added Defect';
+        break;
+      case 'reduce-defect':
+        mutation = reduceDefectMutation;
+        action = 'Reduced Defect';
+        break;
+    }
+
+    if (!mutation) return;
 
     mutation.mutate(
       { productVariantId: stockDialog.variantId, quantity: stockQuantity },
       {
         onSuccess: () => {
-          const action = stockDialog.type === 'add' ? 'Added' : 'Reduced';
           toast.success(
             `${action} Successfully`,
             `Audit log recorded: [${reason}] for ${stockQuantity} units.`
@@ -75,6 +99,6 @@ export function useStockAdjustment() {
     openDialog,
     closeDialog,
     submitStockAdjustment,
-    isSubmitting: addStockMutation.isPending || reduceStockMutation.isPending,
+    isSubmitting: addStockMutation.isPending || reduceStockMutation.isPending || addDefectMutation.isPending || reduceDefectMutation.isPending,
   };
 }

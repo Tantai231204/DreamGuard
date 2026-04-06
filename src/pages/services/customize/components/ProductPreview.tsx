@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import type { CustomizableProduct, DesignConfig } from "../types";
-import { colorOptions, patternOptions, materialOptions } from "../data";
+import { patternOptions, materialOptions } from "../data";
 
 interface ProductPreviewProps {
   product: CustomizableProduct;
@@ -13,21 +13,22 @@ function formatPrice(value: number) {
 }
 
 function isLightColor(hex: string) {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
+  if (!hex || hex === "transparent") return true;
+  const h = hex.startsWith("#") ? hex.slice(1) : hex;
+  const r = parseInt(h.slice(0, 2), 16);
+  const g = parseInt(h.slice(2, 4), 16);
+  const b = parseInt(h.slice(4, 6), 16);
   return (r * 299 + g * 587 + b * 114) / 1000 > 128;
 }
 
 export default function ProductPreview({ product, design, totalPrice }: ProductPreviewProps) {
-  const currentColor = colorOptions.find((c) => c.id === design.baseColor);
   const currentPattern = patternOptions.find((p) => p.id === design.pattern);
   const currentMaterial = materialOptions.find((m) => m.id === design.material);
   const currentSize = product.availableSizes.find((s) => s.id === design.size);
 
   const getPatternStyle = (): React.CSSProperties => {
     if (!currentPattern?.cssPattern) return {};
-    const patternColor = isLightColor(currentColor?.hex || "#fff") ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.15)";
+    const patternColor = isLightColor(design.baseColor) ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.12)";
     return {
       backgroundImage: currentPattern.cssPattern.replace(/currentColor/g, patternColor),
       backgroundSize: currentPattern.id === "dots" ? "20px 20px" : currentPattern.id === "stripes" ? "14px 14px" : "40px 40px",
@@ -35,79 +36,89 @@ export default function ProductPreview({ product, design, totalPrice }: ProductP
   };
 
   return (
-    <div className="bg-white border border-slate-100 rounded-3xl shadow-xl shadow-slate-100/30 overflow-hidden">
-      <div className="px-6 py-4 bg-slate-50/50 border-b border-slate-100">
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.12em] text-center">Live Preview</p>
+    <div className="bg-white border border-slate-100 rounded-[2.5rem] shadow-2xl shadow-slate-200/50 overflow-hidden group">
+      <div className="px-8 py-5 bg-slate-50/50 border-b border-slate-100 flex items-center justify-between">
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Visual Reference</p>
+        <div className="h-2 w-2 rounded-full bg-[#4988c4] animate-pulse" />
       </div>
 
-      <div className="p-8 flex items-center justify-center min-h-[320px] bg-[#fafbfc]">
+      <div className="p-10 flex items-center justify-center min-h-[360px] bg-[#fafbfc] relative overflow-hidden">
+        {/* Decorative background elements */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-[#4988c4]/5 rounded-full blur-3xl translate-x-10 -translate-y-10" />
+        <div className="absolute bottom-0 left-0 w-32 h-32 bg-[#4988c4]/5 rounded-full blur-3xl -translate-x-10 translate-y-10" />
+
         <motion.div
           key={`${design.baseColor}-${design.pattern}-${design.embroideryText}`}
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-          className="relative w-64 h-64 rounded-3xl overflow-hidden shadow-2xl"
-          style={{ backgroundColor: currentColor?.hex || "#f8f8f8" }}
+          initial={{ opacity: 0, scale: 0.9, y: 10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
+          className="relative w-72 h-72 rounded-[3.5rem] overflow-hidden shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] outline outline-8 outline-white/50"
+          style={{ backgroundColor: design.baseColor || "#f8f8f8" }}
         >
-          <div className="absolute inset-0" style={getPatternStyle()} />
+          <div className="absolute inset-0 transition-opacity duration-500" style={getPatternStyle()} />
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-6xl drop-shadow-lg">{product.icon}</span>
+            <span className="text-7xl drop-shadow-2xl filter brightness-110">{product.icon}</span>
             {design.embroideryText && (
               <motion.p
                 key={design.embroideryText}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mt-3 text-lg font-black tracking-wide italic"
-                style={{ color: isLightColor(currentColor?.hex || "#fff") ? "#475569" : "#f8fafc", textShadow: "0 1px 4px rgba(0,0,0,0.1)" }}
+                className="mt-6 text-xl font-black tracking-tight"
+                style={{ 
+                  color: isLightColor(design.baseColor) ? "#1e293b" : "#f8fafc", 
+                  textShadow: isLightColor(design.baseColor) ? "none" : "0 2px 8px rgba(0,0,0,0.2)"
+                }}
               >
-                {design.embroideryText}
+                {design.embroideryText.toUpperCase()}
               </motion.p>
             )}
           </div>
           {currentMaterial && (
-            <div className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-white/90 backdrop-blur-sm shadow-sm">
-              <span className="text-[9px] font-black uppercase tracking-wider text-slate-700">{currentMaterial.name}</span>
+            <div className="absolute top-4 left-4 px-3 py-1.5 rounded-2xl bg-white/90 backdrop-blur-md shadow-sm border border-white/50">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-700">{currentMaterial.name}</span>
             </div>
           )}
           {currentPattern && currentPattern.id !== "solid" && (
-            <div className="absolute top-3 right-3 px-2.5 py-1 rounded-lg bg-white/90 backdrop-blur-sm shadow-sm">
-              <span className="text-[9px] font-black uppercase tracking-wider text-slate-700">{currentPattern.emoji} {currentPattern.name}</span>
+            <div className="absolute top-4 right-4 px-3 py-1.5 rounded-2xl bg-white/90 backdrop-blur-md shadow-sm border border-white/50">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-700">{currentPattern.emoji} {currentPattern.name}</span>
             </div>
           )}
         </motion.div>
       </div>
 
-      <div className="px-6 py-5 border-t border-slate-100 space-y-3">
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Product</p>
-            <p className="text-sm font-black text-slate-800">{product.name}</p>
+      <div className="px-10 py-8 border-t border-slate-100 space-y-6">
+        <div className="grid grid-cols-2 gap-y-6 gap-x-4">
+          <div className="space-y-1">
+            <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest font-mono">Product Base</p>
+            <p className="text-sm font-black text-slate-800 tracking-tight">{product.name}</p>
           </div>
-          <div>
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Size</p>
-            <p className="text-sm font-black text-slate-800">{currentSize?.label || "–"}</p>
+          <div className="space-y-1">
+            <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest font-mono">Dimensions</p>
+            <p className="text-sm font-black text-slate-800 tracking-tight">{currentSize?.label || "Standard"}</p>
           </div>
-          <div>
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Color</p>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <div className="h-4 w-4 rounded-md border border-slate-200" style={{ backgroundColor: currentColor?.hex }} />
-              <span className="text-sm font-black text-slate-800">{currentColor?.name}</span>
+          <div className="space-y-1">
+            <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest font-mono">Chrome Value</p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <div className="h-4.5 w-4.5 rounded-lg border-2 border-slate-50 shadow-sm" style={{ backgroundColor: design.baseColor }} />
+              <span className="text-xs font-black text-slate-800 font-mono tracking-tighter uppercase">{design.baseColor}</span>
             </div>
           </div>
-          <div>
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Material</p>
-            <p className="text-sm font-black text-slate-800">{currentMaterial?.name || "–"}</p>
+          <div className="space-y-1">
+            <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest font-mono">Fabrication</p>
+            <p className="text-sm font-black text-slate-800 tracking-tight">{currentMaterial?.name || "–"}</p>
           </div>
         </div>
+        
         {design.embroideryText && (
-          <div className="pt-2 border-t border-slate-100">
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Embroidery</p>
-            <p className="text-sm font-black italic text-[#4988c4]">"{design.embroideryText}"</p>
+          <div className="pt-4 border-t border-slate-50 flex items-center justify-between">
+            <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest font-mono">Bespoke Detail</p>
+            <p className="text-sm font-black italic text-[#4988c4] tracking-tight">" {design.embroideryText} "</p>
           </div>
         )}
-        <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Estimated Price</span>
-          <motion.span key={totalPrice} initial={{ scale: 1.15, color: "#4988c4" }} animate={{ scale: 1, color: "#1e293b" }} className="text-xl font-black">
+
+        <div className="pt-6 border-t border-slate-50 flex items-center justify-between">
+          <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Est. Final Price</span>
+          <motion.span key={totalPrice} initial={{ scale: 1.1, color: "#4988c4" }} animate={{ scale: 1, color: "#0f172a" }} className="text-2xl font-black tabular-nums">
             {formatPrice(totalPrice)}
           </motion.span>
         </div>

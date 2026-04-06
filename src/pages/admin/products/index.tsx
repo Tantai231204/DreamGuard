@@ -71,10 +71,14 @@ export default function ProductsPage() {
     onEdit: useCallback((p: Product) => { state.setEditingProduct(p); state.setDialogOpen(true); }, [state]),
     onDelete: useCallback((p: Product) => state.setDeleteProduct(p), [state]),
     onAddVariant: useCallback((p: Product) => {
+      const isTemplate = !!p.fullyCustomizedProductType && p.fullyCustomizedProductType !== 'None';
+      if (isTemplate) return;
+
       state.setEditingVariant(null);
       state.setVariantProductId(p.id);
       state.setVariantProductName(p.name);
       state.setVariantProductSlug(p.slug);
+      state.setVariantProductType(p.fullyCustomizedProductType);
       state.setVariantCount(p.variantCount ?? p.variants?.length ?? 0);
       state.setVariantDialogOpen(true);
     }, [state]),
@@ -137,14 +141,21 @@ export default function ProductsPage() {
     const draft = products.filter(p => p.status === 'Draft').length +
       combos.filter(c => c.status === 'Draft').length;
 
+    // Derived Lists
+    const regularProducts = products.filter(p => !p.fullyCustomizedProductType || p.fullyCustomizedProductType === 'None');
+    const customizableProducts = products.filter(p => p.fullyCustomizedProductType && p.fullyCustomizedProductType !== 'None');
+
     return {
       total: singleTotal + comboTotal,
-      singleTotal,
+      singleTotal: regularProducts.length, // Local count for regularity
+      customizeTotal: customizableProducts.length,
       comboTotal,
       certTotal,
       published,
       outOfStock,
-      draft
+      draft,
+      regularProducts,
+      customizableProducts
     };
   }, [pageData, comboPageData, certPageData, products, combos, certificates]);
 
@@ -178,12 +189,16 @@ export default function ProductsPage() {
               activeTab={activeTab}
               onTabChange={setActiveTab}
               singleCount={stats.singleTotal}
+              customizeCount={stats.customizeTotal}
               comboCount={stats.comboTotal}
               certCount={stats.certTotal}
               actions={
                 <AdminActions
                   onAdd={handleAdd}
-                  addLabel={`Add ${activeTab === 'single' ? 'Product' : activeTab === 'combo' ? 'Combo' : 'Certificate'}`}
+                  addLabel={activeTab === 'customize' && stats.customizableProducts.length >= 3 && ['Mattresses', 'Pillows', 'Cribs'].every(t => stats.customizableProducts.some(p => p.fullyCustomizedProductType === t)) 
+                    ? 'All Templates Created' 
+                    : `Add ${activeTab === 'single' ? 'Product' : activeTab === 'customize' ? 'Template' : activeTab === 'combo' ? 'Combo' : 'Certificate'}`}
+                  addDisabled={activeTab === 'customize' && ['Mattresses', 'Pillows', 'Cribs'].every(t => stats.customizableProducts.some(p => p.fullyCustomizedProductType === t))}
                   onExport={handleExport}
                   onFilter={() => { }}
                   onImport={() => { }}
@@ -212,7 +227,7 @@ export default function ProductsPage() {
                     >
                       {activeTab === 'single' ? (
                         <ProductTableSection
-                          products={products}
+                          products={stats.regularProducts}
                           // eslint-disable-next-line @typescript-eslint/no-explicit-any
                           columns={productColumns as any}
                           pageData={pageData}
@@ -229,6 +244,32 @@ export default function ProductsPage() {
                             mutations.handleStatusChangeRequest({
                               id,
                               name: name || 'Product',
+                              type: 'product',
+                              currentStatus: (cur || 'Draft') as ProductStatus,
+                              newStatus: s as ProductStatus,
+                            });
+                          }}
+                          hideHeaderActions
+                        />
+                      ) : activeTab === 'customize' ? (
+                        <ProductTableSection
+                          products={stats.customizableProducts}
+                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                          columns={productColumns as any}
+                          pageData={undefined} // Template list usually small, no separate pagination needed? 
+                          state={state}
+                          onSortingChange={state.setSorting}
+                          onGlobalFilterChange={state.setGlobalFilter}
+                          onColumnFiltersChange={state.setColumnFilters}
+                          onRowSelectionChange={state.setRowSelection}
+                          onExpandedChange={state.setExpanded}
+                          onPaginationChange={state.setPagination}
+                          onBulkDelete={(table) => mutations.handleBulkDelete(table as unknown as Table<Product | Combo | Certificate>, 'single')}
+                          onExport={handleExport}
+                          onUpdateStatus={(id, s, name, cur) => {
+                            mutations.handleStatusChangeRequest({
+                              id,
+                              name: name || 'Customization Template',
                               type: 'product',
                               currentStatus: (cur || 'Draft') as ProductStatus,
                               newStatus: s as ProductStatus,
