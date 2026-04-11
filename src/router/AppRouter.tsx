@@ -22,6 +22,11 @@ const ComboDetail = lazy(() => import("../pages/combos/[slug]"));
 const CartPage = lazy(() => import("../pages/cart"));
 const CheckoutPage = lazy(() => import("../pages/checkout"));
 const CheckoutResult = lazy(() => import("../pages/checkout/CheckoutResult"));
+const ReturnPolicyPage = lazy(() => import("../pages/return-policy"));
+const WarrantyPolicyPage = lazy(() => import("../pages/warranty-policy"));
+const HelpCenterPage = lazy(() => import("../pages/help-center"));
+const FAQPage = lazy(() => import("../pages/faq"));
+const TermsOfServicePage = lazy(() => import("../pages/terms-of-service"));
 
 // Auth
 const Login = lazy(() => import("../pages/auth/Login"));
@@ -80,6 +85,11 @@ export default function AppRouter() {
                         <Route path={AppRoute.COMBO_DETAIL} element={<ComboDetail />} />
                         <Route path={AppRoute.SERVICES} element={<Services />} />
                         <Route path={AppRoute.CART} element={<CartPage />} />
+                        <Route path={AppRoute.RETURN_POLICY} element={<ReturnPolicyPage />} />
+                        <Route path={AppRoute.WARRANTY_POLICY} element={<WarrantyPolicyPage />} />
+                        <Route path={AppRoute.HELP_CENTER} element={<HelpCenterPage />} />
+                        <Route path={AppRoute.FAQ} element={<FAQPage />} />
+                        <Route path={AppRoute.TERMS_OF_SERVICE} element={<TermsOfServicePage />} />
                     </Route>
 
 
