@@ -313,6 +313,12 @@ const tradeInOrderService = {
     return res.data?.data ?? res.data;
   },
 
+  getTradeInConversationId: async (tradeInOrderId: string): Promise<string | null> => {
+    const detail = await tradeInOrderService.getTradeInOrderById(tradeInOrderId);
+    const conversationId = detail.conversation?.conversationId || detail.conversation?.id;
+    return conversationId || null;
+  },
+
   calculateTradeInOrderPrice: async (
     payload: CalculateTradeInOrderPriceRequest,
   ): Promise<CalculateTradeInOrderPriceResponse> => {

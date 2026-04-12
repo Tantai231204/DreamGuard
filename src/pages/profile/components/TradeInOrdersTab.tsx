@@ -34,16 +34,14 @@ export const TradeInOrdersTab = () => {
     const handleChatClick = useCallback(async (orderId: string) => {
         try {
             setIsCreatingChat(orderId);
-            const orderDetail = await tradeInOrderService.getTradeInOrderById(orderId);
-            const conv = orderDetail.conversation as { id?: string; conversationId?: string } | undefined;
-            const conversationId = conv?.id || conv?.conversationId;
+            const conversationId = await tradeInOrderService.getTradeInConversationId(orderId);
 
             if (conversationId) {
                 openChat(conversationId);
                 toast.success("Connected to trade-in support.");
             } else {
-                toast.info("Preparing your conversation...", {
-                    description: "An expert will be with you shortly. Please try again in a few moments."
+                toast.info("Chat chưa sẵn sàng", {
+                    description: "Staff chưa tạo hội thoại cho yêu cầu này. Vui lòng quay lại sau."
                 });
             }
         } catch (error) {

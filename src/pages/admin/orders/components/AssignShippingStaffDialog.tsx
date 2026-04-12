@@ -55,7 +55,14 @@ function AssignShippingStaffContent({ orderId, onClose }: { orderId: string; onC
   const { data: tasks } = useShippingTasksByOrder(orderId);
 
   const staffs = useMemo(() => staffData?.items || [], [staffData]);
-  const activeTask = useMemo(() => tasks?.find((t) => t.status !== 'Reassigned'), [tasks]);
+  const activeTask = useMemo(() => {
+    const sortedTasks = [...(tasks || [])].sort((a, b) => {
+      const aTime = new Date(a.completionDate || a.shippingDate || 0).getTime();
+      const bTime = new Date(b.completionDate || b.shippingDate || 0).getTime();
+      return bTime - aTime;
+    });
+    return sortedTasks.find((t) => t.status !== 'Reassigned');
+  }, [tasks]);
   const isReassign = !!activeTask;
 
   const [selectedStaffId, setSelectedStaffId] = useState<string>(activeTask?.staffId || '');

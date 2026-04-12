@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Printer, Truck, History, ChevronDown, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useOrderDetail, useUpdateOrderStatus, useAdminCancelOrder, useAdminPayments, useUpdatePaymentStatus } from '@/hooks/queries';
@@ -49,11 +49,34 @@ export default function OrderDetail() {
   const [showProcessReturnDialog, setShowProcessReturnDialog] = useState(false);
   const [showProcessExchangeDialog, setShowProcessExchangeDialog] = useState(false);
 
-  const { data: shippingTasks, isLoading: isTasksLoading } = useShippingTasksByOrder(id!);
+  const resolvedOrderId = order?.id || id || '';
+  const { data: shippingTasks, isLoading: isTasksLoading } = useShippingTasksByOrder(resolvedOrderId);
   const { data: paymentResponse } = useAdminPayments({ orderCode: order?.orderCode });
 
-  // Find active task to process return on
-  const activeTask = shippingTasks?.find(t => t.status !== "Reassigned");
+  const sortedShippingTasks = useMemo(() => {
+    const tasks = [...(shippingTasks || [])];
+    return tasks.sort((a, b) => {
+      const aTime = new Date(a.completionDate || a.shippingDate || 0).getTime();
+      const bTime = new Date(b.completionDate || b.shippingDate || 0).getTime();
+      return bTime - aTime;
+    });
+  }, [shippingTasks]);
+
+  // Current task must always be the newest non-reassigned task.
+  const activeTask = useMemo(
+    () => sortedShippingTasks.find((t) => t.status !== 'Reassigned'),
+    [sortedShippingTasks]
+  );
+
+  // Keep historical tasks (older tasks) visible for legacy evidence/note.
+  const historicalEvidenceTasks = useMemo(
+    () => sortedShippingTasks.filter(
+      (task) =>
+        task.shippingTaskId !== activeTask?.shippingTaskId &&
+        ((task.evidences?.length || 0) > 0 || !!task.staffNote)
+    ),
+    [sortedShippingTasks, activeTask]
+  );
 
   if (isLoading || isTasksLoading) {
     return <OrderDetailSkeleton />;
@@ -66,7 +89,7 @@ export default function OrderDetail() {
   const handlePrint = () => window.print();
 
   const handleUpdateStatus = (newStatus: string) => {
-    const hasActiveTask = !!shippingTasks && shippingTasks.length > 0;
+    const hasActiveTask = !!activeTask;
 
     // Business Logic: Require staff assignment for processing/shipping
     if ((newStatus === 'Processing' || newStatus === 'Delivering') && !hasActiveTask) {
@@ -359,7 +382,7 @@ export default function OrderDetail() {
                 onProcessReturn={() => setShowProcessReturnDialog(true)}
                 onProcessExchange={() => setShowProcessExchangeDialog(true)}
                 canCancel={canCancel && isAdmin}
-                hasTask={!!shippingTasks && shippingTasks.length > 0}
+                hasTask={!!activeTask}
               />
 
               {currentStatusEnum !== OrderStatus.Cancelled && (
@@ -374,6 +397,14 @@ export default function OrderDetail() {
               {activeTask?.shippingTaskId && (
                 <ShippingLogisticsEvidence taskId={activeTask.shippingTaskId} delay={0.15} />
               )}
+
+              {historicalEvidenceTasks.map((task, index) => (
+                <ShippingLogisticsEvidence
+                  key={task.shippingTaskId}
+                  taskId={task.shippingTaskId}
+                  delay={0.18 + (index * 0.03)}
+                />
+              ))}
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between px-2">

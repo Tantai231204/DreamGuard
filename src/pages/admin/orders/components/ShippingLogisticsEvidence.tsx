@@ -25,7 +25,10 @@ export const ShippingLogisticsEvidence = memo(function ShippingLogisticsEvidence
         );
     }
 
-    if (!task?.evidences || task.evidences.length === 0) return null;
+    const hasEvidences = !!task?.evidences && task.evidences.length > 0;
+    const hasStaffNote = !!task?.staffNote?.trim();
+
+    if (!hasEvidences && !hasStaffNote) return null;
 
     return (
         <section className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-700" style={{ animationDelay: `${delay}s` }}>
@@ -37,8 +40,16 @@ export const ShippingLogisticsEvidence = memo(function ShippingLogisticsEvidence
                 <div className="h-px bg-slate-100 flex-1 ml-4" />
             </div>
 
+            {hasStaffNote && (
+                <Card className="border-slate-100 shadow-sm rounded-2xl p-4 bg-slate-50/70">
+                    <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400 mb-2">Staff Note</p>
+                    <p className="text-sm text-slate-700 leading-relaxed">{task?.staffNote}</p>
+                </Card>
+            )}
+
+            {hasEvidences && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {task.evidences.map((evidence) => {
+                {task?.evidences?.map((evidence) => {
                     const isDelivered = evidence.evidenceType === 'Delivered' || evidence.evidenceType === 'Shipped';
 
                     return (
@@ -84,6 +95,7 @@ export const ShippingLogisticsEvidence = memo(function ShippingLogisticsEvidence
                     );
                 })}
             </div>
+            )}
         </section>
     );
 });

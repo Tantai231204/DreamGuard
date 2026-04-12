@@ -43,6 +43,15 @@ export interface TradeInImage {
   publicId: string;
 }
 
+export interface TradeInConversationInfo {
+  id?: string;
+  conversationId?: string;
+  tradeInOrderId?: string;
+  customerId?: string;
+  staffId?: string;
+  createdAt?: string;
+}
+
 export interface TradeInOrderDetailResponse {
   tradeInOrderId: string;
   customerId: string;
@@ -87,7 +96,7 @@ export interface TradeInOrderDetailResponse {
     createdAt: string;
     productId: string;
   };
-  conversation?: Record<string, unknown>;
+  conversation?: TradeInConversationInfo | null;
 }
 
 export interface TradeInOrderResponse {
