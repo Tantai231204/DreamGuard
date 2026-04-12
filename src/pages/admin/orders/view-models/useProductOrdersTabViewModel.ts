@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import type { OrderResponse } from '@/api/types/order';
 import { useAdminTableSync } from '@/hooks/admin/useAdminTableSync';
 import { useAdminCancelOrder, useAdminOrders } from '@/hooks/queries';
+import type { AdminOrdersQueryParams } from '@/hooks/queries';
 import { downloadCSV } from '@/lib/export';
 
 import { useOrderColumns } from '../components/useOrderColumns';
@@ -59,14 +60,14 @@ export const useProductOrdersTabViewModel = () => {
 
   const columns = useOrderColumns(onCancelRequested);
 
-  const queryParams = useMemo(
+  const queryParams = useMemo<AdminOrdersQueryParams>(
     () => ({
       pageNumber: pagination.pageIndex + 1,
       pageSize: pagination.pageSize,
       search: debouncedFilter || undefined,
       status: statusFilter,
       sortBy: sorting[0]?.id,
-      sortOrder: sorting[0]?.desc ? 'desc' : 'asc' as const,
+      sortOrder: sorting[0] ? (sorting[0].desc ? 'desc' : 'asc') : undefined,
     }),
     [debouncedFilter, pagination.pageIndex, pagination.pageSize, sorting, statusFilter],
   );
