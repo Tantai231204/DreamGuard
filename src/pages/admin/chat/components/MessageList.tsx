@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef, useCallback } from 'react';
+import { memo, useEffect, useRef, useCallback, useState } from 'react';
 import { ArrowDown, Loader2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { MessageBubble } from './MessageBubble';
@@ -24,6 +24,27 @@ function MessageListInner({
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const prevLenRef = useRef(0);
+  const [showScrollFab, setShowScrollFab] = useState(false);
+
+  /* ---- Scroll listener for FAB visibility ----------------- */
+  const handleScroll = useCallback(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    
+    // Show FAB if we are more than 200px away from bottom
+    const isOffBottom = 
+      container.scrollHeight - container.scrollTop - container.clientHeight > 200;
+      
+    setShowScrollFab(isOffBottom);
+  }, []);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
 
   /* ---- Auto-scroll to bottom on new messages -------------- */
   useEffect(() => {
@@ -33,9 +54,8 @@ function MessageListInner({
     const isNewMessage = messages.length > prevLenRef.current;
     prevLenRef.current = messages.length;
 
-    // Only auto-scroll if user is near the bottom (< 120px away)
     const isNearBottom =
-      container.scrollHeight - container.scrollTop - container.clientHeight < 120;
+      container.scrollHeight - container.scrollTop - container.clientHeight < 150;
 
     if (isNewMessage && isNearBottom) {
       bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -63,7 +83,7 @@ function MessageListInner({
   return (
     <div
       ref={containerRef}
-      className="flex-1 min-h-0 overflow-y-auto chat-scrollbar relative"
+      className="flex-1 min-h-0 overflow-y-auto custom-scrollbar scrollbar-admin relative"
       style={{ background: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)' }}
     >
       {/* Load more button */}
@@ -104,17 +124,17 @@ function MessageListInner({
       {/* Message groups */}
       {messages.length > 0 && (
         <div className="px-4 py-4 space-y-4">
-          {grouped.map(({ date, items }) => (
-            <div key={date}>
+          {grouped.map(({ date, items }, groupIdx) => (
+            <div key={`${date}-${groupIdx}`}>
               {/* Date separator */}
               <div className="flex items-center justify-center my-4">
                 <span className="date-chip">{date}</span>
               </div>
 
               <div className="space-y-3">
-                {items.map((msg) => (
+                {items.map((msg, idx) => (
                   <MessageBubble
-                    key={msg.id}
+                    key={`${msg.id}-${idx}`}
                     message={msg}
                     formatTime={formatTime}
                   />
@@ -156,16 +176,26 @@ function MessageListInner({
         </div>
       )}
 
-      {/* Scroll-to-bottom FAB */}
-      <button
-        onClick={scrollToBottom}
-        className="absolute bottom-4 right-4 w-8 h-8 bg-white border border-gray-200 rounded-full
-                   shadow-md flex items-center justify-center text-gray-500 hover:text-[var(--color-primary)]
-                   hover:border-[var(--color-primary)] transition-all opacity-60 hover:opacity-100"
-        title="Scroll to bottom"
-      >
-        <ArrowDown className="h-4 w-4" />
-      </button>
+      {/* Scroll-to-bottom FAB: Floating at bottom center */}
+      <AnimatePresence>
+        {showScrollFab && (
+          <motion.button
+            initial={{ opacity: 0, y: 10, scale: 0.8 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.8 }}
+            onClick={scrollToBottom}
+            className="absolute bottom-6 left-1/2 -translate-x-1/2 w-9 h-9 bg-white 
+                       border border-gray-100 rounded-full shadow-2xl flex items-center justify-center 
+                       text-[var(--color-primary)] hover:bg-blue-50 transition-colors z-20 group"
+            title="Scroll to bottom"
+          >
+            <ArrowDown className="h-4 w-4 transition-transform group-hover:translate-y-0.5" />
+            
+            {/* Soft pulse effect */}
+            <span className="absolute inset-0 rounded-full bg-[var(--color-primary)] opacity-10 animate-ping pointer-events-none" />
+          </motion.button>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

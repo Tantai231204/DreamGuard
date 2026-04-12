@@ -1,21 +1,18 @@
 export interface UserProfile {
-  firstName: string
-  lastName: string
-  fullName?: string
+  fullName: string
   email: string
   phoneNumber?: string
-  dateOfBirth: string
-  gender: string
+  dateOfBirth?: string
+  gender?: string
   avatarUrl?: string
+  memberCoin: number
 }
 
 export interface UpdateUserProfileRequest {
-  firstName: string
-  lastName: string
   fullName?: string
-  email: string
-  dateOfBirth: string
-  gender: string
+  email?: string
+  dateOfBirth?: string
+  gender?: string
   avatarUrl?: string
 }
 

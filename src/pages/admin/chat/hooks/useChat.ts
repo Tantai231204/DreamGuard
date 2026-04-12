@@ -1,15 +1,15 @@
 /* ============================================================
    useChat — TanStack Query v5
-   useQuery for message list, useMutation for send with optimistic UI
+   useQuery for message list. Sending is done via SignalR only.
    ============================================================ */
 
 import { useCallback } from 'react';
 import {
-  useMutation,
   useQueryClient,
   useInfiniteQuery,
+  type InfiniteData,
 } from '@tanstack/react-query';
-import type { Message, SendMessagePayload } from '../types';
+import type { Message } from '../types';
 import { chatService } from '@/api/services';
 
 
@@ -69,54 +69,24 @@ export function useChat({
   const messages: Message[] =
     data?.pages.flatMap((p) => p.items) ?? [];
 
-  /* ---- Send message mutation ----------------------------- */
-  const { mutateAsync: sendMutation, isPending: isSending } = useMutation({
-    mutationFn: (payload: SendMessagePayload) => {
-      if (USE_MOCK) {
-        return new Promise<Message>((resolve) =>
-          setTimeout(
-            () =>
-              resolve({
-                id: tempId(),
-                conversationId: payload.conversationId,
-                senderId: adminId,
-                senderName: adminName,
-                senderRole: 'admin',
-                content: payload.content,
-                timestamp: new Date().toISOString(),
-                status: 'delivered',
-              }),
-            500
-          )
-        );
-      }
-      return chatService.sendMessage(payload);
-    },
-
-    onMutate: async (payload) => {
+  /* ---- Optimistic send (adds to UI immediately) ---------- */
+  const addOptimisticMessage = useCallback(
+    (content: string) => {
       if (!conversationId) return;
       const key = messagesQueryKey(conversationId);
 
-      // Cancel any in-flight refetches to avoid race conditions
-      await queryClient.cancelQueries({ queryKey: key });
-
-      // Snapshot current cache for rollback
-      const snapshot = queryClient.getQueryData(key);
-
-      // Optimistic message
       const optimistic: Message = {
         id: tempId(),
-        conversationId: payload.conversationId,
+        conversationId,
         senderId: adminId,
         senderName: adminName,
         senderRole: 'admin',
-        content: payload.content,
+        content,
         timestamp: new Date().toISOString(),
-        status: 'sending',
+        status: 'sent',
       };
 
-      // Append to the last page optimistically
-      queryClient.setQueryData(key, (old: typeof data) => {
+      queryClient.setQueryData(key, (old: InfiniteData<{ items: Message[]; hasMore: boolean }> | undefined) => {
         if (!old) return old;
         const pages = [...old.pages];
         const lastPage = pages[pages.length - 1];
@@ -126,42 +96,8 @@ export function useChat({
         };
         return { ...old, pages };
       });
-
-      return { snapshot, optimisticId: optimistic.id };
     },
-
-    onSuccess: (confirmed, _payload, context) => {
-      if (!conversationId || !context) return;
-      const key = messagesQueryKey(conversationId);
-
-      // Replace optimistic entry with confirmed server message
-      queryClient.setQueryData(key, (old: typeof data) => {
-        if (!old) return old;
-        const pages = old.pages.map((page) => ({
-          ...page,
-          items: page.items.map((m) =>
-            m.id === context.optimisticId ? confirmed : m
-          ),
-        }));
-        return { ...old, pages };
-      });
-    },
-
-    onError: (_err, _payload, context) => {
-      if (!conversationId || !context) return;
-      const key = messagesQueryKey(conversationId);
-
-      // Rollback to snapshot
-      queryClient.setQueryData(key, context.snapshot);
-    },
-  });
-
-  /* ---- Public send function ----------------------------- */
-  const sendMessage = useCallback(
-    (payload: SendMessagePayload) => {
-      return sendMutation(payload);
-    },
-    [sendMutation]
+    [conversationId, adminId, adminName, queryClient]
   );
 
   /* ---- Load more (older messages) ----------------------- */
@@ -177,11 +113,26 @@ export function useChat({
 
       queryClient.setQueryData(key, (old: typeof data) => {
         if (!old) return old;
-        // Idempotent: skip duplicates
+
+        // 1. Idempotent check: skip if ID already exists in any page
         const alreadyExists = old.pages.some((page) =>
           page.items.some((m) => m.id === msg.id)
         );
         if (alreadyExists) return old;
+
+        // 2. Echo cancellation: 
+        // If we just sent an admin message and server sends it back as 'admin', 
+        // we keep our optimistic one and skip the duplicate from WS 
+        // (unless we want to "upgrade" it). For now, skip to prevent double-render.
+        if (msg.senderRole === 'admin') {
+           const hasOptimisticMatch = old.pages.some(p => 
+              p.items.some(m => m.id.startsWith('optimistic-') && m.content === msg.content)
+           );
+           if (hasOptimisticMatch) {
+              console.log('[Chat] Ignoring echoed admin message (already shown optimistically)');
+              return old;
+           }
+        }
 
         const pages = [...old.pages];
         const lastPage = pages[pages.length - 1];
@@ -198,9 +149,8 @@ export function useChat({
   return {
     messages,
     isLoading,
-    isSending,
     hasMore: !!hasNextPage,
-    sendMessage,
+    addOptimisticMessage,
     loadMore,
     appendMessage,
   };

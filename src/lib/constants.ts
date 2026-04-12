@@ -36,6 +36,8 @@ export const AppRoute = {
   ADMIN_PRODUCT_TYPES: "/admin/product-types",
   ADMIN_CUSTOMIZE_TYPES: "/admin/customize-types",
   ADMIN_TEMPLATES: "/admin/templates",
+  ADMIN_SYSTEM_CONFIGS: "/admin/system-configs",
+  ADMIN_TRADE_IN_ORDERS: "/admin/trade-in-orders",
 
   // Error Routes
   NOT_FOUND: "*",
@@ -58,3 +60,12 @@ export const ApiErrorCode = {
 } as const;
 
 export type ApiErrorCode = (typeof ApiErrorCode)[keyof typeof ApiErrorCode];
+
+// User Roles Constants
+export const UserRole = {
+  ADMIN: "Admin",
+  MANAGER: "Manager",
+  SELLER: "Seller",
+} as const;
+
+export type UserRole = (typeof UserRole)[keyof typeof UserRole];

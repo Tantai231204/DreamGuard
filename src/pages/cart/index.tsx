@@ -11,6 +11,17 @@ import orderService from "@/api/services/orderService";
 import type { OrderItem } from "@/api/types/order";
 import { toast } from "sonner";
 
+type IdlePrefetchWindow = Window & {
+    requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+    cancelIdleCallback?: (handle: number) => void;
+};
+
+const prefetchCheckoutSummaryChunks = () =>
+    Promise.all([
+        import("../checkout/components/OrderSummary"),
+        import("../checkout/components/OrderSummaryItemList"),
+    ]);
+
 export default function CartPage() {
     const { cart, updateQuantity, removeItem, finalTotal, loadingIds, syncingIds, isSyncing, batchAddItems } = useCart();
     const [coupon, setCoupon] = useState("");
@@ -80,6 +91,37 @@ export default function CartPage() {
     }, [searchParams, setSearchParams, batchAddItems]);
 
     const { setItems: setBreadcrumb } = useBreadcrumb();
+
+    useEffect(() => {
+        const idleWindow = window as IdlePrefetchWindow;
+        let idleHandle: number | undefined;
+        let timeoutHandle: number | undefined;
+        let cancelled = false;
+
+        const warmCheckoutSummary = () => {
+            if (cancelled) return;
+            void prefetchCheckoutSummaryChunks();
+        };
+
+        if (typeof idleWindow.requestIdleCallback === "function") {
+            idleHandle = idleWindow.requestIdleCallback(warmCheckoutSummary, { timeout: 1500 });
+        } else {
+            timeoutHandle = window.setTimeout(warmCheckoutSummary, 900);
+        }
+
+        return () => {
+            cancelled = true;
+
+            if (idleHandle !== undefined && typeof idleWindow.cancelIdleCallback === "function") {
+                idleWindow.cancelIdleCallback(idleHandle);
+            }
+
+            if (timeoutHandle !== undefined) {
+                window.clearTimeout(timeoutHandle);
+            }
+        };
+    }, []);
+
     useEffect(() => {
         setBreadcrumb([
             { label: 'Home', href: '/' },

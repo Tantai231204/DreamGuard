@@ -4,7 +4,7 @@ import {
     Check, Copy, AlignLeft,
 } from 'lucide-react';
 import { InfoField } from './Infofield';
-import { formatDateTime } from '@/lib/utils';
+import { formatDateTime, formatPrice } from '@/lib/utils';
 
 /* ─── Simplified Components ────────────────────────────── */
 function SectionTitle({ title, icon: Icon }: { title: string, icon: React.ElementType }) {
@@ -29,6 +29,9 @@ interface ProductInfoCardProps {
         returnPolicyDay?: number;
         summary?: string;
         description?: string;
+        isTradeInEligible?: boolean;
+        minTradeInPrice?: number;
+        depositAmount?: number;
     };
     copiedSlug: boolean;
     onCopySlug: () => void;
@@ -84,17 +87,62 @@ export default function ProductInfoCard({
                 <SectionTitle title="Service Policies" icon={ShieldCheck} />
                 <div className="grid grid-cols-2 gap-4">
                     <div className="px-6 py-5 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col gap-1 transition-all hover:border-blue-100 hover:bg-white group cursor-default">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Warranty</p>
-                        <div className="flex items-baseline gap-1.5">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Warranty Protection</p>
+                        <div className="flex items-baseline gap-1.5 mt-1">
                             <p className="text-3xl font-black text-slate-900 tracking-tight group-hover:text-[#4988c4] transition-colors">{product.warrantyPolicyDay ?? 0}</p>
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Days Protection</span>
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Days</span>
                         </div>
                     </div>
                     <div className="px-6 py-5 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col gap-1 transition-all hover:border-blue-100 hover:bg-white group cursor-default">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Returns</p>
-                        <div className="flex items-baseline gap-1.5">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Return Window</p>
+                        <div className="flex items-baseline gap-1.5 mt-1">
                             <p className="text-3xl font-black text-slate-900 tracking-tight group-hover:text-[#4988c4] transition-colors">{product.returnPolicyDay ?? 0}</p>
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Day Window</span>
+                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Days</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* ── Trade-In & Settlement ── */}
+            <section>
+                <SectionTitle title="Settlement & Trade-In" icon={Tag} />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="px-6 py-5 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col gap-1 transition-all hover:border-blue-100 hover:bg-white group cursor-default">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Program Eligibility</p>
+                        <div className="flex items-center gap-2 mt-2">
+                            {product.isTradeInEligible ? (
+                                <>
+                                    <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                                        <Check size={10} className="text-white" />
+                                    </div>
+                                    <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Qualified Product</span>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center">
+                                        <div className="w-2 h-0.5 bg-slate-400 rounded-full" />
+                                    </div>
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Program Disabled</span>
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="px-6 py-5 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col gap-1 transition-all hover:border-blue-100 hover:bg-white group cursor-default">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Min Trade Valuation</p>
+                        <div className="flex items-baseline gap-1.5 mt-1">
+                            <p className="text-xl font-black text-slate-900 tracking-tight group-hover:text-[#4988c4] transition-colors">
+                                {product.minTradeInPrice ? formatPrice(product.minTradeInPrice) : '--'}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="px-6 py-5 rounded-2xl bg-slate-50 border border-slate-100 flex flex-col gap-1 transition-all hover:border-blue-100 hover:bg-white group cursor-default">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Mandatory Deposit</p>
+                        <div className="flex items-baseline gap-1.5 mt-1">
+                            <p className="text-xl font-black text-slate-900 tracking-tight group-hover:text-[#4988c4] transition-colors">
+                                {product.depositAmount ? formatPrice(product.depositAmount) : '--'}
+                            </p>
                         </div>
                     </div>
                 </div>

@@ -26,7 +26,11 @@ export const useLogin = () => {
     meta: { hideToast: true },
     onSuccess: async (data) => {
       setAuth(data);
-      // Sync is handled by the App root when isAuthenticated becomes true
+
+      // Store token for SignalR connection only (sessionStorage = cleared on tab close)
+      if (data.accessToken) {
+        sessionStorage.setItem('signalr_token', data.accessToken);
+      }
 
       toast.success("Login Successful", {
         description: "Welcome back to DreamGuard!",
@@ -52,7 +56,8 @@ export const useLogout = () => {
         await authService.logout();
       } finally {
         state.setLoggingOut(false);
-        state.clearAuth(); // Clear after call settling to prevent overlapping race
+        state.clearAuth();
+        sessionStorage.removeItem('signalr_token'); // Clean up SignalR token
       }
     },
     onSettled: async () => {

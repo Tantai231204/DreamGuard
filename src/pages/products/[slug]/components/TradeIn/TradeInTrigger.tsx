@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, forwardRef } from 'react';
 import { ArrowRight, Leaf, Recycle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -12,23 +12,25 @@ const formatPrice = formatTradeInPrice;
  * Designed to stand out prominently on the product page with a two-tone
  * layout: a rich forest-green left panel + an ivory right section.
  */
-export const TradeInTrigger = memo(function TradeInTrigger({
-  selectedCount,
-  totalValue,
-  ...props
-}: TradeInTriggerProps) {
-  const hasItems = selectedCount > 0;
+export const TradeInTrigger = memo(
+  forwardRef<HTMLButtonElement, TradeInTriggerProps>((
+    { selectedCount, totalValue, isEligible = true, className, ...props },
+    ref
+  ) => {
+    const hasItems = selectedCount > 0;
 
-  return (
-    <button
-      className="w-full group outline-none focus-visible:ring-2 focus-visible:ring-[#4A5D4E]/40 rounded-2xl"
-      {...props}
-    >
+    return (
+      <button
+        ref={ref}
+        disabled={!isEligible}
+        className={cn("w-full group outline-none focus-visible:ring-2 focus-visible:ring-[#4A5D4E]/40 rounded-2xl", !isEligible && "opacity-80 grayscale-[30%]", className)}
+        {...props}
+      >
       <div
         className={cn(
           'relative overflow-hidden rounded-2xl flex items-stretch transition-all duration-400',
           'shadow-[0_4px_20px_rgba(74,93,78,0.18)] hover:shadow-[0_8px_32px_rgba(74,93,78,0.28)]',
-          'hover:-translate-y-0.5'
+          !isEligible ? '' : 'hover:-translate-y-0.5'
         )}
       >
         {/* ── LEFT PANEL — forest green ── */}
@@ -63,7 +65,22 @@ export const TradeInTrigger = memo(function TradeInTrigger({
           {/* Left: tag line or credit value */}
           <div>
             <AnimatePresence mode="wait">
-              {hasItems ? (
+              {!isEligible ? (
+                 <motion.div
+                  key="not-eligible"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.2 }}
+                 >
+                  <p className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.12em]">
+                    Not Available
+                  </p>
+                  <p className="text-[13.5px] text-gray-700 font-medium leading-snug mt-0.5 max-w-[200px]">
+                    This product does not support Trade-In
+                  </p>
+                 </motion.div>
+              ) : hasItems ? (
                 <motion.div
                   key="selected"
                   initial={{ opacity: 0, y: 6 }}
@@ -72,10 +89,10 @@ export const TradeInTrigger = memo(function TradeInTrigger({
                   transition={{ duration: 0.2 }}
                 >
                   <p className="text-[10px] font-bold text-[#4A5D4E] uppercase tracking-[0.12em]">
-                    Your trade-in credit
+                    Trade-in estimate
                   </p>
                   <p className="font-serif italic text-[20px] text-[#2E4032] font-normal leading-tight mt-0.5">
-                    -{formatPrice(totalValue)}
+                    From {formatPrice(totalValue)}
                   </p>
                   <p className="text-[10px] text-[#8C7A6B] mt-0.5">
                     {selectedCount} {selectedCount === 1 ? 'item' : 'items'} selected
@@ -107,23 +124,26 @@ export const TradeInTrigger = memo(function TradeInTrigger({
           </div>
 
           {/* CTA arrow */}
-          <div
-            className={cn(
-              'w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-300',
-              hasItems
-                ? 'bg-[#4A5D4E] shadow-[0_4px_12px_rgba(74,93,78,0.35)]'
-                : 'bg-[#3D5140] group-hover:bg-[#4A5D4E] group-hover:shadow-[0_4px_12px_rgba(74,93,78,0.25)]'
-            )}
-          >
-            <motion.div
-              animate={{ x: [0, 2, 0] }}
-              transition={{ repeat: Infinity, repeatDelay: 2, duration: 0.4 }}
+          {isEligible && (
+            <div
+              className={cn(
+                'w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all duration-300',
+                hasItems
+                  ? 'bg-[#4A5D4E] shadow-[0_4px_12px_rgba(74,93,78,0.35)]'
+                  : 'bg-[#3D5140] group-hover:bg-[#4A5D4E] group-hover:shadow-[0_4px_12px_rgba(74,93,78,0.25)]'
+              )}
             >
-              <ArrowRight className="w-4 h-4 text-white" />
-            </motion.div>
-          </div>
+              <motion.div
+                animate={{ x: [0, 2, 0] }}
+                transition={{ repeat: Infinity, repeatDelay: 2, duration: 0.4 }}
+              >
+                <ArrowRight className="w-4 h-4 text-white" />
+              </motion.div>
+            </div>
+          )}
         </div>
       </div>
     </button>
-  );
-});
+    );
+  })
+);

@@ -11,6 +11,7 @@ import {
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
 import {
+    Check,
     ChevronDown,
     ChevronRight,
     Copy,
@@ -94,16 +95,24 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
             columnHelper.display({
                 id: "select",
                 header: ({ table }) => (
-                    <Checkbox
-                        checked={table.getIsAllPageRowsSelected()}
-                        onChange={(e) => table.toggleAllPageRowsSelected(e.target.checked)}
-                    />
+                    <div className="flex items-center justify-center">
+                        <Checkbox
+                            checked={table.getIsAllPageRowsSelected()}
+                            onCheckedChange={(checked) => table.toggleAllPageRowsSelected(!!checked)}
+                            aria-label="Select all"
+                            className="data-[state=checked]:bg-[var(--color-primary)] data-[state=checked]:border-[var(--color-primary)]"
+                        />
+                    </div>
                 ),
                 cell: ({ row }) => (
-                    <Checkbox
-                        checked={row.getIsSelected()}
-                        onChange={(e) => row.toggleSelected(e.target.checked)}
-                    />
+                    <div className="flex items-center justify-center">
+                        <Checkbox
+                            checked={row.getIsSelected()}
+                            onCheckedChange={(checked) => row.toggleSelected(!!checked)}
+                            aria-label="Select row"
+                            className="data-[state=checked]:bg-[var(--color-primary)] data-[state=checked]:border-[var(--color-primary)]"
+                        />
+                    </div>
                 ),
                 size: 40,
             }),
@@ -149,7 +158,7 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
                             <div className={cn(
                                 "h-11 w-11 flex items-center justify-center rounded-xl border flex-shrink-0 shadow-sm transition-transform group-hover/row:scale-105",
                                 isParent
-                                    ? "bg-indigo-50 border-indigo-100 text-indigo-500"
+                                    ? "bg-primary-50 border-primary-100 text-primary-500"
                                     : "bg-white border-slate-200 text-slate-400"
                             )}>
                                 {isParent ? <Layers className="h-5.5 w-5.5" /> : <Package className="h-5.5 w-5.5" />}
@@ -165,7 +174,7 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
                                         {info.getValue()}
                                     </span>
                                     {isParent && (
-                                        <AdminStatusBadge status="Collection" type="info" dot={false} className="h-4.5 px-2 bg-indigo-50 text-indigo-600 border-indigo-100" />
+                                        <AdminStatusBadge status="Collection" type="info" dot={false} className="h-4.5 px-2 bg-primary-50 text-primary-600 border-primary-100" />
                                     )}
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -273,7 +282,7 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
                             return (
                                 <div className="text-right flex flex-col items-end">
                                     <div className="font-black text-[13px] text-slate-900 bg-slate-100 px-2 py-1 rounded-md border border-slate-200">
-                                        {minPrice === maxPrice 
+                                        {minPrice === maxPrice
                                             ? <>{minPrice.toLocaleString("en-US")}<span className="ml-0.5 text-[9px] font-bold text-slate-400">₫</span></>
                                             : <>{minPrice.toLocaleString("en-US")} - {maxPrice.toLocaleString("en-US")}<span className="ml-0.5 text-[9px] font-bold text-slate-400">₫</span></>
                                         }
@@ -342,10 +351,10 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
                     const rawStatus = info.getValue()
                     const normalizedStatus = normalizeStatus(rawStatus)
                     const combo = info.row.original
-                    
+
                     // Senior Parent Detection: Combine row depth with entity structure
                     const isParent = info.row.depth === 0 && !combo.comboParentId;
-                    
+
                     // Robust Child Check: Look into all possible child containers
                     const children = (combo.subRows || combo.childCombos || combo.productItems || []);
                     const hasChildCombos = children.length > 0;
@@ -356,90 +365,78 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
 
                     return (
                         <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <div className="flex items-center gap-1 group/slink cursor-pointer">
-                                    <AdminStatusBadge
-                                        status={normalizedStatus}
-                                        className="hover:border-slate-300 transition-colors shadow-sm"
-                                    />
-                                </div>
+                            <DropdownMenuTrigger className="outline-none group/sbadge">
+                                <AdminStatusBadge
+                                    status={normalizedStatus}
+                                    className="cursor-pointer hover:shadow-md transition-all group-hover/sbadge:ring-2 group-hover/sbadge:ring-blue-100"
+                                />
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="center" className="w-48 shadow-xl border-slate-200/60 rounded-xl p-1 animate-in fade-in zoom-in-95 duration-100">
-                                <div className="px-2 py-1.5 flex items-center justify-between">
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Status</span>
-                                    <span className={cn(
-                                        "text-[9px] font-black px-1.5 py-0.5 rounded border uppercase tracking-tighter",
-                                        isParent ? "bg-indigo-50 text-indigo-600 border-indigo-100" : "bg-amber-50 text-amber-600 border-amber-100"
-                                    )}>
-                                        {isParent ? 'Collection' : 'Variant'}
-                                    </span>
+                            <DropdownMenuContent align="start" className="w-52 p-1 rounded-2xl shadow-2xl border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                                <div className="flex items-center justify-between px-3 py-2 mb-1 border-b border-slate-50/50">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-0.5">Status</span>
+                                    <div className="px-2 py-0.5 rounded-md bg-primary-50 border border-primary-100 shadow-sm">
+                                        <span className="text-[9px] font-black text-primary-500 uppercase tracking-tight">
+                                            {isParent ? 'Collection' : 'Variant'}
+                                        </span>
+                                    </div>
                                 </div>
-                                {allowed.map((s) => {
-                                    const normalized = s.toLowerCase();
-                                    // Published is only allowed for parents if they have at least one child/variant
-                                    const isBlockedPublished = s === 'Published' && isParent && !hasChildCombos;
-                                    const isDisabledOption = normalizedStatus === s || isBlockedPublished;
-                                    
-                                    const colorCls =
-                                        normalized === 'published' ? "text-emerald-600 hover:bg-emerald-50" :
-                                            normalized === 'draft' ? "text-amber-600 hover:bg-amber-50" :
-                                                normalized === 'hidden' ? "text-blue-600 hover:bg-blue-50" :
-                                                    normalized === 'archived' ? "text-slate-500 hover:bg-slate-50" :
-                                                        normalized === 'outofstock' ? "text-rose-600 hover:bg-rose-50" :
-                                                            "text-slate-600 text-opacity-70 hover:bg-slate-50";
+                                <div className="p-1 space-y-1">
+                                    {allowed.map((s) => {
+                                        const isBlockedPublished = s === 'Published' && isParent && !hasChildCombos;
+                                        const isActive = normalizedStatus === s;
+                                        const isDisabledOption = isBlockedPublished;
 
-                                    return (
-                                        <TooltipProvider key={s} delayDuration={0}>
-                                            <Tooltip>
-                                                <TooltipTrigger asChild>
-                                                    <div className="w-full">
-                                                        <DropdownMenuItem
-                                                            disabled={isDisabledOption}
-                                                            className={cn(
-                                                                "rounded-lg cursor-pointer py-1.5 px-3 text-[12px] font-bold transition-colors mb-0.5 last:mb-0 w-full",
-                                                                isDisabledOption ? "bg-slate-100/50 text-slate-400 opacity-60" : colorCls
-                                                            )}
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                if (!isDisabledOption) {
-                                                                    onUpdateStatus(combo.id, s, combo.name, normalizedStatus);
-                                                                }
-                                                            }}
-                                                        >
-                                                            <div className="flex items-center gap-2 w-full justify-between">
-                                                                <div className="flex items-center gap-2">
-                                                                    <div className={cn(
-                                                                        "w-1.5 h-1.5 rounded-full shrink-0",
-                                                                        normalized === 'published' ? "bg-emerald-500" :
-                                                                            normalized === 'draft' ? "bg-amber-500" :
-                                                                                normalized === 'hidden' ? "bg-blue-500" :
-                                                                                    normalized === 'archived' ? "bg-slate-400" :
-                                                                                        normalized === 'outofstock' ? "bg-rose-500" :
-                                                                                            "bg-slate-300"
-                                                                    )} />
-                                                                    <span>{s}</span>
-                                                                </div>
-                                                                {isBlockedPublished && (
-                                                                    <span className="text-[9px] font-black text-rose-500 uppercase tracking-tighter bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100 italic">
-                                                                        Locked
-                                                                    </span>
+                                        return (
+                                            <TooltipProvider key={s} delayDuration={0}>
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <div className="w-full">
+                                                            <DropdownMenuItem
+                                                                disabled={isDisabledOption}
+                                                                className={cn(
+                                                                    "rounded-xl px-2 py-2 cursor-pointer transition-all w-full flex items-center justify-between",
+                                                                    isActive
+                                                                        ? "bg-primary-50 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.15)] font-bold mb-0.5 hover:bg-primary-100/40"
+                                                                        : "hover:bg-blue-50/50",
+                                                                    isDisabledOption && "opacity-50 cursor-not-allowed"
                                                                 )}
-                                                            </div>
-                                                        </DropdownMenuItem>
-                                                    </div>
-                                                </TooltipTrigger>
-                                                {isBlockedPublished && (
-                                                    <TooltipContent
-                                                        side="right"
-                                                        className="bg-slate-900 text-white border-none text-[11px] font-bold px-3 py-1.5 rounded-lg shadow-xl z-[100]"
-                                                    >
-                                                        Add variants to this combo before publishing.
-                                                    </TooltipContent>
-                                                )}
-                                            </Tooltip>
-                                        </TooltipProvider>
-                                    );
-                                })}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    if (!isActive && !isDisabledOption) {
+                                                                        onUpdateStatus(combo.id, s, combo.name, normalizedStatus);
+                                                                    }
+                                                                }}
+                                                            >
+                                                                <div className="flex flex-1 items-center gap-3 pointer-events-none">
+                                                                    <AdminStatusBadge
+                                                                        status={s}
+                                                                        className="border-none shadow-none bg-transparent pl-0 py-0"
+                                                                    />
+                                                                </div>
+                                                                <div className="flex items-center gap-1.5 ml-2">
+                                                                    {isActive && <Check className="h-4 w-4 text-primary-500" />}
+                                                                    {isBlockedPublished && (
+                                                                        <span className="text-[9px] font-black text-rose-500 uppercase tracking-tighter bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100 italic">
+                                                                            Locked
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                            </DropdownMenuItem>
+                                                        </div>
+                                                    </TooltipTrigger>
+                                                    {isBlockedPublished && (
+                                                        <TooltipContent
+                                                            side="right"
+                                                            className="bg-slate-900 text-white border-none text-[11px] font-bold px-3 py-1.5 rounded-lg shadow-xl z-[100]"
+                                                        >
+                                                            Add variants to this combo before publishing.
+                                                        </TooltipContent>
+                                                    )}
+                                                </Tooltip>
+                                            </TooltipProvider>
+                                        );
+                                    })}
+                                </div>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     )
@@ -449,21 +446,51 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
             /* ── Actions ──────────────────────────────────────────── */
             columnHelper.display({
                 id: "actions",
-                header: () => <div className="text-right">Actions</div>,
+                header: () => <div className="text-right pr-4 uppercase text-[10px] font-black tracking-widest text-slate-400">Actions</div>,
                 cell: ({ row }) => {
                     const combo = row.original
                     const isParent = row.depth === 0
 
                     return (
-                        <div className="flex justify-end gap-1">
+                        <div className="flex justify-end items-center gap-1 pr-2">
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
+                                {onView && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 w-8 p-0 rounded hover:bg-slate-100 text-slate-500 hover:text-blue-600"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onView(combo);
+                                        }}
+                                        title="View Details"
+                                    >
+                                        <Eye className="h-4 w-4" />
+                                    </Button>
+                                )}
+                                {onEdit && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-8 w-8 p-0 rounded hover:bg-slate-100 text-slate-500 hover:text-blue-600"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onEdit(combo);
+                                        }}
+                                        title="Edit Combo"
+                                    >
+                                        <Edit className="h-4 w-4" />
+                                    </Button>
+                                )}
+                            </div>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        className="h-9 w-9 p-0 rounded hover:bg-slate-100 transition-colors"
+                                        className="h-8 w-8 p-0 rounded hover:bg-slate-100 dropdown-trigger transition-colors"
                                     >
-                                        <MoreVertical className="h-5 w-5 text-slate-400" />
+                                        <MoreVertical className="h-4 w-4 text-slate-400" />
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end" className="w-48 shadow-xl border border-slate-200/60 rounded-xl p-1 animate-in fade-in zoom-in-95 duration-100">

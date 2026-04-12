@@ -7,7 +7,7 @@ import {
     RotateCcw,
     Package,
 } from 'lucide-react';
-import type { ColorOption, SizeOption, SafetyCertification, ProductBenefit, ProductSpec, Review, TradeInProduct } from './types';
+import type { ColorOption, SizeOption, SafetyCertification, ProductBenefit, ProductSpec, Review } from './types';
 
 export const colorOptions: ColorOption[] = [
     { value: 'cream', label: 'Cream', color: '#F5F5DC' },
@@ -49,7 +49,7 @@ export const safetyCertifications: SafetyCertification[] = [
         fullName: 'USA Safety',
         description: 'Meets U.S. Consumer Product Safety Standards',
         icon: Award,
-        bgColor: 'bg-gradient-to-br from-blue-50 to-indigo-50',
+        bgColor: 'bg-gradient-to-br from-blue-50 to-primary-50',
         iconColor: 'text-blue-600',
         borderColor: 'border-blue-200',
     },
@@ -111,46 +111,6 @@ export const mockReviews: Review[] = [
         comment: 'Beautiful product, soft colors that match my baby\'s room perfectly. The fabric is smooth and doesn\'t irritate the skin. However, it\'s slightly thinner than I expected.',
         helpful: 12,
         verified: false,
-    },
-];
-
-export const mockEligibleTradeInProducts: TradeInProduct[] = [
-    {
-        id: "TI001",
-        orderId: "ORD001",
-        name: "Premium Baby Foam Mattress Size S",
-        image: "https://i.pinimg.com/736x/c5/67/61/c567613e5b7eca33961d69bb41d52355.jpg",
-        originalPrice: 89.99,
-        purchaseDate: "2025-11-15",
-        canTradeIn: true,
-    },
-    {
-        id: "TI002",
-        orderId: "ORD002",
-        name: "Organic Cotton Bedding Set",
-        image: "https://i.pinimg.com/736x/c5/67/61/c567613e5b7eca33961d69bb41d52355.jpg",
-        originalPrice: 45.99,
-        purchaseDate: "2025-12-01",
-        canTradeIn: true,
-    },
-    {
-        id: "TI003",
-        orderId: "ORD003",
-        name: "Baby Memory Foam Pillow",
-        image: "https://i.pinimg.com/736x/c5/67/61/c567613e5b7eca33961d69bb41d52355.jpg",
-        originalPrice: 29.99,
-        purchaseDate: "2026-01-20",
-        canTradeIn: true,
-    },
-    {
-        id: "TI004",
-        orderId: "ORD004",
-        name: "Newborn Baby Sleepwear",
-        image: "https://i.pinimg.com/736x/c5/67/61/c567613e5b7eca33961d69bb41d52355.jpg",
-        originalPrice: 19.99,
-        purchaseDate: "2026-02-01",
-        canTradeIn: false,
-        reason: "Product not eligible for trade-in",
     },
 ];
 

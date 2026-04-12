@@ -1,8 +1,8 @@
-import type { Voucher } from "../../types"
-import { getDiscountDisplay, getDiscountTypeLabel } from "./utils"
+import type { ProfileVoucher } from "./types"
+import { formatCurrency, getDiscountDisplay } from "./utils"
 
 interface VoucherBadgeProps {
-    voucher: Voucher
+    voucher: ProfileVoucher
 }
 
 export default function VoucherBadge({ voucher }: VoucherBadgeProps) {
@@ -22,7 +22,7 @@ export default function VoucherBadge({ voucher }: VoucherBadgeProps) {
                     {getDiscountDisplay(voucher)}
                 </div>
                 <div className="text-[10px] font-bold uppercase tracking-wider opacity-80">
-                    {getDiscountTypeLabel(voucher.discountType)}
+                    Tối đa {formatCurrency(voucher.maxDiscountAmount)}
                 </div>
             </div>
 

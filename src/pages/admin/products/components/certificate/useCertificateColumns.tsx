@@ -102,7 +102,7 @@ export const useCertificateColumns = ({ onEdit, onDelete, onView }: UseCertifica
               variant="ghost"
               size="icon"
               onClick={() => onEdit(cert)}
-              className="h-8 w-8 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all"
+              className="h-8 w-8 rounded-lg text-slate-400 hover:text-primary-600 hover:bg-primary-50 transition-all"
             >
               <Edit2 className="h-4 w-4" />
             </Button>

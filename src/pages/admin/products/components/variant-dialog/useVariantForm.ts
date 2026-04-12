@@ -81,10 +81,17 @@ export function useVariantForm({
     useEffect(() => {
         const bp = Number(basePrice) || 0;
         const sp = Number(salePrice) || 0;
+        
+        // Convenience: If sale price is 0 or matches base price, sync them when base price changes
+        // This helps user when they "don't want to discount"
+        if (!isEdit && bp > 0 && (sp === 0 || sp === bp)) {
+            form.setValue('salePrice', bp, { shouldValidate: true });
+        }
+
         if (bp > 0 || sp > 0) {
             form.trigger(['basePrice', 'salePrice']);
         }
-    }, [basePrice, salePrice, form]);
+    }, [basePrice, salePrice, form, isEdit]);
 
     // ── Senior Logic: Reactive Form Synchronization ───────────────────
     useEffect(() => {

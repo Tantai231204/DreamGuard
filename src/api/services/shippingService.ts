@@ -1,5 +1,11 @@
 import apiClient from "../../lib/api";
-import type { CreateShippingTaskRequest, ReassignShippingTaskRequest, ShippingTask, ProcessReturnedRequest } from "../types/shipping";
+import type {
+    CreateShippingTaskRequest,
+    ReassignShippingTaskRequest,
+    ShippingTask,
+    ProcessReturnedRequest,
+    ProcessExchangeRequest,
+} from "../types/shipping";
 
 const shippingService = {
     createTask: async (data: CreateShippingTaskRequest): Promise<ShippingTask> => {
@@ -13,14 +19,18 @@ const shippingService = {
     },
 
     getTasksByOrderId: async (orderId: string): Promise<ShippingTask[]> => {
-        const res = await apiClient.get<Record<string, unknown>>(`/ShippingTasks?pageSize=100`);
-        const responseData = (res.data?.data || res.data) as { items?: ShippingTask[] };
-        const allTasks: ShippingTask[] = responseData?.items || (responseData as unknown as ShippingTask[]) || [];
-        return allTasks.filter(task => task.orderId === orderId);
+        const res = await apiClient.get(`/ShippingTasks?orderId=${orderId}&pageSize=100`);
+        const responseData = (res.data?.data || res.data);
+        return responseData?.items || (Array.isArray(responseData) ? responseData : []);
     },
 
     processReturned: async (taskId: string, data: Partial<ProcessReturnedRequest>): Promise<unknown> => {
         const res = await apiClient.post(`/ShippingTasks/${taskId}/process-returned`, data);
+        return res.data?.data ?? res.data;
+    },
+
+    processExchange: async (taskId: string, data: ProcessExchangeRequest): Promise<unknown> => {
+        const res = await apiClient.post(`/ShippingTasks/${taskId}/process-exchange`, data);
         return res.data?.data ?? res.data;
     },
 

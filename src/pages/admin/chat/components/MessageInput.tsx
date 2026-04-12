@@ -31,6 +31,7 @@ function MessageInputInner({
   onTyping,
 }: MessageInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const lastTypingSignal = useRef<boolean>(false);
   const typingTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [charCount, setCharCount] = useState(0);
 
@@ -52,10 +53,17 @@ function MessageInputInner({
       onDraftChange(val);
       setCharCount(val.length);
 
-      // Emit typing events (debounced stop)
-      onTyping?.(true);
+      // Emit typing events (throttled start, debounced stop)
+      if (!lastTypingSignal.current) {
+        lastTypingSignal.current = true;
+        onTyping?.(true);
+      }
+      
       clearTimeout(typingTimeout.current);
-      typingTimeout.current = setTimeout(() => onTyping?.(false), 2000);
+      typingTimeout.current = setTimeout(() => {
+        lastTypingSignal.current = false;
+        onTyping?.(false);
+      }, 2000);
     },
     [onDraftChange, onTyping]
   );
@@ -77,6 +85,7 @@ function MessageInputInner({
     onSend();
     setCharCount(0);
     clearTimeout(typingTimeout.current);
+    lastTypingSignal.current = false;
     onTyping?.(false);
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -148,7 +157,7 @@ function MessageInputInner({
               <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-2 mb-1.5">
                 Quick Replies
               </p>
-              <div className="space-y-0.5 max-h-48 overflow-y-auto chat-scrollbar">
+              <div className="space-y-0.5 max-h-48 overflow-y-auto custom-scrollbar scrollbar-admin">
                 {QUICK_REPLIES.map((reply) => (
                   <button
                     key={reply}
@@ -181,7 +190,7 @@ function MessageInputInner({
           placeholder="Type a message..."
           disabled={isSending}
           className="flex-1 resize-none bg-transparent border-0 outline-none text-sm text-gray-800
-                     placeholder:text-gray-400 leading-relaxed py-0.5 max-h-32 chat-scrollbar
+                     placeholder:text-gray-400 leading-relaxed py-0.5 max-h-32 custom-scrollbar scrollbar-admin
                      disabled:opacity-50"
           style={{ minHeight: '28px' }}
         />

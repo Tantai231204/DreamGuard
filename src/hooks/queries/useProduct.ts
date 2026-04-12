@@ -29,6 +29,8 @@ import type {
   ProductResponse,
   CreateFullyCustomizedProductRequest,
 } from "@/api";
+import { UserRole } from "@/lib/constants";
+import { useAuthStore } from "@/store/authStore";
 
 // ========================
 // Query Keys
@@ -56,10 +58,14 @@ export const variantKeys = {
 
 /** Fetch admin paginated products list */
 export const useAdminProducts = (params: AdminProductParams = {}) => {
+  const role = useAuthStore((s) => s.role);
+  const isAdminOrManager = role === UserRole.ADMIN || role === UserRole.MANAGER;
+
   return useQuery({
     queryKey: productKeys.admin(params),
     queryFn: () => productService.getAllAdmin(params),
     placeholderData: keepPreviousData,
+    enabled: isAdminOrManager,
   });
 };
 
@@ -95,6 +101,16 @@ export const useProductsByFilter = (params: ProductParams, enabled = true) => {
   });
 };
 
+/** Fetch ALL products to trade in (eligible products in category) */
+export const useAllProductToTradeIn = (params: ProductParams, enabled = true) => {
+  return useQuery({
+    queryKey: ['products', 'trade-in', params],
+    queryFn: () => productService.getAllProductToTradeIn(params),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: enabled && !!params.cateId,
+  });
+};
+
 /** Fetch all fully customized products (for 3D Studio) */
 export const useFullyCustomizedProducts = () => {
   return useQuery({
@@ -124,10 +140,13 @@ export const useAdminProductVariants = <T = AdminVariantsByProductResponse>(
     gcTime?: number;
   }
 ) => {
+  const role = useAuthStore((s) => s.role);
+  const isAdminOrManager = role === UserRole.ADMIN || role === UserRole.MANAGER;
+
   return useQuery({
     queryKey: variantKeys.adminByProduct(productId),
     queryFn: () => variantService.getAdminByProductId(productId),
-    enabled: !!productId && (options?.enabled !== false),
+    enabled: !!productId && isAdminOrManager && (options?.enabled !== false),
     select: options?.select,
     staleTime: options?.staleTime,
     gcTime: options?.gcTime,
@@ -569,11 +588,6 @@ export interface VariantOption {
   label: string;
 }
 
-/**
- * Fetch all products (admin endpoint) then use admin variant endpoint
- * (`GET /variants/admin/product/:id`) per product.
- * Returns a flat VariantOption[] cached by React Query.
- */
 export const useAllVariantOptions = (enabled = true) => {
   return useQuery({
     queryKey: [...variantKeys.all, "all-options"] as const,

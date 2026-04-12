@@ -248,7 +248,7 @@ export default function StaffPage() {
                   <TabsTrigger value="all" className="rounded-lg px-6 text-xs font-bold data-[state=active]:bg-[var(--color-primary)] data-[state=active]:text-white transition-all">
                     Show All
                   </TabsTrigger>
-                  <TabsTrigger value="Manager" className="rounded-lg px-6 text-xs font-bold data-[state=active]:bg-indigo-600 data-[state=active]:text-white transition-all flex items-center gap-2">
+                  <TabsTrigger value="Manager" className="rounded-lg px-6 text-xs font-bold data-[state=active]:bg-primary-600 data-[state=active]:text-white transition-all flex items-center gap-2">
                     <ShieldCheck className="w-3.5 h-3.5" /> Managers
                   </TabsTrigger>
                   <TabsTrigger value="Seller" className="rounded-lg px-6 text-xs font-bold data-[state=active]:bg-emerald-600 data-[state=active]:text-white transition-all flex items-center gap-2">

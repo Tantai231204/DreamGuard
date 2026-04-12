@@ -91,12 +91,12 @@ export default function ProductTabs({
                 )}
 
                 <div className="relative z-10 flex items-center gap-2.5">
-                    <Icon
-                      className={cn(
-                        "h-3.5 w-3.5 transition-colors",
-                        isActive ? cfg.icon : "text-slate-400 group-hover:text-slate-500"
-                      )}
-                    />
+                  <Icon
+                    className={cn(
+                      "h-3.5 w-3.5 transition-colors",
+                      isActive ? cfg.icon : "text-slate-400 group-hover:text-slate-500"
+                    )}
+                  />
                   <span>{label}</span>
                   <Badge
                     variant="secondary"

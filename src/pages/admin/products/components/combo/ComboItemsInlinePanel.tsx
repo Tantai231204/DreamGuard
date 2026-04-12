@@ -23,10 +23,10 @@ export default function ComboItemsInlinePanel({ combo, colSpan }: ComboItemsInli
         return (
             <tr>
                 <td colSpan={colSpan} className="p-0">
-                    <div className="bg-indigo-50/40 border-t border-b border-indigo-100 px-10 py-6 space-y-3">
-                        <Skeleton className="h-5 w-48 bg-indigo-100 rounded" />
-                        <Skeleton className="h-12 w-full bg-indigo-100/60 rounded-xl" />
-                        <Skeleton className="h-12 w-full bg-indigo-100/60 rounded-xl" />
+                    <div className="bg-primary-50/40 border-t border-b border-primary-100 px-10 py-6 space-y-3">
+                        <Skeleton className="h-5 w-48 bg-primary-100 rounded" />
+                        <Skeleton className="h-12 w-full bg-primary-100/60 rounded-xl" />
+                        <Skeleton className="h-12 w-full bg-primary-100/60 rounded-xl" />
                     </div>
                 </td>
             </tr>
@@ -55,23 +55,23 @@ export default function ComboItemsInlinePanel({ combo, colSpan }: ComboItemsInli
                     transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
                     className="overflow-hidden"
                 >
-                    <div className="bg-gradient-to-br from-indigo-50/60 to-violet-50/30 border-t border-b-2 border-indigo-100 px-10 py-6">
+                    <div className="bg-gradient-to-br from-primary-50/60 to-violet-50/30 border-t border-b-2 border-primary-100 px-10 py-6">
                         {/* Header */}
                         <div className="flex items-center gap-3 mb-4">
-                            <div className="h-8 w-8 rounded-lg bg-indigo-100 flex items-center justify-center">
-                                <ShoppingBag className="h-4 w-4 text-indigo-600" />
+                            <div className="h-8 w-8 rounded-lg bg-primary-100 flex items-center justify-center">
+                                <ShoppingBag className="h-4 w-4 text-primary-600" />
                             </div>
                             <div>
-                                <span className="text-[13px] font-bold text-indigo-800">
+                                <span className="text-[13px] font-bold text-primary-800">
                                     Items in variant:{' '}
                                 </span>
-                                <span className="text-[13px] font-extrabold text-indigo-600">
+                                <span className="text-[13px] font-extrabold text-primary-600">
                                     {combo.name}
                                 </span>
                             </div>
                             <Badge
                                 variant="outline"
-                                className="text-[11px] bg-indigo-50 text-indigo-600 border-indigo-200 rounded-full"
+                                className="text-[11px] bg-primary-50 text-primary-600 border-primary-200 rounded-full"
                             >
                                 {items.length} items
                             </Badge>
@@ -89,7 +89,7 @@ export default function ComboItemsInlinePanel({ combo, colSpan }: ComboItemsInli
 
                         {/* Items list */}
                         {items.length === 0 ? (
-                            <div className="text-sm text-indigo-400 italic py-2">
+                            <div className="text-sm text-primary-400 italic py-2">
                                 No product items configured for this variant.
                             </div>
                         ) : (
@@ -97,11 +97,11 @@ export default function ComboItemsInlinePanel({ combo, colSpan }: ComboItemsInli
                                 {items.map((item, idx) => (
                                     <div
                                         key={item.variantId ?? item.productId ?? idx}
-                                        className="flex items-center gap-4 bg-white rounded-xl border border-indigo-100 px-4 py-3 shadow-sm hover:border-indigo-300 hover:shadow-md transition-all group"
+                                        className="flex items-center gap-4 bg-white rounded-xl border border-primary-100 px-4 py-3 shadow-sm hover:border-primary-300 hover:shadow-md transition-all group"
                                     >
                                         {/* Product Icon */}
-                                        <div className="h-8 w-8 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">
-                                            <Package className="h-4 w-4 text-indigo-500" />
+                                        <div className="h-8 w-8 rounded-lg bg-primary-50 flex items-center justify-center flex-shrink-0">
+                                            <Package className="h-4 w-4 text-primary-500" />
                                         </div>
 
                                         {/* Product Name & Variant Label */}
@@ -117,11 +117,11 @@ export default function ComboItemsInlinePanel({ combo, colSpan }: ComboItemsInli
                                         </div>
 
                                         {/* Quantity */}
-                                        <div className="flex items-center gap-2 flex-shrink-0 bg-indigo-50/50 px-3 py-1.5 rounded-lg border border-indigo-50">
-                                            <span className="text-[10px] uppercase font-black tracking-wider text-indigo-300">
+                                        <div className="flex items-center gap-2 flex-shrink-0 bg-primary-50/50 px-3 py-1.5 rounded-lg border border-primary-50">
+                                            <span className="text-[10px] uppercase font-black tracking-wider text-primary-300">
                                                 QTY
                                             </span>
-                                            <span className="text-[14px] font-black text-indigo-700">
+                                            <span className="text-[14px] font-black text-primary-700">
                                                 {item.quantity}
                                             </span>
                                         </div>
@@ -131,21 +131,21 @@ export default function ComboItemsInlinePanel({ combo, colSpan }: ComboItemsInli
                         )}
 
                         {/* Footer summary */}
-                        <div className="mt-4 pt-3 border-t border-indigo-100 flex items-center gap-4 text-[12px] text-indigo-400">
+                        <div className="mt-4 pt-3 border-t border-primary-100 flex items-center gap-4 text-[12px] text-primary-400">
                             <span>
                                 Total product types:{' '}
-                                <span className="font-bold text-indigo-700">{items.length}</span>
+                                <span className="font-bold text-primary-700">{items.length}</span>
                             </span>
-                            <span className="text-indigo-200">|</span>
+                            <span className="text-primary-200">|</span>
                             <span>
                                 Total qty:{' '}
-                                <span className="font-bold text-indigo-700">
+                                <span className="font-bold text-primary-700">
                                     {items.reduce((sum, i) => sum + (i.quantity ?? 1), 0)}
                                 </span>
                             </span>
                             {combo.basePrice && (
                                 <>
-                                    <span className="text-indigo-200">|</span>
+                                    <span className="text-primary-200">|</span>
                                     <span>
                                         Combo price:{' '}
                                         <span className="font-bold text-violet-700">

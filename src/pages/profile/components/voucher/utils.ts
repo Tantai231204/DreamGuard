@@ -1,17 +1,29 @@
-import type { Voucher } from "../../types"
+import type { ProfileVoucher } from "./types"
 
 /**
- * Format currency to Vietnamese format
+ * Format currency to VND display
  */
 export const formatCurrency = (amount: number): string => {
     return new Intl.NumberFormat("vi-VN").format(amount) + "đ"
 }
 
 /**
- * Format date to Vietnamese format
+ * Format coin values in compact style
  */
-export const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString("vi-VN", {
+export const formatCoin = (amount: number): string => {
+    return new Intl.NumberFormat("vi-VN").format(amount)
+}
+
+/**
+ * Format date as DD/MM/YYYY
+ */
+export const formatDate = (dateString?: string | null): string => {
+    if (!dateString) return "N/A"
+
+    const date = new Date(dateString)
+    if (Number.isNaN(date.getTime())) return "N/A"
+
+    return date.toLocaleDateString("vi-VN", {
         day: "2-digit",
         month: "2-digit",
         year: "numeric"
@@ -21,50 +33,52 @@ export const formatDate = (dateString: string): string => {
 /**
  * Get discount display (percentage or fixed amount)
  */
-export const getDiscountDisplay = (voucher: Voucher): string => {
-    if (voucher.discountType === "percentage") {
-        return `${voucher.discount}%`
-    }
-    // For amounts >= 1000, show in K format
-    if (voucher.discount >= 1000) {
-        return `${(voucher.discount / 1000).toFixed(0)}K`
-    }
-    return formatCurrency(voucher.discount)
+export const getDiscountDisplay = (voucher: ProfileVoucher): string => {
+    const percent = Math.round(voucher.discountValue * 100)
+    return `${percent}%`
 }
 
 /**
  * Get days remaining until expiry
  */
-export const getDaysRemaining = (validTo: string): number => {
+export const getDaysRemaining = (validTo?: string | null): number => {
+    if (!validTo) return Number.POSITIVE_INFINITY
+
+    const target = new Date(validTo).getTime()
+    if (Number.isNaN(target)) return Number.POSITIVE_INFINITY
+
     return Math.ceil(
-        (new Date(validTo).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+        (target - new Date().getTime()) / (1000 * 60 * 60 * 24)
     )
 }
 
 /**
  * Check if voucher is expiring soon (within 7 days)
  */
-export const isExpiringSoon = (voucher: Voucher): boolean => {
+export const isExpiringSoon = (voucher: ProfileVoucher): boolean => {
     if (voucher.status !== "active") return false
-    const days = getDaysRemaining(voucher.validTo)
-    return days <= 7 && days > 0
+    const days = getDaysRemaining(voucher.endDate)
+    return Number.isFinite(days) && days <= 7 && days > 0
 }
 
 /**
- * Get status label in Vietnamese
+ * Get status label in English
  */
-export const getStatusLabel = (status: Voucher["status"]): string => {
-    const labels: Record<Voucher["status"], string> = {
-        active: "Có thể dùng",
-        used: "Đã dùng",
-        expired: "Hết hạn"
+export const getStatusLabel = (status: ProfileVoucher["status"]): string => {
+    const labels: Record<ProfileVoucher["status"], string> = {
+        claimable: "Claimable",
+        active: "Available",
+        used: "Used",
+        expired: "Expired"
     }
     return labels[status]
 }
 
 /**
- * Get discount type label in Vietnamese
+ * Get voucher type label in English
  */
-export const getDiscountTypeLabel = (discountType: Voucher["discountType"]): string => {
-    return discountType === "percentage" ? "GIẢM GIÁ" : "GIẢM"
+export const getVoucherTypeLabel = (voucherType: ProfileVoucher["voucherType"]): string => {
+    if (voucherType === "Product") return "Product"
+    if (voucherType === "Service") return "Service"
+    return "All"
 }

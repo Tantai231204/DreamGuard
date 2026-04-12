@@ -38,25 +38,7 @@ export default function ChatAdmin() {
   // Must be declared before useSignalR
   const _appendFnRef = useRef<(msg: import('./types').Message) => void>(() => {});
   const _updateFnRef = useRef<(conv: import('./types').Conversation) => void>(() => {});
-
-  /* ---- Real-time (SignalR) -------------------------------- */
-  const { sendTyping, isConnected } = useSignalR({
-    onReceiveMessage: useCallback(
-      (msg: import('./types').Message) => {
-        _appendFnRef.current?.(msg);
-      },
-      []
-    ),
-    onConversationUpdate: useCallback(
-      (conv: import('./types').Conversation) => { 
-        _updateFnRef.current?.(conv); 
-      },
-      []
-    ),
-    onUserTyping: useCallback((convId: string, isTyping: boolean) => {
-      setTypingUsers(prev => ({ ...prev, [convId]: isTyping }));
-    }, []),
-  });
+  const _offlineFnRef = useRef<(id: string) => void>(() => {});
 
   /* ---- Conversations ------------------------------------- */
   const {
@@ -70,15 +52,38 @@ export default function ChatAdmin() {
     filteredConversations,
     stats,
     applyConversationUpdate,
-  } = useConversations({ pollEnabled: !isConnected });
+  } = useConversations({ pollEnabled: true });
+
+  /* ---- Real-time (SignalR) -------------------------------- */
+  const { isConnected, sendTyping, sendHubMessage } = useSignalR({
+    conversationId: selectedId,
+    onReceiveMessage: useCallback(
+      (msg: import('./types').Message) => {
+        _appendFnRef.current?.(msg);
+      },
+      []
+    ),
+    onConversationUpdate: useCallback(
+      (conv: import('./types').Conversation) => { 
+        _updateFnRef.current?.(conv); 
+      },
+      []
+    ),
+    onUserTyping: useCallback((senderId: string, isTyping: boolean) => {
+      // Find which conversation this sender belongs to (usually current)
+      setTypingUsers(prev => ({ ...prev, [senderId]: isTyping }));
+    }, []),
+    onUserOffline: useCallback((userId: string) => {
+      _offlineFnRef.current?.(userId);
+    }, []),
+  });
 
   /* ---- Messages ------------------------------------------ */
   const {
     messages,
     isLoading: msgsLoading,
-    isSending,
     hasMore,
-    sendMessage,
+    addOptimisticMessage,
     loadMore,
     appendMessage,
   } = useChat({ conversationId: selectedId });
@@ -87,7 +92,14 @@ export default function ChatAdmin() {
   useEffect(() => { 
     _appendFnRef.current = appendMessage; 
     _updateFnRef.current = applyConversationUpdate;
-  }, [appendMessage, applyConversationUpdate]);
+    _offlineFnRef.current = (id: string) => {
+      // Map user offline to a status update in the list
+      const conv = conversations.find(c => c.customerId === id);
+      if (conv) {
+        applyConversationUpdate({ ...conv, isOnline: false });
+      }
+    };
+  }, [appendMessage, applyConversationUpdate, conversations]);
 
   const currentConversation = useMemo(
     () => conversations.find((c) => c.id === selectedId) ?? null,
@@ -106,21 +118,33 @@ export default function ChatAdmin() {
 
   /* ---- Handlers ------------------------------------------ */
   const handleSend = useCallback(
-    (draft: string) => {
-      if (!selectedId) return;
-      sendMessage({ conversationId: selectedId, content: draft });
+    async (draft: string) => {
+      if (!selectedId || !isConnected) return;
+      // Optimistic UI — show message instantly
+      addOptimisticMessage(draft);
+      // Send via SignalR (the ONLY way BE supports sending)
+      try {
+        await sendHubMessage(selectedId, draft);
+      } catch (err) {
+        console.error('[Chat] SendMessage failed:', err);
+      }
     },
-    [selectedId, sendMessage]
+    [selectedId, isConnected, addOptimisticMessage, sendHubMessage]
   );
 
   const handleTyping = useCallback(
     (isTyping: boolean) => {
-      if (selectedId) sendTyping(selectedId, isTyping);
+      const targetId = currentConversation?.customerId;
+      if (targetId) {
+        sendTyping(targetId, isTyping);
+      }
     },
-    [selectedId, sendTyping]
+    [currentConversation?.customerId, sendTyping]
   );
 
-  const isCurrentTyping = selectedId ? !!typingUsers[selectedId] : false;
+  const isCurrentTyping = currentConversation 
+    ? !!typingUsers[currentConversation.customerId] 
+    : false;
 
   /* -------------------------------------------------------- */
   return (
@@ -166,7 +190,7 @@ export default function ChatAdmin() {
                 />
 
                 <MessageInputWrapper
-                  isSending={isSending}
+                  disabled={!isConnected}
                   onSend={handleSend}
                   onTyping={handleTyping}
                 />
@@ -184,26 +208,26 @@ export default function ChatAdmin() {
 
 /* ---- Isolated draft wrapper */
 function MessageInputWrapper({
-  isSending,
+  disabled,
   onSend,
   onTyping,
 }: {
-  isSending: boolean;
+  disabled: boolean;
   onSend: (draft: string) => void;
   onTyping: (is: boolean) => void;
 }) {
   const [draft, setDraft] = useState('');
 
   const handleSend = useCallback(() => {
-    if (!draft.trim() || isSending) return;
+    if (!draft.trim() || disabled) return;
     onSend(draft);
     setDraft('');
-  }, [draft, isSending, onSend]);
+  }, [draft, disabled, onSend]);
 
   return (
     <MessageInput
       draft={draft}
-      isSending={isSending}
+      isSending={disabled}
       onDraftChange={setDraft}
       onSend={handleSend}
       onTyping={onTyping}

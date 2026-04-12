@@ -10,15 +10,13 @@ interface GeneralSectionProps {
     slug: string;
     summary: string;
     description: string;
-    status: import('../../types').ProductStatus;
     isLoading: boolean;
     onNameChange: (value: string) => void;
     onSlugChange: (value: string) => void;
     onSummaryChange: (value: string) => void;
     onDescriptionChange: (value: string) => void;
-    onStatusChange: (value: string) => void;
     errors?: import('react-hook-form').FieldErrors<import('./productSchema').ProductFormValues>;
-    isEdit: boolean;
+    
 }
 
 import { Type, Link2, FileText, AlignLeft, AlertCircle } from 'lucide-react';
@@ -37,8 +35,8 @@ const GeneralSection = memo(function GeneralSection({
     name, slug, summary, description,
     isLoading,
     onNameChange, onSlugChange, onSummaryChange, onDescriptionChange,
-    errors
-}: Omit<GeneralSectionProps, 'status' | 'onStatusChange' | 'isEdit'>) {
+    errors,
+    }: GeneralSectionProps) {
     const errorClasses = "border-rose-300 bg-rose-50/20 focus:border-rose-500 focus:ring-rose-500/20";
 
     return (
@@ -68,7 +66,6 @@ const GeneralSection = memo(function GeneralSection({
                     <FieldError error={errors?.name} />
                 </div>
 
-
                 {/* URL Slug */}
                 <div className="col-span-12 space-y-2.5">
                     <Label htmlFor="slug" className="text-[10px] uppercase tracking-wider font-bold text-slate-400 flex items-center gap-2 ml-1">
@@ -87,7 +84,7 @@ const GeneralSection = memo(function GeneralSection({
                             disabled={isLoading}
                             className={cn(
                                 INPUT_CLS, 
-                                'pl-24 font-mono text-[13px] tracking-tight font-medium text-indigo-600 bg-slate-50/20 border-slate-200 shadow-inner h-11',
+                                'pl-24 font-mono text-[13px] tracking-tight font-medium text-primary-600 bg-slate-50/20 border-slate-200 shadow-inner h-11',
                                 errors?.slug && errorClasses
                             )}
                         />

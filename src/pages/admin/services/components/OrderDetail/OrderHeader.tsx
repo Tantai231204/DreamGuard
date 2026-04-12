@@ -4,8 +4,10 @@ import { Button } from '@/components/ui/button';
 import { formatPrice } from '@/lib/utils';
 import type { DetailOrder, StatusConfigItem } from './types';
 import { useServiceActions } from '../../hooks/useServiceActions';
+import { CancelServiceDialog } from './CancelServiceDialog';
 import { toast } from 'sonner';
-import { memo } from 'react';
+import { AdminStatusBadge } from '@/components/admin';
+import { memo, useState } from 'react';
 
 interface OrderHeaderProps {
   order: DetailOrder;
@@ -27,8 +29,21 @@ export const OrderHeader = memo(function OrderHeader({
   onBack,
   permissions 
 }: OrderHeaderProps) {
+  const [isCancelOpen, setIsCancelOpen] = useState(false);
   const StatusIcon = statusCfg?.icon;
   const { confirmBooking, cancelBooking, isConfirming, isCancelling } = useServiceActions();
+
+  const handleCancelConfirm = (reason: string) => {
+    cancelBooking({ 
+      id: order.soId || order.id || "", 
+      status: order.status || "", 
+      reason 
+    }, {
+      onSuccess: () => {
+        setIsCancelOpen(false);
+      }
+    });
+  };
 
   return (
     <div className="flex-shrink-0 bg-white border-b border-blue-100/50 px-8 py-5 shadow-sm relative overflow-hidden">
@@ -49,12 +64,15 @@ export const OrderHeader = memo(function OrderHeader({
               <div className="bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-md text-[10px] font-black tracking-widest uppercase border border-blue-100">
                 {order.orderCode || 'N/A'}
               </div>
-              {statusCfg && (
-                <Badge variant="outline" className={`${statusCfg.bg} ${statusCfg.text} ${statusCfg.border} text-[10px] font-bold py-0.5 px-2 rounded-full`}>
-                  {StatusIcon && <StatusIcon className="h-3 w-3 mr-1" />}
-                  {statusCfg.label}
-                </Badge>
-              )}
+              <div className="flex items-center gap-1.5 pt-0.5">
+                <AdminStatusBadge status="service" variant="default" className="scale-90" />
+                {statusCfg && (
+                  <Badge variant="outline" className={`${statusCfg.bg} ${statusCfg.text} ${statusCfg.border} text-[10px] font-bold py-0.5 px-2 rounded-full h-7`}>
+                    {StatusIcon && <StatusIcon className="h-3 w-3 mr-1" />}
+                    {statusCfg.label}
+                  </Badge>
+                )}
+              </div>
             </div>
             <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
               Service Order Details
@@ -91,7 +109,7 @@ export const OrderHeader = memo(function OrderHeader({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => cancelBooking({ id: order.soId || order.id || "", status: order.status || "" })}
+                onClick={() => setIsCancelOpen(true)}
                 disabled={isCancelling}
                 className="text-rose-600 hover:bg-rose-50 hover:text-rose-700 font-black text-[10px] uppercase tracking-widest rounded-xl gap-2 h-10 px-5 transition-all"
               >
@@ -115,6 +133,15 @@ export const OrderHeader = memo(function OrderHeader({
           </div>
         </div>
       </div>
+
+      <CancelServiceDialog
+        isOpen={isCancelOpen}
+        onClose={() => setIsCancelOpen(false)}
+        onConfirm={handleCancelConfirm}
+        isLoading={isCancelling}
+        orderCode={order.orderCode || ''}
+        status={order.status || ''}
+      />
     </div>
   );
 });

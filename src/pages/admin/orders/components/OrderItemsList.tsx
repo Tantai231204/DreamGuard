@@ -154,7 +154,15 @@ function OrderItemRow({ item, index }: OrderItemRowProps) {
                   <div key={idx} className="flex items-center overflow-hidden rounded-lg border border-slate-100 bg-white shadow-sm hover:border-[#4988c4]/30 transition-all">
                     <div className="px-3 py-1.5 bg-slate-50/50 border-r border-slate-100 flex flex-col justify-center">
                       <span className="text-[7.5px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none mb-1 opacity-70">{detail.customizeTypeName}</span>
-                      <span className="text-[11px] font-bold text-slate-800 leading-none">{detail.customizeContent}</span>
+                      <div className="flex items-center gap-1.5">
+                        {(detail.customizeTypeName.toLowerCase().includes('color')) && (
+                          <div 
+                            className="w-2.5 h-2.5 rounded-full border border-white shadow-sm ring-1 ring-slate-100" 
+                            style={{ backgroundColor: getColorHex(detail.customizeContent) }}
+                          />
+                        )}
+                        <span className="text-[11px] font-bold text-slate-800 leading-none">{detail.customizeContent}</span>
+                      </div>
                     </div>
                     {detail.addOnPrice > 0 && (
                       <div className="px-3 py-1.5 bg-[#4988c4] flex flex-col justify-center">

@@ -1,6 +1,6 @@
 import apiClient from '../../lib/api';
 import type { CustomAxiosRequestConfig } from '../../lib/api';
-import type { CreateOrderRequest, OrderResponse, OrderDetailResponse, OrderStatus } from '../types/order';
+import type { CreateOrderRequest, OrderResponse, OrderDetailResponse, OrderStatus, TradeInEligibleOrderItem } from '../types/order';
 
 const orderService = {
     createOrder: async (data: CreateOrderRequest): Promise<OrderResponse> => {
@@ -35,13 +35,13 @@ const orderService = {
      */
     adminCancelOrder: async (id: string, reason?: string): Promise<void> => {
         // According to user requirement: Admin uses /status with 'Cancelled'
-        await apiClient.put(`/order/${id}/status`, { cancelReason: reason }, { 
-            params: { status: 'Cancelled' } 
+        await apiClient.put(`/order/${id}/status`, { cancelReason: reason }, {
+            params: { status: 'Cancelled' }
         });
     },
 
-    getAdminOrders: async (params?: { 
-        pageNumber?: number; 
+    getAdminOrders: async (params?: {
+        pageNumber?: number;
         pageSize?: number;
         search?: string;
         status?: string[];
@@ -64,10 +64,19 @@ const orderService = {
      */
     updateStatus: async (id: string, status: OrderStatus | string): Promise<void> => {
         // Enforce basic type safety on status string
-        await apiClient.put(`/order/${id}/status`, undefined, { 
+        await apiClient.put(`/order/${id}/status`, undefined, {
             params: { status },
             // Anti-tampering: we could add a checksum here in a strictly secure project
         });
+    },
+
+    /**
+     * 🔥 User's target endpoint for trade-in selection
+     * Fetches previous purchase items eligible for trade-in against a target product
+     */
+    getOrderItemsToTradeIn: async (productVariantId: string): Promise<TradeInEligibleOrderItem[]> => {
+        const res = await apiClient.get(`/Order/${productVariantId}/GetOrderItemsToTradeInAsync`);
+        return res.data?.data ?? res.data;
     }
 };
 

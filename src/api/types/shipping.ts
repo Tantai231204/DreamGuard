@@ -37,3 +37,10 @@ export interface ProcessReturnedRequest {
     evidenceUrls?: string[];
     damagedItems: ProcessReturnedDamagedItem[];
 }
+
+export interface ProcessExchangeRequest {
+    newStaffId: string;
+    exchangeNote?: string;
+    evidenceUrls?: string[];
+    damagedItems: ProcessReturnedDamagedItem[];
+}

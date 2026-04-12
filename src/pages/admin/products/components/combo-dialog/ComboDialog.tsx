@@ -26,7 +26,7 @@ export interface ComboDialogProps {
   isLoading?: boolean;
 }
 
-const ComboDialog = memo(({
+const ComboDialog = memo(function ComboDialog({
   open,
   onOpenChange,
   combo,
@@ -34,7 +34,7 @@ const ComboDialog = memo(({
   defaultParentId,
   onSubmit,
   isLoading = false
-}: ComboDialogProps) => {
+}: ComboDialogProps) {
   const isEdit = Boolean(combo);
   const [activeTab, setActiveTab] = useState("general");
   // Resolve mode: prioritize initialMode if set, else infer from combo data
@@ -76,8 +76,8 @@ const ComboDialog = memo(({
         {isLoadingDetail ? (
           <div className="flex flex-col items-center justify-center p-20 space-y-4">
             <div className="relative">
-              <div className="w-16 h-16 rounded-full border-4 border-primary-100 border-t-primary-500 animate-spin" />
-              <Loader2 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-6 w-6 text-primary-500 animate-pulse" />
+              <div className="w-16 h-16 rounded-full border-4 border-slate-100 border-t-blue-600 animate-spin" />
+              <Loader2 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-6 w-6 text-blue-600 animate-pulse" />
             </div>
             <p className="text-sm font-bold text-slate-400 animate-pulse">Synchronizing Data...</p>
           </div>
@@ -135,7 +135,5 @@ const ComboDialog = memo(({
     </Dialog>
   );
 });
-
-ComboDialog.displayName = 'ComboDialog';
 
 export default ComboDialog;

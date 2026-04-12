@@ -8,6 +8,8 @@ import type { Combo } from '../../types';
 import type { CreateComboRequest, ComboItemRequest } from '@/api/services/comboService';
 import { toSlug, getInitialState, type ComboFormValues } from './index';
 import { toast } from 'sonner';
+import { uploadToCloudinary } from '@/lib/uploadCloudinary';
+import { useState } from 'react';
 
 interface UseComboFormProps {
     open: boolean;
@@ -25,6 +27,7 @@ export function useComboForm({
     onSubmit,
 }: UseComboFormProps) {
     const isEdit = !!combo;
+    const [isSaving, setIsSaving] = useState(false);
 
     const { data: comboResp, isLoading: isLoadingDetail } = useComboDetail(
         combo?.id || '',
@@ -77,6 +80,7 @@ export function useComboForm({
     const watchColor = useWatch({ control: typedForm.control, name: 'color' });
     const watchSize = useWatch({ control: typedForm.control, name: 'size' });
     const watchAgeGroup = useWatch({ control: typedForm.control, name: 'ageGroup' });
+    const watchImageFile = useWatch({ control: typedForm.control, name: 'imageFile' });
 
     // Senior Logic: Automatic Price Synchronization
     // Calculates total market value from items and updates basePrice automatically
@@ -109,7 +113,7 @@ export function useComboForm({
         if ((watchSalePrice || 0) > 0) score += 10;
         if ((watchDescription?.trim().length || 0) >= 5) score += 15;
         if (watchStatus) score += 10;
-        if (watchImageUrl) score += 10;
+        if (watchImageUrl || watchImageFile) score += 10;
         if (mode === 'variant') {
             if (watchComboParentId) score += 10;
             if (watchItems?.some(i => i.productVariantId)) score += 10;
@@ -118,7 +122,7 @@ export function useComboForm({
             score += 20;
         }
         return Math.min(score, 100);
-    }, [watchName, watchAgeGroup, watchBasePrice, watchSalePrice, watchDescription, watchStatus, watchImageUrl, mode, watchComboParentId, watchItems]);
+    }, [watchName, watchAgeGroup, watchBasePrice, watchSalePrice, watchDescription, watchStatus, watchImageUrl, watchImageFile, mode, watchComboParentId, watchItems]);
 
     // Global queries (cached by React Query)
     const { data: parentsResp } = useComboParents(open && mode === 'variant');
@@ -143,10 +147,10 @@ export function useComboForm({
 
     const setField = useCallback(<K extends Path<ComboFormValues>>(field: K, value: PathValue<ComboFormValues, K>) => {
         // Enforced strict path-value coupling for 100% type safety
-        typedForm.setValue(field, value, { shouldValidate: true });
+        typedForm.setValue(field, value, { shouldValidate: true, shouldDirty: true });
     }, [typedForm]);
 
-    const onFormSubmit = (values: ComboFormValues) => {
+    const onFormSubmit = async (values: ComboFormValues) => {
         // Core Guard: Prevent publishing parent without children
         if (mode === 'parent' && values.status === 'Published' && !hasChildCombos) {
             toast.error("Cannot publish collection", {
@@ -155,31 +159,54 @@ export function useComboForm({
             return;
         }
 
-        const payload: CreateComboRequest = {
-            name: values.name.trim(),
-            slug: values.slug.trim(),
-            ageGroup: Number(values.ageGroup),
-            color: values.color || "",
-            size: values.size || "",
-            basePrice: mode === 'parent' ? 0 : Number(values.basePrice || 0),
-            salePrice: mode === 'parent' ? 0 : Number(values.salePrice || 0),
-            description: (values.description || "").trim(),
-            imageUrl: values.imageUrl || "",
-            imagePublicId: values.imagePublicId || "",
-            // Variants don't have a status selector, default to parent's published state.
-            // Parents DO have a selector again, so we use their selected value.
-            status: values.status || "Published",
-            comboParentId: mode === 'variant' ? values.comboParentId : undefined,
-            items: mode === 'variant'
-                ? (values.items || [])
-                    .filter(i => i.productVariantId)
-                    .map(item => ({
-                        productVariantId: item.productVariantId,
-                        quantity: item.quantity
-                    } as ComboItemRequest))
-                : []
-        };
-        onSubmit(payload);
+        try {
+            setIsSaving(true);
+            let finalImageUrl = values.imageUrl || "";
+            let finalImagePublicId = values.imagePublicId || "";
+
+            // Performance Optimizer: If a local file exists, upload it now
+            if (values.imageFile instanceof File) {
+                const uploadToastId = toast.loading("Optimizing & uploading image...");
+                try {
+                    const res = await uploadToCloudinary(values.imageFile);
+                    finalImageUrl = res.secure_url;
+                    finalImagePublicId = res.public_id;
+                    toast.success("Image processed successfully", { id: uploadToastId });
+                } catch {
+                    toast.error("Image upload failed. Please try again.", { id: uploadToastId });
+                    setIsSaving(false);
+                    return;
+                }
+            }
+
+            const payload: CreateComboRequest = {
+                name: values.name.trim(),
+                slug: values.slug.trim(),
+                ageGroup: Number(values.ageGroup),
+                color: values.color || "",
+                size: values.size || "",
+                basePrice: mode === 'parent' ? 0 : Number(values.basePrice || 0),
+                salePrice: mode === 'parent' ? 0 : Number(values.salePrice || 0),
+                description: (values.description || "").trim(),
+                imageUrl: finalImageUrl,
+                imagePublicId: finalImagePublicId,
+                status: values.status || "Draft",
+                comboParentId: mode === 'variant' ? values.comboParentId : undefined,
+                items: mode === 'variant'
+                    ? (values.items || [])
+                        .filter(i => i.productVariantId)
+                        .map(item => ({
+                            productVariantId: item.productVariantId,
+                            quantity: item.quantity
+                        } as ComboItemRequest))
+                    : []
+            };
+            await onSubmit(payload);
+        } catch (error) {
+            console.error("[useComboForm] Submit error:", error);
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const rawChildren = useMemo(() => {
@@ -231,13 +258,15 @@ export function useComboForm({
             comboParentId: watchComboParentId,
             items: (watchItems || []) as ComboFormValues['items'],
             imagePublicId: watchImagePublicId,
+            imageFile: watchImageFile,
             color: watchColor,
             size: watchSize,
             ageGroup: watchAgeGroup
         }), [
             watchName, watchDescription, watchBasePrice, watchSalePrice, watchStatus, 
-            watchImageUrl, watchComboParentId, watchItems, watchImagePublicId, 
+            watchImageUrl, watchComboParentId, watchItems, watchImagePublicId, watchImageFile,
             watchColor, watchSize, watchAgeGroup
-        ])
+        ]),
+        isSaving
     };
 }

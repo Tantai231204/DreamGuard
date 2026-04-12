@@ -16,11 +16,11 @@ interface RoleConfigType {
 const roleConfig: Record<string, RoleConfigType> = {
   Manager: {
     label: "Manager",
-    bgColor: "bg-indigo-600",
+    bgColor: "bg-primary-600",
     textColor: "text-white",
-    iconColor: "bg-indigo-600",
+    iconColor: "bg-primary-600",
     borderColor: "border-transparent",
-    glowColor: "shadow-[0_4px_12px_rgba(79,70,229,0.25)]",
+    glowColor: "shadow-[0_4px_12px_rgba(73,136,196,0.25)]",
     iconSrc: "/images/manager.svg",
   },
   Seller: {

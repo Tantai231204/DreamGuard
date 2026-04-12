@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useAuthStore } from "../../store/authStore";
-import { AppRoute } from "../../lib/constants";
+import { AppRoute, UserRole } from "../../lib/constants";
 import { Eye, EyeOff, Lock, Phone } from "lucide-react";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
@@ -54,8 +54,10 @@ export default function Login() {
   useEffect(() => {
     if (isAuthenticated) {
       // Resolve "from" path
+      const isStaff = role === UserRole.ADMIN || role === UserRole.MANAGER || role === UserRole.SELLER;
       let targetPath: string = AppRoute.PROFILE;
-      if (role?.toLowerCase() === "admin") {
+
+      if (isStaff) {
         targetPath = AppRoute.ADMIN;
       }
       
@@ -68,7 +70,7 @@ export default function Login() {
 
       // Avoid infinite loop if target is somehow login
       if (targetPath === AppRoute.LOGIN || targetPath === "/login") {
-        targetPath = role?.toLowerCase() === "admin" ? AppRoute.ADMIN : AppRoute.PROFILE;
+        targetPath = isStaff ? AppRoute.ADMIN : AppRoute.PROFILE;
       }
 
       navigate(targetPath, { replace: true });

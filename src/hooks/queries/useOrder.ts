@@ -4,10 +4,25 @@ import { useAuthStore } from '@/store/authStore';
 import type { CreateOrderRequest } from '@/api/types/order';
 import { cartKeys } from './useCart';
 
+export interface AdminOrdersQueryParams {
+    pageNumber?: number;
+    pageSize?: number;
+    search?: string;
+    status?: string[];
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+}
+
 export const orderKeys = {
     all: ['orders'] as const,
     detail: (id: string) => [...orderKeys.all, id] as const,
 };
+
+export const adminOrdersQueryOptions = (params?: AdminOrdersQueryParams) => ({
+    queryKey: [...orderKeys.all, 'admin', params] as const,
+    queryFn: () => orderService.getAdminOrders(params),
+    staleTime: 0,
+});
 
 export const useOrders = (params?: { pageNumber?: number; pageSize?: number }) => {
     return useQuery({
@@ -55,19 +70,8 @@ export const useCancelOrder = (options?: { meta?: Record<string, unknown> }) => 
         }
     });
 };
-export const useAdminOrders = (params?: {
-    pageNumber?: number;
-    pageSize?: number;
-    search?: string;
-    status?: string[];
-    sortBy?: string;
-    sortOrder?: 'asc' | 'desc';
-}) => {
-    return useQuery({
-        queryKey: [...orderKeys.all, 'admin', params],
-        queryFn: () => orderService.getAdminOrders(params),
-        staleTime: 0,
-    });
+export const useAdminOrders = (params?: AdminOrdersQueryParams) => {
+    return useQuery(adminOrdersQueryOptions(params));
 };
 
 export const useUpdateOrderStatus = () => {
@@ -102,5 +106,14 @@ export const useAdminCancelOrder = () => {
             queryClient.invalidateQueries({ queryKey: orderKeys.all });
             queryClient.invalidateQueries({ queryKey: orderKeys.detail(id) });
         }
+    });
+};
+
+export const useUserOrderItemsForTradeIn = (productId: string, options?: { enabled?: boolean }) => {
+    return useQuery({
+        queryKey: [...orderKeys.all, 'trade-in-eligible', productId],
+        queryFn: () => orderService.getOrderItemsToTradeIn(productId),
+        enabled: options?.enabled !== undefined ? (options.enabled && !!productId) : !!productId,
+        staleTime: 60000,
     });
 };

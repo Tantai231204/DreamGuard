@@ -1,6 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import shippingService from "@/api/services/shippingService";
-import type { CreateShippingTaskRequest, ReassignShippingTaskRequest, ProcessReturnedRequest } from "@/api/types/shipping";
+import type {
+    CreateShippingTaskRequest,
+    ReassignShippingTaskRequest,
+    ProcessReturnedRequest,
+    ProcessExchangeRequest,
+} from "@/api/types/shipping";
 import { orderKeys } from "./useOrder";
 
 export const shippingKeys = {
@@ -53,6 +58,20 @@ export const useProcessReturnedShippingTask = () => {
     return useMutation({
         mutationFn: ({ taskId, data }: { taskId: string; data: Partial<ProcessReturnedRequest>; orderId: string }) => 
             shippingService.processReturned(taskId, data),
+        onSuccess: (_, { orderId }) => {
+            queryClient.invalidateQueries({ queryKey: shippingKeys.byOrder(orderId) });
+            queryClient.invalidateQueries({ queryKey: orderKeys.detail(orderId) });
+            queryClient.invalidateQueries({ queryKey: orderKeys.all });
+        },
+    });
+};
+
+export const useProcessExchangeShippingTask = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ taskId, data }: { taskId: string; data: ProcessExchangeRequest; orderId: string }) =>
+            shippingService.processExchange(taskId, data),
         onSuccess: (_, { orderId }) => {
             queryClient.invalidateQueries({ queryKey: shippingKeys.byOrder(orderId) });
             queryClient.invalidateQueries({ queryKey: orderKeys.detail(orderId) });

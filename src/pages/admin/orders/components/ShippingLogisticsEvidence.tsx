@@ -51,7 +51,7 @@ export const ShippingLogisticsEvidence = memo(function ShippingLogisticsEvidence
                                 "absolute top-3 left-3 z-10 px-2.5 py-1 rounded-lg backdrop-blur-md border flex items-center gap-1.5 shadow-sm",
                                 isDelivered 
                                     ? "bg-emerald-50/80 border-emerald-100 text-emerald-700" 
-                                    : "bg-indigo-50/80 border-indigo-100 text-indigo-700"
+                                    : "bg-primary-50/80 border-primary-100 text-primary-700"
                             )}>
                                 {isDelivered ? <PackageCheck className="w-3 h-3" /> : <MapPin className="w-3 h-3" />}
                                 <span className="text-[9px] font-black uppercase tracking-widest leading-none">

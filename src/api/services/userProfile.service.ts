@@ -1,12 +1,5 @@
 import api from "../../lib/api"
-
-export interface UserProfile {
-  firstName: string
-  lastName: string
-  email: string
-  dateOfBirth: string
-  gender: string
-}
+import type { UserProfile, UpdateUserProfileRequest, ConfirmChangePhoneNumberRequest } from "../types/userProfile"
 
 export const getUserProfile = async (): Promise<UserProfile> => {
   const res = await api.get("/UserProfiles")
@@ -26,8 +19,6 @@ export const uploadUserAvatar = async (file: File): Promise<{ avatarUrl: string 
   } catch (error) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const axiosError = error as any
-    // Nếu đường dẫn upload không tồn tại (404) hoặc backend chưa hỗ trợ chỗ này,
-    // trả về null để frontend không block việc update profile.
     if (axiosError?.response?.status === 404) {
       return null
     }
@@ -35,7 +26,7 @@ export const uploadUserAvatar = async (file: File): Promise<{ avatarUrl: string 
   }
 }
 
-export const updateUserProfile = async (data: UserProfile) => {
+export const updateUserProfile = async (data: UpdateUserProfileRequest) => {
   const res = await api.put("/UserProfiles", data)
   return res.data
 }
@@ -45,10 +36,7 @@ export const requestChangePhoneNumber = async () => {
   return res.data
 }
 
-export const confirmChangePhoneNumber = async (data: {
-  phoneNumber: string
-  otpCode: string
-}) => {
+export const confirmChangePhoneNumber = async (data: ConfirmChangePhoneNumberRequest) => {
   const res = await api.post("/UserProfiles/ChangePhoneNumber", data)
   return res.data
 }

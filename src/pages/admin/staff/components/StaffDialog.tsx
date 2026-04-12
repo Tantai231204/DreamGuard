@@ -113,11 +113,11 @@ export function StaffDialog({ open, onOpenChange, staff, onSubmit, isLoading }: 
         };
       case "Admin":
         return {
-          icon: <ShieldCheck className="h-5 w-5 text-indigo-600 z-10" />,
+          icon: <ShieldCheck className="h-5 w-5 text-primary-600 z-10" />,
           title: "Privilege Registry",
-          bgColor: "bg-indigo-600/10",
-          borderColor: "border-indigo-600",
-          iconColor: "text-indigo-600"
+          bgColor: "bg-primary-600/10",
+          borderColor: "border-primary-600",
+          iconColor: "text-primary-600"
         };
       case "Manager":
         return {

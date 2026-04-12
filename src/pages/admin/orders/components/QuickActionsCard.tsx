@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Truck, XCircle, Zap, ShieldCheck, History, ShieldAlert, Package, Clock, RefreshCw } from 'lucide-react';
+import { CheckCircle2, Truck, XCircle, Zap, ShieldCheck, History, ShieldAlert, Package, Clock, RefreshCw, RotateCcw } from 'lucide-react';
 import { OrderStatus } from '../constants';
 
 interface QuickActionsCardProps {
@@ -9,6 +9,7 @@ interface QuickActionsCardProps {
   onUpdateStatus: (status: keyof typeof OrderStatus) => void;
   onCancelOrder: () => void;
   onProcessReturn: () => void;
+  onProcessExchange: () => void;
   canCancel: boolean;
   hasTask: boolean;
   delay?: number;
@@ -19,6 +20,7 @@ export function QuickActionsCard({
   onUpdateStatus,
   onCancelOrder,
   onProcessReturn,
+  onProcessExchange,
   canCancel,
   hasTask,
   delay = 0,
@@ -87,9 +89,9 @@ export function QuickActionsCard({
 
           {/* ─── Step 3: Staff is handling delivery – tracking only ─── */}
           {currentStatusEnum === OrderStatus.Shipping && (
-            <div className="p-4 bg-indigo-50/50 border border-indigo-100 rounded-xl flex items-start gap-3">
-              <Clock className="w-4 h-4 text-indigo-500 shrink-0 mt-0.5 animate-pulse" />
-              <p className="text-[9px] font-bold text-indigo-600 uppercase tracking-[0.15em] leading-relaxed">
+            <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-xl flex items-start gap-3">
+              <Clock className="w-4 h-4 text-blue-500 shrink-0 mt-0.5 animate-pulse" />
+              <p className="text-[9px] font-bold text-blue-600 uppercase tracking-[0.15em] leading-relaxed">
                 In transit. Delivery staff is updating tracking status in real-time.
               </p>
             </div>
@@ -118,13 +120,50 @@ export function QuickActionsCard({
 
           {/* ─── Step 6: Returning → Manager processes return (inspect damages) ─── */}
           {currentStatusEnum === OrderStatus.Returning && (
-            <Button
-              onClick={onProcessReturn}
-              className="w-full justify-center gap-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl h-12 text-[10px] font-black uppercase tracking-widest transition-all shadow-md shadow-rose-500/20 border-none group"
-            >
-              <Package className="h-4 w-4 transition-transform group-hover:scale-110" />
-              Process Return
-            </Button>
+            <div className="grid grid-cols-1 gap-3">
+              <Button
+                onClick={onProcessExchange}
+                className="w-full justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-12 text-[10px] font-black uppercase tracking-widest transition-all shadow-md shadow-blue-500/20 border-none group"
+              >
+                <RefreshCw className="h-4 w-4 transition-transform group-hover:scale-110" />
+                Process Exchange
+              </Button>
+              <Button
+                onClick={onProcessReturn}
+                className="w-full justify-center gap-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl h-11 text-[9px] font-black uppercase tracking-widest transition-all shadow-md shadow-rose-500/20 border-none group"
+              >
+                <Package className="h-4 w-4 transition-transform group-hover:scale-110" />
+                Process Return
+              </Button>
+            </div>
+          )}
+
+          {currentStatusEnum === OrderStatus.ExchangeRequested && (
+            <div className="p-4 bg-blue-50/70 border border-blue-100 rounded-xl flex items-start gap-3">
+              <RotateCcw className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+              <p className="text-[9px] font-bold text-blue-700 uppercase tracking-[0.15em] leading-relaxed">
+                Exchange request has been approved. Replacement dispatch is being prepared.
+              </p>
+            </div>
+          )}
+
+          {currentStatusEnum === OrderStatus.ShippingReplacement && (
+            <div className="space-y-3">
+              <div className="p-4 bg-sky-50/70 border border-sky-100 rounded-xl flex items-start gap-3">
+                <Truck className="w-4 h-4 text-sky-500 shrink-0 mt-0.5" />
+                <p className="text-[9px] font-bold text-sky-700 uppercase tracking-[0.15em] leading-relaxed">
+                  Replacement task created. Move status back to processing to resume normal delivery flow.
+                </p>
+              </div>
+              <Button
+                onClick={() => onUpdateStatus('Processing')}
+                disabled={!hasTask}
+                className="w-full justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-12 text-[10px] font-black uppercase tracking-widest transition-all shadow-md shadow-emerald-500/20 border-none disabled:opacity-50"
+              >
+                <RefreshCw className="h-4 w-4" />
+                Move to Processing
+              </Button>
+            </div>
           )}
 
           {/* ─── Step 7: Returned → Manager decides refund type ─── */}

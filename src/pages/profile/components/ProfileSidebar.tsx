@@ -10,14 +10,19 @@ import {
   LogOut,
   Ticket,
   ShoppingBag,
+  ArrowLeftRight,
 } from "lucide-react";
 import { Button } from "../../../components/ui/button";
 import type { TabId, Tab } from "../types";
 import { useLogout } from "../../../hooks/useAuth";
-import { useProfile } from "@/hooks/queries";
+import { useProfile, useUpdateProfile } from "@/hooks/queries";
 import { cn } from "@/lib/utils";
+import { uploadToCloudinary } from "@/lib/uploadCloudinary";
+import { toast } from "sonner";
+import { useState } from "react";
+import { Camera, Loader2 } from "lucide-react";
 
-const MotionButton = motion(Button);
+const MotionButton = motion.create(Button);
 
 const TABS: Tab[] = [
   {
@@ -62,6 +67,11 @@ const TABS: Tab[] = [
     label: "Account Security",
     icon: <Lock className="h-4.5 w-4.5" />,
   },
+  {
+    id: "trade-in-orders",
+    label: "Trade-In Orders",
+    icon: <ArrowLeftRight className="h-4.5 w-4.5" />,
+  },
 ];
 
 interface ProfileSidebarProps {
@@ -72,15 +82,60 @@ interface ProfileSidebarProps {
 const ProfileSidebar = ({ activeTab, onTabChange }: ProfileSidebarProps) => {
   const logoutMutation = useLogout();
   const { data: profile } = useProfile();
+  const { mutate: updateProfile } = useUpdateProfile();
+  const [isUploading, setIsUploading] = useState(false);
   const normalized = profile;
 
   const handleLogout = () => {
     logoutMutation.mutate();
   };
 
-  const displayName = normalized
-    ? `${normalized.firstName || ""} ${normalized.lastName || ""}`.trim() || normalized.fullName || "Exclusive Member"
-    : "Exclusive Member";
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!profile) {
+      toast.error("Profile data is not ready. Please try again.");
+      return;
+    }
+
+    const email = profile.email?.trim();
+    const gender = profile.gender?.trim();
+
+    if (!email || !gender) {
+      toast.error("Please update email and gender before changing avatar.");
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      const res = await uploadToCloudinary(file);
+      const avatarUrl = res.secure_url;
+      
+      updateProfile({
+        fullName: profile.fullName || displayName,
+        email,
+        gender,
+        dateOfBirth: profile.dateOfBirth,
+        avatarUrl 
+      }, {
+        onSuccess: () => {
+          toast.success("Avatar updated successfully");
+        },
+        onError: () => {
+          toast.error("Failed to update avatar");
+        },
+        onSettled: () => {
+          setIsUploading(false);
+        }
+      });
+    } catch {
+      toast.error("Upload failed");
+      setIsUploading(false);
+    }
+  };
+
+  const displayName = normalized?.fullName || "Valued Member";
 
   return (
     <div className="flex flex-col h-full bg-white rounded-[2.5rem] border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.04)] overflow-hidden">
@@ -90,19 +145,46 @@ const ProfileSidebar = ({ activeTab, onTabChange }: ProfileSidebarProps) => {
 
         <div className="relative flex flex-col items-center text-center">
           <div className="relative mb-5">
-            <div className="w-24 h-24 rounded-[2rem] bg-gradient-to-br from-white to-slate-100 p-1 ring-1 ring-slate-200 shadow-xl transition-all duration-500 group-hover:scale-105 group-hover:rotate-2">
-              <div className="w-full h-full rounded-[1.75rem] overflow-hidden bg-white flex items-center justify-center">
+            <input
+              type="file"
+              id="sidebar-avatar-upload"
+              className="hidden"
+              accept="image/*"
+              onChange={handleAvatarChange}
+              disabled={isUploading}
+            />
+            <div className="w-24 h-24 rounded-[2rem] bg-gradient-to-br from-white to-slate-100 p-1 ring-1 ring-slate-200 shadow-xl transition-all duration-500 group/avatar overflow-hidden">
+              <div className="w-full h-full rounded-[1.75rem] overflow-hidden bg-white flex items-center justify-center relative">
                 {profile?.avatarUrl ? (
                   <img
                     src={profile.avatarUrl}
                     alt="Avatar"
-                    className="w-full h-full object-cover"
+                    className={cn("w-full h-full object-cover transition-opacity", isUploading && "opacity-30")}
                   />
                 ) : (
                   <div className="bg-primary/10 w-full h-full flex items-center justify-center">
                     <User className="w-10 h-10 text-primary" />
                   </div>
                 )}
+
+                {/* Hover Overlay / Loading */}
+                <button
+                  type="button"
+                  onClick={() => document.getElementById("sidebar-avatar-upload")?.click()}
+                  disabled={isUploading}
+                  className={cn(
+                    "absolute inset-0 flex items-center justify-center transition-all duration-300",
+                    isUploading
+                      ? "bg-black/20 opacity-100"
+                      : "bg-black/40 opacity-0 group-hover/avatar:opacity-100"
+                  )}
+                >
+                  {isUploading ? (
+                    <Loader2 className="w-6 h-6 text-white animate-spin" />
+                  ) : (
+                    <Camera className="w-6 h-6 text-white" />
+                  )}
+                </button>
               </div>
             </div>
             <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-2xl bg-emerald-500 border-4 border-white shadow-lg flex items-center justify-center">
@@ -121,27 +203,24 @@ const ProfileSidebar = ({ activeTab, onTabChange }: ProfileSidebarProps) => {
           </h3>
 
           <div className="flex items-center gap-2 mb-6">
-            <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em] bg-primary/10 px-4 py-1.5 rounded-full border border-primary/10">
-              Platinum Tier
-            </span>
-          </div>
-
-          <div className="w-full px-4 space-y-2.5">
-            <div className="flex justify-between items-end">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                Growth Progress
-              </span>
-              <span className="text-[11px] font-black text-slate-900">
-                85% <span className="text-slate-400 font-bold ml-1">VVIP</span>
+            <div className="flex items-center gap-2 px-4 py-1.5 bg-amber-50 rounded-full border border-amber-100/50 shadow-sm animate-in fade-in zoom-in duration-500">
+              <div className="w-4 h-4 rounded-full bg-amber-500 flex items-center justify-center shadow-sm">
+                <span className="text-[10px] text-white font-black">⌬</span>
+              </div>
+              <span className="text-[10px] font-black text-amber-600 uppercase tracking-wider">
+                {profile?.memberCoin ?? 0} <span className="opacity-60 ml-0.5">Coins</span>
               </span>
             </div>
-            <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden p-0.5 ring-1 ring-slate-100">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: "85%" }}
-                transition={{ duration: 1.5, ease: "easeOut" }}
-                className="h-full bg-primary rounded-full"
-              />
+          </div>
+
+          <div className="w-full px-4">
+            <div className="p-4 rounded-3xl bg-slate-50 border border-slate-100 flex flex-col items-center gap-1 group/coin transition-all hover:bg-white hover:shadow-md">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-center">
+                Ready to Exchange
+              </span>
+              <p className="text-[10px] text-slate-600 font-bold text-center leading-relaxed">
+                Use your coins to unlock <span className="text-primary font-black">Exclusive Vouchers</span>
+              </p>
             </div>
           </div>
         </div>
@@ -172,7 +251,7 @@ const ProfileSidebar = ({ activeTab, onTabChange }: ProfileSidebarProps) => {
                 className={cn(
                   "relative w-full flex items-center gap-4 rounded-2xl px-5 py-3.5 overflow-hidden group transition-all duration-300 cursor-pointer",
                   !isActive &&
-                    "hover:bg-slate-50 text-slate-500 hover:text-slate-900",
+                  "hover:bg-slate-50 text-slate-500 hover:text-slate-900",
                 )}
               >
                 {isActive && (
@@ -239,10 +318,10 @@ const ProfileSidebar = ({ activeTab, onTabChange }: ProfileSidebarProps) => {
               </div>
               <div>
                 <h4 className="font-bold text-sm tracking-tight text-white">
-                  VIP Support
+                  Priority Support
                 </h4>
                 <p className="text-[10px] text-slate-400 font-medium">
-                  Ready 24/7
+                  Available 24/7
                 </p>
               </div>
             </div>

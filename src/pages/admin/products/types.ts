@@ -205,12 +205,17 @@ export interface Product {
   basePrice?: number;
   salePrice?: number;
   weight?: number;
+  isTradeInEligible?: boolean;
+  minTradeInPrice?: number;
+  depositAmount?: number;
   // Joined / computed (from admin endpoint)
   categoryName?: string;
   variantCount?: number;
   maxPrice?: number;
   minPrice?: number;
   variants?: ProductVariant[];
+  assets?: { id: string; url: string; type: string }[];
+  feedbackCount?: number;
 }
 
 export interface CreateProductRequest {
@@ -225,11 +230,14 @@ export interface CreateProductRequest {
   status: string;
   cateId: number | null;
   CertificateIds?: string[];
-  fullyCustomizedProductType?: import("@/api/types/product.types").FullyCustomizedProductType;
+   fullyCustomizedProductType?: import("@/api/types/product.types").FullyCustomizedProductType;
   sku?: string;
   basePrice?: number;
   salePrice?: number;
   weight?: number;
+  isTradeInEligible?: boolean;
+  minTradeInPrice?: number;
+  depositAmount?: number;
 }
 
 export interface UpdateProductRequest {
@@ -250,6 +258,9 @@ export interface UpdateProductRequest {
   basePrice?: number;
   salePrice?: number;
   weight?: number;
+  isTradeInEligible?: boolean;
+  minTradeInPrice?: number;
+  depositAmount?: number;
 }
 
 // ── Product Variant ──────────────────────────────────────

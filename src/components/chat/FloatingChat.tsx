@@ -33,9 +33,8 @@ const MessageBubble = React.memo(({ msg, isAdmin, showAvatar }: { msg: import('.
       )}
 
       <div
-        className={`group relative flex flex-col max-w-[70%] ${
-          isAdmin ? 'items-start' : 'items-end'
-        }`}
+        className={`group relative flex flex-col max-w-[70%] ${isAdmin ? 'items-start' : 'items-end'
+          }`}
       >
         {/* Optional Image */}
         {msg.imageUrl && (
@@ -51,16 +50,15 @@ const MessageBubble = React.memo(({ msg, isAdmin, showAvatar }: { msg: import('.
         {/* Text Bubble */}
         {msg.text && (
           <div
-            className={`relative px-3.5 py-2 text-[14px] leading-relaxed shadow-sm ${
-              isAdmin
-                ? 'bg-white text-gray-800 border border-gray-100 rounded-2xl rounded-bl-none'
-                : 'bg-primary text-white border-transparent rounded-2xl rounded-br-none'
-            }`}
+            className={`relative px-3.5 py-2 text-[14px] leading-relaxed shadow-sm ${isAdmin
+              ? 'bg-white text-gray-800 border border-gray-100 rounded-2xl rounded-bl-none'
+              : 'bg-primary text-white border-transparent rounded-2xl rounded-br-none'
+              }`}
           >
             {msg.text}
           </div>
         )}
-        
+
         <span className={`text-[10px] text-gray-400 mt-1 absolute ${isAdmin ? '-right-14' : '-left-14'} bottom-0 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap`}>
           {timeStr}
         </span>
@@ -76,7 +74,6 @@ export default function FloatingChat() {
     closeChat,
     messages,
     isLoading,
-    unreadCount,
     sendMessage,
     messagesEndRef,
   } = useFloatingChat();
@@ -84,7 +81,7 @@ export default function FloatingChat() {
   const [inputText, setInputText] = useState('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleSendMessage = async (e?: React.FormEvent) => {
@@ -93,7 +90,7 @@ export default function FloatingChat() {
 
     // Await sending so we disable button during mutation
     await sendMessage(inputText, selectedFile);
-    
+
     // Clear input
     setInputText('');
     setSelectedFile(null);
@@ -128,17 +125,11 @@ export default function FloatingChat() {
             exit={{ scale: 0, opacity: 0 }}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={openChat}
+            onClick={() => openChat()}
             className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-white shadow-xl shadow-primary/30 transition-colors focus:outline-none"
             title="Chat with DreamGuard"
           >
             <MessageCircle size={28} />
-            {/* Unread Badge */}
-            {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 border-2 border-white text-[10px] font-bold text-white">
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </span>
-            )}
           </motion.button>
         )}
       </AnimatePresence>
@@ -194,7 +185,7 @@ export default function FloatingChat() {
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto px-4 py-4 bg-[#F0F2F5] custom-scrollbar flex flex-col gap-3">
+            <div className="flex-1 overflow-y-auto px-4 py-4 bg-[#F0F2F5] custom-scrollbar scrollbar-profile flex flex-col gap-3">
               <div className="text-center text-xs text-gray-400 my-2">
                 Today {new Date().toLocaleDateString()}
               </div>
@@ -202,13 +193,13 @@ export default function FloatingChat() {
               {messages.map((msg, idx) => {
                 const isAdmin = msg.role === 'admin';
                 const showAvatar = isAdmin && (idx === messages.length - 1 || messages[idx + 1]?.role !== 'admin');
-                
+
                 return (
-                  <MessageBubble 
-                    key={msg.id} 
-                    msg={msg} 
-                    isAdmin={isAdmin} 
-                    showAvatar={showAvatar} 
+                  <MessageBubble
+                    key={msg.id}
+                    msg={msg}
+                    isAdmin={isAdmin}
+                    showAvatar={showAvatar}
                   />
                 );
               })}
@@ -217,11 +208,11 @@ export default function FloatingChat() {
               {isLoading && (
                 <div className="flex items-end gap-2 justify-start">
                   <div className="w-7 h-7 flex-shrink-0">
-                     <img
-                        src="https://ui-avatars.com/api/?name=Dream+Guard&background=0D8ABC&color=fff"
-                        alt="Admin"
-                        className="w-full h-full rounded-full"
-                      />
+                    <img
+                      src="https://ui-avatars.com/api/?name=Dream+Guard&background=0D8ABC&color=fff"
+                      alt="Admin"
+                      className="w-full h-full rounded-full"
+                    />
                   </div>
                   <div className="bg-white border border-gray-100 shadow-sm rounded-2xl rounded-bl-none px-4 py-3 flex items-center justify-center gap-1">
                     <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
@@ -239,7 +230,7 @@ export default function FloatingChat() {
               {/* Image Preview Overlay */}
               <AnimatePresence>
                 {previewImage && (
-                  <motion.div 
+                  <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 5 }}
@@ -247,7 +238,7 @@ export default function FloatingChat() {
                   >
                     <div className="relative inline-block border rounded-lg p-1 bg-gray-50 shadow-sm">
                       <img src={previewImage} alt="Preview" className="h-16 w-16 md:h-20 md:w-20 object-cover rounded-md" />
-                      <button 
+                      <button
                         onClick={removePreview}
                         className="absolute -top-2 -right-2 bg-gray-800 text-white rounded-full p-0.5 hover:bg-gray-900 shadow-md transition-colors"
                         title="Remove image"
@@ -256,7 +247,7 @@ export default function FloatingChat() {
                       </button>
                     </div>
                     <div className="text-xs font-medium text-gray-500 mb-2 truncate max-w-[150px]">
-                       {selectedFile?.name}
+                      {selectedFile?.name}
                     </div>
                   </motion.div>
                 )}
@@ -267,15 +258,15 @@ export default function FloatingChat() {
                   <button type="button" className="p-2 hover:bg-gray-100 hover:text-primary rounded-full transition-colors" title="More options">
                     <MoreHorizontal size={20} />
                   </button>
-                  <input 
-                    type="file" 
-                    accept="image/png, image/jpeg, image/webp" 
-                    className="hidden" 
+                  <input
+                    type="file"
+                    accept="image/png, image/jpeg, image/webp"
+                    className="hidden"
                     ref={fileInputRef}
                     onChange={handleImageSelect}
                   />
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     onClick={() => fileInputRef.current?.click()}
                     className="p-2 hover:bg-gray-100 hover:text-primary rounded-full transition-colors"
                     title="Attach an image"
@@ -283,7 +274,7 @@ export default function FloatingChat() {
                     <ImageIcon size={20} />
                   </button>
                 </div>
-                
+
                 <div className="flex-1 bg-[#F0F2F5] rounded-[20px] flex items-center pr-1 min-h-[40px]">
                   <input
                     type="text"
@@ -304,22 +295,7 @@ export default function FloatingChat() {
                 </div>
               </form>
             </div>
-            
-            <style>{`
-              .custom-scrollbar::-webkit-scrollbar {
-                width: 5px;
-              }
-              .custom-scrollbar::-webkit-scrollbar-track {
-                background: transparent;
-              }
-              .custom-scrollbar::-webkit-scrollbar-thumb {
-                background-color: rgba(0,0,0,0.15);
-                border-radius: 10px;
-              }
-              .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-                background-color: rgba(0,0,0,0.25);
-              }
-            `}</style>
+
           </motion.div>
         )}
       </AnimatePresence>

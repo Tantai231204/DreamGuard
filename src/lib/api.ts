@@ -121,16 +121,16 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        // Pure Cookie Refresh:
-        // No body payload needed, server will read HTTP-only RefreshToken cookie.
-        await api.post("/auths/refreshToken", {});
-
+        const refreshRes = await api.post("/auths/refreshToken", {});
+        const newToken = refreshRes.data?.data?.accessToken || refreshRes.data?.accessToken;
+        if (newToken) {
+          sessionStorage.setItem('signalr_token', newToken);
+        }
         processQueue(null);
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError);
-        // Explicitly clear auth and trigger redirect reason through the store
-        // This is the "Maximum BE Sync" pattern
+        // If refresh fails (401, 404), force logout immediately to stop loops
         useAuthStore.getState().clearAuth('session_expired');
         return Promise.reject(refreshError);
       } finally {

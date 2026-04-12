@@ -32,9 +32,20 @@ const defaultFilters: FilterOptions = {
     sortBy: 'default',
 };
 
-function mapToProduct(p: ProductResponse): Product {
-    const firstVariant = p.variants?.[0];
-    const price = firstVariant?.salePrice || firstVariant?.basePrice || p.minPrice || 0;
+interface ProductExtended extends Product {
+    colors: string[];
+    sizes: string[];
+    createdAt: string;
+}
+
+function mapToProduct(p: ProductResponse): ProductExtended {
+    const variants = p.variants || [];
+    
+    // Sort variants by price to find the absolute minimum
+    const variantPrices = variants.map(v => v.salePrice || v.basePrice).filter(price => price > 0);
+    const price = variantPrices.length > 0 ? Math.min(...variantPrices) : (p.minPrice || 0);
+    
+    const firstVariant = variants[0];
     const originalPrice = firstVariant?.basePrice || p.maxPrice || undefined;
     const discount =
         originalPrice && originalPrice > price
@@ -44,6 +55,21 @@ function mapToProduct(p: ProductResponse): Product {
     const firstImage = p.imageUrls?.[0] || p.assets?.[0]?.url;
     const isOutOfStock = p.status === 'OutOfStock';
     const isPublished = p.status === 'Published';
+
+    // Aggregate colors and sizes from all variants
+    const colors = Array.from(new Set(
+        variants
+            .map(v => (v.attributes?.color as string) || (v.attributes?.colorName as string))
+            .filter(Boolean)
+    ));
+    const sizes = Array.from(new Set(
+        variants
+            .map(v => v.size)
+            .filter(Boolean)
+    ));
+
+    // A product is "New" if ANY of its variants are marked as new
+    const isNew = variants.some(v => v.isNew);
 
     return {
         id: p.id,
@@ -60,8 +86,11 @@ function mapToProduct(p: ProductResponse): Product {
         material: p.material || '',
         ageRange: p.ageGroup?.toString() || '',
         inStock: isPublished && !isOutOfStock,
-        isNew: firstVariant?.isNew || false,
+        isNew: isNew,
         status: p.status,
+        colors,
+        sizes,
+        createdAt: p.createdAt || new Date().toISOString(),
     };
 }
 
@@ -92,7 +121,7 @@ export default function ProductsPage() {
         return cat?.name || null;
     }, [urlCateId, categories]);
 
-    const products: Product[] = useMemo(
+    const products: ProductExtended[] = useMemo(
         () => apiProducts.map(mapToProduct),
         [apiProducts]
     );
@@ -116,27 +145,45 @@ export default function ProductsPage() {
             );
         }
 
+        if (filters.colors.length > 0) {
+            result = result.filter((product) =>
+                product.colors.some(c => filters.colors.map(fc => fc.toLowerCase()).includes(c.toLowerCase()))
+            );
+        }
+
+        if (filters.sizes.length > 0) {
+            result = result.filter((product) =>
+                product.sizes.some(s => filters.sizes.includes(s))
+            );
+        }
+
+        // Price range in filters is in "k" (e.g. 100 = 100,000)
         if (filters.priceRange.min !== null) {
-            result = result.filter((product) => product.price >= filters.priceRange.min!);
+            result = result.filter((product) => product.price >= filters.priceRange.min! * 1000);
         }
         if (filters.priceRange.max !== null) {
-            result = result.filter((product) => product.price <= filters.priceRange.max!);
+            result = result.filter((product) => product.price <= filters.priceRange.max! * 1000);
         }
 
         switch (filters.sortBy) {
             case 'price-asc':
-                result.sort((a, b) => a.price - b.price);
+                result.sort((a, b) => (a.price || 0) - (b.price || 0));
                 break;
             case 'price-desc':
-                result.sort((a, b) => b.price - a.price);
+                result.sort((a, b) => (b.price || 0) - (a.price || 0));
                 break;
             case 'newest':
-                result.sort((a, b) => (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0));
+                result.sort((a, b) => {
+                    const dateA = new Date(a.createdAt || 0).getTime();
+                    const dateB = new Date(b.createdAt || 0).getTime();
+                    return dateB - dateA;
+                });
                 break;
             case 'rating':
-                result.sort((a, b) => b.rating - a.rating);
+                result.sort((a, b) => (b.rating || 0) - (a.rating || 0));
                 break;
             default:
+                // If default, we can just leave it as is or sort by a default field
                 break;
         }
 
@@ -262,9 +309,9 @@ export default function ProductsPage() {
                                         {sortOptions.map((option) => (
                                             <DropdownMenuItem
                                                 key={option.value}
-                                                onClick={() => handleFilterChange({ ...filters, sortBy: option.value as FilterOptions['sortBy'] })}
+                                                onSelect={() => handleFilterChange({ ...filters, sortBy: option.value as FilterOptions['sortBy'] })}
                                                 className={cn(
-                                                    "rounded-lg px-4 py-2.5 text-sm font-semibold cursor-pointer transition-all mb-1 last:mb-0",
+                                                    "rounded-lg px-4 py-2.5 text-sm font-semibold cursor-pointer transition-all mb-1 last:mb-0 outline-none",
                                                     filters.sortBy === option.value
                                                         ? "bg-[#4988c4] text-white"
                                                         : "text-slate-600 hover:bg-blue-50 hover:text-[#4988c4]"

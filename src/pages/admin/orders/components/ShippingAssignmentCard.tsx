@@ -34,9 +34,9 @@ export function ShippingAssignmentCard({ orderId, onOpenAssign, canAssign, delay
                 {currentStaff ? (
                     <div className="space-y-4">
                         <div
-                            className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${canAssign ? 'bg-slate-50 border-slate-100/80 cursor-pointer hover:bg-slate-100/60' : 'bg-slate-50/50 border-slate-100/40 opacity-70 cursor-not-allowed'}`}
+                            className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${canAssign ? 'bg-slate-50 border-slate-100/80 cursor-pointer hover:bg-slate-100/60' : 'bg-slate-50 border-slate-100/40 cursor-default'}`}
                             onClick={canAssign ? onOpenAssign : undefined}
-                            title={canAssign ? "Click to Reassign" : "Cannot reassign: dispatch has already commenced or concluded."}
+                            title={canAssign ? "Click to Reassign" : "View assigned personnel details"}
                         >
                             <Avatar className="h-12 w-12 border-2 border-white shadow-sm ring-1 ring-slate-100">
                                 <AvatarImage src={currentStaff.avatarUrl} />
@@ -89,7 +89,7 @@ export function ShippingAssignmentCard({ orderId, onOpenAssign, canAssign, delay
                         disabled={!canAssign}
                         className={`w-full h-full flex flex-col items-center justify-center py-10 rounded-xl border-[1.5px] border-dashed text-center transition-all duration-300 ${canAssign
                             ? "bg-slate-50/50 border-slate-200 hover:bg-slate-50 hover:border-slate-300 group cursor-pointer"
-                            : "bg-slate-50/30 border-slate-100 opacity-50 cursor-not-allowed"
+                            : "bg-slate-50/30 border-slate-100 cursor-default"
                             }`}
                         title={!canAssign ? "Order must be Confirmed to assign delivery personnel." : "Assign Delivery Personnel"}
                     >

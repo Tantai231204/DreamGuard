@@ -70,9 +70,9 @@ export const CERTIFICATE_REGISTRY: Record<string, CertificateStyle> = {
   'CE': {
     image: 'https://i.pinimg.com/736x/90/06/a8/9006a864900694b4280de104de46be95.jpg', // Placeholder
     icon: BadgeCheck,
-    bgColor: 'bg-indigo-50',
-    iconColor: 'text-indigo-700',
-    borderColor: 'border-indigo-100',
+    bgColor: 'bg-primary-50',
+    iconColor: 'text-primary-700',
+    borderColor: 'border-primary-100',
     organization: 'European Conformity',
     scope: 'European Union',
     defaultDescription: 'Declarative compliance with health, safety, and environmental protection standards for products sold within the EEA.',

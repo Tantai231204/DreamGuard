@@ -4,23 +4,28 @@ interface VoucherActionsProps {
   onAdd: () => void;
   onExport: () => void;
   onImport: () => void;
-  onFilter: () => void;
 }
 
 export default function VoucherActions({
   onAdd,
   onExport,
   onImport,
-  onFilter,
 }: VoucherActionsProps) {
   return (
-    <div className="py-4 px-1">
+    <div className="border-b border-slate-100 px-6 py-4">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Voucher Operations</p>
+        </div>
+      </div>
+
       <AdminActions
-        onFilter={onFilter}
         onExport={onExport}
         onImport={onImport}
         onAdd={onAdd}
-        addLabel="Add Voucher"
+        addLabel="Add Campaign"
+        addStyle="flat"
+        showFilter={false}
       />
     </div>
   );

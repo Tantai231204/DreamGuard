@@ -124,7 +124,7 @@ export function useOrderDetail() {
 
   const canCancel = useMemo(() => {
     if (!mergedOrder) return false;
-    return !['cancelled', 'completed', 'refunded', 'forcedcancelled'].includes(mergedOrder.status?.toLowerCase() || '');
+    return !['cancelled', 'completed', 'refunded', 'forcedcancelled', 'rejected'].includes(mergedOrder.status?.toLowerCase() || '');
   }, [mergedOrder]);
 
   const canAssign = useMemo(() => {

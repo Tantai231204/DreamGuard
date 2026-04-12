@@ -4,18 +4,21 @@ export type { VerifyOtpRequest, ResetPasswordRequest, ChangePasswordRequest } fr
 export { default as userService } from './userService';
 export { default as categoryService } from './categoryService';
 export { default as voucherService } from './voucherService';
+export { default as userVoucherService } from './userVoucher.service';
 export { default as productService } from './productService';
 export { default as variantService } from './variantService';
 export { default as comboService } from './comboService';
 export { default as cartService } from './cartService';
 export { default as orderService } from './orderService';
 export { default as ratingService } from './ratingService';
+export { default as productFeedbackService } from './productFeedbackService';
 export { default as customizeTypeService } from './customizeTypeService';
 export { default as certificateService } from './certificateService';
 export { default as chatService } from './chatService';
-export { default as clientChatService } from './clientChatService';
 export { default as staffService } from './staffService';
 export { default as shippingService } from './shippingService';
+export { default as systemConfigService } from './systemConfigService';
+export { default as tradeInOrderService } from './tradeInOrderService';
 export * as addressService from './address.service';
 
 export type {

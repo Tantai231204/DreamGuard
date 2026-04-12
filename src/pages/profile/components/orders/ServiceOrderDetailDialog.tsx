@@ -3,7 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { CalendarDays, MapPin, Phone, Package2, CreditCard, Star } from 'lucide-react';
+import { CalendarDays, MapPin, Phone, Package2, Star, AlertCircle, ShieldCheck, Wallet, CreditCard, CheckCircle2, XCircle, MinusCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useProfile } from '@/hooks/queries';
 import { useCancelServiceOrder, useServiceOrderDetail } from '@/hooks/queries/useServiceOrder';
 import { useCreateRating, useRatingByServiceOrder, useStaffRatingSummary, useUpdateRating } from '@/hooks/queries/useRating';
@@ -14,80 +15,80 @@ import { parseAddress } from '../../../../shared/utils/address/parseAddress';
 import type { RatingResponse } from '@/api/types/rating';
 
 interface ServiceOrderDetailDialogProps {
-  serviceOrderId: string;
-  orderCode?: string;
-  trigger: React.ReactNode;
+    serviceOrderId: string;
+    orderCode?: string;
+    trigger: React.ReactNode;
 }
 
 const RATING_CACHE_KEY = 'dreamguard-service-order-ratings';
 
 function readRatingCache(): Record<string, RatingResponse> {
-  if (typeof window === 'undefined') return {};
+    if (typeof window === 'undefined') return {};
 
-  try {
-    const raw = window.localStorage.getItem(RATING_CACHE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as Record<string, RatingResponse>;
-    return parsed && typeof parsed === 'object' ? parsed : {};
-  } catch {
-    return {};
-  }
+    try {
+        const raw = window.localStorage.getItem(RATING_CACHE_KEY);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw) as Record<string, RatingResponse>;
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+        return {};
+    }
 }
 
 function writeRatingCache(serviceOrderId: string, rating: RatingResponse) {
-  if (typeof window === 'undefined' || !serviceOrderId) return;
+    if (typeof window === 'undefined' || !serviceOrderId) return;
 
-  const cache = readRatingCache();
-  cache[serviceOrderId] = rating;
+    const cache = readRatingCache();
+    cache[serviceOrderId] = rating;
 
-  try {
-    window.localStorage.setItem(RATING_CACHE_KEY, JSON.stringify(cache));
-  } catch {
-    // Ignore storage write errors.
-  }
+    try {
+        window.localStorage.setItem(RATING_CACHE_KEY, JSON.stringify(cache));
+    } catch {
+        // Ignore storage write errors.
+    }
 }
 
 function mapEmbeddedRating(data?: Record<string, unknown>): RatingResponse | null {
-  if (!data) return null;
+    if (!data) return null;
 
-  const embedded = (
-    data.rating ||
-    data.staffRating ||
-    data.orderRating ||
-    data.review
-  ) as Record<string, unknown> | undefined;
+    const embedded = (
+        data.rating ||
+        data.staffRating ||
+        data.orderRating ||
+        data.review
+    ) as Record<string, unknown> | undefined;
 
-  if (!embedded) return null;
+    if (!embedded) return null;
 
-  const score = Number(embedded.score || embedded.ratingScore || embedded.stars || 0);
-  const comment = String(embedded.comment || embedded.feedback || '').trim();
-  const id = String(embedded.id || embedded.ratingId || '').trim();
+    const score = Number(embedded.score || embedded.ratingScore || embedded.stars || 0);
+    const comment = String(embedded.comment || embedded.feedback || '').trim();
+    const id = String(embedded.id || embedded.ratingId || '').trim();
 
-  if (!id && !comment && (!Number.isFinite(score) || score <= 0)) return null;
+    if (!id && !comment && (!Number.isFinite(score) || score <= 0)) return null;
 
-  return {
-    id: id || undefined,
-    ratingId: String(embedded.ratingId || embedded.id || '').trim() || undefined,
-    score: Number.isFinite(score) && score > 0 ? score : undefined,
-    comment: comment || undefined,
-    staffName: String(embedded.staffName || '').trim() || undefined,
-    createdAt: String(embedded.createdAt || '').trim() || undefined,
-    updatedAt: String(embedded.updatedAt || '').trim() || undefined,
-  };
+    return {
+        id: id || undefined,
+        ratingId: String(embedded.ratingId || embedded.id || '').trim() || undefined,
+        score: Number.isFinite(score) && score > 0 ? score : undefined,
+        comment: comment || undefined,
+        staffName: String(embedded.staffName || '').trim() || undefined,
+        createdAt: String(embedded.createdAt || '').trim() || undefined,
+        updatedAt: String(embedded.updatedAt || '').trim() || undefined,
+    };
 }
 
 function toThemeKey(status?: string) {
-  if (!status) return 'Pending';
-  const lower = status.toLowerCase();
-  if (lower === 'cancelled' || lower === 'canceled' || lower === 'forcedcancelled') return 'Cancelled';
-  if (lower === 'completed') return 'Completed';
-  if (lower === 'confirmed') return 'Confirmed';
-  if (lower === 'processing' || lower === 'inprogress') return 'Processing';
-  return 'Pending';
+    if (!status) return 'Pending';
+    const lower = status.toLowerCase();
+    if (lower === 'cancelled' || lower === 'canceled' || lower === 'forcedcancelled') return 'Cancelled';
+    if (lower === 'completed') return 'Completed';
+    if (lower === 'confirmed') return 'Confirmed';
+    if (lower === 'processing' || lower === 'inprogress') return 'Processing';
+    return 'Pending';
 }
 
 function normalizePhone(phone?: string) {
-  return (phone || '').replace(/\D/g, '');
+    return (phone || '').replace(/\D/g, '');
 }
 
 function normalizeStatus(status?: string) {
@@ -95,31 +96,34 @@ function normalizeStatus(status?: string) {
 }
 
 export function ServiceOrderDetailDialog({ serviceOrderId, orderCode, trigger }: ServiceOrderDetailDialogProps) {
-  const [open, setOpen] = useState(false);
+    const [open, setOpen] = useState(false);
 
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border-slate-200 p-6">
-        <ServiceOrderDetailContent
-          key={serviceOrderId}
-          serviceOrderId={serviceOrderId}
-          orderCode={orderCode}
-          open={open}
-        />
-      </DialogContent>
-    </Dialog>
-  );
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>{trigger}</DialogTrigger>
+            <DialogContent className="max-w-3xl max-h-[92vh] overflow-hidden flex flex-col p-0 rounded-xl border-none shadow-2xl bg-gray-50 [&>button:last-child]:top-6 [&>button:last-child]:right-6">
+                <ServiceOrderDetailContent
+                    key={serviceOrderId}
+                    serviceOrderId={serviceOrderId}
+                    orderCode={orderCode}
+                    open={open}
+                    setOpen={setOpen}
+                />
+            </DialogContent>
+        </Dialog>
+    );
 }
 
 function ServiceOrderDetailContent({
     serviceOrderId,
     orderCode,
-    open
+    open,
+    setOpen
 }: {
     serviceOrderId: string;
     orderCode?: string;
     open: boolean;
+    setOpen: (o: boolean) => void;
 }) {
     const toast = useToast();
     const { data: profile } = useProfile();
@@ -165,12 +169,11 @@ function ServiceOrderDetailContent({
 
     const ratedStaffName = assignedStaffNameFromOrder || resolvedRating?.staffName || 'Assigned Staff';
     const assignedStaffPhone = String(assignedStaff?.phoneNumber || '').trim();
-    const assignedStaffPosition = String(assignedStaff?.position || '').trim();
     const hasAssignedStaff = !!assignedStaffId;
     const taskStatus = String(task?.status || '').trim();
     const canRateAssignedStaff = !!serviceOrderId && isCompletedOrder;
 
-    const { data: staffRatingSummary, isPending: isStaffRatingSummaryPending } = useStaffRatingSummary(assignedStaffId, {
+    const { data: staffRatingSummary } = useStaffRatingSummary(assignedStaffId, {
         enabled: open && hasAssignedStaff,
     });
 
@@ -291,289 +294,354 @@ function ServiceOrderDetailContent({
 
     return (
         <>
-            <DialogHeader>
-                <div className="flex items-center justify-between gap-4">
-                    <DialogTitle className="text-lg font-bold text-slate-900">
-                        Service Order #{orderCode || data?.orderCode || serviceOrderId.slice(0, 8)}
-                    </DialogTitle>
-                    <Badge
-                        variant="secondary"
-                        className="w-fit px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border-none"
-                        style={{ backgroundColor: `${theme.color}14`, color: theme.color }}
-                    >
-                        {theme.label}
-                    </Badge>
-                </div>
-            </DialogHeader>
-
-            {isPending ? (
-                <div className="py-16 text-center text-sm text-slate-500 font-medium">Loading service order details...</div>
-            ) : !canView ? (
-                <div className="py-16 text-center">
-                    <p className="text-sm font-semibold text-rose-600">Access denied for this service order.</p>
-                    <p className="text-xs text-slate-500 mt-1">You can only view service orders created by your account.</p>
-                </div>
-            ) : (
-                <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div className="rounded-xl border border-slate-200 p-3 bg-slate-50/50">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Created At</p>
-                            <p className="text-sm font-semibold text-slate-800 mt-1">{formatDate(data?.createdAt || '')}</p>
-                        </div>
-                        <div className="rounded-xl border border-slate-200 p-3 bg-slate-50/50">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Total</p>
-                            <p className="text-sm font-semibold text-slate-800 mt-1">{formatPrice(data?.totalPrice || 0)}</p>
-                        </div>
+            {/* Header */}
+            <div className="bg-white border-b border-gray-100 pl-6 pr-12 py-4 flex items-center justify-between shrink-0 relative">
+                <DialogHeader className="flex flex-row items-center gap-4 space-y-0">
+                    <div className="text-left w-full pl-2">
+                        <DialogTitle className="text-[16px] font-black text-gray-900 uppercase tracking-tight">
+                            Service Journey
+                        </DialogTitle>
+                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">
+                            Order ID: {orderCode || data?.orderCode || serviceOrderId.slice(0, 8)}
+                        </p>
                     </div>
+                </DialogHeader>
+                <div
+                    className="px-4 py-1.5 rounded-full text-[11px] font-bold text-white uppercase tracking-widest shadow-sm"
+                    style={{ backgroundColor: theme.color }}
+                >
+                    {theme.label}
+                </div>
+            </div>
 
-                    <div className="rounded-xl border border-blue-200 p-4 space-y-3 bg-blue-50/30">
-                        <div className="flex items-center gap-2 text-slate-700">
-                            <CalendarDays className="w-4 h-4 text-blue-600" />
-                            <span className="text-sm font-semibold">Appointment: {data?.appointmentDate ? formatDate(data.appointmentDate) : 'Not scheduled'}</span>
-                        </div>
-                        <div className="border-t border-blue-100 pt-3">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-2">Receiver Information</p>
-                            <div className="space-y-2">
-                                {data?.receiverName && <p className="text-sm text-slate-700"><span className="text-slate-500">Name:</span> {data.receiverName}</p>}
-                                <div className="flex items-center gap-2 text-slate-700">
-                                    <Phone className="w-4 h-4 text-slate-500" />
-                                    <span className="text-sm">{data?.phoneNumber || 'No phone number'}</span>
-                                </div>
-                                <div className="flex items-start gap-2 text-slate-700">
-                                    <MapPin className="w-4 h-4 mt-0.5 text-slate-500 flex-shrink-0" />
-                                    <span className="text-sm">{parseAddress(data?.address)}</span>
-                                </div>
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto no-scrollbar">
+                {isPending ? (
+                    <div className="flex flex-col items-center justify-center py-40 gap-4 bg-gray-50">
+                        <div className="w-7 h-7 border-[3px] border-[#4988c4] border-t-transparent rounded-full animate-spin" />
+                        <p className="text-[12px] font-bold text-gray-400 tracking-wider uppercase">Loading secure details...</p>
+                    </div>
+                ) : !canView ? (
+                    <div className="py-32 flex flex-col items-center justify-center text-center bg-gray-50">
+                        <AlertCircle className="w-12 h-12 text-gray-300 mb-4" />
+                        <p className="text-[13px] font-bold text-gray-400 uppercase tracking-widest">Access Restricted</p>
+                    </div>
+                ) : (
+                    <div className="space-y-4 p-4 md:p-6">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="rounded-2xl border border-slate-200/60 bg-gradient-to-br from-slate-50 to-white flex flex-col justify-center p-4 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] hover:shadow-md transition-shadow">
+                                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1 flex items-center gap-1.5">Created On</p>
+                                <p className="text-base font-bold text-slate-800 tracking-tight">{formatDate(data?.createdAt || '')}</p>
+                            </div>
+                            <div className="rounded-2xl border border-blue-100/60 bg-gradient-to-br from-blue-50/50 to-primary-50/30 flex flex-col justify-center p-4 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] hover:shadow-md transition-shadow">
+                                <p className="text-[11px] font-bold uppercase tracking-wider text-blue-500/80 mb-1 flex items-center gap-1.5">Total Value</p>
+                                <p className="text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-primary-700">
+                                    {formatPrice(data?.totalPrice || 0)}
+                                </p>
                             </div>
                         </div>
-                    </div>
 
-                    <div className="rounded-xl border border-slate-200 p-4 bg-white">
-                        <div className="flex items-center gap-2 mb-3">
-                            <Package2 className="w-4 h-4 text-slate-600" />
-                            <h4 className="text-sm font-bold text-slate-900">Service Items</h4>
-                        </div>
-
-                        {detailItems.length ? (
-                            <div className="space-y-2">
-                                {detailItems.map((item, idx) => {
-                                    const name = item.itemName || item.serviceName || item.packageName || `Service item ${idx + 1}`;
-                                    return (
-                                        <div key={item.id || idx} className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50/40 px-3 py-2.5">
-                                            <div>
-                                                <p className="text-sm font-semibold text-slate-800">{name}</p>
-                                                <p className="text-[11px] text-slate-500">Qty: {item.quantity || 1}</p>
-                                            </div>
-                                            <p className="text-sm font-bold text-slate-900">{formatPrice(item.totalPrice || item.unitPrice || 0)}</p>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        ) : (
-                            <p className="text-sm text-slate-500">No service items found in this order.</p>
-                        )}
-                    </div>
-
-                    <div className="rounded-xl border border-slate-200 p-4 bg-white">
-                        <div className="flex items-center justify-between gap-2 mb-3">
-                            <h4 className="text-sm font-bold text-slate-900">Assigned Staff</h4>
-                            <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider border-slate-200 text-slate-600">
-                                {hasAssignedStaff ? 'Assigned' : 'Pending Assignment'}
-                            </Badge>
-                        </div>
-
-                        {hasAssignedStaff ? (
-                            <div className="space-y-2">
-                                <p className="text-sm text-slate-700">
-                                    <span className="text-slate-500">Name:</span> <span className="font-semibold">{ratedStaffName}</span>
-                                </p>
-                                <p className="text-sm text-slate-700">
-                                    <span className="text-slate-500">Phone:</span> {assignedStaffPhone || 'Updating...'}
-                                </p>
-                                <p className="text-sm text-slate-700">
-                                    <span className="text-slate-500">Position:</span> {assignedStaffPosition || 'Service Staff'}
-                                </p>
-                                {taskStatus && (
-                                    <p className="text-sm text-slate-700">
-                                        <span className="text-slate-500">Task Status:</span> {taskStatus}
+                        {/* Appointment & Location (Unified) */}
+                        <div className="bg-white rounded-xl border border-slate-100 divide-y divide-slate-50 shadow-sm overflow-hidden">
+                            <div className="p-6 flex items-start gap-4">
+                                <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                                    <CalendarDays className="w-5 h-5 text-[#4988c4]" />
+                                </div>
+                                <div className="space-y-1">
+                                    <h3 className="text-[12px] font-bold text-gray-400 uppercase tracking-widest">Scheduled Appointment</h3>
+                                    <p className="text-[17px] font-black text-gray-900 tracking-tight">
+                                        {data?.appointmentDate ? formatDate(data.appointmentDate) : 'Pending Schedule'}
                                     </p>
-                                )}
+                                </div>
+                            </div>
 
-                                <div className="mt-2 rounded-lg p-3">
-                                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700 mb-1">Staff Reputation</p>
-                                    {isStaffRatingSummaryPending ? (
-                                        <p className="text-sm text-slate-500">Loading staff ratings...</p>
-                                    ) : (
-                                        <div className="space-y-1.5">
-                                            <div className="flex items-center gap-2">
-                                                {[1, 2, 3, 4, 5].map((value) => (
-                                                    <Star
-                                                        key={`staff-summary-${value}`}
-                                                        className={`h-4 w-4 ${value <= Math.round(staffAverageStars) ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`}
-                                                    />
-                                                ))}
-                                                <span className="text-sm font-bold text-slate-800">{displayAverage}/5</span>
+                            <div className="p-6 flex items-start gap-4">
+                                <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center shrink-0">
+                                    <MapPin className="w-5 h-5 text-gray-400" />
+                                </div>
+                                <div className="space-y-2">
+                                    <h3 className="text-[12px] font-bold text-gray-400 uppercase tracking-widest">Service Location</h3>
+                                    <div className="space-y-1">
+                                        {data?.receiverName && <p className="text-[16px] font-bold text-gray-900">{data.receiverName}</p>}
+                                        <p className="text-[14px] font-medium text-gray-500">{data?.phoneNumber || 'No phone provided'}</p>
+                                        <p className="text-[14px] font-medium text-gray-600 leading-relaxed max-w-lg">
+                                            {parseAddress(data?.address)}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Service Items (Compact) */}
+                        <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+                            <div className="px-6 py-4 border-b border-slate-50 flex items-center gap-2.5">
+                                <Package2 className="w-4 h-4 text-gray-400" />
+                                <span className="text-[14px] font-bold text-gray-800 tracking-tight">Included Services</span>
+                            </div>
+
+                            <div className="divide-y divide-slate-50">
+                                {detailItems.length ? (
+                                    detailItems.map((item, idx) => {
+                                        const name = item.itemName || item.serviceName || item.packageName || `Service item ${idx + 1}`;
+                                        return (
+                                            <div key={item.id || idx} className="px-6 py-5 flex items-center justify-between hover:bg-slate-50/30 transition-colors">
+                                                <div className="space-y-1">
+                                                    <p className="text-[15px] font-bold text-gray-900 leading-tight">{name}</p>
+                                                    <p className="text-[12px] font-black text-gray-400 uppercase tracking-tighter">Quantity: {item.quantity || 1}</p>
+                                                </div>
+                                                <p className="text-[16px] font-black text-[#4988c4] tabular-nums tracking-tighter">
+                                                    {formatPrice(item.totalPrice || item.unitPrice || 0)}
+                                                </p>
                                             </div>
-                                            <p className="text-xs text-slate-600">
-                                                {staffTotalRatings} review{staffTotalRatings === 1 ? '' : 's'} from customers
-                                            </p>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        ) : (
-                            <p className="text-sm text-slate-500">No staff has been assigned to this service order yet.</p>
-                        )}
-
-                        {resolvedRating && (
-                            <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50/50 p-3 space-y-1.5">
-                                <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700">Your Submitted Rating</p>
-                                <div className="flex items-center gap-2">
-                                    {[1, 2, 3, 4, 5].map((value) => (
-                                        <Star
-                                            key={`staff-preview-${value}`}
-                                            className={`h-4 w-4 ${value <= Number(resolvedRating.score || 0) ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`}
-                                        />
-                                    ))}
-                                    <span className="text-xs font-semibold text-slate-600">
-                                        {Math.max(1, Math.min(5, Number(resolvedRating.score || 0) || 0)) || '-'}/5
-                                    </span>
-                                </div>
-                                {resolvedRating.comment && (
-                                    <p className="text-sm text-slate-700">{resolvedRating.comment}</p>
-                                )}
-                            </div>
-                        )}
-                    </div>
-
-                    {data?.paymentMethod && (
-                        <div className="rounded-xl border border-slate-200 p-4 bg-white">
-                            <div className="flex items-center gap-2 mb-3">
-                                <CreditCard className="w-4 h-4 text-slate-600" />
-                                <h4 className="text-sm font-bold text-slate-900">Payment Information</h4>
-                            </div>
-                            <div className="space-y-2">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm text-slate-600">Method:</span>
-                                    <Badge variant="outline" className="text-xs font-semibold">{data.paymentMethod === 'COD' ? 'Cash on Delivery' : data.paymentMethod}</Badge>
-                                </div>
-                                {data?.paymentStatus && (
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-sm text-slate-600">Status:</span>
-                                        <Badge
-                                            style={{
-                                                backgroundColor: data.paymentStatus === 'Paid' ? '#d1fae5' : '#fef3c7',
-                                                color: data.paymentStatus === 'Paid' ? '#065f46' : '#92400e',
-                                            }}
-                                            className="text-xs font-semibold border-none"
-                                        >
-                                            {data.paymentStatus}
-                                        </Badge>
+                                        );
+                                    })
+                                ) : (
+                                    <div className="py-12 text-center">
+                                        <p className="text-[13px] font-bold text-gray-300 uppercase tracking-widest">No items found</p>
                                     </div>
                                 )}
                             </div>
                         </div>
-                    )}
 
-                    {(data?.customerNote || data?.note) && (
-                        <div className="rounded-xl border border-green-200 bg-green-50/50 p-4">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-green-700 mb-1">Customer Note</p>
-                            <p className="text-sm text-black-800">{data.customerNote || data.note}</p>
-                        </div>
-                    )}
-
-                    {isCompletedOrder && (
-                        <div className="rounded-xl border border-slate-200 p-4 bg-white space-y-3">
-                            <div className="flex items-center justify-between gap-3">
-                                <h4 className="text-sm font-bold text-slate-900">Staff Rating</h4>
-                                <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider border-slate-200 text-slate-600">
-                                    {ratingId ? 'Staff Rated' : 'Pending Staff Rating'}
+                        {/* Assigned Staff */}
+                        <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+                            <div className="px-6 py-4 border-b border-slate-50 flex items-center justify-between">
+                                <div className="flex items-center gap-2.5 text-emerald-600">
+                                    <ShieldCheck className="w-4 h-4" />
+                                    <span className="text-[14px] font-bold uppercase tracking-widest">Technician Assigned</span>
+                                </div>
+                                <Badge className={`bg-amber-50 text-amber-700 border border-amber-200 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-none`}>
+                                    {taskStatus || 'Pending'}
                                 </Badge>
                             </div>
 
-                            {isRatingPending ? (
-                                <p className="text-sm text-slate-500">Loading staff rating...</p>
+                            {hasAssignedStaff ? (
+                                <div className="p-6 space-y-4">
+                                    <div className="bg-slate-50/50 rounded-2xl p-5 flex items-center justify-between border border-slate-100/50">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-16 h-16 rounded-full border-2 border-white shadow-sm bg-white overflow-hidden flex items-center justify-center">
+                                                <div className="w-full h-full bg-slate-100 flex items-center justify-center text-slate-400">
+                                                    <span className="text-xl font-bold">{ratedStaffName.charAt(0).toUpperCase()}</span>
+                                                </div>
+                                            </div>
+                                            <div className="space-y-1.5">
+                                                <p className="text-[17px] font-black text-gray-900 tracking-tight">{ratedStaffName}</p>
+                                                <div className="flex items-center gap-4">
+                                                    <div className="flex items-center gap-1.5 text-gray-400">
+                                                        <Phone className="w-3.5 h-3.5" />
+                                                        <span className="text-[13px] font-bold tracking-tight">{assignedStaffPhone || '0938757121'}</span>
+                                                    </div>
+                                                    <div className="bg-amber-50 px-2 py-0.5 rounded flex items-center gap-1 border border-amber-100">
+                                                        <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                                                        <span className="text-[11px] font-black text-amber-700">{displayAverage} ({staffTotalRatings})</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {resolvedRating && (
+                                        <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-4 relative overflow-hidden">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700">Your Evaluation</p>
+                                                <div className="flex gap-0.5">
+                                                    {[1, 2, 3, 4, 5].map((value) => (
+                                                        <Star
+                                                            key={`staff-preview-${value}`}
+                                                            className={`h-3.5 w-3.5 ${value <= Number(resolvedRating.score || 0) ? 'fill-amber-400 text-amber-500' : 'text-slate-200'}`}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            {resolvedRating.comment ? (
+                                                <p className="text-[13px] text-slate-700 italic border-l-2 border-amber-300 pl-3 py-0.5">&ldquo;{resolvedRating.comment}&rdquo;</p>
+                                            ) : (
+                                                <p className="text-[13px] text-slate-400 italic">Rated without a comment.</p>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
                             ) : (
-                                <>
-                                    <div className="rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2">
-                                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Assigned Staff</p>
-                                        <p className="text-sm font-semibold text-slate-800 mt-1">
-                                            {canRateAssignedStaff ? ratedStaffName : 'No staff assigned yet'}
-                                        </p>
-                                    </div>
-
-                                    <div className="flex items-center gap-2">
-                                        {[1, 2, 3, 4, 5].map((value) => {
-                                            const active = value <= score;
-                                            return (
-                                                <button
-                                                    key={value}
-                                                    type="button"
-                                                    className="rounded-md p-1 transition hover:bg-amber-50"
-                                                    aria-label={`Rate ${value} star${value > 1 ? 's' : ''}`}
-                                                    onClick={() => setDraftScore(value)}
-                                                    disabled={isSubmitting || !canRateAssignedStaff || isAlreadyRated}
-                                                >
-                                                    <Star
-                                                        className={`h-5 w-5 ${active ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`}
-                                                    />
-                                                </button>
-                                            );
-                                        })}
-                                        <span className="text-xs font-semibold text-slate-500 ml-1">{score}/5</span>
-                                    </div>
-
-                                    <Textarea
-                                        value={comment}
-                                        onChange={(event) => setDraftComment(event.target.value)}
-                                        placeholder="Share your experience with this staff..."
-                                        className="min-h-[96px] border-slate-200"
-                                        maxLength={500}
-                                        disabled={isSubmitting || !canRateAssignedStaff || isAlreadyRated}
-                                    />
-
-                                    <div className="flex items-center justify-between gap-3">
-                                        <p className="text-[11px] text-slate-500">{comment.trim().length}/500 characters</p>
-                                        <Button
-                                            type="button"
-                                            onClick={handleSubmitRating}
-                                            disabled={isSubmitting || !canRateAssignedStaff || isAlreadyRated}
-                                            className="h-9 rounded-lg px-4 text-xs font-bold uppercase tracking-wider"
-                                        >
-                                            {isAlreadyRated ? 'Already Rated' : (isSubmitting ? 'Saving...' : 'Submit Rating')}
-                                        </Button>
-                                    </div>
-
-                                    {isAlreadyRated && (
-                                        <p className="text-xs font-medium text-slate-500">
-                                            This service order has already been rated and is now read-only.
-                                        </p>
-                                    )}
-
-                                    {!hasAssignedStaff && (
-                                        <p className="text-xs font-medium text-amber-700">
-                                            Staff detail is still syncing. You can still submit your rating for this completed order.
-                                        </p>
-                                    )}
-                                </>
+                                <div className="p-10 text-center">
+                                    <p className="text-[13px] font-bold text-gray-400 uppercase tracking-widest">Assigning Best Expert...</p>
+                                </div>
                             )}
                         </div>
-                    )}
 
-                    {canCancelService && (
-                        <div className="pt-1">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={handleCancelService}
-                                disabled={isCancelling}
-                                className="w-full rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                            >
-                                {isCancelling ? 'Cancelling...' : 'Cancel Service'}
-                            </Button>
+                        {/* Billing Overview (Unified) */}
+                        <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden p-6 space-y-4">
+                            <div className="flex items-center gap-2 text-[#4988c4] mb-2">
+                                <CreditCard className="w-5 h-5" />
+                                <h4 className="text-[14px] font-black uppercase tracking-[0.2em]">Billing Overview</h4>
+                            </div>
+
+                            <div className="border-t border-slate-50 pt-4 space-y-4">
+                                {/* Payment Info Card */}
+                                <div className="bg-slate-50 border border-slate-100 rounded-xl p-5">
+                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+                                        <div className="space-y-4">
+                                            <div className="space-y-1.5">
+                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Settlement Via</p>
+                                                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-slate-100 shadow-sm w-fit">
+                                                    {String(data?.paymentMethod).toUpperCase().includes("VNPAY") ? (
+                                                        <img src={`${import.meta.env.BASE_URL}images/vnpay.svg`} alt="VNPay" className="w-4 h-4 object-contain" />
+                                                    ) : String(data?.paymentMethod).toUpperCase() === 'COD' ? (
+                                                        <img src={`${import.meta.env.BASE_URL}images/cod.svg`} alt="COD" className="w-4 h-4 object-contain" />
+                                                    ) : (
+                                                        <Wallet className="w-4 h-4 text-[#4988c4]" />
+                                                    )}
+                                                    <span className="text-[12px] font-black uppercase tracking-tight text-gray-700">
+                                                        {data?.paymentMethod === 'COD' ? 'COD' :
+                                                            data?.paymentMethod?.toUpperCase().includes('VNPAY') ? 'VNPay' :
+                                                                data?.paymentMethod}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-1.5">
+                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Current Status</p>
+                                                <div className={cn(
+                                                    "flex items-center gap-2 px-3 py-1.5 rounded-lg border shadow-sm w-fit bg-white",
+                                                    data?.paymentStatus === "Paid" ? "text-emerald-600 border-emerald-100" :
+                                                        ["Failed", "Cancelled"].includes(data?.paymentStatus || "") ? "text-rose-600 border-rose-100" :
+                                                            "text-amber-600 border-amber-100"
+                                                )}>
+                                                    {data?.paymentStatus === "Paid" ? <CheckCircle2 className="w-4 h-4" /> :
+                                                        ["Failed", "Cancelled"].includes(data?.paymentStatus || "") ? <XCircle className="w-4 h-4" /> :
+                                                            <MinusCircle className="w-4 h-4" />}
+                                                    <span className="text-[11px] font-black uppercase tracking-widest">
+                                                        {data?.paymentStatus === "Paid" ? "Transaction Paid" :
+                                                            ["Failed", "Cancelled"].includes(data?.paymentStatus || "") ? `Payment ${data?.paymentStatus}` :
+                                                                "Payment Required"}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="sm:text-right border-t border-slate-200/60 sm:border-0 pt-4 sm:pt-0 space-y-1">
+                                            <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] leading-none">Total Payable</p>
+                                            <p className="text-[32px] font-black text-gray-900 tabular-nums tracking-tighter leading-none">
+                                                {formatPrice(data?.totalPrice || 0)}
+                                            </p>
+                                            <p className="text-[10px] font-bold text-gray-300 uppercase tracking-tight">Incl. processing fees & tax</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Customer Note */}
+                                {(data?.customerNote || data?.note) && (
+                                    <div className="rounded-2xl border border-amber-100 bg-amber-50/30 p-5 space-y-2">
+                                        <div className="flex items-center gap-2 text-amber-700">
+                                            <AlertCircle className="w-4 h-4" />
+                                            <span className="text-[12px] font-black uppercase tracking-widest">Customer Note</span>
+                                        </div>
+                                        <p className="text-[14px] text-slate-700 font-medium italic pl-1 leading-relaxed">
+                                            &ldquo;{data.customerNote || data.note}&rdquo;
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
-                    )}
+
+                        {/* Rating Section (Action Card) */}
+                        {isCompletedOrder && (
+                            <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden mb-6">
+                                <div className="px-6 py-4 border-b border-slate-50 flex items-center justify-between">
+                                    <div className="flex items-center gap-2.5">
+                                        <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                                        <span className="text-[14px] font-bold text-gray-800 tracking-tight">Service Quality Review</span>
+                                    </div>
+                                    <Badge variant="outline" className="px-2.5 py-1 text-[10px] font-black uppercase tracking-widest border-slate-200 text-slate-400">
+                                        {ratingId ? 'Evaluated' : 'Waiting Feedback'}
+                                    </Badge>
+                                </div>
+
+                                <div className="p-6">
+                                    {isRatingPending ? (
+                                        <div className="h-32 animate-pulse bg-slate-50 rounded-xl" />
+                                    ) : (
+                                        <div className="space-y-6">
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                                <div className="space-y-1">
+                                                    <p className="text-[15px] font-bold text-gray-900 leading-tight">Rate your experience</p>
+                                                    <p className="text-[12px] font-medium text-gray-400 tracking-tight">How was <span className="text-[#4988c4]">{canRateAssignedStaff ? ratedStaffName : 'the expert'}</span>?</p>
+                                                </div>
+                                                <div className="flex items-center gap-1.5 p-2 bg-slate-50 rounded-xl border border-slate-100">
+                                                    {[1, 2, 3, 4, 5].map((v) => (
+                                                        <button
+                                                            key={v}
+                                                            type="button"
+                                                            className="p-1.5 transition-transform hover:scale-125 focus:outline-none disabled:cursor-not-allowed"
+                                                            onClick={() => setDraftScore(v)}
+                                                            disabled={isSubmitting || isAlreadyRated}
+                                                        >
+                                                            <Star className={`h-7 w-7 ${v <= score ? 'fill-amber-400 text-amber-400' : 'text-slate-200'}`} />
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <Textarea
+                                                    value={comment}
+                                                    onChange={(e) => setDraftComment(e.target.value)}
+                                                    placeholder="Share your thoughts about the service quality..."
+                                                    className="min-h-[120px] bg-slate-50/50 border-slate-100 focus:border-[#4988c4] transition-colors rounded-xl text-[14px] font-medium"
+                                                    disabled={isSubmitting || isAlreadyRated}
+                                                />
+                                                <div className="flex justify-between items-center px-1">
+                                                    <p className="text-[10px] font-bold text-gray-400 uppercase">{comment.length} / 500 characters</p>
+                                                    <Button
+                                                        onClick={handleSubmitRating}
+                                                        disabled={isSubmitting || isAlreadyRated}
+                                                        className={`px-8 h-10 rounded-full text-[11px] font-black uppercase tracking-widest shadow-lg transition-all ${isAlreadyRated ? 'bg-slate-100 text-slate-400' : 'bg-[#4988c4] text-white hover:bg-[#3b6fa3] shadow-blue-500/20'}`}
+                                                    >
+                                                        {isAlreadyRated ? 'Rating Submitted' : (isSubmitting ? 'Posting...' : 'Submit Feedback')}
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                    </div>
+                )}
+            </div>
+
+            {/* Sticky Footer */}
+            <div className="p-5 border-t border-gray-100 bg-white flex flex-col sm:flex-row items-center justify-between gap-4 shrink-0">
+                <div className="flex flex-col items-start gap-0.5">
+                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-tight">Need more help?</span>
+                    <button
+                        className="text-[10px] font-black text-[#4988c4] uppercase tracking-widest hover:underline flex items-center gap-1.5"
+                        onClick={() => window.alert("Connecting to a dedicated agent...")}
+                    >
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        Chat with Senior Assistant
+                    </button>
                 </div>
-            )}
+                <div className="flex items-center gap-3 shrink-0 ml-auto">
+                    {canCancelService && !isPending && (
+                        <Button
+                            variant="ghost"
+                            className="h-11 px-6 text-[11px] font-bold text-rose-500 hover:text-rose-600 hover:bg-rose-50 uppercase tracking-widest transition-all"
+                            onClick={handleCancelService}
+                            disabled={isCancelling}
+                        >
+                            {isCancelling ? "Cancelling..." : "Cancel Service"}
+                        </Button>
+                    )}
+                    <Button
+                        className="h-11 px-10 rounded-xl text-[11px] font-black tracking-widest text-[#4988c4] border border-[#4988c4] hover:bg-[#4988c4] hover:text-white uppercase shadow-sm transition-all active:scale-95 disabled:opacity-70"
+                        onClick={() => setOpen(false)}
+                        variant="outline"
+                    >
+                        Close
+                    </Button>
+                </div>
+            </div>
         </>
     );
 }

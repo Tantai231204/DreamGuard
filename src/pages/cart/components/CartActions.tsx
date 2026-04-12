@@ -47,7 +47,7 @@ export function CartActions({ coupon, setCoupon }: CartActionsProps) {
                 "overflow-hidden transition-all duration-500 max-h-0",
                 isOpen && "max-h-[100px] mt-2"
             )}>
-                <form className="flex items-center gap-2 p-1 bg-white rounded-[1.25rem] border border-dashed border-[#4988c4]/30 shadow-sm inline-flex">
+                <form className="flex items-center gap-2 p-1 bg-white rounded-[1.25rem] border border-dashed border-[#4988c4]/30 shadow-sm">
                     <Input
                         type="text"
                         placeholder="SUMMER24"
@@ -57,7 +57,7 @@ export function CartActions({ coupon, setCoupon }: CartActionsProps) {
                     />
                     <Button
                         type="submit"
-                        className="h-11 rounded-2xl px-8 bg-[#4988c4] text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 transition-all shadow-md active:scale-95"
+                        className="h-11 rounded-2xl px-8 bg-[#4988c4] text-white text-[10px] font-black uppercase tracking-widest hover:bg-[#3a6da3] transition-all shadow-md active:scale-95"
                     >
                         Apply
                     </Button>

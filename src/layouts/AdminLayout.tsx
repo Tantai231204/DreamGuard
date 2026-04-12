@@ -4,7 +4,7 @@ import AdminSidebar from '../components/layout/AdminSidebar';
 
 export default function AdminLayout() {
   return (
-    <div className="flex h-screen overflow-hidden overflow-x-hidden bg-gray-50 w-full max-w-full">
+    <div className="scrollbar-admin flex h-screen overflow-hidden overflow-x-hidden bg-gray-50 w-full max-w-full">
       <AdminSidebar />
 
       <motion.main

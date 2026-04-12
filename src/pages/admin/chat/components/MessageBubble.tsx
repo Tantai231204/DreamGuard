@@ -21,8 +21,9 @@ function MessageBubbleInner({ message, formatTime }: MessageBubbleProps) {
   const { content, timestamp, senderRole, senderName, status } = message;
   const isAdmin = senderRole === 'admin';
 
-  const avatarGradient = useMemo(() => getAvatarGradient(senderName), [senderName]);
-  const initial        = senderName.charAt(0).toUpperCase();
+  const safeSenderName = senderName || 'User';
+  const avatarGradient = useMemo(() => getAvatarGradient(safeSenderName), [safeSenderName]);
+  const initial        = safeSenderName.charAt(0).toUpperCase();
   const timeStr        = useMemo(() => formatTime(timestamp), [timestamp, formatTime]);
 
   return (
@@ -58,7 +59,7 @@ function MessageBubbleInner({ message, formatTime }: MessageBubbleProps) {
             isAdmin ? 'text-[var(--color-primary)] opacity-80 mr-1' : 'text-gray-400 ml-1'
           )}
         >
-          {isAdmin ? 'Support' : senderName}
+          {isAdmin ? 'Support' : safeSenderName}
         </span>
 
         {/* Bubble */}

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import {
     Package, ArrowLeft, Upload, Copy, Check
 } from 'lucide-react';
@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Layers } from 'lucide-react';
 import {
     useProductDetail,
     useUploadProductImage,
@@ -26,27 +27,37 @@ import {
     ProductImagesCard,
     QuickInfoCard,
     ProductCertificatesCard,
+    ProductReviewsCard,
 } from './components/detail';
+import VariantTableWrapper from './components/variant-table/VariantTableWrapper';
 import { ImageUploadDialog } from './components/dialogs';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
 export default function AdminProductDetailPage() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const [searchParams, setSearchParams] = useSearchParams();
     const queryClient = useQueryClient();
 
     const [showUploadDialog, setShowUploadDialog] = useState(false);
     const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
     const [copiedSlug, setCopiedSlug] = useState(false);
     const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-    const [activeTab, setActiveTab] = useState('overview');
+
+    const activeTab = searchParams.get('tab') || 'overview';
+    const setActiveTab = (tab: string) => {
+        setSearchParams((prev) => {
+            prev.set('tab', tab);
+            return prev;
+        });
+    };
 
     useEffect(() => {
         // Force body scroll lock to prevent double scrollbars
         const htmlElement = document.documentElement;
         const originalOverflow = htmlElement.style.overflow;
         htmlElement.style.setProperty('overflow', 'hidden', 'important');
-        
+
         return () => {
             htmlElement.style.overflow = originalOverflow;
         };
@@ -122,9 +133,9 @@ export default function AdminProductDetailPage() {
                     <h2 className="text-xl font-black text-slate-900 uppercase tracking-widest">Resource Missing</h2>
                     <p className="text-xs text-slate-400 font-medium">This product signature could not be verified.</p>
                 </div>
-                <Button 
-                    variant="ghost" 
-                    onClick={() => navigate('/admin/products')}
+                <Button
+                    variant="ghost"
+                    onClick={() => navigate(`/admin/products/${id}?tab=reviews`)}
                     className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900"
                 >
                     Return to Safe Zone
@@ -141,8 +152,8 @@ export default function AdminProductDetailPage() {
             {/* ── Header ── */}
             <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-slate-100 px-8 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-6">
-                    <Button 
-                        variant="ghost" 
+                    <Button
+                        variant="ghost"
                         size="sm"
                         className="rounded-lg h-8 px-2.5 bg-slate-50 hover:bg-slate-100 transition-colors flex items-center gap-2"
                         onClick={() => navigate('/admin/products')}
@@ -160,7 +171,7 @@ export default function AdminProductDetailPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <Button 
+                    <Button
                         size="sm"
                         variant="ghost"
                         className="rounded-lg h-9 px-4 text-[10px] font-black uppercase tracking-widest bg-slate-50 hover:bg-slate-100 text-slate-500 gap-2 transition-all border border-slate-100"
@@ -169,7 +180,7 @@ export default function AdminProductDetailPage() {
                         {copiedSlug ? <Check size={12} className="text-emerald-500" /> : <Copy size={12} className="text-slate-400" />}
                         {product.slug}
                     </Button>
-                    <Button 
+                    <Button
                         size="sm"
                         className="rounded-lg h-9 px-5 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white text-[10px] font-black uppercase tracking-widest gap-2 shadow-lg shadow-blue-500/20 transition-all duration-300 hover:-translate-y-0.5"
                         onClick={() => setShowUploadDialog(true)}
@@ -181,7 +192,7 @@ export default function AdminProductDetailPage() {
             </div>
 
             <main className="flex-1 overflow-hidden p-6">
-                <motion.div 
+                <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="h-full bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm flex flex-col"
@@ -195,7 +206,7 @@ export default function AdminProductDetailPage() {
                                 >
                                     Overview
                                     {activeTab === 'overview' && (
-                                        <motion.div 
+                                        <motion.div
                                             layoutId="active-nav-underline"
                                             className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-primary)]"
                                         />
@@ -212,7 +223,24 @@ export default function AdminProductDetailPage() {
                                         </Badge>
                                     )}
                                     {activeTab === 'images' && (
-                                        <motion.div 
+                                        <motion.div
+                                            layoutId="active-nav-underline"
+                                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-primary)]"
+                                        />
+                                    )}
+                                </TabsTrigger>
+                                <TabsTrigger
+                                    value="variants"
+                                    className="rounded-md px-8 h-full text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-[var(--color-primary)] data-[state=active]:shadow-sm transition-all flex items-center gap-3 relative"
+                                >
+                                    Variants
+                                    {product.variantCount != null && product.variantCount > 0 && (
+                                        <Badge variant="secondary" className="bg-slate-100 text-slate-600 hover:bg-slate-100 border-none px-1.5 h-4.5 text-[9px] relative z-10">
+                                            {product.variantCount}
+                                        </Badge>
+                                    )}
+                                    {activeTab === 'variants' && (
+                                        <motion.div
                                             layoutId="active-nav-underline"
                                             className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-primary)]"
                                         />
@@ -229,7 +257,19 @@ export default function AdminProductDetailPage() {
                                         </Badge>
                                     )}
                                     {activeTab === 'certificates' && (
-                                        <motion.div 
+                                        <motion.div
+                                            layoutId="active-nav-underline"
+                                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-primary)]"
+                                        />
+                                    )}
+                                </TabsTrigger>
+                                <TabsTrigger
+                                    value="reviews"
+                                    className="rounded-md px-8 h-full text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-[var(--color-primary)] data-[state=active]:shadow-sm transition-all flex items-center gap-3 relative"
+                                >
+                                    Customer Reviews
+                                    {activeTab === 'reviews' && (
+                                        <motion.div
                                             layoutId="active-nav-underline"
                                             className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-primary)]"
                                         />
@@ -261,12 +301,15 @@ export default function AdminProductDetailPage() {
                                                         returnPolicyDay: product.returnPolicyDay ?? undefined,
                                                         summary: product.summary,
                                                         description: product.description,
+                                                        isTradeInEligible: product.isTradeInEligible,
+                                                        minTradeInPrice: product.minTradeInPrice,
+                                                        depositAmount: product.depositAmount,
                                                     }}
                                                     copiedSlug={copiedSlug}
                                                     onCopySlug={handleCopySlug}
                                                 />
                                             </div>
-                                            
+
                                             <aside className="space-y-12">
                                                 <QuickInfoCard
                                                     status={product.status as string}
@@ -322,6 +365,35 @@ export default function AdminProductDetailPage() {
                                     </motion.div>
                                 </TabsContent>
 
+                                <TabsContent value="variants" key="variants" className="mt-0 outline-none ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                                    <motion.div
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: -20 }}
+                                        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                                        className="p-10"
+                                    >
+                                        <div className="flex items-center gap-3 mb-8">
+                                            <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center border border-slate-100">
+                                                <Layers className="text-[var(--color-primary)] h-5 w-5" />
+                                            </div>
+                                            <div>
+                                                <h3 className="text-sm font-black text-slate-900 uppercase tracking-widest">Inventory Variants</h3>
+                                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Manage stock, SKU and specific attributes</p>
+                                            </div>
+                                        </div>
+
+                                        <VariantTableWrapper
+                                            productId={product.id}
+                                            productName={product.name}
+                                            onAddVariant={() => navigate(`/admin/products?tab=single&addVariant=${product.id}`)}
+                                            onEditVariant={(v) => navigate(`/admin/products?tab=single&editVariant=${v.id}`)}
+                                            onDeleteVariant={(v) => navigate(`/admin/products?tab=single&deleteVariant=${v.id}`)}
+                                            isTemplate={!!product.fullyCustomizedProductType && product.fullyCustomizedProductType !== 'None'}
+                                        />
+                                    </motion.div>
+                                </TabsContent>
+
                                 <TabsContent value="certificates" key="certificates" className="mt-0 outline-none ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
                                     <motion.div
                                         initial={{ opacity: 0, x: 20 }}
@@ -333,6 +405,17 @@ export default function AdminProductDetailPage() {
                                             certificates={certificates || []}
                                             isLoading={isLoadingCerts}
                                         />
+                                    </motion.div>
+                                </TabsContent>
+
+                                <TabsContent value="reviews" key="reviews" className="mt-0 outline-none ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                                    <motion.div
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: -20 }}
+                                        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                                    >
+                                        <ProductReviewsCard productId={product.id} />
                                     </motion.div>
                                 </TabsContent>
                             </AnimatePresence>

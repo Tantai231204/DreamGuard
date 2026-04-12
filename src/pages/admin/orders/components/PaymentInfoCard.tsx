@@ -6,7 +6,7 @@ import { useAdminPayments } from '@/hooks/queries/usePayment';
 import { CreditCard, AlertCircle, ShieldCheck, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatTime, cn } from '@/lib/utils';
+import { formatTime } from '@/lib/utils';
 import { AdminStatusBadge } from '@/components/admin';
 
 interface PaymentInfoCardProps {
@@ -29,16 +29,6 @@ export function PaymentInfoCard({ orderCode, delay = 0 }: PaymentInfoCardProps) 
   const displayMethod = (rawMethod.toLowerCase() === 'cod' && payment?.status?.toLowerCase() === 'paid')
     ? 'CODPaid'
     : rawMethod;
-
-  const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case 'paid': return 'bg-emerald-50 text-emerald-600 shadow-sm shadow-emerald-50';
-      case 'pending': return 'bg-amber-50 text-amber-600 shadow-sm shadow-amber-50';
-      case 'failed': return 'bg-rose-50 text-rose-600 shadow-sm shadow-rose-50';
-      case 'refunded': return 'bg-purple-50 text-purple-600 shadow-sm shadow-purple-50';
-      default: return 'bg-slate-50 text-slate-600';
-    }
-  };
 
   return (
     <motion.div
@@ -103,28 +93,45 @@ export function PaymentInfoCard({ orderCode, delay = 0 }: PaymentInfoCardProps) 
                 transition={{ duration: 0.2 }}
                 className="p-6 h-full flex flex-col absolute inset-0 z-10"
               >
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex flex-col">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Settlement Method</span>
-                    <AdminStatusBadge
-                      status={displayMethod}
-                      type="neutral"
-                      className="group"
-                    />
+                {/* Top Row: Settlement, Type, Status */}
+                <div className="flex items-end justify-between mb-6 gap-4">
+                  <div className="flex flex-1 items-center gap-8">
+                    <div className="flex flex-col items-start min-w-[90px] justify-center">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Settlement</span>
+                      <AdminStatusBadge
+                        status={displayMethod}
+                        mode="method"
+                        className="scale-90 origin-left"
+                      />
+                    </div>
+                    <div className="flex flex-col items-start min-w-[90px] justify-center">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Type</span>
+                      <AdminStatusBadge
+                        status={payment?.paymentType || 'Purchase'}
+                        className="scale-90 origin-left"
+                      />
+                    </div>
                   </div>
-                  <Badge variant="outline" className={cn(getStatusColor(payment?.status), "border-none font-bold text-[10px] px-2.5 py-1 rounded-full uppercase tracking-wider")}>
-                    {payment?.status || 'UNSETTLED'}
-                  </Badge>
+                  <div className="flex items-end">
+                    <div className="flex items-end">
+                      <AdminStatusBadge
+                        status={payment?.status || 'Pending'}
+                        mode="payment"
+                        className="scale-90 origin-right"
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 mb-6">
-                  <div className="space-y-1">
+                {/* Auth Reference & Timestamp Row */}
+                <div className="flex items-end justify-between mb-6 gap-4">
+                  <div className="space-y-1 flex-1">
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Auth Reference</p>
                     <div className="font-mono text-[10px] font-bold text-slate-600 bg-slate-50 px-2 py-1 rounded border border-slate-100/50 inline-block">
                       {payment?.id?.substring(0, 12).toUpperCase() || 'REF-PENDING'}
                     </div>
                   </div>
-                  <div className="space-y-1 text-right">
+                  <div className="space-y-1 text-right flex-1">
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Timestamp</p>
                     <p className="text-[10px] font-bold text-slate-700">
                       {payment?.createdAt ? formatTime(payment.createdAt) : '--:--:--'}
@@ -132,6 +139,7 @@ export function PaymentInfoCard({ orderCode, delay = 0 }: PaymentInfoCardProps) 
                   </div>
                 </div>
 
+                {/* Amount Row */}
                 <div className="mt-auto items-center justify-between flex">
                   <div className="flex flex-col">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Authorized Gross</span>

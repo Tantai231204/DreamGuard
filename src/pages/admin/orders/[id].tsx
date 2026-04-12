@@ -26,6 +26,7 @@ import {
   PaymentInfoCard,
   AssignShippingStaffDialog,
   ProcessReturnDialog,
+  ProcessExchangeDialog,
   OrderDetailSkeleton,
   ShippingLogisticsEvidence
 } from './components';
@@ -46,6 +47,7 @@ export default function OrderDetail() {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [showProcessReturnDialog, setShowProcessReturnDialog] = useState(false);
+  const [showProcessExchangeDialog, setShowProcessExchangeDialog] = useState(false);
 
   const { data: shippingTasks, isLoading: isTasksLoading } = useShippingTasksByOrder(id!);
   const { data: paymentResponse } = useAdminPayments({ orderCode: order?.orderCode });
@@ -170,6 +172,20 @@ export default function OrderDetail() {
             timestamp: task.completionDate,
             icon: 'package',
           });
+        } else if (task.status === "ExchangeRequested" && task.completionDate) {
+          items.push({
+            title: 'Exchange Requested',
+            description: `Replacement request created. ${task.staffNote ? `(${task.staffNote})` : ''}`,
+            timestamp: task.completionDate,
+            icon: 'package',
+          });
+        } else if ((task.status === "Shipping_Replacement" || task.status === "ShippingReplacement") && task.completionDate) {
+          items.push({
+            title: 'Shipping Replacement',
+            description: `Replacement shipment is now in transit. ${task.staffNote ? `(${task.staffNote})` : ''}`,
+            timestamp: task.completionDate,
+            icon: 'package',
+          });
         } else if (task.status === "Cancelled" && task.completionDate) {
           items.push({
             title: 'Cancelled',
@@ -187,6 +203,20 @@ export default function OrderDetail() {
           description: 'Engagement terminated by administration.',
           timestamp: order.updatedAt,
           icon: 'check',
+        });
+      } else if (currentStatusEnum === OrderStatus.ExchangeRequested) {
+        items.push({
+          title: 'Exchange Requested',
+          description: 'Replacement request has been created by admin.',
+          timestamp: order.updatedAt,
+          icon: 'package',
+        });
+      } else if (currentStatusEnum === OrderStatus.ShippingReplacement) {
+        items.push({
+          title: 'Shipping Replacement',
+          description: 'Replacement shipment is now being delivered.',
+          timestamp: order.updatedAt,
+          icon: 'package',
         });
       }
     }
@@ -206,44 +236,50 @@ export default function OrderDetail() {
               <div className="bg-primary/10 text-primary px-2.5 py-0.5 rounded-md text-[10px] font-black tracking-widest uppercase border border-primary/20">
                 {order.orderCode}
               </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="p-0 h-auto hover:bg-transparent flex items-center gap-1 group/badge">
-                    <AdminStatusBadge status={order.status.toString()} />
-                    <ChevronDown className="w-3 h-3 text-slate-400 group-hover/badge:text-slate-600 transition-colors" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-48 shadow-xl border border-slate-200/60 rounded-xl p-1 animate-in fade-in zoom-in-95 duration-100 z-50">
-                  <div className="px-3 py-2 border-b border-slate-50 mb-1">
-                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Transition Override</span>
-                  </div>
-                  {Object.entries(ADMIN_ORDER_STATUS_THEME)
-                    .filter(([status]) => {
-                      if (!ADMIN_ALLOWED_TRANSITION_STATUSES.includes(status)) return false;
+              <div className="flex items-center gap-1.5">
+                <AdminStatusBadge status="order" variant="default" className="scale-90" />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="p-0 h-auto hover:bg-transparent flex items-center gap-1 group/badge">
+                      <AdminStatusBadge status={order.status.toString()} />
+                      <ChevronDown className="w-3 h-3 text-slate-400 group-hover/badge:text-slate-600 transition-colors" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-48 shadow-xl border border-slate-200/60 rounded-xl p-1 animate-in fade-in zoom-in-95 duration-100 z-50">
+                    <div className="px-3 py-2 border-b border-slate-50 mb-1">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Transition Override</span>
+                    </div>
+                    {Object.entries(ADMIN_ORDER_STATUS_THEME)
+                      .filter(([status]) => {
+                        if (!ADMIN_ALLOWED_TRANSITION_STATUSES.includes(status)) return false;
 
-                      const targetStatusEnum = ORDER_STATUS_MAP[status];
+                        const targetStatusEnum = ORDER_STATUS_MAP[status];
+                        const isReplacementRecovery =
+                          currentStatusEnum === OrderStatus.ShippingReplacement &&
+                          targetStatusEnum === OrderStatus.Processing;
 
-                      // Business Rule 1: Cannot move status backward
-                      if (targetStatusEnum <= currentStatusEnum) return false;
+                        // Business Rule 1: Cannot move status backward
+                        if (!isReplacementRecovery && targetStatusEnum <= currentStatusEnum) return false;
 
-                      // Business Rule 2: Cannot cancel if past Confirmed
-                      if (targetStatusEnum === OrderStatus.Cancelled) {
-                        return currentStatusEnum === OrderStatus.Pending || currentStatusEnum === OrderStatus.Confirmed;
-                      }
+                        // Business Rule 2: Cannot cancel if past Confirmed
+                        if (targetStatusEnum === OrderStatus.Cancelled) {
+                          return currentStatusEnum === OrderStatus.Pending || currentStatusEnum === OrderStatus.Confirmed;
+                        }
 
-                      return true;
-                    })
-                    .map(([status]) => (
-                      <DropdownMenuItem
-                        key={status}
-                        onClick={() => status === 'Cancelled' ? setShowCancelDialog(true) : handleUpdateStatus(status)}
-                        className="rounded-lg cursor-pointer py-1.5 px-2 hover:bg-slate-50 transition-colors"
-                      >
-                        <AdminStatusBadge status={status} className="w-full justify-start" />
-                      </DropdownMenuItem>
-                    ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                        return true;
+                      })
+                      .map(([status]) => (
+                        <DropdownMenuItem
+                          key={status}
+                          onClick={() => status === 'Cancelled' ? setShowCancelDialog(true) : handleUpdateStatus(status)}
+                          className="rounded-lg cursor-pointer py-1.5 px-2 hover:bg-slate-50 transition-colors"
+                        >
+                          <AdminStatusBadge status={status} className="w-full justify-start" />
+                        </DropdownMenuItem>
+                      ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </div>
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">
               Logistic Intelligence <span className="text-slate-400 font-medium">#{order.id.substring(0, 8).toUpperCase()}</span>
@@ -321,6 +357,7 @@ export default function OrderDetail() {
                 onUpdateStatus={handleUpdateStatus}
                 onCancelOrder={() => setShowCancelDialog(true)}
                 onProcessReturn={() => setShowProcessReturnDialog(true)}
+                onProcessExchange={() => setShowProcessExchangeDialog(true)}
                 canCancel={canCancel && isAdmin}
                 hasTask={!!shippingTasks && shippingTasks.length > 0}
               />
@@ -370,6 +407,14 @@ export default function OrderDetail() {
       <ProcessReturnDialog
         isOpen={showProcessReturnDialog}
         onClose={() => setShowProcessReturnDialog(false)}
+        orderId={order.id}
+        taskId={activeTask?.shippingTaskId || ''}
+        items={order.items || []}
+      />
+
+      <ProcessExchangeDialog
+        isOpen={showProcessExchangeDialog}
+        onClose={() => setShowProcessExchangeDialog(false)}
         orderId={order.id}
         taskId={activeTask?.shippingTaskId || ''}
         items={order.items || []}

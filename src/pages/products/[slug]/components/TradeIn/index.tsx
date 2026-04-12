@@ -1,16 +1,23 @@
-import { memo } from 'react';
+import { memo, useCallback } from 'react';
 import { X } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Dialog,
   DialogContent,
   DialogTitle,
   DialogTrigger,
+  DialogHeader,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { AppRoute } from '@/lib/constants';
+import { toast } from 'sonner';
+import { ApiError, ERROR_TITLES } from '@/lib/api';
+import { formatTradeInPrice } from '../../utils/tradeIn';
 
-import { useTradeInFlow } from '../../hooks/useTradeInFlow';
-import { STEPS, STEP_TITLES } from './constants';
+import { useTradeInFlow, type TradeInAudit } from '../../hooks/useTradeInFlow';
+import { STEPS, STEP_LABELS } from './constants';
 import type { TradeInSelectorProps } from './types';
 
 import { TradeInTrigger } from './TradeInTrigger';
@@ -18,148 +25,251 @@ import { TradeInSidebar } from './TradeInSidebar';
 import { TradeInFooter } from './TradeInFooter';
 import { StepSelection } from './steps/StepSelection';
 import { StepAudit } from './steps/StepAudit';
+import { StepImages } from './steps/StepImages';
 import { StepLogistics } from './steps/StepLogistics';
 import { StepSummary } from './steps/StepSummary';
 
-/**
- * TradeInSelector — top-level orchestrator for the Dream-Renew trade-in flow.
- *
- * Architecture:
- *   TradeIn/
- *     index.tsx          ← this file (Dialog + state wiring)
- *     constants.ts       ← STEPS, AUDIT_ITEMS, LOGISTICS_OPTIONS
- *     types.ts           ← local types
- *     TradeInTrigger.tsx ← entry-point button (always visible on product page)
- *     TradeInSidebar.tsx ← step navigator + credit summary
- *     TradeInFooter.tsx  ← Back / Next / Confirm actions
- *     ProductCard.tsx    ← individual trade-in product row
- *     steps/
- *       StepSelection.tsx
- *       StepAudit.tsx
- *       StepLogistics.tsx
- *       StepSummary.tsx
- */
+type StepType = typeof STEPS[number];
+
 export const TradeInSelector = memo(function TradeInSelector({
   eligibleProducts,
   selectedProducts,
+  currentProductVariantId,
   onToggleProduct,
   tradeInPercentage = 30,
   className,
+  isEligible = true,
+  isOpen = false,
+  onOpenChange,
+  isLoadingItems = false,
+  isLoggedIn = false,
+  minTradeInPrice = 0,
+  depositAmount = 0,
+  currentProductPrice = 0,
+  estimatedTradeInValue,
+  estimatedAmountToPay,
+  isEstimatingPrice = false,
+  onCreateTradeInOrder,
+  initialContact,
 }: TradeInSelectorProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const flow = useTradeInFlow({
     eligibleProducts,
     selectedProducts,
     onToggleProduct,
+    currentProductVariantId,
     tradeInPercentage,
+    onCreateTradeInOrder,
+    initialContact,
   });
 
-  if (eligibleProducts.length === 0) return null;
+  const dialogOpen = onOpenChange ? isOpen : flow.isOpen;
 
-  const stepIndex = STEPS.indexOf(flow.step as typeof STEPS[number]);
+  const setDialogOpen = useCallback((open: boolean) => {
+    if (onOpenChange) {
+      onOpenChange(open);
+      return;
+    }
+    flow.setIsOpen(open);
+  }, [flow, onOpenChange]);
+
+  const redirectToLogin = useCallback(() => {
+    navigate(AppRoute.LOGIN, {
+      state: {
+        from: `${location.pathname}${location.search}${location.hash}`,
+        reason: 'unauthenticated',
+      },
+    });
+  }, [location.hash, location.pathname, location.search, navigate]);
+
+  const handleDialogOpenChange = useCallback((open: boolean) => {
+    if (open && !isLoggedIn) {
+      redirectToLogin();
+      return;
+    }
+
+    setDialogOpen(open);
+
+    if (!open) {
+      setTimeout(() => flow.resetFlow(), 300);
+    }
+  }, [flow, isLoggedIn, redirectToLogin, setDialogOpen]);
+
+
+  const handleComplete = useCallback(async () => {
+    try {
+      await flow.handleComplete();
+      if (selectedProducts[0]) {
+        onToggleProduct(selectedProducts[0]);
+      }
+      toast.success(
+        flow.images.length > 0
+          ? 'Trade-in order created. Images are uploading in background.'
+          : 'Trade-in order created successfully.'
+      );
+      setDialogOpen(false);
+      flow.resetFlow();
+    } catch (error) {
+      const apiError = error instanceof ApiError ? error : null;
+      const title = apiError ? (ERROR_TITLES[apiError.code] || 'Action Failed') : 'Action Failed';
+      const description = error instanceof Error ? error.message : 'Unexpected error occurred.';
+
+      toast.error(title, { description });
+    }
+  }, [flow, onToggleProduct, selectedProducts, setDialogOpen]);
+
+  if (!isEligible) {
+    return <TradeInTrigger isEligible={false} selectedCount={0} totalValue={0} className={className} />;
+  }
+
+  const stepIndex = STEPS.indexOf(flow.step as StepType);
+  const safeStepIndex = stepIndex >= 0 ? stepIndex : 0;
+  const hasEstimatedTradeInValue = typeof estimatedTradeInValue === 'number';
+  const displayTradeInValue = hasEstimatedTradeInValue ? estimatedTradeInValue : 0;
 
   return (
     <Dialog
-      open={flow.isOpen}
-      onOpenChange={(open) => {
-        flow.setIsOpen(open);
-        if (!open) setTimeout(() => flow.setStep('selection'), 300);
-      }}
+      open={dialogOpen}
+      onOpenChange={handleDialogOpenChange}
     >
-      {/* ── Trigger (always visible on product page) ── */}
       <DialogTrigger asChild className={className}>
         <TradeInTrigger
           selectedCount={flow.selectedCount}
-          totalValue={flow.totalTradeInValue}
+          totalValue={displayTradeInValue}
         />
       </DialogTrigger>
 
-      {/* ── Dialog ── */}
-      {/* [&>button:last-of-type]:hidden suppresses Shadcn's built-in close button */}
       <DialogContent
         className={cn(
-          'max-w-[1000px] w-[95vw] p-0 overflow-hidden border-none',
-          'rounded-3xl shadow-[0_32px_80px_rgba(0,0,0,0.22),0_0_0_1px_rgba(0,0,0,0.05)]',
-          'bg-white h-[88vh] max-h-[640px] flex gap-0 outline-none',
-          '[&>button:last-of-type]:hidden'
+          '!max-w-[1100px] w-[95vw] h-[750px] p-0 overflow-hidden border-none antialiased',
+          'shadow-[0_25px_50px_-12px_rgba(0,0,0,0.4)] bg-[#FDFCFA] flex outline-none gap-0',
+          'duration-500 rounded-[32px] [&>button]:hidden'
         )}
       >
-        {/* Sidebar */}
-        <TradeInSidebar
-          step={flow.step}
-          selectedCount={flow.selectedCount}
-          totalTradeInValue={flow.totalTradeInValue}
+        <DialogHeader className="sr-only">
+            <DialogTitle>Dream-Renew Trade-In</DialogTitle>
+            <DialogDescription>A luxury trade-in flow to upgrade your sanctuary.</DialogDescription>
+        </DialogHeader>
+
+        {/* ── Left Sidebar (Brand & Progress) ── */}
+        <TradeInSidebar 
+          step={flow.step} 
+          selectedCount={flow.selectedCount} 
+          totalTradeInValue={displayTradeInValue} 
+          depositAmount={depositAmount}
+          hasEstimatedValue={hasEstimatedTradeInValue}
+          isEstimatingPrice={isEstimatingPrice}
         />
 
-        {/* Main content area */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-[#FDFCFA]">
-          {/* Header bar */}
-          <div className="h-12 px-6 flex items-center gap-4 border-b border-[#EDE8E1] bg-white flex-shrink-0">
-            {/* Progress segments */}
+        {/* ── Right Content Area ── */}
+        <div className="flex-1 flex flex-col h-full bg-[#FDFCFA] relative">
+          
+          {/* Top progress bar (matching image style) */}
+          <div className="h-16 px-10 flex items-center gap-6 border-b border-[#EDE8E1] bg-white flex-shrink-0">
             <div className="flex gap-1.5 w-32">
-              {STEPS.map((s, i) => (
-                <div
-                  key={s}
-                  className={cn(
-                    'h-[3px] flex-1 rounded-full transition-all duration-500',
-                    i <= stepIndex ? 'bg-[#3D5140]' : 'bg-[#E8E2D9]'
-                  )}
-                />
-              ))}
+              {STEPS.map((s) => {
+                  const sIdx = STEPS.indexOf(s as typeof STEPS[number]);
+                  const currentIdx = STEPS.indexOf(flow.step as typeof STEPS[number]);
+                  return (
+                    <div
+                      key={s}
+                      className={cn(
+                        'h-[3px] flex-1 rounded-full transition-all duration-700',
+                        sIdx <= currentIdx ? 'bg-[#3D5140]' : 'bg-[#E8E2D9]'
+                      )}
+                    />
+                  );
+              })}
             </div>
-            <DialogTitle className="text-[11px] text-[#8C7A6B] font-medium flex-1 tracking-wide">
-              {STEP_TITLES[flow.step]}
-            </DialogTitle>
-            {/* Custom close button (replaces Shadcn's) */}
+            <div className="text-[11px] text-[#A89E94] font-bold tracking-[0.14em] uppercase flex-1">
+              Step {safeStepIndex + 1} of {STEPS.length} — {STEP_LABELS[flow.step] || flow.step}
+            </div>
+            {/* Custom close button */}
             <button
-              onClick={() => flow.setIsOpen(false)}
-              aria-label="Close trade-in dialog"
-              className="w-7 h-7 rounded-lg border border-[#EDE8E1] bg-white flex items-center justify-center text-[#B0A89E] hover:text-rose-500 hover:border-rose-200 hover:bg-rose-50 transition-all"
+              onClick={() => handleDialogOpenChange(false)}
+              className="w-8 h-8 rounded-full border border-[#EDE8E1] flex items-center justify-center text-[#B0A89E] hover:text-[#3D5140] hover:bg-[#F4F7F4] transition-all"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
 
-          {/* Scrollable step body */}
-          <div className="flex-1 overflow-y-auto px-6 py-6">
+          <div className="px-10 py-3 border-b border-[#EDE8E1] bg-[#F6FAF7] flex flex-wrap items-center gap-3">
+            <span className="inline-flex items-center rounded-full border border-[#3D5140]/20 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-[#3D5140]">
+              Pay Today: {formatTradeInPrice(depositAmount)} deposit (selected new variant)
+            </span>
+            <span className="text-[11px] font-semibold text-[#6A7A6B]">
+              Deduction is shown as From estimate from the old variant you select.
+            </span>
+          </div>
+
+          {/* Precision Content Area */}
+          <div className="flex-1 overflow-y-auto px-12 py-12 scrollbar-hide subpixel-antialiased">
             <AnimatePresence mode="wait">
               {flow.step === 'selection' && (
                 <StepSelection
                   eligibleProducts={eligibleProducts}
                   selectedProducts={selectedProducts}
                   onToggle={flow.onToggleProduct}
+                  isLoading={isLoadingItems}
+                  estimatedTradeInValue={estimatedTradeInValue}
+                  isEstimatingPrice={isEstimatingPrice}
+                  depositAmount={depositAmount}
                 />
               )}
               {flow.step === 'audit' && (
-                <StepAudit audit={flow.audit} onToggle={flow.toggleAudit} />
+                <StepAudit 
+                  audit={flow.audit} 
+                  onToggle={(key) => flow.toggleAudit(key as keyof TradeInAudit)} 
+                  onDescriptionChange={flow.setAuditDescription}
+                  onIsGoodChange={flow.setAuditIsGood}
+                />
+              )}
+              {flow.step === 'images' && (
+                <StepImages
+                   images={flow.images}
+                   onImagesChange={flow.setImages}
+                />
               )}
               {flow.step === 'logistics' && (
                 <StepLogistics
                   collectionType={flow.collectionType}
                   setCollectionType={flow.setCollectionType}
+                  contact={flow.contact}
+                  setContact={flow.setContact}
                 />
               )}
               {flow.step === 'summary' && (
                 <StepSummary
-                  selectedCount={flow.selectedCount}
                   totalTradeInValue={flow.totalTradeInValue}
-                  collectionType={flow.collectionType}
                   sessionOrderId={flow.sessionOrderId}
+                  depositAmount={depositAmount}
+                  minTradeInPrice={minTradeInPrice}
+                  currentProductPrice={currentProductPrice}
+                  estimatedTradeInValue={estimatedTradeInValue}
+                  estimatedAmountToPay={estimatedAmountToPay}
+                  isEstimatingPrice={isEstimatingPrice}
                 />
               )}
             </AnimatePresence>
           </div>
 
-          {/* Footer */}
+          {/* Footer (Final Breakdown) */}
           <TradeInFooter
             step={flow.step}
-            stepIndex={stepIndex}
+            stepIndex={safeStepIndex}
             selectedCount={flow.selectedCount}
-            totalTradeInValue={flow.totalTradeInValue}
+            totalTradeInValue={displayTradeInValue}
+            hasEstimatedValue={hasEstimatedTradeInValue}
+            isEstimatingPrice={isEstimatingPrice}
             isSubmitting={flow.isSubmitting}
+            imagesCount={flow.images.length}
             onBack={flow.handleBack}
             onNext={flow.handleNext}
-            onComplete={flow.handleComplete}
-            onClose={() => flow.setIsOpen(false)}
+            onComplete={handleComplete}
+            onClose={() => handleDialogOpenChange(false)}
+            contact={flow.contact}
           />
         </div>
       </DialogContent>

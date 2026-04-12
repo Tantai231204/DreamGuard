@@ -260,7 +260,7 @@ export function CartDrawer() {
                     </div>
 
                     {/* Items */}
-                    <div className="cart-drawer-scroll flex-1 overflow-y-auto px-5 overscroll-contain">
+                    <div className="custom-scrollbar scrollbar-profile flex-1 overflow-y-auto px-5 overscroll-contain">
                         {cart.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-full text-center px-8 relative overflow-hidden">
                                 {/* Decorative Background Elements */}
