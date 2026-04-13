@@ -6,7 +6,7 @@ import { useSearchParams } from 'react-router-dom';
 
 import { cn } from '@/lib/utils';
 import AdminPageHeader from '@/components/layout/AdminPageHeader';
-import { adminOrdersQueryOptions, adminTradeInOrdersQueryOptions } from '@/hooks/queries';
+import { adminOrdersQueryOptions, adminTradeInOrdersQueryOptions, waitingTradeInOrdersQueryOptions } from '@/hooks/queries';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 import { ProductOrdersTab } from './components/ProductOrdersTab';
@@ -25,12 +25,21 @@ export default function OrderManagement() {
   const [searchParams, setSearchParams] = useSearchParams();
   const role = useAuthStore((s) => s.role);
   const isAdminOrManager = role === 'Admin' || role === 'Manager';
+  const isSeller = role === 'Seller';
+  const canViewTradeIn = isAdminOrManager || isSeller;
 
-  const activeView: AdminOrderView = searchParams.get('view') === 'trade-in' ? 'trade-in' : 'orders';
+  const requestedView = searchParams.get('view');
+  const activeView: AdminOrderView = (requestedView === 'trade-in' && canViewTradeIn)
+    ? 'trade-in'
+    : (isSeller ? 'trade-in' : 'orders');
 
   const handleViewChange = useCallback(
     (nextValue: string) => {
       const nextView: AdminOrderView = nextValue === 'trade-in' ? 'trade-in' : 'orders';
+
+      if (nextView === 'trade-in' && !canViewTradeIn) {
+        return;
+      }
 
       setSearchParams(
         (prev) => {
@@ -47,7 +56,7 @@ export default function OrderManagement() {
         { replace: true },
       );
     },
-    [setSearchParams],
+    [setSearchParams, canViewTradeIn],
   );
 
   const headerMeta = useMemo(() => {
@@ -73,7 +82,7 @@ export default function OrderManagement() {
       }
 
       // Role guard for Trade-In prefetch
-      if (targetView === 'trade-in' && !isAdminOrManager) {
+      if (targetView === 'trade-in' && !canViewTradeIn) {
         return;
       }
 
@@ -87,14 +96,23 @@ export default function OrderManagement() {
         return;
       }
 
-      void queryClient.prefetchQuery(
-        adminTradeInOrdersQueryOptions({
-          pageNumber: 1,
-          pageSize: TRADE_IN_ORDERS_DEFAULT_PAGE_SIZE,
-        }),
-      );
+      if (isSeller) {
+        void queryClient.prefetchQuery(
+          waitingTradeInOrdersQueryOptions({
+            pageNumber: 1,
+            pageSize: TRADE_IN_ORDERS_DEFAULT_PAGE_SIZE,
+          }),
+        );
+      } else {
+        void queryClient.prefetchQuery(
+          adminTradeInOrdersQueryOptions({
+            pageNumber: 1,
+            pageSize: TRADE_IN_ORDERS_DEFAULT_PAGE_SIZE,
+          }),
+        );
+      }
     },
-    [activeView, queryClient, isAdminOrManager],
+    [activeView, queryClient, canViewTradeIn, isSeller],
   );
 
   return (
@@ -136,7 +154,7 @@ export default function OrderManagement() {
                   </div>
                 </TabsTrigger>
 
-                {isAdminOrManager && (
+                {canViewTradeIn && (
                 <TabsTrigger
                   value="trade-in"
                   className={cn(

@@ -36,6 +36,7 @@ interface NegotiatingSectionProps {
 interface ActiveProgressSectionProps {
   status: string;
   isTransitioning: boolean;
+  allowStatusActions?: boolean;
   onMarkArrived: () => void;
   onCompleteSuccess: () => void;
   onMarkCompleted: () => void;
@@ -94,10 +95,10 @@ export const NegotiatingSection = memo(function NegotiatingSection({
 }: NegotiatingSectionProps) {
   return (
     <div className="p-4 space-y-4">
-      <div className="bg-slate-50/50 border border-slate-100 rounded-lg p-3 flex items-center justify-between">
+      <div className="bg-slate-50/50 border border-slate-100 rounded-lg p-3 flex items-start sm:items-center justify-between gap-3">
         <div>
           <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Live Settlement Preview</span>
-          <span className="text-sm font-black text-primary tracking-tight">{formatPrice(previewAmountToPay)}</span>
+          <span className="text-sm sm:text-base font-black text-primary tracking-tight break-all">{formatPrice(previewAmountToPay)}</span>
         </div>
         <TrendingDown className="w-4 h-4 text-primary opacity-30" />
       </div>
@@ -112,10 +113,10 @@ export const NegotiatingSection = memo(function NegotiatingSection({
             value={formattedNegotiatedPrice}
             onChange={onNegotiatedPriceChange}
             inputMode="numeric"
-            className="h-12 pl-10 pr-4 rounded-xl border-2 border-slate-100 bg-white font-black text-sm text-primary focus:ring-0 focus:border-primary/30 transition-all shadow-inner shadow-slate-50 placeholder:text-slate-300"
+            className="h-12 pl-16 pr-4 rounded-xl border-2 border-slate-100 bg-white font-black text-sm text-primary focus:ring-0 focus:border-primary/30 transition-all shadow-inner shadow-slate-50 placeholder:text-slate-300"
             placeholder="e.g. 5000000"
           />
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm">VND</span>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 font-black text-[10px] tracking-wide">VND</span>
         </div>
       </div>
 
@@ -129,7 +130,7 @@ export const NegotiatingSection = memo(function NegotiatingSection({
           Confirm Deal
         </Button>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {canAccessTradeInChat ? (
             <Button
               variant="ghost"
@@ -163,6 +164,7 @@ export const NegotiatingSection = memo(function NegotiatingSection({
 export const ActiveProgressSection = memo(function ActiveProgressSection({
   status,
   isTransitioning,
+  allowStatusActions = true,
   onMarkArrived,
   onCompleteSuccess,
   onMarkCompleted,
@@ -180,7 +182,13 @@ export const ActiveProgressSection = memo(function ActiveProgressSection({
         </div>
       </div>
 
-      {status === 'CONFIRMED' && (
+      {!allowStatusActions && (
+        <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+          Delivery staff has been assigned. Admin/Manager cannot update status further.
+        </div>
+      )}
+
+      {allowStatusActions && status === 'CONFIRMED' && (
         <Button
           className="w-full h-10 rounded-lg bg-primary border-0 ring-0 text-[10px] font-black uppercase tracking-widest shadow-inner shadow-white/10 hover:bg-primary/90 transition-all gap-2"
           onClick={onMarkArrived}
@@ -191,7 +199,7 @@ export const ActiveProgressSection = memo(function ActiveProgressSection({
         </Button>
       )}
 
-      {status === 'PROCESSING' && (
+      {allowStatusActions && status === 'PROCESSING' && (
         <Button
           className="w-full h-10 rounded-lg bg-emerald-600 border-0 ring-0 text-[10px] font-black uppercase tracking-widest shadow-inner shadow-white/10 hover:bg-emerald-700 transition-all gap-2"
           onClick={onCompleteSuccess}
@@ -202,7 +210,7 @@ export const ActiveProgressSection = memo(function ActiveProgressSection({
         </Button>
       )}
 
-      {status === 'DELIVERED' && (
+      {allowStatusActions && status === 'DELIVERED' && (
         <Button
           className="w-full h-10 rounded-lg bg-emerald-700 border-0 ring-0 text-[10px] font-black uppercase tracking-widest shadow-inner shadow-white/10 hover:bg-emerald-800 transition-all gap-2"
           onClick={onMarkCompleted}
@@ -213,13 +221,15 @@ export const ActiveProgressSection = memo(function ActiveProgressSection({
         </Button>
       )}
 
-      <Button
-        variant="ghost"
-        className="w-full h-8 rounded-md text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-rose-500 hover:bg-rose-50/30 transition-all"
-        onClick={onOpenCancelDialog}
-      >
-        Force Cancel
-      </Button>
+      {allowStatusActions && (
+        <Button
+          variant="ghost"
+          className="w-full h-8 rounded-md text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-rose-500 hover:bg-rose-50/30 transition-all"
+          onClick={onOpenCancelDialog}
+        >
+          Force Cancel
+        </Button>
+      )}
     </div>
   );
 });

@@ -1,11 +1,14 @@
 import { useParams, useNavigate } from 'react-router-dom';
+import { useMemo } from 'react';
 import { useAdminTradeInOrderDetail } from '@/hooks/queries';
+import { useShippingTasksByTradeInOrder } from '@/hooks/queries/useShippingTask';
 import { formatPrice, formatDate } from '@/lib/utils';
 import { AdminStatusBadge } from '@/components/admin';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, CreditCard, Image as ImageIcon, AlertCircle, ShoppingBag, MapPin, Truck, ArrowDown, History, RefreshCcw } from 'lucide-react';
 import { PaymentInfoCard } from '@/pages/admin/orders/components/PaymentInfoCard';
+import { ShippingLogisticsEvidence } from '@/pages/admin/orders/components/ShippingLogisticsEvidence';
 import { AppRoute } from '@/lib/constants';
 import { tradeInStatusBadgeValue } from '@/pages/admin/orders/components/tradeInStatus';
 import { TradeInStaffManagement } from './components/TradeInStaffManagement';
@@ -15,6 +18,38 @@ export default function TradeInOrderDetail() {
   const navigate = useNavigate();
 
   const { data: order, isLoading, isError } = useAdminTradeInOrderDetail(id!);
+  const normalizedStatus = String(order?.status || '').toUpperCase();
+  const canShowShippingTasks =
+    normalizedStatus === 'CONFIRMED'
+    || normalizedStatus === 'PROCESSING'
+    || normalizedStatus === 'DELIVERED'
+    || normalizedStatus === 'COMPLETED';
+  const { data: shippingTasks } = useShippingTasksByTradeInOrder(
+    canShowShippingTasks ? (order?.tradeInOrderId || '') : ''
+  );
+
+  const sortedShippingTasks = useMemo(() => {
+    const tasks = [...(shippingTasks || [])];
+    return tasks.sort((a, b) => {
+      const aTime = new Date(a.completionDate || a.shippingDate || 0).getTime();
+      const bTime = new Date(b.completionDate || b.shippingDate || 0).getTime();
+      return bTime - aTime;
+    });
+  }, [shippingTasks]);
+
+  const activeTask = useMemo(
+    () => sortedShippingTasks.find((task) => task.status !== 'Reassigned'),
+    [sortedShippingTasks]
+  );
+
+  const historicalEvidenceTasks = useMemo(
+    () => sortedShippingTasks.filter(
+      (task) =>
+        task.shippingTaskId !== activeTask?.shippingTaskId
+        && ((task.evidences?.length || 0) > 0 || !!task.staffNote)
+    ),
+    [sortedShippingTasks, activeTask]
+  );
 
   if (isLoading) {
     return (
@@ -207,10 +242,66 @@ export default function TradeInOrderDetail() {
                 </div>
               </div>
 
-            </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="flex flex-col space-y-4 h-full">
+                  <div className="flex items-center justify-between px-2">
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                      <CreditCard className="w-3.5 h-3.5 text-primary" />
+                      Financial Vault
+                    </h3>
+                    <div className="h-px bg-slate-100 flex-1 ml-4" />
+                  </div>
+                  <div className="h-[280px]">
+                    <PaymentInfoCard orderCode={order.orderCode} />
+                  </div>
+                </div>
 
-            <div className="col-span-12 lg:col-span-4 space-y-6">
-              <TradeInStaffManagement order={order} />
+                <div className="flex flex-col space-y-4 h-full">
+                  <div className="flex items-center justify-between px-2">
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                      <Truck className="w-3.5 h-3.5 text-primary" />
+                      Deployment Site
+                    </h3>
+                    <div className="h-px bg-slate-100 flex-1 ml-4" />
+                  </div>
+
+                  <div className="bg-white rounded-2xl border border-blue-100/50 p-5 shadow-sm overflow-hidden relative group flex-1">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-primary/10 transition-colors" />
+
+                    <div className="flex flex-col gap-4 relative z-10">
+                      <div className="flex items-start justify-between">
+                        <div className="flex flex-col">
+                          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Recipient</span>
+                          <p className="text-sm font-black text-slate-900 leading-tight">{order.receiverName}</p>
+                          <p className="text-[11px] font-bold text-slate-500 font-mono tracking-tighter mt-0.5">{order.phoneNumber}</p>
+                        </div>
+                        <div className="p-2 rounded-lg bg-blue-50">
+                          <MapPin className="w-3.5 h-3.5 text-primary" />
+                        </div>
+                      </div>
+
+                      <div className="pt-4 border-t border-slate-50">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Deployment Coordinates</span>
+                        <div className="space-y-2">
+                          <div className="flex items-start gap-2 group/addr">
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary/30 group-hover/addr:bg-primary transition-colors mt-1.5 flex-shrink-0" />
+                            <p className="text-[11px] font-bold text-slate-700 leading-relaxed uppercase">{order.address}</p>
+                          </div>
+                          <div className="flex items-center gap-2 group/addr pt-1">
+                            <div className="w-1.5 h-1.5 rounded-full bg-slate-200 group-hover/addr:bg-primary transition-colors" />
+                            <div className="flex items-center gap-2">
+                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Target Location</p>
+                              <span className="bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-bold uppercase tracking-wider px-2 py-0.5">
+                                VERIFIED
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between px-2">
@@ -239,64 +330,22 @@ export default function TradeInOrderDetail() {
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <div className="flex items-center justify-between px-2">
-                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                    <CreditCard className="w-3.5 h-3.5 text-primary" />
-                    Financial Vault
-                  </h3>
-                  <div className="h-px bg-slate-100 flex-1 ml-4" />
-                </div>
-                <div className="h-[280px]">
-                  <PaymentInfoCard orderCode={order.orderCode} />
-                </div>
-              </div>
+            </div>
 
-              <div className="space-y-4">
-                <div className="flex items-center justify-between px-2">
-                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                    <Truck className="w-3.5 h-3.5 text-primary" />
-                    Deployment Site
-                  </h3>
-                  <div className="h-px bg-slate-100 flex-1 ml-4" />
-                </div>
+            <div className="col-span-12 lg:col-span-4 space-y-8">
+              <TradeInStaffManagement order={order} />
 
-                <div className="bg-white rounded-2xl border border-blue-100/50 p-5 shadow-sm overflow-hidden relative group">
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-primary/10 transition-colors" />
+              {activeTask?.shippingTaskId && (
+                <ShippingLogisticsEvidence taskId={activeTask.shippingTaskId} delay={0.15} />
+              )}
 
-                  <div className="flex flex-col gap-4 relative z-10">
-                    <div className="flex items-start justify-between">
-                      <div className="flex flex-col">
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Recipient</span>
-                        <p className="text-sm font-black text-slate-900 leading-tight">{order.receiverName}</p>
-                        <p className="text-[11px] font-bold text-slate-500 font-mono tracking-tighter mt-0.5">{order.phoneNumber}</p>
-                      </div>
-                      <div className="p-2 rounded-lg bg-blue-50">
-                        <MapPin className="w-3.5 h-3.5 text-primary" />
-                      </div>
-                    </div>
-
-                    <div className="pt-4 border-t border-slate-50">
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 block">Deployment Coordinates</span>
-                      <div className="space-y-2">
-                        <div className="flex items-start gap-2 group/addr">
-                          <div className="w-1.5 h-1.5 rounded-full bg-primary/30 group-hover/addr:bg-primary transition-colors mt-1.5 flex-shrink-0" />
-                          <p className="text-[11px] font-bold text-slate-700 leading-relaxed uppercase">{order.address}</p>
-                        </div>
-                        <div className="flex items-center gap-2 group/addr pt-1">
-                          <div className="w-1.5 h-1.5 rounded-full bg-slate-200 group-hover/addr:bg-primary transition-colors" />
-                          <div className="flex items-center gap-2">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Target Location</p>
-                            <span className="bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-bold uppercase tracking-wider px-2 py-0.5">
-                              VERIFIED
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              {historicalEvidenceTasks.map((task, index) => (
+                <ShippingLogisticsEvidence
+                  key={task.shippingTaskId}
+                  taskId={task.shippingTaskId}
+                  delay={0.18 + (index * 0.03)}
+                />
+              ))}
 
             </div>
           </div>

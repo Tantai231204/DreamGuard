@@ -378,19 +378,19 @@ const tradeInOrderService = {
 
   /** PATCH /TradeInOrders/{id}/processing */
   processing: async (tradeInOrderId: string): Promise<TradeInActionResponse> => {
-    const res = await apiClient.patch(`/TradeInOrders/${tradeInOrderId}/processing`);
+    const res = await apiClient.patch(`/TradeInOrders/${tradeInOrderId}/processing`, {});
     return res.data;
   },
 
   /** PATCH /TradeInOrders/{id}/delivered */
   delivered: async (tradeInOrderId: string): Promise<TradeInActionResponse> => {
-    const res = await apiClient.patch(`/TradeInOrders/${tradeInOrderId}/delivered`);
+    const res = await apiClient.patch(`/TradeInOrders/${tradeInOrderId}/delivered`, {});
     return res.data;
   },
 
   /** PATCH /TradeInOrders/{id}/completed */
   completed: async (tradeInOrderId: string): Promise<TradeInActionResponse> => {
-    const res = await apiClient.patch(`/TradeInOrders/${tradeInOrderId}/completed`);
+    const res = await apiClient.patch(`/TradeInOrders/${tradeInOrderId}/completed`, {});
     return res.data;
   },
 

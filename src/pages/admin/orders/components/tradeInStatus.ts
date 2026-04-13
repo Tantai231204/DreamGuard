@@ -1,14 +1,13 @@
 import type { TradeInOrderListItem } from '@/api/types/tradeInOrder';
 import {
   TRADE_IN_FILTER_BASE_STATUSES,
-  getTradeInStatusBadgeStatus,
   getTradeInStatusMeta,
   isTradeInWaitingStatus,
   normalizeTradeInStatus,
 } from '@/utils/tradeInWorkflow';
 
 export const tradeInStatusBadgeValue = (status: string) => {
-  return getTradeInStatusBadgeStatus(status);
+  return normalizeTradeInStatus(status);
 };
 
 export const tradeInStatusLabel = (status: string) => {

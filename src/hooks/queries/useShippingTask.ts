@@ -11,6 +11,7 @@ import { orderKeys } from "./useOrder";
 export const shippingKeys = {
     all: ["shippingTasks"] as const,
     byOrder: (orderId: string) => [...shippingKeys.all, "order", orderId] as const,
+    byTradeInOrder: (tradeInOrderId: string) => [...shippingKeys.all, "trade-in-order", tradeInOrderId] as const,
 };
 
 export const useShippingTasksByOrder = (orderId: string) => {
@@ -18,6 +19,14 @@ export const useShippingTasksByOrder = (orderId: string) => {
         queryKey: shippingKeys.byOrder(orderId),
         queryFn: () => shippingService.getTasksByOrderId(orderId),
         enabled: !!orderId,
+    });
+};
+
+export const useShippingTasksByTradeInOrder = (tradeInOrderId: string) => {
+    return useQuery({
+        queryKey: shippingKeys.byTradeInOrder(tradeInOrderId),
+        queryFn: () => shippingService.getTasksByTradeInOrderId(tradeInOrderId),
+        enabled: !!tradeInOrderId,
     });
 };
 
@@ -34,8 +43,13 @@ export const useCreateShippingTask = () => {
 
     return useMutation({
         mutationFn: (data: CreateShippingTaskRequest) => shippingService.createTask(data),
-        onSuccess: (_, { orderId }) => {
-            queryClient.invalidateQueries({ queryKey: shippingKeys.byOrder(orderId) });
+        onSuccess: (_, payload) => {
+            if (payload.orderId) {
+                queryClient.invalidateQueries({ queryKey: shippingKeys.byOrder(payload.orderId) });
+            }
+            if (payload.tradeInOrderId) {
+                queryClient.invalidateQueries({ queryKey: shippingKeys.byTradeInOrder(payload.tradeInOrderId) });
+            }
         },
     });
 };
@@ -44,10 +58,15 @@ export const useReassignShippingTask = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ taskId, data }: { taskId: string; data: ReassignShippingTaskRequest; orderId: string }) => 
+        mutationFn: ({ taskId, data }: { taskId: string; data: ReassignShippingTaskRequest; orderId?: string; tradeInOrderId?: string }) => 
             shippingService.reassignTask(taskId, data),
-        onSuccess: (_, { orderId }) => {
-            queryClient.invalidateQueries({ queryKey: shippingKeys.byOrder(orderId) });
+        onSuccess: (_, payload) => {
+            if (payload.orderId) {
+                queryClient.invalidateQueries({ queryKey: shippingKeys.byOrder(payload.orderId) });
+            }
+            if (payload.tradeInOrderId) {
+                queryClient.invalidateQueries({ queryKey: shippingKeys.byTradeInOrder(payload.tradeInOrderId) });
+            }
         },
     });
 };

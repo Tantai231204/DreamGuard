@@ -23,12 +23,13 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { useStaffs } from '@/hooks/queries/useStaff';
-import { useShippingTasksByOrder, useCreateShippingTask, useReassignShippingTask } from '@/hooks/queries/useShippingTask';
+import { useShippingTasksByOrder, useShippingTasksByTradeInOrder, useCreateShippingTask, useReassignShippingTask } from '@/hooks/queries/useShippingTask';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 interface AssignShippingStaffDialogProps {
-  orderId: string;
+  orderId?: string;
+  tradeInOrderId?: string;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -47,12 +48,15 @@ const formatLabel = (value?: string, fallback = 'Delivery Staff') => {
 
 const isActiveStatus = (status?: string) => (status || '').toLowerCase() === 'active';
 
-function AssignShippingStaffContent({ orderId, onClose }: { orderId: string; onClose: () => void }) {
+function AssignShippingStaffContent({ orderId, tradeInOrderId, onClose }: { orderId?: string; tradeInOrderId?: string; onClose: () => void }) {
   const { data: staffData, isLoading: isLoadingStaff } = useStaffs({
     pageSize: 100,
     Role: 'DeliveryStaff'
   });
-  const { data: tasks } = useShippingTasksByOrder(orderId);
+  const { data: orderTasks } = useShippingTasksByOrder(orderId || '');
+  const { data: tradeInTasks } = useShippingTasksByTradeInOrder(tradeInOrderId || '');
+  const isTradeInMode = !orderId && !!tradeInOrderId;
+  const tasks = isTradeInMode ? tradeInTasks : orderTasks;
 
   const staffs = useMemo(() => staffData?.items || [], [staffData]);
   const activeTask = useMemo(() => {
@@ -105,13 +109,15 @@ function AssignShippingStaffContent({ orderId, onClose }: { orderId: string; onC
         await reassignTask.mutateAsync({
           taskId: activeTask.shippingTaskId,
           data: { newStaffId: selectedStaffId },
-          orderId
+          orderId,
+          tradeInOrderId,
         });
         toast.success('Shipping staff reassigned successfully');
       } else {
         await createTask.mutateAsync({
           staffId: selectedStaffId,
-          orderId
+          orderId,
+          tradeInOrderId,
         });
         toast.success('Shipping staff assigned successfully');
       }
@@ -264,14 +270,17 @@ function AssignShippingStaffContent({ orderId, onClose }: { orderId: string; onC
   );
 }
 
-export function AssignShippingStaffDialog({ orderId, isOpen, onClose }: AssignShippingStaffDialogProps) {
+export function AssignShippingStaffDialog({ orderId, tradeInOrderId, isOpen, onClose }: AssignShippingStaffDialogProps) {
+  const entityId = orderId || tradeInOrderId || '';
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden border border-slate-200 shadow-2xl rounded-2xl gap-0">
         {isOpen && (
           <AssignShippingStaffContent
-            key={`assign-${orderId}-${isOpen}`}
+            key={`assign-${entityId}-${isOpen}`}
             orderId={orderId}
+            tradeInOrderId={tradeInOrderId}
             onClose={onClose}
           />
         )}

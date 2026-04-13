@@ -15,7 +15,6 @@ import type {
   TradeInActionResponse,
   TradeInOrderDetailResponse,
 } from '@/api/types/tradeInOrder';
-import { useTradeInMutationTelemetry } from '@/hooks/telemetry';
 import { useAuthStore } from '@/store/authStore';
 import {
   canTransitionTradeInStatus,
@@ -45,16 +44,12 @@ interface TradeInCacheSnapshot {
   previousCustomerLists: Array<[QueryKey, AdminTradeInOrderListResponse | undefined]>;
 }
 
-interface MutationTelemetryContext {
-  telemetryToken?: string;
-}
-
 interface TransitionTradeInStatusPayload {
   fromStatus?: string;
   toStatus: string;
 }
 
-interface TransitionTradeInStatusContext extends TradeInCacheSnapshot, MutationTelemetryContext {
+interface TransitionTradeInStatusContext extends TradeInCacheSnapshot {
   nextStatus: string;
 }
 
@@ -63,7 +58,7 @@ interface ConfirmTradeInDealPayload {
   tradeInPrice: number;
 }
 
-interface ConfirmTradeInDealContext extends TradeInCacheSnapshot, MutationTelemetryContext {
+interface ConfirmTradeInDealContext extends TradeInCacheSnapshot {
   nextStatus: string;
   tradeInPrice: number;
 }
@@ -381,11 +376,11 @@ export const adminTradeInOrderDetailQueryOptions = (id: string) => ({
 
 export const useAdminTradeInOrderDetail = (id: string, options?: { enabled?: boolean }) => {
   const role = useAuthStore(state => state.role);
-  const isAdminOrManager = role === 'Admin' || role === 'Manager';
+  const canAccessTradeInDetail = role === 'Admin' || role === 'Manager' || role === 'Seller';
 
   return useQuery({
     ...adminTradeInOrderDetailQueryOptions(id),
-    enabled: (options?.enabled ?? true) && !!id && isAdminOrManager,
+    enabled: (options?.enabled ?? true) && !!id && canAccessTradeInDetail,
   });
 };
 
@@ -443,9 +438,15 @@ export const useWaitingTradeInOrders = (params?: { pageNumber?: number; pageSize
   });
 };
 
+export const waitingTradeInOrdersQueryOptions = (params?: { pageNumber?: number; pageSize?: number }) => ({
+  queryKey: tradeInOrderKeys.waiting(params),
+  queryFn: () => tradeInOrderService.getWaitingOrders(params),
+  placeholderData: keepPreviousData,
+  staleTime: 0,
+});
+
 export const useTransitionTradeInStatus = (orderId: string) => {
   const queryClient = useQueryClient();
-  const telemetry = useTradeInMutationTelemetry();
 
   return useMutation<TradeInActionResponse, Error, TransitionTradeInStatusPayload, TransitionTradeInStatusContext>({
     mutationFn: ({ toStatus }) => {
@@ -477,34 +478,20 @@ export const useTransitionTradeInStatus = (orderId: string) => {
       ]);
 
       const snapshot = captureTradeInCacheSnapshot(queryClient, orderId);
-      const telemetryToken = telemetry.begin({
-        operation: 'transition-status',
-        orderId,
-        targetStatus: nextStatus,
-      });
 
       syncTransitionStatusCaches(queryClient, orderId, nextStatus);
 
       return {
         ...snapshot,
         nextStatus,
-        telemetryToken,
       };
     },
-    onError: (error, _variables, context) => {
+    onError: (_error, _variables, context) => {
       if (!context) {
         return;
       }
 
       restoreTradeInCacheSnapshot(queryClient, orderId, context);
-      telemetry.end({
-        token: context.telemetryToken,
-        operation: 'transition-status',
-        orderId,
-        targetStatus: context.nextStatus,
-        outcome: 'rollback',
-        reason: error.message,
-      });
     },
     onSuccess: (response, _variables, context) => {
       const confirmedStatus = normalizeTradeInStatus(response.data?.status || context?.nextStatus);
@@ -513,14 +500,6 @@ export const useTransitionTradeInStatus = (orderId: string) => {
       }
 
       syncTransitionStatusCaches(queryClient, orderId, confirmedStatus);
-
-      telemetry.end({
-        token: context?.telemetryToken,
-        operation: 'transition-status',
-        orderId,
-        targetStatus: confirmedStatus,
-        outcome: 'success',
-      });
     },
     onSettled: () => {
       invalidateTradeInCaches(queryClient, orderId);
@@ -530,7 +509,6 @@ export const useTransitionTradeInStatus = (orderId: string) => {
 
 export const useConfirmTradeInDeal = (orderId: string) => {
   const queryClient = useQueryClient();
-  const telemetry = useTradeInMutationTelemetry();
   const confirmedStatus = 'CONFIRMED';
 
   return useMutation<TradeInActionResponse, Error, ConfirmTradeInDealPayload, ConfirmTradeInDealContext>({
@@ -564,35 +542,20 @@ export const useConfirmTradeInDeal = (orderId: string) => {
         throw new Error(`Invalid trade-in transition: ${resolvedFromStatus} -> ${confirmedStatus}`);
       }
 
-      const telemetryToken = telemetry.begin({
-        operation: 'confirm-deal',
-        orderId,
-        targetStatus: confirmedStatus,
-      });
-
       syncConfirmDealCaches(queryClient, orderId, tradeInPrice, confirmedStatus);
 
       return {
         ...snapshot,
         nextStatus: confirmedStatus,
         tradeInPrice,
-        telemetryToken,
       };
     },
-    onError: (error, _variables, context) => {
+    onError: (_error, _variables, context) => {
       if (!context) {
         return;
       }
 
       restoreTradeInCacheSnapshot(queryClient, orderId, context);
-      telemetry.end({
-        token: context.telemetryToken,
-        operation: 'confirm-deal',
-        orderId,
-        targetStatus: context.nextStatus,
-        outcome: 'rollback',
-        reason: error.message,
-      });
     },
     onSuccess: (response, _variables, context) => {
       const nextStatus = normalizeTradeInStatus(response.data?.status || context?.nextStatus || confirmedStatus);
@@ -606,14 +569,6 @@ export const useConfirmTradeInDeal = (orderId: string) => {
       } else {
         syncTransitionStatusCaches(queryClient, orderId, nextStatus || confirmedStatus);
       }
-
-      telemetry.end({
-        token: context?.telemetryToken,
-        operation: 'confirm-deal',
-        orderId,
-        targetStatus: nextStatus || confirmedStatus,
-        outcome: 'success',
-      });
     },
     onSettled: () => {
       invalidateTradeInCaches(queryClient, orderId);

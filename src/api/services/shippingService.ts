@@ -9,6 +9,9 @@ import type {
 
 const shippingService = {
     createTask: async (data: CreateShippingTaskRequest): Promise<ShippingTask> => {
+        if (!data.orderId && !data.tradeInOrderId) {
+            throw new Error('CreateShippingTaskRequest requires orderId or tradeInOrderId.');
+        }
         const res = await apiClient.post('/ShippingTasks', data);
         return res.data?.data ?? res.data;
     },
@@ -22,6 +25,17 @@ const shippingService = {
         const res = await apiClient.get(`/ShippingTasks?orderId=${orderId}&pageSize=100`);
         const responseData = (res.data?.data || res.data);
         return responseData?.items || (Array.isArray(responseData) ? responseData : []);
+    },
+
+    getTasksByTradeInOrderId: async (tradeInOrderId: string): Promise<ShippingTask[]> => {
+        const res = await apiClient.get(`/ShippingTasks?tradeInOrderId=${tradeInOrderId}&pageSize=100`);
+        const responseData = (res.data?.data || res.data);
+        const items = responseData?.items || (Array.isArray(responseData) ? responseData : []);
+        const normalizedTradeInOrderId = tradeInOrderId.trim().toLowerCase();
+        return (items as ShippingTask[]).filter((task) =>
+            typeof task.tradeInOrderId === 'string'
+            && task.tradeInOrderId.trim().toLowerCase() === normalizedTradeInOrderId
+        );
     },
 
     processReturned: async (taskId: string, data: Partial<ProcessReturnedRequest>): Promise<unknown> => {

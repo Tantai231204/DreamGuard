@@ -1,198 +1,73 @@
-import { useCallback, useMemo, useState, type ChangeEvent } from 'react';
-import { useQueryClient, useMutation } from '@tanstack/react-query';
+import { memo } from 'react';
 import {
   UserRound,
   BadgeCheck,
+  Truck,
 } from 'lucide-react';
-import { toast } from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
 
 import { cn } from '@/lib/utils';
-import { tradeInOrderService } from '@/api/services';
-import { tradeInOrderKeys, useConfirmTradeInDeal, useTransitionTradeInStatus } from '@/hooks/queries';
-import { useStaffById, useStaffProfile } from '@/hooks/queries/useStaff';
-import { usePermission } from '@/hooks/usePermission';
 import type { TradeInOrderDetailResponse } from '@/api/types/tradeInOrder';
 import { CancelTradeInOrderDialog } from '@/pages/admin/orders/components/CancelTradeInOrderDialog';
-import { isTradeInActiveProgressStatus, isTradeInFinalStatus, normalizeTradeInStatus } from '@/utils/tradeInWorkflow';
+import { Button } from '@/components/ui/button';
+import { AssignShippingStaffDialog } from '@/pages/admin/orders/components/AssignShippingStaffDialog';
 import {
   ActiveProgressSection,
   FinalizedSection,
   NegotiatingSection,
   WaitingForStaffSection,
 } from './TradeInStatusSections';
-import { TradeInTelemetryPanel } from './TradeInTelemetryPanel';
+import { useTradeInStaffManagement } from './useTradeInStaffManagement';
 
 interface TradeInStaffManagementProps {
   order: TradeInOrderDetailResponse;
 }
 
-interface Identifiable {
-  id?: string;
-  conversationId?: string;
-}
-
-const resolveAssignedStaffId = (order: TradeInOrderDetailResponse): string | undefined => {
-  const rawOrder = order as unknown as Record<string, unknown>;
-  const rawConversation = order.conversation as unknown as Record<string, unknown> | null | undefined;
-
-  const candidates = [
-    order.conversation?.staffId,
-    typeof rawOrder.staffId === 'string' ? rawOrder.staffId : undefined,
-    typeof rawOrder.staffID === 'string' ? rawOrder.staffID : undefined,
-    typeof rawOrder.sellerId === 'string' ? rawOrder.sellerId : undefined,
-    typeof rawOrder.assigneeId === 'string' ? rawOrder.assigneeId : undefined,
-    rawConversation && typeof rawConversation.staffId === 'string' ? rawConversation.staffId : undefined,
-    rawConversation && typeof rawConversation.staffID === 'string' ? rawConversation.staffID : undefined,
-  ];
-
-  for (const candidate of candidates) {
-    if (typeof candidate === 'string' && candidate.trim().length > 0) {
-      return candidate.trim();
-    }
-  }
-
-  return undefined;
-};
-
-export function TradeInStaffManagement({ order }: TradeInStaffManagementProps) {
-  const queryClient = useQueryClient();
-  const navigate = useNavigate();
-  const { isAdmin, isManager, isSeller } = usePermission();
-  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
-  const [negotiatedPrice, setNegotiatedPrice] = useState<number>(order.tradeInPrice || 0);
-  const status = useMemo(() => normalizeTradeInStatus(order.status), [order.status]);
-  const assignedStaffId = useMemo(() => resolveAssignedStaffId(order), [order]);
-
-  const canAccessTradeInChat = isSeller;
-  const shouldShowAssignedStaff = isAdmin || isManager || !canAccessTradeInChat;
-  const shouldFetchAssignedStaff = shouldShowAssignedStaff && !!assignedStaffId;
-
-  const { data: assignedStaff, isLoading: isLoadingAssignedStaff } = useStaffById(assignedStaffId || '', {
-    enabled: shouldFetchAssignedStaff,
-  });
-  const { data: currentStaffProfile } = useStaffProfile({ enabled: isSeller });
-
-  const assignedStaffLabel = assignedStaff?.fullName || assignedStaff?.email || assignedStaffId || 'Unassigned';
-  const assignedStaffEmail = assignedStaff?.email || '';
-  const assignedStaffAvatar = assignedStaff?.avatarUrl || '';
-  const assignedStaffInitial = useMemo(() => assignedStaffLabel.trim().charAt(0).toUpperCase() || '?', [assignedStaffLabel]);
-  const currentSellerStaffId = currentStaffProfile?.staffId;
-  const isCurrentSellerOwner = !!(isSeller && currentSellerStaffId && assignedStaffId && currentSellerStaffId === assignedStaffId);
-  const isAssignedToOtherSeller = !!(isSeller && currentSellerStaffId && assignedStaffId && currentSellerStaffId !== assignedStaffId);
-
-  const detailQueryKey = useMemo(() => tradeInOrderKeys.detail(order.tradeInOrderId), [order.tradeInOrderId]);
-
-  const invalidateTradeInDetail = useCallback(() => {
-    void queryClient.invalidateQueries({ queryKey: detailQueryKey });
-  }, [detailQueryKey, queryClient]);
-
-  const navigateToChat = useCallback((conversation?: Identifiable | null) => {
-    const cid = conversation?.id || conversation?.conversationId;
-    if (cid) {
-      navigate(`/admin/chat?id=${cid}`);
-      return;
-    }
-    navigate('/admin/chat');
-  }, [navigate]);
-
-  const { mutate: acceptTask, isPending: isAccepting } = useMutation({
-    mutationFn: () => tradeInOrderService.createConversation(order.tradeInOrderId),
-    onSuccess: async (conv) => {
-      invalidateTradeInDetail();
-      toast.success('Task accepted. Redirecting...');
-
-      navigateToChat(conv as Identifiable);
-    },
-  });
-
-  const { mutate: confirmDeal, isPending: isConfirming } = useConfirmTradeInDeal(order.tradeInOrderId);
-
-  const { mutate: adminCancel, isPending: isCancelling } = useMutation({
-    mutationFn: (reason: string) => tradeInOrderService.adminCancel(order.tradeInOrderId, reason),
-    onSuccess: () => {
-      setIsCancelDialogOpen(false);
-      invalidateTradeInDetail();
-      toast.success('Cancelled.');
-    },
-  });
-
-  const { mutate: transitionStatus, isPending: isTransitioning } = useTransitionTradeInStatus(order.tradeInOrderId);
-
-  const previewAmountToPay = useMemo(
-    () => Math.max(0, (order.productVariant?.salePrice || 0) - negotiatedPrice - order.depositAmount),
-    [order.depositAmount, order.productVariant?.salePrice, negotiatedPrice],
-  );
-  const formattedNegotiatedPrice = useMemo(
-    () => (negotiatedPrice ? negotiatedPrice.toLocaleString('vi-VN') : ''),
-    [negotiatedPrice],
-  );
-  const isActiveProgressStatus = isTradeInActiveProgressStatus(status);
-  const isFinalizedStatus = isTradeInFinalStatus(status);
-  const shouldShowTelemetryPanel = isAdmin || isManager;
-
-  const handleTransitionStatus = useCallback((toStatus: string) => {
-    if (isTransitioning) return;
-
-    transitionStatus(
-      { fromStatus: status, toStatus },
-      {
-        onSuccess: () => {
-          toast.success('Status updated.');
-        },
-        onError: (error: Error) => {
-          toast.error(error.message || 'Unable to update status.');
-        },
-      },
-    );
-  }, [isTransitioning, status, transitionStatus]);
-
-  const handleAcceptTask = useCallback(() => {
-    acceptTask();
-  }, [acceptTask]);
-
-  const handleConfirmDeal = useCallback(() => {
-    if (isConfirming) {
-      return;
-    }
-
-    confirmDeal(
-      { fromStatus: status, tradeInPrice: negotiatedPrice },
-      {
-        onSuccess: () => {
-          toast.success('Confirmed.');
-        },
-        onError: (error: Error) => {
-          toast.error(error.message || 'Unable to confirm deal.');
-        },
-      },
-    );
-  }, [confirmDeal, isConfirming, negotiatedPrice, status]);
-
-  const handleNegotiatedPriceChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value.replace(/\D/g, '');
-    setNegotiatedPrice(raw ? Number(raw) : 0);
-  }, []);
-
-  const handleOpenTradeInChat = useCallback(() => {
-    navigateToChat(order.conversation as Identifiable);
-  }, [navigateToChat, order.conversation]);
-
-  const handleOpenCancelDialog = useCallback(() => {
-    setIsCancelDialogOpen(true);
-  }, []);
-
-  const handleMarkArrived = useCallback(() => {
-    handleTransitionStatus('PROCESSING');
-  }, [handleTransitionStatus]);
-
-  const handleCompleteSuccess = useCallback(() => {
-    handleTransitionStatus('DELIVERED');
-  }, [handleTransitionStatus]);
-
-  const handleMarkCompleted = useCallback(() => {
-    handleTransitionStatus('COMPLETED');
-  }, [handleTransitionStatus]);
+export const TradeInStaffManagement = memo(function TradeInStaffManagement({ order }: TradeInStaffManagementProps) {
+  const {
+    status,
+    isCancelDialogOpen,
+    setIsCancelDialogOpen,
+    isAssignDialogOpen,
+    isSeller,
+    canAccessTradeInChat,
+    shouldShowAssignedStaff,
+    assignedStaffLabel,
+    assignedStaffHint,
+    assignedStaffEmail,
+    assignedStaffAvatar,
+    assignedStaffInitial,
+    isLoadingAssignedStaff,
+    assignedStaffId,
+    deliveryOwnerLabel,
+    deliveryOwnerEmail,
+    deliveryOwnerAvatar,
+    deliveryOwnerInitial,
+    deliveryOwnerStaffId,
+    isLoadingDeliveryOwner,
+    isCurrentSellerOwner,
+    isAssignedToOtherSeller,
+    isAccepting,
+    isConfirming,
+    isCancelling,
+    isTransitioning,
+    previewAmountToPay,
+    formattedNegotiatedPrice,
+    isActiveProgressStatus,
+    isFinalizedStatus,
+    canAdminOrManagerUpdateStatus,
+    canAssignDeliveryTask,
+    handleAcceptTask,
+    handleConfirmDeal,
+    handleNegotiatedPriceChange,
+    handleOpenTradeInChat,
+    handleOpenCancelDialog,
+    handleMarkArrived,
+    handleCompleteSuccess,
+    handleMarkCompleted,
+    handleOpenAssignDialog,
+    handleCloseAssignDialog,
+    adminCancel,
+  } = useTradeInStaffManagement(order);
 
   return (
     <div className="space-y-4">
@@ -246,9 +121,9 @@ export function TradeInStaffManagement({ order }: TradeInStaffManagementProps) {
         {/* Assigned staff visibility for roles that cannot access chat */}
         {shouldShowAssignedStaff && (
           <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/60">
-            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Task owner</p>
-            <div className="flex items-center gap-3 mt-1">
-              <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center text-slate-500">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Chat owner</p>
+            <div className="flex items-start sm:items-center gap-3 mt-1">
+              <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center text-slate-500 shrink-0">
                 {assignedStaffAvatar ? (
                   <img
                     src={assignedStaffAvatar}
@@ -274,6 +149,50 @@ export function TradeInStaffManagement({ order }: TradeInStaffManagementProps) {
                 )}
               </div>
             </div>
+
+            <div className="mt-3 pt-3 border-t border-slate-100">
+              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Delivery owner</p>
+              <div className="flex items-start sm:items-center gap-3 mt-1">
+                <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center text-slate-500 shrink-0">
+                  {deliveryOwnerAvatar ? (
+                    <img
+                      src={deliveryOwnerAvatar}
+                      alt={deliveryOwnerLabel}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  ) : (
+                    <span className="text-[10px] font-black">{deliveryOwnerInitial}</span>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-slate-700 truncate">
+                    {isLoadingDeliveryOwner ? 'Loading staff...' : deliveryOwnerLabel}
+                  </p>
+                  {deliveryOwnerEmail ? (
+                    <p className="text-[10px] text-slate-500 truncate">{deliveryOwnerEmail}</p>
+                  ) : deliveryOwnerStaffId ? (
+                    <p className="text-[10px] text-slate-400 font-mono truncate">ID: {deliveryOwnerStaffId}</p>
+                  ) : (
+                    <p className="text-[10px] text-slate-400">Unassigned</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {canAssignDeliveryTask && (
+          <div className="px-4 py-4 border-b border-slate-100 bg-blue-50/40 space-y-3">
+            <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Delivery Assignment (Confirmed Stage)</p>
+            <Button
+              className="h-10 rounded-lg bg-primary text-[10px] font-black uppercase tracking-widest"
+              onClick={handleOpenAssignDialog}
+            >
+              <Truck className="w-3.5 h-3.5 mr-1.5" />
+              Assign Delivery Staff
+            </Button>
           </div>
         )}
 
@@ -297,7 +216,7 @@ export function TradeInStaffManagement({ order }: TradeInStaffManagementProps) {
             onOpenTradeInChat={handleOpenTradeInChat}
             onOpenCancelDialog={handleOpenCancelDialog}
             onConfirmDeal={handleConfirmDeal}
-            assignedStaffHint={assignedStaff?.fullName || (assignedStaffId ? assignedStaffId.slice(0, 8) : 'Unassigned')}
+            assignedStaffHint={assignedStaffHint}
           />
         )}
 
@@ -306,6 +225,7 @@ export function TradeInStaffManagement({ order }: TradeInStaffManagementProps) {
           <ActiveProgressSection
             status={status}
             isTransitioning={isTransitioning}
+            allowStatusActions={canAdminOrManagerUpdateStatus}
             onMarkArrived={handleMarkArrived}
             onCompleteSuccess={handleCompleteSuccess}
             onMarkCompleted={handleMarkCompleted}
@@ -319,8 +239,6 @@ export function TradeInStaffManagement({ order }: TradeInStaffManagementProps) {
         )}
       </div>
 
-      {shouldShowTelemetryPanel && <TradeInTelemetryPanel />}
-
       <CancelTradeInOrderDialog
         open={isCancelDialogOpen}
         onOpenChange={setIsCancelDialogOpen}
@@ -328,6 +246,12 @@ export function TradeInStaffManagement({ order }: TradeInStaffManagementProps) {
         isLoading={isCancelling}
         orderCode={order.orderCode}
       />
+
+      <AssignShippingStaffDialog
+        tradeInOrderId={order.tradeInOrderId}
+        isOpen={isAssignDialogOpen}
+        onClose={handleCloseAssignDialog}
+      />
     </div>
   );
-}
+});
