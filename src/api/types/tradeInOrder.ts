@@ -107,6 +107,14 @@ export interface TradeInOrderResponse {
   [key: string]: unknown;
 }
 
+export interface ReOrderFailedTradeInOrderResponse {
+  paymentUrl?: string;
+  tradeInOrderId?: string;
+  orderId?: string;
+  id?: string;
+  [key: string]: unknown;
+}
+
 export interface TradeInOrderListItem {
   tradeInOrderId: string;
   orderCode: string;
@@ -123,6 +131,8 @@ export interface TradeInOrderListItem {
   tradeInPrice: number;
   amountToPay: number;
   depositAmount: number;
+  paymentStatus?: string;
+  paymentMethod?: string;
 }
 
 export interface AdminTradeInOrderSearchParams {

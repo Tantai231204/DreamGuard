@@ -1,5 +1,6 @@
 import { Package, CheckCircle2, Truck, Clock3, AlertCircle, ShieldCheck, RotateCcw, MapPin, PackageCheck } from "lucide-react"
 import { OrderStatusValue } from "@/api/types/order"
+import { resolveTradeInStatusTheme } from "@/utils/tradeInStatusTheme"
 
 export type BadgeVariant = "default" | "secondary" | "success" | "warning" | "danger" | "outline"
 
@@ -156,6 +157,10 @@ export function getStatusTheme(status: string | number): StatusThemeItem {
 
     // 4. Fallback
     return THEME_MAP.Pending;
+}
+
+export function getTradeInStatusTheme(status: string | number): StatusThemeItem {
+    return resolveTradeInStatusTheme(status);
 }
 
 // Voucher Status Theme

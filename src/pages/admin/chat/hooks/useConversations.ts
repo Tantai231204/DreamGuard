@@ -87,8 +87,8 @@ export function useConversations({ pollEnabled = true }: UseConversationsOptions
         return prev;
       }, { replace: true });
 
-      // Optimistic: zero unread in cache immediately (no REST endpoint for markRead)
-      queryClient.setQueryData<Conversation[]>(CONVERSATIONS_QUERY_KEY, (prev) =>
+      // Optimistic: zero unread in all conversation query variants (search/no-search)
+      queryClient.setQueriesData<Conversation[]>({ queryKey: CONVERSATIONS_QUERY_KEY }, (prev) =>
         prev?.map((c) => (c.id === id ? { ...c, unreadCount: 0 } : c))
       );
     },
@@ -98,7 +98,7 @@ export function useConversations({ pollEnabled = true }: UseConversationsOptions
   /* ---- Apply real-time update to cache ------------------- */
   const applyConversationUpdate = useCallback(
     (updated: Conversation) => {
-      queryClient.setQueryData<Conversation[]>(CONVERSATIONS_QUERY_KEY, (prev) => {
+      queryClient.setQueriesData<Conversation[]>({ queryKey: CONVERSATIONS_QUERY_KEY }, (prev) => {
         if (!prev) return [updated];
         const res = prev.some((c) => c.id === updated.id)
           ? prev.map((c) => (c.id === updated.id ? updated : c))

@@ -149,9 +149,23 @@ export function OrderDetailDialog({ orderId, orderCode, trigger }: OrderDetailDi
                                 </div>
 
                                 {/* Pricing & Notes */}
-                                <div className="bg-white pb-8 pt-4">
+                                <div className="bg-white pb-7 pt-4">
                                     <PricingSummary order={order} />
-                                    <PaymentDetailsCard order={order} payment={payment} />
+                                    <div className="mx-6 mt-5 pt-4 border-t border-slate-100/80">
+                                        <PaymentDetailsCard
+                                            payments={payment ? [payment] : undefined}
+                                            fallbackPayment={{
+                                                id: order.orderCode,
+                                                orderCode: order.orderCode,
+                                                paymentMethod: order.paymentMethod || "COD",
+                                                paymentType: "Purchase",
+                                                status: order.paymentStatus || "Pending",
+                                                amount: order.totalAmount,
+                                                createdAt: order.createdAt,
+                                            }}
+                                            className="mx-0"
+                                        />
+                                    </div>
 
                                     {order.note && (
                                         <div className="mx-6 mt-6 p-4 bg-amber-50/30 rounded-lg border border-amber-100/50 text-left">

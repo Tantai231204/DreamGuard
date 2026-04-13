@@ -2,6 +2,37 @@ import apiClient from '../../lib/api';
 import type { CustomAxiosRequestConfig } from '../../lib/api';
 import type { CreateOrderRequest, OrderResponse, OrderDetailResponse, OrderStatus, TradeInEligibleOrderItem } from '../types/order';
 
+const toTradeInEligibleOrderItems = (payload: unknown): TradeInEligibleOrderItem[] => {
+    if (!Array.isArray(payload)) return [];
+
+    return payload
+        .filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null)
+        .map((item) => {
+            const quantity = typeof item.quantity === 'number' ? item.quantity : 1;
+            const unitPrice = typeof item.unitPrice === 'number' ? item.unitPrice : 0;
+            const totalPrice = typeof item.totalPrice === 'number' ? item.totalPrice : unitPrice * quantity;
+
+            return {
+                id: typeof item.id === 'string' ? item.id : '',
+                productVariantId: typeof item.productVariantId === 'string' ? item.productVariantId : '',
+                comboId: typeof item.comboId === 'string' || item.comboId === null ? item.comboId : null,
+                itemName: typeof item.itemName === 'string' ? item.itemName : 'Trade-in item',
+                quantity,
+                unitPrice,
+                totalPrice,
+                tradeInUsedAmount: typeof item.tradeInUsedAmount === 'number' ? item.tradeInUsedAmount : 0,
+                productCustomizeDetails: Array.isArray(item.productCustomizeDetails) ? item.productCustomizeDetails : [],
+                customizeHash: typeof item.customizeHash === 'string' ? item.customizeHash : '',
+                image: typeof item.image === 'string' ? item.image : undefined,
+                orderId: typeof item.orderId === 'string' ? item.orderId : undefined,
+                purchaseDate: typeof item.purchaseDate === 'string' ? item.purchaseDate : undefined,
+                createdAt: typeof item.createdAt === 'string' ? item.createdAt : undefined,
+                tradeInValue: typeof item.tradeInValue === 'number' ? item.tradeInValue : undefined,
+            };
+        })
+        .filter((item) => Boolean(item.id && item.productVariantId));
+};
+
 const orderService = {
     createOrder: async (data: CreateOrderRequest): Promise<OrderResponse> => {
         const res = await apiClient.post('/order', data);
@@ -71,12 +102,14 @@ const orderService = {
     },
 
     /**
-     * 🔥 User's target endpoint for trade-in selection
-     * Fetches previous purchase items eligible for trade-in against a target product
+     * Fetches order items eligible for trade-in from the backend route segment identifier.
      */
-    getOrderItemsToTradeIn: async (productVariantId: string): Promise<TradeInEligibleOrderItem[]> => {
-        const res = await apiClient.get(`/Order/${productVariantId}/GetOrderItemsToTradeInAsync`);
-        return res.data?.data ?? res.data;
+    getOrderItemsToTradeIn: async (id: string): Promise<TradeInEligibleOrderItem[]> => {
+        const res = await apiClient.get(`/Order/${id}/GetOrderItemsToTradeInAsync`);
+        const payload = res.data?.data ?? res.data;
+        if (Array.isArray(payload)) return toTradeInEligibleOrderItems(payload);
+        if (Array.isArray(payload?.items)) return toTradeInEligibleOrderItems(payload.items);
+        return toTradeInEligibleOrderItems([]);
     }
 };
 

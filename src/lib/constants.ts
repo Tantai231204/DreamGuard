@@ -56,6 +56,7 @@ export const ApiErrorCode = {
   NOT_FOUND: "NOT_FOUND",
   SERVER_ERROR: "SERVER_ERROR",
   VALIDATION: "VALIDATION",
+  CONFLICT: "CONFLICT",
   UNKNOWN: "UNKNOWN",
 } as const;
 

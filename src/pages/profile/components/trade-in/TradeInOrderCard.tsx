@@ -4,34 +4,59 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatPrice, formatDate } from "../../utils";
-import { getStatusTheme } from "../../constants";
+import { getTradeInStatusTheme } from "../../constants";
 import { TradeInOrderDetailDialog } from "./TradeInOrderDetailDialog";
 import { CancelTradeInDialog } from "./CancelTradeInDialog";
 import type { TradeInOrderListItem } from "@/api/types/tradeInOrder";
+import { isTradeInWaitingStatus, normalizeTradeInStatus } from "@/utils/tradeInWorkflow";
+import { useCustomerTradeInOrderDetail } from "@/hooks/queries/useTradeInOrder";
 
 interface TradeInOrderCardProps {
     order: TradeInOrderListItem & { productVariant?: { sku: string }; orderItem?: { itemName: string } };
     onChatClick: (id: string) => void;
     onCancelRequest: (id: string, reason: string) => void;
+    onRetryPaymentRequest: (id: string) => void;
     isCreatingChat: boolean;
     isCancelling: boolean;
+    isRetryingPayment: boolean;
 }
 
 export const TradeInOrderCard = memo(({ 
     order, 
     onChatClick, 
     onCancelRequest, 
+    onRetryPaymentRequest,
     isCreatingChat, 
-    isCancelling 
+    isCancelling,
+    isRetryingPayment,
 }: TradeInOrderCardProps) => {
-    const isNegotiating = order.status.toUpperCase() === "NEGOTIATING";
-    const theme = getStatusTheme(order.status);
+    const normalizedStatus = normalizeTradeInStatus(order.status);
+    const isNegotiating = normalizedStatus === "NEGOTIATING";
+    const isWaiting = isTradeInWaitingStatus(order.status);
+    const isPendingStatus = normalizedStatus === "PENDING";
+    const theme = getTradeInStatusTheme(order.status);
+
+    const rawOrder = order as TradeInOrderListItem & {
+        payments?: Array<{ status?: string }>;
+        paymentStatus?: string;
+    };
+    const listPaymentStatus = String(rawOrder.paymentStatus || rawOrder.payments?.[0]?.status || "").toLowerCase();
+
+    const { data: pendingOrderDetail } = useCustomerTradeInOrderDetail(order.tradeInOrderId, {
+        enabled: isPendingStatus && !listPaymentStatus,
+    });
+
+    const paymentStatus = listPaymentStatus || String(pendingOrderDetail?.payments?.[0]?.status || "").toLowerCase();
+    const needsPaymentRetry = isPendingStatus && paymentStatus === "failed";
+    const isAwaitingPayment = isWaiting && (paymentStatus === "pending" || paymentStatus === "unpaid");
+    const canRetryPayment = needsPaymentRetry;
     
     const tradedName = order.orderItem?.itemName || `Device #${order.pOrderItemId.split('-')[0]}...`;
     const targetName = order.productVariant?.sku || `Upgrade #${order.productVariantId.split('-')[0]}...`;
 
     const handleChat = useCallback(() => onChatClick(order.tradeInOrderId), [onChatClick, order.tradeInOrderId]);
     const handleCancel = useCallback((reason: string) => onCancelRequest(order.tradeInOrderId, reason), [onCancelRequest, order.tradeInOrderId]);
+    const handleRetryPayment = useCallback(() => onRetryPaymentRequest(order.tradeInOrderId), [onRetryPaymentRequest, order.tradeInOrderId]);
 
     return (
         <Card className="group relative rounded-2xl border-slate-200/60 bg-white shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md will-change-transform">
@@ -74,6 +99,16 @@ export const TradeInOrderCard = memo(({
                                         <ArrowLeftRight className="w-3 h-3 text-primary" />
                                         Trading in: {tradedName}
                                     </p>
+                                    {needsPaymentRetry && (
+                                        <Badge className="mt-2 h-5 px-2.5 rounded-md bg-rose-50 text-rose-600 border border-rose-100 text-[9px] font-black uppercase tracking-widest shadow-none">
+                                            Payment Failed - Action Required
+                                        </Badge>
+                                    )}
+                                    {!needsPaymentRetry && isAwaitingPayment && (
+                                        <Badge className="mt-2 h-5 px-2.5 rounded-md bg-amber-50 text-amber-600 border border-amber-100 text-[9px] font-black uppercase tracking-widest shadow-none">
+                                            Pending Payment
+                                        </Badge>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -106,7 +141,18 @@ export const TradeInOrderCard = memo(({
                     </button>
                 </div>
                 <div className="flex items-center gap-2">
-                    {(order.status.toUpperCase() === "PENDING" || order.status.toUpperCase() === "WAITING_FOR_STAFF") && (
+                    {canRetryPayment && (
+                        <Button
+                            type="button"
+                            onClick={handleRetryPayment}
+                            disabled={isRetryingPayment}
+                            className="h-9 px-4 rounded-lg text-[10px] font-black uppercase tracking-wider bg-primary text-white hover:bg-primary/90 shadow-sm transition-all border-none"
+                        >
+                            {isRetryingPayment ? "Processing..." : "Pay Again"}
+                        </Button>
+                    )}
+
+                    {isWaiting && (
                         <CancelTradeInDialog
                             onConfirm={handleCancel}
                             isLoading={isCancelling}

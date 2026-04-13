@@ -19,7 +19,7 @@ interface ConfirmDialogProps {
     confirmText?: string;
     cancelText?: string;
     onConfirm: () => void;
-    variant?: 'danger' | 'warning' | 'info' | 'primary' | 'success';
+    variant?: 'danger' | 'warning' | 'info' | 'primary' | 'success' | 'tradein';
     isLoading?: boolean;
 }
 
@@ -66,13 +66,23 @@ const configs = {
     },
     primary: {
         icon: HelpCircle,
-        iconColor: 'text-slate-700',
-        iconBg: 'bg-slate-100',
-        ring: 'ring-slate-100',
-        glow: 'shadow-slate-500/20',
-        btn: 'bg-slate-800 hover:bg-slate-900 focus-visible:ring-slate-800 text-white',
-        gradient: 'from-slate-500/10 via-transparent to-transparent',
-        highlight: 'bg-slate-200 text-slate-800 border-slate-300',
+        iconColor: 'text-primary',
+        iconBg: 'bg-primary/10',
+        ring: 'ring-primary/20',
+        glow: 'shadow-primary/20',
+        btn: 'bg-primary hover:bg-primary/90 focus-visible:ring-primary text-white',
+        gradient: 'from-primary/15 via-transparent to-transparent',
+        highlight: 'bg-primary/10 text-primary border-primary/20',
+    },
+    tradein: {
+        icon: ShieldCheck,
+        iconColor: 'text-[#3D5140]',
+        iconBg: 'bg-[#ECF4ED]',
+        ring: 'ring-[#DDE9DF]',
+        glow: 'shadow-[#3D5140]/20',
+        btn: 'bg-[#455A48] hover:bg-[#3D5140] focus-visible:ring-[#455A48] text-white',
+        gradient: 'from-[#3D5140]/15 via-transparent to-transparent',
+        highlight: 'bg-[#ECF4ED] text-[#3D5140] border-[#DDE9DF]',
     },
 };
 
@@ -125,7 +135,7 @@ export function ConfirmDialog({
 
     return (
         <AlertDialog open={open} onOpenChange={onOpenChange}>
-            <AlertDialogContent className="max-w-[420px] p-0 border-0 rounded-[1.75rem] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] bg-white overflow-hidden sm:rounded-[2rem]">
+            <AlertDialogContent className="max-w-[420px] p-0 border-0 rounded-xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] bg-white overflow-hidden">
                 {/* Decorative Background Gradient */}
                 <div className={cn("absolute inset-0 bg-gradient-to-br opacity-50 pointer-events-none", c.gradient)} />
 
@@ -141,7 +151,7 @@ export function ConfirmDialog({
                             delay: 0.1
                         }}
                         className={cn(
-                            "w-16 h-16 rounded-full flex items-center justify-center mb-5 ring-8",
+                            "w-16 h-16 rounded-2xl flex items-center justify-center mb-5 ring-8",
                             c.iconBg,
                             c.ring
                         )}
@@ -178,7 +188,7 @@ export function ConfirmDialog({
                     >
                         <AlertDialogCancel
                             disabled={isLoading}
-                            className="flex-1 h-12 rounded-xl text-[14px] font-bold border-0 bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-800 transition-all focus:ring-0 sm:mt-0 mt-2"
+                            className="flex-1 h-12 rounded-lg text-[14px] font-bold border-0 bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-800 transition-all focus:ring-0 sm:mt-0 mt-2"
                         >
                             {cancelText}
                         </AlertDialogCancel>
@@ -190,7 +200,7 @@ export function ConfirmDialog({
                             }}
                             disabled={isLoading}
                             className={cn(
-                                "flex-1 h-12 rounded-xl text-[14px] font-bold transition-all shadow-lg focus:ring-2 focus:ring-offset-2 flex justify-center items-center border-0 border-transparent",
+                                "flex-1 h-12 rounded-lg text-[14px] font-bold transition-all shadow-lg focus:ring-2 focus:ring-offset-2 flex justify-center items-center border-0 border-transparent",
                                 c.btn,
                                 c.glow
                             )}

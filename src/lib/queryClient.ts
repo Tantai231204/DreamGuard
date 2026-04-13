@@ -19,7 +19,7 @@ export const queryClient = new QueryClient({
       retry: (failureCount, error) => {
         if (axios.isAxiosError(error)) {
           const status = error.response?.status;
-          if (status === 401 || status === 403 || status === 400 || status === 404) {
+          if (status === 401 || status === 403 || status === 400 || status === 404 || status === 409) {
             return false;
           }
         }

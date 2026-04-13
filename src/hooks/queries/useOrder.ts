@@ -109,11 +109,11 @@ export const useAdminCancelOrder = () => {
     });
 };
 
-export const useUserOrderItemsForTradeIn = (productId: string, options?: { enabled?: boolean }) => {
+export const useUserOrderItemsForTradeIn = (id: string, options?: { enabled?: boolean }) => {
     return useQuery({
-        queryKey: [...orderKeys.all, 'trade-in-eligible', productId],
-        queryFn: () => orderService.getOrderItemsToTradeIn(productId),
-        enabled: options?.enabled !== undefined ? (options.enabled && !!productId) : !!productId,
+        queryKey: [...orderKeys.all, 'trade-in-eligible', id],
+        queryFn: () => orderService.getOrderItemsToTradeIn(id),
+        enabled: options?.enabled !== undefined ? (options.enabled && !!id) : !!id,
         staleTime: 60000,
     });
 };

@@ -1,12 +1,15 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { createColumnHelper } from '@tanstack/react-table';
-import { Eye, Hash, User, CreditCard, Calendar, XCircle } from 'lucide-react';
+import { Eye, Trash2 } from 'lucide-react';
 
 import { AdminStatusBadge, AdminRowActions } from '@/components/admin';
 import type { TradeInOrderListItem } from '@/api/types/tradeInOrder';
-import { formatDateTime, formatPrice } from '@/lib/utils';
-import { tradeInStatusBadgeValue, tradeInStatusLabel } from './tradeInStatus';
+import { formatPrice } from '@/pages/profile/utils';
+import { formatDate, formatTime } from '@/lib/utils';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { SortableHeader } from '@/components/admin';
+import { tradeInStatusBadgeValue } from './tradeInStatus';
 
 const columnHelper = createColumnHelper<TradeInOrderListItem>();
 
@@ -15,117 +18,112 @@ export const useTradeInOrderColumns = (onCancel: (order: TradeInOrderListItem) =
     () => [
       columnHelper.display({
         id: 'type',
-        header: () => <span className="text-[11px] font-black uppercase tracking-widest text-slate-400 font-bold">Type</span>,
+        header: () => <span className="font-semibold">Type</span>,
         cell: () => <AdminStatusBadge status="tradein" />,
+        size: 120,
       }),
       columnHelper.accessor('orderCode', {
-        header: () => <span className="text-[11px] font-black uppercase tracking-widest text-slate-400 font-bold">Identification</span>,
+        enableSorting: true,
+        header: ({ column }) => <SortableHeader column={column} label="Order ID" />,
         cell: ({ row }) => (
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 shrink-0 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 border border-slate-200/50">
-              <Hash className="h-4 w-4" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-bold text-slate-900 leading-tight">{row.original.orderCode}</span>
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">ID: {row.original.tradeInOrderId.slice(0, 8)}</span>
-            </div>
+          <div className="font-mono text-sm font-bold text-[#4988c4]">
+            #{row.original.orderCode}
           </div>
         ),
       }),
       columnHelper.accessor('receiverName', {
-        header: () => <span className="text-[11px] font-black uppercase tracking-widest text-slate-400 font-bold">Customer</span>,
+        enableSorting: true,
+        header: ({ column }) => <SortableHeader column={column} label="Customer" />,
+        cell: ({ row }) => {
+          const fallbackChar = (row.original.receiverName || row.original.phoneNumber || 'G').trim().charAt(0).toUpperCase();
+
+          return (
+            <div className="flex items-center gap-3">
+              <Avatar className="h-9 w-9 border-2 border-gray-200">
+                <AvatarFallback className="bg-gradient-to-br from-[#4988c4] to-[#3a6da0] text-white text-xs font-semibold">
+                  {fallbackChar || 'G'}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <div className="font-semibold text-gray-900 truncate max-w-[180px]">{row.original.receiverName || 'Guest Customer'}</div>
+                <div className="text-xs text-gray-500">{row.original.phoneNumber || 'No phone'}</div>
+              </div>
+            </div>
+          );
+        },
+      }),
+      columnHelper.display({
+        id: 'pricing',
+        header: () => <span className="font-semibold">Total</span>,
         cell: ({ row }) => (
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 shrink-0 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100/50">
-              <User className="h-4 w-4" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-bold text-slate-900 leading-tight">{row.original.receiverName}</span>
-              <span className="text-xs text-slate-500 font-medium">{row.original.phoneNumber}</span>
-            </div>
+          <div className="flex flex-col">
+            <span className="font-bold text-gray-900">{formatPrice(row.original.amountToPay)}</span>
+            <span className="text-xs text-gray-500">Trade-In: {formatPrice(row.original.tradeInPrice)}</span>
           </div>
         ),
       }),
       columnHelper.accessor('status', {
-        header: () => <span className="text-[11px] font-black uppercase tracking-widest text-slate-400 font-bold">Processing</span>,
+        header: () => <span className="font-semibold">Status</span>,
         cell: ({ row }) => (
-          <div className="flex flex-col gap-1">
-            <AdminStatusBadge 
-              status={tradeInStatusBadgeValue(row.original.status)} 
-            />
-            <span className="text-[9px] font-bold uppercase tracking-widest text-slate-400 ml-1">{tradeInStatusLabel(row.original.status)}</span>
-          </div>
-        ),
-      }),
-      columnHelper.display({
-        id: 'condition',
-        header: () => <span className="text-[11px] font-black uppercase tracking-widest text-slate-400 font-bold">Condition</span>,
-        cell: ({ row }) => (
-          <AdminStatusBadge 
-            status={row.original.isGood ? 'good' : 'failed'} 
-            type={row.original.isGood ? 'success' : 'rose'} 
+          <AdminStatusBadge
+            status={tradeInStatusBadgeValue(row.original.status)}
           />
         ),
       }),
       columnHelper.display({
-        id: 'pricing',
-        header: () => <span className="text-[11px] font-black uppercase tracking-widest text-slate-400 font-bold">Financials</span>,
+        id: 'condition',
+        header: () => <span className="font-semibold">Condition</span>,
         cell: ({ row }) => (
-          <div className="flex items-start gap-3">
-            <div className="h-9 w-9 shrink-0 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100/50">
-              <CreditCard className="h-4 w-4" />
-            </div>
-            <div className="flex flex-col font-medium">
-              <span className="text-sm font-bold text-slate-900">{formatPrice(row.original.tradeInPrice)} <span className="text-[10px] text-slate-400 font-normal">EST.</span></span>
-              <span className="text-xs text-slate-500">Deposit: {formatPrice(row.original.depositAmount)}</span>
-            </div>
-          </div>
+          <AdminStatusBadge
+            status={row.original.isGood ? 'good' : 'failed'}
+            type={row.original.isGood ? 'success' : 'rose'}
+          />
         ),
       }),
       columnHelper.accessor('createdAt', {
-        header: () => <span className="text-[11px] font-black uppercase tracking-widest text-slate-400 font-bold">Timeline</span>,
-        cell: ({ row }) => (
-          <div className="flex items-center gap-2 text-slate-600">
-            <Calendar className="h-3.5 w-3.5 opacity-60" />
-            <span className="text-sm font-medium">{formatDateTime(row.original.createdAt)}</span>
-          </div>
-        ),
+        enableSorting: true,
+        header: ({ column }) => <SortableHeader column={column} label="Date Created" />,
+        cell: ({ row }) => {
+          return (
+            <div className="text-sm text-gray-600 flex flex-col">
+              <span className="font-semibold text-gray-900">{formatDate(row.original.createdAt)}</span>
+              <span className="text-[10px] text-gray-400">{formatTime(row.original.createdAt)}</span>
+            </div>
+          );
+        },
       }),
       columnHelper.display({
         id: 'actions',
-        header: () => <div className="text-right text-[11px] font-black uppercase tracking-widest text-slate-400 font-bold">Actions</div>,
-        cell: ({ row }) => (
-          <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
-            <AdminRowActions 
-              width="w-48"
-              sections={[
-                [
-                  {
-                    label: 'View Details',
-                    icon: <Eye className="h-4 w-4" />,
-                    component: (
-                      <Link
-                        to={`/admin/trade-in-orders/${row.original.tradeInOrderId}`}
-                        className="flex items-center gap-2.5 w-full"
-                      >
-                        <Eye className="h-4 w-4 opacity-70" />
-                        <span className="text-[13px] font-medium">View Details</span>
-                      </Link>
-                    )
-                  }
-                ],
-                [
-                  {
-                    label: 'Cancel Order',
-                    icon: <XCircle className="h-4 w-4" />,
-                    variant: 'danger',
-                    onClick: () => onCancel(row.original)
-                  }
-                ]
-              ]}
-            />
-          </div>
-        ),
+        header: () => <div className="text-right">Actions</div>,
+        cell: ({ row }) => {
+          const actions = [
+            {
+              label: 'View Details',
+              icon: <Eye className="h-4 w-4" />,
+              component: (
+                <Link
+                  to={`/admin/trade-in-orders/${row.original.tradeInOrderId}`}
+                  className="flex items-center gap-2.5 w-full"
+                >
+                  <Eye className="h-4 w-4 opacity-70" />
+                  <span className="text-[13px]">View Details</span>
+                </Link>
+              ),
+            },
+            {
+              label: 'Cancel Order',
+              icon: <Trash2 className="h-4 w-4 text-rose-500" />,
+              variant: 'danger' as const,
+              onClick: () => onCancel(row.original),
+            },
+          ];
+
+          return (
+            <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
+              <AdminRowActions actions={actions} />
+            </div>
+          );
+        },
       }),
     ],
     [onCancel],

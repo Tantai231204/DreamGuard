@@ -5,6 +5,7 @@ import type {
   CalculateTradeInOrderPriceRequest,
   CalculateTradeInOrderPriceResponse,
   CreateTradeInOrderRequest,
+  ReOrderFailedTradeInOrderResponse,
   TradeInOrderResponse,
   TradeInUploadStage,
   UploadTradeInOrderImagesOptions,
@@ -12,6 +13,7 @@ import type {
   TradeInOrderDetailResponse,
   TradeInActionResponse
 } from "@/api/types/tradeInOrder";
+import { normalizeTradeInStatus } from '@/utils/tradeInWorkflow';
 
 const LARGE_MAX_IMAGE_EDGE = 1600;
 const COMPACT_MAX_IMAGE_EDGE = 1280;
@@ -24,6 +26,12 @@ const MIN_QUALITY = 0.44;
 const QUALITY_SEARCH_STEPS = 5;
 const RESIZE_ATTEMPTS = 3;
 const COMPRESSION_CONCURRENCY = 2;
+
+const TRADE_IN_STATUS_HANDLERS = {
+  PROCESSING: (tradeInOrderId: string) => tradeInOrderService.processing(tradeInOrderId),
+  DELIVERED: (tradeInOrderId: string) => tradeInOrderService.delivered(tradeInOrderId),
+  COMPLETED: (tradeInOrderId: string) => tradeInOrderService.completed(tradeInOrderId),
+} as const;
 
 type CompressionMimeType = "image/webp" | "image/jpeg";
 
@@ -388,22 +396,30 @@ const tradeInOrderService = {
 
   /** Transition status helper for component usage */
   updateStatus: async (tradeInOrderId: string, status: string): Promise<TradeInActionResponse> => {
-    switch (status.toUpperCase()) {
-      case 'PROCESSING':
-        return tradeInOrderService.processing(tradeInOrderId);
-      case 'DELIVERED':
-        return tradeInOrderService.delivered(tradeInOrderId);
-      case 'COMPLETED':
-        return tradeInOrderService.completed(tradeInOrderId);
-      default:
-        throw new Error(`Unsupported status update: ${status}`);
+    const normalizedStatus = normalizeTradeInStatus(status);
+    const statusHandler = TRADE_IN_STATUS_HANDLERS[normalizedStatus as keyof typeof TRADE_IN_STATUS_HANDLERS];
+
+    if (!statusHandler) {
+      throw new Error(`Unsupported status update: ${status}`);
     }
+
+    return statusHandler(tradeInOrderId);
   },
 
   /** User specific cancel */
   cancelDeal: async (tradeInOrderId: string, reason?: string): Promise<TradeInActionResponse> => {
     const res = await apiClient.post(`/TradeInOrders/${tradeInOrderId}/cancel`, { reason });
     return res.data;
+  },
+
+  /** Retry payment for a failed pending trade-in order */
+  reOrderFailedTradeInOrder: async (tradeInOrderId: string): Promise<ReOrderFailedTradeInOrderResponse> => {
+    const normalizedId = String(tradeInOrderId || "").trim();
+    if (!normalizedId) throw new Error("Missing trade-in order id for re-payment.");
+
+    const res = await apiClient.post(`/TradeInOrders/${normalizedId}/ReOrderFailedTradeIn`);
+    const payload = (res.data as { data?: unknown })?.data ?? res.data;
+    return payload as ReOrderFailedTradeInOrderResponse;
   },
 
   /** Admin specific cancel */

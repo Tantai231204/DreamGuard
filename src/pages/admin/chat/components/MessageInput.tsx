@@ -5,7 +5,7 @@ import {
   useCallback,
   useEffect,
 } from 'react';
-import { Send, Paperclip, Smile, Image as ImageIcon, Zap } from 'lucide-react';
+import { Send, Paperclip, Smile, Image as ImageIcon, Zap, X, CalendarClock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -14,26 +14,36 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { QUICK_REPLIES, MAX_MESSAGE_LENGTH } from '../constants';
+import type { ChatPayloadAppointment } from '@/utils/chatPayload';
 
 interface MessageInputProps {
   draft: string;
   isSending: boolean;
+  uploadProgress?: number | null;
   onDraftChange: (val: string) => void;
-  onSend: () => void;
+  onSend: (payload: { text: string; imageFile?: File | null; appointment?: ChatPayloadAppointment }) => void | Promise<void>;
   onTyping?: (isTyping: boolean) => void;
 }
 
 function MessageInputInner({
   draft,
   isSending,
+  uploadProgress = null,
   onDraftChange,
   onSend,
   onTyping,
 }: MessageInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const lastTypingSignal = useRef<boolean>(false);
   const typingTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [charCount, setCharCount] = useState(0);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const [isAppointmentOpen, setIsAppointmentOpen] = useState(false);
+  const [appointmentDateTime, setAppointmentDateTime] = useState('');
+  const [appointmentLocation, setAppointmentLocation] = useState('');
+  const [appointmentNote, setAppointmentNote] = useState('');
 
   /* ---- Auto-grow textarea --------------------------------- */
   const autoResize = useCallback(() => {
@@ -68,6 +78,84 @@ function MessageInputInner({
     [onDraftChange, onTyping]
   );
 
+  const clearImagePreview = useCallback(() => {
+    if (previewImageUrl) {
+      URL.revokeObjectURL(previewImageUrl);
+    }
+    setPreviewImageUrl(null);
+    setSelectedImage(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, [previewImageUrl]);
+
+  const handleSend = useCallback(async () => {
+    const normalizedText = draft.trim();
+    if ((!normalizedText && !selectedImage) || isSending) return;
+
+    try {
+      await Promise.resolve(onSend({ text: normalizedText, imageFile: selectedImage }));
+
+      onDraftChange('');
+      setCharCount(0);
+      clearTimeout(typingTimeout.current);
+      lastTypingSignal.current = false;
+      onTyping?.(false);
+      clearImagePreview();
+
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
+        textareaRef.current.focus();
+      }
+    } catch (error) {
+      console.error('[Chat] Failed to send message:', error);
+    }
+  }, [draft, selectedImage, isSending, onSend, onDraftChange, onTyping, clearImagePreview]);
+
+  const resetAppointmentDraft = useCallback(() => {
+    setAppointmentDateTime('');
+    setAppointmentLocation('');
+    setAppointmentNote('');
+    setIsAppointmentOpen(false);
+  }, []);
+
+  const handlePinAppointment = useCallback(async () => {
+    if (isSending) return;
+    const normalizedDateTime = appointmentDateTime.trim();
+    if (!normalizedDateTime) return;
+
+    const scheduledAt = new Date(normalizedDateTime);
+    if (Number.isNaN(scheduledAt.getTime())) return;
+
+    const normalizedNote = appointmentNote.trim();
+    const normalizedLocation = appointmentLocation.trim();
+
+    const appointmentPayload: ChatPayloadAppointment = {
+      kind: 'appointment',
+      scheduledAt: scheduledAt.toISOString(),
+      location: normalizedLocation || undefined,
+      note: normalizedNote || undefined,
+      pinned: true,
+    };
+
+    const fallbackText = `Lich hen tham dinh: ${scheduledAt.toLocaleString('vi-VN')}`;
+
+    await Promise.resolve(onSend({
+      text: normalizedNote || fallbackText,
+      appointment: appointmentPayload,
+      imageFile: null,
+    }));
+
+    resetAppointmentDraft();
+  }, [
+    appointmentDateTime,
+    appointmentLocation,
+    appointmentNote,
+    isSending,
+    onSend,
+    resetAppointmentDraft,
+  ]);
+
   /* ---- Keyboard send -------------------------------------- */
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -76,24 +164,31 @@ function MessageInputInner({
         handleSend();
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [draft, isSending]
+    [handleSend]
   );
 
-  const handleSend = useCallback(() => {
-    if (!draft.trim() || isSending) return;
-    onSend();
-    setCharCount(0);
-    clearTimeout(typingTimeout.current);
-    lastTypingSignal.current = false;
-    onTyping?.(false);
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.focus();
+  const handleImagePick = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (previewImageUrl) {
+      URL.revokeObjectURL(previewImageUrl);
     }
-  }, [draft, isSending, onSend, onTyping]);
+
+    setSelectedImage(file);
+    setPreviewImageUrl(URL.createObjectURL(file));
+  }, [previewImageUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (previewImageUrl) {
+        URL.revokeObjectURL(previewImageUrl);
+      }
+    };
+  }, [previewImageUrl]);
 
   const isOverLimit = charCount > MAX_MESSAGE_LENGTH * 0.9;
+  const canSend = !!draft.trim() || !!selectedImage;
 
   return (
     <div className="flex-shrink-0 bg-white border-t border-gray-100 px-4 pt-2.5 pb-4">
@@ -112,14 +207,52 @@ function MessageInputInner({
         )}
       </div>
 
+      {/* Image preview */}
+      {previewImageUrl && (
+        <div className="mb-2.5 rounded-lg border border-gray-200 bg-gray-50/80 p-2 flex items-end gap-2">
+          <div className="relative">
+            <img
+              src={previewImageUrl}
+              alt="Selected"
+              className="w-14 h-14 rounded-md object-cover border border-gray-200"
+            />
+            <button
+              type="button"
+              onClick={clearImagePreview}
+              disabled={isSending}
+              className="absolute -top-2 -right-2 rounded-full bg-gray-800 text-white p-0.5 hover:bg-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Remove image"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] text-gray-500 truncate max-w-[220px]">{selectedImage?.name}</p>
+            {isSending && uploadProgress !== null && (
+              <>
+                <p className="text-[10px] text-gray-500 mt-1">Uploading {Math.round(uploadProgress)}%</p>
+                <div className="mt-1 h-1.5 w-full rounded-full bg-gray-200 overflow-hidden">
+                  <div
+                    className="h-full bg-[var(--color-primary)] transition-all duration-150"
+                    style={{ width: `${Math.max(5, Math.min(100, uploadProgress))}%` }}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Input bar */}
-      <div className="chat-input-wrapper flex items-end gap-2 border border-gray-200 rounded-2xl bg-gray-50/60 px-3 py-2">
+      <div className="chat-input-wrapper flex items-end gap-2 border border-gray-200 rounded-xl bg-gray-50/60 px-3 py-2">
         {/* Tool buttons */}
         <div className="flex items-center flex-shrink-0 mb-0.5">
           <Button
             variant="ghost" size="sm"
             className="h-7 w-7 p-0 rounded-lg text-gray-400 hover:text-[var(--color-primary)] hover:bg-blue-50 transition-all"
             title="Attach file"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isSending}
           >
             <Paperclip className="h-3.5 w-3.5" />
           </Button>
@@ -127,6 +260,8 @@ function MessageInputInner({
             variant="ghost" size="sm"
             className="h-7 w-7 p-0 rounded-lg text-gray-400 hover:text-[var(--color-primary)] hover:bg-blue-50 transition-all"
             title="Upload image"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isSending}
           >
             <ImageIcon className="h-3.5 w-3.5" />
           </Button>
@@ -145,6 +280,7 @@ function MessageInputInner({
                 variant="ghost" size="sm"
                 className="h-7 w-7 p-0 rounded-lg text-gray-400 hover:text-violet-500 hover:bg-violet-50 transition-all"
                 title="Quick replies"
+                disabled={isSending}
               >
                 <Zap className="h-3.5 w-3.5" />
               </Button>
@@ -166,6 +302,7 @@ function MessageInputInner({
                       setCharCount(reply.length);
                       textareaRef.current?.focus();
                     }}
+                    disabled={isSending}
                     className="w-full text-left text-xs text-gray-700 px-2.5 py-2 rounded-lg
                                hover:bg-blue-50 hover:text-[var(--color-primary)] transition-colors truncate"
                   >
@@ -175,10 +312,84 @@ function MessageInputInner({
               </div>
             </PopoverContent>
           </Popover>
+
+          <Popover open={isAppointmentOpen} onOpenChange={setIsAppointmentOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost" size="sm"
+                className="h-7 w-7 p-0 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-all"
+                title="Pin appointment"
+                disabled={isSending}
+              >
+                <CalendarClock className="h-3.5 w-3.5" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent
+              align="start"
+              side="top"
+              className="w-80 p-3 rounded-xl shadow-xl border-gray-100"
+            >
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                Pin Appraisal Appointment
+              </p>
+
+              <div className="space-y-2.5">
+                <div>
+                  <label className="text-[11px] text-gray-500">Date & time</label>
+                  <input
+                    type="datetime-local"
+                    value={appointmentDateTime}
+                    onChange={(event) => setAppointmentDateTime(event.target.value)}
+                    className="mt-1 w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs text-gray-700 focus:outline-none focus:border-emerald-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] text-gray-500">Location (optional)</label>
+                  <input
+                    type="text"
+                    value={appointmentLocation}
+                    onChange={(event) => setAppointmentLocation(event.target.value)}
+                    placeholder="Store or appraisal address"
+                    className="mt-1 w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs text-gray-700 placeholder:text-gray-300 focus:outline-none focus:border-emerald-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[11px] text-gray-500">Note (optional)</label>
+                  <input
+                    type="text"
+                    value={appointmentNote}
+                    onChange={(event) => setAppointmentNote(event.target.value)}
+                    placeholder="Extra note for customer"
+                    className="mt-1 w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs text-gray-700 placeholder:text-gray-300 focus:outline-none focus:border-emerald-400"
+                  />
+                </div>
+
+                <Button
+                  type="button"
+                  className="w-full h-8 rounded-lg bg-emerald-600 text-white text-[11px] font-semibold hover:bg-emerald-700"
+                  disabled={!appointmentDateTime || isSending}
+                  onClick={handlePinAppointment}
+                >
+                  Pin Appointment
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
 
         {/* Divider */}
         <div className="w-px h-5 bg-gray-200 self-center flex-shrink-0" />
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          onChange={handleImagePick}
+          className="hidden"
+          disabled={isSending}
+        />
 
         {/* Textarea */}
         <textarea
@@ -197,7 +408,7 @@ function MessageInputInner({
 
         {/* Send button */}
         <AnimatePresence mode="wait">
-          {draft.trim() ? (
+          {canSend ? (
             <motion.button
               key="active"
               initial={{ scale: 0.6, opacity: 0 }}

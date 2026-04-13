@@ -24,6 +24,34 @@ export const messagesQueryKey = (conversationId: string) =>
 /* ---- Optimistic counter ---------------------------------- */
 let _counter = 0;
 const tempId = () => `optimistic-${++_counter}`;
+const normalizeMessageText = (text: string) =>
+  text
+    .normalize('NFC')
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    .trim()
+    .replace(/\s+/g, ' ');
+
+const getPrimaryAttachmentUrl = (attachments?: Message['attachments']) =>
+  attachments?.find((attachment) => attachment.type === 'image' && !!attachment.url)?.url || '';
+
+const getAppointmentSignature = (appointment?: Message['appointment']) => {
+  if (!appointment) return '';
+  return [
+    appointment.kind,
+    appointment.scheduledAt,
+    appointment.location || '',
+    appointment.note || '',
+    appointment.pinned === false ? '0' : '1',
+  ].join('|');
+};
+
+const isSameMessageSignature = (
+  incoming: Pick<Message, 'content' | 'attachments' | 'appointment'>,
+  existing: Pick<Message, 'content' | 'attachments' | 'appointment'>,
+) =>
+  normalizeMessageText(incoming.content) === normalizeMessageText(existing.content) &&
+  getPrimaryAttachmentUrl(incoming.attachments) === getPrimaryAttachmentUrl(existing.attachments) &&
+  getAppointmentSignature(incoming.appointment) === getAppointmentSignature(existing.appointment);
 
 interface UseChatOptions {
   conversationId: string | null;
@@ -37,6 +65,7 @@ export function useChat({
   adminName = 'Admin Support',
 }: UseChatOptions) {
   const queryClient = useQueryClient();
+  const queryKey = messagesQueryKey(conversationId ?? '');
 
   /* ---- Message list with infinite pagination ------------- */
   const {
@@ -71,22 +100,24 @@ export function useChat({
 
   /* ---- Optimistic send (adds to UI immediately) ---------- */
   const addOptimisticMessage = useCallback(
-    (content: string) => {
-      if (!conversationId) return;
-      const key = messagesQueryKey(conversationId);
+    (content: string, attachments?: Message['attachments'], appointment?: Message['appointment']) => {
+      if (!conversationId) return undefined;
+      const optimisticId = tempId();
 
       const optimistic: Message = {
-        id: tempId(),
+        id: optimisticId,
         conversationId,
         senderId: adminId,
         senderName: adminName,
         senderRole: 'admin',
         content,
         timestamp: new Date().toISOString(),
-        status: 'sent',
+        status: 'sending',
+        attachments,
+        appointment,
       };
 
-      queryClient.setQueryData(key, (old: InfiniteData<{ items: Message[]; hasMore: boolean }> | undefined) => {
+      queryClient.setQueryData(queryKey, (old: InfiniteData<{ items: Message[]; hasMore: boolean }> | undefined) => {
         if (!old) return old;
         const pages = [...old.pages];
         const lastPage = pages[pages.length - 1];
@@ -96,8 +127,32 @@ export function useChat({
         };
         return { ...old, pages };
       });
+
+      return optimisticId;
     },
-    [conversationId, adminId, adminName, queryClient]
+    [conversationId, adminId, adminName, queryClient, queryKey]
+  );
+
+  const updateMessageStatus = useCallback(
+    (messageId: string, status: Message['status']) => {
+      if (!conversationId) return;
+
+      queryClient.setQueryData(queryKey, (old: InfiniteData<{ items: Message[]; hasMore: boolean }> | undefined) => {
+        if (!old) return old;
+
+        const pages = old.pages.map((page) => ({
+          ...page,
+          items: page.items.map((message) =>
+            message.id === messageId
+              ? { ...message, status }
+              : message,
+          ),
+        }));
+
+        return { ...old, pages };
+      });
+    },
+    [conversationId, queryClient, queryKey],
   );
 
   /* ---- Load more (older messages) ----------------------- */
@@ -109,9 +164,8 @@ export function useChat({
   const appendMessage = useCallback(
     (msg: Message) => {
       if (!conversationId) return;
-      const key = messagesQueryKey(conversationId);
 
-      queryClient.setQueryData(key, (old: typeof data) => {
+      queryClient.setQueryData(queryKey, (old: typeof data) => {
         if (!old) return old;
 
         // 1. Idempotent check: skip if ID already exists in any page
@@ -120,19 +174,44 @@ export function useChat({
         );
         if (alreadyExists) return old;
 
+        const incomingTime = Date.parse(msg.timestamp) || Date.now();
+
         // 2. Echo cancellation: 
         // If we just sent an admin message and server sends it back as 'admin', 
         // we keep our optimistic one and skip the duplicate from WS 
         // (unless we want to "upgrade" it). For now, skip to prevent double-render.
         if (msg.senderRole === 'admin') {
-           const hasOptimisticMatch = old.pages.some(p => 
-              p.items.some(m => m.id.startsWith('optimistic-') && m.content === msg.content)
-           );
-           if (hasOptimisticMatch) {
-              console.log('[Chat] Ignoring echoed admin message (already shown optimistically)');
-              return old;
-           }
+          const optimisticPageIndex = old.pages.findIndex((p) =>
+            p.items.some(
+              (m) => m.id.startsWith('optimistic-') && isSameMessageSignature(msg, m),
+            ),
+          );
+
+          if (optimisticPageIndex >= 0) {
+            const pages = [...old.pages];
+            const targetPage = pages[optimisticPageIndex];
+            pages[optimisticPageIndex] = {
+              ...targetPage,
+              items: targetPage.items.map((m) =>
+                m.id.startsWith('optimistic-') && isSameMessageSignature(msg, m)
+                  ? msg
+                  : m,
+              ),
+            };
+            return { ...old, pages };
+          }
         }
+
+        const hasSemanticDuplicate = old.pages.some((p) =>
+          p.items.some((m) => {
+            if (m.senderRole !== msg.senderRole) return false;
+            if (!isSameMessageSignature(msg, m)) return false;
+            const existingTime = Date.parse(m.timestamp) || 0;
+            return Math.abs(existingTime - incomingTime) <= 2500;
+          }),
+        );
+
+        if (hasSemanticDuplicate) return old;
 
         const pages = [...old.pages];
         const lastPage = pages[pages.length - 1];
@@ -143,7 +222,7 @@ export function useChat({
         return { ...old, pages };
       });
     },
-    [conversationId, queryClient]
+    [conversationId, queryClient, queryKey]
   );
 
   return {
@@ -151,6 +230,7 @@ export function useChat({
     isLoading,
     hasMore: !!hasNextPage,
     addOptimisticMessage,
+    updateMessageStatus,
     loadMore,
     appendMessage,
   };

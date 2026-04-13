@@ -1,4 +1,4 @@
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useState } from 'react';
 import { X } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -10,10 +10,11 @@ import {
   DialogHeader,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { cn } from '@/lib/utils';
 import { AppRoute } from '@/lib/constants';
 import { toast } from 'sonner';
-import { ApiError, ERROR_TITLES } from '@/lib/api';
+import { ApiError } from '@/lib/api';
 import { formatTradeInPrice } from '../../utils/tradeIn';
 
 import { useTradeInFlow, type TradeInAudit } from '../../hooks/useTradeInFlow';
@@ -34,6 +35,7 @@ type StepType = typeof STEPS[number];
 export const TradeInSelector = memo(function TradeInSelector({
   eligibleProducts,
   selectedProducts,
+  product,
   currentProductVariantId,
   onToggleProduct,
   tradeInPercentage = 30,
@@ -66,6 +68,7 @@ export const TradeInSelector = memo(function TradeInSelector({
   });
 
   const dialogOpen = onOpenChange ? isOpen : flow.isOpen;
+  const [isCreateConfirmOpen, setIsCreateConfirmOpen] = useState(false);
 
   const setDialogOpen = useCallback((open: boolean) => {
     if (onOpenChange) {
@@ -97,6 +100,11 @@ export const TradeInSelector = memo(function TradeInSelector({
     }
   }, [flow, isLoggedIn, redirectToLogin, setDialogOpen]);
 
+  const handleSelectSourceItemInSummary = useCallback((productId: string) => {
+    if (!productId || selectedProducts[0] === productId) return;
+    onToggleProduct(productId);
+  }, [onToggleProduct, selectedProducts]);
+
 
   const handleComplete = useCallback(async () => {
     try {
@@ -112,13 +120,24 @@ export const TradeInSelector = memo(function TradeInSelector({
       setDialogOpen(false);
       flow.resetFlow();
     } catch (error) {
-      const apiError = error instanceof ApiError ? error : null;
-      const title = apiError ? (ERROR_TITLES[apiError.code] || 'Action Failed') : 'Action Failed';
-      const description = error instanceof Error ? error.message : 'Unexpected error occurred.';
+      if (error instanceof ApiError) {
+        return;
+      }
 
-      toast.error(title, { description });
+      const description = error instanceof Error ? error.message : 'Unexpected error occurred.';
+      toast.error('Action Failed', { description });
     }
   }, [flow, onToggleProduct, selectedProducts, setDialogOpen]);
+
+  const handleOpenCreateConfirm = useCallback(() => {
+    if (flow.isSubmitting) return;
+    setIsCreateConfirmOpen(true);
+  }, [flow.isSubmitting]);
+
+  const handleConfirmCreateTradeIn = useCallback(() => {
+    setIsCreateConfirmOpen(false);
+    void handleComplete();
+  }, [handleComplete]);
 
   if (!isEligible) {
     return <TradeInTrigger isEligible={false} selectedCount={0} totalValue={0} className={className} />;
@@ -128,6 +147,8 @@ export const TradeInSelector = memo(function TradeInSelector({
   const safeStepIndex = stepIndex >= 0 ? stepIndex : 0;
   const hasEstimatedTradeInValue = typeof estimatedTradeInValue === 'number';
   const displayTradeInValue = hasEstimatedTradeInValue ? estimatedTradeInValue : 0;
+  const selectedSourceProductName = eligibleProducts.find((item) => item.id === selectedProducts[0])?.name || 'selected trade-in item';
+  const createConfirmDescription = `DreamGuard will create a trade-in request for "${selectedSourceProductName}" and continue payment for deposit ${formatTradeInPrice(depositAmount)}. Continue now?`;
 
   return (
     <Dialog
@@ -242,6 +263,10 @@ export const TradeInSelector = memo(function TradeInSelector({
               )}
               {flow.step === 'summary' && (
                 <StepSummary
+                  eligibleProducts={eligibleProducts}
+                  selectedProducts={selectedProducts}
+                  onSelectTradeInProduct={handleSelectSourceItemInSummary}
+                  targetProductName={product?.name}
                   totalTradeInValue={flow.totalTradeInValue}
                   sessionOrderId={flow.sessionOrderId}
                   depositAmount={depositAmount}
@@ -267,9 +292,21 @@ export const TradeInSelector = memo(function TradeInSelector({
             imagesCount={flow.images.length}
             onBack={flow.handleBack}
             onNext={flow.handleNext}
-            onComplete={handleComplete}
+            onComplete={handleOpenCreateConfirm}
             onClose={() => handleDialogOpenChange(false)}
             contact={flow.contact}
+          />
+
+          <ConfirmDialog
+            open={isCreateConfirmOpen}
+            onOpenChange={setIsCreateConfirmOpen}
+            title="Confirm trade-in request creation?"
+            description={createConfirmDescription}
+            confirmText="Create Request"
+            cancelText="Review Again"
+            onConfirm={handleConfirmCreateTradeIn}
+            variant="tradein"
+            isLoading={flow.isSubmitting}
           />
         </div>
       </DialogContent>

@@ -1,5 +1,5 @@
 import { useRef, useMemo, useEffect, useCallback } from "react";
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { useMutation, useQueries, useQuery } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import { toast as sonnerToast } from "sonner";
 
@@ -17,6 +17,7 @@ import { getAddresses } from "@/api/services/address.service";
 import tradeInOrderService from "@/api/services/tradeInOrderService";
 
 import type { TradeInEligibleOrderItem } from "@/api/types/order";
+import type { CreateTradeInOrderRequest } from "@/api/types/tradeInOrder";
 import type { ProductFeedbackResponse } from "@/api/types/feedback";
 import type { Address } from "@/api/types/address";
 import type { ProductSpec, Review } from "../types";
@@ -72,6 +73,10 @@ export function useProductDetailViewModel() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const createTradeInOrderMutation = useMutation({
+    mutationFn: (request: CreateTradeInOrderRequest) => tradeInOrderService.create(request),
+  });
+
   const rawTradeInItems = useMemo(() => {
     if (!Array.isArray(eligibleTradeInItemsRaw)) return [];
     return (eligibleTradeInItemsRaw as TradeInEligibleOrderItem[]).filter(
@@ -123,32 +128,33 @@ export function useProductDetailViewModel() {
     const fallbackImage = state.productImages[0] || "https://i.pinimg.com/736x/c5/67/61/c567613e5b7eca33961d69bb41d52355.jpg";
 
     return rawTradeInItems
-      .filter((item) => (item.tradeInUsedAmount ?? 0) < (item.quantity || 1))
+      .filter((item) => (item.tradeInUsedAmount ?? 0) < ((item.quantity ?? 1) || 1))
       .map((item) => {
         const variant = variantDetailMap.get(item.productVariantId);
         const variantLabel = resolveVariantLabel(variant);
         const variantTradeInValue = pickVariantTradeInNumber(variant, [
           "tradeInPrice", "tradeInValue", "minTradeInPrice", "minimumTradeInPrice", "guaranteedTradeInValue",
         ]);
-        const normalizedUnitPrice = item.unitPrice || (item.quantity > 0 ? Math.round(item.totalPrice / item.quantity) : 0) || variant?.salePrice || variant?.basePrice || 0;
-        const resolvedName = item.itemName || "Trade-in item";
+        const normalizedQuantity = item.quantity ?? 1;
+        const normalizedUnitPrice = item.unitPrice ?? (normalizedQuantity > 0 ? Math.round((item.totalPrice ?? 0) / normalizedQuantity) : undefined) ?? variant?.salePrice ?? variant?.basePrice ?? 0;
+        const resolvedName = item.itemName ?? "Trade-in item";
         const displayName = variantLabel && !resolvedName.includes(variantLabel) ? `${resolvedName} (${variantLabel})` : resolvedName;
-        const normalizedTotalPrice = item.totalPrice || normalizedUnitPrice * (item.quantity || 1);
+        const normalizedTotalPrice = item.totalPrice ?? normalizedUnitPrice * normalizedQuantity;
 
         return {
           id: item.id,
-          orderId: item.orderId || "N/A",
+          orderId: item.orderId ?? item.id,
           porderItemId: item.id,
           productVariantId: item.productVariantId,
           name: displayName,
-          image: item.image || resolveVariantImage(variant) || fallbackImage,
-          quantity: item.quantity || 1,
+          image: item.image ?? resolveVariantImage(variant) ?? fallbackImage,
+          quantity: normalizedQuantity,
           unitPrice: normalizedUnitPrice,
           totalPrice: normalizedTotalPrice,
           originalPrice: normalizedUnitPrice,
-          purchaseDate: item.purchaseDate || item.createdAt || new Date().toISOString(),
+          purchaseDate: item.purchaseDate ?? item.createdAt ?? "",
           canTradeIn: true,
-          tradeInUsedAmount: item.tradeInUsedAmount,
+          tradeInUsedAmount: item.tradeInUsedAmount ?? 0,
           tradeInValue: typeof item.tradeInValue === "number" ? item.tradeInValue : variantTradeInValue,
         };
       });
@@ -288,7 +294,7 @@ export function useProductDetailViewModel() {
     }
 
     const normalizedDescription = payload.description?.trim() || "Drop-off at hub";
-    const createdTradeInOrder = await tradeInOrderService.create({
+    const createdTradeInOrder = await createTradeInOrderMutation.mutateAsync({
       address: tradeInContact.address,
       description: normalizedDescription,
       phoneNumber: tradeInContact.phoneNumber,
@@ -323,7 +329,7 @@ export function useProductDetailViewModel() {
     }
 
     if (shouldRedirectToPayment) { window.location.assign(paymentUrl); }
-  }, [tradeInContact]);
+  }, [createTradeInOrderMutation, tradeInContact]);
 
   const handleToggleTradeIn = useCallback((id: string) => {
     actions.setSelectedTradeInProducts((prev: string[]) => prev[0] === id ? [] : [id]);

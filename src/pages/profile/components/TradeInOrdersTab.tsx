@@ -1,8 +1,12 @@
-import { useCallback, useState } from "react";
-import { useCustomerTradeInOrders, tradeInOrderKeys } from "@/hooks/queries/useTradeInOrder";
+import { useCallback, useEffect, useState } from "react";
+import {
+    useCustomerTradeInOrders,
+    useReOrderFailedTradeInOrder,
+    tradeInOrderKeys,
+} from "@/hooks/queries/useTradeInOrder";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeftRight } from "lucide-react";
+import { ArrowLeftRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import tradeInOrderService from "@/api/services/tradeInOrderService";
 import { useChatStore } from "@/store/useChatStore";
@@ -12,13 +16,23 @@ import { AppRoute } from "@/lib/constants";
 import { TradeInOrderCard } from "./trade-in/TradeInOrderCard";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+
+const TRADE_IN_PAGE_SIZE = 6;
 
 export const TradeInOrdersTab = () => {
-    const { data, isLoading } = useCustomerTradeInOrders();
+    const [pageNumber, setPageNumber] = useState(1);
+    const { data, isLoading, isFetching } = useCustomerTradeInOrders({
+        pageNumber,
+        pageSize: TRADE_IN_PAGE_SIZE,
+    });
     const queryClient = useQueryClient();
     const [isCreatingChat, setIsCreatingChat] = useState<string | null>(null);
+    const [retryingPaymentOrderId, setRetryingPaymentOrderId] = useState<string | null>(null);
+    const [retryConfirmOrderId, setRetryConfirmOrderId] = useState<string | null>(null);
     const { openChat } = useChatStore();
     const navigate = useNavigate();
+    const reOrderFailedTradeInMutation = useReOrderFailedTradeInOrder();
 
     const { mutate: cancelRequest, isPending: isCancelling } = useMutation({
         mutationFn: ({ id, reason }: { id: string; reason: string }) => tradeInOrderService.cancelDeal(id, reason),
@@ -56,6 +70,50 @@ export const TradeInOrdersTab = () => {
         cancelRequest({ id, reason });
     }, [cancelRequest]);
 
+    const handleRetryPayment = useCallback(async (tradeInOrderId: string) => {
+        if (!tradeInOrderId) return;
+
+        try {
+            setRetryingPaymentOrderId(tradeInOrderId);
+            const response = await reOrderFailedTradeInMutation.mutateAsync(tradeInOrderId);
+            const paymentUrl = typeof response?.paymentUrl === "string" ? response.paymentUrl.trim() : "";
+
+            if (paymentUrl) {
+                window.location.assign(paymentUrl);
+                return;
+            }
+
+            toast.warning("Unable to create payment link.", {
+                description: "Please try again in a moment.",
+            });
+        } catch (error) {
+            const description = error instanceof Error ? error.message : "Retry payment failed.";
+            toast.error("Cannot retry payment.", { description });
+        } finally {
+            setRetryingPaymentOrderId(null);
+        }
+    }, [reOrderFailedTradeInMutation]);
+
+    const requestRetryPayment = useCallback((tradeInOrderId: string) => {
+        if (!tradeInOrderId || reOrderFailedTradeInMutation.isPending) return;
+        setRetryConfirmOrderId(tradeInOrderId);
+    }, [reOrderFailedTradeInMutation.isPending]);
+
+    const handleConfirmRetryPayment = useCallback(async () => {
+        if (!retryConfirmOrderId) return;
+
+        const targetOrderId = retryConfirmOrderId;
+        setRetryConfirmOrderId(null);
+        await handleRetryPayment(targetOrderId);
+    }, [handleRetryPayment, retryConfirmOrderId]);
+
+    useEffect(() => {
+        const totalPages = data?.totalPages ?? 1;
+        if (totalPages > 0 && pageNumber > totalPages) {
+            setPageNumber(totalPages);
+        }
+    }, [data?.totalPages, pageNumber]);
+
     if (isLoading) {
         return (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -68,8 +126,13 @@ export const TradeInOrdersTab = () => {
     }
 
     const orders = data?.items || [];
+    const totalCount = data?.totalCount ?? orders.length;
+    const totalPages = Math.max(1, data?.totalPages ?? 1);
+    const hasPreviousPage = data?.hasPreviousPage ?? pageNumber > 1;
+    const hasNextPage = data?.hasNextPage ?? pageNumber < totalPages;
+    const retryConfirmOrder = orders.find((order) => order.tradeInOrderId === retryConfirmOrderId) || null;
 
-    if (orders.length === 0) {
+    if (totalCount === 0) {
         return (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <Header count={0} />
@@ -80,7 +143,8 @@ export const TradeInOrdersTab = () => {
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
-            <Header count={orders.length} />
+            <Header count={totalCount} />
+
             <div className="grid gap-6">
                 {orders.map((order) => (
                     <TradeInOrderCard
@@ -88,11 +152,39 @@ export const TradeInOrdersTab = () => {
                         order={order}
                         onChatClick={handleChatClick}
                         onCancelRequest={handleCancelRequest}
+                        onRetryPaymentRequest={requestRetryPayment}
                         isCreatingChat={isCreatingChat === order.tradeInOrderId}
                         isCancelling={isCancelling}
+                        isRetryingPayment={retryingPaymentOrderId === order.tradeInOrderId && reOrderFailedTradeInMutation.isPending}
                     />
                 ))}
             </div>
+
+            {totalPages > 1 && (
+                <TradeInPagination
+                    pageNumber={pageNumber}
+                    totalPages={totalPages}
+                    hasPreviousPage={hasPreviousPage}
+                    hasNextPage={hasNextPage}
+                    isDisabled={isFetching}
+                    onPrevious={() => setPageNumber((prev) => Math.max(1, prev - 1))}
+                    onNext={() => setPageNumber((prev) => Math.min(totalPages, prev + 1))}
+                />
+            )}
+
+            <ConfirmDialog
+                open={Boolean(retryConfirmOrderId)}
+                onOpenChange={(open) => {
+                    if (!open) setRetryConfirmOrderId(null);
+                }}
+                title={retryConfirmOrder ? `Retry payment for #${retryConfirmOrder.orderCode}?` : "Retry failed payment?"}
+                description="A new secure payment link will be created for this pending trade-in request. Continue with **Pay Again** now?"
+                confirmText="Pay Again"
+                cancelText="Not now"
+                onConfirm={handleConfirmRetryPayment}
+                variant="primary"
+                isLoading={Boolean(retryingPaymentOrderId)}
+            />
         </div>
     );
 };
@@ -106,6 +198,56 @@ const Header = ({ count }: { count: number }) => (
         <Badge variant="outline" className="px-4 py-2 rounded-xl bg-slate-50 text-slate-700 border-slate-200 font-bold uppercase text-[10px] tracking-widest">
             {count} Total Requests
         </Badge>
+    </div>
+);
+
+const TradeInPagination = ({
+    pageNumber,
+    totalPages,
+    hasPreviousPage,
+    hasNextPage,
+    isDisabled,
+    onPrevious,
+    onNext,
+}: {
+    pageNumber: number;
+    totalPages: number;
+    hasPreviousPage: boolean;
+    hasNextPage: boolean;
+    isDisabled: boolean;
+    onPrevious: () => void;
+    onNext: () => void;
+}) => (
+    <div className="flex items-center justify-between border-t border-slate-100 pt-6">
+        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            Page {pageNumber} of {totalPages}
+        </p>
+
+        <div className="flex items-center gap-2">
+            <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onPrevious}
+                disabled={!hasPreviousPage || isDisabled}
+                className="h-9 px-4 rounded-xl border-slate-200 text-slate-600 font-bold text-[10px] uppercase tracking-wider"
+            >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Prev
+            </Button>
+
+            <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onNext}
+                disabled={!hasNextPage || isDisabled}
+                className="h-9 px-4 rounded-xl border-slate-200 text-slate-600 font-bold text-[10px] uppercase tracking-wider"
+            >
+                Next
+                <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+        </div>
     </div>
 );
 

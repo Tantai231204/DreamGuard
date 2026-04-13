@@ -1,14 +1,17 @@
-import { memo, useEffect, useRef, useCallback, useState } from 'react';
-import { ArrowDown, Loader2 } from 'lucide-react';
+import { memo, useEffect, useRef, useCallback, useState, useMemo } from 'react';
+import { ArrowDown, Loader2, CalendarClock, MapPin, Pin } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { MessageBubble } from './MessageBubble';
 import type { Message } from '../types';
+import { formatAppointmentTimeLabel } from '@/utils/chatPayload';
 
 interface MessageListProps {
   messages: Message[];
   isLoading: boolean;
+  isTyping?: boolean;
   hasMore: boolean;
   onLoadMore: () => void;
+  onRetryMessage?: (message: Message) => void;
   formatTime: (iso: string) => string;
   formatDate: (iso: string) => string;
 }
@@ -16,8 +19,10 @@ interface MessageListProps {
 function MessageListInner({
   messages,
   isLoading,
+  isTyping = false,
   hasMore,
   onLoadMore,
+  onRetryMessage,
   formatTime,
   formatDate,
 }: MessageListProps) {
@@ -67,24 +72,43 @@ function MessageListInner({
   }, []);
 
   /* ---- Group messages by date ----------------------------- */
-  const grouped = messages.reduce<{ date: string; items: Message[] }[]>((acc, msg) => {
-    const d = formatDate(msg.timestamp);
-    if (acc.length === 0 || acc[acc.length - 1].date !== d) {
-      acc.push({ date: d, items: [msg] });
-    } else {
-      acc[acc.length - 1].items.push(msg);
-    }
-    return acc;
-  }, []);
+  const grouped = useMemo(
+    () => messages.reduce<{ date: string; items: Message[] }[]>((acc, msg) => {
+      const d = formatDate(msg.timestamp);
+      if (acc.length === 0 || acc[acc.length - 1].date !== d) {
+        acc.push({ date: d, items: [msg] });
+      } else {
+        acc[acc.length - 1].items.push(msg);
+      }
+      return acc;
+    }, []),
+    [messages, formatDate],
+  );
 
-  /* ---- Typing indicator placeholder ----------------------- */
-  const lastTypingConvId = null; // wire from useSignalR if needed
+  const pinnedAppointmentMessage = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i -= 1) {
+      const message = messages[i];
+      if (message.appointment && message.appointment.pinned !== false) {
+        return message;
+      }
+    }
+    return null;
+  }, [messages]);
+
+  const latestOutgoingMessageId = useMemo(() => {
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      if (messages[index].senderRole === 'admin') {
+        return messages[index].id;
+      }
+    }
+    return null;
+  }, [messages]);
 
   return (
     <div
       ref={containerRef}
       className="flex-1 min-h-0 overflow-y-auto custom-scrollbar scrollbar-admin relative"
-      style={{ background: 'linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)' }}
+      style={{ background: 'linear-gradient(180deg, #eef1f5 0%, #e9edf3 100%)' }}
     >
       {/* Load more button */}
       {hasMore && (
@@ -112,7 +136,7 @@ function MessageListInner({
             <div key={i} className={`flex items-end gap-2.5 ${isRight ? 'flex-row-reverse' : ''}`}>
               <div className="w-7 h-7 rounded-full bg-gray-200 animate-pulse flex-shrink-0" />
               <div
-                className={`h-10 rounded-2xl bg-gray-200 animate-pulse ${isRight ? 'rounded-br-sm' : 'rounded-bl-sm'}`}
+                className={`h-10 rounded-xl bg-gray-200 animate-pulse ${isRight ? 'rounded-br-md' : 'rounded-bl-md'}`}
                 style={{ width: `${[45, 60, 38, 55, 42][i]}%` }}
               />
             </div>
@@ -124,6 +148,30 @@ function MessageListInner({
       {/* Message groups */}
       {messages.length > 0 && (
         <div className="px-4 py-4 space-y-4">
+          {pinnedAppointmentMessage?.appointment && (
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-3 shadow-sm">
+              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 uppercase tracking-wide">
+                <Pin className="h-3.5 w-3.5" />
+                Pinned Appointment
+              </div>
+              <div className="mt-2 space-y-1 text-[12px] text-emerald-800">
+                <p className="flex items-center gap-1.5">
+                  <CalendarClock className="h-3.5 w-3.5" />
+                  {formatAppointmentTimeLabel(pinnedAppointmentMessage.appointment.scheduledAt)}
+                </p>
+                {pinnedAppointmentMessage.appointment.location && (
+                  <p className="flex items-center gap-1.5">
+                    <MapPin className="h-3.5 w-3.5" />
+                    {pinnedAppointmentMessage.appointment.location}
+                  </p>
+                )}
+                {pinnedAppointmentMessage.appointment.note && (
+                  <p className="text-[11px] text-emerald-700/90">{pinnedAppointmentMessage.appointment.note}</p>
+                )}
+              </div>
+            </div>
+          )}
+
           {grouped.map(({ date, items }, groupIdx) => (
             <div key={`${date}-${groupIdx}`}>
               {/* Date separator */}
@@ -132,11 +180,13 @@ function MessageListInner({
               </div>
 
               <div className="space-y-3">
-                {items.map((msg, idx) => (
+                {items.map((msg) => (
                   <MessageBubble
-                    key={`${msg.id}-${idx}`}
+                    key={msg.id}
                     message={msg}
                     formatTime={formatTime}
+                    isLastOutgoing={msg.id === latestOutgoingMessageId}
+                    onRetry={onRetryMessage}
                   />
                 ))}
               </div>
@@ -144,7 +194,7 @@ function MessageListInner({
           ))}
 
           {/* Typing indicator (show when remote user is typing) */}
-          {lastTypingConvId && (
+          {isTyping && (
             <AnimatePresence>
               <motion.div
                 initial={{ opacity: 0, y: 8 }}
@@ -153,10 +203,10 @@ function MessageListInner({
                 className="flex items-end gap-2.5"
               >
                 <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center text-[10px] flex-shrink-0" />
-                <div className="bg-white border border-gray-200 rounded-2xl rounded-bl-sm px-3.5 py-2.5 flex items-center gap-1">
-                  <span className="typing-dot" />
-                  <span className="typing-dot" />
-                  <span className="typing-dot" />
+                <div className="bg-white border border-gray-100 shadow-sm rounded-xl rounded-bl-md px-3.5 py-2.5 flex items-center justify-center gap-1.5">
+                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" />
                 </div>
               </motion.div>
             </AnimatePresence>

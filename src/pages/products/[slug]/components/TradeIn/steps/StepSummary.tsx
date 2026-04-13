@@ -1,11 +1,16 @@
 import { memo } from 'react';
 import { motion } from 'framer-motion';
-import { Award, CreditCard, ShieldCheck, TrendingUp } from 'lucide-react';
+import { ArrowRightLeft, Award, CreditCard, Loader2, ShieldCheck, TrendingUp, XCircle } from 'lucide-react';
 import { formatTradeInPrice } from '../../../utils/tradeIn';
+import type { TradeInProduct } from '../../../utils/tradeIn';
 
 const formatPrice = formatTradeInPrice;
 
 interface StepSummaryProps {
+  eligibleProducts: TradeInProduct[];
+  selectedProducts: string[];
+  onSelectTradeInProduct: (productId: string) => void;
+  targetProductName?: string;
   totalTradeInValue: number;
   sessionOrderId: number;
   depositAmount: number;
@@ -17,6 +22,10 @@ interface StepSummaryProps {
 }
 
 export const StepSummary = memo(function StepSummary({
+  eligibleProducts,
+  selectedProducts,
+  onSelectTradeInProduct,
+  targetProductName,
   totalTradeInValue,
   sessionOrderId,
   depositAmount,
@@ -41,6 +50,23 @@ export const StepSummary = memo(function StepSummary({
   const estimatedSettlementAmount = hasSettlementEstimate
     ? Math.max(0, estimatedAmountToPay || 0)
     : Math.max(0, resolvedPurchasePrice - minTradeInPrice - payableAmount);
+  const selectedSourceId = selectedProducts[0];
+  const selectedSourceProduct = eligibleProducts.find((product) => product.id === selectedSourceId) || null;
+  const alternativeSourceProducts = eligibleProducts.filter((product) => product.id !== selectedSourceId);
+  const canReplaceSelectedCard = alternativeSourceProducts.length > 0;
+  const resolvedTargetProductName = (targetProductName || '').trim() || 'Selected new variant';
+
+  const handleSelectTradeInProduct = (productId: string) => {
+    if (selectedSourceId === productId) return;
+    onSelectTradeInProduct(productId);
+  };
+
+  const handleRemoveSelectedCard = () => {
+    if (!canReplaceSelectedCard) return;
+    const fallbackProduct = alternativeSourceProducts[0];
+    if (!fallbackProduct) return;
+    onSelectTradeInProduct(fallbackProduct.id);
+  };
 
   return (
     <motion.div
@@ -68,6 +94,101 @@ export const StepSummary = memo(function StepSummary({
             Reference: <span className="font-bold text-[#3D5140]">#DG-RENEW-{sessionOrderId}</span>
           </p>
         </div>
+      </div>
+
+      <div className="w-full rounded-[24px] border border-[#EDE8E1] bg-white p-5 text-left shadow-sm">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div>
+            <p className="text-[10px] font-black text-[#A89E94] uppercase tracking-[0.2em]">Trade Route</p>
+            <p className="text-[12px] text-[#6D5F54] font-semibold mt-1">Click remove on selected card, then pick another order item card</p>
+          </div>
+          {isEstimatingPrice && (
+            <div className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#8C7A6B]">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              Recalculating
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-3 items-stretch mb-4">
+          <div className="rounded-2xl border border-[#DDE9DF] bg-[#F7FBF7] px-4 py-4 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-[0.14em] font-black text-[#6F8A72] mb-1">Trading From</p>
+                <p className="text-[13px] font-bold text-[#1A1A1A] line-clamp-2">
+                  {selectedSourceProduct?.name || 'No source item selected'}
+                </p>
+                <p className="text-[10px] text-[#6D7B6E] font-semibold mt-1">
+                  {selectedSourceProduct ? `Order #${selectedSourceProduct.orderId || '--'}` : 'Please choose one order item card below'}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleRemoveSelectedCard}
+                disabled={!selectedSourceProduct || !canReplaceSelectedCard}
+                className="inline-flex items-center gap-1 rounded-full border border-[#D7E3D9] bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-[#5E7463] hover:border-[#3D5140]/35 hover:text-[#3D5140] disabled:cursor-not-allowed disabled:opacity-45 transition-colors"
+              >
+                <XCircle className="w-3 h-3" />
+                Remove
+              </button>
+            </div>
+
+            <div className="mt-3 inline-flex items-center rounded-full border border-[#D7E3D9] bg-white px-3 py-1 text-[10px] font-semibold text-[#5E7463]">
+              {selectedSourceProduct
+                ? `From ${formatPrice(typeof selectedSourceProduct.tradeInValue === 'number' ? selectedSourceProduct.tradeInValue : selectedSourceProduct.originalPrice)}`
+                : 'Select one card to preview estimate'}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-center text-[#3D5140]">
+            <ArrowRightLeft className="w-4 h-4" />
+          </div>
+
+          <div className="rounded-xl border border-[#DDE9DF] bg-[#F4F7F4] px-4 py-3">
+            <p className="text-[10px] uppercase tracking-[0.14em] font-black text-[#6F8A72] mb-1">Upgrading To</p>
+            <p className="text-[13px] font-bold text-[#2B4A33] line-clamp-2">
+              {resolvedTargetProductName}
+            </p>
+          </div>
+        </div>
+
+        {eligibleProducts.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-[10px] uppercase tracking-[0.14em] font-black text-[#A89E94]">Other order item cards</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+              {(selectedSourceProduct ? alternativeSourceProducts : eligibleProducts).map((product) => {
+              const previewValue = typeof product.tradeInValue === 'number'
+                ? product.tradeInValue
+                : product.originalPrice;
+
+              return (
+                <button
+                  key={product.id}
+                  type="button"
+                  onClick={() => handleSelectTradeInProduct(product.id)}
+                  className="rounded-xl border border-[#EDE8E1] bg-white px-3.5 py-2.5 text-left hover:border-[#3D5140]/30 hover:bg-[#F7FBF7] transition-colors"
+                >
+                  <p className="text-[11px] font-bold text-[#1A1A1A] line-clamp-2">{product.name}</p>
+                  <div className="mt-1.5 flex items-center justify-between gap-2">
+                    <p className="text-[10px] font-semibold text-[#7B8B7C]">Order #{product.orderId || '--'}</p>
+                    <p className="text-[10px] font-bold text-[#3D5140]">From {formatPrice(previewValue)}</p>
+                  </div>
+                  <div className="mt-2 inline-flex items-center rounded-full border border-[#DDE9DF] bg-[#F4F7F4] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-[#5E7463]">
+                    Replace with this card
+                  </div>
+                </button>
+              );
+            })}
+
+            {selectedSourceProduct && !canReplaceSelectedCard && (
+              <div className="rounded-lg border border-dashed border-[#E5DDD4] bg-[#FDFCFA] px-3 py-2 text-[11px] font-semibold text-[#8B7E71]">
+                No other order item card available to replace.
+              </div>
+            )}
+          </div>
+          </div>
+        )}
       </div>
 
       {/* Main Financial Breakdown Cards */}

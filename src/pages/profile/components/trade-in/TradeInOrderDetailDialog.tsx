@@ -2,16 +2,14 @@ import React from "react";
 import { createPortal } from "react-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
     MapPin,
     ArrowLeftRight,
     ShieldCheck,
-    CheckCircle2,
     XCircle,
     Info,
-    Wallet,
-    MinusCircle,
     User,
     ChevronLeft,
     ChevronRight,
@@ -21,9 +19,13 @@ import {
     Truck
 } from "lucide-react";
 import { formatPrice, formatDate } from "../../utils";
-import { getStatusTheme } from "../../constants";
-import { useAdminTradeInOrderDetail } from "@/hooks/queries/useTradeInOrder";
-import { cn } from "@/lib/utils";
+import { getTradeInStatusTheme } from "../../constants";
+import { useCustomerTradeInOrderDetail } from "@/hooks/queries/useTradeInOrder";
+import { PaymentDetailsCard } from "../orders/components/PaymentDetailsCard";
+import tradeInOrderService from "@/api/services/tradeInOrderService";
+import { normalizeTradeInStatus } from "@/utils/tradeInWorkflow";
+import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface TradeInOrderDetailDialogProps {
     tradeInOrderId: string;
@@ -32,8 +34,49 @@ interface TradeInOrderDetailDialogProps {
 }
 
 export const TradeInOrderDetailDialog = ({ tradeInOrderId, orderCode, trigger }: TradeInOrderDetailDialogProps) => {
-    const { data: order, isLoading } = useAdminTradeInOrderDetail(tradeInOrderId);
+    const [open, setOpen] = React.useState(false);
+    const { data: order, isLoading } = useCustomerTradeInOrderDetail(tradeInOrderId, { enabled: open });
     const [previewIndex, setPreviewIndex] = React.useState<number | null>(null);
+    const [isRetryingPayment, setIsRetryingPayment] = React.useState(false);
+    const [isRetryPaymentConfirmOpen, setIsRetryPaymentConfirmOpen] = React.useState(false);
+    const statusTheme = React.useMemo(() => (order ? getTradeInStatusTheme(order.status) : null), [order]);
+    const latestPaymentStatus = React.useMemo(
+        () => String(order?.payments?.[0]?.status || "").toLowerCase(),
+        [order?.payments],
+    );
+    const needsPaymentRetry = React.useMemo(
+        () => Boolean(order && normalizeTradeInStatus(order.status) === "PENDING" && latestPaymentStatus === "failed"),
+        [latestPaymentStatus, order],
+    );
+
+    const handleRetryPayment = React.useCallback(async () => {
+        if (!order?.tradeInOrderId || isRetryingPayment) return;
+
+        try {
+            setIsRetryingPayment(true);
+            const response = await tradeInOrderService.reOrderFailedTradeInOrder(order.tradeInOrderId);
+            const paymentUrl = typeof response?.paymentUrl === "string" ? response.paymentUrl.trim() : "";
+
+            if (!paymentUrl) {
+                toast.warning("Unable to create payment link.", {
+                    description: "Please try again in a moment.",
+                });
+                return;
+            }
+
+            window.location.assign(paymentUrl);
+        } catch (error) {
+            const description = error instanceof Error ? error.message : "Retry payment failed.";
+            toast.error("Cannot retry payment.", { description });
+        } finally {
+            setIsRetryingPayment(false);
+        }
+    }, [isRetryingPayment, order?.tradeInOrderId]);
+
+    const handleConfirmRetryPayment = React.useCallback(() => {
+        setIsRetryPaymentConfirmOpen(false);
+        void handleRetryPayment();
+    }, [handleRetryPayment]);
 
     const allImages = React.useMemo(() => {
         if (!order) return [];
@@ -58,7 +101,7 @@ export const TradeInOrderDetailDialog = ({ tradeInOrderId, orderCode, trigger }:
 
     return (
         <>
-            <Dialog>
+            <Dialog open={open} onOpenChange={setOpen}>
                 <DialogTrigger asChild>
                     {trigger}
                 </DialogTrigger>
@@ -75,12 +118,12 @@ export const TradeInOrderDetailDialog = ({ tradeInOrderId, orderCode, trigger }:
                                 </div>
                             </div>
                         </div>
-                        {order && (
+                        {order && statusTheme && (
                             <div
                                 className="px-4 py-1.5 rounded-full text-[11px] font-bold text-white uppercase tracking-widest shadow-sm"
-                                style={{ backgroundColor: getStatusTheme(order.status).color }}
+                                style={{ backgroundColor: statusTheme.color }}
                             >
-                                {getStatusTheme(order.status).label}
+                                {statusTheme.label}
                             </div>
                         )}
                     </DialogHeader>
@@ -307,47 +350,37 @@ export const TradeInOrderDetailDialog = ({ tradeInOrderId, orderCode, trigger }:
                                     </div>
                                 </div>
 
-                                {/* Transaction History - Refined */}
-                                {order.payments && order.payments.length > 0 && (
-                                    <div className="bg-white px-6 py-6 border-t border-gray-50">
-                                        <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Transaction History</div>
-                                        <div className="space-y-3">
-                                            {order.payments.map((p) => (
-                                                <div key={p.id} className="flex items-center justify-between p-4 rounded-2xl bg-white border border-slate-100 hover:border-primary/20 transition-all shadow-sm group">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 shadow-sm transition-transform group-hover:scale-105">
-                                                            {p.paymentMethod.toUpperCase().includes('VNPAY') ? (
-                                                                <img src={`${import.meta.env.BASE_URL}images/vnpay.svg`} alt="VNPay" className="w-7 h-7 object-contain" />
-                                                            ) : (
-                                                                <Wallet className="w-5 h-5 opacity-60" />
-                                                            )}
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-xs font-black text-slate-900 uppercase tracking-tight leading-none mb-1">{p.paymentMethod}</p>
-                                                            <p className="text-[10px] font-bold text-gray-400">{formatDate(p.createdAt)}</p>
-                                                        </div>
-                                                    </div>
-                                                    <div className="text-right space-y-1.5">
-                                                        <p className="text-[14px] font-black text-gray-900 tabular-nums">{formatPrice(p.amount)}</p>
-                                                        <div className={cn(
-                                                            "flex items-center gap-2 px-2.5 py-1 rounded-lg border shadow-xs bg-white w-fit ml-auto",
-                                                            p.status === "Paid" ? "text-emerald-600 border-emerald-100" :
-                                                                p.status === "Failed" ? "text-rose-600 border-rose-100" :
-                                                                    "text-amber-600 border-amber-100"
-                                                        )}>
-                                                            {p.status === "Paid" ? <CheckCircle2 className="w-4 h-4" /> :
-                                                                p.status === "Failed" ? <XCircle className="w-4 h-4" /> :
-                                                                    <MinusCircle className="w-4 h-4" />}
-                                                            <span className="text-[10px] font-black uppercase tracking-widest">
-                                                                {p.status === "Paid" ? "Transaction Success" : p.status}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ))}
+                                <div className="bg-white px-6 pt-5 pb-7 border-t border-gray-50">
+                                    {needsPaymentRetry && (
+                                        <div className="mb-4 rounded-xl border border-rose-100 bg-rose-50/70 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                            <p className="text-[11px] font-bold text-rose-700 leading-snug">
+                                                Payment failed while this request is still pending. Retry payment to continue the trade-in workflow.
+                                            </p>
+                                            <Button
+                                                type="button"
+                                                onClick={() => setIsRetryPaymentConfirmOpen(true)}
+                                                disabled={isRetryingPayment}
+                                                className="h-8 px-3 rounded-md text-[10px] font-black uppercase tracking-wider bg-primary text-white hover:bg-primary/90"
+                                            >
+                                                {isRetryingPayment ? "Processing..." : "Pay Again"}
+                                            </Button>
                                         </div>
-                                    </div>
-                                )}
+                                    )}
+
+                                    <PaymentDetailsCard
+                                        payments={order.payments}
+                                        fallbackPayment={{
+                                            id: order.orderCode,
+                                            orderCode: order.orderCode,
+                                            paymentMethod: "VnPay",
+                                            paymentType: "Purchase",
+                                            status: "Pending",
+                                            amount: order.amountToPay,
+                                            createdAt: order.createdAt,
+                                        }}
+                                        className="mx-0"
+                                    />
+                                </div>
                             </div>
                         ) : (
                             <div className="py-32 text-center bg-white">
@@ -365,6 +398,18 @@ export const TradeInOrderDetailDialog = ({ tradeInOrderId, orderCode, trigger }:
                     </div>
                 </DialogContent>
             </Dialog>
+
+            <ConfirmDialog
+                open={isRetryPaymentConfirmOpen}
+                onOpenChange={setIsRetryPaymentConfirmOpen}
+                title={`Retry payment for #${orderCode}?`}
+                description="A new secure payment link will be generated for this pending request. Continue with **Pay Again** now?"
+                confirmText="Pay Again"
+                cancelText="Not now"
+                onConfirm={handleConfirmRetryPayment}
+                variant="primary"
+                isLoading={isRetryingPayment}
+            />
 
             {/* Detached Immersive Gallery - High viewport coverage */}
             {previewIndex !== null && createPortal(

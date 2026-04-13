@@ -58,6 +58,8 @@ export interface OrderItem {
 
 export interface TradeInEligibleOrderItem extends OrderItem {
     tradeInUsedAmount: number;
+    productCustomizeDetails: ProductCustomizeDetail[];
+    customizeHash: string;
     orderId?: string;
     purchaseDate?: string;
     createdAt?: string;

@@ -1,36 +1,28 @@
 import type { TradeInOrderListItem } from '@/api/types/tradeInOrder';
-
-export const normalizeTradeInStatus = (status: string) => status.toUpperCase().replace(/\s+/g, '_');
+import {
+  TRADE_IN_FILTER_BASE_STATUSES,
+  getTradeInStatusBadgeStatus,
+  getTradeInStatusMeta,
+  isTradeInWaitingStatus,
+  normalizeTradeInStatus,
+} from '@/utils/tradeInWorkflow';
 
 export const tradeInStatusBadgeValue = (status: string) => {
-  const normalized = normalizeTradeInStatus(status);
-
-  if (normalized === 'WAITING_FOR_STAFF') return 'pending';
-  if (normalized === 'PENDING') return 'pending';
-  if (normalized === 'PROCESSING') return 'processing';
-  if (normalized === 'COMPLETED') return 'completed';
-  if (normalized === 'CANCELLED') return 'cancelled';
-
-  return status;
+  return getTradeInStatusBadgeStatus(status);
 };
 
 export const tradeInStatusLabel = (status: string) => {
-  return status
-    .replace(/_/g, ' ')
-    .toLowerCase()
-    .replace(/(^|\s)\S/g, (text) => text.toUpperCase());
+  return getTradeInStatusMeta(status).label;
 };
 
 export const buildTradeInStatusOptions = (items: TradeInOrderListItem[]) => {
-  const base = ['WAITING_FOR_STAFF', 'Pending', 'PROCESSING', 'COMPLETED', 'CANCELLED'];
-  const dynamic = Array.from(new Set(items.map((item) => item.status).filter(Boolean)));
-  return Array.from(new Set([...base, ...dynamic]));
+  const dynamic = Array.from(new Set(items.map((item) => normalizeTradeInStatus(item.status)).filter(Boolean)));
+  return Array.from(new Set([...TRADE_IN_FILTER_BASE_STATUSES, ...dynamic]));
 };
 
 export const getTradeInStats = (items: TradeInOrderListItem[], totalCount?: number) => {
   const waiting = items.filter((item) => {
-    const normalized = normalizeTradeInStatus(item.status);
-    return normalized === 'WAITING_FOR_STAFF' || normalized === 'PENDING';
+    return isTradeInWaitingStatus(item.status);
   }).length;
 
   const completed = items.filter(
