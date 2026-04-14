@@ -13,12 +13,29 @@ interface ShippingAssignmentCardProps {
     delay?: number;
 }
 
-export function ShippingAssignmentCard({ orderId, onOpenAssign, canAssign, delay = 0 }: ShippingAssignmentCardProps) {
-    const { data: staffsResponse } = useStaffs({ pageSize: 100, Role: "DeliveryStaff" });
-    const { data: tasks } = useShippingTasksByOrder(orderId);
+import { useAuthStore } from '@/store/authStore';
 
-    const activeTask = tasks?.find(t => t.status !== "Reassigned");
-    const currentStaff = staffsResponse?.items.find(s => s.staffId === activeTask?.staffId);
+export function ShippingAssignmentCard({ orderId, onOpenAssign, canAssign, delay = 0 }: ShippingAssignmentCardProps) {
+        const role = useAuthStore((s) => s.role);
+        const isAdminOrManager = role === 'Admin' || role === 'Manager';
+        const { data: staffsResponse } = useStaffs(
+            isAdminOrManager ? { pageSize: 100, Role: "DeliveryStaff" } : undefined,
+            { enabled: isAdminOrManager }
+        );
+        const { data: tasks } = useShippingTasksByOrder(orderId);
+
+        const activeTask = tasks?.find(t => t.status !== "Reassigned");
+        // For sellers, reconstruct minimal staff info from task
+        let currentStaff = null;
+        if (isAdminOrManager) {
+            currentStaff = staffsResponse?.items.find(s => s.staffId === activeTask?.staffId);
+        } else if (activeTask?.staffId) {
+            currentStaff = {
+                staffId: activeTask.staffId,
+                fullName: activeTask.staffName,
+                // No avatar/phone/role info available for sellers
+            };
+        }
 
     return (
         <motion.div
@@ -34,9 +51,9 @@ export function ShippingAssignmentCard({ orderId, onOpenAssign, canAssign, delay
                 {currentStaff ? (
                     <div className="space-y-4">
                         <div
-                            className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${canAssign ? 'bg-slate-50 border-slate-100/80 cursor-pointer hover:bg-slate-100/60' : 'bg-slate-50 border-slate-100/40 cursor-default'}`}
-                            onClick={canAssign ? onOpenAssign : undefined}
-                            title={canAssign ? "Click to Reassign" : "View assigned personnel details"}
+                            className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${canAssign && isAdminOrManager ? 'bg-slate-50 border-slate-100/80 cursor-pointer hover:bg-slate-100/60' : 'bg-slate-50 border-slate-100/40 cursor-default'}`}
+                            onClick={canAssign && isAdminOrManager ? onOpenAssign : undefined}
+                            title={canAssign && isAdminOrManager ? "Click to Reassign" : "Assigned personnel"}
                         >
                             <Avatar className="h-12 w-12 border-2 border-white shadow-sm ring-1 ring-slate-100">
                                 <AvatarImage src={currentStaff.avatarUrl} />
@@ -84,22 +101,21 @@ export function ShippingAssignmentCard({ orderId, onOpenAssign, canAssign, delay
                         })()}
                     </div>
                 ) : (
-                    <button
-                        onClick={canAssign ? onOpenAssign : undefined}
-                        disabled={!canAssign}
-                        className={`w-full h-full flex flex-col items-center justify-center py-10 rounded-xl border-[1.5px] border-dashed text-center transition-all duration-300 ${canAssign
+                    <div
+                        className={`w-full h-full flex flex-col items-center justify-center py-10 rounded-xl border-[1.5px] border-dashed text-center transition-all duration-300 ${canAssign && isAdminOrManager
                             ? "bg-slate-50/50 border-slate-200 hover:bg-slate-50 hover:border-slate-300 group cursor-pointer"
                             : "bg-slate-50/30 border-slate-100 cursor-default"
                             }`}
-                        title={!canAssign ? "Order must be Confirmed to assign delivery personnel." : "Assign Delivery Personnel"}
+                        onClick={canAssign && isAdminOrManager ? onOpenAssign : undefined}
+                        title={!isAdminOrManager ? "Awaiting staff assignment" : !canAssign ? "Order must be Confirmed to assign delivery personnel." : "Assign Delivery Personnel"}
                     >
-                        <div className={`h-10 w-10 rounded-full flex items-center justify-center mb-3 transition-colors ${canAssign ? "bg-slate-100 group-hover:bg-slate-200/50" : "bg-slate-100"}`}>
-                            <User className={`h-4 w-4 transition-colors ${canAssign ? "text-slate-400 group-hover:text-slate-500" : "text-slate-300"}`} />
+                        <div className={`h-10 w-10 rounded-full flex items-center justify-center mb-3 transition-colors ${canAssign && isAdminOrManager ? "bg-slate-100 group-hover:bg-slate-200/50" : "bg-slate-100"}`}>
+                            <User className={`h-4 w-4 transition-colors ${canAssign && isAdminOrManager ? "text-slate-400 group-hover:text-slate-500" : "text-slate-300"}`} />
                         </div>
-                        <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${canAssign ? "text-slate-400 group-hover:text-slate-500" : "text-slate-300"}`}>
-                            {canAssign ? "Assign Technician" : "Awaiting Confirmation"}
+                        <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${canAssign && isAdminOrManager ? "text-slate-400 group-hover:text-slate-500" : "text-slate-300"}`}>
+                            {!isAdminOrManager ? "Unassigned" : canAssign ? "Assign Technician" : "Awaiting Confirmation"}
                         </span>
-                    </button>
+                    </div>
                 )}
             </div>
         </motion.div>

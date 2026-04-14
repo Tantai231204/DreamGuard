@@ -31,7 +31,7 @@ export default function OrderManagement() {
   const requestedView = searchParams.get('view');
   const activeView: AdminOrderView = (requestedView === 'trade-in' && canViewTradeIn)
     ? 'trade-in'
-    : (isSeller ? 'trade-in' : 'orders');
+    : 'orders';
 
   const handleViewChange = useCallback(
     (nextValue: string) => {
@@ -150,32 +150,32 @@ export default function OrderManagement() {
                   )}
                   <div className="relative z-10 flex items-center gap-2">
                     <ShoppingCart className={cn("h-3.5 w-3.5 transition-colors", activeView === 'orders' ? "text-white" : "text-slate-400 group-hover:text-slate-500")} />
-                  <span>Product Orders</span>
+                    <span>Product Orders</span>
                   </div>
                 </TabsTrigger>
 
                 {canViewTradeIn && (
-                <TabsTrigger
-                  value="trade-in"
-                  className={cn(
-                    "relative h-8 px-4 rounded-md text-[11px] font-black uppercase tracking-widest transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2",
-                    "data-[state=active]:text-white text-slate-500 hover:text-slate-700 hover:bg-slate-200/50 data-[state=active]:hover:bg-transparent group"
-                  )}
-                  onMouseEnter={() => prefetchTab('trade-in')}
-                  onFocus={() => prefetchTab('trade-in')}
-                >
-                  {activeView === 'trade-in' && (
-                    <motion.div
-                      layoutId="active-orders-pill"
-                      className="absolute inset-0 rounded-md bg-emerald-600 shadow-sm"
-                      transition={{ type: "tween", duration: 0.25, ease: "circOut" }}
-                    />
-                  )}
-                  <div className="relative z-10 flex items-center gap-2">
-                    <RotateCcw className={cn("h-3.5 w-3.5 transition-colors", activeView === 'trade-in' ? "text-white" : "text-slate-400 group-hover:text-slate-500")} />
-                    <span>Trade-In Orders</span>
-                  </div>
-                </TabsTrigger>
+                  <TabsTrigger
+                    value="trade-in"
+                    className={cn(
+                      "relative h-8 px-4 rounded-md text-[11px] font-black uppercase tracking-widest transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2",
+                      "data-[state=active]:text-white text-slate-500 hover:text-slate-700 hover:bg-slate-200/50 data-[state=active]:hover:bg-transparent group"
+                    )}
+                    onMouseEnter={() => prefetchTab('trade-in')}
+                    onFocus={() => prefetchTab('trade-in')}
+                  >
+                    {activeView === 'trade-in' && (
+                      <motion.div
+                        layoutId="active-orders-pill"
+                        className="absolute inset-0 rounded-md bg-emerald-600 shadow-sm"
+                        transition={{ type: "tween", duration: 0.25, ease: "circOut" }}
+                      />
+                    )}
+                    <div className="relative z-10 flex items-center gap-2">
+                      <RotateCcw className={cn("h-3.5 w-3.5 transition-colors", activeView === 'trade-in' ? "text-white" : "text-slate-400 group-hover:text-slate-500")} />
+                      <span>Trade-In Orders</span>
+                    </div>
+                  </TabsTrigger>
                 )}
               </TabsList>
             </div>

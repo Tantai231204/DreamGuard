@@ -18,6 +18,7 @@ import type { ProcessExchangeRequest } from "@/api/types/shipping";
 import { useProcessExchangeShippingTask } from "@/hooks/queries/useShippingTask";
 import { useVariant } from "@/hooks/queries/useVariant";
 import { useStaffs } from "@/hooks/queries/useStaff";
+import { useAuthStore } from "@/store/authStore";
 import { getColorHex } from "@/utils/color-utils";
 import { uploadEvidenceItems } from "@/utils/evidenceUpload";
 
@@ -74,10 +75,13 @@ export function ProcessExchangeDialog({ isOpen, onClose, orderId, taskId, items 
   const evidenceItemsRef = useRef<EvidenceItem[]>([]);
 
   const processExchange = useProcessExchangeShippingTask();
-  const { data: staffData, isLoading: isLoadingStaff } = useStaffs({
-    pageSize: 100,
-    Role: "DeliveryStaff",
-  });
+  const role = useAuthStore((s) => s.role);
+  const isAdminOrManager = role === "Admin" || role === "Manager";
+
+  const { data: staffData, isLoading: isLoadingStaff } = useStaffs(
+    isAdminOrManager ? { pageSize: 100, Role: "DeliveryStaff" } : undefined,
+    { enabled: isAdminOrManager && isOpen }
+  );
 
   const staffs = useMemo(() => {
     const raw = staffData?.items || [];

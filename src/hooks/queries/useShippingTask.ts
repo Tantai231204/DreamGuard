@@ -61,7 +61,7 @@ export const useReassignShippingTask = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ taskId, data }: { taskId: string; data: ReassignShippingTaskRequest; orderId?: string; tradeInOrderId?: string }) => 
+        mutationFn: ({ taskId, data }: { taskId: string; data: ReassignShippingTaskRequest; orderId?: string; tradeInOrderId?: string }) =>
             shippingService.reassignTask(taskId, data),
         onSuccess: (_, payload) => {
             if (payload.orderId) {
@@ -78,7 +78,7 @@ export const useProcessReturnedShippingTask = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ taskId, data }: { taskId: string; data: Partial<ProcessReturnedRequest>; orderId: string }) => 
+        mutationFn: ({ taskId, data }: { taskId: string; data: Partial<ProcessReturnedRequest>; orderId: string }) =>
             shippingService.processReturned(taskId, data),
         onSuccess: (_, { orderId }) => {
             queryClient.invalidateQueries({ queryKey: shippingKeys.byOrder(orderId) });
