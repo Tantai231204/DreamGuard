@@ -11,7 +11,8 @@ export default function AdminLayout() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="flex-1 overflow-y-auto overflow-x-hidden w-full max-w-full"
+        className="flex-1 overflow-y-auto overflow-x-hidden w-full max-w-full focus:outline-none"
+        tabIndex={-1}
       >
         <div className="min-h-full w-full max-w-full">
           <Outlet />

@@ -27,6 +27,11 @@ export const AppRoute = {
   CART: "/cart",
   CHECKOUT: "/checkout",
   CHECKOUT_RESULT: "/checkout/result",
+  RETURN_POLICY: "/chinh-sach-doi-tra",
+  WARRANTY_POLICY: "/chinh-sach-bao-hanh",
+  HELP_CENTER: "/help-center",
+  FAQ: "/faq",
+  TERMS_OF_SERVICE: "/terms-of-service",
 
   // User Routes
   PROFILE: "/profile",

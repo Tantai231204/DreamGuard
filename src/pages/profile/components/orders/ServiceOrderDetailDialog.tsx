@@ -231,7 +231,6 @@ function ServiceOrderDetailContent({
         'managercancel',
         'managerforcecancel',
     ].includes(normalizedTaskStatus);
-
     const handleSubmitRating = async () => {
         if (!isCompletedOrder) {
             toast.warning('You can rate staff only after service completion.');

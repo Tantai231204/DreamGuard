@@ -33,7 +33,7 @@ export default function AppLayout({ variant = "home" }: AppLayoutProps) {
           </div>
         </header>
 
-        <main className="flex-1 w-full">
+        <main className="flex-1 w-full focus:outline-none" tabIndex={-1}>
           <Outlet />
         </main>
 
@@ -48,7 +48,8 @@ export default function AppLayout({ variant = "home" }: AppLayoutProps) {
     <div className="min-h-screen flex flex-col relative">
       <Header />
       <main
-        className="flex-1 w-full flex flex-col transition-all duration-500 ease-in-out"
+        className="flex-1 w-full flex flex-col transition-all duration-500 ease-in-out focus:outline-none"
+        tabIndex={-1}
         style={{ marginTop: 'var(--header-height, 188px)' }}
       >
         {breadcrumbItems && breadcrumbItems.length > 0 && (
