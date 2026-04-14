@@ -20,6 +20,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { AdminStatusBadge } from '@/components/admin';
 import { formatDate } from '@/lib/utils';
 import { AGE_GROUPS } from './types';
+import { UserRole } from '@/lib/constants';
+import { useAuthStore } from '@/store/authStore';
 import {
     DetailSkeleton,
     ImageLightbox,
@@ -38,6 +40,8 @@ export default function AdminProductDetailPage() {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const queryClient = useQueryClient();
+    const role = useAuthStore((s) => s.role);
+    const canManageCertificates = role !== UserRole.MANAGER;
 
     const [showUploadDialog, setShowUploadDialog] = useState(false);
     const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
@@ -45,12 +49,19 @@ export default function AdminProductDetailPage() {
     const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
     const activeTab = searchParams.get('tab') || 'overview';
+    const effectiveActiveTab = !canManageCertificates && activeTab === 'certificates' ? 'overview' : activeTab;
     const setActiveTab = (tab: string) => {
         setSearchParams((prev) => {
             prev.set('tab', tab);
             return prev;
         });
     };
+
+    useEffect(() => {
+        if (!canManageCertificates && activeTab === 'certificates') {
+            setActiveTab('overview');
+        }
+    }, [activeTab, canManageCertificates]);
 
     useEffect(() => {
         // Force body scroll lock to prevent double scrollbars
@@ -64,7 +75,9 @@ export default function AdminProductDetailPage() {
     }, []);
 
     const { data: product, isLoading, isError } = useProductDetail(id ?? '');
-    const { data: certificates, isLoading: isLoadingCerts } = useProductCertificates(id ?? '');
+    const { data: certificates, isLoading: isLoadingCerts } = useProductCertificates(id ?? '', {
+        enabled: canManageCertificates,
+    });
     const uploadMutation = useUploadProductImage();
     const deleteMutation = useDeleteProductImage();
     const { data: categories } = useCategories();
@@ -197,7 +210,7 @@ export default function AdminProductDetailPage() {
                     animate={{ opacity: 1, y: 0 }}
                     className="h-full bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm flex flex-col"
                 >
-                    <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
+                    <Tabs value={effectiveActiveTab} onValueChange={setActiveTab} className="flex flex-col h-full">
                         <div className="px-8 py-3 border-b bg-white">
                             <TabsList className="h-10 p-1 bg-slate-100/50 rounded-lg">
                                 <TabsTrigger
@@ -205,7 +218,7 @@ export default function AdminProductDetailPage() {
                                     className="rounded-md px-8 h-full text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-[var(--color-primary)] data-[state=active]:shadow-sm transition-all relative"
                                 >
                                     Overview
-                                    {activeTab === 'overview' && (
+                                    {effectiveActiveTab === 'overview' && (
                                         <motion.div
                                             layoutId="active-nav-underline"
                                             className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-primary)]"
@@ -222,7 +235,7 @@ export default function AdminProductDetailPage() {
                                             {assets.length}
                                         </Badge>
                                     )}
-                                    {activeTab === 'images' && (
+                                    {effectiveActiveTab === 'images' && (
                                         <motion.div
                                             layoutId="active-nav-underline"
                                             className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-primary)]"
@@ -239,36 +252,38 @@ export default function AdminProductDetailPage() {
                                             {product.variantCount}
                                         </Badge>
                                     )}
-                                    {activeTab === 'variants' && (
+                                    {effectiveActiveTab === 'variants' && (
                                         <motion.div
                                             layoutId="active-nav-underline"
                                             className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-primary)]"
                                         />
                                     )}
                                 </TabsTrigger>
-                                <TabsTrigger
-                                    value="certificates"
-                                    className="rounded-md px-8 h-full text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-[var(--color-primary)] data-[state=active]:shadow-sm transition-all flex items-center gap-3 relative"
-                                >
-                                    Certifications
-                                    {certificates && certificates.length > 0 && (
-                                        <Badge variant="secondary" className="bg-emerald-50 text-emerald-600 hover:bg-emerald-50 border-none px-1.5 h-4.5 text-[9px] relative z-10">
-                                            {certificates.length}
-                                        </Badge>
-                                    )}
-                                    {activeTab === 'certificates' && (
-                                        <motion.div
-                                            layoutId="active-nav-underline"
-                                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-primary)]"
-                                        />
-                                    )}
-                                </TabsTrigger>
+                                {canManageCertificates && (
+                                    <TabsTrigger
+                                        value="certificates"
+                                        className="rounded-md px-8 h-full text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-[var(--color-primary)] data-[state=active]:shadow-sm transition-all flex items-center gap-3 relative"
+                                    >
+                                        Certifications
+                                        {certificates && certificates.length > 0 && (
+                                            <Badge variant="secondary" className="bg-emerald-50 text-emerald-600 hover:bg-emerald-50 border-none px-1.5 h-4.5 text-[9px] relative z-10">
+                                                {certificates.length}
+                                            </Badge>
+                                        )}
+                                        {effectiveActiveTab === 'certificates' && (
+                                            <motion.div
+                                                layoutId="active-nav-underline"
+                                                className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-primary)]"
+                                            />
+                                        )}
+                                    </TabsTrigger>
+                                )}
                                 <TabsTrigger
                                     value="reviews"
                                     className="rounded-md px-8 h-full text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-[var(--color-primary)] data-[state=active]:shadow-sm transition-all flex items-center gap-3 relative"
                                 >
                                     Customer Reviews
-                                    {activeTab === 'reviews' && (
+                                    {effectiveActiveTab === 'reviews' && (
                                         <motion.div
                                             layoutId="active-nav-underline"
                                             className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-primary)]"
@@ -394,19 +409,21 @@ export default function AdminProductDetailPage() {
                                     </motion.div>
                                 </TabsContent>
 
-                                <TabsContent value="certificates" key="certificates" className="mt-0 outline-none ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
-                                    <motion.div
-                                        initial={{ opacity: 0, x: 20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, x: -20 }}
-                                        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                                    >
-                                        <ProductCertificatesCard
-                                            certificates={certificates || []}
-                                            isLoading={isLoadingCerts}
-                                        />
-                                    </motion.div>
-                                </TabsContent>
+                                {canManageCertificates && (
+                                    <TabsContent value="certificates" key="certificates" className="mt-0 outline-none ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                                        <motion.div
+                                            initial={{ opacity: 0, x: 20 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            exit={{ opacity: 0, x: -20 }}
+                                            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                                        >
+                                            <ProductCertificatesCard
+                                                certificates={certificates || []}
+                                                isLoading={isLoadingCerts}
+                                            />
+                                        </motion.div>
+                                    </TabsContent>
+                                )}
 
                                 <TabsContent value="reviews" key="reviews" className="mt-0 outline-none ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
                                     <motion.div

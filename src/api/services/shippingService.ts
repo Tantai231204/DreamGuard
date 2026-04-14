@@ -5,6 +5,8 @@ import type {
     ShippingTask,
     ProcessReturnedRequest,
     ProcessExchangeRequest,
+    ProcessReturnedForTradeInRequest,
+    ProcessExchangeForTradeInRequest,
 } from "../types/shipping";
 
 const shippingService = {
@@ -45,6 +47,22 @@ const shippingService = {
 
     processExchange: async (taskId: string, data: ProcessExchangeRequest): Promise<unknown> => {
         const res = await apiClient.post(`/ShippingTasks/${taskId}/process-exchange`, data);
+        return res.data?.data ?? res.data;
+    },
+
+    processReturnedForTradeIn: async (
+        taskId: string,
+        data: ProcessReturnedForTradeInRequest,
+    ): Promise<unknown> => {
+        const res = await apiClient.post(`/ShippingTasks/${taskId}/process-returned-for-tradeIn`, data);
+        return res.data?.data ?? res.data;
+    },
+
+    processExchangeForTradeIn: async (
+        taskId: string,
+        data: ProcessExchangeForTradeInRequest,
+    ): Promise<unknown> => {
+        const res = await apiClient.post(`/ShippingTasks/${taskId}/process-exchange-for-tradeIn`, data);
         return res.data?.data ?? res.data;
     },
 

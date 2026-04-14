@@ -3,12 +3,12 @@ import {
   MessageSquarePlus,
   CheckCircle2,
   XCircle,
-  Truck,
-  PackageCheck,
   TrendingDown,
   Loader2,
   ExternalLink,
   UserRound,
+  RotateCcw,
+  Package,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,9 @@ import { formatPrice, cn } from '@/lib/utils';
 interface WaitingForStaffSectionProps {
   canAccessTradeInChat: boolean;
   isAccepting: boolean;
+  canAbortDeal: boolean;
   onAcceptTask: () => void;
+  onOpenCancelDialog: () => void;
 }
 
 interface NegotiatingSectionProps {
@@ -27,6 +29,7 @@ interface NegotiatingSectionProps {
   onNegotiatedPriceChange: (e: ChangeEvent<HTMLInputElement>) => void;
   isConfirming: boolean;
   canAccessTradeInChat: boolean;
+  canAbortDeal: boolean;
   onOpenTradeInChat: () => void;
   onOpenCancelDialog: () => void;
   onConfirmDeal: () => void;
@@ -36,10 +39,12 @@ interface NegotiatingSectionProps {
 interface ActiveProgressSectionProps {
   status: string;
   isTransitioning: boolean;
-  allowStatusActions?: boolean;
-  onMarkArrived: () => void;
-  onCompleteSuccess: () => void;
-  onMarkCompleted: () => void;
+  canFinalizeTradeIn: boolean;
+  canHandleUnhappyCase: boolean;
+  canProcessReturningUnhappy: boolean;
+  onFinalizeTradeIn: () => void;
+  onProcessReturn: () => void;
+  onProcessExchange: () => void;
   onOpenCancelDialog: () => void;
 }
 
@@ -50,7 +55,9 @@ interface FinalizedSectionProps {
 export const WaitingForStaffSection = memo(function WaitingForStaffSection({
   canAccessTradeInChat,
   isAccepting,
+  canAbortDeal,
   onAcceptTask,
+  onOpenCancelDialog,
 }: WaitingForStaffSectionProps) {
   return (
     <div className="p-5 flex flex-col gap-4">
@@ -78,6 +85,17 @@ export const WaitingForStaffSection = memo(function WaitingForStaffSection({
           Admin/Manager do not open trade-in chat from this page.
         </div>
       )}
+
+      {canAbortDeal && (
+        <Button
+          variant="ghost"
+          className="h-9 rounded-lg bg-rose-50/50 text-[9px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-50 transition-all gap-1.5"
+          onClick={onOpenCancelDialog}
+        >
+          <XCircle className="w-3 h-3" />
+          Handle Unhappy Case
+        </Button>
+      )}
     </div>
   );
 });
@@ -88,6 +106,7 @@ export const NegotiatingSection = memo(function NegotiatingSection({
   onNegotiatedPriceChange,
   isConfirming,
   canAccessTradeInChat,
+  canAbortDeal,
   onOpenTradeInChat,
   onOpenCancelDialog,
   onConfirmDeal,
@@ -147,14 +166,20 @@ export const NegotiatingSection = memo(function NegotiatingSection({
             </div>
           )}
 
-          <Button
-            variant="ghost"
-            className="h-9 rounded-lg bg-rose-50/50 text-[9px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-50 transition-all gap-1.5"
-            onClick={onOpenCancelDialog}
-          >
-            <XCircle className="w-3 h-3" />
-            Abort
-          </Button>
+          {canAbortDeal ? (
+            <Button
+              variant="ghost"
+              className="h-9 rounded-lg bg-rose-50/50 text-[9px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-50 transition-all gap-1.5"
+              onClick={onOpenCancelDialog}
+            >
+              <XCircle className="w-3 h-3" />
+              Abort
+            </Button>
+          ) : (
+            <div className="h-9 rounded-lg bg-slate-50 text-[9px] font-black uppercase tracking-widest text-slate-500 border border-slate-200 flex items-center justify-center px-2">
+              Managed by Admin/Manager
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -164,10 +189,12 @@ export const NegotiatingSection = memo(function NegotiatingSection({
 export const ActiveProgressSection = memo(function ActiveProgressSection({
   status,
   isTransitioning,
-  allowStatusActions = true,
-  onMarkArrived,
-  onCompleteSuccess,
-  onMarkCompleted,
+  canFinalizeTradeIn,
+  canHandleUnhappyCase,
+  canProcessReturningUnhappy,
+  onFinalizeTradeIn,
+  onProcessReturn,
+  onProcessExchange,
   onOpenCancelDialog,
 }: ActiveProgressSectionProps) {
   return (
@@ -177,43 +204,19 @@ export const ActiveProgressSection = memo(function ActiveProgressSection({
           <CheckCircle2 className="w-4.5 h-4.5 text-emerald-600" />
         </div>
         <div>
-          <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Exchange in Progress</h4>
-          <p className="text-[9px] text-emerald-600 font-bold uppercase tracking-tight opacity-70">Physical inspection required</p>
+          <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Shipping Monitoring</h4>
+          <p className="text-[9px] text-emerald-600 font-bold uppercase tracking-tight opacity-70">Delivery flow is handled on mobile</p>
         </div>
       </div>
 
-      {!allowStatusActions && (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wide">
-          Delivery staff has been assigned. Admin/Manager cannot update status further.
-        </div>
-      )}
+      <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wide">
+        Status updates like delivering/arrived are updated by Delivery Staff app.
+      </div>
 
-      {allowStatusActions && status === 'CONFIRMED' && (
-        <Button
-          className="w-full h-10 rounded-lg bg-primary border-0 ring-0 text-[10px] font-black uppercase tracking-widest shadow-inner shadow-white/10 hover:bg-primary/90 transition-all gap-2"
-          onClick={onMarkArrived}
-          disabled={isTransitioning}
-        >
-          {isTransitioning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Truck className="w-3.5 h-3.5" />}
-          Mark Arrived
-        </Button>
-      )}
-
-      {allowStatusActions && status === 'PROCESSING' && (
-        <Button
-          className="w-full h-10 rounded-lg bg-emerald-600 border-0 ring-0 text-[10px] font-black uppercase tracking-widest shadow-inner shadow-white/10 hover:bg-emerald-700 transition-all gap-2"
-          onClick={onCompleteSuccess}
-          disabled={isTransitioning}
-        >
-          {isTransitioning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <PackageCheck className="w-3.5 h-3.5" />}
-          Complete Success
-        </Button>
-      )}
-
-      {allowStatusActions && status === 'DELIVERED' && (
+      {canFinalizeTradeIn && status === 'DELIVERED' && (
         <Button
           className="w-full h-10 rounded-lg bg-emerald-700 border-0 ring-0 text-[10px] font-black uppercase tracking-widest shadow-inner shadow-white/10 hover:bg-emerald-800 transition-all gap-2"
-          onClick={onMarkCompleted}
+          onClick={onFinalizeTradeIn}
           disabled={isTransitioning}
         >
           {isTransitioning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
@@ -221,13 +224,35 @@ export const ActiveProgressSection = memo(function ActiveProgressSection({
         </Button>
       )}
 
-      {allowStatusActions && (
+      {status === 'RETURNING' && canProcessReturningUnhappy && (
+        <div className="grid grid-cols-1 gap-2">
+          <Button
+            className="w-full h-10 rounded-lg bg-primary border-0 ring-0 text-[10px] font-black uppercase tracking-widest shadow-inner shadow-white/10 hover:bg-primary/90 transition-all gap-2"
+            onClick={onProcessExchange}
+            disabled={isTransitioning}
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            Process Exchange
+          </Button>
+
+          <Button
+            className="w-full h-10 rounded-lg bg-rose-600 border-0 ring-0 text-[10px] font-black uppercase tracking-widest shadow-inner shadow-white/10 hover:bg-rose-700 transition-all gap-2"
+            onClick={onProcessReturn}
+            disabled={isTransitioning}
+          >
+            <Package className="w-3.5 h-3.5" />
+            Process Return
+          </Button>
+        </div>
+      )}
+
+      {canHandleUnhappyCase && status !== 'RETURNING' && (
         <Button
           variant="ghost"
           className="w-full h-8 rounded-md text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-rose-500 hover:bg-rose-50/30 transition-all"
           onClick={onOpenCancelDialog}
         >
-          Force Cancel
+          Handle Unhappy Case
         </Button>
       )}
     </div>

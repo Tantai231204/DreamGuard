@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import { AdminActions, AdminTableContent, AdminTablePagination, AdminTableSearch } from '@/components/admin';
 import { useProductOrdersTabViewModel } from '../view-models';
@@ -6,6 +7,7 @@ import { useProductOrdersTabViewModel } from '../view-models';
 import { CancelOrderDialog } from './CancelOrderDialog';
 
 export const ProductOrdersTab = memo(function ProductOrdersTab() {
+  const navigate = useNavigate();
   const viewModel = useProductOrdersTabViewModel();
 
   return (
@@ -25,6 +27,7 @@ export const ProductOrdersTab = memo(function ProductOrdersTab() {
           table={viewModel.table}
           emptyMessage="No results match your current inquiry."
           isLoading={viewModel.isPending}
+          onRowClick={(row) => navigate(`/admin/orders/${row.id}`)}
         />
       </div>
 

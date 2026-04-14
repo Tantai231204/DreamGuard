@@ -41,7 +41,7 @@ export default function ResetPasswordSuccess() {
                     <br />
                     Your new password has been sent to your email.
                     <br/>
-                    Click continue to set up login.
+                    Click Continue to Log In.
                 </p>
             </div>
 
@@ -51,7 +51,7 @@ export default function ResetPasswordSuccess() {
                 onClick={handleContinue}
                 className="w-full h-11 bg-[var(--color-primary-light)] hover:bg-[var(--color-primary)] text-gray-900 hover:text-white font-semibold rounded-lg border-2 border-[var(--color-primary)] shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98]"
             >
-                Continue
+                Continue to Log In
             </Button>
         </div>
     );

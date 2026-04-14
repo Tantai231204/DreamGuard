@@ -54,8 +54,8 @@ export const TradeInOrdersTab = () => {
                 openChat(conversationId);
                 toast.success("Connected to trade-in support.");
             } else {
-                toast.info("Chat chưa sẵn sàng", {
-                    description: "Staff chưa tạo hội thoại cho yêu cầu này. Vui lòng quay lại sau."
+                toast.info("Chat is not ready yet", {
+                    description: "Staff has not created a conversation for this request yet. Please check back later."
                 });
             }
         } catch (error) {

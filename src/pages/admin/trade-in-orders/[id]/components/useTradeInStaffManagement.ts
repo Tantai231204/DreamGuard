@@ -14,10 +14,45 @@ import { useShippingTasksByTradeInOrder } from "@/hooks/queries/useShippingTask"
 import { usePermission } from "@/hooks/usePermission";
 import { useStaffById, useStaffProfile } from "@/hooks/queries/useStaff";
 import {
+  isTradeInAdminCancelableStatus,
   isTradeInActiveProgressStatus,
   isTradeInFinalStatus,
   normalizeTradeInStatus,
 } from "@/utils/tradeInWorkflow";
+
+const DELIVERY_WORKFLOW_STATUS_SET = new Set([
+  "CONFIRMED",
+  "PROCESSING",
+  "DELIVERING",
+  "ARRIVED",
+  "DELIVERED",
+  "RETURNING",
+  "EXCHANGE_REQUESTED",
+  "SHIPPING_REPLACEMENT",
+  "COMPLETED",
+  "FORCED_CANCELLED",
+  "REFUNDED_AND_RESTOCKED",
+  "REFUNDED_AND_DAMAGED",
+]);
+
+const ACTIVE_MONITOR_STATUS_SET = new Set([
+  "CONFIRMED",
+  "PROCESSING",
+  "DELIVERING",
+  "ARRIVED",
+  "DELIVERED",
+  "RETURNING",
+  "EXCHANGE_REQUESTED",
+  "SHIPPING_REPLACEMENT",
+]);
+
+const FINALIZED_STATUS_SET = new Set([
+  "COMPLETED",
+  "CANCELLED",
+  "FORCED_CANCELLED",
+  "REFUNDED_AND_RESTOCKED",
+  "REFUNDED_AND_DAMAGED",
+]);
 
 interface Identifiable {
   id?: string;
@@ -57,7 +92,10 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
   const { isAdmin, isManager, isSeller } = usePermission();
 
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [isCompleteConfirmDialogOpen, setIsCompleteConfirmDialogOpen] = useState(false);
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
+  const [isProcessReturnDialogOpen, setIsProcessReturnDialogOpen] = useState(false);
+  const [isProcessExchangeDialogOpen, setIsProcessExchangeDialogOpen] = useState(false);
   const [negotiatedPrice, setNegotiatedPrice] = useState<number>(
     order.tradeInPrice || 0,
   );
@@ -70,34 +108,33 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
     () => resolveChatOwnerStaffId(order),
     [order],
   );
-  const canResolveDeliveryStaff =
-    status === "CONFIRMED" ||
-    status === "PROCESSING" ||
-    status === "DELIVERED" ||
-    status === "COMPLETED";
+  const canResolveDeliveryStaff = DELIVERY_WORKFLOW_STATUS_SET.has(status);
+
 
   const { data: shippingTasks } = useShippingTasksByTradeInOrder(
-    canResolveDeliveryStaff ? order.tradeInOrderId : "",
+    canResolveDeliveryStaff ? order.tradeInOrderId : ""
   );
 
-  const filteredTradeInTasks = useMemo(() => {
-    const normalizedTradeInOrderId = order.tradeInOrderId.trim().toLowerCase();
-    return (shippingTasks || []).filter(
-      (task) =>
-        typeof task.tradeInOrderId === "string" &&
-        task.tradeInOrderId.trim().toLowerCase() === normalizedTradeInOrderId,
-    );
-  }, [order.tradeInOrderId, shippingTasks]);
-
-  const activeShippingTask = useMemo(() => {
-    const sortedTasks = [...filteredTradeInTasks].sort((a, b) => {
+  // API đã trả về đúng shipping tasks cho tradeInOrderId, không cần filter/map lại
+  const sortedTradeInTasks = useMemo(() => {
+    return [...(shippingTasks || [])].sort((a, b) => {
       const aTime = new Date(a.completionDate || a.shippingDate || 0).getTime();
       const bTime = new Date(b.completionDate || b.shippingDate || 0).getTime();
       return bTime - aTime;
     });
+  }, [shippingTasks]);
 
-    return sortedTasks.find((task) => task.status !== "Reassigned");
-  }, [filteredTradeInTasks]);
+  const activeShippingTask = useMemo(() => {
+    return sortedTradeInTasks.find((task) => task.status !== "Reassigned");
+  }, [sortedTradeInTasks]);
+
+  const returningShippingTask = useMemo(() => {
+    return sortedTradeInTasks.find(
+      (task) =>
+        task.status !== "Reassigned" &&
+        normalizeTradeInStatus(task.status) === "RETURNING"
+    );
+  }, [sortedTradeInTasks]);
 
   const deliveryOwnerStaffId = canResolveDeliveryStaff
     ? activeShippingTask?.staffId
@@ -187,6 +224,7 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
       tradeInOrderService.createConversation(order.tradeInOrderId),
     onSuccess: async (conv) => {
       invalidateTradeInDetail();
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'conversations'] });
       toast.success("Task accepted. Redirecting...");
       navigateToChat(conv as Identifiable);
     },
@@ -227,30 +265,24 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
     [negotiatedPrice],
   );
 
-  const isActiveProgressStatus = isTradeInActiveProgressStatus(status);
-  const isFinalizedStatus = isTradeInFinalStatus(status);
-  const canAdminOrManagerUpdateStatus = !(isAdmin || isManager) || !deliveryOwnerStaffId;
+  const isActiveProgressStatus =
+    isTradeInActiveProgressStatus(status) || ACTIVE_MONITOR_STATUS_SET.has(status);
+  const isFinalizedStatus =
+    isTradeInFinalStatus(status) || FINALIZED_STATUS_SET.has(status);
+  const isAdminOrManager = isAdmin || isManager;
+  const canFinalizeTradeIn = isAdminOrManager && status === "DELIVERED";
+  const canHandleUnhappyCase =
+    isAdminOrManager && isTradeInAdminCancelableStatus(status);
+  const canProcessReturningUnhappy =
+    isAdminOrManager && status === "RETURNING" && !!returningShippingTask?.shippingTaskId;
   const canAssignDeliveryTask =
-    (isAdmin || isManager) && status === "CONFIRMED";
-
-  const handleTransitionStatus = useCallback(
-    (toStatus: string) => {
-      if (isTransitioning) return;
-
-      transitionStatus(
-        { fromStatus: status, toStatus },
-        {
-          onSuccess: () => {
-            toast.success("Status updated.");
-          },
-          onError: (error: Error) => {
-            toast.error(error.message || "Unable to update status.");
-          },
-        },
-      );
-    },
-    [isTransitioning, status, transitionStatus],
-  );
+    isAdminOrManager && status === "CONFIRMED";
+  const activeShippingTaskId = activeShippingTask?.shippingTaskId || "";
+  const returningShippingTaskId = returningShippingTask?.shippingTaskId || "";
+  const defaultProductVariantId =
+    (typeof order.productVariant?.id === "string" && order.productVariant.id) ||
+    order.productVariantId ||
+    "";
 
   const handleAcceptTask = useCallback(() => {
     acceptTask();
@@ -285,35 +317,81 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
   }, [navigateToChat, order.conversation]);
 
   const handleOpenCancelDialog = useCallback(() => {
+    if (!canHandleUnhappyCase) return;
     setIsCancelDialogOpen(true);
-  }, []);
+  }, [canHandleUnhappyCase]);
 
-  const handleMarkArrived = useCallback(() => {
-    handleTransitionStatus("PROCESSING");
-  }, [handleTransitionStatus]);
+  const handleFinalizeTradeIn = useCallback(() => {
+    if (isTransitioning) return;
+    setIsCompleteConfirmDialogOpen(true);
+  }, [isTransitioning]);
 
-  const handleCompleteSuccess = useCallback(() => {
-    handleTransitionStatus("DELIVERED");
-  }, [handleTransitionStatus]);
+  const handleConfirmFinalizeTradeIn = useCallback(() => {
+    if (isTransitioning) return;
 
-  const handleMarkCompleted = useCallback(() => {
-    handleTransitionStatus("COMPLETED");
-  }, [handleTransitionStatus]);
+    transitionStatus(
+      { fromStatus: status, toStatus: "COMPLETED" },
+      {
+        onSuccess: () => {
+          setIsCompleteConfirmDialogOpen(false);
+          toast.success("Status updated.");
+        },
+        onError: (error: Error) => {
+          toast.error(error.message || "Unable to update status.");
+        },
+      },
+    );
+  }, [isTransitioning, status, transitionStatus]);
+
+  const handleCloseCompleteConfirmDialog = useCallback(() => {
+    if (isTransitioning) return;
+    setIsCompleteConfirmDialogOpen(false);
+  }, [isTransitioning]);
 
   const handleOpenAssignDialog = useCallback(() => {
     setIsAssignDialogOpen(true);
   }, []);
+
+  const handleOpenProcessReturnDialog = useCallback(() => {
+    if (!canProcessReturningUnhappy) return;
+    if (!returningShippingTaskId) {
+      toast.error("No RETURNING shipping task found for this order.");
+      return;
+    }
+    setIsProcessReturnDialogOpen(true);
+  }, [canProcessReturningUnhappy, returningShippingTaskId]);
+
+  const handleOpenProcessExchangeDialog = useCallback(() => {
+    if (!canProcessReturningUnhappy) return;
+    if (!returningShippingTaskId) {
+      toast.error("No RETURNING shipping task found for this order.");
+      return;
+    }
+    setIsProcessExchangeDialogOpen(true);
+  }, [canProcessReturningUnhappy, returningShippingTaskId]);
 
   const handleCloseAssignDialog = useCallback(() => {
     setIsAssignDialogOpen(false);
     invalidateTradeInDetail();
   }, [invalidateTradeInDetail]);
 
+  const handleCloseProcessReturnDialog = useCallback(() => {
+    setIsProcessReturnDialogOpen(false);
+  }, []);
+
+  const handleCloseProcessExchangeDialog = useCallback(() => {
+    setIsProcessExchangeDialogOpen(false);
+  }, []);
+
   return {
     status,
     isCancelDialogOpen,
     setIsCancelDialogOpen,
+    isCompleteConfirmDialogOpen,
+    setIsCompleteConfirmDialogOpen,
     isAssignDialogOpen,
+    isProcessReturnDialogOpen,
+    isProcessExchangeDialogOpen,
     isSeller,
     canAccessTradeInChat,
     shouldShowAssignedStaff,
@@ -340,18 +418,27 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
     formattedNegotiatedPrice,
     isActiveProgressStatus,
     isFinalizedStatus,
-    canAdminOrManagerUpdateStatus,
+    canFinalizeTradeIn,
+    canHandleUnhappyCase,
+    canProcessReturningUnhappy,
     canAssignDeliveryTask,
+    activeShippingTaskId,
+    returningShippingTaskId,
+    defaultProductVariantId,
     handleAcceptTask,
     handleConfirmDeal,
     handleNegotiatedPriceChange,
     handleOpenTradeInChat,
     handleOpenCancelDialog,
-    handleMarkArrived,
-    handleCompleteSuccess,
-    handleMarkCompleted,
+    handleFinalizeTradeIn,
+    handleConfirmFinalizeTradeIn,
+    handleCloseCompleteConfirmDialog,
     handleOpenAssignDialog,
+    handleOpenProcessReturnDialog,
+    handleOpenProcessExchangeDialog,
     handleCloseAssignDialog,
+    handleCloseProcessReturnDialog,
+    handleCloseProcessExchangeDialog,
     adminCancel,
   };
 }

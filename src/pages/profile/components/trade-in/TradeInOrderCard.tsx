@@ -8,7 +8,11 @@ import { getTradeInStatusTheme } from "../../constants";
 import { TradeInOrderDetailDialog } from "./TradeInOrderDetailDialog";
 import { CancelTradeInDialog } from "./CancelTradeInDialog";
 import type { TradeInOrderListItem } from "@/api/types/tradeInOrder";
-import { isTradeInWaitingStatus, normalizeTradeInStatus } from "@/utils/tradeInWorkflow";
+import {
+    isTradeInCustomerCancelableStatus,
+    isTradeInWaitingStatus,
+    normalizeTradeInStatus,
+} from "@/utils/tradeInWorkflow";
 import { useCustomerTradeInOrderDetail } from "@/hooks/queries/useTradeInOrder";
 
 interface TradeInOrderCardProps {
@@ -33,6 +37,7 @@ export const TradeInOrderCard = memo(({
     const normalizedStatus = normalizeTradeInStatus(order.status);
     const isNegotiating = normalizedStatus === "NEGOTIATING";
     const isWaiting = isTradeInWaitingStatus(order.status);
+    const canCancelRequest = isTradeInCustomerCancelableStatus(order.status);
     const isPendingStatus = normalizedStatus === "PENDING";
     const theme = getTradeInStatusTheme(order.status);
 
@@ -152,7 +157,7 @@ export const TradeInOrderCard = memo(({
                         </Button>
                     )}
 
-                    {isWaiting && (
+                    {canCancelRequest && (
                         <CancelTradeInDialog
                             onConfirm={handleCancel}
                             isLoading={isCancelling}

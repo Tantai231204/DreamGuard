@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Table } from '@tanstack/react-table';
 import { Package, TrendingUp, Filter, PlayCircle, Archive } from 'lucide-react';
@@ -18,11 +18,15 @@ import { ProductDialogs } from './components/ProductDialogs';
 import { ProductTableSection } from './components/ProductTableSection';
 import { ComboTableSection } from './components/ComboTableSection';
 import { CertificateTableSection } from './components/CertificateTableSection';
+import { UserRole } from '@/lib/constants';
+import { useAuthStore } from '@/store/authStore';
 
 import type { Product, Combo, Certificate, ProductStatus } from './types';
 
 export default function ProductsPage() {
   const navigate = useNavigate();
+  const role = useAuthStore((s) => s.role);
+  const canManageCertificates = role !== UserRole.MANAGER;
 
   // 1. Unified State Management
   const state = useAdminProductState();
@@ -30,6 +34,13 @@ export default function ProductsPage() {
     activeTab, setActiveTab, products, combos, certificates, productPageData, comboPageData, certPageData,
     isLoadingProducts, isLoadingCombos, isLoadingCerts
   } = state;
+  const effectiveActiveTab = !canManageCertificates && activeTab === 'certificate' ? 'single' : activeTab;
+
+  useEffect(() => {
+    if (!canManageCertificates && activeTab === 'certificate') {
+      setActiveTab('single');
+    }
+  }, [activeTab, canManageCertificates, setActiveTab]);
 
   const pageData = productPageData;
 
@@ -38,12 +49,12 @@ export default function ProductsPage() {
 
   // 3. UI Handlers
   const handleAdd = useCallback(() => {
-    if (activeTab === 'certificate') {
+    if (effectiveActiveTab === 'certificate') {
       state.setEditingCert(null);
       state.setCertDialogOpen(true);
     } else {
-      state.setComboIsCurrentUpload(activeTab === 'combo');
-      if (activeTab === 'combo') {
+      state.setComboIsCurrentUpload(effectiveActiveTab === 'combo');
+      if (effectiveActiveTab === 'combo') {
         state.setEditingCombo(null);
         state.setComboDialogMode(null);
         state.setComboDialogKey((k: number = 0) => k + 1);
@@ -53,17 +64,17 @@ export default function ProductsPage() {
         state.setDialogOpen(true);
       }
     }
-  }, [activeTab, state]);
+  }, [effectiveActiveTab, state]);
 
   const handleExport = useCallback(() => {
-    if (activeTab === 'single') {
+    if (effectiveActiveTab === 'single') {
       mutations.handleExport('single', products, [], []);
-    } else if (activeTab === 'combo') {
+    } else if (effectiveActiveTab === 'combo') {
       mutations.handleExport('combo', [], combos, []);
-    } else if (activeTab === 'certificate') {
+    } else if (effectiveActiveTab === 'certificate') {
       mutations.handleExport('certificate', [], [], certificates);
     }
-  }, [activeTab, products, combos, certificates, mutations]);
+  }, [effectiveActiveTab, products, combos, certificates, mutations]);
 
   // Table Column Definitions
   const productColumns = useProductColumns({
@@ -186,19 +197,20 @@ export default function ProductsPage() {
         >
           <div className="p-0 flex-1 flex flex-col min-h-0">
             <ProductTabs
-              activeTab={activeTab}
+              activeTab={effectiveActiveTab}
               onTabChange={setActiveTab}
               singleCount={stats.singleTotal}
               customizeCount={stats.customizeTotal}
               comboCount={stats.comboTotal}
               certCount={stats.certTotal}
+              showCertificateTab={canManageCertificates}
               actions={
                 <AdminActions
                   onAdd={handleAdd}
-                  addLabel={activeTab === 'customize' && stats.customizableProducts.length >= 3 && ['Mattresses', 'Pillows', 'Cribs'].every(t => stats.customizableProducts.some(p => p.fullyCustomizedProductType === t)) 
+                  addLabel={effectiveActiveTab === 'customize' && stats.customizableProducts.length >= 3 && ['Mattresses', 'Pillows', 'Cribs'].every(t => stats.customizableProducts.some(p => p.fullyCustomizedProductType === t)) 
                     ? 'All Templates Created' 
-                    : `Add ${activeTab === 'single' ? 'Product' : activeTab === 'customize' ? 'Template' : activeTab === 'combo' ? 'Combo' : 'Certificate'}`}
-                  addDisabled={activeTab === 'customize' && ['Mattresses', 'Pillows', 'Cribs'].every(t => stats.customizableProducts.some(p => p.fullyCustomizedProductType === t))}
+                    : `Add ${effectiveActiveTab === 'single' ? 'Product' : effectiveActiveTab === 'customize' ? 'Template' : effectiveActiveTab === 'combo' ? 'Combo' : 'Certificate'}`}
+                  addDisabled={effectiveActiveTab === 'customize' && ['Mattresses', 'Pillows', 'Cribs'].every(t => stats.customizableProducts.some(p => p.fullyCustomizedProductType === t))}
                   onExport={handleExport}
                   onFilter={() => { }}
                   onImport={() => { }}
@@ -215,17 +227,17 @@ export default function ProductsPage() {
                       exit={{ opacity: 0 }}
                       className="p-6 h-full"
                     >
-                      <TableSkeleton rows={8} columns={activeTab === 'single' ? 7 : 6} />
+                      <TableSkeleton rows={8} columns={effectiveActiveTab === 'single' ? 7 : 6} />
                     </motion.div>
                   ) : (
                     <motion.div
-                      key={activeTab}
+                      key={effectiveActiveTab}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ duration: 0.15 }}
                       className="flex-1 flex flex-col min-h-0"
                     >
-                      {activeTab === 'single' ? (
+                      {effectiveActiveTab === 'single' ? (
                         <ProductTableSection
                           products={stats.regularProducts}
                           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -251,7 +263,7 @@ export default function ProductsPage() {
                           }}
                           hideHeaderActions
                         />
-                      ) : activeTab === 'customize' ? (
+                      ) : effectiveActiveTab === 'customize' ? (
                         <ProductTableSection
                           products={stats.customizableProducts}
                           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -277,7 +289,7 @@ export default function ProductsPage() {
                           }}
                           hideHeaderActions
                         />
-                      ) : activeTab === 'combo' ? (
+                      ) : effectiveActiveTab === 'combo' ? (
                         <ComboTableSection
                           combos={combos}
                           // eslint-disable-next-line @typescript-eslint/no-explicit-any

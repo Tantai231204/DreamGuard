@@ -28,8 +28,6 @@ const RESIZE_ATTEMPTS = 3;
 const COMPRESSION_CONCURRENCY = 2;
 
 const TRADE_IN_STATUS_HANDLERS = {
-  PROCESSING: (tradeInOrderId: string) => tradeInOrderService.processing(tradeInOrderId),
-  DELIVERED: (tradeInOrderId: string) => tradeInOrderService.delivered(tradeInOrderId),
   COMPLETED: (tradeInOrderId: string) => tradeInOrderService.completed(tradeInOrderId),
 } as const;
 

@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import type { TradeInOrderDetailResponse } from '@/api/types/tradeInOrder';
 import { CancelTradeInOrderDialog } from '@/pages/admin/orders/components/CancelTradeInOrderDialog';
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { AssignShippingStaffDialog } from '@/pages/admin/orders/components/AssignShippingStaffDialog';
 import {
   ActiveProgressSection,
@@ -16,6 +17,10 @@ import {
   NegotiatingSection,
   WaitingForStaffSection,
 } from './TradeInStatusSections';
+import { TradeInProcessExchangeDialog } from './TradeInProcessExchangeDialog';
+import { TradeInProcessReturnDialog } from './TradeInProcessReturnDialog';
+import { TradeInDeliveryQuickActionsCard } from './TradeInDeliveryQuickActionsCard';
+import { TradeInShippingAssignmentCard } from './TradeInShippingAssignmentCard';
 import { useTradeInStaffManagement } from './useTradeInStaffManagement';
 
 interface TradeInStaffManagementProps {
@@ -27,7 +32,11 @@ export const TradeInStaffManagement = memo(function TradeInStaffManagement({ ord
     status,
     isCancelDialogOpen,
     setIsCancelDialogOpen,
+    isCompleteConfirmDialogOpen,
+    setIsCompleteConfirmDialogOpen,
     isAssignDialogOpen,
+    isProcessReturnDialogOpen,
+    isProcessExchangeDialogOpen,
     isSeller,
     canAccessTradeInChat,
     shouldShowAssignedStaff,
@@ -54,20 +63,118 @@ export const TradeInStaffManagement = memo(function TradeInStaffManagement({ ord
     formattedNegotiatedPrice,
     isActiveProgressStatus,
     isFinalizedStatus,
-    canAdminOrManagerUpdateStatus,
+    canFinalizeTradeIn,
+    canHandleUnhappyCase,
+    canProcessReturningUnhappy,
     canAssignDeliveryTask,
+    activeShippingTaskId,
+    returningShippingTaskId,
+    defaultProductVariantId,
     handleAcceptTask,
     handleConfirmDeal,
     handleNegotiatedPriceChange,
     handleOpenTradeInChat,
     handleOpenCancelDialog,
-    handleMarkArrived,
-    handleCompleteSuccess,
-    handleMarkCompleted,
+    handleFinalizeTradeIn,
+    handleConfirmFinalizeTradeIn,
+    handleCloseCompleteConfirmDialog,
     handleOpenAssignDialog,
+    handleOpenProcessReturnDialog,
+    handleOpenProcessExchangeDialog,
     handleCloseAssignDialog,
+    handleCloseProcessReturnDialog,
+    handleCloseProcessExchangeDialog,
     adminCancel,
   } = useTradeInStaffManagement(order);
+
+  const showDeliveryPanel = [
+    'CONFIRMED',
+    'PROCESSING',
+    'DELIVERING',
+    'ARRIVED',
+    'DELIVERED',
+    'RETURNING',
+    'EXCHANGE_REQUESTED',
+    'SHIPPING_REPLACEMENT',
+    'COMPLETED',
+    'CANCELLED',
+    'FORCED_CANCELLED',
+    'REFUNDED_AND_RESTOCKED',
+    'REFUNDED_AND_DAMAGED',
+  ].includes(status);
+
+  if (showDeliveryPanel) {
+    return (
+      <div className="space-y-8">
+        <TradeInDeliveryQuickActionsCard
+          status={status}
+          hasTask={!!activeShippingTaskId}
+          canFinalizeTradeIn={canFinalizeTradeIn}
+          canHandleUnhappyCase={canHandleUnhappyCase}
+          canProcessReturningUnhappy={canProcessReturningUnhappy}
+          onFinalizeTradeIn={handleFinalizeTradeIn}
+          onProcessReturn={handleOpenProcessReturnDialog}
+          onProcessExchange={handleOpenProcessExchangeDialog}
+          onOpenCancelDialog={handleOpenCancelDialog}
+          delay={0}
+        />
+
+        <TradeInShippingAssignmentCard
+          tradeInOrderId={order.tradeInOrderId}
+          onOpenAssign={handleOpenAssignDialog}
+          canAssign={canAssignDeliveryTask}
+          delay={0.08}
+        />
+
+        <CancelTradeInOrderDialog
+          open={isCancelDialogOpen}
+          onOpenChange={setIsCancelDialogOpen}
+          onConfirm={adminCancel}
+          isLoading={isCancelling}
+          orderCode={order.orderCode}
+        />
+
+        <ConfirmDialog
+          open={isCompleteConfirmDialogOpen}
+          onOpenChange={(open) => {
+            if (!open) {
+              handleCloseCompleteConfirmDialog();
+            } else {
+              setIsCompleteConfirmDialogOpen(true);
+            }
+          }}
+          title="Finalize Trade-In?"
+          description="Are you sure you want to mark this trade-in as Completed? This confirms delivery closure and is intended as a final action."
+          confirmText="Confirm Complete"
+          onConfirm={handleConfirmFinalizeTradeIn}
+          variant="success"
+          isLoading={isTransitioning}
+        />
+
+        <AssignShippingStaffDialog
+          tradeInOrderId={order.tradeInOrderId}
+          isOpen={isAssignDialogOpen}
+          onClose={handleCloseAssignDialog}
+        />
+
+        <TradeInProcessReturnDialog
+          isOpen={isProcessReturnDialogOpen}
+          onClose={handleCloseProcessReturnDialog}
+          tradeInOrderId={order.tradeInOrderId}
+          taskId={returningShippingTaskId}
+          defaultProductVariantId={defaultProductVariantId}
+        />
+
+        <TradeInProcessExchangeDialog
+          isOpen={isProcessExchangeDialogOpen}
+          onClose={handleCloseProcessExchangeDialog}
+          tradeInOrderId={order.tradeInOrderId}
+          taskId={returningShippingTaskId}
+          defaultProductVariantId={defaultProductVariantId}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -201,7 +308,9 @@ export const TradeInStaffManagement = memo(function TradeInStaffManagement({ ord
           <WaitingForStaffSection
             canAccessTradeInChat={canAccessTradeInChat}
             isAccepting={isAccepting}
+            canAbortDeal={canHandleUnhappyCase}
             onAcceptTask={handleAcceptTask}
+            onOpenCancelDialog={handleOpenCancelDialog}
           />
         )}
 
@@ -213,6 +322,7 @@ export const TradeInStaffManagement = memo(function TradeInStaffManagement({ ord
             onNegotiatedPriceChange={handleNegotiatedPriceChange}
             isConfirming={isConfirming}
             canAccessTradeInChat={canAccessTradeInChat}
+            canAbortDeal={canHandleUnhappyCase}
             onOpenTradeInChat={handleOpenTradeInChat}
             onOpenCancelDialog={handleOpenCancelDialog}
             onConfirmDeal={handleConfirmDeal}
@@ -225,10 +335,12 @@ export const TradeInStaffManagement = memo(function TradeInStaffManagement({ ord
           <ActiveProgressSection
             status={status}
             isTransitioning={isTransitioning}
-            allowStatusActions={canAdminOrManagerUpdateStatus}
-            onMarkArrived={handleMarkArrived}
-            onCompleteSuccess={handleCompleteSuccess}
-            onMarkCompleted={handleMarkCompleted}
+            canFinalizeTradeIn={canFinalizeTradeIn}
+            canHandleUnhappyCase={canHandleUnhappyCase}
+            canProcessReturningUnhappy={canProcessReturningUnhappy}
+            onFinalizeTradeIn={handleFinalizeTradeIn}
+            onProcessReturn={handleOpenProcessReturnDialog}
+            onProcessExchange={handleOpenProcessExchangeDialog}
             onOpenCancelDialog={handleOpenCancelDialog}
           />
         )}
@@ -247,10 +359,43 @@ export const TradeInStaffManagement = memo(function TradeInStaffManagement({ ord
         orderCode={order.orderCode}
       />
 
+      <ConfirmDialog
+        open={isCompleteConfirmDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            handleCloseCompleteConfirmDialog();
+          } else {
+            setIsCompleteConfirmDialogOpen(true);
+          }
+        }}
+        title="Finalize Trade-In?"
+        description="Are you sure you want to mark this trade-in as Completed? This confirms delivery closure and is intended as a final action."
+        confirmText="Confirm Complete"
+        onConfirm={handleConfirmFinalizeTradeIn}
+        variant="success"
+        isLoading={isTransitioning}
+      />
+
       <AssignShippingStaffDialog
         tradeInOrderId={order.tradeInOrderId}
         isOpen={isAssignDialogOpen}
         onClose={handleCloseAssignDialog}
+      />
+
+      <TradeInProcessReturnDialog
+        isOpen={isProcessReturnDialogOpen}
+        onClose={handleCloseProcessReturnDialog}
+        tradeInOrderId={order.tradeInOrderId}
+        taskId={returningShippingTaskId}
+        defaultProductVariantId={defaultProductVariantId}
+      />
+
+      <TradeInProcessExchangeDialog
+        isOpen={isProcessExchangeDialogOpen}
+        onClose={handleCloseProcessExchangeDialog}
+        tradeInOrderId={order.tradeInOrderId}
+        taskId={returningShippingTaskId}
+        defaultProductVariantId={defaultProductVariantId}
       />
     </div>
   );

@@ -14,6 +14,7 @@ import {
 } from '@/hooks/queries';
 import { useDebounce } from '@/hooks/useDebounce';
 import { usePermission } from '@/hooks/usePermission';
+import { isTradeInAdminCancelableStatus } from '@/utils/tradeInWorkflow';
 
 import { buildTradeInStatusOptions } from '../components/tradeInStatus';
 import { useTradeInOrderColumns } from '../components/useTradeInOrderColumns';
@@ -73,12 +74,16 @@ export const useTradeInOrdersTabViewModel = () => {
   const { mutate: cancelMutation, isPending: isCancelling } = useAdminCancelTradeInOrder();
 
   const handleCancelClick = useCallback((order: TradeInOrderListItem) => {
+    if (!isTradeInAdminCancelableStatus(order.status)) {
+      return;
+    }
+
     setOrderToCancel(order);
     setIsCancelOpen(true);
   }, []);
 
   const handleConfirmCancel = useCallback((reason: string) => {
-    if (orderToCancel) {
+    if (orderToCancel && isTradeInAdminCancelableStatus(orderToCancel.status)) {
       cancelMutation(
         { id: orderToCancel.tradeInOrderId, reason },
         {

@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Check, Clock4, X, Package, Minus, RotateCcw, Truck, MapPin, History, ShieldAlert, FileEdit, PackageX, EyeOff, ShieldCheck, PackageCheck, CheckCircle2, MinusCircle, CreditCard, Sparkles, RefreshCcw } from "lucide-react";
+import { Check, Clock4, X, Package, Minus, RotateCcw, Truck, MapPin, History, ShieldAlert, FileEdit, PackageX, EyeOff, ShieldCheck, PackageCheck, CheckCircle2, MinusCircle, CreditCard, Sparkles, RefreshCcw, ArrowLeftRight } from "lucide-react";
 import React from "react";
 
 export type StatusType = 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'sky' | 'primary' | 'amber' | 'rose' | 'emerald';
@@ -33,12 +33,15 @@ const STATUS_MAP: Record<string, StatusType> = {
   'codunpaid': 'neutral',
   'forcedcancelled': 'rose',
   'forcenancelled': 'rose',
+  'refunded_and_restocked': 'success',
   'refundedandrestocked': 'success',
+  'refunded_and_damaged': 'rose',
   'refundedanddamaged': 'rose',
 
   'pending': 'warning',
   'waiting_for_staff': 'warning',
   'waitingforstaff': 'warning',
+  'negotiating': 'primary',
   'processing': 'amber',
   'confirmed': 'sky',
   'delivering': 'info',
@@ -170,13 +173,16 @@ const ICON_MAP: Record<string, React.ElementType> = {
   'codpaid': Check,
   'completed': ShieldCheck,
   '5': ShieldCheck,
+  'refunded_and_restocked': History,
   'refundedandrestocked': History,
   '9': History,
   'cancelled': X,
   'error': X,
   '6': X,
+  'refunded_and_damaged': ShieldAlert,
   'refundedanddamaged': ShieldAlert,
   '10': ShieldAlert,
+  'negotiating': ArrowLeftRight,
   'exchangerequested': RotateCcw,
   '11': RotateCcw,
   'shipping_replacement': Truck,
@@ -257,7 +263,10 @@ const LABEL_MAP: Record<string, string> = {
   'forcedcancelled': 'Forced Cancelled',
   'forcenancelled': 'Forced Cancelled',
   'vnpay': 'VNPay',
+  'negotiating': 'Negotiating',
+  'refunded_and_restocked': 'Refunded (Restocked)',
   'refundedandrestocked': 'Refunded (Restocked)',
+  'refunded_and_damaged': 'Refunded (Damaged)',
   'refundedanddamaged': 'Refunded (Damaged)',
   'exchangerequested': 'Exchange Requested',
   'shipping_replacement': 'Shipping Replacement',

@@ -46,3 +46,16 @@ export interface ProcessExchangeRequest {
     evidenceUrls?: string[];
     damagedItems: ProcessReturnedDamagedItem[];
 }
+
+export interface ProcessReturnedForTradeInRequest {
+    damageNote?: string;
+    evidenceUrls?: string[];
+    productVariantId?: string;
+}
+
+export interface ProcessExchangeForTradeInRequest {
+    newStaffId: string;
+    exchangeNote?: string;
+    evidenceUrls?: string[];
+    productVariantId?: string;
+}

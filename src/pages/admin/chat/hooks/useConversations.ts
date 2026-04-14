@@ -3,7 +3,7 @@
    Sorting and auto-polling coordination.
    ============================================================ */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import type { Conversation, ConversationStats } from '../types';
@@ -17,6 +17,7 @@ import { mockConversations } from '../../data';
 const USE_MOCK = !import.meta.env.VITE_API_URL;
 
 export const CONVERSATIONS_QUERY_KEY = ['admin', 'conversations'] as const;
+const URL_CONVERSATION_REFETCH_MAX_ATTEMPTS = 8;
 
 export interface UseConversationsOptions {
   /** If WebSocket is down, poll for updates. If up, disable. */
@@ -49,7 +50,7 @@ export function useConversations({ pollEnabled = true }: UseConversationsOptions
   const debouncedSearch = useDebounce(searchInput, SEARCH_DEBOUNCE_MS);
 
   /* ---- Query -------------------------------------------- */
-  const { data, isLoading, error } = useQuery<Conversation[], Error>({
+  const { data, isLoading, error, refetch } = useQuery<Conversation[], Error>({
     queryKey: [...CONVERSATIONS_QUERY_KEY, debouncedSearch],
     queryFn: async () => {
       if (USE_MOCK) return (mockConversations as unknown as Conversation[]).sort((a, b) => b.lastMessageTime.localeCompare(a.lastMessageTime));
@@ -63,10 +64,36 @@ export function useConversations({ pollEnabled = true }: UseConversationsOptions
       return items.sort((a, b) => b.lastMessageTime.localeCompare(a.lastMessageTime));
     },
     refetchInterval: pollEnabled ? POLLING_INTERVAL_MS : false,
-    staleTime: 60_000,                      // keep metadata longer if live updates work
+    refetchOnMount: 'always',
+    staleTime: 0,
   });
 
   const conversations = useMemo(() => data ?? [], [data]);
+
+  // When navigating from waiting orders with /admin/chat?id=..., refetch quickly
+  // until the newly created conversation appears in list, so user does not need F5.
+  useEffect(() => {
+    if (!urlId) return;
+
+    const hasTargetConversation = conversations.some((conversation) => conversation.id === urlId);
+    if (hasTargetConversation) return;
+
+    let attempts = 1;
+    void refetch();
+
+    const timer = setInterval(() => {
+      attempts += 1;
+      void refetch();
+
+      if (attempts >= URL_CONVERSATION_REFETCH_MAX_ATTEMPTS) {
+        clearInterval(timer);
+      }
+    }, 2000);
+
+    return () => {
+      clearInterval(timer);
+    };
+  }, [conversations, refetch, urlId]);
 
   /* ---- Selection logic: find existing or first available --- */
   const resolvedSelectedId = useMemo(() => {

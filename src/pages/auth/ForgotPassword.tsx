@@ -117,7 +117,7 @@ export default function ForgotPassword() {
           to="/login"
           className="text-[var(--color-auth-link-dark)] font-semibold hover:underline"
         >
-          Log in
+          Log In
         </Link>
       </p>
     </div>

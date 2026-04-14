@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, CreditCard, Image as ImageIcon, AlertCircle, ShoppingBag, MapPin, Truck, ArrowDown, History, RefreshCcw } from 'lucide-react';
 import { PaymentInfoCard } from '@/pages/admin/orders/components/PaymentInfoCard';
 import { ShippingLogisticsEvidence } from '@/pages/admin/orders/components/ShippingLogisticsEvidence';
+import { OrderTimeline } from '@/pages/admin/orders/components/OrderTimeline';
 import { AppRoute } from '@/lib/constants';
 import { tradeInStatusBadgeValue } from '@/pages/admin/orders/components/tradeInStatus';
 import { TradeInStaffManagement } from './components/TradeInStaffManagement';
@@ -18,12 +19,22 @@ export default function TradeInOrderDetail() {
   const navigate = useNavigate();
 
   const { data: order, isLoading, isError } = useAdminTradeInOrderDetail(id!);
+  const orderCreatedAt = order?.createdAt || new Date(0).toISOString();
   const normalizedStatus = String(order?.status || '').toUpperCase();
-  const canShowShippingTasks =
-    normalizedStatus === 'CONFIRMED'
-    || normalizedStatus === 'PROCESSING'
-    || normalizedStatus === 'DELIVERED'
-    || normalizedStatus === 'COMPLETED';
+  const canShowShippingTasks = [
+    'CONFIRMED',
+    'PROCESSING',
+    'DELIVERING',
+    'ARRIVED',
+    'DELIVERED',
+    'RETURNING',
+    'EXCHANGE_REQUESTED',
+    'SHIPPING_REPLACEMENT',
+    'FORCED_CANCELLED',
+    'REFUNDED_AND_RESTOCKED',
+    'REFUNDED_AND_DAMAGED',
+    'COMPLETED',
+  ].includes(normalizedStatus);
   const { data: shippingTasks } = useShippingTasksByTradeInOrder(
     canShowShippingTasks ? (order?.tradeInOrderId || '') : ''
   );
@@ -50,6 +61,118 @@ export default function TradeInOrderDetail() {
     ),
     [sortedShippingTasks, activeTask]
   );
+
+  const timelineItems = useMemo(() => {
+    const items: Array<{
+      title: string;
+      description?: string;
+      timestamp: string;
+      icon: string;
+    }> = [
+      {
+        title: 'Trade-In Created',
+        description: 'Trade-in request has been registered in the system.',
+        timestamp: orderCreatedAt,
+        icon: 'check',
+      },
+    ];
+
+    if (shippingTasks && shippingTasks.length > 0) {
+      const timelineTasks = [...shippingTasks].sort(
+        (a, b) =>
+          new Date(a.shippingDate || '').getTime() -
+          new Date(b.shippingDate || '').getTime(),
+      );
+
+      timelineTasks.forEach((task) => {
+        if (task.shippingDate) {
+          items.push({
+            title: 'Dispatched',
+            description: 'Handed over to delivery personnel.',
+            timestamp: task.shippingDate,
+            icon: 'package',
+          });
+        }
+
+        if (task.status === 'Arrived' && task.completionDate) {
+          items.push({
+            title: 'Arrived',
+            description: 'Delivery staff has reached the destination.',
+            timestamp: task.completionDate,
+            icon: 'check',
+          });
+        } else if (task.status === 'Delivered' && task.completionDate) {
+          items.push({
+            title: 'Delivered',
+            description: 'Trade-in package has been delivered successfully.',
+            timestamp: task.completionDate,
+            icon: 'check',
+          });
+        } else if (
+          (task.status === 'RefundedAndRestocked' ||
+            task.status === 'RefundedAndDamaged' ||
+            task.status === 'Returning') &&
+          task.completionDate
+        ) {
+          items.push({
+            title: 'Returning',
+            description: `Return workflow initiated. ${task.staffNote ? `(${task.staffNote})` : ''}`,
+            timestamp: task.completionDate,
+            icon: 'package',
+          });
+        } else if (task.status === 'ExchangeRequested' && task.completionDate) {
+          items.push({
+            title: 'Exchange Requested',
+            description: `Replacement request created. ${task.staffNote ? `(${task.staffNote})` : ''}`,
+            timestamp: task.completionDate,
+            icon: 'package',
+          });
+        } else if (
+          (task.status === 'Shipping_Replacement' || task.status === 'ShippingReplacement') &&
+          task.completionDate
+        ) {
+          items.push({
+            title: 'Shipping Replacement',
+            description: `Replacement shipment is in transit. ${task.staffNote ? `(${task.staffNote})` : ''}`,
+            timestamp: task.completionDate,
+            icon: 'package',
+          });
+        } else if (task.status === 'Cancelled' && task.completionDate) {
+          items.push({
+            title: 'Cancelled',
+            description: `Workflow terminated. ${task.staffNote ? `(${task.staffNote})` : ''}`,
+            timestamp: task.completionDate,
+            icon: 'check',
+          });
+        }
+      });
+    } else {
+      if (normalizedStatus === 'CANCELLED' || normalizedStatus === 'FORCED_CANCELLED') {
+        items.push({
+          title: 'Cancelled',
+          description: 'Trade-in workflow has been terminated by administration.',
+          timestamp: orderCreatedAt,
+          icon: 'check',
+        });
+      } else if (normalizedStatus === 'EXCHANGE_REQUESTED') {
+        items.push({
+          title: 'Exchange Requested',
+          description: 'Replacement request has been created by admin.',
+          timestamp: orderCreatedAt,
+          icon: 'package',
+        });
+      } else if (normalizedStatus === 'SHIPPING_REPLACEMENT') {
+        items.push({
+          title: 'Shipping Replacement',
+          description: 'Replacement shipment is being delivered.',
+          timestamp: orderCreatedAt,
+          icon: 'package',
+        });
+      }
+    }
+
+    return items.reverse();
+  }, [normalizedStatus, orderCreatedAt, shippingTasks]);
 
   if (isLoading) {
     return (
@@ -336,16 +459,32 @@ export default function TradeInOrderDetail() {
               <TradeInStaffManagement order={order} />
 
               {activeTask?.shippingTaskId && (
-                <ShippingLogisticsEvidence taskId={activeTask.shippingTaskId} delay={0.15} />
+                <ShippingLogisticsEvidence
+                  taskId={activeTask.shippingTaskId}
+                  taskLabel="Current Task"
+                  delay={0.15}
+                />
               )}
 
               {historicalEvidenceTasks.map((task, index) => (
                 <ShippingLogisticsEvidence
                   key={task.shippingTaskId}
                   taskId={task.shippingTaskId}
+                  taskLabel={`Previous Task ${index + 1}`}
                   delay={0.18 + (index * 0.03)}
                 />
               ))}
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between px-2">
+                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                    <History className="w-3.5 h-3.5 text-primary" />
+                    Engagement Timeline
+                  </h3>
+                  <div className="h-px bg-slate-100 flex-1 ml-4" />
+                </div>
+                <OrderTimeline timeline={timelineItems} defaultVisibleCount={2} />
+              </div>
 
             </div>
           </div>

@@ -5,8 +5,11 @@ import type {
     ReassignShippingTaskRequest,
     ProcessReturnedRequest,
     ProcessExchangeRequest,
+    ProcessReturnedForTradeInRequest,
+    ProcessExchangeForTradeInRequest,
 } from "@/api/types/shipping";
 import { orderKeys } from "./useOrder";
+import { tradeInOrderKeys } from "./useTradeInOrder";
 
 export const shippingKeys = {
     all: ["shippingTasks"] as const,
@@ -95,6 +98,52 @@ export const useProcessExchangeShippingTask = () => {
             queryClient.invalidateQueries({ queryKey: shippingKeys.byOrder(orderId) });
             queryClient.invalidateQueries({ queryKey: orderKeys.detail(orderId) });
             queryClient.invalidateQueries({ queryKey: orderKeys.all });
+        },
+    });
+};
+
+export const useProcessReturnedTradeInShippingTask = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({
+            taskId,
+            data,
+        }: {
+            taskId: string;
+            data: ProcessReturnedForTradeInRequest;
+            tradeInOrderId: string;
+        }) => shippingService.processReturnedForTradeIn(taskId, data),
+        onSuccess: (_, { tradeInOrderId }) => {
+            queryClient.invalidateQueries({ queryKey: shippingKeys.byTradeInOrder(tradeInOrderId) });
+            queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.detail(tradeInOrderId) });
+            queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.customerDetail(tradeInOrderId) });
+            queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.listPrefix() });
+            queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.waitingPrefix() });
+            queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.customerListPrefix() });
+        },
+    });
+};
+
+export const useProcessExchangeTradeInShippingTask = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({
+            taskId,
+            data,
+        }: {
+            taskId: string;
+            data: ProcessExchangeForTradeInRequest;
+            tradeInOrderId: string;
+        }) => shippingService.processExchangeForTradeIn(taskId, data),
+        onSuccess: (_, { tradeInOrderId }) => {
+            queryClient.invalidateQueries({ queryKey: shippingKeys.byTradeInOrder(tradeInOrderId) });
+            queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.detail(tradeInOrderId) });
+            queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.customerDetail(tradeInOrderId) });
+            queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.listPrefix() });
+            queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.waitingPrefix() });
+            queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.customerListPrefix() });
         },
     });
 };

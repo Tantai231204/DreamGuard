@@ -10,6 +10,7 @@ import { formatDate, formatTime } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { SortableHeader } from '@/components/admin';
 import { tradeInStatusBadgeValue } from './tradeInStatus';
+import { isTradeInAdminCancelableStatus } from '@/utils/tradeInWorkflow';
 
 const columnHelper = createColumnHelper<TradeInOrderListItem>();
 
@@ -96,27 +97,30 @@ export const useTradeInOrderColumns = (onCancel: (order: TradeInOrderListItem) =
         id: 'actions',
         header: () => <div className="text-right">Actions</div>,
         cell: ({ row }) => {
-          const actions = [
-            {
-              label: 'View Details',
-              icon: <Eye className="h-4 w-4" />,
-              component: (
-                <Link
-                  to={`/admin/trade-in-orders/${row.original.tradeInOrderId}`}
-                  className="flex items-center gap-2.5 w-full"
-                >
-                  <Eye className="h-4 w-4 opacity-70" />
-                  <span className="text-[13px]">View Details</span>
-                </Link>
-              ),
-            },
-            {
-              label: 'Cancel Order',
-              icon: <Trash2 className="h-4 w-4 text-rose-500" />,
-              variant: 'danger' as const,
-              onClick: () => onCancel(row.original),
-            },
-          ];
+          const viewAction = {
+            label: 'View Details',
+            icon: <Eye className="h-4 w-4" />,
+            component: (
+              <Link
+                to={`/admin/trade-in-orders/${row.original.tradeInOrderId}`}
+                className="flex items-center gap-2.5 w-full"
+              >
+                <Eye className="h-4 w-4 opacity-70" />
+                <span className="text-[13px]">View Details</span>
+              </Link>
+            ),
+          };
+
+          const cancelAction = {
+            label: 'Cancel Order',
+            icon: <Trash2 className="h-4 w-4 text-rose-500" />,
+            variant: 'danger' as const,
+            onClick: () => onCancel(row.original),
+          };
+
+          const actions = isTradeInAdminCancelableStatus(row.original.status)
+            ? [viewAction, cancelAction]
+            : [viewAction];
 
           return (
             <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>

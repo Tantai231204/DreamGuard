@@ -148,21 +148,11 @@ export function QuickActionsCard({
           )}
 
           {currentStatusEnum === OrderStatus.ShippingReplacement && (
-            <div className="space-y-3">
-              <div className="p-4 bg-sky-50/70 border border-sky-100 rounded-xl flex items-start gap-3">
-                <Truck className="w-4 h-4 text-sky-500 shrink-0 mt-0.5" />
-                <p className="text-[9px] font-bold text-sky-700 uppercase tracking-[0.15em] leading-relaxed">
-                  Replacement task created. Move status back to processing to resume normal delivery flow.
-                </p>
-              </div>
-              <Button
-                onClick={() => onUpdateStatus('Processing')}
-                disabled={!hasTask}
-                className="w-full justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-12 text-[10px] font-black uppercase tracking-widest transition-all shadow-md shadow-emerald-500/20 border-none disabled:opacity-50"
-              >
-                <RefreshCw className="h-4 w-4" />
-                Move to Processing
-              </Button>
+            <div className="p-4 bg-sky-50/70 border border-sky-100 rounded-xl flex items-start gap-3">
+              <Truck className="w-4 h-4 text-sky-500 shrink-0 mt-0.5" />
+              <p className="text-[9px] font-bold text-sky-700 uppercase tracking-[0.15em] leading-relaxed">
+                Replacement delivery is staff-driven. Keep this status as Shipping Replacement and let delivery staff update task progress from mobile.
+              </p>
             </div>
           )}
 

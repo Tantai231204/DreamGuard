@@ -91,6 +91,13 @@ export default function OrderDetail() {
   const handleUpdateStatus = (newStatus: string) => {
     const hasActiveTask = !!activeTask;
 
+    if (currentStatusEnum === OrderStatus.ShippingReplacement && newStatus === 'Processing') {
+      toast.info('Replacement flow is staff-driven', {
+        description: 'Keep this order at Shipping Replacement. Delivery staff should update the shipping task status directly.'
+      });
+      return;
+    }
+
     // Business Logic: Require staff assignment for processing/shipping
     if ((newStatus === 'Processing' || newStatus === 'Delivering') && !hasActiveTask) {
       toast.error('Logistics Constraint', {
@@ -277,12 +284,8 @@ export default function OrderDetail() {
                         if (!ADMIN_ALLOWED_TRANSITION_STATUSES.includes(status)) return false;
 
                         const targetStatusEnum = ORDER_STATUS_MAP[status];
-                        const isReplacementRecovery =
-                          currentStatusEnum === OrderStatus.ShippingReplacement &&
-                          targetStatusEnum === OrderStatus.Processing;
-
                         // Business Rule 1: Cannot move status backward
-                        if (!isReplacementRecovery && targetStatusEnum <= currentStatusEnum) return false;
+                        if (targetStatusEnum <= currentStatusEnum) return false;
 
                         // Business Rule 2: Cannot cancel if past Confirmed
                         if (targetStatusEnum === OrderStatus.Cancelled) {
@@ -395,13 +398,18 @@ export default function OrderDetail() {
               )}
 
               {activeTask?.shippingTaskId && (
-                <ShippingLogisticsEvidence taskId={activeTask.shippingTaskId} delay={0.15} />
+                <ShippingLogisticsEvidence
+                  taskId={activeTask.shippingTaskId}
+                  taskLabel="Current Task"
+                  delay={0.15}
+                />
               )}
 
               {historicalEvidenceTasks.map((task, index) => (
                 <ShippingLogisticsEvidence
                   key={task.shippingTaskId}
                   taskId={task.shippingTaskId}
+                  taskLabel={`Previous Task ${index + 1}`}
                   delay={0.18 + (index * 0.03)}
                 />
               ))}
