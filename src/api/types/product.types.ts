@@ -32,6 +32,10 @@ export interface ProductResponse {
   imageUrls?: string[];
   certificateIds?: string[];
   CertificateIds?: string[];
+  isTradeInEligible?: boolean;
+  minTradeInPrice?: number;
+  depositAmount?: number;
+  fullyCustomizedProductType?: FullyCustomizedProductType;
 }
 
 export interface AdminProductPageResponse {
@@ -111,6 +115,9 @@ export interface CreateProductRequest {
   status: string;
   cateId: number | null;
   CertificateIds?: string[];
+  isTradeInEligible?: boolean;
+  minTradeInPrice?: number;
+  depositAmount?: number;
 }
 
 export interface UpdateProductRequest {
@@ -127,6 +134,9 @@ export interface UpdateProductRequest {
   cateId: number | null;
   CertificateIds?: string[];
   certificateIds?: string[];
+  isTradeInEligible?: boolean;
+  minTradeInPrice?: number;
+  depositAmount?: number;
 }
 
 export interface UpdateProductStatusParams {
@@ -165,6 +175,7 @@ export interface CreateFullyCustomizedProductRequest {
   slug: string;
   summary: string;
   description: string;
+  status?: string;
   warrantyPolicyDay: number;
   returnPolicyDay: number;
   fullyCustomizedProductType: FullyCustomizedProductType;
@@ -174,6 +185,9 @@ export interface CreateFullyCustomizedProductRequest {
   weight: number;
   ageGroup?: string | null;
   cateId?: number | null;
+  isTradeInEligible?: boolean;
+  minTradeInPrice?: number;
+  depositAmount?: number;
 }
 
 export interface UpdateFullyCustomizedProductRequest extends CreateFullyCustomizedProductRequest {

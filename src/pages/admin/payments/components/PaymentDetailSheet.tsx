@@ -6,6 +6,8 @@ import {
     Clock,
     Printer,
     ChevronRight,
+    User,
+    ArrowUpRight
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -18,6 +20,7 @@ import { AdminStatusBadge } from '@/components/admin';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { usePaymentDetail } from '@/hooks/queries/usePayment';
+import { useOrderDetail } from '@/hooks/queries/useOrder';
 import { formatPrice } from '@/pages/profile/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn, formatDateTime } from '@/lib/utils';
@@ -28,6 +31,10 @@ interface PaymentDetailSheetProps {
 }
 export function PaymentDetailSheet({ id, onClose }: PaymentDetailSheetProps) {
     const { data: payment, isLoading } = usePaymentDetail(id || '');
+    const { data: order, isLoading: isOrderLoading } = useOrderDetail(payment?.pOrderId || '', {
+        enabled: !!payment?.pOrderId
+    });
+
     const isOpen = !!id;
     const navigate = useNavigate();
     return (
@@ -75,35 +82,69 @@ export function PaymentDetailSheet({ id, onClose }: PaymentDetailSheetProps) {
                                 <div className="p-6 space-y-6">
                                     {/* Info Groups */}
                                     <div className="space-y-4">
-                                        <InfoGroup title="Payment Information">
+                                        <InfoGroup title="Order Intelligence">
+                                            {isOrderLoading ? (
+                                                <div className="space-y-2 p-2">
+                                                    <Skeleton className="h-10 w-full rounded-xl" />
+                                                    <Skeleton className="h-12 w-full rounded-xl" />
+                                                </div>
+                                            ) : order ? (
+                                                <div className="space-y-1">
+                                                    <InfoItem
+                                                        label="Customer"
+                                                        value={order.receiverName}
+                                                        icon={User}
+                                                    />
+                                                    <InfoItem
+                                                        label="Order Status"
+                                                        value={order.status.toString()}
+                                                        icon={Hash}
+                                                        showAsBadge
+                                                    />
+                                                    <InfoItem
+                                                        label="View Full Order"
+                                                        value={order.orderCode}
+                                                        icon={ArrowUpRight}
+                                                        isLink
+                                                        onClick={() => {
+                                                            navigate(`/admin/orders/${order.id}`);
+                                                            onClose();
+                                                        }}
+                                                    />
+                                                </div>
+                                            ) : (
+                                                <div className="p-4 rounded-xl bg-amber-50 border border-amber-100/50 text-xs text-amber-600 font-medium italic">
+                                                    Could not synchronize linked order data.
+                                                </div>
+                                            )}
+                                        </InfoGroup>
+
+                                        <Separator className="bg-slate-100" />
+
+                                        <InfoGroup title="Payment Metadata">
                                             <InfoItem
-                                                label="Payment Method"
+                                                label="Method"
                                                 value={payment.paymentMethod}
                                                 icon={CreditCard}
                                                 showAsBadge
                                             />
                                             <InfoItem
-                                                label="Order Code"
-                                                value={payment.orderCode}
+                                                label="Transaction ID"
+                                                value={payment.id.split('-')[0].toUpperCase()}
                                                 icon={Hash}
-                                                isLink
-                                                onClick={() => {
-                                                    navigate(`/admin/orders/${payment.pOrderId}`);
-                                                    onClose();
-                                                }}
                                             />
                                         </InfoGroup>
 
                                         <Separator className="bg-slate-100" />
 
-                                        <InfoGroup title="Timeline">
+                                        <InfoGroup title="Timeline & Audit">
                                             <InfoItem
-                                                label="Transaction Time"
+                                                label="Created At"
                                                 value={formatDateTime(payment.createdAt)}
                                                 icon={Calendar}
                                             />
                                             <InfoItem
-                                                label="Last Modified"
+                                                label="Last Updated"
                                                 value={formatDateTime(payment.updatedAt)}
                                                 icon={Clock}
                                             />
@@ -111,9 +152,9 @@ export function PaymentDetailSheet({ id, onClose }: PaymentDetailSheetProps) {
 
                                         <Separator className="bg-slate-100" />
 
-                                        <InfoGroup title="Admin Notes">
+                                        <InfoGroup title="Transaction Notes">
                                             <div className="mt-2 p-4 rounded-xl bg-slate-50 border border-slate-100 text-[13px] text-slate-600 leading-relaxed font-medium">
-                                                {payment.description || "No specific transaction notes provided for this transaction."}
+                                                {payment.description || "System generated transaction log. No manual notes appended."}
                                             </div>
                                         </InfoGroup>
                                     </div>

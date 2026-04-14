@@ -7,10 +7,55 @@ import { formatTime } from '@/lib/utils';
 
 interface ShippingLogisticsEvidenceProps {
     taskId: string;
+    taskLabel?: string;
     delay?: number;
 }
 
-export const ShippingLogisticsEvidence = memo(function ShippingLogisticsEvidence({ taskId, delay = 0 }: ShippingLogisticsEvidenceProps) {
+const MANAGER_NOTE_SPLITTER = /\s\|\sManager Note(?:\s*\(([^)]+)\))?:\s*/i;
+
+const formatTaskStatusLabel = (status?: string) => {
+    if (!status) return 'Unknown';
+
+    return status
+        .replace(/_/g, ' ')
+        .replace(/([a-z])([A-Z])/g, '$1 $2')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+const parseTaskNotes = (rawNote?: string | null) => {
+    const source = (rawNote || '').trim();
+    if (!source) {
+        return {
+            staffNote: '',
+            managerNote: '',
+            managerContext: '',
+        };
+    }
+
+    const match = source.match(MANAGER_NOTE_SPLITTER);
+    if (!match || typeof match.index !== 'number') {
+        return {
+            staffNote: source,
+            managerNote: '',
+            managerContext: '',
+        };
+    }
+
+    const marker = match[0] || '';
+    const managerContext = (match[1] || '').trim();
+    const staffNote = source.slice(0, match.index).trim();
+    const managerNote = source.slice(match.index + marker.length).trim();
+
+    return {
+        staffNote,
+        managerNote,
+        managerContext,
+    };
+};
+
+export const ShippingLogisticsEvidence = memo(function ShippingLogisticsEvidence({ taskId, taskLabel, delay = 0 }: ShippingLogisticsEvidenceProps) {
     const { data: task, isLoading } = useShippingTaskDetail(taskId);
 
     if (isLoading) {
@@ -25,7 +70,14 @@ export const ShippingLogisticsEvidence = memo(function ShippingLogisticsEvidence
         );
     }
 
-    if (!task?.evidences || task.evidences.length === 0) return null;
+    const hasEvidences = !!task?.evidences && task.evidences.length > 0;
+    const parsedNotes = parseTaskNotes(task?.staffNote);
+    const hasStaffNote = !!parsedNotes.staffNote;
+    const hasManagerNote = !!parsedNotes.managerNote;
+    const hasAnyNote = hasStaffNote || hasManagerNote;
+    const taskStatusLabel = formatTaskStatusLabel(task?.status);
+
+    if (!hasEvidences && !hasAnyNote) return null;
 
     return (
         <section className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-700" style={{ animationDelay: `${delay}s` }}>
@@ -34,11 +86,46 @@ export const ShippingLogisticsEvidence = memo(function ShippingLogisticsEvidence
                     <Camera className="w-3.5 h-3.5 text-primary" />
                     Logistics Proof
                 </h3>
-                <div className="h-px bg-slate-100 flex-1 ml-4" />
+                <div className="ml-3 flex items-center gap-2">
+                    {taskLabel && (
+                        <span className="rounded-md border border-blue-100 bg-blue-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-blue-600">
+                            {taskLabel}
+                        </span>
+                    )}
+                    <span className="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-slate-500">
+                        {taskStatusLabel}
+                    </span>
+                </div>
             </div>
 
+            {hasAnyNote && (
+                <Card className="border-slate-100 shadow-sm rounded-2xl p-4 bg-slate-50/70">
+                    {hasStaffNote && (
+                        <div className="space-y-1.5">
+                            <p className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Staff Note</p>
+                            <p className="text-sm text-slate-700 leading-relaxed">{parsedNotes.staffNote}</p>
+                        </div>
+                    )}
+
+                    {hasManagerNote && (
+                        <div className={cn('space-y-1.5', hasStaffNote && 'mt-4 pt-4 border-t border-slate-200')}>
+                            <div className="flex items-center gap-2">
+                                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-blue-500">Manager Note</p>
+                                {parsedNotes.managerContext && (
+                                    <span className="rounded-md border border-blue-100 bg-blue-50 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wide text-blue-600">
+                                        {parsedNotes.managerContext}
+                                    </span>
+                                )}
+                            </div>
+                            <p className="text-sm text-slate-700 leading-relaxed">{parsedNotes.managerNote}</p>
+                        </div>
+                    )}
+                </Card>
+            )}
+
+            {hasEvidences && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {task.evidences.map((evidence) => {
+                {task?.evidences?.map((evidence) => {
                     const isDelivered = evidence.evidenceType === 'Delivered' || evidence.evidenceType === 'Shipped';
 
                     return (
@@ -51,7 +138,7 @@ export const ShippingLogisticsEvidence = memo(function ShippingLogisticsEvidence
                                 "absolute top-3 left-3 z-10 px-2.5 py-1 rounded-lg backdrop-blur-md border flex items-center gap-1.5 shadow-sm",
                                 isDelivered 
                                     ? "bg-emerald-50/80 border-emerald-100 text-emerald-700" 
-                                    : "bg-indigo-50/80 border-indigo-100 text-indigo-700"
+                                    : "bg-primary-50/80 border-primary-100 text-primary-700"
                             )}>
                                 {isDelivered ? <PackageCheck className="w-3 h-3" /> : <MapPin className="w-3 h-3" />}
                                 <span className="text-[9px] font-black uppercase tracking-widest leading-none">
@@ -84,6 +171,7 @@ export const ShippingLogisticsEvidence = memo(function ShippingLogisticsEvidence
                     );
                 })}
             </div>
+            )}
         </section>
     );
 });

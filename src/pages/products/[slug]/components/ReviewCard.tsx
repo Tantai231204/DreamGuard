@@ -11,59 +11,81 @@ interface ReviewCardProps {
 
 export const ReviewCard = memo(({ review }: ReviewCardProps) => {
     return (
-        <Card className="overflow-hidden border-0 bg-white shadow-none group">
-            <CardContent className="p-0">
-                <div className="flex gap-8">
-                    <div className="relative shrink-0">
-                        <img
-                            src={review.avatar}
-                            alt={review.name}
-                            className="h-16 w-16 rounded-[1.25rem] object-cover border border-primary-light/40 shadow-sm transition-transform group-hover:scale-105"
-                        />
-                        {review.verified && (
-                            <div className="absolute -bottom-1 -right-1 h-6 w-6 bg-emerald-500 rounded-lg flex items-center justify-center text-white border-2 border-white shadow-md">
-                                <Check className="h-3 w-3 stroke-[3]" />
+        <Card className="overflow-hidden border-0 border-b border-slate-100 bg-white shadow-none group rounded-none">
+            <CardContent className="py-6 px-0">
+                <div className="flex flex-col sm:flex-row gap-6">
+                    <div className="relative shrink-0 flex sm:block items-center gap-3">
+                        <div className="relative">
+                            <img
+                                src={review.avatar}
+                                alt={review.name}
+                                className="h-11 w-11 rounded-xl object-cover border border-slate-100 shadow-sm transition-transform group-hover:scale-105"
+                            />
+                            {review.verified && (
+                                <div className="absolute -bottom-1 -right-1 h-4 w-4 bg-blue-500 rounded-lg flex items-center justify-center text-white border-2 border-white shadow-sm">
+                                    <Check className="h-2 w-2 stroke-[4]" />
+                                </div>
+                            )}
+                        </div>
+                        <div className="sm:hidden">
+                            <h4 className="text-[12px] font-black text-slate-800 uppercase tracking-widest leading-none">{review.name}</h4>
+                            <div className="mt-1 flex items-center gap-1.5">
+                                <div className="flex items-center gap-0.5">
+                                    {[...Array(5)].map((_, i) => (
+                                        <Star
+                                            key={i}
+                                            className={cn(
+                                                "h-2 w-2",
+                                                i < review.rating
+                                                    ? "fill-amber-400 text-amber-400"
+                                                    : "fill-slate-200 text-slate-200"
+                                            )}
+                                        />
+                                    ))}
+                                </div>
                             </div>
-                        )}
+                        </div>
                     </div>
 
-                    <div className="flex-1 space-y-4">
-                        <div className="flex flex-wrap items-center justify-between gap-4">
-                            <div>
-                                <h4 className="text-sm font-black text-primary-dark uppercase tracking-widest">{review.name}</h4>
-                                <div className="mt-2 flex items-center gap-4">
+                    <div className="flex-1 space-y-3">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div className="hidden sm:block">
+                                <h4 className="text-[12px] font-black text-slate-800 uppercase tracking-[0.1em]">{review.name}</h4>
+                                <div className="mt-1.5 flex items-center gap-3">
                                     <div className="flex items-center gap-0.5">
                                         {[...Array(5)].map((_, i) => (
                                             <Star
                                                 key={i}
                                                 className={cn(
-                                                    "h-3 w-3",
+                                                    "h-2.5 w-2.5",
                                                     i < review.rating
                                                         ? "fill-amber-400 text-amber-400"
-                                                        : "fill-primary-light/50 text-primary-light/50"
+                                                        : "fill-slate-200 text-slate-200"
                                                 )}
                                             />
                                         ))}
                                     </div>
-                                    <span className="text-[10px] font-black text-primary-light uppercase tracking-widest leading-none">{review.date}</span>
+                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{new Intl.DateTimeFormat('en-US', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(review.date))}</span>
                                 </div>
                             </div>
 
                             {review.verified && (
-                                <Badge className="bg-emerald-50 text-emerald-600 border-0 px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg">
-                                    Collector Verified
-                                </Badge>
+                                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50/50 border border-blue-100/50">
+                                    <Badge className="bg-transparent hover:bg-transparent text-blue-600 border-0 p-0 text-[8px] font-black uppercase tracking-widest">
+                                        Verified Resident
+                                    </Badge>
+                                </div>
                             )}
                         </div>
 
-                        <p className="text-primary-dark/80 text-sm leading-relaxed font-medium">
-                            {review.comment}
+                        <p className="text-slate-600 text-[13px] leading-relaxed font-medium">
+                            "{review.comment}"
                         </p>
 
-                        <div className="pt-2">
-                            <button className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary-light hover:text-amber-500 transition-colors">
-                                <ThumbsUp className="h-4 w-4" />
-                                <span>Validate Feedback ({review.helpful})</span>
+                        <div className="flex items-center gap-6 pt-1">
+                            <button className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[#4988c4] hover:text-[#3b6fa3] transition-colors group/btn">
+                                <ThumbsUp className="h-4 w-4 transition-transform group-hover/btn:-translate-y-0.5" />
+                                <span>Helpful ({review.helpful})</span>
                             </button>
                         </div>
                     </div>

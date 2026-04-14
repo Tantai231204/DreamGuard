@@ -298,7 +298,7 @@ function ColorGroupRow({
           "w-6 h-6 rounded-full flex items-center justify-center transition-transform",
           isExpanded ? "rotate-180" : ""
         )}>
-          <ChevronDown className={cn("h-4 w-4 transition-colors", isExpanded ? "text-indigo-600" : "text-slate-400")} />
+          <ChevronDown className={cn("h-4 w-4 transition-colors", isExpanded ? "text-primary-600" : "text-slate-400")} />
         </div>
 
         <div className="relative">
@@ -308,7 +308,7 @@ function ColorGroupRow({
             title={group.color}
           />
           {isExpanded && (
-            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-0.5 h-8 bg-gradient-to-b from-indigo-200 to-transparent" />
+            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-0.5 h-8 bg-gradient-to-b from-primary-200 to-transparent" />
           )}
         </div>
 
@@ -419,7 +419,7 @@ function VariantRow({
     if (!variant.isVariantCustomizable) {
       return {
         label: variant.dimensions || 'N/A',
-        cls: "bg-white border-slate-200 text-slate-700 group-hover/vrow:border-indigo-200 group-hover/vrow:bg-indigo-50/30 font-medium"
+        cls: "bg-white border-slate-200 text-slate-700 group-hover/vrow:border-primary-200 group-hover/vrow:bg-primary-50/30 font-medium"
       };
     }
 
@@ -429,7 +429,7 @@ function VariantRow({
     if (variant.isFullBespoke) {
       return {
         label: `Full: ${displayNames}`,
-        cls: "bg-indigo-50 border-indigo-200 text-indigo-700 group-hover/vrow:bg-indigo-100/50 shadow-sm font-black"
+        cls: "bg-primary-50 border-primary-200 text-primary-700 group-hover/vrow:bg-primary-100/50 shadow-sm font-black"
       };
     }
 

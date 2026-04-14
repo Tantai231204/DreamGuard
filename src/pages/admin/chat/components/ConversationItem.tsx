@@ -22,12 +22,12 @@ function ConversationItemInner({
   const gradient = useMemo(() => getAvatarGradient(customerName), [customerName]);
   const initials = useMemo(
     () =>
-      customerName
+      (customerName || 'Customer')
         .split(' ')
-        .map((n) => n[0])
+        .map((n) => n[0] || '')
         .join('')
         .toUpperCase()
-        .slice(0, 2),
+        .slice(0, 2) || '?',
     [customerName]
   );
   const timeStr = useMemo(() => formatTime(lastMessageTime), [lastMessageTime, formatTime]);

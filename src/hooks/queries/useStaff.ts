@@ -6,6 +6,7 @@ export const staffKeys = {
     all: ["staffs"] as const,
     list: (params: StaffParams = {}) => [...staffKeys.all, "list", params] as const,
     detail: (id: string) => [...staffKeys.all, "detail", id] as const,
+    profile: () => [...staffKeys.all, "profile"] as const,
 };
 
 export const useStaffs = (params: StaffParams = {}) => {
@@ -16,11 +17,25 @@ export const useStaffs = (params: StaffParams = {}) => {
     });
 };
 
-export const useStaffById = (id: string) => {
+export const useStaffById = (id: string, options?: { enabled?: boolean }) => {
     return useQuery({
         queryKey: staffKeys.detail(id),
         queryFn: () => staffService.getStaffById(id),
-        enabled: !!id,
+        enabled: (options?.enabled ?? true) && !!id,
+        staleTime: 5 * 60 * 1000,
+        gcTime: 15 * 60 * 1000,
+        refetchOnWindowFocus: false,
+    });
+};
+
+export const useStaffProfile = (options?: { enabled?: boolean }) => {
+    return useQuery({
+        queryKey: staffKeys.profile(),
+        queryFn: () => staffService.getStaffProfile(),
+        enabled: options?.enabled ?? true,
+        staleTime: 2 * 60 * 1000,
+        gcTime: 10 * 60 * 1000,
+        refetchOnWindowFocus: false,
     });
 };
 

@@ -1,108 +1,44 @@
-import { useRef, useMemo, useEffect } from "react";
-import { useParams } from "react-router-dom";
-import { useProductDetail } from "@/hooks/queries/useProduct";
-import { SEO } from "@/components/common";
-import { useBreadcrumb } from "@/components/common/BreadcrumbNav";
-import { useFavoriteProducts, useAddFavorite, useDeleteFavorite } from "@/hooks/useFavorite";
-import { useProductCertificates } from "@/hooks/queries/useCertificate";
+import { lazy, Suspense } from 'react';
+import { motion } from "framer-motion";
 
-// Components
+import { SEO } from "@/components/common";
 import { ProductImageGallery } from "./components/ProductImageGallery";
 import { ProductInfo } from "./components/ProductInfo";
 import { SafetyCertifications } from "./components/SafetyCertifications";
 import { ProductTabs } from "./components/ProductTabs";
-import { TradeInSelector } from "./components/TradeInSelector";
 import { ProductDetailSkeleton } from "./components/ProductDetailSkeleton";
 import { ProductNotFound } from "./components/ProductNotFound";
-import { useProductDetailState } from "./hooks/useProductDetailState";
-import {
-  safetyCertifications,
-  mockReviews,
-  mockEligibleTradeInProducts,
-} from "./constants";
-import type { ProductSpec } from "./types";
-import { motion } from "framer-motion";
+
+import { useProductDetailViewModel } from "./hooks/useProductDetailViewModel";
+
+const TradeInSelector = lazy(() => import('./components/TradeInSelector').then(m => ({ default: m.TradeInSelector })));
 
 export default function ProductDetail() {
-  const { slug } = useParams<{ slug: string }>();
-  const productImageRef = useRef<HTMLDivElement | null>(null);
-  const { setItems: setBreadcrumb } = useBreadcrumb();
-
-  // 1. Fetch product
   const {
-    data: product,
-    isLoading,
-    isError: isProductError,
-  } = useProductDetail(slug || "", !!slug);
-
-  // 2. Manage state via custom hook
-  const { state, actions, getVariantSize } = useProductDetailState({
     product,
+    isLoading,
+    isProductError,
+    state,
+    actions,
+    getVariantSize,
+    tradeInSummary,
+    tradeInConfig,
+    eligibleTradeInProducts,
+    isTradeInItemsLoading,
+    isTradeInEstimateLoading,
+    handleCreateTradeInOrder,
+    handleToggleTradeIn,
+    handleToggleWishlist,
+    isWishlisted,
+    apiSpecs,
+    reviews,
+    averageRating,
+    certifications,
     productImageRef,
-  });
+    isAuthenticated,
+    tradeInContact
+  } = useProductDetailViewModel();
 
-  // 3. Fetch certificates
-  const { data: apiCertificates } = useProductCertificates(product?.id || "");
-
-  // Favorite Logic
-  const { data: favorites } = useFavoriteProducts();
-  const addFavorite = useAddFavorite();
-  const deleteFavorite = useDeleteFavorite();
-
-  const isWishlisted = useMemo(() => {
-    if (!favorites?.items || !product) return false;
-    return favorites.items.some((f) => f.productId === product.id);
-  }, [favorites, product]);
-
-  const handleToggleWishlist = () => {
-    if (!product) return;
-    if (isWishlisted) {
-      deleteFavorite.mutate(product.id, {
-        onSuccess: () => {
-          if (actions.setIsWishlisted) actions.setIsWishlisted(false);
-        }
-      });
-    } else {
-      addFavorite.mutate(product.id, {
-        onSuccess: () => {
-          if (actions.setIsWishlisted) actions.setIsWishlisted(true);
-        }
-      });
-    }
-  };
-
-  // 3. Sync Breadcrumbs
-  useEffect(() => {
-    if (product) {
-      setBreadcrumb([
-        { label: "Home", href: "/" },
-        { label: "Products", href: "/products" },
-        { label: product.name, active: true },
-      ]);
-    }
-    return () => setBreadcrumb([]);
-  }, [product, setBreadcrumb]);
-
-  // 4. Derived specs for the Specifications tab
-  const apiSpecs: ProductSpec[] = useMemo(() => {
-    if (!product) return [];
-    const specs: ProductSpec[] = [];
-    if (product.material) specs.push({ label: "Material", value: product.material });
-    if (product.ageGroup !== null && product.ageGroup !== undefined) {
-      specs.push({ label: "Age Group", value: `${product.ageGroup} months` });
-    }
-    if (product.categoryName) specs.push({ label: "Category", value: product.categoryName });
-    if (typeof product.warrantyPolicyDay === "number") {
-      specs.push({ label: "Warranty", value: `${product.warrantyPolicyDay} days` });
-    }
-    if (typeof product.returnPolicyDay === "number") {
-      specs.push({ label: "Return Policy", value: `${product.returnPolicyDay} days` });
-    }
-    if (product.status) specs.push({ label: "Status", value: product.status });
-    return specs;
-  }, [product]);
-
-  // Loading & Error States
   if (isLoading) return <ProductDetailSkeleton />;
   if (!product || isProductError) return <ProductNotFound />;
 
@@ -111,10 +47,6 @@ export default function ProductDetail() {
     if (!originalPrice || originalPrice <= price) return undefined;
     return Math.round(((originalPrice - price) / originalPrice) * 100);
   })();
-
-  const averageRating = product.averageRating > 0
-    ? product.averageRating
-    : mockReviews.reduce((acc, r) => acc + r.rating, 0) / mockReviews.length;
 
   return (
     <div className="min-h-screen bg-white selection:bg-[var(--color-primary)]/10">
@@ -155,6 +87,9 @@ export default function ProductDetail() {
                 ageLabel: product.ageGroup ? String(product.ageGroup) : undefined,
                 warrantyPolicyDay: product.warrantyPolicyDay,
                 returnPolicyDay: product.returnPolicyDay,
+                isTradeInEligible: tradeInConfig.isTradeInEligible,
+                minTradeInPrice: tradeInConfig.minTradeInPrice,
+                depositAmount: tradeInConfig.depositAmount,
               }}
               sku={state.currentVariant?.sku}
               variantLabel={
@@ -165,7 +100,7 @@ export default function ProductDetail() {
               }
               isNewVariant={state.currentVariant?.isNew}
               averageRating={averageRating}
-              reviewCount={mockReviews.length}
+              reviewCount={reviews.length}
               selectedColor={state.selectedColor}
               selectedSize={state.selectedSize}
               quantity={state.quantity}
@@ -180,7 +115,7 @@ export default function ProductDetail() {
               onSizeChange={actions.setUserSelectedSize}
               onQuantityChange={actions.setQuantity}
               onAddToCart={actions.handleAddToCart}
-              tradeInValue={state.tradeInValue}
+              tradeInValue={tradeInSummary.estimatedTradeInValue}
               isCustomSize={state.isCustomSize}
               isCustomColor={state.isCustomColor}
               onIsCustomSizeChange={actions.setIsCustomSize}
@@ -195,14 +130,29 @@ export default function ProductDetail() {
               canCustomizeSize={state.canCustomizeSize}
             />
 
-            <TradeInSelector
-              eligibleProducts={mockEligibleTradeInProducts}
-              selectedProducts={state.selectedTradeInProducts}
-              onToggleProduct={(id: string) => actions.setSelectedTradeInProducts((prev: string[]) =>
-                prev.includes(id) ? prev.filter((x: string) => x !== id) : [...prev, id]
-              )}
-              tradeInPercentage={30}
-            />
+            <Suspense fallback={null}>
+              <TradeInSelector
+                isEligible={tradeInConfig.isTradeInEligible}
+                eligibleProducts={eligibleTradeInProducts}
+                selectedProducts={state.selectedTradeInProducts}
+                currentProductVariantId={state.currentVariant?.id}
+                onToggleProduct={handleToggleTradeIn}
+                tradeInPercentage={30}
+                product={product}
+                minTradeInPrice={tradeInSummary.minTradeInPrice}
+                depositAmount={tradeInSummary.depositAmount}
+                currentProductPrice={tradeInSummary.currentProductPrice}
+                estimatedTradeInValue={tradeInSummary.estimatedTradeInValue}
+                estimatedAmountToPay={tradeInSummary.estimatedAmountToPay}
+                isEstimatingPrice={isTradeInEstimateLoading}
+                onCreateTradeInOrder={handleCreateTradeInOrder}
+                isOpen={state.isTradeInOpen}
+                onOpenChange={actions.setIsTradeInOpen}
+                isLoadingItems={isTradeInItemsLoading}
+                isLoggedIn={isAuthenticated}
+                initialContact={tradeInContact}
+              />
+            </Suspense>
           </div>
         </div>
 
@@ -213,7 +163,7 @@ export default function ProductDetail() {
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
           >
-            <SafetyCertifications certifications={apiCertificates || safetyCertifications} />
+            <SafetyCertifications certifications={certifications} />
           </motion.div>
 
           <motion.div
@@ -228,7 +178,7 @@ export default function ProductDetail() {
               productName={product.name}
               description={product.description}
               specs={apiSpecs}
-              reviews={mockReviews}
+              reviews={reviews}
               averageRating={averageRating}
             />
           </motion.div>

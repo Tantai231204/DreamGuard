@@ -5,6 +5,8 @@ import { useRegisterStore } from "../../store/registerStore";
 import { useVerifyOtp, useSendRegisterOtp } from "../../hooks/useAuth";
 import { AppRoute } from "../../lib/constants";
 
+const OTP_LENGTH = 6;
+
 export default function VerifyRegisterOTP() {
 
   const navigate = useNavigate();
@@ -16,7 +18,7 @@ export default function VerifyRegisterOTP() {
   const { mutate: verifyOtp, isPending, error: apiError } = useVerifyOtp();
   const { mutate: resendOtp } = useSendRegisterOtp();
 
-  const [otp, setOtp] = useState<string[]>(["", "", "", "", "", ""]);
+  const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [error, setError] = useState("");
   const [countdown, setCountdown] = useState(60);
 
@@ -38,49 +40,98 @@ export default function VerifyRegisterOTP() {
 
   const handleChange = useCallback(
     (index: number, value: string) => {
-      if (value && !/^\d+$/.test(value)) return;
-      const newOtp = [...otp];
-      newOtp[index] = value.slice(-1);
-      setOtp(newOtp);
+      const digits = value.replace(/\D/g, "");
       setError("");
-      if (value && index < 5) {
-        inputRefs.current[index + 1]?.focus();
+
+      if (!digits) {
+        setOtp((prev) => {
+          const next = [...prev];
+          next[index] = "";
+          return next;
+        });
+        return;
       }
+
+      setOtp((prev) => {
+        const next = [...prev];
+        digits
+          .slice(0, OTP_LENGTH - index)
+          .split("")
+          .forEach((char, offset) => {
+            next[index + offset] = char;
+          });
+        return next;
+      });
+
+      const focusIndex = Math.min(index + digits.length, OTP_LENGTH - 1);
+      inputRefs.current[focusIndex]?.focus();
     },
-    [otp]
+    []
   );
 
   const handleKeyDown = useCallback(
     (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Backspace" && !otp[index] && index > 0) {
+      if (e.key === "Backspace") {
+        e.preventDefault();
+
+        setOtp((prev) => {
+          const next = [...prev];
+
+          if (next[index]) {
+            next[index] = "";
+            return next;
+          }
+
+          if (index > 0) {
+            next[index - 1] = "";
+            requestAnimationFrame(() => inputRefs.current[index - 1]?.focus());
+          }
+
+          return next;
+        });
+        return;
+      }
+
+      if (e.key === "ArrowLeft" && index > 0) {
+        e.preventDefault();
         inputRefs.current[index - 1]?.focus();
       }
+
+      if (e.key === "ArrowRight" && index < OTP_LENGTH - 1) {
+        e.preventDefault();
+        inputRefs.current[index + 1]?.focus();
+      }
     },
-    [otp]
+    []
   );
 
   const handlePaste = useCallback(
     (e: React.ClipboardEvent) => {
       e.preventDefault();
-      const pasted = e.clipboardData.getData("text").slice(0, 6);
-      if (!/^\d+$/.test(pasted)) return;
-      const newOtp = [...otp];
-      pasted.split("").forEach((char, index) => {
-        if (index < 6) newOtp[index] = char;
+
+      const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, OTP_LENGTH);
+      if (!pasted) return;
+
+      setError("");
+      setOtp((prev) => {
+        const next = [...prev];
+        pasted.split("").forEach((char, index) => {
+          next[index] = char;
+        });
+        return next;
       });
-      setOtp(newOtp);
-      const nextEmpty = newOtp.findIndex((v) => !v);
-      const focusIndex = nextEmpty === -1 ? 5 : nextEmpty;
+
+      const focusIndex = Math.min(pasted.length, OTP_LENGTH - 1);
       inputRefs.current[focusIndex]?.focus();
     },
-    [otp]
+    []
   );
 
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
       const otpValue = otp.join("");
-      if (otpValue.length !== 6) {
+      if (otpValue.length !== OTP_LENGTH) {
         setError("Please enter the full 6-digit code");
         return;
       }
@@ -169,6 +220,8 @@ export default function VerifyRegisterOTP() {
               type="text"
               inputMode="numeric"
               maxLength={1}
+              autoComplete={index === 0 ? "one-time-code" : "off"}
+              onFocus={(e) => e.currentTarget.select()}
               value={digit}
               onChange={(e) => handleChange(index, e.target.value)}
               onKeyDown={(e) => handleKeyDown(index, e)}
@@ -220,7 +273,7 @@ export default function VerifyRegisterOTP() {
           }
           className="hover:underline"
         >
-          ← Back to login
+          ← Back to Log In
         </Link>
       </p>
 

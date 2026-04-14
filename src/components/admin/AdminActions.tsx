@@ -8,6 +8,7 @@ interface AdminActionsProps {
   onImport?: () => void;
   onFilter?: () => void;
   addLabel?: string;
+  addStyle?: 'gradient' | 'flat';
   showFilter?: boolean;
   showExport?: boolean;
   showImport?: boolean;
@@ -20,6 +21,7 @@ export function AdminActions({
   onImport,
   onFilter,
   addLabel = 'Add New',
+  addStyle = 'gradient',
   showFilter = true,
   showExport = true,
   showImport = true,
@@ -65,7 +67,11 @@ export function AdminActions({
           size="sm"
           onClick={onAdd}
           disabled={addDisabled}
-          className="gap-2 rounded-xl bg-gradient-to-r from-[var(--color-primary)] to-blue-600 hover:from-[var(--color-primary-hover)] hover:to-blue-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105 disabled:opacity-50 disabled:grayscale disabled:scale-100 disabled:cursor-not-allowed"
+          className={
+            addStyle === 'flat'
+              ? 'gap-2 rounded-xl bg-[#4988c4] hover:bg-[#3a6fa0] text-white font-semibold shadow-sm transition-all disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed'
+              : 'gap-2 rounded-xl bg-gradient-to-r from-[var(--color-primary)] to-blue-600 hover:from-[var(--color-primary-hover)] hover:to-blue-700 text-white font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105 disabled:opacity-50 disabled:grayscale disabled:scale-100 disabled:cursor-not-allowed'
+          }
         >
           <Plus className="h-4 w-4" />
           {addLabel}

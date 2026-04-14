@@ -1,20 +1,74 @@
-import { useEffect, useMemo } from "react"
-import { useNavigate } from "react-router-dom"
+import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react"
+import { useLocation, useNavigate } from "react-router-dom"
 import { useBreadcrumb } from "@/components/common/BreadcrumbNav"
 import { LoadingSpinner } from "@/components/common"
 import { useCart } from "@/store/useCart"
+import { useAuthStore } from "@/store/authStore"
 import { AppRoute } from "@/lib/constants"
 import { CheckoutForm } from "./components/CheckoutForm"
-import { OrderSummary } from "./components/OrderSummary"
 import { ShieldCheck, ArrowLeft, Lock, RefreshCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useCartStore } from "@/store/useCartStore"
 import { formatDate } from "@/lib/utils"
+import { useUserVouchers } from "@/hooks/queries"
+import { calculateVoucherDiscount, isUserVoucherUsable } from "@/utils/user-voucher"
+
+const LazyOrderSummary = lazy(() =>
+    import("./components/OrderSummary").then((module) => ({ default: module.OrderSummary }))
+)
+
+interface CheckoutRouteState {
+    preselectedVoucherId?: string
+    preselectedVoucherCode?: string
+}
 
 export default function CheckoutPage() {
     const { setItems } = useBreadcrumb()
     const { cart, totalPrice, totalTradeInDiscount, finalTotal } = useCart()
     const navigate = useNavigate()
+    const location = useLocation()
+    const { isAuthenticated } = useAuthStore()
+    const [selectedVoucherId, setSelectedVoucherId] = useState<string | null>(null)
+
+    const navigationState = location.state as CheckoutRouteState | null
+    const preselectedVoucherId = navigationState?.preselectedVoucherId ?? null
+    const preselectedVoucherCode = navigationState?.preselectedVoucherCode?.trim().toUpperCase() ?? null
+
+    const {
+        data: voucherPage,
+        isLoading: isVoucherLoading,
+        isError: isVoucherError,
+        refetch: refetchVouchers,
+    } = useUserVouchers(isAuthenticated)
+
+    const allUserVouchers = voucherPage?.items ?? []
+    const orderVouchers = useMemo(
+        () => allUserVouchers.filter((voucher) => isUserVoucherUsable(voucher, "order")),
+        [allUserVouchers]
+    )
+
+    const selectedVoucher = useMemo(
+        () => orderVouchers.find((voucher) => voucher.userVoucherId === selectedVoucherId) ?? null,
+        [orderVouchers, selectedVoucherId]
+    )
+
+    const voucherDiscount = useMemo(
+        () => (selectedVoucher ? calculateVoucherDiscount(finalTotal, selectedVoucher) : 0),
+        [finalTotal, selectedVoucher]
+    )
+
+    const payableTotal = useMemo(
+        () => Math.max(0, finalTotal - voucherDiscount),
+        [finalTotal, voucherDiscount]
+    )
+
+    const handleVoucherChange = useCallback((voucherId: string | null) => {
+        setSelectedVoucherId(voucherId)
+    }, [])
+
+    const handleVoucherRetry = useCallback(() => {
+        void refetchVouchers()
+    }, [refetchVouchers])
 
     // Production UX: Estimated Delivery calculation (Moved up to follow Hook rules)
     const estimatedDate = useMemo(() => {
@@ -44,6 +98,57 @@ export default function CheckoutPage() {
             return () => clearTimeout(timer)
         }
     }, [cart.length, navigate])
+
+    useEffect(() => {
+        if (!selectedVoucherId || isVoucherLoading || isVoucherError) return
+
+        const stillExists = orderVouchers.some((voucher) => voucher.userVoucherId === selectedVoucherId)
+        if (!stillExists) {
+            setSelectedVoucherId(null)
+        }
+    }, [isVoucherError, isVoucherLoading, orderVouchers, selectedVoucherId])
+
+    useEffect(() => {
+        if (!isAuthenticated && selectedVoucherId) {
+            setSelectedVoucherId(null)
+        }
+    }, [isAuthenticated, selectedVoucherId])
+
+    useEffect(() => {
+        if (!isAuthenticated || isVoucherLoading || isVoucherError || orderVouchers.length === 0) {
+            return
+        }
+
+        let nextVoucherId: string | null = null
+
+        if (preselectedVoucherId) {
+            const matchedById = orderVouchers.find((voucher) => voucher.userVoucherId === preselectedVoucherId)
+            if (matchedById) {
+                nextVoucherId = matchedById.userVoucherId
+            }
+        }
+
+        if (!nextVoucherId && preselectedVoucherCode) {
+            const matchedByCode = orderVouchers.find(
+                (voucher) => voucher.code.trim().toUpperCase() === preselectedVoucherCode
+            )
+            if (matchedByCode) {
+                nextVoucherId = matchedByCode.userVoucherId
+            }
+        }
+
+        if (nextVoucherId && selectedVoucherId !== nextVoucherId) {
+            setSelectedVoucherId(nextVoucherId)
+        }
+    }, [
+        isAuthenticated,
+        isVoucherError,
+        isVoucherLoading,
+        orderVouchers,
+        preselectedVoucherCode,
+        preselectedVoucherId,
+        selectedVoucherId,
+    ])
 
     if (cart.length === 0) {
         return (
@@ -93,47 +198,74 @@ export default function CheckoutPage() {
                 </div>
             </div>
 
-            <main className="container mx-auto max-w-[1400px] px-8 py-16">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-start">
+            <main className="container mx-auto max-w-[1380px] px-4 sm:px-6 lg:px-8 py-10 lg:py-14">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 xl:gap-12 items-start">
                     {/* Left Column: Form Fields */}
-                    <div className="lg:col-span-7 space-y-12">
+                    <div className="lg:col-span-7 space-y-6">
                         <section className="space-y-2">
                             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-slate-900 text-white shadow-xl shadow-slate-200">
                                 <ShieldCheck className="w-3.5 h-3.5" />
                                 <span className="text-[9px] font-black uppercase tracking-widest">Guaranteed Purchase</span>
                             </div>
-                            <h2 className="text-5xl font-black text-slate-900 tracking-tighter leading-tight">
-                                Complete your <br />
-                                <span className="text-[#4988c4]">DreamGuard Experience.</span>
+                            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tighter leading-tight">
+                                Secure checkout
+                                <span className="text-primary-500"> in one screen</span>
                             </h2>
+                            <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">
+                                Voucher is selected from order summary and synced to final submit.
+                            </p>
                         </section>
 
                         <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150">
-                            <CheckoutForm totalPrice={finalTotal} />
+                            <CheckoutForm
+                                totalPrice={payableTotal}
+                                selectedVoucherId={selectedVoucherId}
+                            />
                         </div>
                     </div>
 
                     {/* Right Column: Order Summary (Sticky) */}
                     <div className="lg:col-span-5 relative">
                         <div className="animate-in fade-in slide-in-from-right-4 duration-1000 delay-300">
-                            <OrderSummary
-                                cart={cart}
-                                totalPrice={totalPrice}
-                                tradeInDiscount={totalTradeInDiscount}
-                                finalTotal={finalTotal}
-                                estimatedDeliveryDate={estimatedDate} // Added estimatedDeliveryDate prop
-                            />
+                            <Suspense
+                                fallback={
+                                    <div className="rounded-[2rem] border border-slate-100 bg-white p-7 shadow-2xl shadow-slate-200/30 space-y-4">
+                                        <div className="h-6 w-40 rounded bg-slate-100 animate-pulse" />
+                                        <div className="h-28 rounded-2xl bg-slate-100 animate-pulse" />
+                                        <div className="h-12 rounded-xl bg-slate-100 animate-pulse" />
+                                        <div className="h-36 rounded-2xl bg-slate-100 animate-pulse" />
+                                    </div>
+                                }
+                            >
+                                <LazyOrderSummary
+                                    cart={cart}
+                                    totalPrice={totalPrice}
+                                    tradeInDiscount={totalTradeInDiscount}
+                                    finalTotal={finalTotal}
+                                    voucherDiscount={voucherDiscount}
+                                    appliedVoucherCode={selectedVoucher?.code ?? null}
+                                    payableTotal={payableTotal}
+                                    availableVouchers={orderVouchers}
+                                    selectedVoucherId={selectedVoucherId}
+                                    onVoucherChange={handleVoucherChange}
+                                    isVoucherEnabled={isAuthenticated}
+                                    isVoucherLoading={isVoucherLoading}
+                                    isVoucherError={isVoucherError}
+                                    onVoucherRetry={handleVoucherRetry}
+                                    estimatedDeliveryDate={estimatedDate}
+                                />
+                            </Suspense>
                         </div>
 
                         {/* Additional Content / Trust Area */}
-                        <div className="mt-12 px-10 py-8 rounded-[2rem] bg-slate-50 border border-slate-100 flex items-center gap-6">
+                        <div className="mt-6 px-6 py-5 rounded-[1.5rem] bg-slate-50 border border-slate-100 flex items-center gap-4">
                             <div className="w-16 h-16 rounded-2xl bg-white shadow-sm flex items-center justify-center shrink-0">
-                                <RefreshCcw className="w-8 h-8 text-[#4988c4] animate-spin-slow" />
+                                <RefreshCcw className="w-8 h-8 text-primary-500 animate-spin-slow" />
                             </div>
                             <div className="space-y-1">
                                 <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest">Buyer Protection</h4>
-                                <p className="text-[11px] font-medium text-slate-400 leading-relaxed">
-                                    Not satisfied with your purchase? We offer 30-day no-questions-asked returns.
+                                <p className="text-[10px] font-medium text-slate-400 leading-relaxed">
+                                    30-day return policy for qualified products.
                                 </p>
                             </div>
                         </div>

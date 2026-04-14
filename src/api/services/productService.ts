@@ -45,13 +45,46 @@ const productService = {
       })
       .catch((err) => (err?.status === 404 ? [] : Promise.reject(err))),
 
+  /** Get eligible trade-in products by filter */
+  getAllProductToTradeIn: (params: ProductParams = {}): Promise<ProductResponse[]> =>
+    apiClient
+      .get('/product/GetAllProductToTradeIn', { params, _suppressToast: true } as CustomAxiosRequestConfig)
+      .then((res) => {
+        const raw = res.data?.data ?? res.data;
+        if (Array.isArray(raw)) return raw;
+        if (raw?.items && Array.isArray(raw.items)) return raw.items;
+        return [];
+      })
+      .catch((err) => (err?.status === 404 ? [] : Promise.reject(err))),
+
   /** Get product detail by ID */
   getById: (id: string): Promise<ProductResponse> =>
     apiClient.get(`/product/${id}`).then((res) => res.data),
 
-  /** Get product detail by Slug */
-  getBySlug: (slug: string): Promise<ProductResponse> =>
-    apiClient.get(`/product/slug/${slug}`).then((res) => res.data),
+  /** Get product detail by Slug - merges missing trade-in fields from ID-based fetch for stability */
+  getBySlug: async (slug: string): Promise<ProductResponse> => {
+    const res = await apiClient.get<ProductResponse>(`/product/slug/${slug}`);
+    const product = res.data;
+
+    if (product?.id) {
+      try {
+        const fullDetails = await apiClient.get<ProductResponse>(`/product/${product.id}`).then((r) => r.data);
+        return {
+          ...product,
+          cateId: product.cateId || fullDetails.cateId,
+          categoryName: product.categoryName || fullDetails.categoryName,
+          isTradeInEligible: product.isTradeInEligible ?? fullDetails.isTradeInEligible,
+          minTradeInPrice: product.minTradeInPrice ?? fullDetails.minTradeInPrice,
+          depositAmount: product.depositAmount ?? fullDetails.depositAmount,
+          variants: product.variants || fullDetails.variants,
+        };
+      } catch (err) {
+        console.warn("[productService.getBySlug] Failed to fetch secondary details by ID:", err);
+        return product;
+      }
+    }
+    return product;
+  },
 
   /** Create new product - returns ID from Location header or refetches by name */
   create: async (data: CreateProductRequest): Promise<ProductResponse> => {
@@ -81,11 +114,11 @@ const productService = {
 
   /** Update product */
   update: (data: UpdateProductRequest): Promise<ProductResponse> =>
-    apiClient.put(`/product/${data.id}`, data).then((res) => res.data),
+    apiClient.put('/product', data).then((res) => res.data),
 
   /** Update product status */
   updateStatus: ({ productId, status }: UpdateProductStatusParams): Promise<void> =>
-    apiClient.put(`/product/${productId}`, {}, { params: { status } }).then((res) => res.data),
+    apiClient.put('/product', { id: productId, status }).then((res) => res.data),
 
   /** Delete product */
   delete: (id: string): Promise<void> =>

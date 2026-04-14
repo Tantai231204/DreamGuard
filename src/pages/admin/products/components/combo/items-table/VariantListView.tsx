@@ -66,7 +66,7 @@ export function VariantListView({
                                                 normalized === 'published' ? "text-emerald-600 hover:bg-emerald-50" :
                                                     normalized === 'draft' ? "text-amber-600 hover:bg-amber-50" :
                                                         normalized === 'hidden' ? "text-blue-600 hover:bg-blue-50" :
-                                                            "text-indigo-600 hover:bg-indigo-50 text-opacity-70 hover:bg-slate-50";
+                                                            "text-primary-600 hover:bg-primary-50 text-opacity-70 hover:bg-slate-50";
 
                                             return (
                                                 <DropdownMenuItem

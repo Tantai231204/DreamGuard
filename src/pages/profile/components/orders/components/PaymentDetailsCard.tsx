@@ -1,79 +1,233 @@
-import { CreditCard, Clock } from "lucide-react"
+import React from "react"
+import { AnimatePresence, motion } from "framer-motion"
+import { AlertCircle, ChevronLeft, ChevronRight, CreditCard, ShieldCheck } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { AdminStatusBadge } from "@/components/admin"
+import { cn, formatDate, formatTime } from "@/lib/utils"
 import { formatPrice } from "../../../utils"
-import { formatDateTime, cn } from "@/lib/utils"
-import type { OrderDetailResponse } from "@/api/types/order"
-import type { PaymentDetailResponse } from "@/api/types/payment"
 
-interface PaymentDetailsCardProps {
-    order: OrderDetailResponse
-    payment?: PaymentDetailResponse
+export interface PaymentDetailsCardEntry {
+    id?: string
+    orderCode?: string
+    paymentType?: string
+    status?: string
+    amount?: number
+    paymentMethod?: string
+    createdAt?: string
 }
 
-// Helper internally
-const extractTxnId = (desc: string) => {
-    if (!desc) return null;
-    const match = desc.match(/(?:TxnId|Mã GD):\s*(\d+)/i);
-    return match ? match[1] : null;
-};
+interface PaymentDetailsCardProps {
+    payments?: PaymentDetailsCardEntry[]
+    fallbackPayment?: PaymentDetailsCardEntry
+    className?: string
+}
 
-export function PaymentDetailsCard({ order, payment }: PaymentDetailsCardProps) {
+export function PaymentDetailsCard({ payments, fallbackPayment, className }: PaymentDetailsCardProps) {
+    const [currentIndex, setCurrentIndex] = React.useState(0)
+    const swipeStartXRef = React.useRef<number | null>(null)
+    const swipeStartYRef = React.useRef<number | null>(null)
+
+    const entries = React.useMemo(() => {
+        if (payments && payments.length > 0) return payments
+        return fallbackPayment ? [fallbackPayment] : []
+    }, [payments, fallbackPayment])
+
+    React.useEffect(() => {
+        if (entries.length === 0) {
+            setCurrentIndex(0)
+            return
+        }
+        if (currentIndex > entries.length - 1) {
+            setCurrentIndex(entries.length - 1)
+        }
+    }, [entries.length, currentIndex])
+
+    const payment = entries[currentIndex]
+
+    const handlePrev = () => setCurrentIndex((prev) => Math.max(0, prev - 1))
+    const handleNext = () => setCurrentIndex((prev) => Math.min(entries.length - 1, prev + 1))
+
+    const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+        if (entries.length <= 1) return
+        const touch = event.touches[0]
+        swipeStartXRef.current = touch.clientX
+        swipeStartYRef.current = touch.clientY
+    }
+
+    const handleTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
+        if (entries.length <= 1) return
+        if (swipeStartXRef.current === null || swipeStartYRef.current === null) return
+
+        const endX = event.changedTouches[0].clientX
+        const endY = event.changedTouches[0].clientY
+        const deltaX = endX - swipeStartXRef.current
+        const deltaY = endY - swipeStartYRef.current
+
+        swipeStartXRef.current = null
+        swipeStartYRef.current = null
+
+        const swipeThreshold = 48
+        if (Math.abs(deltaX) < swipeThreshold || Math.abs(deltaX) <= Math.abs(deltaY)) return
+
+        if (deltaX < 0) {
+            handleNext()
+            return
+        }
+
+        handlePrev()
+    }
+
+    const rawMethod = payment?.paymentMethod || "COD"
+    const normalizedStatus = String(payment?.status || "Pending").toLowerCase()
+    const displayMethod = (rawMethod.toLowerCase() === "cod" && normalizedStatus === "paid")
+        ? "CODPaid"
+        : rawMethod
+
     return (
-        <div className="mx-6 p-6 rounded-xl bg-white border border-gray-100 shadow-sm space-y-6">
-            <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3.5">
-                    <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center shrink-0 text-left">
-                        <CreditCard className="w-5 h-5 text-[#4988c4]" />
+        <div className={cn(
+            "rounded-xl sm:rounded-2xl border border-blue-100/50 bg-white shadow-sm overflow-hidden relative group",
+            className
+        )}>
+            <div className="absolute top-0 right-0 w-28 h-28 bg-primary/5 rounded-full -mr-14 -mt-14 blur-2xl group-hover:bg-primary/10 transition-colors" />
+
+            <div className="px-4 py-3 sm:px-5 sm:py-4 border-b border-blue-50 flex items-center justify-between bg-gradient-to-r from-blue-50/30 to-transparent relative z-10">
+                <div className="flex items-center gap-2.5">
+                    <div className="p-1.5 rounded-lg bg-primary/10">
+                        <ShieldCheck className="w-4 h-4 text-primary" />
                     </div>
-                    <div className="text-left space-y-1">
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.1em] mb-1">Settlement</p>
-                        <div className="flex items-center gap-2">
-                            <span className="text-[13px] font-black text-gray-900">{payment?.paymentMethod || order.paymentMethod || 'Checkout'}</span>
+                    <h4 className="text-[9px] sm:text-[10px] font-black text-slate-800 uppercase tracking-[0.2em]">
+                        Financial Vault
+                    </h4>
+                </div>
+
+                {entries.length > 1 ? (
+                    <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="bg-white border-blue-100 text-[9px] font-black text-slate-400 uppercase tracking-widest px-2 py-0.5">
+                            {currentIndex + 1} / {entries.length}
+                        </Badge>
+                        <div className="flex gap-1">
+                            <button
+                                type="button"
+                                onClick={handlePrev}
+                                disabled={currentIndex === 0}
+                                className="p-1 rounded-md bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-30 transition-colors shadow-sm"
+                            >
+                                <ChevronLeft className="w-3 h-3" />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleNext}
+                                disabled={currentIndex === entries.length - 1}
+                                className="p-1 rounded-md bg-white border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-30 transition-colors shadow-sm"
+                            >
+                                <ChevronRight className="w-3 h-3" />
+                            </button>
                         </div>
                     </div>
-                </div>
-                {payment && (
-                    <div className={cn(
-                        "px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm",
-                        payment.status === "Paid" ? "bg-emerald-500 border-emerald-600 text-white" :
-                        payment.status === "Failed" || payment.status === "Cancelled" ? "bg-rose-600 border-rose-700 text-white" :
-                        "bg-[#f59e0b] border-[#d97706] text-white"
-                    )}>
-                        {payment.status}
-                    </div>
+                ) : (
+                    <CreditCard className="w-4 h-4 text-slate-300" />
                 )}
             </div>
 
-            {payment ? (
-                <div className="grid grid-cols-2 gap-y-6 gap-x-8 pt-6 border-t border-gray-50 text-left">
-                    <div className="space-y-1">
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Net Amount</p>
-                        <p className="text-[16px] font-black text-gray-900 tabular-nums">{formatPrice(payment.amount)}</p>
-                    </div>
-                    <div className="text-right space-y-1">
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Processed At</p>
-                        <p className="text-[12px] font-bold text-gray-600">{formatDateTime(payment.updatedAt)}</p>
-                    </div>
-
-                    {extractTxnId(payment.description) && (
-                        <div className="space-y-1">
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Gateway ID</p>
-                            <span className="text-[13px] font-mono font-bold text-[#4988c4] tracking-tight">#{extractTxnId(payment.description)}</span>
-                        </div>
-                    )}
-
-                    <div className="text-right space-y-1">
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Partner Ref</p>
-                        <p className="text-[11px] font-mono font-bold text-gray-400 truncate" title={payment.pOrderId}>
-                            {payment.pOrderId.split('-')[0].toUpperCase()}...
-                        </p>
-                    </div>
+            {entries.length === 0 ? (
+                <div className="p-5 sm:p-6 flex flex-col items-center justify-center text-slate-400 min-h-[190px] sm:min-h-[220px] relative z-10">
+                    <AlertCircle className="w-8 h-8 mb-2 opacity-20" />
+                    <p className="text-[10px] uppercase font-black tracking-widest">No Payment Records</p>
                 </div>
             ) : (
-                <div className="pt-2 flex items-center gap-2 text-gray-300">
-                    <Clock className="w-3.5 h-3.5" />
-                    <p className="text-[11px] font-bold uppercase tracking-widest">Waiting for payment updates...</p>
+                <div
+                    className="relative min-h-[198px] sm:min-h-[220px] overflow-hidden touch-pan-y"
+                    onTouchStart={handleTouchStart}
+                    onTouchEnd={handleTouchEnd}
+                >
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={`${payment?.id || payment?.orderCode || "payment"}-${currentIndex}`}
+                            initial={{ opacity: 0, x: 12 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -12 }}
+                            transition={{ duration: 0.2 }}
+                            className="p-4 sm:p-5 h-full flex flex-col absolute inset-0 z-10"
+                        >
+                            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-4 sm:mb-5 gap-3">
+                                <div className="flex flex-wrap items-center gap-3 sm:gap-5">
+                                    <div className="flex flex-col items-start min-w-[82px]">
+                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Settlement</span>
+                                        <AdminStatusBadge
+                                            status={displayMethod}
+                                            mode="method"
+                                            className="scale-[0.86] sm:scale-90 origin-left"
+                                        />
+                                    </div>
+                                    <div className="flex flex-col items-start min-w-[82px]">
+                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Type</span>
+                                        <AdminStatusBadge
+                                            status={payment?.paymentType || "Purchase"}
+                                            className="scale-[0.86] sm:scale-90 origin-left"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="self-start sm:self-auto">
+                                    <AdminStatusBadge
+                                        status={payment?.status || "Pending"}
+                                        mode="payment"
+                                        className="scale-[0.86] sm:scale-90 origin-left sm:origin-right"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-4 sm:mb-5 gap-3">
+                                <div className="space-y-1 flex-1">
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Auth Reference</p>
+                                    <div className="max-w-[180px] sm:max-w-none truncate font-mono text-[10px] font-bold text-slate-600 bg-slate-50 px-2 py-1 rounded border border-slate-100/60 inline-block">
+                                        {(payment?.id || payment?.orderCode || "REF-PENDING").substring(0, 12).toUpperCase()}
+                                    </div>
+                                </div>
+                                <div className="space-y-1 sm:text-right flex-1">
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Timestamp</p>
+                                    <p className="text-[10px] font-bold text-slate-700">
+                                        {payment?.createdAt ? `${formatDate(payment.createdAt)} ${formatTime(payment.createdAt)}` : "--/--/---- --:--"}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="mt-auto flex items-end justify-between gap-3 border-t border-slate-100/80 pt-3 sm:pt-2">
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Authorized Gross</span>
+                                    <span className="text-[8px] font-bold text-slate-300 uppercase italic">Immutable Ledger Record</span>
+                                </div>
+                                <span className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter tabular-nums">
+                                    {formatPrice(payment?.amount || 0)}
+                                </span>
+                            </div>
+
+                            {normalizedStatus === "failed" && (
+                                <div className="mt-3 p-2.5 rounded-xl bg-rose-50 border border-rose-100 flex gap-2.5 items-start text-rose-600 animate-in fade-in slide-in-from-bottom-2">
+                                    <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                                    <p className="text-[9px] font-black leading-normal uppercase tracking-tight">
+                                        Transaction Rejection Detected. Immediate Review Recommended.
+                                    </p>
+                                </div>
+                            )}
+                        </motion.div>
+                    </AnimatePresence>
+
+                    {entries.length > 1 && (
+                        <div className="absolute inset-x-0 bottom-2 z-20 flex items-center justify-center gap-1 sm:hidden pointer-events-none">
+                            {entries.map((entry, index) => (
+                                <span
+                                    key={`${entry.id || entry.orderCode || index}`}
+                                    className={cn(
+                                        "h-1.5 rounded-full transition-all duration-200",
+                                        index === currentIndex ? "w-4 bg-primary/80" : "w-1.5 bg-slate-300"
+                                    )}
+                                />
+                            ))}
+                        </div>
+                    )}
                 </div>
             )}
         </div>
-    );
+    )
 }

@@ -11,17 +11,21 @@ export type {
   VerifyTokenRequest,
   ResendTokenRequest,
 } from "./auth.types";
-export type { UserProfile, UpdateUserProfileRequest } from "./user.types";
+export type { UserProfile, UpdateUserProfileRequest, ChangePhoneNumberRequest, ConfirmChangePhoneNumberRequest } from "./userProfile";
 export type {
   CategoryResponse,
   CreateCategoryRequest,
   UpdateCategoryRequest,
 } from "./category.types";
 export type {
+  VoucherType,
   VoucherResponse,
   CreateVoucherRequest,
   UpdateVoucherRequest,
   VoucherPageResponse,
+  UserVoucherResponse,
+  UserVoucherPageResponse,
+  ClaimVoucherRequest,
 } from "./voucher.types";
 export type {
   AssetResponse, ProductResponse,
@@ -43,3 +47,17 @@ export type {
   RatingSearchParams,
   RatingListResponse,
 } from "./rating";
+export type {
+  ProductFeedbackPayload,
+  ProductFeedbackResponse,
+} from "./feedback";
+export type {
+  AdminTradeInOrderListResponse,
+  AdminTradeInOrderSearchParams,
+  CalculateTradeInOrderPriceRequest,
+  CalculateTradeInOrderPriceResponse,
+  CreateTradeInOrderRequest,
+  TradeInOrderListItem,
+  TradeInOrderResponse,
+  UploadTradeInOrderImagesResponse,
+} from "./tradeInOrder";

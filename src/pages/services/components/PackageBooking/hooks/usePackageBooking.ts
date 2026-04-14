@@ -3,10 +3,12 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import apiClient from "@/lib/api";
+import { useUserVouchers } from "@/hooks/queries";
+import { useAuthStore } from "@/store/authStore";
+import { calculateVoucherDiscount, getVoucherDiscountRatio, isUserVoucherUsable } from "@/utils/user-voucher";
 import { bookingSchema, STEP_FIELDS, type BookingFormValues } from "../schema";
-import { findVoucher, type Voucher } from "../vouchers";
 import { useBookingData } from "../useBookingData";
-import { type SubmissionStatus } from "../types";
+import { type BookingVoucher, type SubmissionStatus } from "../types";
 
 const DRAFT_KEY = "dreamguard_booking_draft";
 
@@ -33,7 +35,7 @@ export function usePackageBooking(initialPackageId?: string) {
     return initialPackageId ? 1 : 0;
   });
   const [direction, setDirection] = useState(1);
-  const [appliedVoucher, setAppliedVoucher] = useState<Voucher | null>(null);
+  const [appliedVoucher, setAppliedVoucher] = useState<BookingVoucher | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [shakeBtn, setShakeBtn] = useState(false);
@@ -45,6 +47,36 @@ export function usePackageBooking(initialPackageId?: string) {
   const persistenceTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { productTypes, getProductTierPrice, isLoading: isLoadingData } = useBookingData();
+  const { isAuthenticated } = useAuthStore();
+  const {
+    data: voucherPage,
+    isLoading: isLoadingVouchers,
+    isError: isVoucherError,
+    refetch: refetchVouchers,
+  } = useUserVouchers(isAuthenticated);
+
+  const availableVouchers = useMemo<BookingVoucher[]>(() => {
+    const items = voucherPage?.items ?? [];
+
+    return items
+      .filter((voucher) => isUserVoucherUsable(voucher, "service"))
+      .map((voucher) => {
+        const discountRatio = getVoucherDiscountRatio(voucher);
+        const maxDiscountAmount =
+          typeof voucher.maxDiscountAmount === "number" && Number.isFinite(voucher.maxDiscountAmount) && voucher.maxDiscountAmount > 0
+            ? voucher.maxDiscountAmount
+            : undefined;
+
+        return {
+          userVoucherId: voucher.userVoucherId,
+          code: voucher.code,
+          label: voucher.name || voucher.description || "Service Voucher",
+          discountRatio,
+          discountPct: Math.round(discountRatio * 100),
+          maxDiscountAmount,
+        };
+      });
+  }, [voucherPage?.items]);
 
 
 
@@ -76,8 +108,18 @@ export function usePackageBooking(initialPackageId?: string) {
   // Memoized derived data
   const { total, discount, finalPrice } = useMemo(() => {
     const totalValue = items.reduce((sum: number, f: { itemType: string, packageId: string, quantity: number }) => sum + getProductTierPrice(f.itemType, f.packageId) * f.quantity, 0);
-    const discountValue = appliedVoucher ? Math.round(totalValue * (appliedVoucher.discountPct / 100)) : 0;
-    return { total: totalValue, discount: discountValue, finalPrice: totalValue - discountValue };
+    const discountValue = appliedVoucher
+      ? calculateVoucherDiscount(totalValue, {
+        discountValue: appliedVoucher.discountRatio,
+        maxDiscountAmount: appliedVoucher.maxDiscountAmount,
+      })
+      : 0;
+
+    return {
+      total: totalValue,
+      discount: discountValue,
+      finalPrice: Math.max(0, totalValue - discountValue),
+    };
   }, [items, appliedVoucher, getProductTierPrice]);
 
   // Effects
@@ -98,11 +140,31 @@ export function usePackageBooking(initialPackageId?: string) {
     return () => { if (persistenceTimeout.current) clearTimeout(persistenceTimeout.current); };
   }, [selectedProducts, items, step, getValues, isSuccess]);
 
+  useEffect(() => {
+    if (!appliedVoucher) return;
+
+    const nextVoucher = availableVouchers.find(
+      (voucher) => voucher.userVoucherId === appliedVoucher.userVoucherId,
+    );
+
+    if (!nextVoucher) {
+      setAppliedVoucher(null);
+      return;
+    }
+
+    if (
+      nextVoucher.discountRatio !== appliedVoucher.discountRatio
+      || nextVoucher.maxDiscountAmount !== appliedVoucher.maxDiscountAmount
+      || nextVoucher.code !== appliedVoucher.code
+      || nextVoucher.label !== appliedVoucher.label
+    ) {
+      setAppliedVoucher(nextVoucher);
+    }
+  }, [availableVouchers, appliedVoucher]);
+
   // Handlers
-  const handleApplyVoucher = useCallback((code: string): "ok" | "invalid" => {
-    const v = findVoucher(code);
-    if (v) { setAppliedVoucher(v); return "ok"; }
-    return "invalid";
+  const handleApplyVoucher = useCallback((voucher: BookingVoucher) => {
+    setAppliedVoucher(voucher);
   }, []);
 
   const handleRemoveVoucher = useCallback(() => setAppliedVoucher(null), []);
@@ -183,7 +245,7 @@ export function usePackageBooking(initialPackageId?: string) {
         customerNote: (data.notes && data.notes.trim() !== "") ? data.notes : "Cleaning Service",
         appointmentDate: new Date(`${data.scheduledDate}T${data.scheduledTime}:00Z`).toISOString(),
         paymentMethod: paymentMethod,
-        userVoucherId: null
+        userVoucherId: appliedVoucher?.userVoucherId ?? null
       };
 
       const res = await apiClient.post('/ServiceOrders/OrderService', payload);
@@ -238,6 +300,9 @@ export function usePackageBooking(initialPackageId?: string) {
     uploadProgress,
     submissionStatus,
     isLoadingData,
+    availableVouchers,
+    isLoadingVouchers,
+    isVoucherError,
 
     // Form & Derived Data
     form,
@@ -253,6 +318,7 @@ export function usePackageBooking(initialPackageId?: string) {
     setPaymentMethod,
     handleApplyVoucher,
     handleRemoveVoucher,
+    refetchVouchers,
     go,
     jumpToStep,
     handleClearDraft,

@@ -5,13 +5,23 @@ import { Badge } from "@/components/ui/badge"
 import { Package, Layers, Star } from "lucide-react"
 import { cn } from "@/lib/utils"
 
+type ProductTabKey = "single" | "combo" | "certificate" | "customize"
+
+interface ProductTabItem {
+  key: ProductTabKey
+  label: string
+  count: number
+  icon: typeof Package
+}
+
 interface ProductTabsProps {
-  activeTab: "single" | "combo" | "certificate" | "customize"
-  onTabChange: (tab: "single" | "combo" | "certificate" | "customize") => void
+  activeTab: ProductTabKey
+  onTabChange: (tab: ProductTabKey) => void
   singleCount: number
   comboCount: number
   certCount: number
   customizeCount: number
+  showCertificateTab?: boolean
   children: React.ReactNode
   actions?: React.ReactNode
 }
@@ -50,20 +60,28 @@ export default function ProductTabs({
   comboCount,
   certCount,
   customizeCount,
+  showCertificateTab = true,
   children,
   actions,
 }: ProductTabsProps) {
-  const tabs = useMemo(() => [
-    { key: "single" as const, label: "Regular Products", count: singleCount, icon: Package },
-    { key: "customize" as const, label: "Product Templates", count: customizeCount, icon: Star },
-    { key: "combo" as const, label: "Combo Packs", count: comboCount, icon: Layers },
-    { key: "certificate" as const, label: "Certificates", count: certCount, icon: Star },
-  ], [singleCount, customizeCount, comboCount, certCount])
+  const tabs = useMemo(() => {
+    const baseTabs: ProductTabItem[] = [
+      { key: "single" as const, label: "Regular Products", count: singleCount, icon: Package },
+      { key: "customize" as const, label: "Product Templates", count: customizeCount, icon: Star },
+      { key: "combo" as const, label: "Combo Packs", count: comboCount, icon: Layers },
+    ];
+
+    if (showCertificateTab) {
+      baseTabs.push({ key: "certificate" as const, label: "Certificates", count: certCount, icon: Star });
+    }
+
+    return baseTabs;
+  }, [singleCount, customizeCount, comboCount, certCount, showCertificateTab])
 
   return (
     <Tabs
       value={activeTab}
-      onValueChange={(v) => onTabChange(v as "single" | "combo" | "certificate" | "customize")}
+      onValueChange={(v) => onTabChange(v as ProductTabKey)}
       className="flex h-full w-full flex-col"
     >
       {/* Header */}
@@ -91,12 +109,12 @@ export default function ProductTabs({
                 )}
 
                 <div className="relative z-10 flex items-center gap-2.5">
-                    <Icon
-                      className={cn(
-                        "h-3.5 w-3.5 transition-colors",
-                        isActive ? cfg.icon : "text-slate-400 group-hover:text-slate-500"
-                      )}
-                    />
+                  <Icon
+                    className={cn(
+                      "h-3.5 w-3.5 transition-colors",
+                      isActive ? cfg.icon : "text-slate-400 group-hover:text-slate-500"
+                    )}
+                  />
                   <span>{label}</span>
                   <Badge
                     variant="secondary"

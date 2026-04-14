@@ -22,6 +22,7 @@ export const comboSchema = z.object({
     basePrice: z.coerce.number().min(0, "Base price is required"),
     salePrice: z.coerce.number().min(0, "Selling price is required"),
     description: z.string().min(5, "Description is too short").optional().or(z.literal('')),
+    imageFile: z.any().optional(), // For local preview before upload
     imageUrl: z.string().url("Valid image URL is required").optional().or(z.literal('')),
     imagePublicId: z.string().optional(),
     comboParentId: z.string().optional(),

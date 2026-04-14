@@ -11,6 +11,8 @@ interface ApiErrorResponse {
   message: string[];
 }
 
+const OTP_LENGTH = 6;
+
 export default function ResetPasswordOTP() {
   const navigate = useNavigate();
 
@@ -18,7 +20,7 @@ export default function ResetPasswordOTP() {
 
   const phoneNumber = useForgotPasswordStore((s) => s.phoneNumber);
 
-  const [otp, setOtp] = useState<string[]>(["", "", "", "", "", ""]);
+  const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [error, setError] = useState("");
 
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
@@ -31,51 +33,92 @@ export default function ResetPasswordOTP() {
 
   const handleChange = useCallback(
     (index: number, value: string) => {
-      if (value && !/^\d+$/.test(value)) return;
-
-      const newOtp = [...otp];
-      newOtp[index] = value.slice(-1);
-
-      setOtp(newOtp);
+      const digits = value.replace(/\D/g, "");
       setError("");
 
-      if (value && index < 5) {
-        inputRefs.current[index + 1]?.focus();
+      if (!digits) {
+        setOtp((prev) => {
+          const next = [...prev];
+          next[index] = "";
+          return next;
+        });
+        return;
       }
+
+      setOtp((prev) => {
+        const next = [...prev];
+        digits
+          .slice(0, OTP_LENGTH - index)
+          .split("")
+          .forEach((char, offset) => {
+            next[index + offset] = char;
+          });
+        return next;
+      });
+
+      const focusIndex = Math.min(index + digits.length, OTP_LENGTH - 1);
+      inputRefs.current[focusIndex]?.focus();
     },
-    [otp]
+    []
   );
 
   const handleKeyDown = useCallback(
     (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Backspace" && !otp[index] && index > 0) {
+      if (e.key === "Backspace") {
+        e.preventDefault();
+
+        setOtp((prev) => {
+          const next = [...prev];
+
+          if (next[index]) {
+            next[index] = "";
+            return next;
+          }
+
+          if (index > 0) {
+            next[index - 1] = "";
+            requestAnimationFrame(() => inputRefs.current[index - 1]?.focus());
+          }
+
+          return next;
+        });
+        return;
+      }
+
+      if (e.key === "ArrowLeft" && index > 0) {
+        e.preventDefault();
         inputRefs.current[index - 1]?.focus();
       }
+
+      if (e.key === "ArrowRight" && index < OTP_LENGTH - 1) {
+        e.preventDefault();
+        inputRefs.current[index + 1]?.focus();
+      }
     },
-    [otp]
+    []
   );
 
   const handlePaste = useCallback(
     (e: React.ClipboardEvent) => {
       e.preventDefault();
 
-      const pastedData = e.clipboardData.getData("text").slice(0, 6);
-      if (!/^\d+$/.test(pastedData)) return;
+      const pastedData = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, OTP_LENGTH);
+      if (!pastedData) return;
 
-      const newOtp = [...otp];
-
-      pastedData.split("").forEach((char, index) => {
-        if (index < 6) newOtp[index] = char;
+      setError("");
+      setOtp((prev) => {
+        const next = [...prev];
+        pastedData.split("").forEach((char, index) => {
+          next[index] = char;
+        });
+        return next;
       });
 
-      setOtp(newOtp);
-
-      const nextEmptyIndex = newOtp.findIndex((val) => !val);
-      const focusIndex = nextEmptyIndex === -1 ? 5 : nextEmptyIndex;
+      const focusIndex = Math.min(pastedData.length, OTP_LENGTH - 1);
 
       inputRefs.current[focusIndex]?.focus();
     },
-    [otp]
+    []
   );
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -83,7 +126,7 @@ export default function ResetPasswordOTP() {
 
     const otpValue = otp.join("");
 
-    if (otpValue.length !== 6) {
+    if (otpValue.length !== OTP_LENGTH) {
       setError("Please enter all 6 digits");
       return;
     }
@@ -149,6 +192,8 @@ export default function ResetPasswordOTP() {
               type="text"
               inputMode="numeric"
               maxLength={1}
+              autoComplete={index === 0 ? "one-time-code" : "off"}
+              onFocus={(e) => e.currentTarget.select()}
               value={digit}
               onChange={(e) => handleChange(index, e.target.value)}
               onKeyDown={(e) => handleKeyDown(index, e)}
@@ -170,7 +215,7 @@ export default function ResetPasswordOTP() {
 
       <p className="text-center text-sm text-gray-500 mt-6">
         <Link to="/login" className="hover:underline">
-          ← Back to login
+          ← Back to Log In
         </Link>
       </p>
     </div>

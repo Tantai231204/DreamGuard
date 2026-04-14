@@ -1,5 +1,6 @@
 import { Package, CheckCircle2, Truck, Clock3, AlertCircle, ShieldCheck, RotateCcw, MapPin, PackageCheck } from "lucide-react"
 import { OrderStatusValue } from "@/api/types/order"
+import { resolveTradeInStatusTheme } from "@/utils/tradeInStatusTheme"
 
 export type BadgeVariant = "default" | "secondary" | "success" | "warning" | "danger" | "outline"
 
@@ -57,7 +58,7 @@ const THEME_MAP: Record<string, StatusThemeItem> = {
         label: "Delivered",
         variant: "default",
         icon: <PackageCheck className="h-4 w-4" />,
-        color: "#4f46e5", // Indigo 600
+        color: "#4988c4", // Primary 500
         step: 4.5,
         description: "Package arrived safely"
     },
@@ -158,11 +159,20 @@ export function getStatusTheme(status: string | number): StatusThemeItem {
     return THEME_MAP.Pending;
 }
 
+export function getTradeInStatusTheme(status: string | number): StatusThemeItem {
+    return resolveTradeInStatusTheme(status);
+}
+
 // Voucher Status Theme
 export const VOUCHER_STATUS_COLORS: Record<
     string,
     { bg: string; text: string; border: string }
 > = {
+    claimable: {
+        bg: "bg-blue-50",
+        text: "text-blue-700",
+        border: "border-blue-200",
+    },
     active: {
         bg: "bg-green-50",
         text: "text-green-700",

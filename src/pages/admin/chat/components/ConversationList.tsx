@@ -116,7 +116,7 @@ function ConversationListInner({
       </AnimatePresence>
 
       {/* ---- List ---- */}
-      <div className="flex-1 overflow-y-auto chat-scrollbar min-h-0">
+      <div className="flex-1 overflow-y-auto custom-scrollbar scrollbar-admin min-h-0">
         <AnimatePresence mode="popLayout">
           {conversations.length > 0 ? (
             conversations.map((conv, idx) => (

@@ -22,7 +22,7 @@ export function CategoryBadge({ categoryName, className, variant = 'badge' }: Ca
         iconBg = 'bg-white shadow-sm';
     } else if (lower.includes('blanket') || lower.includes('mền')) {
         iconSrc = ProductAssetIcons.BLANKET;
-        colorTheme = 'border-indigo-200 bg-indigo-50/50 text-indigo-700';
+        colorTheme = 'border-primary-200 bg-primary-50/50 text-primary-700';
         iconBg = 'bg-white shadow-sm';
     } else if (lower.includes('sheet') || lower.includes('ga')) {
         iconSrc = ProductAssetIcons.FOLDING;

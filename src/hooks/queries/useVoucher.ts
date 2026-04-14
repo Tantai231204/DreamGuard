@@ -8,7 +8,6 @@ import type { CreateVoucherRequest, UpdateVoucherRequest } from "@/api";
 // ========================
 export const voucherKeys = {
   all: ["vouchers"] as const,
-  page: (pageNumber: number) => ["vouchers", "page", pageNumber] as const,
   detail: (id: string) => ["vouchers", id] as const,
 };
 
@@ -16,21 +15,21 @@ export const voucherKeys = {
 // Queries
 // ========================
 
-/** Lấy danh sách vouchers với phân trang */
-export const useVouchers = (pageNumber = 1) => {
+/** Lấy danh sách voucher cho admin */
+export const useVouchers = () => {
   return useQuery({
-    queryKey: voucherKeys.page(pageNumber),
-    queryFn: () => voucherService.getAll(pageNumber),
+    queryKey: voucherKeys.all,
+    queryFn: () => voucherService.getAll(),
     staleTime: 0,
   });
 };
 
 /** Lấy chi tiết 1 voucher theo ID */
-export const useVoucherDetail = (id: string) => {
+export const useVoucherDetail = (id: string, enabled = true) => {
   return useQuery({
     queryKey: voucherKeys.detail(id),
     queryFn: () => voucherService.getById(id),
-    enabled: !!id,
+    enabled: enabled && !!id,
   });
 };
 

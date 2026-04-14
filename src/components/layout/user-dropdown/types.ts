@@ -14,7 +14,6 @@ export interface BenefitItemProps {
 export interface UserInfo {
     name: string
     email: string
-    points: number
-    rank: string
+    memberCoin: number
     avatarUrl?: string
 }

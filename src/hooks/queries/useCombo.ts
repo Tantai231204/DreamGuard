@@ -12,6 +12,8 @@ import type {
   ComboParams,
 } from '@/api';
 import { toast } from 'sonner';
+import { UserRole } from '@/lib/constants';
+import { useAuthStore } from '@/store/authStore';
 // ========================
 // Query Keys
 // ========================
@@ -39,10 +41,14 @@ export const usePublicCombos = (params: ComboParams = {}) => {
 
 /** Fetch admin paginated combos list */
 export const useAdminCombos = (params: ComboParams = {}) => {
+  const role = useAuthStore((s) => s.role);
+  const isAdminOrManager = role === UserRole.ADMIN || role === UserRole.MANAGER;
+
   return useQuery({
     queryKey: comboKeys.admin(params),
     queryFn: () => comboService.getAll(params),
     placeholderData: keepPreviousData,
+    enabled: isAdminOrManager,
   });
 };
 

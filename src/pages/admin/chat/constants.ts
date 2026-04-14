@@ -26,7 +26,7 @@ export const QUICK_REPLIES: readonly string[] = [
 
 /** Avatar color map based on initial letter */
 export const AVATAR_GRADIENT_MAP: Record<string, string> = {
-  A: 'from-violet-500 to-purple-600',
+  A: 'from-[#4988c4] to-[#3a73a8]', // Changed from purple to Blue
   B: 'from-blue-500 to-cyan-600',
   C: 'from-emerald-500 to-teal-600',
   D: 'from-orange-500 to-red-600',
@@ -36,7 +36,8 @@ export const AVATAR_GRADIENT_MAP: Record<string, string> = {
 };
 
 /** Get avatar gradient class by first letter */
-export function getAvatarGradient(name: string): string {
+export function getAvatarGradient(name?: string): string {
+  if (!name || name.length === 0) return AVATAR_GRADIENT_MAP['default'];
   const first = name.charAt(0).toUpperCase();
   return AVATAR_GRADIENT_MAP[first] ?? AVATAR_GRADIENT_MAP['default'];
 }

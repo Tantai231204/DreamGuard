@@ -170,7 +170,12 @@ export const ProductDialogs = memo(({ state, mutations, onRefresh }: ProductDial
         }
         onConfirm={() => mutations.handleConfirmStatusChange()}
         confirmText="Confirm Change"
-        variant="warning"
+        variant={
+          state.statusChangeData?.newStatus === 'Published' ? 'success' :
+          state.statusChangeData?.newStatus === 'OutOfStock' ? 'danger' :
+          state.statusChangeData?.newStatus === 'Hidden' ? 'primary' :
+          'warning'
+        }
         isLoading={
           mutations.updateProductStatusMutation.isPending ||
           mutations.updateVariantStatusMutation.isPending ||

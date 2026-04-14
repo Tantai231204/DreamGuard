@@ -38,7 +38,7 @@ export default function ProfileInfoTab() {
   const [isEditing, setIsEditing] = useState(false)
   const [showPhoneDialog, setShowPhoneDialog] = useState(false)
   const [showConfirmDialog, setShowConfirmDialog] = useState(false)
-  const [avatarFile, setAvatarFile] = useState<File | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
   const [pendingData, setPendingData] = useState<ProfileFormData | null>(null)
 
   const {
@@ -75,7 +75,6 @@ export default function ProfileInfoTab() {
 
   const handleEdit = useCallback(() => {
     if (isEditing) {
-      setAvatarFile(null);
       if (profile) {
         reset({
           fullName: profile.fullName || "",
@@ -90,8 +89,7 @@ export default function ProfileInfoTab() {
 
   // Handle initial form submission
   const onSubmit = (data: ProfileFormData) => {
-    const hasAvatarChange = !!avatarFile;
-    if (!isDirty && !hasAvatarChange) {
+    if (!isDirty) {
       toast.info("No changes to save");
       setIsEditing(false);
       return;
@@ -104,32 +102,62 @@ export default function ProfileInfoTab() {
   const onConfirmSave = async () => {
     if (!pendingData) return;
 
-    let avatarUrl = profile?.avatarUrl || "";
+    updateProfile(
+      {
+        fullName: pendingData.fullName,
+        email: pendingData.email,
+        dateOfBirth: pendingData.dateOfBirth,
+        gender: pendingData.gender,
+      },
+      {
+        onSuccess: () => {
+          toast.success("Profile updated successfully");
+          setIsEditing(false);
+          setShowConfirmDialog(false);
+        },
+        onError: () => {
+          toast.error("Failed to update profile");
+        }
+      },
+    );
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!profile) {
+      toast.error("Profile data is not ready. Please try again.");
+      return;
+    }
+
+    const email = profile.email?.trim();
+    const gender = profile.gender?.trim();
+
+    if (!email || !gender) {
+      toast.error("Please update email and gender before changing avatar.");
+      return;
+    }
 
     try {
-      if (avatarFile instanceof File) {
-        avatarUrl = await uploadToCloudinary(avatarFile);
-      }
+      setIsUploading(true);
+      const res = await uploadToCloudinary(file);
+      const avatarUrl = res.secure_url;
 
-      updateProfile(
-        {
-          ...pendingData,
-          avatarUrl,
-        },
-        {
-          onSuccess: () => {
-            toast.success("Profile updated successfully");
-            setIsEditing(false);
-            setAvatarFile(null);
-            setShowConfirmDialog(false);
-          },
-          onError: () => {
-            toast.error("Failed to update profile");
-          }
-        },
-      );
+      updateProfile({
+        fullName: profile.fullName,
+        email,
+        gender,
+        dateOfBirth: profile.dateOfBirth,
+        avatarUrl
+      }, {
+        onSuccess: () => toast.success("Avatar updated successfully"),
+        onError: () => toast.error("Failed to update avatar"),
+        onSettled: () => setIsUploading(false)
+      });
     } catch {
-      toast.error("Upload avatar failed");
+      toast.error("Upload failed");
+      setIsUploading(false);
     }
   };
 
@@ -165,44 +193,46 @@ export default function ProfileInfoTab() {
           {/* Profile Header Row */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
             <div className="flex flex-col sm:flex-row sm:items-center gap-5">
-              <div className="relative h-24 w-24 rounded-full border-2 border-slate-200/70 overflow-hidden bg-white group/avatar">
+              <div className="relative h-24 w-24 rounded-full border-2 border-slate-200/70 overflow-hidden bg-white group/avatar shadow-lg">
                 <input
-                  id="avatar-upload"
+                  id="tab-avatar-upload"
                   type="file"
                   accept="image/*"
                   className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) setAvatarFile(file);
-                  }}
+                  onChange={handleAvatarChange}
+                  disabled={isUploading}
                 />
                 <Avatar className="h-full w-full">
-                  {profile?.avatarUrl && (
+                  {(profile?.avatarUrl || isUploading) && (
                     <AvatarImage
-                      src={
-                        avatarFile
-                          ? URL.createObjectURL(avatarFile)
-                          : profile?.avatarUrl
-                      }
+                      src={profile?.avatarUrl}
                       alt={displayData.fullName}
-                      className="object-cover"
+                      className={cn("object-cover transition-opacity", isUploading && "opacity-30")}
                     />
                   )}
                   <AvatarFallback className="bg-primary text-white text-2xl font-bold">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
-                {isEditing && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      document.getElementById("avatar-upload")?.click()
-                    }
-                    className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity"
-                  >
-                    <CameraIcon className="w-5 h-5" />
-                  </button>
-                )}
+
+                <button
+                  type="button"
+                  onClick={() => document.getElementById("tab-avatar-upload")?.click()}
+                  disabled={isUploading}
+                  className={cn(
+                    "absolute inset-0 bg-black/40 text-white flex items-center justify-center transition-all duration-300",
+                    isUploading ? "opacity-100" : "opacity-0 group-hover/avatar:opacity-100"
+                  )}
+                >
+                  {isUploading ? (
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span className="text-[8px] font-black uppercase tracking-widest">Wait...</span>
+                    </div>
+                  ) : (
+                    <CameraIcon className="w-6 h-6" />
+                  )}
+                </button>
               </div>
 
               <div className="pb-1 max-w-sm">
@@ -222,9 +252,12 @@ export default function ProfileInfoTab() {
                   </Badge>
                   <Badge
                     variant="secondary"
-                    className="bg-blue-50 text-blue-600 hover:bg-blue-50 border-none font-black text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full"
+                    className="bg-amber-50 text-amber-600 hover:bg-amber-50 border border-amber-100/50 font-black text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full flex items-center gap-1.5"
                   >
-                    Elite
+                    <div className="w-2.5 h-2.5 rounded-full bg-amber-500 flex items-center justify-center">
+                      <span className="text-[6px] text-white font-black">⌬</span>
+                    </div>
+                    {profile?.memberCoin ?? 0} Coins
                   </Badge>
                 </div>
               </div>
@@ -404,10 +437,10 @@ export default function ProfileInfoTab() {
                 </Button>
                 <Button
                   type="submit"
-                  disabled={isUpdating || (!isDirty && !avatarFile)}
+                  disabled={isUpdating || !isDirty}
                   className={cn(
                     "h-11 px-10 rounded-xl bg-primary hover:bg-primary-hover text-white font-black text-[11px] uppercase tracking-wider transition-all",
-                    (!isDirty && !avatarFile) && "opacity-50 grayscale cursor-not-allowed"
+                    !isDirty && "opacity-50 grayscale cursor-not-allowed"
                   )}
                 >
                   <span className="relative z-10">

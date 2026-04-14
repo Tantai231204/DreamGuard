@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import AppLayout from "../layouts/AppLayout";
 import AuthLayout from "../layouts/AuthLayout";
 import AdminLayout from "../layouts/AdminLayout";
@@ -7,7 +7,9 @@ import PrivateRoute from "../components/router/PrivateRoute";
 import AdminRoute from "../components/router/AdminRoute";
 import UserGuard from "../components/router/UserGuard";
 import { PageLoader } from "../components/common";
-import { AppRoute } from "../lib/constants";
+import { AppRoute, UserRole } from "../lib/constants";
+import { PermissionGuard } from "../components/router/PermissionGuard";
+import { RouteUXEnhancer } from "../components/router/RouteUXEnhancer";
 
 /* =======================
    Lazy loaded pages
@@ -22,6 +24,11 @@ const ComboDetail = lazy(() => import("../pages/combos/[slug]"));
 const CartPage = lazy(() => import("../pages/cart"));
 const CheckoutPage = lazy(() => import("../pages/checkout"));
 const CheckoutResult = lazy(() => import("../pages/checkout/CheckoutResult"));
+const ReturnPolicyPage = lazy(() => import("../pages/return-policy"));
+const WarrantyPolicyPage = lazy(() => import("../pages/warranty-policy"));
+const HelpCenterPage = lazy(() => import("../pages/help-center"));
+const FAQPage = lazy(() => import("../pages/faq"));
+const TermsOfServicePage = lazy(() => import("../pages/terms-of-service"));
 
 // Auth
 const Login = lazy(() => import("../pages/auth/Login"));
@@ -57,6 +64,8 @@ const StaffManagement = lazy(() => import("../pages/admin/staff"));
 const PaymentManagement = lazy(() => import("../pages/admin/payments"));
 const CustomizeTypeManagement = lazy(() => import("../pages/admin/customize-types"));
 const TemplateManagement = lazy(() => import("../pages/admin/templates"));
+const SystemConfigManagement = lazy(() => import("../pages/admin/system-configs"));
+const TradeInOrderDetail = lazy(() => import("../pages/admin/trade-in-orders/[id]"));
 
 import { AuthRedirectNotice } from "../components/router/AuthRedirectNotice";
 
@@ -67,6 +76,7 @@ export default function AppRouter() {
     return (
         <Suspense fallback={<PageLoader />}>
             <AuthRedirectNotice />
+            <RouteUXEnhancer />
             <Routes>
 
                 {/* ===== Public & Auth Routes (Restricted for Admins) ===== */}
@@ -80,6 +90,11 @@ export default function AppRouter() {
                         <Route path={AppRoute.COMBO_DETAIL} element={<ComboDetail />} />
                         <Route path={AppRoute.SERVICES} element={<Services />} />
                         <Route path={AppRoute.CART} element={<CartPage />} />
+                        <Route path={AppRoute.RETURN_POLICY} element={<ReturnPolicyPage />} />
+                        <Route path={AppRoute.WARRANTY_POLICY} element={<WarrantyPolicyPage />} />
+                        <Route path={AppRoute.HELP_CENTER} element={<HelpCenterPage />} />
+                        <Route path={AppRoute.FAQ} element={<FAQPage />} />
+                        <Route path={AppRoute.TERMS_OF_SERVICE} element={<TermsOfServicePage />} />
                     </Route>
 
 
@@ -118,20 +133,31 @@ export default function AppRouter() {
                         <Route path={AppRoute.ADMIN} element={<AdminDashboard />} />
                         <Route path="/admin/orders" element={<OrderManagement />} />
                         <Route path="/admin/orders/:id" element={<OrderDetail />} />
-                        <Route path="/admin/services" element={<ServiceManagement />} />
-                        <Route path="/admin/services/:id" element={<ServiceDetail />} />
-                        <Route path="/admin/service-packages" element={<ServicePackagesPage />} />
                         <Route path="/admin/chat" element={<ChatAdmin />} />
-                        <Route path="/admin/products" element={<ProductManagement />} />
-                        <Route path="/admin/products/:id" element={<AdminProductDetail />} />
-                        <Route path={AppRoute.ADMIN_PRODUCT_TYPES} element={<ProductTypeManagement />} />
-                        <Route path="/admin/categories" element={<CategoryManagement />} />
-                        <Route path="/admin/vouchers" element={<VoucherManagement />} />
-                        <Route path="/admin/users" element={<UserManagement />} />
-                        <Route path="/admin/staff" element={<StaffManagement />} />
-                        <Route path="/admin/payments" element={<PaymentManagement />} />
-                        <Route path="/admin/customize-types" element={<CustomizeTypeManagement />} />
-                        <Route path={AppRoute.ADMIN_TEMPLATES} element={<TemplateManagement />} />
+                        <Route path="/admin/trade-in-orders/:id" element={<TradeInOrderDetail />} />
+                        <Route path={AppRoute.ADMIN_TRADE_IN_ORDERS} element={<Navigate to="/admin/orders?view=trade-in" replace />} />
+
+                        <Route element={<PermissionGuard allowedRoles={[UserRole.ADMIN, UserRole.MANAGER]} />}>
+                            <Route path="/admin/analytics" element={<div>Analytics Page</div>} />
+                            <Route path="/admin/services" element={<ServiceManagement />} />
+                            <Route path="/admin/services/:id" element={<ServiceDetail />} />
+                            <Route path="/admin/service-packages" element={<ServicePackagesPage />} />
+                            <Route path={AppRoute.ADMIN_PRODUCT_TYPES} element={<ProductTypeManagement />} />
+                            <Route path="/admin/categories" element={<CategoryManagement />} />
+                            <Route path="/admin/vouchers" element={<VoucherManagement />} />
+                            <Route path="/admin/users" element={<UserManagement />} />
+                            <Route path="/admin/payments" element={<PaymentManagement />} />
+                            <Route path="/admin/customize-types" element={<CustomizeTypeManagement />} />
+                            <Route path={AppRoute.ADMIN_TEMPLATES} element={<TemplateManagement />} />
+                            <Route path="/admin/products" element={<ProductManagement />} />
+                            <Route path="/admin/products/:id" element={<AdminProductDetail />} />
+                            <Route path="/admin/settings" element={<div>Settings Page</div>} />
+                        </Route>
+
+                        <Route element={<PermissionGuard allowedRoles={[UserRole.ADMIN]} />}>
+                            <Route path="/admin/staff" element={<StaffManagement />} />
+                            <Route path={AppRoute.ADMIN_SYSTEM_CONFIGS} element={<SystemConfigManagement />} />
+                        </Route>
                     </Route>
                 </Route>
 

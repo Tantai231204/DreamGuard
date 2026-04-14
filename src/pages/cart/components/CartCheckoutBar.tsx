@@ -48,7 +48,7 @@ export function CartCheckoutBar({ total, disabled }: CartCheckoutBarProps) {
                     </div>
                     
                     <Button
-                        className="h-14 rounded-[1.25rem] px-12 text-[11px] font-black uppercase tracking-[0.25em] bg-[#4988c4] hover:bg-slate-900 text-white transition-all shadow-xl shadow-[#4988c4]/20 active:scale-[0.98] disabled:opacity-50 disabled:shadow-none"
+                        className="h-14 rounded-[1.25rem] px-12 text-[11px] font-black uppercase tracking-[0.25em] bg-[#4988c4] hover:bg-[#3a6da3] text-white transition-all shadow-xl shadow-[#4988c4]/20 active:scale-[0.98] disabled:opacity-50 disabled:shadow-none"
                         disabled={disabled}
                         onClick={handleCheckout}
                     >

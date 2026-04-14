@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, useMemo, memo } from 'react';
 import { useForm, useWatch, type Resolver, type Control, type FieldErrors, type UseFormSetValue } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { motion } from 'framer-motion';
+import { normalizeStatus } from '../../types';
 import type { Product, CreateProductRequest, ProductStatus } from '../../types';
 import type { CategoryResponse } from '@/api';
 import { useCategoryTree, type FlatCategory } from './useCategoryTree';
@@ -10,7 +11,7 @@ import DialogFooter from './DialogFooter';
 import GeneralSection from './GeneralSection';
 import ClassificationSection from './ClassificationSection';
 import PolicyStatusSection from './PolicyStatusSection';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Info, LayoutGrid, ShieldCheck, AlertCircle } from 'lucide-react';
 import { productSchema, type ProductFormValues } from './productSchema';
 import { cn } from '@/lib/utils';
@@ -164,9 +165,15 @@ const PolicyTabContent = memo(({
 }) => {
     const warrantyPolicyDay = useWatch({ control, name: 'warrantyPolicyDay' });
     const returnPolicyDay = useWatch({ control, name: 'returnPolicyDay' });
+    const isTradeInEligible = useWatch({ control, name: 'isTradeInEligible' });
+    const minTradeInPrice = useWatch({ control, name: 'minTradeInPrice' });
+    const depositAmount = useWatch({ control, name: 'depositAmount' });
 
     const handleWarrantyChange = useCallback((v: string | number) => setValue('warrantyPolicyDay', Number(v), { shouldValidate: true }), [setValue]);
     const handleReturnChange = useCallback((v: string | number) => setValue('returnPolicyDay', Number(v), { shouldValidate: true }), [setValue]);
+    const handleTradeInEligibleChange = useCallback((v: boolean) => setValue('isTradeInEligible', v, { shouldValidate: true }), [setValue]);
+    const handleMinTradeInPriceChange = useCallback((v: string | number) => setValue('minTradeInPrice', Number(v), { shouldValidate: true }), [setValue]);
+    const handleDepositAmountChange = useCallback((v: string | number) => setValue('depositAmount', Number(v), { shouldValidate: true }), [setValue]);
 
     return (
         <TabsContent value="policy" className="mt-0 outline-none animate-in fade-in-50 duration-300">
@@ -184,9 +191,15 @@ const PolicyTabContent = memo(({
             <PolicyStatusSection
                 warrantyPolicyDay={warrantyPolicyDay || 0}
                 returnPolicyDay={returnPolicyDay || 0}
+                isTradeInEligible={isTradeInEligible || false}
+                minTradeInPrice={minTradeInPrice || 0}
+                depositAmount={depositAmount || 0}
                 isLoading={isLoading}
                 onWarrantyChange={handleWarrantyChange}
                 onReturnChange={handleReturnChange}
+                onTradeInEligibleChange={handleTradeInEligibleChange}
+                onMinTradeInPriceChange={handleMinTradeInPriceChange}
+                onDepositAmountChange={handleDepositAmountChange}
             />
         </TabsContent>
     );
@@ -218,13 +231,16 @@ export default function ProductDialogForm({
             ageGroup: product?.ageGroup || '',
             warrantyPolicyDay: product?.warrantyPolicyDay || 0,
             returnPolicyDay: product?.returnPolicyDay || 0,
-            status: product?.status || 'Draft',
+            status: normalizeStatus(product?.status),
             CertificateIds: product?.CertificateIds || product?.certificateIds || [],
             fullyCustomizedProductType: product?.fullyCustomizedProductType || 'None',
             sku: product?.sku || '',
             basePrice: product?.basePrice || 0,
             salePrice: product?.salePrice || 0,
             weight: product?.weight || 0,
+            isTradeInEligible: product?.isTradeInEligible || false,
+            minTradeInPrice: product?.minTradeInPrice || 0,
+            depositAmount: product?.depositAmount || 0,
         },
         mode: 'onChange'
     });
@@ -348,17 +364,20 @@ export default function ProductDialogForm({
             summary: values.summary.trim(),
             description: values.description.trim(),
             material: values.material?.trim() || "",
-            status: values.status,
             ageGroup: String(values.ageGroup || "0"),
             warrantyPolicyDay: Number(values.warrantyPolicyDay || 0),
             returnPolicyDay: Number(values.returnPolicyDay || 0),
             cateId: submissionCateId > 0 ? submissionCateId : null,
             CertificateIds: values.CertificateIds || [],
+            status: values.status,
             fullyCustomizedProductType: values.fullyCustomizedProductType,
             sku: values.sku,
             basePrice: values.basePrice,
             salePrice: values.salePrice,
             weight: values.weight,
+            isTradeInEligible: values.isTradeInEligible || false,
+            minTradeInPrice: Number(values.minTradeInPrice || 0),
+            depositAmount: Number(values.depositAmount || 0),
         };
 
         onSubmit(payload as unknown as CreateProductRequest);
@@ -384,7 +403,7 @@ export default function ProductDialogForm({
             />
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mt-4 flex-1 flex flex-col min-h-0">
-                <TabsList className="relative grid grid-cols-3 w-full h-12 bg-slate-100/40 p-1.5 rounded-[1rem] border border-slate-200/40 gap-1 shrink-0 overflow-hidden">
+                <div className="relative grid grid-cols-3 w-full h-12 bg-slate-50 p-1.5 rounded-[1rem] border border-slate-200 gap-1 shrink-0 overflow-hidden">
                     {/* Animated Indicator Background */}
                     <div className="absolute inset-y-1.5 left-1.5 right-1.5 grid grid-cols-3 pointer-events-none">
                         {['general', 'classification', 'policy'].map((tab) => (
@@ -392,9 +411,9 @@ export default function ProductDialogForm({
                                 {activeTab === tab && (
                                     <motion.div
                                         layoutId="active-tab-bg"
-                                        className="absolute inset-0 bg-white rounded-lg shadow-[0_2px_10px_rgba(0,0,0,0.06)] border border-slate-200/10"
+                                        className="absolute inset-0 bg-primary rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.1)] border border-primary/20"
                                         initial={false}
-                                        transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
+                                        transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
                                     />
                                 )}
                             </div>
@@ -406,13 +425,15 @@ export default function ProductDialogForm({
                         { id: 'classification', label: 'Attributes', icon: LayoutGrid, hasError: hasClassificationErrors },
                         { id: 'policy', label: 'Policies', icon: ShieldCheck, hasError: hasPolicyErrors, warning: isPublishingWithoutVariants }
                     ].map(({ id, label, icon: Icon, hasError, warning }) => (
-                        <TabsTrigger
+                        <button
                             key={id}
-                            value={id}
+                            onClick={() => setActiveTab(id)}
                             className={cn(
-                                "relative z-10 rounded-lg text-[11px] font-bold gap-2 transition-all duration-300",
-                                "data-[state=active]:text-[#4988c4] text-slate-400 hover:text-slate-600",
-                                "flex items-center justify-center h-full outline-none"
+                                "relative z-10 rounded-lg text-[11px] font-bold gap-2 transition-colors duration-300",
+                                "flex items-center justify-center h-full outline-none",
+                                activeTab === id
+                                    ? "text-white"
+                                    : "text-primary hover:text-primary"
                             )}
                         >
                             <Icon className={cn("h-4 w-4 transition-transform duration-300", activeTab === id ? "scale-110" : "scale-100")} />
@@ -423,9 +444,9 @@ export default function ProductDialogForm({
                             {warning && (
                                 <AlertCircle className="h-3 w-3 text-rose-500 ml-0.5 animate-pulse" />
                             )}
-                        </TabsTrigger>
+                        </button>
                     ))}
-                </TabsList>
+                </div>
 
                 <form
                     id="product-form"

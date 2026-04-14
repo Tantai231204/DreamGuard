@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 interface VoucherDateRangeProps {
     startDate: string;
     endDate: string;
+    dateRangeError?: string;
     onStartDateChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onEndDateChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     isLoading?: boolean;
@@ -15,11 +16,14 @@ interface VoucherDateRangeProps {
 export function VoucherDateRange({
     startDate,
     endDate,
+    dateRangeError,
     onStartDateChange,
     onEndDateChange,
     isLoading = false,
 }: VoucherDateRangeProps) {
     const isDateRangeValid = startDate && endDate && new Date(startDate) <= new Date(endDate);
+    const fallbackDateRangeError = startDate && endDate && !isDateRangeValid ? 'End date must be on or after start date' : undefined;
+    const effectiveDateRangeError = dateRangeError || fallbackDateRangeError;
 
     return (
         <motion.div
@@ -64,7 +68,7 @@ export function VoucherDateRange({
                     <p className="text-xs text-gray-500">Pick the start and expiration range for this voucher</p>
                 </div>
 
-                {startDate && endDate && !isDateRangeValid && (
+                {effectiveDateRangeError && (
                     <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
@@ -73,13 +77,13 @@ export function VoucherDateRange({
                         <div className="flex items-center gap-2">
                             <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
                             <p className="text-xs text-red-700 font-medium">
-                                End date must be after start date
+                                {effectiveDateRangeError}
                             </p>
                         </div>
                     </motion.div>
                 )}
 
-                {isDateRangeValid && (
+                {!effectiveDateRangeError && isDateRangeValid && (
                     <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}

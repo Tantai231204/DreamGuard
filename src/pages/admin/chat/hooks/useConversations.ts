@@ -3,8 +3,9 @@
    Sorting and auto-polling coordination.
    ============================================================ */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import type { Conversation, ConversationStats } from '../types';
 import { chatService } from '@/api/services';
 import { SEARCH_DEBOUNCE_MS, POLLING_INTERVAL_MS } from '../constants';
@@ -16,10 +17,11 @@ import { mockConversations } from '../../data';
 const USE_MOCK = !import.meta.env.VITE_API_URL;
 
 export const CONVERSATIONS_QUERY_KEY = ['admin', 'conversations'] as const;
+const URL_CONVERSATION_REFETCH_MAX_ATTEMPTS = 8;
 
 export interface UseConversationsOptions {
-    /** If WebSocket is down, poll for updates. If up, disable. */
-    pollEnabled?: boolean;
+  /** If WebSocket is down, poll for updates. If up, disable. */
+  pollEnabled?: boolean;
 }
 
 export interface UseConversationsReturn {
@@ -37,73 +39,106 @@ export interface UseConversationsReturn {
 
 export function useConversations({ pollEnabled = true }: UseConversationsOptions = {}): UseConversationsReturn {
   const queryClient = useQueryClient();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlId = searchParams.get('id');
+
+  // Internal selection state (manual clicks)
+  const [internalSelectedId, setInternalSelectedId] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState('');
 
   /* ---- Debounced search ---------------------------------- */
   const debouncedSearch = useDebounce(searchInput, SEARCH_DEBOUNCE_MS);
 
   /* ---- Query -------------------------------------------- */
-  const { data, isLoading, error } = useQuery<Conversation[], Error>({
-    queryKey: CONVERSATIONS_QUERY_KEY,
+  const { data, isLoading, error, refetch } = useQuery<Conversation[], Error>({
+    queryKey: [...CONVERSATIONS_QUERY_KEY, debouncedSearch],
     queryFn: async () => {
-      if (USE_MOCK) return (mockConversations as unknown as Conversation[]).sort((a,b) => b.lastMessageTime.localeCompare(a.lastMessageTime));
-      const items = await chatService.getConversations();
+      if (USE_MOCK) return (mockConversations as unknown as Conversation[]).sort((a, b) => b.lastMessageTime.localeCompare(a.lastMessageTime));
+      // Map to server-side search param 'Key'
+      const items = await chatService.getConversations({
+        Key: debouncedSearch || undefined,
+        pageNumber: 1,
+        pageSize: 50 // Bulk load for now or implement scroll
+      });
       // Always sort by time
-      return items.sort((a,b) => b.lastMessageTime.localeCompare(a.lastMessageTime));
+      return items.sort((a, b) => b.lastMessageTime.localeCompare(a.lastMessageTime));
     },
     refetchInterval: pollEnabled ? POLLING_INTERVAL_MS : false,
-    staleTime: 60_000,                      // keep metadata longer if live updates work
+    refetchOnMount: 'always',
+    staleTime: 0,
   });
 
   const conversations = useMemo(() => data ?? [], [data]);
 
+  // When navigating from waiting orders with /admin/chat?id=..., refetch quickly
+  // until the newly created conversation appears in list, so user does not need F5.
+  useEffect(() => {
+    if (!urlId) return;
+
+    const hasTargetConversation = conversations.some((conversation) => conversation.id === urlId);
+    if (hasTargetConversation) return;
+
+    let attempts = 1;
+    void refetch();
+
+    const timer = setInterval(() => {
+      attempts += 1;
+      void refetch();
+
+      if (attempts >= URL_CONVERSATION_REFETCH_MAX_ATTEMPTS) {
+        clearInterval(timer);
+      }
+    }, 2000);
+
+    return () => {
+      clearInterval(timer);
+    };
+  }, [conversations, refetch, urlId]);
+
   /* ---- Selection logic: find existing or first available --- */
   const resolvedSelectedId = useMemo(() => {
-    if (selectedId && conversations.some(c => c.id === selectedId)) return selectedId;
+    // 1. Priority: Manual click
+    if (internalSelectedId && conversations.some(c => c.id === internalSelectedId)) return internalSelectedId;
+    // 2. Secondary: URL Param
+    if (urlId && conversations.some(c => c.id === urlId)) return urlId;
+    // 3. Fallback: First one
     return conversations[0]?.id ?? null;
-  }, [selectedId, conversations]);
+  }, [internalSelectedId, urlId, conversations]);
 
   /* ---- Select + optimistic mark-read --------------------- */
   const selectConversation = useCallback(
     (id: string) => {
-      setSelectedId(id);
-      if (!USE_MOCK) {
-        chatService.markRead(id).catch(() => null);
-      }
-      // Optimistic: zero unread in cache immediately
-      queryClient.setQueryData<Conversation[]>(CONVERSATIONS_QUERY_KEY, (prev) =>
+      setInternalSelectedId(id);
+      setSearchParams(prev => {
+        prev.set('id', id);
+        return prev;
+      }, { replace: true });
+
+      // Optimistic: zero unread in all conversation query variants (search/no-search)
+      queryClient.setQueriesData<Conversation[]>({ queryKey: CONVERSATIONS_QUERY_KEY }, (prev) =>
         prev?.map((c) => (c.id === id ? { ...c, unreadCount: 0 } : c))
       );
     },
-    [queryClient]
+    [queryClient, setSearchParams]
   );
 
   /* ---- Apply real-time update to cache ------------------- */
   const applyConversationUpdate = useCallback(
     (updated: Conversation) => {
-      queryClient.setQueryData<Conversation[]>(CONVERSATIONS_QUERY_KEY, (prev) => {
+      queryClient.setQueriesData<Conversation[]>({ queryKey: CONVERSATIONS_QUERY_KEY }, (prev) => {
         if (!prev) return [updated];
         const res = prev.some((c) => c.id === updated.id)
-            ? prev.map((c) => (c.id === updated.id ? updated : c))
-            : [updated, ...prev];
+          ? prev.map((c) => (c.id === updated.id ? updated : c))
+          : [updated, ...prev];
         // Ensure newest is always at the top
-        return res.sort((a,b) => b.lastMessageTime.localeCompare(a.lastMessageTime));
+        return res.sort((a, b) => b.lastMessageTime.localeCompare(a.lastMessageTime));
       });
     },
     [queryClient]
   );
 
   /* ---- Derived ------------------------------------------- */
-  const filteredConversations = useMemo(() => {
-    if (!debouncedSearch.trim()) return conversations;
-    const q = debouncedSearch.toLowerCase();
-    return conversations.filter(
-      (c) =>
-        c.customerName.toLowerCase().includes(q) ||
-        c.lastMessage.toLowerCase().includes(q)
-    );
-  }, [conversations, debouncedSearch]);
+  const filteredConversations = conversations;
 
   const stats = useMemo<ConversationStats>(
     () => ({

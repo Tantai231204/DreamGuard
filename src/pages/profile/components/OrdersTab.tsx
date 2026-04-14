@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react"
+import { useState, useMemo, useDeferredValue, lazy, Suspense } from "react"
 import { Search, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, ArrowUpDown } from "lucide-react"
 import { Button } from "../../../components/ui/button"
 import { Input } from "../../../components/ui/input"
@@ -12,7 +12,11 @@ import type { DateRange } from "react-day-picker"
 import { useOrders, useProfile, useServiceOrders, useServiceOrdersByCustomer } from "@/hooks/queries"
 import type { OrderResponse } from "@/api/types/order"
 import type { ServiceOrderResponse } from "@/api/types/serviceOrder"
-import { OrderList, OrderSkeleton, ServiceOrderList } from "./orders"
+import { OrderSkeleton } from "./orders"
+
+// Lazy load order lists to optimize initial bundle size
+const OrderList = lazy(() => import("./orders").then(m => ({ default: m.OrderList })));
+const ServiceOrderList = lazy(() => import("./orders").then(m => ({ default: m.ServiceOrderList })));
 
 const ITEMS_PER_PAGE = 4
 
@@ -121,6 +125,7 @@ export default function OrdersTab() {
     )
 
     const [search, setSearch] = useState("")
+    const deferredSearch = useDeferredValue(search)
     const [date, setDate] = useState<DateRange | undefined>(undefined)
     const [currentPage, setCurrentPage] = useState(1)
 
@@ -147,7 +152,7 @@ export default function OrdersTab() {
         const orders = orderType === "product" ? (productData?.items ?? []) : ownedServiceOrders
         return orders.filter(order => {
             const orderCode = (order.orderCode || "").toLowerCase()
-            const matchesSearch = orderCode.includes(search.toLowerCase())
+            const matchesSearch = orderCode.includes(deferredSearch.toLowerCase())
             let matchesDate = true
             if (date?.from) {
                 const orderDate = new Date(order.createdAt || 0)
@@ -157,7 +162,7 @@ export default function OrdersTab() {
             }
             return matchesSearch && matchesDate
         })
-    }, [orderType, productData?.items, ownedServiceOrders, search, date])
+    }, [orderType, productData?.items, ownedServiceOrders, deferredSearch, date])
 
     const statusFilteredOrders = useMemo(() => {
         if (orderType === "product") {
@@ -323,11 +328,19 @@ export default function OrdersTab() {
                         </div>
                     ) : (
                         <div className="min-h-[400px]">
-                            {orderType === "product" ? (
-                                <OrderList orders={paginatedOrders as OrderResponse[]} isFilterActive={!!(search || date)} />
-                            ) : (
-                                <ServiceOrderList orders={paginatedOrders as ServiceOrderResponse[]} isFilterActive={!!(search || date)} />
-                            )}
+                            <Suspense fallback={
+                                <div className="space-y-4">
+                                    {Array(3).fill(0).map((_, i) => (
+                                        <OrderSkeleton key={i} />
+                                    ))}
+                                </div>
+                            }>
+                                {orderType === "product" ? (
+                                    <OrderList orders={paginatedOrders as OrderResponse[]} isFilterActive={!!(deferredSearch || date)} />
+                                ) : (
+                                    <ServiceOrderList orders={paginatedOrders as ServiceOrderResponse[]} isFilterActive={!!(deferredSearch || date)} />
+                                )}
+                            </Suspense>
                         </div>
                     )}
                 </div>

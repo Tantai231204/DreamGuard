@@ -18,7 +18,7 @@ export const useServiceActions = () => {
     });
 
     const cancelMutation = useMutation({
-        mutationFn: async ({ id, status }: { id: string; status: string }) => {
+        mutationFn: async ({ id, status, reason }: { id: string; status: string; reason?: string }) => {
             let endpoint = '';
             const normalizedStatus = status.toLowerCase();
             switch (normalizedStatus) {
@@ -34,7 +34,7 @@ export const useServiceActions = () => {
                 default:
                     throw new Error('Invalid status for cancellation');
             }
-            await api.patch(endpoint);
+            await api.patch(endpoint, { cancellationReason: reason });
         },
         onSuccess: (_, { id }) => {
             toast.success(`Action applied successfully to booking ${id}`);

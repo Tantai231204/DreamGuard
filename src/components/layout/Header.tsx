@@ -12,6 +12,7 @@ import { MegaMenu } from "./MegaMenu"
 import UserDropdown from "./UserDropdown"
 import { CartDrawer } from "./CartDrawer"
 import { useHeaderData, type NavItem } from "./useHeaderData"
+import { useCoinRewardConfig } from "@/hooks/queries/useCoinRewardConfig"
 
 /* ================= Sub-Components ================= */
 
@@ -74,6 +75,7 @@ const ActionIcon = memo(({ children, badge, onClick, label }: { children: React.
 
 export default function Header() {
     const { navItems, combos } = useHeaderData()
+    const { orderCompletionCoin, feedbackCoin } = useCoinRewardConfig()
     const [isScrolled, setIsScrolled] = useState(false)
     const [activeMenu, setActiveMenu] = useState<{
         label: string
@@ -123,7 +125,7 @@ export default function Header() {
                                     <a href="#" className="hover:scale-110 transition-transform"><InstagramLogoIcon className="w-3.5 h-3.5" /></a>
                                 </div>
                                 <p className="text-[9px] font-black uppercase tracking-[0.25em] drop-shadow-sm">
-                                    Complimentary delivery for orders over <span className="underline underline-offset-4 decoration-2">1.500.000đ</span>
+                                    Reward update: order completed <span className="underline underline-offset-4 decoration-2">+{orderCompletionCoin} coin</span> | feedback submitted <span className="underline underline-offset-4 decoration-2">+{feedbackCoin} coin</span>
                                 </p>
                                 <div className="flex items-center gap-4">
                                     <button className="text-[9px] font-black uppercase tracking-widest hover:opacity-80 transition-opacity">Eng</button>

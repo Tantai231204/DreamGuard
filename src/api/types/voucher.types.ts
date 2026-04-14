@@ -1,14 +1,16 @@
 // src/api/types/voucher.types.ts
 
+export type VoucherType = "Both" | "Product" | "Service";
+
 export interface VoucherResponse {
   voucherId: string;
   code: string;
   name: string;
   description: string;
   discountValue: number;
-  discountType: "percent" | "fixed";
-  minDiscountAmount: number;
   maxDiscountAmount: number;
+  requiredCoin: number;
+  voucherType: VoucherType;
   startDate: string;
   endDate: string;
   isActive: boolean;
@@ -19,12 +21,12 @@ export interface CreateVoucherRequest {
   name: string;
   description: string;
   discountValue: number;
-  discountType: "percent" | "fixed";
-  minDiscountAmount: number;
   maxDiscountAmount: number;
+  requiredCoin: number;
+  voucherType: VoucherType;
   startDate: string;
   endDate: string;
-  isActive?: boolean;
+  isActive: boolean;
 }
 
 export interface UpdateVoucherRequest {
@@ -32,9 +34,9 @@ export interface UpdateVoucherRequest {
   name?: string;
   description?: string;
   discountValue?: number;
-  discountType?: "percent" | "fixed";
-  minDiscountAmount?: number;
   maxDiscountAmount?: number;
+  requiredCoin?: number;
+  voucherType?: VoucherType;
   startDate?: string;
   endDate?: string;
   isActive?: boolean;
@@ -48,4 +50,38 @@ export interface VoucherPageResponse {
   totalPages: number;
   hasPreviousPage: boolean;
   hasNextPage: boolean;
+}
+
+export interface UserVoucherResponse {
+  userVoucherId: string;
+  voucherId?: string;
+  code: string;
+  name: string;
+  description: string;
+  discountValue: number;
+  maxDiscountAmount: number;
+  requiredCoin?: number;
+  voucherType: VoucherType;
+  startDate?: string;
+  endDate?: string;
+  expiredAt?: string;
+  isActive?: boolean;
+  isClaimed?: boolean;
+  claimedAt?: string | null;
+  isUsed?: boolean;
+  usedAt?: string | null;
+}
+
+export interface UserVoucherPageResponse {
+  items: UserVoucherResponse[];
+  pageNumber: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+}
+
+export interface ClaimVoucherRequest {
+  code: string;
 }

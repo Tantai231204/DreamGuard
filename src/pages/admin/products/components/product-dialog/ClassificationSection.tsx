@@ -347,7 +347,7 @@ const ClassificationSection = memo(function ClassificationSection({
             <div className="space-y-4 pt-4 border-t border-gray-100/60">
                 <div className="flex items-center justify-between mt-1">
                     <SectionHeading title="Compliance & Standards" />
-                    <span className="text-[10px] font-black bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full border border-emerald-100 uppercase tracking-tighter shadow-sm flex items-center gap-1.5 tracking-tighter">
+                    <span className="text-[10px] font-black bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full border border-emerald-100 uppercase shadow-sm flex items-center gap-1.5 tracking-tighter">
                         <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
                         {certificateIds.length} Selected
                     </span>

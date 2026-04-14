@@ -3,11 +3,18 @@
 export interface TradeInProduct {
   id: string;
   orderId: string;
+  porderItemId?: string; // Capturing porder_item_id
+  productVariantId?: string; // Capturing ProductVariantId
   name: string;
   image: string;
+  quantity?: number;
+  unitPrice?: number;
+  totalPrice?: number;
   originalPrice: number;
   purchaseDate: string;
   canTradeIn: boolean;
+  tradeInUsedAmount?: number;
+  cateParentId?: number; // For filtering
   reason?: string;
   tradeInValue?: number;
 }
@@ -20,17 +27,18 @@ export interface TradeInInfo {
 
 // Calculate trade-in value based on original price and percentage
 export const calculateTradeInValue = (originalPrice: number, percentage: number = 30): number => {
-  return Math.round(originalPrice * (percentage / 100) * 100) / 100;
+  // Trade-in values in this project are treated as integer VND amounts.
+  return Math.round(originalPrice * (percentage / 100));
 };
 
-// Format price in USD
+// Format price in VND (consistent with `formatPrice` in src/lib/utils.ts)
 export const formatTradeInPrice = (price: number): string => {
-  return new Intl.NumberFormat('en-US', {
+  const safe = Number.isFinite(price) ? price : 0;
+  return new Intl.NumberFormat('vi-VN', {
     style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(price);
+    currency: 'VND',
+    maximumFractionDigits: 0,
+  }).format(safe);
 };
 
 // Calculate total trade-in value from selected products

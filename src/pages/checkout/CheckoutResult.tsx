@@ -32,7 +32,7 @@ export default function CheckoutResult() {
                     initial={{ width: "80%" }}
                     animate={{ width: "100%" }}
                     transition={{ duration: 1, ease: "easeOut" }}
-                    className="h-full bg-[#4988c4] shadow-[0_0_10px_#4988c4]"
+                    className="h-full bg-primary-500 shadow-lg shadow-primary-500/40"
                 />
             </div>
             <motion.div
@@ -94,7 +94,7 @@ export default function CheckoutResult() {
                             <Package className="w-4 h-4" />
                             <span className="text-[10px] font-black uppercase tracking-[0.2em]">Order Reference</span>
                         </div>
-                        <span className="text-sm font-black text-[#4988c4]">#{orderCode}</span>
+                        <span className="text-sm font-black text-primary-500">#{orderCode}</span>
                     </div>
                 )}
 
@@ -103,7 +103,7 @@ export default function CheckoutResult() {
                         <>
                             <Button
                                 onClick={() => navigate(AppRoute.PROFILE)}
-                                className="h-14 rounded-2xl bg-gradient-to-r from-[#4988c4] to-[#3a73a8] text-white font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-blue-100 hover:scale-[1.02] active:scale-[0.98] transition-all group"
+                                className="h-14 rounded-2xl bg-gradient-to-r from-primary-500 to-primary-600 text-white font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-primary-100 hover:scale-[1.02] active:scale-[0.98] transition-all group"
                             >
                                 View My Orders
                                 <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -121,7 +121,7 @@ export default function CheckoutResult() {
                         <>
                             <Button
                                 onClick={() => navigate(AppRoute.CHECKOUT)}
-                                className="h-14 rounded-2xl bg-gradient-to-r from-[#4988c4] to-[#3a73a8] text-white font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-blue-100 transition-all"
+                                className="h-14 rounded-2xl bg-gradient-to-r from-primary-500 to-primary-600 text-white font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-primary-100 transition-all"
                             >
                                 Try Again
                             </Button>

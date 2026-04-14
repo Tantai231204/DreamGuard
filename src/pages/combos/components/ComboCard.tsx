@@ -100,7 +100,7 @@ export const ComboCard: FC<ComboCardProps> = ({ combo }) => {
                                 <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
                                 <span className="text-[10px] font-black text-amber-700">{ratingValue.toFixed(1)}</span>
                             </div>
-                            <span className="text-[9px] text-indigo-600 font-black uppercase tracking-wider bg-indigo-50 px-1.5 py-0.5 rounded-md">
+                            <span className="text-[9px] text-primary-600 font-black uppercase tracking-wider bg-primary-50 px-1.5 py-0.5 rounded-md">
                                 Package Set
                             </span>
                         </div>

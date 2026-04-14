@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { ChromaProfile } from "./components/ChromaProfile";
 import { TextureLab } from "./components/TextureLab";
 import { cn } from "@/lib/utils";
+import { ArtisticRefinement } from "./components/ArtisticRefinement";
 
 import {
   generateConfigHash
@@ -198,6 +199,24 @@ const CustomizeStudio = () => {
   const currentMaterial = useMemo(() => derivedMaterials.find(m => m.id === activeDesign.material) || derivedMaterials[0], [activeDesign.material, derivedMaterials]);
   const currentSize = useMemo(() => availableSizes.find((s: { id: string }) => s.id === activeDesign.size), [availableSizes, activeDesign.size]);
 
+  // 🔥 Visual Scaling Logic
+  const sizeDims = useMemo(() => {
+    if (activeDesign.size === 'custom') {
+      return {
+        width: parseFloat(customDims.width) || (selectedProduct?.id.includes('crib') ? 60 : 25),
+        length: parseFloat(customDims.height) || (selectedProduct?.id.includes('crib') ? 120 : 35)
+      };
+    }
+    if (!currentSize) return { width: 60, length: 120 };
+
+    // Extract digits from labels like "60 × 120 cm"
+    const match = currentSize.label.match(/(\d+)\s*[×x]\s*(\d+)/);
+    if (match) {
+      return { width: parseFloat(match[1]), length: parseFloat(match[2]) };
+    }
+    return { width: 60, length: 120 };
+  }, [activeDesign.size, currentSize, customDims, selectedProduct]);
+
   const pricingResults = useMemo(() => {
     if (!selectedProduct) return { current: 0 };
     const baseSale = selectedProduct.salePrice && selectedProduct.salePrice > 0 ? selectedProduct.salePrice : selectedProduct.basePrice;
@@ -223,7 +242,20 @@ const CustomizeStudio = () => {
   const totalPrice = pricingResults.current;
 
   const updateDesign = useCallback((updates: Partial<DesignConfig>) => {
-    setDesignState(prev => ({ ...prev, ...updates }));
+    setDesignState(prev => {
+      const newState = { ...prev, ...updates };
+
+      // Mutual Exclusivity: Color vs Custom Image (UX Fix)
+      if (updates.customImage) {
+        // If image uploaded, use neutral white as foundation to avoid tinting
+        newState.baseColor = "#FFFFFF";
+      } else if (updates.baseColor && updates.baseColor !== prev.baseColor) {
+        // If color specifically changed, clear the custom image bọc
+        newState.customImage = undefined;
+      }
+
+      return newState;
+    });
   }, []);
 
   const handleAddToCart = () => {
@@ -422,6 +454,12 @@ const CustomizeStudio = () => {
                 }}
               />
 
+              <ArtisticRefinement
+                design={activeDesign}
+                productName={selectedProduct?.name}
+                updateDesign={updateDesign}
+              />
+
               {/* Bottom spacer */}
               <div className="h-4" />
             </div>
@@ -460,7 +498,7 @@ const CustomizeStudio = () => {
           {/* MAIN PREVIEW AREA */}
           <div className="flex-1 relative overflow-hidden bg-white">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(73,136,196,0.03)_0%,rgba(255,255,255,1)_100%)] pointer-events-none" />
-            <ProductPreview3D product={selectedProduct} design={activeDesign} />
+            <ProductPreview3D product={selectedProduct} design={activeDesign} sizeDims={sizeDims} />
           </div>
         </div>
       </main>

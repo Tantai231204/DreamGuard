@@ -130,10 +130,10 @@ export default function Footer() {
                             Support
                         </h4>
                         <ul className="space-y-3">
-                            <FooterLink to="#">Help Center</FooterLink>
-                            <FooterLink to="#">Returns</FooterLink>
-                            <FooterLink to="#">Warranty</FooterLink>
-                            <FooterLink to="#">FAQ</FooterLink>
+                            <FooterLink to={AppRoute.HELP_CENTER}>Help Center</FooterLink>
+                            <FooterLink to={AppRoute.RETURN_POLICY}>Returns</FooterLink>
+                            <FooterLink to={AppRoute.WARRANTY_POLICY}>Warranty</FooterLink>
+                            <FooterLink to={AppRoute.FAQ}>FAQ</FooterLink>
                         </ul>
                     </div>
 
@@ -173,7 +173,7 @@ export default function Footer() {
                         </p>
 
                         <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs text-muted-foreground">
-                            <Link to="#" className="hover:text-primary">
+                            <Link to={AppRoute.TERMS_OF_SERVICE} className="hover:text-primary">
                                 Terms of Service
                             </Link>
                             <Link to="#" className="hover:text-primary">

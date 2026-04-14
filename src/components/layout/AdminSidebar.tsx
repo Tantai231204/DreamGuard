@@ -18,19 +18,23 @@ import {
   Boxes,
   CircleDot,
   UserCheck,
+  Activity,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { cn } from '../../lib/utils';
 import { useProfile } from '@/hooks/queries';
 import { useLogout } from '@/hooks/useAuth';
 import { ProductAssetIcons } from '@/components/common/icons';
+import { UserRole } from '@/lib/constants';
+import { useAuthStore } from '@/store/authStore';
 
 interface NavItem {
   title: string;
   href: string;
   icon: React.ComponentType<{ className?: string }> | string;
   badge?: number;
+  allowedRoles?: UserRole[];
 }
 
 interface NavSection {
@@ -38,50 +42,55 @@ interface NavSection {
   items: NavItem[];
 }
 
+const ALL_ROLES = [UserRole.ADMIN, UserRole.MANAGER, UserRole.SELLER];
+const ADMIN_MANAGER = [UserRole.ADMIN, UserRole.MANAGER];
+const ADMIN_ONLY = [UserRole.ADMIN];
+
 const navSections: NavSection[] = [
   {
     label: 'Overview',
     items: [
-      { title: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-      { title: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
-      { title: 'Chat', href: '/admin/chat', icon: MessageSquare, badge: 3 },
+      { title: 'Dashboard', href: '/admin', icon: LayoutDashboard, allowedRoles: ALL_ROLES },
+      { title: 'Analytics', href: '/admin/analytics', icon: BarChart3, allowedRoles: ADMIN_MANAGER },
+      { title: 'Chat', href: '/admin/chat', icon: MessageSquare, badge: 3, allowedRoles: ALL_ROLES },
     ],
   },
   {
     label: 'Commerce',
     items: [
-      { title: 'Orders', href: '/admin/orders', icon: ShoppingCart },
-      { title: 'Payments', href: '/admin/payments', icon: Wallet },
-      { title: 'Vouchers', href: '/admin/vouchers', icon: Ticket },
+      { title: 'Orders', href: '/admin/orders', icon: ShoppingCart, allowedRoles: ALL_ROLES },
+      { title: 'Payments', href: '/admin/payments', icon: Wallet, allowedRoles: ADMIN_MANAGER },
+      { title: 'Vouchers', href: '/admin/vouchers', icon: Ticket, allowedRoles: ADMIN_MANAGER },
     ],
   },
   {
     label: 'Inventory',
     items: [
-      { title: 'Products', href: '/admin/products', icon: Boxes },
-      { title: 'Categories', href: '/admin/categories', icon: FolderTree },
-      { title: 'Product Types', href: '/admin/product-types', icon: ProductAssetIcons.PRODUCT_CATEGORIES },
+      { title: 'Products', href: '/admin/products', icon: Boxes, allowedRoles: ADMIN_MANAGER },
+      { title: 'Categories', href: '/admin/categories', icon: FolderTree, allowedRoles: ADMIN_MANAGER },
+      { title: 'Product Types', href: '/admin/product-types', icon: ProductAssetIcons.PRODUCT_CATEGORIES, allowedRoles: ADMIN_MANAGER },
     ],
   },
   {
     label: 'Services',
     items: [
-      { title: 'Services', href: '/admin/services', icon: Sparkles, badge: 2 },
-      { title: 'Service Packages', href: '/admin/service-packages', icon: Package },
-      { title: 'Customize Types', href: '/admin/customize-types', icon: CircleDot },
+      { title: 'Services', href: '/admin/services', icon: Sparkles, badge: 2, allowedRoles: ADMIN_MANAGER },
+      { title: 'Service Packages', href: '/admin/service-packages', icon: Package, allowedRoles: ADMIN_MANAGER },
+      { title: 'Customize Types', href: '/admin/customize-types', icon: CircleDot, allowedRoles: ADMIN_MANAGER },
     ],
   },
   {
     label: 'User Management',
     items: [
-      { title: 'Customers', href: '/admin/users', icon: Users },
-      { title: 'Staff', href: '/admin/staff', icon: UserCheck },
+      { title: 'Customers', href: '/admin/users', icon: Users, allowedRoles: ADMIN_MANAGER },
+      { title: 'Staff', href: '/admin/staff', icon: UserCheck, allowedRoles: ADMIN_ONLY },
     ],
   },
   {
     label: 'System',
     items: [
-      { title: 'Settings', href: '/admin/settings', icon: Settings },
+      { title: 'Registry', href: '/admin/system-configs', icon: Activity, allowedRoles: ADMIN_ONLY },
+      { title: 'Settings', href: '/admin/settings', icon: Settings, allowedRoles: ADMIN_MANAGER },
     ],
   },
 ];
@@ -91,12 +100,42 @@ export default function AdminSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const { data: profile } = useProfile();
   const { mutate: logout } = useLogout();
+  const { role } = useAuthStore();
+
+  const filteredSections = useMemo(() => {
+    return navSections.map(section => ({
+      ...section,
+      items: section.items.filter(item => 
+        !item.allowedRoles || item.allowedRoles.includes(role as UserRole)
+      )
+    })).filter(section => section.items.length > 0);
+  }, [role]);
 
   const isActive = (path: string) => {
-    if (path === '/admin') {
-      return location.pathname === path;
+    const [targetPath, targetQuery] = path.split('?');
+
+    if (targetPath === '/admin') {
+      return location.pathname === targetPath;
     }
-    return location.pathname.startsWith(path);
+
+    if (!location.pathname.startsWith(targetPath)) {
+      return false;
+    }
+
+    if (!targetQuery) {
+      return true;
+    }
+
+    const currentParams = new URLSearchParams(location.search);
+    const expectedParams = new URLSearchParams(targetQuery);
+
+    for (const [key, value] of expectedParams.entries()) {
+      if (currentParams.get(key) !== value) {
+        return false;
+      }
+    }
+
+    return true;
   };
 
   return (
@@ -159,7 +198,7 @@ export default function AdminSidebar() {
       {/* Navigation */}
       <nav className="flex-1 px-3 py-6 overflow-y-auto no-scrollbar scroll-smooth">
         <div className={cn("transition-all duration-500", collapsed ? "space-y-4" : "space-y-10")}>
-          {navSections.map((section, idx) => (
+          {filteredSections.map((section, idx) => (
             <div key={section.label} className={cn("transition-all duration-300", collapsed ? "space-y-1" : "space-y-2")}>
               {!collapsed && (
                 <h3 className="px-5 text-[10px] font-black uppercase tracking-[3px] text-gray-300 mb-4 transition-colors hover:text-[var(--color-primary)]/50 cursor-default">

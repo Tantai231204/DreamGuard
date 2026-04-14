@@ -20,7 +20,8 @@ export function UserDropdownContent() {
         ...mockUser,
         name: resolvedName,
         email: profile?.email || mockUser.email,
-        avatarUrl: profile?.avatarUrl || mockUser.avatarUrl || ""
+        avatarUrl: profile?.avatarUrl || mockUser.avatarUrl || "",
+        memberCoin: profile?.memberCoin ?? 0
     }
 
     return (
@@ -59,14 +60,14 @@ export function UserDropdownContent() {
                     icon={<Heart className="h-4 w-4" />}
                     title="Wishlist"
                 />
-                
+
                 <MenuItem
                     to={`${AppRoute.PROFILE}?tab=security`}
                     icon={<ShieldCheck className="h-4 w-4" />}
                     title="Account Security"
                 />
 
-                {role?.toLowerCase() === "admin" && (
+                {(role === "Admin" || role === "Manager" || role === "Seller") && (
                     <>
                         <DropdownMenuSeparator className="mx-4 my-2 opacity-50" />
                         <MenuItem

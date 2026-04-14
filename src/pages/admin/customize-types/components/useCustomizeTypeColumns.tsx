@@ -98,8 +98,8 @@ export function useCustomizeTypeColumns({ onView, onEdit, onDelete }: UseCustomi
         accessorKey: 'applicableProductType',
         header: ({ column }) => <SortableHeader column={column} label="Target Type" />,
         cell: ({ row }) => (
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-50 border border-indigo-100 shadow-sm">
-                <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-50 border border-primary-100 shadow-sm">
+                <span className="text-[10px] font-black uppercase tracking-widest text-primary-600">
                     {row.original.applicableProductType}
                 </span>
             </div>

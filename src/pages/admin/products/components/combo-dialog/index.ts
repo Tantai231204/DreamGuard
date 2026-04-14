@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 // STYLE CONSTANTS
 // ─────────────────────────────────────────────────────────
 export const INPUT_CLS =
-  "h-11 rounded-xl border-slate-200 bg-slate-50/50 hover:bg-slate-50 hover:border-primary-500/60 focus:bg-white focus:border-primary-500 focus:ring-4 focus:ring-primary-500/20 transition-all text-sm font-medium text-slate-900 placeholder:text-slate-400 shadow-[0_1px_2px_-1px_rgba(0,0,0,0.05)] disabled:opacity-60 disabled:hover:bg-slate-50/50";
+  "h-11 rounded-xl border-slate-200 bg-slate-50/50 hover:bg-slate-50 hover:border-blue-500/60 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-500/20 transition-all text-sm font-medium text-slate-900 placeholder:text-slate-400 shadow-[0_1px_2px_-1px_rgba(0,0,0,0.05)] disabled:opacity-60 disabled:hover:bg-slate-50/50";
 
 export const SELECT_TRIGGER_CLS = cn(
   INPUT_CLS,
@@ -171,7 +171,7 @@ export function getInitialState(
     imageUrl: "",
     imagePublicId: "",
     comboParentId: "",
-    status: normalizeStatus(null),
+    status: "Draft",
     items: [],
   };
 }

@@ -178,7 +178,7 @@ export default function CustomizeSection() {
                 icon={Palette}
                 title="Fabrics"
                 desc="Curated organic materials & silk selections."
-                colorClass="bg-indigo-50 text-indigo-600"
+                colorClass="bg-primary-50 text-primary-600"
               />
               <FeatureItem
                 icon={Type}

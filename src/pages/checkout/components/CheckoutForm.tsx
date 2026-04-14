@@ -18,9 +18,10 @@ import { formatPrice } from "@/lib/utils"
 
 interface CheckoutFormProps {
     totalPrice: number
+    selectedVoucherId: string | null
 }
 
-export function CheckoutForm({ totalPrice }: CheckoutFormProps) {
+export function CheckoutForm({ totalPrice, selectedVoucherId }: CheckoutFormProps) {
     const { clearCart } = useCart()
     const navigate = useNavigate()
     const { success, error: toastError } = useToast()
@@ -60,6 +61,15 @@ export function CheckoutForm({ totalPrice }: CheckoutFormProps) {
             }
         }
     }, [isSubmitted, errors])
+
+    useEffect(() => {
+        const nextVoucherId = selectedVoucherId ?? null
+        const currentVoucherId = form.getValues("userVoucherId") ?? null
+
+        if (currentVoucherId === nextVoucherId) return
+
+        form.setValue("userVoucherId", nextVoucherId)
+    }, [form, selectedVoucherId])
 
     const onSubmit = async (data: CheckoutFormData) => {
         try {
@@ -118,10 +128,10 @@ export function CheckoutForm({ totalPrice }: CheckoutFormProps) {
         toastError("Incomplete Information", "Please check the highlighted fields and try again.")
     }
 
-    const currentTotal = formatPrice(totalPrice * 1.1)
+    const currentTotal = formatPrice(totalPrice)
 
     return (
-        <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-10 pb-20">
+        <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-6 pb-14">
             {/* Delivery Information */}
             <DeliveryInfoSection form={form} />
 
@@ -129,12 +139,12 @@ export function CheckoutForm({ totalPrice }: CheckoutFormProps) {
             <PaymentSection form={form} />
 
             {/* Submit Button & Trust Area */}
-            <div className="rounded-[2.5rem] border border-slate-100 bg-white p-10 shadow-2xl shadow-slate-200/40">
-                <div className="flex flex-col gap-8">
+            <div className="rounded-[2rem] border border-slate-100 bg-white p-7 shadow-xl shadow-slate-200/35">
+                <div className="flex flex-col gap-5">
                     <Button
                         type="submit"
                         disabled={isSubmitting}
-                        className="w-full h-20 text-xl font-black rounded-[1.5rem] bg-gradient-to-r from-[#4988c4] to-[#3a73a8] text-white hover:to-[#2d5d8a] shadow-2xl shadow-[#4988c4]/30 transition-all duration-300 transform hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 group border-none"
+                        className="w-full h-16 text-base font-black rounded-[1.1rem] bg-gradient-to-r from-primary-500 to-primary-600 text-white hover:to-primary-700 shadow-xl shadow-primary-500/25 transition-all duration-300 transform hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 group border-none"
                     >
                         {isSubmitting ? (
                             <div className="flex items-center gap-3">
@@ -142,29 +152,29 @@ export function CheckoutForm({ totalPrice }: CheckoutFormProps) {
                                 <span className="uppercase tracking-widest text-sm">Validating Security...</span>
                             </div>
                         ) : (
-                            <div className="flex items-center justify-between w-full px-6">
-                                <span className="uppercase tracking-widest text-sm">Confirm Order</span>
-                                <div className="flex items-center gap-4">
-                                    <span className="text-2xl tracking-tighter">{currentTotal}</span>
-                                    <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center group-hover:translate-x-1 transition-transform">
-                                        <ArrowRight className="w-5 h-5" />
+                            <div className="flex items-center justify-between w-full px-4">
+                                <span className="uppercase tracking-widest text-xs">Confirm Order</span>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-xl tracking-tighter">{currentTotal}</span>
+                                    <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center group-hover:translate-x-1 transition-transform">
+                                        <ArrowRight className="w-4 h-4" />
                                     </div>
                                 </div>
                             </div>
                         )}
                     </Button>
 
-                    <div className="space-y-6">
+                    <div className="space-y-4">
                         <p className="text-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
                             By placing order, you agree to our{" "}
-                            <a href="#" className="underline text-[#4988c4] hover:text-[#3a73a8] transition-colors">Terms</a>
+                            <a href="#" className="underline text-primary-500 hover:text-primary-600 transition-colors">Terms</a>
                             {" "} & {" "}
-                            <a href="#" className="underline text-[#4988c4] hover:text-[#3a73a8] transition-colors">Privacy</a>
+                            <a href="#" className="underline text-primary-500 hover:text-primary-600 transition-colors">Privacy</a>
                         </p>
 
                         <div className="h-px bg-slate-50 w-full" />
 
-                        <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-4">
+                        <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3">
                             <div className="flex items-center gap-3 group">
                                 <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center group-hover:scale-110 transition-transform">
                                     <ShieldCheck className="w-4 h-4 text-emerald-600" />

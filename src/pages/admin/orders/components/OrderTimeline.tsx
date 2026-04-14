@@ -1,6 +1,8 @@
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Package, Clock, Activity } from 'lucide-react';
+import { CheckCircle2, Package, Clock, Activity, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 interface TimelineEvent {
   title: string;
@@ -11,9 +13,24 @@ interface TimelineEvent {
 
 interface OrderTimelineProps {
   timeline: TimelineEvent[];
+  defaultVisibleCount?: number;
+  collapsible?: boolean;
 }
 
-export function OrderTimeline({ timeline }: OrderTimelineProps) {
+export function OrderTimeline({
+  timeline,
+  defaultVisibleCount = 4,
+  collapsible = true,
+}: OrderTimelineProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const canToggle = collapsible && timeline.length > defaultVisibleCount;
+  const visibleTimeline = useMemo(() => {
+    if (!canToggle || isExpanded) return timeline;
+    return timeline.slice(0, defaultVisibleCount);
+  }, [canToggle, defaultVisibleCount, isExpanded, timeline]);
+  const hiddenEventsCount = Math.max(timeline.length - defaultVisibleCount, 0);
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.98 }}
@@ -35,7 +52,7 @@ export function OrderTimeline({ timeline }: OrderTimelineProps) {
 
         <div className="p-6">
           <div className="space-y-0">
-            {timeline.map((event, index) => (
+            {visibleTimeline.map((event, index) => (
               <div key={index} className="flex gap-5 group">
                 <div className="flex flex-col items-center">
                   <div
@@ -48,7 +65,7 @@ export function OrderTimeline({ timeline }: OrderTimelineProps) {
                     {event.icon === 'check' && <CheckCircle2 className="h-3.5 w-3.5" />}
                     {event.icon === 'package' && <Package className="h-3.5 w-3.5" />}
                   </div>
-                  {index < timeline.length - 1 && (
+                  {index < visibleTimeline.length - 1 && (
                     <div className="w-px h-full min-h-[40px] bg-gradient-to-b from-blue-50 to-transparent my-1" />
                   )}
                 </div>
@@ -60,9 +77,10 @@ export function OrderTimeline({ timeline }: OrderTimelineProps) {
                     <div className="flex items-center gap-2 mt-2">
                         <Clock className="h-3 w-3 text-slate-300" />
                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-2 py-0.5 rounded border border-slate-100/50">
-                            {new Date(event.timestamp).toLocaleString('vi-VN', {
+                            {new Date(event.timestamp).toLocaleString('en-GB', {
                                 day: '2-digit',
                                 month: 'short',
+                              year: 'numeric',
                                 hour: '2-digit',
                                 minute: '2-digit',
                                 hour12: false,
@@ -83,6 +101,30 @@ export function OrderTimeline({ timeline }: OrderTimelineProps) {
               </div>
             ))}
           </div>
+
+          {canToggle && (
+            <div className="mt-2 pt-4 border-t border-blue-50 flex justify-center">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 px-3 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary"
+                onClick={() => setIsExpanded((prev) => !prev)}
+              >
+                {isExpanded ? (
+                  <>
+                    Show Less
+                    <ChevronUp className="ml-1.5 h-3.5 w-3.5" />
+                  </>
+                ) : (
+                  <>
+                    Show {hiddenEventsCount} More
+                    <ChevronDown className="ml-1.5 h-3.5 w-3.5" />
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
         </div>
       </Card>
     </motion.div>

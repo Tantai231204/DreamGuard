@@ -74,9 +74,10 @@ export default function ServiceDetail() {
       <div className="flex-1 overflow-auto p-8">
         <div className="max-w-[1600px] mx-auto space-y-8">
           <div className="grid grid-cols-12 gap-8 items-start">
-            {/* Main Area (8 units) */}
-            <div className="col-span-12 lg:col-span-8 space-y-8">
+            {/* Main Area (8 units) - Items & Evidence */}
+            <div className="col-span-12 lg:col-span-8 space-y-8 order-2 lg:order-1">
               <OrderItemsArea
+                order={order}
                 orderItems={order.items || []}
                 mappingQueries={mappingQueries}
                 task={order.serviceTask || undefined}
@@ -84,8 +85,8 @@ export default function ServiceDetail() {
               />
             </div>
 
-            {/* Sidebar (4 units) */}
-            <div className="col-span-12 lg:col-span-4 sticky top-0">
+            {/* Sidebar (4 units) - Context & Controls */}
+            <div className="col-span-12 lg:col-span-4 sticky top-8 order-1 lg:order-2">
               <OrderSidebar
                 order={order}
                 task={order.serviceTask || undefined}

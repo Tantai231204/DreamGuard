@@ -73,8 +73,8 @@ export function ChangeRoleDialog({ open, onOpenChange, staffId, currentRole }: C
               <SelectContent className="rounded-xl shadow-xl border-slate-100 p-1.5 max-h-[400px] overflow-y-auto">
                 <SelectItem value="Manager" className="rounded-lg font-medium cursor-pointer py-2.5 focus:bg-slate-50 mb-1">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-indigo-50 shadow-sm flex-shrink-0">
-                      <div className="w-4 h-4 bg-indigo-600" style={{
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-primary-50 shadow-sm flex-shrink-0">
+                      <div className="w-4 h-4 bg-primary-600" style={{
                         maskImage: "url(/images/manager.svg)",
                         maskSize: "contain",
                         WebkitMaskImage: "url(/images/manager.svg)",
