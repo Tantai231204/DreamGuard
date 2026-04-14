@@ -9,11 +9,12 @@ export const staffKeys = {
     profile: () => [...staffKeys.all, "profile"] as const,
 };
 
-export const useStaffs = (params: StaffParams = {}) => {
+export const useStaffs = (params: StaffParams = {}, options?: { enabled?: boolean }) => {
     return useQuery({
         queryKey: staffKeys.list(params),
         queryFn: () => staffService.getAllStaff(params),
         staleTime: 0,
+        enabled: options?.enabled,
     });
 };
 

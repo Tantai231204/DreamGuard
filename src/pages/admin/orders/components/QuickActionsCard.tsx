@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, Truck, XCircle, Zap, ShieldCheck, History, ShieldAlert, Package, Clock, RefreshCw, RotateCcw } from 'lucide-react';
+import { useAuthStore } from '@/store/authStore';
 import { OrderStatus } from '../constants';
 
 interface QuickActionsCardProps {
@@ -25,6 +26,9 @@ export function QuickActionsCard({
   hasTask,
   delay = 0,
 }: QuickActionsCardProps) {
+  const role = useAuthStore((s) => s.role);
+  const isAdminOrManager = role === 'Admin' || role === 'Manager';
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -99,13 +103,22 @@ export function QuickActionsCard({
 
           {/* ─── Step 4: Delivered → Manager finalizes ─── */}
           {currentStatusEnum === OrderStatus.Delivered && (
-            <Button
-              onClick={() => onUpdateStatus('Completed')}
-              className="w-full justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl h-12 text-[10px] font-black uppercase tracking-widest transition-all shadow-md shadow-emerald-500/20 border-none group"
-            >
-              <CheckCircle2 className="h-4 w-4 transition-transform group-hover:scale-110" />
-              Finalize Order
-            </Button>
+            isAdminOrManager ? (
+              <Button
+                onClick={() => onUpdateStatus('Completed')}
+                className="w-full justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl h-12 text-[10px] font-black uppercase tracking-widest transition-all shadow-md shadow-emerald-500/20 border-none group"
+              >
+                <CheckCircle2 className="h-4 w-4 transition-transform group-hover:scale-110" />
+                Finalize Order
+              </Button>
+            ) : (
+              <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl flex items-start gap-3">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-[0.15em] leading-relaxed">
+                  Delivered successfully. Awaiting Manager finalization.
+                </p>
+              </div>
+            )
           )}
 
           {/* ─── Step 5: Completed – no more actions ─── */}
@@ -120,22 +133,31 @@ export function QuickActionsCard({
 
           {/* ─── Step 6: Returning → Manager processes return (inspect damages) ─── */}
           {currentStatusEnum === OrderStatus.Returning && (
-            <div className="grid grid-cols-1 gap-3">
-              <Button
-                onClick={onProcessExchange}
-                className="w-full justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-12 text-[10px] font-black uppercase tracking-widest transition-all shadow-md shadow-blue-500/20 border-none group"
-              >
-                <RefreshCw className="h-4 w-4 transition-transform group-hover:scale-110" />
-                Process Exchange
-              </Button>
-              <Button
-                onClick={onProcessReturn}
-                className="w-full justify-center gap-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl h-11 text-[9px] font-black uppercase tracking-widest transition-all shadow-md shadow-rose-500/20 border-none group"
-              >
-                <Package className="h-4 w-4 transition-transform group-hover:scale-110" />
-                Process Return
-              </Button>
-            </div>
+            isAdminOrManager ? (
+              <div className="grid grid-cols-1 gap-3">
+                <Button
+                  onClick={onProcessExchange}
+                  className="w-full justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-12 text-[10px] font-black uppercase tracking-widest transition-all shadow-md shadow-blue-500/20 border-none group"
+                >
+                  <RefreshCw className="h-4 w-4 transition-transform group-hover:scale-110" />
+                  Process Exchange
+                </Button>
+                <Button
+                  onClick={onProcessReturn}
+                  className="w-full justify-center gap-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl h-11 text-[9px] font-black uppercase tracking-widest transition-all shadow-md shadow-rose-500/20 border-none group"
+                >
+                  <Package className="h-4 w-4 transition-transform group-hover:scale-110" />
+                  Process Return
+                </Button>
+              </div>
+            ) : (
+              <div className="p-4 bg-amber-50/50 border border-amber-100 rounded-xl flex items-start gap-3">
+                <Package className="w-4 h-4 text-amber-500 shrink-0 mt-0.5 animate-pulse" />
+                <p className="text-[9px] font-bold text-amber-600 uppercase tracking-[0.15em] leading-relaxed">
+                  Currently in Returning phase. Handling requires Manager authorization.
+                </p>
+              </div>
+            )
           )}
 
           {currentStatusEnum === OrderStatus.ExchangeRequested && (
@@ -158,22 +180,31 @@ export function QuickActionsCard({
 
           {/* ─── Step 7: Returned → Manager decides refund type ─── */}
           {currentStatusEnum === OrderStatus.Returned && (
-            <div className="grid grid-cols-1 gap-3">
-              <Button
-                onClick={() => onUpdateStatus('RefundedAndRestocked')}
-                className="w-full justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-11 text-[9px] font-black uppercase tracking-widest transition-all"
-              >
-                <History className="h-3.5 w-3.5" />
-                Refund & Restock
-              </Button>
-              <Button
-                onClick={() => onUpdateStatus('RefundedAndDamaged')}
-                className="w-full justify-center gap-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl h-11 text-[9px] font-black uppercase tracking-widest transition-all"
-              >
-                <ShieldAlert className="h-3.5 w-3.5" />
-                Refund & Damaged
-              </Button>
-            </div>
+            isAdminOrManager ? (
+              <div className="grid grid-cols-1 gap-3">
+                <Button
+                  onClick={() => onUpdateStatus('RefundedAndRestocked')}
+                  className="w-full justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-11 text-[9px] font-black uppercase tracking-widest transition-all"
+                >
+                  <History className="h-3.5 w-3.5" />
+                  Refund & Restock
+                </Button>
+                <Button
+                  onClick={() => onUpdateStatus('RefundedAndDamaged')}
+                  className="w-full justify-center gap-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl h-11 text-[9px] font-black uppercase tracking-widest transition-all"
+                >
+                  <ShieldAlert className="h-3.5 w-3.5" />
+                  Refund & Damaged
+                </Button>
+              </div>
+            ) : (
+              <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-xl flex items-start gap-3">
+                <ShieldCheck className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+                <p className="text-[9px] font-bold text-blue-600 uppercase tracking-[0.15em] leading-relaxed">
+                  Items returned. Awaiting Manager final refund/restock decision.
+                </p>
+              </div>
+            )
           )}
 
           {/* ─── Terminal States ─── */}
