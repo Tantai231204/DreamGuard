@@ -4,6 +4,8 @@ export default {
     extend: {
       fontFamily: {
         sans: ["Comfortaa", "system-ui", "sans-serif"],
+        outfit: ["Outfit", "sans-serif"],
+        inter: ["Inter", "sans-serif"],
       },
     },
   },
@@ -135,5 +137,5 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [require('@tailwindcss/typography')],
 };

@@ -1,3 +1,5 @@
+import { FormattedDescription } from '@/components/common/FormattedDescription';
+
 interface ServiceCardProps {
   title: string;
   description: string;
@@ -9,9 +11,10 @@ export default function ServiceCard({ title, description }: ServiceCardProps) {
       <h3 className="text-sm font-semibold text-[var(--color-blue-dark)] mb-1.5">
         {title}
       </h3>
-      <p className="text-xs text-gray-600 leading-relaxed">
-        {description}
-      </p>
+      <FormattedDescription 
+        content={description}
+        className="text-xs text-gray-600 leading-relaxed"
+      />
     </div>
   );
 }

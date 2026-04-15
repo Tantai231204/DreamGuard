@@ -2,6 +2,7 @@ import { memo, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Star } from 'lucide-react';
+import { FormattedDescription } from '@/components/common/FormattedDescription';
 import type { Combo } from '../../types';
 
 interface ComboTabsProps {
@@ -57,12 +58,11 @@ export const ComboTabs = memo(({ combo }: ComboTabsProps) => {
                             transition={{ duration: 0.3 }}
                         >
                             <TabsContent value="description" className="mt-0 outline-none">
-                                <div className="max-w-3xl prose prose-sm prose-slate leading-relaxed text-slate-600 italic font-medium">
-                                    {combo.description ? (
-                                        <div dangerouslySetInnerHTML={{ __html: combo.description }} />
-                                    ) : (
-                                        <p>The {combo.name} offers premium comfort and quality, expertly curated to ensure the best experience for your little one. This bundle saves you more while providing a complete set of essentials.</p>
-                                    )}
+                                <div className="max-w-3xl text-slate-600 font-medium italic">
+                                    <FormattedDescription 
+                                        content={combo.description}
+                                        className="text-sm"
+                                    />
                                 </div>
                             </TabsContent>
 

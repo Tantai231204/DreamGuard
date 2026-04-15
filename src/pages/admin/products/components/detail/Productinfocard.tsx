@@ -1,7 +1,7 @@
 import {
     Package, Tag, Baby, Shirt, Star,
     Calendar, ShieldCheck,
-    Check, Copy, AlignLeft,
+    Check, Copy,
 } from 'lucide-react';
 import { InfoField } from './Infofield';
 import { formatDateTime, formatPrice } from '@/lib/utils';
@@ -148,29 +148,6 @@ export default function ProductInfoCard({
                 </div>
             </section>
 
-            {/* ── Descriptions ── */}
-            {(product.summary || product.description) && (
-                <section className="space-y-8">
-                    {product.summary && (
-                        <div className="p-8 rounded-2xl bg-[#4988c4]/5 border border-[#4988c4]/10 text-base font-medium text-slate-600 leading-relaxed italic relative overflow-hidden">
-                            <div className="absolute top-0 left-0 w-1 h-full bg-[#4988c4]" />
-                            "{product.summary}"
-                        </div>
-                    )}
-
-                    {product.description && (
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-2">
-                                <AlignLeft size={12} className="text-slate-400" />
-                                <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Detailed Description</h4>
-                            </div>
-                            <div className="text-[13px] text-slate-600 leading-relaxed whitespace-pre-wrap font-medium p-6 rounded-2xl bg-slate-50/30 border border-slate-100/50">
-                                {product.description}
-                            </div>
-                        </div>
-                    )}
-                </section>
-            )}
         </div>
     );
 }

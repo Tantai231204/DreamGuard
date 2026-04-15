@@ -26,6 +26,7 @@ import tradeInOrderService from "@/api/services/tradeInOrderService";
 import { normalizeTradeInStatus } from "@/utils/tradeInWorkflow";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { FormattedDescription } from "@/components/common/FormattedDescription";
 
 interface TradeInOrderDetailDialogProps {
     tradeInOrderId: string;
@@ -285,15 +286,16 @@ export const TradeInOrderDetailDialog = ({ tradeInOrderId, orderCode, trigger }:
                                             <p className="text-xs font-bold text-gray-900 pt-1 uppercase tracking-tight">{formatDate(order.createdAt)}</p>
                                         </div>
                                     </div>
-                                    {order.description && (
                                         <div className="p-4 bg-gray-50/80 rounded-lg border border-gray-100 text-left">
                                             <div className="flex items-center gap-2 mb-1.5">
                                                 <Info className="w-3 h-3 text-gray-400" />
                                                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Expert Notes</span>
                                             </div>
-                                            <p className="text-[12px] text-gray-600 italic font-medium leading-relaxed">"{order.description}"</p>
+                                            <FormattedDescription 
+                                                content={order.description ? `"${order.description}"` : null}
+                                                className="text-[12px] text-gray-600 italic font-medium leading-relaxed"
+                                            />
                                         </div>
-                                    )}
                                 </div>
 
                                 {/* Logistics info */}

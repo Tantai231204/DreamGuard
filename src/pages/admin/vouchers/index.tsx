@@ -277,10 +277,10 @@ export default function VouchersPage() {
 
             <div className="flex flex-1 flex-col overflow-hidden bg-gradient-to-br from-slate-50 via-primary-50/35 to-sky-50/30 p-6">
                 <div className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                    <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-4 shadow-sm">
-                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-700">Active Campaigns</p>
-                        <p className="mt-2 text-2xl font-black leading-none text-emerald-700">{stats.active}</p>
-                        <p className="mt-2 text-[11px] font-semibold text-emerald-600">Running vouchers on storefront</p>
+                    <div className="rounded-2xl border border-[#4988c4]/20 bg-gradient-to-br from-[#4988c4]/5 to-white p-4 shadow-sm">
+                        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#4988c4]">Active Campaigns</p>
+                        <p className="mt-2 text-2xl font-black leading-none text-[#4988c4]">{stats.active}</p>
+                        <p className="mt-2 text-[11px] font-semibold text-[#4988c4]/70">Running vouchers on storefront</p>
                     </div>
 
                     <div className="rounded-2xl border border-primary-200 bg-gradient-to-br from-primary-50 to-white p-4 shadow-sm">
@@ -371,7 +371,7 @@ export default function VouchersPage() {
                                     variant="outline"
                                     onClick={resetQuickFilters}
                                     disabled={!hasQuickFilters}
-                                    className="h-10 w-full rounded-xl border-2 border-primary-200 bg-white px-4 font-semibold text-primary-700 shadow-sm hover:border-primary-300 hover:bg-primary-50 disabled:opacity-50 sm:w-auto"
+                                    className="h-10 w-full rounded-xl border-2 border-slate-200 bg-white px-4 font-bold text-slate-500 shadow-sm hover:border-[#4988c4] hover:text-[#4988c4] hover:bg-[#4988c4]/5 disabled:opacity-50 sm:w-auto transition-all"
                                 >
                                     <RotateCcw className="mr-2 h-4 w-4" />
                                     Reset
