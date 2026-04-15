@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, type ReactNode, forwardRef } from 'react';
+import { useState, useCallback, useRef, type ReactNode, forwardRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CartAnimationContext } from './cartAnimationContext';

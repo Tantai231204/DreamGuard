@@ -1,24 +1,24 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import tradeInOrderService from '@/api/services/tradeInOrderService';
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer, 
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
   Cell,
   PieChart,
   Pie
 } from 'recharts';
 import { formatPrice, cn } from '@/lib/utils';
-import { 
-  TrendingUp, 
-  RefreshCw, 
-  AlertCircle, 
-  CheckCircle2, 
+import {
+  TrendingUp,
+  RefreshCw,
+  AlertCircle,
+  CheckCircle2,
   Banknote,
   ArrowUpRight,
   ArrowDownRight,
@@ -40,9 +40,9 @@ export const TradeInAnalytics: React.FC = () => {
 
   const { data: stats, isLoading, isFetching } = useQuery({
     queryKey: ['tradeInDashboard', fromDate, toDate],
-    queryFn: () => tradeInOrderService.getTradeInDashboard({ 
-      fromDate, 
-      toDate 
+    queryFn: () => tradeInOrderService.getTradeInDashboard({
+      fromDate,
+      toDate
     }),
     enabled: !!fromDate && !!toDate
   });
@@ -80,7 +80,7 @@ export const TradeInAnalytics: React.FC = () => {
         <div className="flex items-center gap-3">
           <div className="flex flex-col gap-1.5 min-w-[300px]">
             <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest pl-1">Analysis Period</label>
-            <DatePicker 
+            <DatePicker
               mode="range"
               value={dateRange}
               onChange={setDateRange}
@@ -97,32 +97,32 @@ export const TradeInAnalytics: React.FC = () => {
 
       {/* Hero Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard 
-          label="Gross Transactions" 
-          value={stats.totalTradeInOrders} 
-          icon={RefreshCw} 
+        <StatCard
+          label="Gross Transactions"
+          value={stats.totalTradeInOrders}
+          icon={RefreshCw}
           color="blue"
           sub="Recorded requests"
         />
-        <StatCard 
-          label="Total Revenue" 
-          value={formatPrice(stats.totalAmount)} 
-          icon={Banknote} 
+        <StatCard
+          label="Total Revenue"
+          value={formatPrice(stats.totalAmount)}
+          icon={Banknote}
           color="emerald"
           sub="Gross settlement"
           trend={12.4}
         />
-        <StatCard 
-          label="Acquisition Cost" 
-          value={formatPrice(stats.totalPurchaseAmount)} 
-          icon={CheckCircle2} 
+        <StatCard
+          label="Acquisition Cost"
+          value={formatPrice(stats.totalPurchaseAmount)}
+          icon={CheckCircle2}
           color="indigo"
           sub="Paid to customers"
         />
-        <StatCard 
-          label="Refund Liability" 
-          value={formatPrice(stats.totalRefundAmount)} 
-          icon={AlertCircle} 
+        <StatCard
+          label="Refund Liability"
+          value={formatPrice(stats.totalRefundAmount)}
+          icon={AlertCircle}
           color="amber"
           sub="Processing returns"
           negative
@@ -133,91 +133,91 @@ export const TradeInAnalytics: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Order Mix - Pie Chart */}
         <div className="lg:col-span-2 bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden group">
-           <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-full -mr-16 -mt-16 group-hover:bg-primary/5 transition-colors duration-500" />
-           <div className="relative z-10 mb-8">
-              <h3 className="text-xl font-black text-slate-900 tracking-tight">Lifecycle Mix</h3>
-              <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest">Order Completion Ratios</p>
-           </div>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-slate-50 rounded-full -mr-16 -mt-16 group-hover:bg-primary/5 transition-colors duration-500" />
+          <div className="relative z-10 mb-8">
+            <h3 className="text-xl font-black text-slate-900 tracking-tight">Lifecycle Mix</h3>
+            <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest">Order Completion Ratios</p>
+          </div>
 
-           <div className="h-[300px] w-full relative">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={orderData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={80}
-                    outerRadius={100}
-                    paddingAngle={10}
-                    cornerRadius={12}
-                    dataKey="value"
-                  >
-                    {orderData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<CustomPieTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                 <span className="text-3xl font-black text-slate-900 leading-none">{stats.totalTradeInOrders}</span>
-                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter mt-1">Orders</span>
+          <div className="h-[300px] w-full relative">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={orderData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={80}
+                  outerRadius={100}
+                  paddingAngle={10}
+                  cornerRadius={12}
+                  dataKey="value"
+                >
+                  {orderData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
+                  ))}
+                </Pie>
+                <Tooltip content={<CustomPieTooltip />} />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <span className="text-3xl font-black text-slate-900 leading-none">{stats.totalTradeInOrders}</span>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter mt-1">Orders</span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 mt-4">
+            {orderData.map(item => (
+              <div key={item.name} className="flex flex-col items-center p-3 rounded-2xl bg-slate-50 border border-slate-100/50">
+                <div className="w-2 h-2 rounded-full mb-2" style={{ backgroundColor: item.color }} />
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-tight">{item.name}</span>
+                <span className="text-sm font-black text-slate-800">{item.value}</span>
               </div>
-           </div>
-           
-           <div className="grid grid-cols-3 gap-2 mt-4">
-              {orderData.map(item => (
-                <div key={item.name} className="flex flex-col items-center p-3 rounded-2xl bg-slate-50 border border-slate-100/50">
-                   <div className="w-2 h-2 rounded-full mb-2" style={{ backgroundColor: item.color }} />
-                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-tight">{item.name}</span>
-                   <span className="text-sm font-black text-slate-800">{item.value}</span>
-                </div>
-              ))}
-           </div>
+            ))}
+          </div>
         </div>
 
         {/* Revenue Distribution - Bar Chart */}
         <div className="lg:col-span-3 bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden group">
-           <div className="absolute -bottom-6 -right-6 w-48 h-48 bg-emerald-50 rounded-full opacity-50 blur-3xl group-hover:bg-primary/20 transition-all duration-700" />
-           
-           <div className="relative z-10 flex items-center justify-between mb-8">
-              <div>
-                 <h3 className="text-xl font-black text-slate-900 tracking-tight">Settlement Distribution</h3>
-                 <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest">Revenue across payment streams</p>
-              </div>
-              <div className="bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 text-[10px] font-black text-slate-400">
-                TOTAL: {formatPrice(stats.totalAmount)}
-              </div>
-           </div>
+          <div className="absolute -bottom-6 -right-6 w-48 h-48 bg-emerald-50 rounded-full opacity-50 blur-3xl group-hover:bg-primary/20 transition-all duration-700" />
 
-           <div className="h-[300px] w-full z-20 relative">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={amountData} margin={{ top: 20 }}>
-                  <CartesianGrid strokeDasharray="6 6" vertical={false} stroke="#f1f5f9" />
-                  <XAxis 
-                    dataKey="name" 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fontSize: 11, fontWeight: 800, fill: '#64748b' }}
-                  />
-                  <YAxis 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
-                    tickFormatter={(v) => `${(v / 1000000).toFixed(1)}M`}
-                  />
-                  <Tooltip 
-                    content={<CustomBarTooltip />}
-                    cursor={{ fill: '#f8fafc', radius: 12 }}
-                  />
-                  <Bar dataKey="value" radius={[12, 12, 0, 0]} barSize={50}>
-                    {amountData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-           </div>
+          <div className="relative z-10 flex items-center justify-between mb-8">
+            <div>
+              <h3 className="text-xl font-black text-slate-900 tracking-tight">Settlement Distribution</h3>
+              <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest">Revenue across payment streams</p>
+            </div>
+            <div className="bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-100 text-[10px] font-black text-slate-400">
+              TOTAL: {formatPrice(stats.totalAmount)}
+            </div>
+          </div>
+
+          <div className="h-[300px] w-full z-20 relative">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={amountData} margin={{ top: 20 }}>
+                <CartesianGrid strokeDasharray="6 6" vertical={false} stroke="#f1f5f9" />
+                <XAxis
+                  dataKey="name"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fontWeight: 800, fill: '#64748b' }}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
+                  tickFormatter={(v) => `${(v / 1000000).toFixed(1)}M`}
+                />
+                <Tooltip
+                  content={<CustomBarTooltip />}
+                  cursor={{ fill: '#f8fafc', radius: 12 }}
+                />
+                <Bar dataKey="value" radius={[12, 12, 0, 0]} barSize={50}>
+                  {amountData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
     </div>
