@@ -93,6 +93,8 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
 
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const [isCompleteConfirmDialogOpen, setIsCompleteConfirmDialogOpen] = useState(false);
+  const [isAcceptConfirmDialogOpen, setIsAcceptConfirmDialogOpen] = useState(false);
+  const [isDealConfirmDialogOpen, setIsDealConfirmDialogOpen] = useState(false);
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
   const [isProcessReturnDialogOpen, setIsProcessReturnDialogOpen] = useState(false);
   const [isProcessExchangeDialogOpen, setIsProcessExchangeDialogOpen] = useState(false);
@@ -285,19 +287,30 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
     "";
 
   const handleAcceptTask = useCallback(() => {
+    setIsAcceptConfirmDialogOpen(true);
+  }, []);
+
+  const handleConfirmAcceptTask = useCallback(() => {
     acceptTask();
+    setIsAcceptConfirmDialogOpen(false);
   }, [acceptTask]);
 
   const handleConfirmDeal = useCallback(() => {
+    setIsDealConfirmDialogOpen(true);
+  }, []);
+
+  const handleConfirmDealFinal = useCallback(() => {
     if (isConfirming) return;
 
     confirmDeal(
       { fromStatus: status, tradeInPrice: negotiatedPrice },
       {
         onSuccess: () => {
+          setIsDealConfirmDialogOpen(false);
           toast.success("Confirmed.");
         },
         onError: (error: Error) => {
+          setIsDealConfirmDialogOpen(false);
           toast.error(error.message || "Unable to confirm deal.");
         },
       },
@@ -430,6 +443,12 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
     handleNegotiatedPriceChange,
     handleOpenTradeInChat,
     handleOpenCancelDialog,
+    isAcceptConfirmDialogOpen,
+    setIsAcceptConfirmDialogOpen,
+    handleConfirmAcceptTask,
+    isDealConfirmDialogOpen,
+    setIsDealConfirmDialogOpen,
+    handleConfirmDealFinal,
     handleFinalizeTradeIn,
     handleConfirmFinalizeTradeIn,
     handleCloseCompleteConfirmDialog,

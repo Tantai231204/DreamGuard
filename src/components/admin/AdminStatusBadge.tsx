@@ -278,6 +278,8 @@ const LABEL_MAP: Record<string, string> = {
   'failed': 'Payment Failed',
   'published': 'Published',
   'draft': 'Draft',
+  'admin_cancelled': 'Admin Cancelled',
+  'admincancelled': 'Admin Cancelled',
   'outofstock': 'OutOfStock',
   'hidden': 'Hidden',
   'purchase': 'Purchase',
@@ -286,6 +288,15 @@ const LABEL_MAP: Record<string, string> = {
   'service': 'Service',
   'order': 'Product Order',
   'tradein': 'Trade-In Order',
+};
+
+const formatLabelFallback = (label: string) => {
+  if (!label) return '';
+  return label
+    .replace(/_/g, ' ')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z])([A-Z][a-z])/g, '$1 $2')
+    .trim();
 };
 
 export const AdminStatusBadge = React.forwardRef<HTMLDivElement, AdminStatusBadgeProps>(({
@@ -313,7 +324,7 @@ export const AdminStatusBadge = React.forwardRef<HTMLDivElement, AdminStatusBadg
 
   // Icons and Labels
   let Icon = ICON_MAP[normalizedStatus] || ICON_MAP[searchStr] || TYPE_CONFIG[finalType as StatusType]?.icon || Check;
-  let displayLabel = LABEL_MAP[normalizedStatus] || LABEL_MAP[searchStr] || status;
+  let displayLabel = LABEL_MAP[normalizedStatus] || LABEL_MAP[searchStr] || formatLabelFallback(status);
 
   // Payment overrides
   let payConfig = null;

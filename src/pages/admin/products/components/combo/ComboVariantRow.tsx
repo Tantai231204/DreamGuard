@@ -35,7 +35,7 @@ export default function ComboVariantRow({
         }
     }
 
-    const itemKey = `${item.productId}|${item.variantId ?? 'default'}`;
+    const itemKey = item.variantId || item.productId || 'default';
     const { color, size } = item.variantLabel
         ? parseVariantLabel(item.variantLabel)
         : { color: '—', size: null };
@@ -140,7 +140,12 @@ export default function ComboVariantRow({
                         <Input
                             type="number"
                             value={editQty}
-                            onChange={(e) => setEditQty(Number(e.target.value))}
+                            onChange={(e) => {
+                                const val = Number(e.target.value);
+                                setEditQty(val);
+                                // Trigger immediate update to show price mismatch notice in parent
+                                onQuantityChange?.(itemKey, val);
+                            }}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') handleSave();
                                 if (e.key === 'Escape') setIsEditing(false);

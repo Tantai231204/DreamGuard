@@ -185,3 +185,18 @@ export interface UploadTradeInOrderImagesOptions {
   compress?: boolean;
   onProgress?: (progress: number, stage: TradeInUploadStage) => void;
 }
+
+export interface TradeInDashboardResponse {
+  totalTradeInOrders: number;
+  totalCompletedTradeInOrders: number;
+  totalCancelledTradeInOrders: number;
+  totalRefundedTradeInOrders: number;
+  totalAmount: number;
+  totalPurchaseAmount: number;
+  totalDepositAmount: number;
+  totalCODAmount: number;
+  totalRefundAmount: number;
+  totalVnPayAmount: number;
+  fromDate: string;
+  toDate: string;
+}

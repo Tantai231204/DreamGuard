@@ -49,14 +49,14 @@ export default function ChildComboItems({
             const itemMap: Record<string, number> = {};
             if (detail) {
                 detail.items?.forEach(i => {
-                    const id = i.variantId || i.productId || '';
-                    itemMap[id] = i.quantity;
+                    const key = i.variantId || i.productId || '';
+                    itemMap[key] = i.quantity;
                 });
                 setHasFullDetail(true);
             } else if (parentChildData) {
                 parentChildData.items?.forEach(i => {
-                    const id = i.variantId || i.productId;
-                    itemMap[id] = i.quantity;
+                    const key = i.variantId || i.productId || '';
+                    itemMap[key] = i.quantity;
                 });
                 setHasFullDetail(false);
             }
@@ -72,7 +72,8 @@ export default function ChildComboItems({
 
     const theoreticalValue = useMemo(() => {
         return items.reduce((sum, item) => {
-            const qty = draftItems[item.productId] ?? item.quantity;
+            const key = item.variantId || item.productId || '';
+            const qty = draftItems[key] ?? item.quantity;
             const price = item.salePrice || 0;
             return sum + price * qty;
         }, 0);
@@ -88,26 +89,25 @@ export default function ChildComboItems({
         }
     }
 
+    const itemsChanged = useMemo(() => {
+        if (!detail) return false;
+        return detail.items?.some(i => {
+             const key = i.variantId || i.productId || '';
+             const currentQty = draftItems[key];
+             return currentQty !== undefined && currentQty !== i.quantity;
+        }) ?? false;
+    }, [detail, draftItems]);
+
     const isDirty = useMemo(() => {
         if (!detail) return false;
-
-        // Check items
-        const itemsChanged = detail.items?.some(i => {
-             const id = i.variantId || i.productId || '';
-             return draftItems[id] !== i.quantity;
-        });
         if (itemsChanged) return true;
-
-        // Check price
         if (draftSalePrice !== detail.salePrice) return true;
-
         return false;
-    }, [detail, draftItems, draftSalePrice]);
+    }, [detail, itemsChanged, draftSalePrice]);
 
     // ── Handlers ─────────────────────────────────────
     const handleQuantityChange = (itemKey: string, newQty: number) => {
-        const [pId] = itemKey.split('|');
-        setDraftItems(prev => ({ ...prev, [pId]: Math.max(1, newQty) }));
+        setDraftItems(prev => ({ ...prev, [itemKey]: Math.max(1, newQty) }));
     };
 
     const handleReset = () => {
@@ -250,21 +250,50 @@ export default function ChildComboItems({
                     <div className="text-right">Action</div>
                 </div>
                 <div className="divide-y divide-slate-50">
-                    {items.map((item, i) => (
-                        <ComboVariantRow
-                            key={`${item.productId}|${item.variantId ?? i}`}
-                            item={{
-                                ...item,
-                                quantity: draftItems[item.productId] ?? item.quantity
-                            }}
-                            onQuantityChange={handleQuantityChange}
-                            onDelete={handleDeleteItem}
-                            isLoading={updateComboMutation.isPending}
-                            isDense={isDense}
-                        />
-                    ))}
+                    {items.map((item, i) => {
+                        const key = item.variantId || item.productId || '';
+                        return (
+                            <ComboVariantRow
+                                key={`${item.productId}|${item.variantId ?? i}`}
+                                item={{
+                                    ...item,
+                                    quantity: draftItems[key] ?? item.quantity
+                                }}
+                                onQuantityChange={handleQuantityChange}
+                                onDelete={handleDeleteItem}
+                                isLoading={updateComboMutation.isPending}
+                                isDense={isDense}
+                            />
+                        );
+                    })}
                 </div>
             </div>
+
+            {/* Change Notice */}
+            {isDirty && (
+                <motion.div 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="mx-1 flex flex-col gap-2 p-3.5 rounded-xl bg-amber-50/70 border border-amber-200 shadow-sm"
+                >
+                    <div className="flex items-start gap-2.5">
+                        <div className="h-5 w-5 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                            <Calculator className="h-3 w-3 text-amber-600" />
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-[11px] font-bold text-amber-800 uppercase tracking-tight">
+                                Important Notice: Price Mismatch Detected
+                            </p>
+                            <p className="text-[11px] text-amber-700 leading-relaxed font-medium">
+                                You have modified the components or quantities of this combo. 
+                                <span className="block mt-1 font-bold text-amber-900 border-t border-amber-200/50 pt-1">
+                                    Note: Please adjust the sale price accordingly (or click "Match") before applying changes.
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                </motion.div>
+            )}
 
             {/* Compact Pricing Panel */}
             <div className={cn(
@@ -349,32 +378,25 @@ export default function ChildComboItems({
                     </div>
                 </div>
 
-                {/* Dynamic Progress Bar */}
+                {/* Dynamic Progress Bar (Only show when saving) */}
                 <AnimatePresence>
-                    {(isDirty || updateComboMutation.isPending) && (
+                    {updateComboMutation.isPending && (
                         <motion.div
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: 2, opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.3 }}
                             className="w-full bg-slate-100 overflow-hidden relative"
                         >
                             <motion.div
                                 initial={{ width: "0%" }}
-                                animate={{
-                                    width: updateComboMutation.isPending ? "85%" : (isDirty ? "33%" : "100%")
-                                }}
+                                animate={{ width: "100%" }}
                                 transition={{
-                                    type: "spring",
-                                    stiffness: 50,
-                                    damping: 15,
-                                    restDelta: 0.01
+                                    duration: 1.5,
+                                    ease: "easeInOut",
                                 }}
                                 className="h-full bg-primary-500"
                             />
-                            {updateComboMutation.isPending && (
-                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-1/2 animate-[shimmer_1.5s_infinite] -translate-x-full" />
-                            )}
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-1/2 animate-[shimmer_1.5s_infinite] -translate-x-full" />
                         </motion.div>
                     )}
                 </AnimatePresence>

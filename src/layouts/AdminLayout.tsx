@@ -1,8 +1,10 @@
 import { Outlet } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import AdminSidebar from '../components/layout/AdminSidebar';
+import { useNotificationHub } from '@/hooks/useNotificationHub';
 
 export default function AdminLayout() {
+  useNotificationHub();
   return (
     <div className="scrollbar-admin flex h-screen overflow-hidden overflow-x-hidden bg-gray-50 w-full max-w-full">
       <AdminSidebar />

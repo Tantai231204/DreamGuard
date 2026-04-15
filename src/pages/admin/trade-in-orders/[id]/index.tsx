@@ -13,6 +13,7 @@ import { OrderTimeline } from '@/pages/admin/orders/components/OrderTimeline';
 import { AppRoute } from '@/lib/constants';
 import { tradeInStatusBadgeValue } from '@/pages/admin/orders/components/tradeInStatus';
 import { TradeInStaffManagement } from './components/TradeInStaffManagement';
+import { TradeInAuditLogs } from './components/TradeInAuditLogs';
 
 export default function TradeInOrderDetail() {
   const { id } = useParams<{ id: string }>();
@@ -485,6 +486,12 @@ export default function TradeInOrderDetail() {
                 </div>
                 <OrderTimeline timeline={timelineItems} defaultVisibleCount={2} />
               </div>
+
+              {/* Audit Logs Section */}
+              <div className="pt-4 border-t border-slate-50">
+                <TradeInAuditLogs tradeInOrderId={id!} />
+              </div>
+
 
             </div>
           </div>

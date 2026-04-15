@@ -28,7 +28,8 @@ import {
   ProcessReturnDialog,
   ProcessExchangeDialog,
   OrderDetailSkeleton,
-  ShippingLogisticsEvidence
+  ShippingLogisticsEvidence,
+  ConfirmStatusDialog
 } from './components';
 import { AdminStatusBadge } from '@/components/admin';
 import { OrderStatus, ORDER_STATUS_MAP, ADMIN_ALLOWED_TRANSITION_STATUSES, ADMIN_ORDER_STATUS_THEME } from './constants';
@@ -48,6 +49,8 @@ export default function OrderDetail() {
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [showProcessReturnDialog, setShowProcessReturnDialog] = useState(false);
   const [showProcessExchangeDialog, setShowProcessExchangeDialog] = useState(false);
+  const [showConfirmStatusDialog, setShowConfirmStatusDialog] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<string | null>(null);
 
   const resolvedOrderId = order?.id || id || '';
   const { data: shippingTasks, isLoading: isTasksLoading } = useShippingTasksByOrder(resolvedOrderId);
@@ -91,10 +94,20 @@ export default function OrderDetail() {
   const handleUpdateStatus = (newStatus: string) => {
     const hasActiveTask = !!activeTask;
 
+    // Phase 1: Confirmation
+    if (!pendingStatus) {
+      setPendingStatus(newStatus);
+      setShowConfirmStatusDialog(true);
+      return;
+    }
+
+    // Phase 2: Business Logic Execution (Post-Confirmation)
     if (currentStatusEnum === OrderStatus.ShippingReplacement && newStatus === 'Processing') {
       toast.info('Replacement flow is staff-driven', {
         description: 'Keep this order at Shipping Replacement. Delivery staff should update the shipping task status directly.'
       });
+      setShowConfirmStatusDialog(false);
+      setPendingStatus(null);
       return;
     }
 
@@ -103,11 +116,12 @@ export default function OrderDetail() {
       toast.error('Logistics Constraint', {
         description: 'You must assign a technical agent before transitioning to this state.'
       });
+      setShowConfirmStatusDialog(false);
+      setPendingStatus(null);
       return;
     }
 
     // Business Logic: For COD orders, completing the order requires settling the payment first.
-    // The backend automatically completes the order when the COD payment is marked as 'CODPaid'.
     if (newStatus === 'Completed') {
       const orderMethod = order?.paymentMethod?.toLowerCase();
       const hasVNPay = paymentResponse?.items?.some(p => p.paymentMethod?.toLowerCase() === 'vnpay');
@@ -117,7 +131,11 @@ export default function OrderDetail() {
         const codPayment = paymentResponse?.items?.find(p => p.paymentMethod?.toLowerCase() === 'cod') || paymentResponse?.items?.[0];
         if (codPayment) {
           updatePayment.mutate({ id: codPayment.id, status: 'CODPaid' }, {
-            onSuccess: () => toast.success('COD Payment Settled. Engagement finalized.'),
+            onSuccess: () => {
+              toast.success('COD Payment Settled. Engagement finalized.');
+              setShowConfirmStatusDialog(false);
+              setPendingStatus(null);
+            },
             onError: () => toast.error('Failed to sync COD payment status.')
           });
         } else {
@@ -125,12 +143,22 @@ export default function OrderDetail() {
         }
       } else {
         toast.info('System Automated', { description: 'VNPay orders are finalized automatically by the system.' });
+        setShowConfirmStatusDialog(false);
+        setPendingStatus(null);
       }
-      return; // Never call updateStatus manually for 'Completed'
+      return; 
     }
 
     updateStatus.mutate({ id: order.id, status: newStatus }, {
-      onSuccess: () => toast.success(`Order status synchronized to ${newStatus}`),
+      onSuccess: () => {
+        toast.success(`Order status synchronized to ${newStatus}`);
+        setShowConfirmStatusDialog(false);
+        setPendingStatus(null);
+      },
+      onError: () => {
+        setShowConfirmStatusDialog(false);
+        setPendingStatus(null);
+      }
     });
   };
 
@@ -457,6 +485,17 @@ export default function OrderDetail() {
         orderId={order.id}
         taskId={activeTask?.shippingTaskId || ''}
         items={order.items || []}
+      />
+
+      <ConfirmStatusDialog
+        open={showConfirmStatusDialog}
+        onOpenChange={setShowConfirmStatusDialog}
+        onConfirm={() => pendingStatus && handleUpdateStatus(pendingStatus)}
+        isLoading={updateStatus.isPending || updatePayment.isPending}
+        title={`Confirm ${pendingStatus || 'Update'}`}
+        description={`Are you sure you want to transition this order to ${pendingStatus}? This action will trigger associated workflow updates.`}
+        variant={pendingStatus === 'Completed' ? 'success' : 'primary'}
+        confirmText={pendingStatus === 'Completed' ? 'Finalize Order' : 'Confirm Update'}
       />
     </div>
   );

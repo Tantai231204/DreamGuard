@@ -53,7 +53,6 @@ const OrderDetail = lazy(() => import("../pages/admin/orders/[id]"));
 const ServiceManagement = lazy(() => import("../pages/admin/services"));
 const ServiceDetail = lazy(() => import("../pages/admin/services/[id].tsx"));
 const ServicePackagesPage = lazy(() => import("../pages/admin/service-packages"));
-const ChatAdmin = lazy(() => import("../pages/admin/chat"));
 const ProductManagement = lazy(() => import("../pages/admin/products"));
 const AdminProductDetail = lazy(() => import("../pages/admin/products/[id]"));
 const ProductTypeManagement = lazy(() => import("../pages/admin/product-types"));
@@ -66,6 +65,7 @@ const CustomizeTypeManagement = lazy(() => import("../pages/admin/customize-type
 const TemplateManagement = lazy(() => import("../pages/admin/templates"));
 const SystemConfigManagement = lazy(() => import("../pages/admin/system-configs"));
 const TradeInOrderDetail = lazy(() => import("../pages/admin/trade-in-orders/[id]"));
+const GlobalAuditLogs = lazy(() => import("../pages/admin/audit-logs"));
 
 import { AuthRedirectNotice } from "../components/router/AuthRedirectNotice";
 
@@ -133,8 +133,8 @@ export default function AppRouter() {
                         <Route path={AppRoute.ADMIN} element={<AdminDashboard />} />
                         <Route path="/admin/orders" element={<OrderManagement />} />
                         <Route path="/admin/orders/:id" element={<OrderDetail />} />
-                        <Route path="/admin/chat" element={<ChatAdmin />} />
                         <Route path="/admin/trade-in-orders/:id" element={<TradeInOrderDetail />} />
+                        <Route path="/admin/audit-logs" element={<GlobalAuditLogs />} />
                         <Route path={AppRoute.ADMIN_TRADE_IN_ORDERS} element={<Navigate to="/admin/orders?view=trade-in" replace />} />
 
                         <Route element={<PermissionGuard allowedRoles={[UserRole.ADMIN, UserRole.MANAGER]} />}>

@@ -3,7 +3,6 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   ShoppingCart,
-  MessageSquare,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -19,6 +18,7 @@ import {
   CircleDot,
   UserCheck,
   Activity,
+  History as HistoryIcon,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { useState, useMemo } from 'react';
@@ -52,7 +52,6 @@ const navSections: NavSection[] = [
     items: [
       { title: 'Dashboard', href: '/admin', icon: LayoutDashboard, allowedRoles: ALL_ROLES },
       { title: 'Analytics', href: '/admin/analytics', icon: BarChart3, allowedRoles: ADMIN_MANAGER },
-      { title: 'Chat', href: '/admin/chat', icon: MessageSquare, badge: 3, allowedRoles: ALL_ROLES },
     ],
   },
   {
@@ -90,6 +89,7 @@ const navSections: NavSection[] = [
     label: 'System',
     items: [
       { title: 'Registry', href: '/admin/system-configs', icon: Activity, allowedRoles: ADMIN_ONLY },
+      { title: 'Audit Logs', href: '/admin/audit-logs', icon: HistoryIcon, allowedRoles: ADMIN_ONLY },
       { title: 'Settings', href: '/admin/settings', icon: Settings, allowedRoles: ADMIN_MANAGER },
     ],
   },
@@ -105,7 +105,7 @@ export default function AdminSidebar() {
   const filteredSections = useMemo(() => {
     return navSections.map(section => ({
       ...section,
-      items: section.items.filter(item => 
+      items: section.items.filter(item =>
         !item.allowedRoles || item.allowedRoles.includes(role as UserRole)
       )
     })).filter(section => section.items.length > 0);
@@ -206,7 +206,7 @@ export default function AdminSidebar() {
                 </h3>
               )}
               {collapsed && idx > 0 && <div className="mx-4 border-t border-gray-100 my-4 opacity-40" />}
-              
+
               <ul className={cn("transition-all duration-300", collapsed ? "space-y-2" : "space-y-1.5")}>
                 {section.items.map((item) => {
                   const Icon = item.icon;
@@ -220,8 +220,8 @@ export default function AdminSidebar() {
                           whileTap={{ scale: 0.96 }}
                           className={cn(
                             'group relative flex items-center transition-all duration-300 z-[60]',
-                            collapsed 
-                              ? 'justify-center w-12 h-12 mx-auto rounded-2xl' 
+                            collapsed
+                              ? 'justify-center w-12 h-12 mx-auto rounded-2xl'
                               : 'gap-3 px-4 py-3 mx-2 rounded-xl',
                             active
                               ? 'text-[var(--color-primary)] font-bold'
@@ -234,8 +234,8 @@ export default function AdminSidebar() {
                               layoutId="active-highlight"
                               className={cn(
                                 "absolute inset-0 -z-10",
-                                collapsed 
-                                  ? "bg-[var(--color-primary)] rounded-2xl" 
+                                collapsed
+                                  ? "bg-[var(--color-primary)] rounded-2xl"
                                   : "bg-gray-100 rounded-xl"
                               )}
                               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
@@ -290,7 +290,7 @@ export default function AdminSidebar() {
                               {item.badge}
                             </div>
                           )}
-                          
+
                           {/* Tooltip Enhanced (Visible only in collapsed state) */}
                           {collapsed && (
                             <div className="absolute left-[calc(100%+0.5rem)] invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-500 px-3 py-2 bg-gray-900 border border-white/10 text-white text-[11px] font-bold rounded-xl whitespace-nowrap z-[100] translate-x-[-10px] group-hover:translate-x-0">
@@ -313,38 +313,38 @@ export default function AdminSidebar() {
 
       {/* User Actions & Profile */}
       <div className="p-4 bg-gray-50/30 border-t border-gray-50">
-         <div className={cn(
-           "mb-4 flex items-center transition-all duration-300",
-           collapsed ? "justify-center" : "bg-white p-2.5 rounded-2xl border border-gray-100 gap-3"
-         )}>
-           <div className="relative group/avatar">
-             <Avatar className="h-10 w-10 border-2 border-white ring-2 ring-[var(--color-primary-light)] ring-offset-2 flex-shrink-0 transition-transform hover:scale-105">
-                <AvatarImage src={profile?.avatarUrl} alt={profile?.fullName || "Admin"} />
-                <AvatarFallback className="bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-hover)] text-white font-black text-xs">
-                  {profile?.fullName ? profile.fullName[0].toUpperCase() : 'AD'}
-                </AvatarFallback>
-              </Avatar>
-              <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 border-2 border-white rounded-full" />
-              
-              {collapsed && (
-                <div className="absolute left-full invisible group-hover/avatar:visible opacity-0 group-hover/avatar:opacity-100 transition-all duration-500 ml-5 px-4 py-3 bg-white border border-gray-100 text-gray-900 text-xs rounded-2xl whitespace-nowrap z-[100] translate-x-[-10px] group-hover/avatar:translate-x-0 min-w-[150px]">
-                  <p className="font-black text-sm">{profile?.fullName || 'Administrator'}</p>
-                  <p className="text-[10px] text-gray-500 font-medium mt-0.5">{profile?.email || 'admin@dreamguard.com'}</p>
-                </div>
-              )}
-           </div>
+        <div className={cn(
+          "mb-4 flex items-center transition-all duration-300",
+          collapsed ? "justify-center" : "bg-white p-2.5 rounded-2xl border border-gray-100 gap-3"
+        )}>
+          <div className="relative group/avatar">
+            <Avatar className="h-10 w-10 border-2 border-white ring-2 ring-[var(--color-primary-light)] ring-offset-2 flex-shrink-0 transition-transform hover:scale-105">
+              <AvatarImage src={profile?.avatarUrl} alt={profile?.fullName || "Admin"} />
+              <AvatarFallback className="bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-hover)] text-white font-black text-xs">
+                {profile?.fullName ? profile.fullName[0].toUpperCase() : 'AD'}
+              </AvatarFallback>
+            </Avatar>
+            <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 border-2 border-white rounded-full" />
 
-            {!collapsed && (
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-black text-gray-900 truncate tracking-tight">
-                  {profile?.fullName || 'Administrator'}
-                </p>
-                <p className="text-[10px] text-gray-400 font-bold truncate tracking-wide mt-0.5">{profile?.email || 'admin@dreamguard.com'}</p>
+            {collapsed && (
+              <div className="absolute left-full invisible group-hover/avatar:visible opacity-0 group-hover/avatar:opacity-100 transition-all duration-500 ml-5 px-4 py-3 bg-white border border-gray-100 text-gray-900 text-xs rounded-2xl whitespace-nowrap z-[100] translate-x-[-10px] group-hover/avatar:translate-x-0 min-w-[150px]">
+                <p className="font-black text-sm">{profile?.fullName || 'Administrator'}</p>
+                <p className="text-[10px] text-gray-500 font-medium mt-0.5">{profile?.email || 'admin@dreamguard.com'}</p>
               </div>
             )}
-         </div>
+          </div>
 
-         <button
+          {!collapsed && (
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-black text-gray-900 truncate tracking-tight">
+                {profile?.fullName || 'Administrator'}
+              </p>
+              <p className="text-[10px] text-gray-400 font-bold truncate tracking-wide mt-0.5">{profile?.email || 'admin@dreamguard.com'}</p>
+            </div>
+          )}
+        </div>
+
+        <button
           onClick={() => logout()}
           className={cn(
             "flex items-center transition-all duration-300 group rounded-xl",

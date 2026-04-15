@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom"
-import { InstagramLogoIcon, BellIcon } from "@radix-ui/react-icons"
+import { InstagramLogoIcon } from "@radix-ui/react-icons"
 import { Facebook } from "lucide-react"
 import { useState, useEffect, useCallback, memo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
@@ -11,6 +11,7 @@ import { NavDropdown, type DropdownLink, type HighlightCard } from "./NavDropdow
 import { MegaMenu } from "./MegaMenu"
 import UserDropdown from "./UserDropdown"
 import { CartDrawer } from "./CartDrawer"
+import { NotificationDropdown } from "./NotificationDropdown"
 import { useHeaderData, type NavItem } from "./useHeaderData"
 import { useCoinRewardConfig } from "@/hooks/queries/useCoinRewardConfig"
 
@@ -55,21 +56,6 @@ const NavItemLink = memo(({ label, href, items, highlight, isActive, onOpen, isS
         </Link>
     )
 })
-
-const ActionIcon = memo(({ children, badge, onClick, label }: { children: React.ReactNode, badge?: number, onClick?: () => void, label: string }) => (
-    <button
-        onClick={onClick}
-        aria-label={label}
-        className="group relative flex h-10 w-10 items-center justify-center rounded-xl text-slate-400 transition-all hover:bg-slate-50 hover:text-[#4988c4] focus:outline-none focus:ring-2 focus:ring-[#4988c4]/20"
-    >
-        {children}
-        {badge !== undefined && badge > 0 && (
-            <span className="absolute top-2 right-2 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[#4988c4] px-1 text-[8px] font-black text-white shadow-lg shadow-blue-500/20 ring-2 ring-white transition-transform group-hover:scale-110">
-                {badge > 9 ? "9+" : badge}
-            </span>
-        )}
-    </button>
-))
 
 /* ================= Main Header Component ================= */
 
@@ -162,10 +148,10 @@ export default function Header() {
                         <div className="w-[1px] h-4 bg-slate-200/60 mx-1" />
                         <CartDrawer />
                     </div>
-                    <ActionIcon badge={2} label="Notifications">
-                        <BellIcon className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-                    </ActionIcon>
+                    <NotificationDropdown />
                 </div>
+
+
             </div>
 
             {/* 3. Discover Navigation Layer */}

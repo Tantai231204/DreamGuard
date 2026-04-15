@@ -88,7 +88,7 @@ export const OrderHeader = memo(function OrderHeader({
                 size="sm"
                 onClick={() => confirmBooking(order.soId || order.id || "")}
                 disabled={isConfirming}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] uppercase tracking-widest rounded-xl gap-2 shadow-sm transition-all hover:shadow-md h-10 px-5"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] uppercase tracking-widest rounded-xl gap-2 shadow-sm transition-all hover:shadow-md h-10 px-5 !border-0"
               >
                 <CheckCircle className="h-4 w-4" /> {isConfirming ? "Confirming..." : "Confirm Booking"}
               </Button>
@@ -96,10 +96,10 @@ export const OrderHeader = memo(function OrderHeader({
 
             {permissions.canAssign && (
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={onAssign}
-                className="border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 font-black text-[10px] uppercase tracking-widest rounded-xl gap-2 h-10 px-5 transition-all"
+                className="bg-amber-100/60 text-amber-700 hover:bg-amber-100 font-black text-[10px] uppercase tracking-widest rounded-xl gap-2 h-10 px-5 transition-all shadow-sm !border-0"
               >
                 <UserPlus className="h-4 w-4" /> Dispatch Tech
               </Button>
@@ -111,17 +111,17 @@ export const OrderHeader = memo(function OrderHeader({
                 size="sm"
                 onClick={() => setIsCancelOpen(true)}
                 disabled={isCancelling}
-                className="text-rose-600 hover:bg-rose-50 hover:text-rose-700 font-black text-[10px] uppercase tracking-widest rounded-xl gap-2 h-10 px-5 transition-all"
+                className="text-rose-600 hover:bg-rose-50 hover:text-rose-700 font-black text-[10px] uppercase tracking-widest rounded-xl gap-2 h-10 px-5 transition-all !border-0"
               >
                 <XCircle className="h-4 w-4" /> {isCancelling ? "Processing..." : (order.status?.toLowerCase() === 'pending' ? 'Reject' : 'Cancel')}
               </Button>
             )}
 
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={() => toast.info('Edit mode enabled')}
-              className="border-slate-200 text-slate-600 hover:bg-slate-50 font-black text-[10px] uppercase tracking-widest rounded-xl gap-2 h-10 px-5 transition-all"
+              className="bg-slate-100/60 text-slate-600 hover:bg-slate-200 font-black text-[10px] uppercase tracking-widest rounded-xl gap-2 h-10 px-5 transition-all shadow-sm !border-0"
             >
               <FileEdit className="h-4 w-4" /> Edit
             </Button>

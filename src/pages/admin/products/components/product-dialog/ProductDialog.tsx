@@ -114,7 +114,7 @@ export default function ProductDialog({
                 </VisuallyHidden>
                 {showLoading ? (
                     <div className="flex items-center justify-center py-20">
-                        <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+                        <Loader2 className="h-8 w-8 animate-spin text-[#4988c4]" />
                     </div>
                 ) : (
                     <ProductDialogForm

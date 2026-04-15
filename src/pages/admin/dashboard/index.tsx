@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/store/authStore";
 import { mockOrders } from "../data";
 import { quickActions, statsConfig } from "./data";
-import { QuickActions, RecentOrders, StatsGrid } from "./components";
+import { QuickActions, RecentOrders, StatsGrid, TradeInAnalytics } from "./components";
 import { formatPrice } from "@/lib/utils";
 
 export default function Dashboard() {
@@ -75,6 +75,7 @@ export default function Dashboard() {
       <div className="flex-1 px-6 pb-6 overflow-y-auto space-y-6">
         <StatsGrid stats={statsConfig} isLoading={isLoading} />
         <QuickActions actions={quickActions} isLoading={isLoading} />
+        <TradeInAnalytics />
         <RecentOrders orders={recentOrders} isLoading={isLoading} />
       </div>
     </div>
