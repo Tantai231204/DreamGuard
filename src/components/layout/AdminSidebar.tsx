@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -19,6 +20,7 @@ import {
   UserCheck,
   Activity,
   History as HistoryIcon,
+  MessageSquare,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { useState, useMemo } from 'react';
@@ -28,6 +30,9 @@ import { useLogout } from '@/hooks/useAuth';
 import { ProductAssetIcons } from '@/components/common/icons';
 import { UserRole } from '@/lib/constants';
 import { useAuthStore } from '@/store/authStore';
+import { chatService } from '@/api/services';
+import api from '@/lib/api';
+
 
 interface NavItem {
   title: string;
@@ -50,7 +55,7 @@ const navSections: NavSection[] = [
   {
     label: 'Overview',
     items: [
-      { title: 'Dashboard', href: '/admin', icon: LayoutDashboard, allowedRoles: ALL_ROLES },
+      { title: 'Dashboard', href: '/admin', icon: LayoutDashboard, allowedRoles: ADMIN_MANAGER },
       { title: 'Analytics', href: '/admin/analytics', icon: BarChart3, allowedRoles: ADMIN_MANAGER },
     ],
   },
@@ -73,7 +78,7 @@ const navSections: NavSection[] = [
   {
     label: 'Services',
     items: [
-      { title: 'Services', href: '/admin/services', icon: Sparkles, badge: 2, allowedRoles: ADMIN_MANAGER },
+      { title: 'Services', href: '/admin/services', icon: Sparkles, allowedRoles: ADMIN_MANAGER },
       { title: 'Service Packages', href: '/admin/service-packages', icon: Package, allowedRoles: ADMIN_MANAGER },
       { title: 'Customize Types', href: '/admin/customize-types', icon: CircleDot, allowedRoles: ADMIN_MANAGER },
     ],
@@ -93,6 +98,17 @@ const navSections: NavSection[] = [
       { title: 'Settings', href: '/admin/settings', icon: Settings, allowedRoles: ADMIN_MANAGER },
     ],
   },
+  {
+    label: 'Support',
+    items: [
+      { 
+        title: 'Chat Support', 
+        href: '/admin/chat', 
+        icon: MessageSquare, 
+        allowedRoles: [UserRole.SELLER] 
+      },
+    ],
+  },
 ];
 
 export default function AdminSidebar() {
@@ -100,16 +116,66 @@ export default function AdminSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const { data: profile } = useProfile();
   const { mutate: logout } = useLogout();
-  const { role } = useAuthStore();
+  const { role, isAuthenticated } = useAuthStore();
+
+  const { data: chatData } = useQuery({
+    queryKey: ['admin', 'conversations', ''], 
+    queryFn: () => chatService.getConversations({ pageNumber: 1, pageSize: 50 }),
+    enabled: isAuthenticated && role === UserRole.SELLER,
+    refetchInterval: 60000,
+    staleTime: 30000, 
+  });
+
+  const unreadChatCount = useMemo(() => {
+    if (!chatData) return 0;
+    const items = Array.isArray(chatData) 
+      ? chatData 
+      : ((chatData as { items?: { unreadCount?: number }[] }).items || []);
+    return items.reduce((acc: number, curr: { unreadCount?: number }) => acc + (Number(curr.unreadCount) || 0), 0);
+  }, [chatData]);
+
+  const { data: serviceData } = useQuery({
+    queryKey: ['serviceOrders', 'admin-stats'],
+    queryFn: async () => {
+      const res = await api.post('/ServiceOrders/AdminSearchOrderService', {}, {
+        params: { pageNumber: 1, pageSize: 100 }
+      });
+      return (res.data?.data ?? res.data) as { items: { status: string; staff?: Record<string, unknown> | null }[] };
+    },
+    enabled: isAuthenticated && role !== UserRole.SELLER,
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  const pendingServiceCount = useMemo(() => {
+    if (!serviceData?.items) return 0;
+    return serviceData.items.filter((item) => {
+      const status = item.status?.toLowerCase();
+      // Needs confirmation
+      if (status === 'pending') return true;
+      // Needs assignment (Confirmed but no staff/technician)
+      if (status === 'confirmed' && !item.staff) return true;
+      return false;
+    }).length;
+  }, [serviceData]);
 
   const filteredSections = useMemo(() => {
     return navSections.map(section => ({
       ...section,
-      items: section.items.filter(item =>
+      items: section.items.map(item => {
+        if (item.title === 'Chat Support') {
+          return { ...item, badge: unreadChatCount };
+        }
+        if (item.title === 'Services' && item.href === '/admin/services') {
+          return { ...item, badge: pendingServiceCount };
+        }
+        return item;
+      }).filter(item =>
         !item.allowedRoles || item.allowedRoles.includes(role as UserRole)
       )
     })).filter(section => section.items.length > 0);
-  }, [role]);
+  }, [role, unreadChatCount, pendingServiceCount]);
 
   const isActive = (path: string) => {
     const [targetPath, targetQuery] = path.split('?');
@@ -272,22 +338,25 @@ export default function AdminSidebar() {
                               />
                             )}
 
-                            {item.badge && collapsed && (
-                              <div className="absolute -top-2 -right-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 border-2 border-white px-1 text-[9px] font-black text-white">
-                                {item.badge}
+                            {(item.badge ?? 0) > 0 && (
+                              <div className="absolute -top-1 -right-1 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-blue-500 ring-2 ring-white">
+                                <span className="absolute inset-0 rounded-full bg-blue-400 animate-ping opacity-75" />
                               </div>
                             )}
                           </div>
 
                           {!collapsed && (
-                            <span className="text-[13px] transition-colors relative z-10 truncate tracking-wide">
+                            <span className={cn(
+                              "text-[13px] transition-colors relative z-10 truncate tracking-wide",
+                              (item.badge ?? 0) > 0 && "font-black text-gray-900"
+                            )}>
                               {item.title}
                             </span>
                           )}
 
-                          {item.badge && !collapsed && (
-                            <div className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[var(--color-primary)] px-1.5 text-[10px] font-black text-white">
-                              {item.badge}
+                          {(item.badge ?? 0) > 0 && !collapsed && (
+                            <div className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-blue-500 px-1.5 text-[9px] font-black text-white shadow-lg shadow-blue-200">
+                              {item.badge! > 99 ? '99+' : item.badge}
                             </div>
                           )}
 

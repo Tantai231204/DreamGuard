@@ -8,6 +8,13 @@ interface MappingStatusCellProps {
     productTypes: { productTypeId: string; productTypeName: string }[];
 }
 
+interface RawMapping {
+    servicePackageId?: string;
+    ServicePackageId?: string;
+    productTypeId?: string;
+    ProductTypeId?: string;
+}
+
 export const MappingStatusCell = ({ pkg, productTypes }: MappingStatusCellProps) => {
     const rawValue = pkg.suitableFor || '';
     const suitableArray = useMemo(() => rawValue.split(',').map(s => s.trim().toLowerCase()).filter(Boolean), [rawValue]);
@@ -15,20 +22,27 @@ export const MappingStatusCell = ({ pkg, productTypes }: MappingStatusCellProps)
     const { data: allMappings = [], isLoading } = useAllPackageMappings();
 
     const mappingsForPackage = useMemo(() => {
-        return allMappings.filter((m: { servicePackageId: string }) => m.servicePackageId === pkg.servicePackageId);
+        return (allMappings as RawMapping[]).filter((m) => 
+            (m.servicePackageId || m.ServicePackageId) === pkg.servicePackageId
+        );
     }, [allMappings, pkg.servicePackageId]);
 
     const isFullyMapped = useMemo(() => {
+        if (isLoading || !productTypes || productTypes.length === 0) return true;
         if (suitableArray.length === 0) return true;
+
         return suitableArray.every((catName) => {
             const pt = productTypes.find(p => 
-                p.productTypeName.toLowerCase() === catName || 
-                p.productTypeId.toLowerCase() === catName
+                p.productTypeName?.toLowerCase() === catName || 
+                p.productTypeId?.toLowerCase() === catName
             );
-            if (!pt) return false;
-            return mappingsForPackage.some((m: { productTypeId: string }) => m.productTypeId === pt.productTypeId);
+            if (!pt) return true; // Skip if category not found in system
+
+            return (mappingsForPackage as RawMapping[]).some((m) => 
+                (m.productTypeId || m.ProductTypeId) === pt.productTypeId
+            );
         });
-    }, [suitableArray, productTypes, mappingsForPackage]);
+    }, [suitableArray, productTypes, mappingsForPackage, isLoading]);
 
     return (
         <div className="flex flex-col items-start gap-2 py-1.5 relative group">

@@ -27,7 +27,8 @@ export const useCreateServicePackage = () => {
 export const useUpdateServicePackage = () => {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: ({ id, data }: { id: string; data: FormData }) => servicePackageService.update(id, data),
+        mutationFn: ({ id, data }: { id: string; data: Partial<import('@/api/services/servicePackageService').ServicePackage> }) => 
+            servicePackageService.update(id, data),
         onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-service-packages'] }),
     });
 };

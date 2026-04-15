@@ -41,7 +41,7 @@ const MATERIAL_ASSETS: Record<string, { image: string, description: string }> = 
         description: 'Contouring support that adapts to your shape.',
     },
     'default': {
-        image: 'https://i.pinimg.com/736x/1a/10/7b/1a107b22d1406d44bcab4affb42fa023.jpg',
+        image: 'https://i.pinimg.com/1200x/6f/b4/67/6fb467e6ad41922f04f48dcd72696673.jpg',
         description: 'High-quality material selected for best experience.',
     }
 }
@@ -49,7 +49,7 @@ const MATERIAL_ASSETS: Record<string, { image: string, description: string }> = 
 export function useHeaderData() {
     const { data: categories = [] } = useCategories()
     const { data: comboPage } = usePublicCombos({ pageSize: 12 })
-    const combos = comboPage?.items || []
+    const combos = useMemo(() => comboPage?.items || [], [comboPage?.items])
 
     const navItems = useMemo(() => {
         const topCategories = categories.slice(0, 3);
@@ -107,7 +107,10 @@ export function useHeaderData() {
         }
 
         items.push({ label: "Customize 3D", href: AppRoute.SERVICES_CUSTOMIZE });
-        items.push({ label: "Combos", href: AppRoute.COMBOS });
+        items.push({ 
+            label: "Combos", 
+            href: AppRoute.COMBOS 
+        });
         items.push({ label: "Services", href: "/services" });
         items.push({ label: "About", href: "/about" });
 

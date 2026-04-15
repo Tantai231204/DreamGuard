@@ -276,7 +276,7 @@ export function OrderSummary({
                             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-700">Completion Reward</span>
                         </div>
                         <p className="text-[11px] font-black text-emerald-700 uppercase tracking-widest">
-                            +{Math.floor(total * (orderCompletionCoin / 10000))} coins
+                            +{Math.floor(total / 10000) * orderCompletionCoin} coins
                         </p>
                     </div>
                 </div>

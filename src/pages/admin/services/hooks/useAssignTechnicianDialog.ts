@@ -30,7 +30,11 @@ export const useAssignTechnicianDialog = ({ orderId, onClose }: UseAssignTechnic
     },
     onSuccess: () => {
       toast.success('Technician assigned successfully');
-      queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
+      // Force refetch to update calendar immediately
+      queryClient.refetchQueries({ queryKey: ['serviceOrders'] });
+      if (orderId) {
+        queryClient.invalidateQueries({ queryKey: ['serviceOrder', orderId] });
+      }
       onClose();
       setSelectedStaffId('');
     },

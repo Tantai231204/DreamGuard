@@ -149,8 +149,14 @@ export default function ServicePackageDialog({
 
     useEffect(() => {
         if (pkg && open && productTypes.length > 0 && !suitableForValue) {
-            const matchedType = productTypes.find(t => t.productTypeName === pkg.suitableFor || t.productTypeId === pkg.suitableFor);
-            if (matchedType) setValue('suitableFor', matchedType.productTypeId);
+            const values = (pkg.suitableFor || '').split(',').map(s => s.trim().toLowerCase());
+            const matchedTypes = productTypes.filter(t => 
+                values.includes(t.productTypeName.toLowerCase()) || 
+                values.includes(t.productTypeId.toLowerCase())
+            );
+            if (matchedTypes.length > 0) {
+                setValue('suitableFor', matchedTypes.map(t => t.productTypeName).join(','));
+            }
         }
     }, [productTypes, pkg, open, setValue, suitableForValue]);
 

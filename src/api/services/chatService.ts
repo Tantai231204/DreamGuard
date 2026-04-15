@@ -123,6 +123,12 @@ const resolveOnlineStatus = (item: BackendConversation): boolean | undefined => 
   return undefined;
 };
 
+const resolveUnreadCount = (item: BackendConversation): number => {
+  const raw = item as unknown as Record<string, unknown>;
+  const candidate = raw.unreadCount ?? raw.unreadMessages ?? raw.unread_count ?? raw.UnreadCount ?? 0;
+  return typeof candidate === 'number' ? candidate : 0;
+};
+
 /** Map backend conversation schema to UI model */
 export const mapConversation = (item: BackendConversation): Conversation => ({
   id: item.conversationId,
@@ -132,7 +138,7 @@ export const mapConversation = (item: BackendConversation): Conversation => ({
   customerAvatar: '',
   lastMessage: `Order: ${item.tradeInOrder?.orderCode || 'N/A'}`,
   lastMessageTime: item.createdAt || new Date().toISOString(),
-  unreadCount: 0,
+  unreadCount: resolveUnreadCount(item),
   status: (item.tradeInOrder?.status?.toLowerCase() || 'active') as Conversation['status'],
   isOnline: resolveOnlineStatus(item)
 });

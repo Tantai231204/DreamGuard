@@ -10,10 +10,18 @@ import { PageLoader } from "../components/common";
 import { AppRoute, UserRole } from "../lib/constants";
 import { PermissionGuard } from "../components/router/PermissionGuard";
 import { RouteUXEnhancer } from "../components/router/RouteUXEnhancer";
+import { useAuthStore } from "../store/authStore";
 
 /* =======================
-   Lazy loaded pages
+   Helper Components
 ======================= */
+function AdminRootRedirect() {
+    const { role } = useAuthStore();
+    if (role === UserRole.SELLER) {
+        return <Navigate to="/admin/orders" replace />;
+    }
+    return <AdminDashboard />;
+}
 
 // Public
 const Home = lazy(() => import("../pages/home"));
@@ -66,6 +74,7 @@ const TemplateManagement = lazy(() => import("../pages/admin/templates"));
 const SystemConfigManagement = lazy(() => import("../pages/admin/system-configs"));
 const TradeInOrderDetail = lazy(() => import("../pages/admin/trade-in-orders/[id]"));
 const GlobalAuditLogs = lazy(() => import("../pages/admin/audit-logs"));
+const ChatAdmin = lazy(() => import("../pages/admin/chat"));
 
 import { AuthRedirectNotice } from "../components/router/AuthRedirectNotice";
 
@@ -130,7 +139,13 @@ export default function AppRouter() {
                 {/* ===== Admin Routes ===== */}
                 <Route element={<AdminRoute />}>
                     <Route element={<AdminLayout />}>
-                        <Route path={AppRoute.ADMIN} element={<AdminDashboard />} />
+                        {/* Dynamic Root Redirection for Admin Home */}
+                        <Route path={AppRoute.ADMIN} element={
+                            <PermissionGuard allowedRoles={[UserRole.ADMIN, UserRole.MANAGER, UserRole.SELLER]}>
+                                <AdminRootRedirect />
+                            </PermissionGuard>
+                        } />
+
                         <Route path="/admin/orders" element={<OrderManagement />} />
                         <Route path="/admin/orders/:id" element={<OrderDetail />} />
                         <Route path="/admin/trade-in-orders/:id" element={<TradeInOrderDetail />} />
@@ -157,6 +172,10 @@ export default function AppRouter() {
                         <Route element={<PermissionGuard allowedRoles={[UserRole.ADMIN]} />}>
                             <Route path="/admin/staff" element={<StaffManagement />} />
                             <Route path={AppRoute.ADMIN_SYSTEM_CONFIGS} element={<SystemConfigManagement />} />
+                        </Route>
+
+                        <Route element={<PermissionGuard allowedRoles={[UserRole.SELLER]} />}>
+                            <Route path="/admin/chat" element={<ChatAdmin />} />
                         </Route>
                     </Route>
                 </Route>

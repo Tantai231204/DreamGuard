@@ -44,24 +44,26 @@ export const TradeInAnalytics: React.FC = () => {
       fromDate,
       toDate
     }),
-    enabled: !!fromDate && !!toDate
+    enabled: !!fromDate && !!toDate,
+    staleTime: 5 * 60 * 1000 // Cache 5 phút để tối ưu performance
   });
 
   if (isLoading) return <TradeInAnalyticsSkeleton />;
 
   if (!stats) return null;
 
+  // Sử dụng palette màu cao cấp, đồng bộ
   const orderData = [
-    { name: 'Completed', value: stats.totalCompletedTradeInOrders, color: '#10b981' },
-    { name: 'Cancelled', value: stats.totalCancelledTradeInOrders, color: '#ef4444' },
-    { name: 'Refunded', value: stats.totalRefundedTradeInOrders, color: '#f59e0b' },
+    { name: 'Completed', value: stats.totalCompletedTradeInOrders, color: '#0ea5e9' }, // sky-500
+    { name: 'Cancelled', value: stats.totalCancelledTradeInOrders, color: '#f43f5e' }, // rose-500
+    { name: 'Refunded', value: stats.totalRefundedTradeInOrders, color: '#f59e0b' },   // amber-500
   ];
 
   const amountData = [
-    { name: 'Purchase', value: stats.totalPurchaseAmount, color: '#4988c4' },
-    { name: 'Deposit', value: stats.totalDepositAmount, color: '#818cf8' },
-    { name: 'COD', value: stats.totalCODAmount, color: '#fbbf24' },
-    { name: 'VNPay', value: stats.totalVnPayAmount, color: '#2dd4bf' },
+    { name: 'Purchase', value: stats.totalPurchaseAmount, color: '#6366f1' }, // indigo-500
+    { name: 'Deposit', value: stats.totalDepositAmount, color: '#14b8a6' },   // teal-500
+    { name: 'COD', value: stats.totalCODAmount, color: '#f59e0b' },           // amber-500
+    { name: 'VNPay', value: stats.totalVnPayAmount, color: '#4988c4' },       // brand
   ];
 
   return (
@@ -146,22 +148,23 @@ export const TradeInAnalytics: React.FC = () => {
                   data={orderData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={80}
-                  outerRadius={100}
-                  paddingAngle={10}
-                  cornerRadius={12}
+                  innerRadius={90}
+                  outerRadius={105}
+                  paddingAngle={4}
+                  cornerRadius={10}
                   dataKey="value"
+                  stroke="none"
                 >
                   {orderData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
+                    <Cell key={`cell-${index}`} fill={entry.color} stroke="#fff" strokeWidth={3} />
                   ))}
                 </Pie>
                 <Tooltip content={<CustomPieTooltip />} />
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-3xl font-black text-slate-900 leading-none">{stats.totalTradeInOrders}</span>
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter mt-1">Orders</span>
+              <span className="text-3xl font-black text-slate-900 leading-none tracking-tighter">{stats.totalTradeInOrders}</span>
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1 shadow-sm">Total</span>
             </div>
           </div>
 
@@ -192,25 +195,32 @@ export const TradeInAnalytics: React.FC = () => {
 
           <div className="h-[300px] w-full z-20 relative">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={amountData} margin={{ top: 20 }}>
-                <CartesianGrid strokeDasharray="6 6" vertical={false} stroke="#f1f5f9" />
+              <BarChart data={amountData} layout="vertical" margin={{ top: 0, left: 10, right: 30, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="4 4" horizontal={false} stroke="#f1f5f9" />
                 <XAxis
-                  dataKey="name"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 11, fontWeight: 800, fill: '#64748b' }}
-                />
-                <YAxis
+                  type="number"
                   axisLine={false}
                   tickLine={false}
                   tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }}
-                  tickFormatter={(v) => `${(v / 1000000).toFixed(1)}M`}
+                  tickFormatter={(v) => {
+                    if (v >= 1000000000) return `${(v / 1000000000).toFixed(1)}T`;
+                    if (v >= 1000000) return `${(v / 1000000).toFixed(1)}Tr`;
+                    return v;
+                  }}
+                />
+                <YAxis
+                  dataKey="name"
+                  type="category"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fontWeight: 800, fill: '#475569' }}
+                  width={70}
                 />
                 <Tooltip
                   content={<CustomBarTooltip />}
-                  cursor={{ fill: '#f8fafc', radius: 12 }}
+                  cursor={{ fill: '#f8fafc' }}
                 />
-                <Bar dataKey="value" radius={[12, 12, 0, 0]} barSize={50}>
+                <Bar dataKey="value" radius={[0, 8, 8, 0]} barSize={28} activeBar={<Cell fillOpacity={0.7} />}>
                   {amountData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
@@ -245,22 +255,21 @@ const StatCard = ({ label, value, icon: Icon, color, sub, trend, negative }: Sta
   };
 
   return (
-    <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 group">
-      <div className="flex items-start justify-between mb-4">
-        <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center transition-all duration-500 group-hover:scale-110", colors[color])}>
-          <Icon className="w-6 h-6" />
+    <div className="bg-white p-5 rounded-[1.25rem] border border-slate-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 group">
+      <div className="flex items-start justify-between mb-3">
+        <div className={cn("h-10 w-10 rounded-[0.85rem] flex items-center justify-center transition-all duration-500 group-hover:scale-110", colors[color])}>
+          <Icon className="w-5 h-5" />
         </div>
         {trend && (
-          <div className={cn("flex items-center gap-1 text-[11px] font-black px-2.5 py-1 rounded-full border shadow-sm", negative ? "bg-rose-50 text-rose-600 border-rose-100" : "bg-emerald-50 text-emerald-600 border-emerald-100")}>
-            {negative ? <ArrowDownRight className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />}
-            {trend}%
+          <div className={cn("flex items-center gap-0.5 text-[10px] font-black px-2 py-0.5 rounded-full border shadow-sm", negative ? "bg-rose-50 text-rose-600 border-rose-100" : "bg-emerald-50 text-emerald-600 border-emerald-100")}>
+            {negative ? <ArrowDownRight className="w-3 h-3" /> : <ArrowUpRight className="w-3 h-3" />} {trend}%
           </div>
         )}
       </div>
       <div>
-        <h4 className="text-2xl font-black text-slate-900 tracking-tight leading-none mb-1">{value}</h4>
-        <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.1em]">{label}</p>
-        <p className="text-[10px] text-slate-300 font-medium italic mt-2">{sub}</p>
+        <h4 className="text-xl font-black text-slate-900 tracking-tight leading-none mb-0.5">{value}</h4>
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{label}</p>
+        <p className="text-[9px] text-slate-300 font-medium mt-1">{sub}</p>
       </div>
     </div>
   );
@@ -278,10 +287,16 @@ interface TooltipProps {
 
 const CustomPieTooltip = ({ active, payload }: TooltipProps) => {
   if (active && payload && payload.length) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data = payload[0] as any;
+    const color = data.payload?.color || data.color || '#4988c4';
     return (
-      <div className="bg-slate-900 px-4 py-2.5 rounded-2xl border border-slate-800 shadow-2xl backdrop-blur-md">
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{payload[0].name}</p>
-        <p className="text-lg font-black text-white leading-none">{payload[0].value} Orders</p>
+      <div className="bg-white px-4 py-3 rounded-2xl border border-slate-100 shadow-xl">
+        <div className="flex items-center gap-1.5 mb-1">
+           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">{payload[0].name}</p>
+        </div>
+        <p className="text-lg font-black text-slate-900 leading-none">{payload[0].value} Orders</p>
       </div>
     );
   }
@@ -290,10 +305,16 @@ const CustomPieTooltip = ({ active, payload }: TooltipProps) => {
 
 const CustomBarTooltip = ({ active, payload }: TooltipProps) => {
   if (active && payload && payload.length) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const data = payload[0] as any;
+    const color = data.payload?.color || data.color || '#4988c4';
     return (
-      <div className="bg-slate-900 px-5 py-3 rounded-2xl border border-slate-800 shadow-2xl backdrop-blur-md">
-        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">{payload[0].name} Revenue</p>
-        <p className="text-xl font-black text-primary leading-none">{formatPrice(payload[0].value)}</p>
+      <div className="bg-white px-5 py-3.5 rounded-2xl border border-slate-100 shadow-xl">
+        <div className="flex items-center gap-1.5 mb-1.5">
+           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+           <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">{payload[0].name} Revenue</p>
+        </div>
+        <p className="text-xl font-black leading-none" style={{ color }}>{formatPrice(payload[0].value)}</p>
       </div>
     );
   }

@@ -69,6 +69,8 @@ function MappingRow({ productType, servicePackageId, existingMapping, onAssigned
                     mappingId: existingMapping.servicePackageMappingId,
                     price: currentPrice,
                     duration: packageDetails.duration,
+                    servicePackageId: packageDetails.servicePackageId,
+                    productTypeId: productType.productTypeId,
                     servicePackage: {
                         packageName: packageDetails.packageName,
                         duration: packageDetails.duration,
@@ -86,7 +88,7 @@ function MappingRow({ productType, servicePackageId, existingMapping, onAssigned
                 });
                 toast.success('Mapping Applied', 'Pricing successfully linked.');
             }
-            onAssigned();
+            await onAssigned();
             setLocalPrice('');
         } catch (e) {
             toast.error('Assignment Failed', (e as Error)?.message || 'Could not complete the binding.');
@@ -103,21 +105,21 @@ function MappingRow({ productType, servicePackageId, existingMapping, onAssigned
     return (
         <div
             className={`px-5 py-4 rounded-2xl border transition-all duration-300 ease-out flex items-center justify-between group ${isMapped
-                ? 'bg-[#fcfdfd] border-emerald-100 hover:border-emerald-200 hover:shadow-[0_2px_8px_rgba(16,185,129,0.06)]'
+                ? 'bg-[#fcfdfd] border-blue-50 hover:border-blue-100 hover:shadow-[0_2px_8px_rgba(73,136,196,0.06)]'
                 : 'bg-white border-zinc-100 hover:border-zinc-200 hover:shadow-[0_2px_8px_rgba(0,0,0,0.03)]'
                 }`}
         >
             <div className="flex-1 space-y-1.5 pr-6">
                 <div className="flex items-center gap-3">
                     <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-all duration-300 ${isMapped
-                        ? 'bg-emerald-50'
+                        ? 'bg-blue-50'
                         : 'bg-zinc-50 group-hover:bg-zinc-100'
                         }`}>
                         <img src={ptIcon} alt="type icon" className={`w-5 h-5 object-contain ${isMapped ? 'opacity-80' : 'opacity-60 group-hover:opacity-80 transition-opacity'}`} />
                     </div>
                     <h4 className="font-semibold text-[15px] text-zinc-800 tracking-tight leading-none">{productType.productTypeName}</h4>
                     {isMapped && (
-                        <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full uppercase tracking-wider ml-1">
+                        <span className="flex items-center gap-1 text-[10px] font-bold text-[#4988c4] bg-blue-50 px-2 py-0.5 rounded-full uppercase tracking-wider ml-1">
                             <CheckCircle2 className="w-3 h-3" /> Mapped
                         </span>
                     )}
@@ -130,7 +132,7 @@ function MappingRow({ productType, servicePackageId, existingMapping, onAssigned
             <div className="flex items-center gap-3 flex-shrink-0 w-[240px]">
                 <div className="relative flex-1">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Banknote className={`w-4 h-4 transition-colors ${isMapped && !hasChanged ? 'text-emerald-500' : 'text-zinc-400'}`} />
+                        <Banknote className={`w-4 h-4 transition-colors ${isMapped && !hasChanged ? 'text-[#4988c4]' : 'text-zinc-400'}`} />
                     </div>
                     <Input
                         type="text"
@@ -138,7 +140,7 @@ function MappingRow({ productType, servicePackageId, existingMapping, onAssigned
                         onChange={(e) => handlePriceChange(e.target.value)}
                         placeholder="Price (VND)..."
                         className={`pl-9 h-9 font-medium font-sans tabular-nums text-right rounded-lg focus:ring-2 transition-all shadow-none text-[14px] ${isMapped && !hasChanged
-                            ? 'border-emerald-100 text-emerald-800 focus:border-emerald-400 focus:ring-emerald-400/20 bg-emerald-50/30'
+                            ? 'border-blue-50 text-[#4988c4] focus:border-[#4988c4]/40 focus:ring-[#4988c4]/10 bg-blue-50/10'
                             : 'border-zinc-200 focus:border-zinc-400 focus:ring-zinc-400/20 bg-white placeholder:text-zinc-300'
                             }`}
                     />
@@ -148,11 +150,11 @@ function MappingRow({ productType, servicePackageId, existingMapping, onAssigned
                     onClick={handleAssign}
                     disabled={assignMutation.isPending || updateMutation.isPending || !currentPrice || (!hasChanged && isMapped)}
                     size="sm"
-                    className={`h-9 px-4 rounded-lg font-semibold transition-all shadow-none shrink-0 min-w-[80px] ${hasChanged
-                        ? 'bg-gradient-to-r from-[var(--color-primary)] to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-md shadow-blue-500/10'
+                    className={`h-9 px-4 rounded-lg font-semibold transition-all shadow-none shrink-0 min-w-[80px] border-none !ring-0 ${hasChanged
+                        ? 'bg-[#4988c4] hover:bg-[#4988c4]/90 text-white shadow-md shadow-[#4988c4]/10'
                         : isMapped
-                            ? 'bg-transparent text-emerald-600 hover:bg-emerald-50 border border-emerald-200/60'
-                            : 'bg-transparent text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 border border-zinc-200'
+                            ? 'bg-transparent text-[#4988c4] hover:bg-[#4988c4]/5'
+                            : 'bg-transparent text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900'
                         }`}
                 >
                     {assignMutation.isPending || updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : (isMapped ? 'Update' : 'Link')}
@@ -165,6 +167,13 @@ function MappingRow({ productType, servicePackageId, existingMapping, onAssigned
 // ----------------------------------------------------------------------
 // Main Dialog Orchestrator (Minimalist Modern)
 // ----------------------------------------------------------------------
+interface RawMapping {
+    servicePackageId?: string;
+    ServicePackageId?: string;
+    productTypeId?: string;
+    ProductTypeId?: string;
+}
+
 export default function PackageMappingDialog({ open, onOpenChange, pkg }: PackageMappingDialogProps) {
     const queryClient = useQueryClient();
 
@@ -174,21 +183,26 @@ export default function PackageMappingDialog({ open, onOpenChange, pkg }: Packag
     const { data: mappingsData, isLoading: mappingsLoading, refetch } = usePackageMappings(pkg?.servicePackageId, open);
 
     const currentMappings = useMemo(() => {
+        if (!pkg) return [];
         const raw = mappingsData ?? [];
-        return Array.isArray(raw) ? raw : (raw?.items ?? []);
-    }, [mappingsData]);
+        const items = Array.isArray(raw) ? raw : (raw?.items ?? []);
+        // Extra careful filter: Ensure mappings belong to THIS specific package
+        return items.filter((m: RawMapping) =>
+            (m.servicePackageId || m.ServicePackageId) === pkg.servicePackageId
+        );
+    }, [mappingsData, pkg]);
 
     const filteredProductTypes = useMemo(() => {
         if (!pkg?.suitableFor) return [];
         const suitableArray = pkg.suitableFor.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-        return productTypes.filter((pt: { productTypeId: string; productTypeName: string }) => 
-            suitableArray.includes(pt.productTypeId.toLowerCase()) || 
+        return productTypes.filter((pt: { productTypeId: string; productTypeName: string }) =>
+            suitableArray.includes(pt.productTypeId.toLowerCase()) ||
             suitableArray.includes(pt.productTypeName.toLowerCase())
         );
     }, [productTypes, pkg]);
 
-    const handleMappingUpdated = () => {
-        refetch();
+    const handleMappingUpdated = async () => {
+        await refetch();
         queryClient.invalidateQueries({ queryKey: ['service-package-mappings'] });
         queryClient.invalidateQueries({ queryKey: ['mapping-info'] });
     };
@@ -254,9 +268,8 @@ export default function PackageMappingDialog({ open, onOpenChange, pkg }: Packag
                 {/* Footer */}
                 <div className="px-8 py-4 border-t border-zinc-100 bg-white flex justify-end gap-3 z-10">
                     <Button
-                        variant="ghost"
                         onClick={() => onOpenChange(false)}
-                        className="h-9 px-6 font-semibold text-zinc-600 hover:bg-zinc-100 rounded-lg hover:text-zinc-900"
+                        className="h-9 px-8 font-bold text-white bg-[#4988c4] hover:bg-[#4988c4]/90 rounded-lg transition-all shadow-md shadow-blue-500/10"
                     >
                         Done
                     </Button>

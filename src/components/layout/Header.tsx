@@ -38,6 +38,7 @@ const NavItemLink = memo(({ label, href, items, highlight, isActive, onOpen, isS
             <NavDropdown
                 label={label}
                 items={items}
+                href={href}
                 highlight={highlight}
                 isSimpleMenu={isSimpleMenu}
                 isActive={isActive}
@@ -61,7 +62,7 @@ const NavItemLink = memo(({ label, href, items, highlight, isActive, onOpen, isS
 
 export default function Header() {
     const { navItems, combos } = useHeaderData()
-    const { orderCompletionCoin, feedbackCoin } = useCoinRewardConfig()
+    const { feedbackCoin } = useCoinRewardConfig()
     const [isScrolled, setIsScrolled] = useState(false)
     const [activeMenu, setActiveMenu] = useState<{
         label: string
@@ -111,7 +112,7 @@ export default function Header() {
                                     <a href="#" className="hover:scale-110 transition-transform"><InstagramLogoIcon className="w-3.5 h-3.5" /></a>
                                 </div>
                                 <p className="text-[9px] font-black uppercase tracking-[0.25em] drop-shadow-sm">
-                                    Reward update: order completed <span className="underline underline-offset-4 decoration-2">+{orderCompletionCoin} coin</span> | feedback submitted <span className="underline underline-offset-4 decoration-2">+{feedbackCoin} coin</span>
+                                    Reward update: earn <span className="underline underline-offset-4 decoration-2">coin reward</span> on every order | feedback <span className="underline underline-offset-4 decoration-2">+{feedbackCoin} coin</span>
                                 </p>
                                 <div className="flex items-center gap-4">
                                     <button className="text-[9px] font-black uppercase tracking-widest hover:opacity-80 transition-opacity">Eng</button>

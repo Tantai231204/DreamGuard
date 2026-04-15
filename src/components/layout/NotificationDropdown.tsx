@@ -58,23 +58,36 @@ const getNotificationConfig = (message: string, actionType: string) => {
 
 const formatNotificationMessage = (message: string) => {
   const idRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
-  const match = message.match(idRegex);
+  
+  // Senior UI: Sanitize message text
+  let sanitized = message
+    .replace(/your trade in order: /i, 'Trade-in order: ')
+    .replace(/your trade-in order /i, 'Trade-in order ')
+    .replace(/is completed/i, 'completed')
+    .replace(/has been completed/i, 'completed')
+    .replace(/is on delivering/i, 'delivering')
+    .trim();
+
+  // Capitalize
+  sanitized = sanitized.charAt(0).toUpperCase() + sanitized.slice(1);
+
+  const match = sanitized.match(idRegex);
   
   if (match) {
     const id = match[0];
     const shortId = id.substring(0, 8).toUpperCase();
-    const parts = message.split(id);
+    const parts = sanitized.split(id);
     
     return (
       <div className="text-[12px] text-slate-500 leading-snug">
         <span>{parts[0]}</span>
-        <span className="font-bold text-slate-800 mx-1 cursor-help hover:text-primary-600 transition-colors">#{shortId}</span>
+        <span className="font-bold text-slate-800 mx-0.5 cursor-help hover:text-primary-600 transition-colors">#{shortId}</span>
         <span>{parts[1]}</span>
       </div>
     );
   }
   
-  return <p className="text-[12px] text-slate-500 leading-snug">{message}</p>;
+  return <p className="text-[12px] text-slate-500 leading-snug">{sanitized}</p>;
 };
 
 export const NotificationDropdown: React.FC = () => {

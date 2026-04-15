@@ -1,7 +1,16 @@
+import { Suspense } from 'react';
 import { Outlet } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { Loader2 } from 'lucide-react';
 import AdminSidebar from '../components/layout/AdminSidebar';
 import { useNotificationHub } from '@/hooks/useNotificationHub';
+
+const AdminPageLoader = () => (
+  <div className="flex h-full w-full flex-col items-center justify-center bg-gray-50 min-h-[60vh]">
+    <Loader2 className="h-8 w-8 animate-spin text-[#4988c4]" />
+    <p className="mt-4 text-[10px] font-black uppercase tracking-widest text-slate-400 animate-pulse">Loading workspace...</p>
+  </div>
+);
 
 export default function AdminLayout() {
   useNotificationHub();
@@ -17,7 +26,9 @@ export default function AdminLayout() {
         tabIndex={-1}
       >
         <div className="min-h-full w-full max-w-full">
-          <Outlet />
+          <Suspense fallback={<AdminPageLoader />}>
+            <Outlet />
+          </Suspense>
         </div>
       </motion.main>
     </div>

@@ -1,5 +1,6 @@
 import * as signalr from '@microsoft/signalr';
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
 
@@ -35,6 +36,7 @@ const NOTI_HUB_URL = getHubUrl('/notiandloghub');
 const SYSTEM_HUB_URL = getHubUrl('/systemhub');
 
 export function useNotificationHub() {
+  const navigate = useNavigate();
   const { role, isAuthenticated } = useAuthStore();
   const [notiConnected, setNotiConnected] = useState(false);
   const [systemConnected, setSystemConnected] = useState(false);
@@ -61,16 +63,39 @@ export function useNotificationHub() {
 
     notiConnection.on('ReceiveNotification', (notification: NotificationPayload) => {
       console.log('[SignalR] Notification Received:', notification);
-      toast(notification.title || 'Notification', {
-        description: notification.message,
+      
+      const rawMessage = notification.message || '';
+      let displayMessage = rawMessage || notification.title || 'New Notification';
+      
+      displayMessage = displayMessage.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '#ID');
+      displayMessage = displayMessage
+        .replace(/your trade in order: #ID/i, 'Trade-in order')
+        .replace(/is completed/i, 'completed')
+        .trim();
+
+      displayMessage = displayMessage.charAt(0).toUpperCase() + displayMessage.slice(1);
+
+      toast.info(displayMessage, {
+        action: {
+          label: 'View',
+          onClick: () => {
+            const lower = rawMessage.toLowerCase();
+            if (lower.includes('trade in')) navigate('/profile?tab=trade-in-orders');
+            else if (lower.includes('service')) navigate('/profile?tab=service-orders');
+            else navigate('/profile?tab=recent-orders');
+          }
+        }
       });
     });
 
     notiConnection.on('ReceiveAuditLog', (audit: AuditLogPayload) => {
       console.log('[SignalR] Audit Log Received:', audit);
       if (role === 'Admin' || role === 'Manager') {
-        toast(`System: ${audit.action}`, {
-          description: audit.userName ? `By ${audit.userName}` : undefined,
+        toast.info(audit.action || 'System Action', {
+          action: {
+            label: 'Logs',
+            onClick: () => navigate('/admin/audit-logs')
+          }
         });
       }
     });
@@ -120,7 +145,7 @@ export function useNotificationHub() {
         systemConnRef.current.stop();
       }
     };
-  }, [isAuthenticated, role]);
+  }, [isAuthenticated, role, navigate]);
 
   const joinConversation = async (conversationId: string) => {
     if (systemConnRef.current && systemConnected) {

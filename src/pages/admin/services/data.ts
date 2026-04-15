@@ -7,13 +7,20 @@ export const calculateServiceStats = (bookings: ServiceBooking[]): ServiceStats 
     (acc, booking) => {
       acc.totalBookings += 1;
       
-      if (booking.status === 'pending') acc.pendingBookings += 1;
-      if (booking.status === 'processing') acc.inProgressBookings += 1;
-      if (booking.status === 'completed') acc.completedBookings += 1;
+      const status = booking.status?.toLowerCase();
+      const isUnassigned = !booking.staff && !booking.technician;
+      
+      if (status === 'pending' || (status === 'confirmed' && isUnassigned)) {
+        acc.pendingBookings += 1;
+      } else if (status === 'processing' || (status === 'confirmed' && !isUnassigned)) {
+        acc.inProgressBookings += 1;
+      } else if (status === 'completed') {
+        acc.completedBookings += 1;
+      }
       
       acc.totalRevenue += booking.totalPrice || 0;
 
-      if (booking.scheduledDate === todayStr) {
+      if (booking.scheduledDate && booking.scheduledDate.startsWith(todayStr)) {
         acc.todayBookings += 1;
       }
 

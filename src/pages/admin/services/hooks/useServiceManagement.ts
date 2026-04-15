@@ -12,6 +12,11 @@ import { mapApiItemToServiceOrder } from '../utils/mappers';
 
 export const useServiceManagement = () => {
   const [isAssignOpen, setIsAssignOpen] = useState(false);
+  const [isCancelOpen, setIsCancelOpen] = useState(false);
+  const [cancelOrderInfo, setCancelOrderInfo] = useState<{ id: string; status: string; orderCode?: string }>({
+    id: '',
+    status: '',
+  });
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -46,13 +51,17 @@ export const useServiceManagement = () => {
 
   const stats = useMemo(() => calculateServiceStats(parsedBookings), [parsedBookings]);
 
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [confirmOrderInfo, setConfirmOrderInfo] = useState<{ id: string; orderCode?: string }>({ id: '' });
+
   const confirmMutation = useMutation({
     mutationFn: async (id: string) => {
       await api.patch(`/ServiceOrders/${id}/confirm`);
     },
     onSuccess: () => {
       toast.success(`Booking confirmed successfully`);
-      queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
+      queryClient.refetchQueries({ queryKey: ['serviceOrders'] });
+      setIsConfirmOpen(false);
     },
     onError: () => toast.error('Failed to confirm booking'),
   });
@@ -77,7 +86,8 @@ export const useServiceManagement = () => {
     },
     onSuccess: () => {
       toast.success(`Action applied successfully`);
-      queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
+      queryClient.refetchQueries({ queryKey: ['serviceOrders'] });
+      setIsCancelOpen(false);
     },
     onError: (err: unknown) => {
       let msg = 'Operation failed';
@@ -93,13 +103,28 @@ export const useServiceManagement = () => {
     navigate(`/admin/services/${id}`);
   }, [navigate]);
 
-  const handleConfirmBooking = useCallback((id: string) => {
-    confirmMutation.mutate(id);
-  }, [confirmMutation]);
+  const handleConfirmBookingTrigger = useCallback((id: string) => {
+    const booking = parsedBookings.find(b => b.id === id);
+    setConfirmOrderInfo({ id, orderCode: booking?.orderCode });
+    setIsConfirmOpen(true);
+  }, [parsedBookings]);
 
-  const handleCancelBooking = useCallback((id: string, status: string) => {
-    cancelMutation.mutate({ id, status });
-  }, [cancelMutation]);
+  const handleConfirmBookingConfirm = useCallback(() => {
+    confirmMutation.mutate(confirmOrderInfo.id);
+  }, [confirmMutation, confirmOrderInfo]);
+
+  const handleCancelBookingTrigger = useCallback((id: string, status: string) => {
+    const booking = parsedBookings.find(b => b.id === id);
+    setCancelOrderInfo({ id, status, orderCode: booking?.orderCode });
+    setIsCancelOpen(true);
+  }, [parsedBookings]);
+
+  const handleCancelBookingConfirm = useCallback((reason: string) => {
+    if (reason) {
+      console.log(`Cancelling booking ${cancelOrderInfo.id} with reason: ${reason}`);
+    }
+    cancelMutation.mutate({ id: cancelOrderInfo.id, status: cancelOrderInfo.status });
+  }, [cancelMutation, cancelOrderInfo]);
 
   const handleAssignTechnician = useCallback((id: string) => {
     setSelectedOrderId(id);
@@ -116,11 +141,21 @@ export const useServiceManagement = () => {
     isLoading,
     isAssignOpen,
     setIsAssignOpen,
+    isCancelOpen,
+    setIsCancelOpen,
+    isConfirmOpen,
+    setIsConfirmOpen,
+    confirmOrderInfo,
+    cancelOrderInfo,
     selectedOrderId,
     handleViewBooking,
-    handleConfirmBooking,
-    handleCancelBooking,
+    handleConfirmBooking: handleConfirmBookingTrigger,
+    handleConfirmBookingConfirm,
+    handleCancelBookingTrigger,
+    handleCancelBookingConfirm,
     handleAssignTechnician,
     handleCreateNew,
+    isPendingCancel: cancelMutation.isPending,
+    isPendingConfirm: confirmMutation.isPending,
   };
 };

@@ -3,6 +3,7 @@ import type {
   ReOrderFailedServiceOrderResponse,
   ServiceOrderListResponse,
   ServiceOrderResponse,
+  ServiceDashboardResponse,
 } from '../types/serviceOrder';
 
 function normalizeListPayload(payload: unknown): ServiceOrderListResponse {
@@ -68,6 +69,11 @@ const serviceOrderService = {
 
   cancelServiceOrder: async (serviceOrderId: string): Promise<void> => {
     await apiClient.patch(`/ServiceOrders/${serviceOrderId}/cancel`);
+  },
+
+  getServiceDashboard: async (params: { fromDate: string; toDate: string }): Promise<ServiceDashboardResponse> => {
+    const res = await apiClient.get('/ServiceOrders/get-service-order-dash-board', { params });
+    return (res.data?.data ?? res.data) as ServiceDashboardResponse;
   },
 };
 

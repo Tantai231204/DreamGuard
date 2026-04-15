@@ -54,6 +54,9 @@ const getTradeInStatusIcon = (normalizedStatus: string): React.ReactNode => {
     case "COMPLETED":
       return <ShieldCheck className="h-4 w-4" />;
     case "CANCELLED":
+    case "FORCED_CANCELLED":
+    case "ADMIN_CANCELLED":
+    case "ADMINCANCELLED":
       return <AlertCircle className="h-4 w-4" />;
     default:
       return <Clock3 className="h-4 w-4" />;
