@@ -46,6 +46,16 @@ const configs = {
     },
     success: {
         icon: ShieldCheck,
+        iconColor: 'text-emerald-500',
+        iconBg: 'bg-emerald-100/50',
+        ring: 'ring-emerald-100',
+        glow: 'shadow-emerald-500/20',
+        btn: 'bg-emerald-500 hover:bg-emerald-600 focus-visible:ring-emerald-500 text-white',
+        gradient: 'from-emerald-500/10 via-transparent to-transparent',
+        highlight: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+    },
+    info: {
+        icon: Info,
         iconColor: 'text-[#4988c4]',
         iconBg: 'bg-[#4988c4]/10',
         ring: 'ring-[#4988c4]/20',
@@ -54,8 +64,8 @@ const configs = {
         gradient: 'from-[#4988c4]/10 via-transparent to-transparent',
         highlight: 'bg-[#4988c4]/10 text-[#4988c4] border-[#4988c4]/20',
     },
-    info: {
-        icon: Info,
+    primary: {
+        icon: HelpCircle,
         iconColor: 'text-blue-500',
         iconBg: 'bg-blue-100/50',
         ring: 'ring-blue-100',
@@ -63,16 +73,6 @@ const configs = {
         btn: 'bg-blue-500 hover:bg-blue-600 focus-visible:ring-blue-500 text-white',
         gradient: 'from-blue-500/10 via-transparent to-transparent',
         highlight: 'bg-blue-100 text-blue-800 border-blue-200',
-    },
-    primary: {
-        icon: HelpCircle,
-        iconColor: 'text-primary',
-        iconBg: 'bg-primary/10',
-        ring: 'ring-primary/20',
-        glow: 'shadow-primary/20',
-        btn: 'bg-primary hover:bg-primary/90 focus-visible:ring-primary text-white',
-        gradient: 'from-primary/15 via-transparent to-transparent',
-        highlight: 'bg-primary/10 text-primary border-primary/20',
     },
     tradein: {
         icon: ShieldCheck,

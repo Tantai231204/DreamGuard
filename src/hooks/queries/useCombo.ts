@@ -12,8 +12,8 @@ import type {
   ComboParams,
 } from '@/api';
 import { toast } from 'sonner';
-import { UserRole } from '@/lib/constants';
 import { useAuthStore } from '@/store/authStore';
+import { isAdminOrManager } from '@/lib/role';
 // ========================
 // Query Keys
 // ========================
@@ -42,13 +42,12 @@ export const usePublicCombos = (params: ComboParams = {}) => {
 /** Fetch admin paginated combos list */
 export const useAdminCombos = (params: ComboParams = {}) => {
   const role = useAuthStore((s) => s.role);
-  const isAdminOrManager = role === UserRole.ADMIN || role === UserRole.MANAGER;
 
   return useQuery({
     queryKey: comboKeys.admin(params),
     queryFn: () => comboService.getAll(params),
     placeholderData: keepPreviousData,
-    enabled: isAdminOrManager,
+    enabled: isAdminOrManager(role),
   });
 };
 
@@ -199,14 +198,10 @@ export const useUpdateComboStatus = () => {
   return useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) => 
       comboService.updateStatus(id, status),
-    onSuccess: (_, { id, status }) => {
+    onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: comboKeys.all });
       queryClient.invalidateQueries({ queryKey: comboKeys.detail(id) });
-      toast.success(`Combo status updated to ${status}`);
     },
-    onError: (err) => {
-      toast.error('Failed to update status: ' + (err instanceof Error ? err.message : 'Unknown error'));
-    }
   });
 };
 

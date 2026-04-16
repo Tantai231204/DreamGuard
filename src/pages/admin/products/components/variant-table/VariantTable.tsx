@@ -398,19 +398,12 @@ function VariantRow({
 }) {
   const hasSale = variant.salePrice > 0 && variant.salePrice < variant.basePrice;
   const displayPrice = variant.salePrice > 0 ? variant.salePrice : variant.basePrice;
-  const toast = useToast();
-  const hasZeroStock = !variant.stockQuantity || variant.stockQuantity <= 0;
+
 
   const handleQuickStatus = useCallback((newStatus: string) => {
     if (newStatus === variant.status) return;
-
-    if (hasZeroStock && (newStatus === 'Published' || newStatus === 'Hidden')) {
-      toast.error('Invalid Status', 'Cannot activate or hide variant with zero stock.');
-      return;
-    }
-
     onStatusChange(variant.id, variant.sku, newStatus);
-  }, [variant.id, variant.sku, variant.status, hasZeroStock, onStatusChange, toast]);
+  }, [variant.id, variant.sku, variant.status, onStatusChange]);
 
   const currentStatus = variant.status || 'Draft';
   const statusStyle = variantStatusStyles[currentStatus] || variantStatusStyles.Draft;
@@ -628,20 +621,18 @@ function VariantRow({
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent className="w-44 rounded-xl shadow-xl border border-slate-200/60 p-1">
                 {Object.entries(variantStatusStyles).map(([value, style]) => {
-                  const isDisabled = hasZeroStock && (value === 'Published' || value === 'Hidden');
                   return (
                     <DropdownMenuItem
                       key={value}
-                      onClick={() => !isDisabled && handleQuickStatus(value)}
-                      disabled={isDisabled}
+                      onClick={() => handleQuickStatus(value)}
+                      disabled={currentStatus === value}
                       className={cn(
                         "rounded-lg cursor-pointer py-2 px-3 font-medium text-slate-600 gap-2.5",
                         currentStatus === value && "bg-slate-50"
                       )}
-                      title={isDisabled ? "Cannot activate or hide variant with zero stock." : undefined}
                     >
                       <span className={cn('w-2.5 h-2.5 rounded-full', style.dot)} />
-                      <span className={cn("text-[13px] flex-1", isDisabled && "text-gray-400")}>{style.label}</span>
+                      <span className="text-[13px] flex-1">{style.label}</span>
                       {currentStatus === value && <Check className="h-3.5 w-3.5 text-[#4988c4]" />}
                     </DropdownMenuItem>
                   );

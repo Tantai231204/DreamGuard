@@ -2,9 +2,10 @@ import { create } from "zustand"
 import { persist, createJSONStorage } from "zustand/middleware"
 import cartService, { type CartResponse, type CartItemResponse, type AddCartItemRequest } from "@/api/services/cartService"
 import { toast } from "sonner"
-import type { CartItem } from "./cartTypes"
 import { useAuthStore } from "./authStore"
+import { isAnyStaff } from "@/lib/role"
 import * as CryptoJS from "crypto-js"
+import type { CartItem } from "./cartTypes"
 
 // ── Types & Interfaces ──
 
@@ -121,11 +122,11 @@ export const useCartStore = create<CartState>()(
 
                 const currentCart = get().cart;
                 const serverPool = new Map<string, CartItemResponse>();
-                
+
                 for (const sItem of responseData.items) {
                     const apiCustoms = sItem.productCustomizeDetails || [];
-                    const hash = (sItem as CartItemResponse & { configHash?: string }).configHash || 
-                                generateConfigHash(sItem.productVariantId, sItem.comboId, apiCustoms);
+                    const hash = (sItem as CartItemResponse & { configHash?: string }).configHash ||
+                        generateConfigHash(sItem.productVariantId, sItem.comboId, apiCustoms);
                     serverPool.set(hash, sItem);
                 }
 
@@ -143,7 +144,7 @@ export const useCartStore = create<CartState>()(
                     if (serverMatch) {
                         const unitPrice = (serverMatch.unitPrice || 0) + (serverMatch.totalAddOnPrice || 0);
                         const apiAttrs: Record<string, string | number | undefined> = { ...localItem.customAttributes };
-                        
+
                         // Ánh xạ mọi chi tiết tùy chỉnh từ Server vào thuộc tính hiển thị
                         serverMatch.productCustomizeDetails?.forEach(d => {
                             const key = normalizeAttrKey(d.customizeTypeName);
@@ -176,7 +177,7 @@ export const useCartStore = create<CartState>()(
 
                     const unitPrice = (sItem.unitPrice || 0) + (sItem.totalAddOnPrice || 0);
                     const apiAttrs: Record<string, string | number | undefined> = {};
-                    
+
                     sItem.productCustomizeDetails?.forEach(d => {
                         apiAttrs[normalizeAttrKey(d.customizeTypeName)] = d.customizeContent;
                     });
@@ -207,9 +208,9 @@ export const useCartStore = create<CartState>()(
             fetchCart: async () => {
                 if (get().isFetching) return;
                 const { isAuthenticated, role } = useAuthStore.getState();
-                
+
                 // Security Guard: Admins and Staff do not have a functional shopping cart via api/cart
-                const isManagement = role === 'Admin' || role === 'Staff' || (role && !['user', 'customer'].includes(role.toLowerCase()));
+                const isManagement = isAnyStaff(role);
                 if (!isAuthenticated || isManagement) return;
 
                 set({ isFetching: true });
@@ -334,7 +335,7 @@ export const useCartStore = create<CartState>()(
 
             syncWithServer: async () => {
                 const { isAuthenticated, role } = useAuthStore.getState();
-                const isManagement = role === 'Admin' || role === 'Staff' || (role && !['user', 'customer'].includes(role.toLowerCase()));
+                const isManagement = isAnyStaff(role);
                 if (!isAuthenticated || isManagement || get().isSyncing) return;
 
                 const localItems = get().cart.filter(i => i.id.startsWith('c_') || i.id.startsWith('l_'));

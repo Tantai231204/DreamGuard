@@ -98,12 +98,31 @@ export default function ChatAdmin() {
     typingFromRole: 'customer',
     onReceiveMessage: useCallback(
       (msg: import('./types').Message) => {
+        const isCurrent = msg.conversationId === selectedConversationRef.current;
+
         if (msg.senderRole === 'customer' && msg.senderId && msg.conversationId) {
           participantConversationRef.current[msg.senderId] = msg.conversationId;
           participantConversationRef.current[msg.conversationId] = msg.conversationId;
         }
 
-        _appendFnRef.current?.(msg);
+        // 1. If it's the active conversation, append to list
+        if (isCurrent) {
+          _appendFnRef.current?.(msg);
+        }
+        
+        // 2. ALWAYS update the conversation list (Sidebar) real-time
+        const existing = conversationsRef.current.find(c => c.id === msg.conversationId);
+        if (existing) {
+          _updateFnRef.current?.({
+            ...existing,
+            lastMessage: msg.content,
+            lastMessageTime: msg.timestamp,
+            // Only increment if it's NOT the current one (the current one gets marked as read anyway)
+            unreadCount: isCurrent ? 0 : (existing.unreadCount || 0) + 1,
+            hasUnread: !isCurrent
+          });
+        }
+        
         if (msg.senderRole === 'customer' && msg.conversationId) {
           _presenceTouchFnRef.current?.(msg.conversationId);
         }
@@ -174,7 +193,24 @@ export default function ChatAdmin() {
     updateMessageStatus,
     loadMore,
     appendMessage,
+    markAsRead,
   } = useChat({ conversationId: selectedId });
+
+  const currentConversation = useMemo(
+    () => conversations.find((c) => c.id === selectedId) ?? null,
+    [conversations, selectedId]
+  );
+
+  // Mark as read when selecting a new conversation with unread messages
+  // Use conversationsRef to get immediate data without waiting for memo/render cycles
+  useEffect(() => {
+    if (!selectedId) return;
+    
+    const conv = conversationsRef.current.find(c => c.id === selectedId);
+    if (conv?.hasUnread || (conv?.unreadCount && conv.unreadCount > 0)) {
+      markAsRead();
+    }
+  }, [selectedId, markAsRead]);
 
   // Sync references to keep hooks consistent
   useEffect(() => { 
@@ -245,15 +281,12 @@ export default function ChatAdmin() {
     };
   }, [appendMessage, applyConversationUpdate, updateMessageStatus]);
 
-  const currentConversation = useMemo(
-    () => conversations.find((c) => c.id === selectedId) ?? null,
-    [conversations, selectedId]
-  );
-
   useEffect(() => {
+    const typingTimeouts = typingTimeoutsRef.current;
+    const presenceTimeouts = presenceTimeoutsRef.current;
     return () => {
-      Object.values(typingTimeoutsRef.current).forEach(clearTimeout);
-      Object.values(presenceTimeoutsRef.current).forEach(clearTimeout);
+      Object.values(typingTimeouts).forEach(clearTimeout);
+      Object.values(presenceTimeouts).forEach(clearTimeout);
     };
   }, []);
 
@@ -472,6 +505,11 @@ export default function ChatAdmin() {
                   uploadProgress={uploadProgress}
                   onSend={handleSend}
                   onTyping={handleTyping}
+                  onFocus={() => {
+                    if (currentConversation?.hasUnread || currentConversation?.unreadCount > 0) {
+                      markAsRead();
+                    }
+                  }}
                 />
               </>
             ) : (
@@ -492,12 +530,14 @@ function MessageInputWrapper({
   uploadProgress,
   onSend,
   onTyping,
+  onFocus,
 }: {
   disabled: boolean;
   isSending: boolean;
   uploadProgress: number | null;
   onSend: (payload: { text: string; imageFile?: File | null; appointment?: ChatPayloadAppointment }) => Promise<void>;
   onTyping: (is: boolean) => void;
+  onFocus?: () => void;
 }) {
   const [draft, setDraft] = useState('');
 
@@ -507,13 +547,15 @@ function MessageInputWrapper({
   }, [disabled, onSend]);
 
   return (
-    <MessageInput
-      draft={draft}
-      isSending={disabled || isSending}
-      uploadProgress={uploadProgress}
-      onDraftChange={setDraft}
-      onSend={handleSend}
-      onTyping={onTyping}
-    />
+    <div onFocus={onFocus} onClick={onFocus}>
+      <MessageInput
+        draft={draft}
+        isSending={disabled || isSending}
+        uploadProgress={uploadProgress}
+        onDraftChange={setDraft}
+        onSend={handleSend}
+        onTyping={onTyping}
+      />
+    </div>
   );
 }

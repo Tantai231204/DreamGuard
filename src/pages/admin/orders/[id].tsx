@@ -421,7 +421,13 @@ export default function OrderDetail() {
                   orderId={order.id}
                   onOpenAssign={() => setShowAssignDialog(true)}
                   delay={0.1}
-                  canAssign={currentStatusEnum === OrderStatus.Confirmed}
+                  canAssign={
+                    currentStatusEnum !== OrderStatus.Pending &&
+                    currentStatusEnum !== OrderStatus.Completed &&
+                    currentStatusEnum !== OrderStatus.Returned &&
+                    currentStatusEnum !== OrderStatus.RefundedAndRestocked &&
+                    currentStatusEnum !== OrderStatus.RefundedAndDamaged
+                  }
                 />
               )}
 
@@ -494,7 +500,7 @@ export default function OrderDetail() {
         isLoading={updateStatus.isPending || updatePayment.isPending}
         title={`Confirm ${pendingStatus || 'Update'}`}
         description={`Are you sure you want to transition this order to ${pendingStatus}? This action will trigger associated workflow updates.`}
-        variant={pendingStatus === 'Completed' ? 'success' : 'primary'}
+        variant={pendingStatus === 'Completed' || pendingStatus === 'Confirmed' ? 'success' : 'primary'}
         confirmText={pendingStatus === 'Completed' ? 'Finalize Order' : 'Confirm Update'}
       />
     </div>

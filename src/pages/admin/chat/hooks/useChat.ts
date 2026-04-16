@@ -163,7 +163,7 @@ export function useChat({
   /* ---- Inject message from real-time event -------------- */
   const appendMessage = useCallback(
     (msg: Message) => {
-      if (!conversationId) return;
+      if (!conversationId || msg.conversationId !== conversationId) return;
 
       queryClient.setQueryData(queryKey, (old: typeof data) => {
         if (!old) return old;
@@ -225,6 +225,41 @@ export function useChat({
     [conversationId, queryClient, queryKey]
   );
 
+  const markAsRead = useCallback(async () => {
+    if (!conversationId) return;
+    try {
+      await chatService.markAsRead(conversationId);
+      // Ideally we would trigger a refresh of conversations or update unread count locally
+      queryClient.setQueriesData({ queryKey: ['admin', 'conversations'] }, (old: unknown) => {
+        if (!old) return old;
+        
+        const isArray = Array.isArray(old);
+        // It could be Conversation[] or { items: Conversation[] }
+        const rawItems = isArray 
+          ? (old as import('../types').Conversation[]) 
+          : (old as { items?: import('../types').Conversation[] }).items ?? [];
+          
+        const updatedItems = rawItems.map((c) => {
+          const cid = c.id;
+          if (cid === conversationId) {
+            // Decisively clear all unread indicators
+            return { 
+              ...c, 
+              unreadCount: 0, 
+              hasUnread: false,
+              lastMessage: c.lastMessage // Preserve last message
+            };
+          }
+          return c;
+        });
+
+        return isArray ? updatedItems : { ...(old as object), items: updatedItems };
+      });
+    } catch (err) {
+      console.error('[Chat] markAsRead failed:', err);
+    }
+  }, [conversationId, queryClient]);
+
   return {
     messages,
     isLoading,
@@ -233,5 +268,6 @@ export function useChat({
     updateMessageStatus,
     loadMore,
     appendMessage,
+    markAsRead,
   };
 }

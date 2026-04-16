@@ -49,10 +49,11 @@ const formatLabel = (value?: string, fallback = 'Delivery Staff') => {
 const isActiveStatus = (status?: string) => (status || '').toLowerCase() === 'active';
 
 import { useAuthStore } from '@/store/authStore';
+import { isAdminOrManager as checkIsAdminOrManager } from '@/lib/role';
 
 function AssignShippingStaffContent({ orderId, tradeInOrderId, onClose }: { orderId?: string; tradeInOrderId?: string; onClose: () => void }) {
   const role = useAuthStore((s) => s.role);
-  const isAdminOrManager = role === 'Admin' || role === 'Manager';
+  const isAdminOrManager = checkIsAdminOrManager(role);
   // Only fetch all delivery staff if admin/manager
   const { data: staffData, isLoading: isLoadingStaff, isError: isStaffError } = useStaffs(
     isAdminOrManager ? { pageSize: 100, Role: 'DeliveryStaff' } : undefined,

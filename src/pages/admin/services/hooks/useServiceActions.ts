@@ -44,10 +44,24 @@ export const useServiceActions = () => {
         onError: () => toast.error('Failed to cancel/reject booking'),
     });
 
+    const completeMutation = useMutation({
+        mutationFn: async (id: string) => {
+            await api.patch(`/ServiceOrders/${id}/complete`);
+        },
+        onSuccess: (_, id) => {
+            toast.success(`Service booking ${id} completed successfully`);
+            queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
+            queryClient.invalidateQueries({ queryKey: ['serviceOrder', id] });
+        },
+        onError: () => toast.error('Failed to complete service booking'),
+    });
+
     return {
         confirmBooking: confirmMutation.mutate,
         isConfirming: confirmMutation.isPending,
         cancelBooking: cancelMutation.mutate,
         isCancelling: cancelMutation.isPending,
+        completeBooking: completeMutation.mutate,
+        isCompleting: completeMutation.isPending,
     };
 };

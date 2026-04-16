@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useReOrderFailedServiceOrder } from '@/hooks/queries/useServiceOrder';
 import { useToast } from '@/hooks/useToast';
 import type { ServiceOrderResponse } from '@/api/types/serviceOrder';
-import { formatDate, formatPrice } from '../../utils';
+import { formatDate, formatPrice, formatDateTime } from '../../utils';
 import { STATUS_THEME } from '../../constants';
 
 // Lazy load detail dialog
@@ -38,9 +38,13 @@ export const ServiceOrderCard = memo(({ order }: ServiceOrderCardProps) => {
     ? (detailItems[0].packageName || detailItems[0].serviceName || detailItems[0].itemName || 'Service Order')
     : 'Service Order';
 
+  const normalizedOrderStatus = toThemeKey(order.status).toLowerCase();
   const paymentMethod = String(order.paymentMethod || '').toLowerCase();
   const paymentStatus = String(order.paymentStatus || '').toLowerCase();
-  const canRetryPayment = !!orderId && paymentMethod.includes('vnpay') && paymentStatus === 'failed';
+  const canRetryPayment = !!orderId && 
+    paymentMethod.includes('vnpay') && 
+    paymentStatus !== 'paid' && 
+    normalizedOrderStatus === 'pending';
 
   const handleRetryPayment = async () => {
     if (!orderId) return;
@@ -55,9 +59,8 @@ export const ServiceOrderCard = memo(({ order }: ServiceOrderCardProps) => {
       }
 
       toast.warning('Unable to create payment link.', 'Please try again in a moment.');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Re-payment failed. Please try again.';
-      toast.error('Cannot retry payment.', message);
+    } catch {
+      // Handled by global interceptor
     }
   };
 
@@ -104,7 +107,7 @@ export const ServiceOrderCard = memo(({ order }: ServiceOrderCardProps) => {
               </div>
               <div className="flex items-center gap-1 mt-1.5 text-[10px] font-bold text-blue-600 uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-blue-50 w-fit border border-blue-100">
                 <CalendarDays className="w-3 h-3" />
-                {order.appointmentDate ? formatDate(order.appointmentDate) : 'Schedule Pending'}
+                {order.appointmentDate ? formatDateTime(order.appointmentDate) : 'Schedule Pending'}
               </div>
             </div>
 

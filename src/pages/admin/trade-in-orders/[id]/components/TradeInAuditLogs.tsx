@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { AdminStatusBadge } from '@/components/admin';
+import { usePermission } from '@/hooks/usePermission';
 
 interface TradeInAuditLogsProps {
   tradeInOrderId: string;
@@ -14,11 +15,16 @@ interface TradeInAuditLogsProps {
 
 export const TradeInAuditLogs: React.FC<TradeInAuditLogsProps> = ({ tradeInOrderId }) => {
   const navigate = useNavigate();
+  const { isAdmin, isManager } = usePermission();
+  const canViewLogs = isAdmin || isManager;
+
   const { data: logs, isLoading } = useQuery({
     queryKey: ['auditLogs', 'tradeIn', tradeInOrderId],
     queryFn: () => auditLogService.getLogs({ entityId: tradeInOrderId, pageSize: 50 }),
-    enabled: !!tradeInOrderId,
+    enabled: !!tradeInOrderId && canViewLogs,
   });
+
+  if (!canViewLogs) return null;
 
   if (isLoading) {
     return (

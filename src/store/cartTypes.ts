@@ -10,6 +10,7 @@ export interface CartItem {
     id: string
     productId?: string
     name: string
+    productName?: string // Compatibility with code using productName
     image: string
     price: number
     quantity: number
@@ -36,4 +37,9 @@ export interface CartItem {
         totalValue: number;
         products: TradeInItem[];
     };
+    productCustomizeDetails?: Array<{
+        customizeTypeName: string;
+        customizeContent: string;
+        addOnPrice: number;
+    }>;
 }

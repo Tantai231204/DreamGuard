@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, RotateCcw, Plus, Minus, ChevronDown, Package, UploadCloud, X, CheckCircle2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,11 @@ import { uploadEvidenceItems } from "@/utils/evidenceUpload";
 const MAX_VISIBLE = 3;
 const MAX_EVIDENCE_FILES = 5;
 const MAX_EVIDENCE_FILE_SIZE_MB = 10;
+
+import { 
+  RETURN_REASONS, 
+  OTHER_REASON_LABEL 
+} from "@/constants/logistics";
 
 type EvidenceStatus = "pending" | "uploading" | "uploaded" | "failed";
 
@@ -53,6 +59,7 @@ interface ProcessReturnDialogProps {
 
 export function ProcessReturnDialog({ isOpen, onClose, orderId, taskId, items }: ProcessReturnDialogProps) {
   const [damageNote, setDamageNote] = useState("");
+  const [selectedReason, setSelectedReason] = useState("");
   const [evidenceItems, setEvidenceItems] = useState<EvidenceItem[]>([]);
   const [isUploadingEvidence, setIsUploadingEvidence] = useState(false);
   const [damagedQty, setDamagedQty] = useState<Record<string, number>>({});
@@ -103,6 +110,7 @@ export function ProcessReturnDialog({ isOpen, onClose, orderId, taskId, items }:
 
   const resetAndClose = useCallback(() => {
     setDamageNote("");
+    setSelectedReason("");
     setEvidenceItems((prev) => {
       prev.forEach((item) => URL.revokeObjectURL(item.previewUrl));
       return [];
@@ -244,9 +252,11 @@ export function ProcessReturnDialog({ isOpen, onClose, orderId, taskId, items }:
       }
     }
 
+    const finalNote = selectedReason === OTHER_REASON_LABEL ? damageNote : selectedReason;
+
     const data: Partial<ProcessReturnedRequest> = hasDamages
       ? {
-          damageNote,
+          damageNote: finalNote,
           evidenceUrls: uploadedEvidenceUrls.length > 0 ? uploadedEvidenceUrls : undefined,
           damagedItems: Object.entries(damagedQty).map(([id, qty]) => ({
             orderItemId: id,
@@ -262,7 +272,7 @@ export function ProcessReturnDialog({ isOpen, onClose, orderId, taskId, items }:
     } catch {
       toast.error("Failed to process return.");
     }
-  }, [hasDamages, damageNote, damagedQty, processReturned, taskId, orderId, resetAndClose, evidenceItems, updateEvidenceItem]);
+  }, [hasDamages, damageNote, selectedReason, damagedQty, processReturned, taskId, orderId, resetAndClose, evidenceItems, updateEvidenceItem]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && resetAndClose()}>
@@ -326,17 +336,37 @@ export function ProcessReturnDialog({ isOpen, onClose, orderId, taskId, items }:
           <div className="space-y-4 pt-4 border-t border-slate-100">
             {hasDamages ? (
               <>
-                <div className="space-y-1.5">
-                  <Label className="text-[13px] font-semibold text-slate-700">
-                    Damage Notes
-                    <span className="text-[11px] font-normal text-rose-500">(Required)</span>
-                  </Label>
-                  <Textarea
-                    placeholder="Describe the damages found..."
-                    value={damageNote}
-                    onChange={(e) => setDamageNote(e.target.value)}
-                    className="min-h-[86px] resize-none rounded-lg"
-                  />
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-[13px] font-semibold text-slate-700">
+                      Outcome Reason
+                      <span className="text-[11px] font-normal text-rose-500">(Required)</span>
+                    </Label>
+                    <Select value={selectedReason} onValueChange={setSelectedReason}>
+                      <SelectTrigger className="h-10 rounded-lg border-slate-200 bg-white">
+                        <SelectValue placeholder="Select a reason..." />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl border-slate-200">
+                        {RETURN_REASONS.map((r) => (
+                          <SelectItem key={r} value={r} className="py-2 text-sm">{r}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {(selectedReason === OTHER_REASON_LABEL || !selectedReason) && (
+                    <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                      <Label className="text-[13px] font-semibold text-slate-700">
+                        Detail Notes
+                      </Label>
+                      <Textarea
+                        placeholder="Describe the damages/reason in detail..."
+                        value={damageNote}
+                        onChange={(e) => setDamageNote(e.target.value)}
+                        className="min-h-[86px] resize-none rounded-lg"
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3.5">

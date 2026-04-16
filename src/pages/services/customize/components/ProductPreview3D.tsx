@@ -13,7 +13,7 @@ import {
   ContactShadows,
 } from "@react-three/drei";
 import * as THREE from "three";
-import { Camera, RefreshCcw, Maximize2, Move, ZoomIn, RotateCcw } from "lucide-react";
+import { Camera, RefreshCcw, Maximize2, Move, ZoomIn, RotateCcw, LayoutPanelLeft } from "lucide-react";
 
 // ================== PREMIUM BESPOKE SHADER (FABRIC SPECIALIST) ==================
 const LUXURY_FRAGMENT = `
@@ -580,6 +580,53 @@ const CalibrationPanel = memo(({ customImage, transformRef }: any) => {
   );
 });
 
+const DesignManifest = memo(({ product, design }: any) => {
+  const isCrib = product?.id?.includes('crib');
+  
+  const specs = [
+    { label: "Fabric Base", value: design.material || "Standard" },
+    { label: "Tone", value: design.customImage ? "Bespoke Wrap" : (design.baseColor || "#B0D4F1"), swatch: design.customImage ? null : design.baseColor },
+    { label: "Volume", value: design.size || "Default" },
+    ...(design.embroideryText ? [{
+      label: isCrib ? "Signature" : "Stitch",
+      value: `"${design.embroideryText}"`,
+      sub: design.embroideryPosition
+    }] : [])
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="absolute bottom-8 right-8 z-20 pointer-events-none"
+    >
+      <div className="bg-white/80 backdrop-blur-xl p-6 rounded-[2rem] border border-slate-200/50 shadow-2xl w-64 space-y-4">
+        <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+          <LayoutPanelLeft className="h-3.5 w-3.5 text-blue-600" />
+          <span className="text-[10px] font-black uppercase tracking-widest text-slate-900">Design Manifest</span>
+        </div>
+
+        <div className="space-y-3">
+          {specs.map((s, i) => (
+            <div key={i} className="flex flex-col gap-0.5">
+              <span className="text-[8px] font-black text-slate-400 uppercase tracking-tight">{s.label}</span>
+              <div className="flex items-center gap-2">
+                {s.swatch && <div className="h-2 w-2 rounded-full border border-slate-200" style={{ backgroundColor: s.swatch }} />}
+                <span className="text-[11px] font-bold text-slate-700 truncate">{s.value}</span>
+              </div>
+              {s.sub && (
+                <span className="text-[8px] font-bold text-blue-500 uppercase tracking-widest opacity-80 mt-0.5">
+                  Pos: {s.sub}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </motion.div>
+  );
+});
+
 // ================== MAIN VIEW ==================
 const ProductPreview3D = memo(({ product, design, sizeDims }: any) => {
   const designRef = useRef(design);
@@ -633,6 +680,8 @@ const ProductPreview3D = memo(({ product, design, sizeDims }: any) => {
         <AnimatePresence>
           <CalibrationPanel customImage={design.customImage} transformRef={transformRef} />
         </AnimatePresence>
+
+        <DesignManifest product={product} design={design} />
       </div>
     </div>
   );

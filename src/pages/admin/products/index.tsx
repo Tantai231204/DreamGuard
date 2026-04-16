@@ -104,13 +104,15 @@ export default function ProductsPage() {
     }, [mutations]),
   });
 
-  const handleUpdateStatus = useCallback((id: string, status: string, name?: string, cur?: string) => {
+  const handleUpdateStatus = useCallback((id: string, status: string, name?: string, cur?: string, totalStock?: number, hasPublishedChild?: boolean) => {
     mutations.handleStatusChangeRequest({
       id,
       name: name || 'Combo',
       type: 'combo',
       currentStatus: (cur || 'Draft') as ProductStatus,
       newStatus: status as ProductStatus,
+      totalStock,
+      hasPublishedChild,
     });
   }, [mutations]);
 

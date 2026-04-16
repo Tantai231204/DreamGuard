@@ -36,18 +36,16 @@ export const ServiceOrderAnalytics: React.FC = () => {
 
     // 1. Pie Chart: Category / Status Distribution
     const pie = [
-      { name: 'Completed', value: stats.totalCompletedOrders, color: '#10b981' }, // emerald-500
-      { name: 'Cancelled', value: stats.totalCancelledOrders, color: '#f43f5e' }, // rose-500
-      { name: 'Rejected', value: stats.totalRejectedOrders, color: '#64748b' },   // slate-500
-      { name: 'Refunded', value: stats.totalRefundOrders, color: '#f59e0b' },     // amber-500
+      { name: 'Completed', value: stats.totalCompletedOrders, color: '#10b981' }, 
+      { name: 'Cancelled', value: stats.totalCancelledOrders, color: '#f43f5e' }, 
+      { name: 'Refunded', value: stats.totalRefundOrders, color: '#f59e0b' },     
     ].filter(p => p.value > 0);
 
     // 2. Funnel Chart: Conversion
-    const validOrders = stats.totalServiceOrders - stats.totalCancelledOrders - stats.totalRejectedOrders;
     const funnel = [
-      { name: 'Total Orders', value: stats.totalServiceOrders, fill: '#4988c4' },
-      { name: 'Valid Action', value: validOrders, fill: '#14b8a6' },
-      { name: 'Completed', value: stats.totalCompletedOrders, fill: '#10b981' }
+      { name: 'Lead', value: stats.totalServiceOrders, fill: '#4988c4' },
+      { name: 'Active', value: stats.totalServiceOrders - stats.totalCancelledOrders, fill: '#14b8a6' },
+      { name: 'Done', value: stats.totalCompletedOrders, fill: '#10b981' }
     ].filter(f => f.value > 0);
 
     return { orderData: pie, funnelData: funnel };
@@ -80,7 +78,7 @@ export const ServiceOrderAnalytics: React.FC = () => {
         </div>
       </div>
 
-      {/* Small Cards */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard label="Total Orders" value={stats.totalServiceOrders} icon={ClipboardList} color="blue" sub="Bookings" />
         <StatCard label="Revenue" value={formatPrice(stats.totalAmount).replace(' ₫', '')} icon={Banknote} color="emerald" sub="Gross income" trend={8.2} />
@@ -88,12 +86,12 @@ export const ServiceOrderAnalytics: React.FC = () => {
         <StatCard label="Refund Claims" value={formatPrice(stats.totalRefundAmount).replace(' ₫', '')} icon={AlertCircle} color="amber" sub="Total refunded" negative />
       </div>
 
-      {/* Analytics (Pie & Funnel) */}
+      {/* Main Analytical Grid (Pie & Funnel) */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Pie Chart -> Category Distribution (Status) */}
         <div className="lg:col-span-2 bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden group">
           <h3 className="text-xl font-black text-slate-900 tracking-tight">Distribution</h3>
-          <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mb-4">Category Ratios</p>
+          <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mb-4">Lifecycle Ratios</p>
           <div className="h-[220px] w-full relative">
             {orderData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
@@ -106,8 +104,8 @@ export const ServiceOrderAnalytics: React.FC = () => {
               </ResponsiveContainer>
             ) : (<div className="absolute inset-0 flex items-center justify-center text-slate-400 font-bold text-sm">No data</div>)}
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-2xl font-black text-slate-900 leading-none">{stats.totalServiceOrders}</span>
-              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">Total</span>
+              <span className="text-2xl font-black text-slate-900 leading-none">{stats.totalCompletedOrders}</span>
+              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">Done</span>
             </div>
           </div>
         </div>
@@ -223,8 +221,6 @@ const CustomFunnelTooltip = ({ active, payload }: TooltipProps) => {
   }
   return null;
 };
-
-
 
 const ServiceAnalyticsSkeleton = () => (
   <div className="space-y-8 pb-10">

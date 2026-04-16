@@ -19,12 +19,18 @@ import { useProcessExchangeShippingTask } from "@/hooks/queries/useShippingTask"
 import { useVariant } from "@/hooks/queries/useVariant";
 import { useStaffs } from "@/hooks/queries/useStaff";
 import { useAuthStore } from "@/store/authStore";
+import { isAdminOrManager as checkIsAdminOrManager } from "@/lib/role";
 import { getColorHex } from "@/utils/color-utils";
 import { uploadEvidenceItems } from "@/utils/evidenceUpload";
 
 const MAX_VISIBLE = 3;
 const MAX_EVIDENCE_FILES = 5;
 const MAX_EVIDENCE_FILE_SIZE_MB = 10;
+
+import { 
+  EXCHANGE_REASONS, 
+  OTHER_REASON_LABEL 
+} from "@/constants/logistics";
 
 type EvidenceStatus = "pending" | "uploading" | "uploaded" | "failed";
 
@@ -67,6 +73,7 @@ interface ProcessExchangeDialogProps {
 
 export function ProcessExchangeDialog({ isOpen, onClose, orderId, taskId, items }: ProcessExchangeDialogProps) {
   const [exchangeNote, setExchangeNote] = useState("");
+  const [selectedReason, setSelectedReason] = useState("");
   const [evidenceItems, setEvidenceItems] = useState<EvidenceItem[]>([]);
   const [isUploadingEvidence, setIsUploadingEvidence] = useState(false);
   const [selectedStaffId, setSelectedStaffId] = useState("");
@@ -76,7 +83,7 @@ export function ProcessExchangeDialog({ isOpen, onClose, orderId, taskId, items 
 
   const processExchange = useProcessExchangeShippingTask();
   const role = useAuthStore((s) => s.role);
-  const isAdminOrManager = role === "Admin" || role === "Manager";
+  const isAdminOrManager = checkIsAdminOrManager(role);
 
   const { data: staffData, isLoading: isLoadingStaff } = useStaffs(
     isAdminOrManager ? { pageSize: 100, Role: "DeliveryStaff" } : undefined,
@@ -129,6 +136,7 @@ export function ProcessExchangeDialog({ isOpen, onClose, orderId, taskId, items 
       return [];
     });
     setIsUploadingEvidence(false);
+    setSelectedReason("");
     setSelectedStaffId("");
     setDamagedQty({});
     setExpanded(false);
@@ -266,9 +274,11 @@ export function ProcessExchangeDialog({ isOpen, onClose, orderId, taskId, items 
       }
     }
 
+    const finalNote = selectedReason === OTHER_REASON_LABEL ? exchangeNote : selectedReason;
+
     const data: ProcessExchangeRequest = {
       newStaffId: selectedStaffId,
-      exchangeNote: exchangeNote.trim() || undefined,
+      exchangeNote: finalNote.trim() || undefined,
       evidenceUrls: uploadedEvidenceUrls.length > 0 ? uploadedEvidenceUrls : undefined,
       damagedItems: hasDamages
         ? Object.entries(damagedQty).map(([id, qty]) => ({
@@ -285,7 +295,7 @@ export function ProcessExchangeDialog({ isOpen, onClose, orderId, taskId, items 
     } catch {
       toast.error("Failed to process exchange request.");
     }
-  }, [taskId, selectedStaffId, hasDamages, exchangeNote, evidenceItems, damagedQty, processExchange, orderId, resetAndClose, updateEvidenceItem]);
+  }, [taskId, selectedStaffId, hasDamages, exchangeNote, selectedReason, evidenceItems, damagedQty, processExchange, orderId, resetAndClose, updateEvidenceItem]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && resetAndClose()}>
@@ -383,17 +393,37 @@ export function ProcessExchangeDialog({ isOpen, onClose, orderId, taskId, items 
               </div>
             )}
 
-            <div className="space-y-1.5">
-              <Label className="text-[13px] font-semibold text-slate-700">
-                Exchange Note
-                <span className="text-[11px] font-normal text-slate-400">(Optional)</span>
-              </Label>
-              <Textarea
-                placeholder="Describe exchange reason and any handling notes..."
-                value={exchangeNote}
-                onChange={(e) => setExchangeNote(e.target.value)}
-                className="min-h-[86px] resize-none rounded-lg"
-              />
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label className="text-[13px] font-semibold text-slate-700">
+                  Exchange Reason
+                  <span className="text-[11px] font-normal text-slate-400">(Optional)</span>
+                </Label>
+                <Select value={selectedReason} onValueChange={setSelectedReason}>
+                  <SelectTrigger className="h-9 rounded-lg border-slate-200 bg-slate-50/50 focus:bg-white focus:border-blue-300 focus:ring-blue-200/60 text-sm">
+                    <SelectValue placeholder="Select a reason..." />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-slate-200">
+                    {EXCHANGE_REASONS.map((r) => (
+                      <SelectItem key={r} value={r} className="py-2 text-sm">{r}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {(selectedReason === OTHER_REASON_LABEL || !selectedReason) && (
+                <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <Label className="text-[13px] font-semibold text-slate-700">
+                    Detail Notes
+                  </Label>
+                  <Textarea
+                    placeholder="Describe exchange reason and any handling notes..."
+                    value={exchangeNote}
+                    onChange={(e) => setExchangeNote(e.target.value)}
+                    className="min-h-[86px] resize-none rounded-lg"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3.5">

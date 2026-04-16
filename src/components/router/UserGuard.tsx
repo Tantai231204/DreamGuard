@@ -1,6 +1,7 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
-import { AppRoute, UserRole } from "../../lib/constants";
+import { AppRoute } from "../../lib/constants";
+import { isAnyStaff } from "../../lib/role";
 
 /**
  * UserGuard component - Prevents staff users from accessing user-facing pages
@@ -9,7 +10,7 @@ import { AppRoute, UserRole } from "../../lib/constants";
 export default function UserGuard() {
     const { isAuthenticated, role } = useAuthStore();
 
-    const isStaff = role === UserRole.ADMIN || role === UserRole.MANAGER || role === UserRole.SELLER;
+    const isStaff = isAnyStaff(role);
 
     if (isAuthenticated && isStaff) {
         return <Navigate to={AppRoute.ADMIN} replace state={{ from: AppRoute.HOME, reason: 'staff_restricted' }} />;

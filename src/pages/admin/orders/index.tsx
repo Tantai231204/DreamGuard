@@ -17,6 +17,7 @@ import {
 } from './view-models';
 
 import { useAuthStore } from '@/store/authStore';
+import { isSellerRole, isAnyStaff } from '@/lib/role';
 
 type AdminOrderView = 'orders' | 'trade-in';
 
@@ -24,9 +25,8 @@ export default function OrderManagement() {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const role = useAuthStore((s) => s.role);
-  const isAdminOrManager = role === 'Admin' || role === 'Manager';
-  const isSeller = role === 'Seller';
-  const canViewTradeIn = isAdminOrManager || isSeller;
+  const isSeller = isSellerRole(role);
+  const canViewTradeIn = isAnyStaff(role);
 
   const requestedView = searchParams.get('view');
   const activeView: AdminOrderView = (requestedView === 'trade-in' && canViewTradeIn)

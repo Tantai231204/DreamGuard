@@ -3,8 +3,8 @@ import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tansta
 import { certificateService } from '@/api';
 import type { CreateCertificateRequest, CertificateParams } from '@/pages/admin/products/types';
 import { toast } from 'sonner';
-import { UserRole } from '@/lib/constants';
 import { useAuthStore } from '@/store/authStore';
+import { isAdminOrManager } from '@/lib/role';
 
 export const certificateKeys = {
   all: ['certificates'] as const,
@@ -24,15 +24,16 @@ export const useProductCertificates = (productId: string, options?: { enabled?: 
 };
 
 /** Fetch paginated certificates */
-export const useAdminCertificates = (params: CertificateParams = {}) => {
+export const useAdminCertificates = (params: CertificateParams = {}, options?: { enabled?: boolean }) => {
   const role = useAuthStore((s) => s.role);
-  const isAdminOrManager = role === UserRole.ADMIN || role === UserRole.MANAGER;
 
   return useQuery({
     queryKey: certificateKeys.admin(params),
     queryFn: () => certificateService.getAll(params),
     placeholderData: keepPreviousData,
-    enabled: isAdminOrManager,
+    enabled: options?.enabled !== undefined 
+      ? (options.enabled && isAdminOrManager(role)) 
+      : isAdminOrManager(role),
   });
 };
 

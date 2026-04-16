@@ -4,12 +4,13 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useAuthStore } from "../../store/authStore";
-import { AppRoute, UserRole } from "../../lib/constants";
+import { AppRoute } from "../../lib/constants";
 import { Eye, EyeOff, Lock, Phone } from "lucide-react";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Button } from "../../components/ui/button";
 import { useLogin } from "../../hooks/useAuth";
+import { isAnyStaff, isSellerRole } from "../../lib/role";
 
 const loginSchema = z.object({
   phoneNumber: z.string().min(9, "Invalid phone number"),
@@ -23,38 +24,36 @@ export default function Login() {
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const { isAuthenticated, role } = useAuthStore();
-  
+
   const redirect = searchParams.get("redirect");
   const from = location.state?.from?.pathname || location.state?.from || redirect;
   const [showPassword, setShowPassword] = useState(false);
 
-  // Proactive redirection if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      // Resolve "from" path
-      const isStaff = role === UserRole.ADMIN || role === UserRole.MANAGER || role === UserRole.SELLER;
+      const isStaff = isAnyStaff(role);
       let targetPath: string = AppRoute.PROFILE;
 
       if (isStaff) {
-        targetPath = role === UserRole.SELLER ? "/admin/orders" : AppRoute.ADMIN;
+        targetPath = isSellerRole(role) ? "/admin/orders" : AppRoute.ADMIN;
       }
-      
+
       if (from) {
         let fromPath = '';
         if (typeof from === 'string') fromPath = from;
         else if (typeof from === 'object' && from && 'pathname' in from) {
-            fromPath = (from as { pathname: string }).pathname;
+          fromPath = (from as { pathname: string }).pathname;
         }
 
         // Only use 'from' if it's actually a specific deep link, not just the home page
         if (fromPath && fromPath !== '/' && fromPath !== AppRoute.HOME) {
-            targetPath = fromPath;
+          targetPath = fromPath;
         }
       }
 
       // Avoid infinite loop if target is somehow login
       if (targetPath === AppRoute.LOGIN || targetPath === "/login") {
-        targetPath = role === UserRole.SELLER ? "/admin/orders" : (isStaff ? AppRoute.ADMIN : AppRoute.PROFILE);
+        targetPath = isSellerRole(role) ? "/admin/orders" : (isStaff ? AppRoute.ADMIN : AppRoute.PROFILE);
       }
 
       navigate(targetPath, { replace: true });

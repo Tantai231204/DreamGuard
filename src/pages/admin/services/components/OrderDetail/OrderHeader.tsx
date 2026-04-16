@@ -19,6 +19,7 @@ interface OrderHeaderProps {
       canConfirm: boolean;
       canAssign: boolean;
       canCancel: boolean;
+      canComplete?: boolean;
       isAssigned: boolean;
   };
 }
@@ -34,7 +35,7 @@ export const OrderHeader = memo(function OrderHeader({
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   
   const StatusIcon = statusCfg?.icon;
-  const { confirmBooking, cancelBooking, isConfirming, isCancelling } = useServiceActions();
+  const { confirmBooking, cancelBooking, completeBooking, isConfirming, isCancelling, isCompleting } = useServiceActions();
 
   const handleConfirmAction = () => {
     confirmBooking(order.soId || order.id || "", {
@@ -42,6 +43,10 @@ export const OrderHeader = memo(function OrderHeader({
         setIsConfirmOpen(false);
       }
     });
+  };
+
+  const handleCompleteAction = () => {
+    completeBooking(order.soId || order.id || "");
   };
 
   const handleCancelConfirm = (reason: string) => {
@@ -101,6 +106,17 @@ export const OrderHeader = memo(function OrderHeader({
                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] uppercase tracking-widest rounded-xl gap-2 shadow-xl shadow-emerald-500/10 transition-all hover:scale-105 active:scale-95 h-12 px-6 border-0"
               >
                 <CheckCircle className="h-4 w-4" /> {isConfirming ? "Processing..." : "Authorize Order"}
+              </Button>
+            )}
+
+            {permissions.canComplete && (
+              <Button
+                size="sm"
+                onClick={handleCompleteAction}
+                disabled={isCompleting}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] uppercase tracking-widest rounded-xl gap-2 shadow-xl shadow-blue-500/10 transition-all hover:scale-105 active:scale-95 h-12 px-6 border-0"
+              >
+                <CheckCircle className="h-4 w-4" /> {isCompleting ? "Executing..." : "Mark as Completed"}
               </Button>
             )}
 

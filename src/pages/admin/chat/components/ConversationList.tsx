@@ -115,25 +115,17 @@ function ConversationListInner({
         )}
       </AnimatePresence>
 
-      {/* ---- List ---- */}
       <div className="flex-1 overflow-y-auto custom-scrollbar scrollbar-admin min-h-0">
-        <AnimatePresence mode="popLayout">
+        <div className="py-2">
           {conversations.length > 0 ? (
-            conversations.map((conv, idx) => (
-              <motion.div
+            conversations.map((conv) => (
+              <ConversationItem
                 key={conv.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, x: -16 }}
-                transition={{ delay: idx * 0.03, duration: 0.2 }}
-              >
-                <ConversationItem
-                  conversation={conv}
-                  isSelected={selectedId === conv.id}
-                  onSelect={onSelectConversation}
-                  formatTime={formatTime}
-                />
-              </motion.div>
+                conversation={conv}
+                isSelected={selectedId === conv.id}
+                onSelect={onSelectConversation}
+                formatTime={formatTime}
+              />
             ))
           ) : !isLoading ? (
             <motion.div
@@ -157,7 +149,7 @@ function ConversationListInner({
               </div>
             ))
           )}
-        </AnimatePresence>
+        </div>
       </div>
     </div>
   );

@@ -3,10 +3,9 @@ import {
   useMutation,
   useQuery,
   useQueryClient,
-  type QueryClient,
   type QueryKey,
 } from '@tanstack/react-query';
-import { toast } from 'react-hot-toast';
+import { toast } from 'sonner';
 
 import tradeInOrderService from '@/api/services/tradeInOrderService';
 import type {
@@ -16,384 +15,228 @@ import type {
   TradeInOrderDetailResponse,
 } from '@/api/types/tradeInOrder';
 import { useAuthStore } from '@/store/authStore';
+import { isAdminOrManager, isAnyStaff } from '@/lib/role';
 import {
-  canTransitionTradeInStatus,
-  isTradeInTransitionTarget,
-  isTradeInWaitingStatus,
   normalizeTradeInStatus,
-  toTradeInStatus,
 } from '@/utils/tradeInWorkflow';
+
+// ── Shared Query Keys ──
 
 export const tradeInOrderKeys = {
   all: ['trade-in-orders'] as const,
-  list: (params?: AdminTradeInOrderSearchParams) => [...tradeInOrderKeys.all, 'list', params] as const,
-  listPrefix: () => [...tradeInOrderKeys.all, 'list'] as const,
-  detail: (id: string) => [...tradeInOrderKeys.all, 'detail', id] as const,
-  customerDetail: (id: string) => [...tradeInOrderKeys.all, 'customer-detail', id] as const,
-  customerList: (params?: { pageNumber?: number; pageSize?: number }) => [...tradeInOrderKeys.all, 'customer', params] as const,
-  customerListPrefix: () => [...tradeInOrderKeys.all, 'customer'] as const,
-  waiting: (params?: { pageNumber?: number; pageSize?: number }) => [...tradeInOrderKeys.all, 'waiting', params] as const,
-  waitingPrefix: () => [...tradeInOrderKeys.all, 'waiting'] as const,
+  lists: () => [...tradeInOrderKeys.all, 'list'] as const,
+  list: (params?: AdminTradeInOrderSearchParams) => [...tradeInOrderKeys.lists(), params] as const,
+  details: () => [...tradeInOrderKeys.all, 'detail'] as const,
+  detail: (id: string) => [...tradeInOrderKeys.details(), id] as const,
+  customerDetails: () => [...tradeInOrderKeys.all, 'customer-detail'] as const,
+  customerDetail: (id: string) => [...tradeInOrderKeys.customerDetails(), id] as const,
+  waitingLists: () => [...tradeInOrderKeys.all, 'waiting'] as const,
+  waitingList: (params?: { pageNumber?: number; pageSize?: number }) => [...tradeInOrderKeys.waitingLists(), params] as const,
+  customerLists: () => [...tradeInOrderKeys.all, 'customer-list'] as const,
+  customerList: (params?: { pageNumber?: number; pageSize?: number }) => [...tradeInOrderKeys.customerLists(), params] as const,
 };
 
-interface TradeInCacheSnapshot {
-  previousAdminDetail: TradeInOrderDetailResponse | undefined;
-  previousCustomerDetail: TradeInOrderDetailResponse | undefined;
-  previousAdminLists: Array<[QueryKey, AdminTradeInOrderListResponse | undefined]>;
-  previousWaitingLists: Array<[QueryKey, AdminTradeInOrderListResponse | undefined]>;
-  previousCustomerLists: Array<[QueryKey, AdminTradeInOrderListResponse | undefined]>;
-}
+// ── Types ──
 
-interface TransitionTradeInStatusPayload {
+interface TransitionPayload {
   fromStatus?: string;
   toStatus: string;
 }
 
-interface TransitionTradeInStatusContext extends TradeInCacheSnapshot {
-  nextStatus: string;
-}
-
-interface ConfirmTradeInDealPayload {
+interface ConfirmDealPayload {
   fromStatus?: string;
   tradeInPrice: number;
 }
 
-interface ConfirmTradeInDealContext extends TradeInCacheSnapshot {
-  nextStatus: string;
-  tradeInPrice: number;
+interface CacheSnapshot {
+  previousAdminDetail?: TradeInOrderDetailResponse;
+  previousCustomerDetail?: TradeInOrderDetailResponse;
+  previousAdminLists: Array<[QueryKey, AdminTradeInOrderListResponse | undefined]>;
 }
 
-const resolveAmountToPayAfterConfirm = (params: {
+// ── Shared Cache Utilities ─────────────────────────────────────
+
+const calculateAmountToPay = (params: {
   salePrice?: number;
   currentAmountToPay: number;
   currentTradeInPrice: number;
   depositAmount: number;
   nextTradeInPrice: number;
 }) => {
-  const {
-    salePrice,
-    currentAmountToPay,
-    currentTradeInPrice,
-    depositAmount,
-    nextTradeInPrice,
-  } = params;
-
-  const hasSalePrice = typeof salePrice === 'number' && Number.isFinite(salePrice) && salePrice > 0;
-  const estimatedBasePrice = hasSalePrice
-    ? salePrice
-    : currentAmountToPay + currentTradeInPrice + depositAmount;
-
-  return Math.max(0, estimatedBasePrice - nextTradeInPrice - depositAmount);
+  const { salePrice, currentAmountToPay, currentTradeInPrice, depositAmount, nextTradeInPrice } = params;
+  const basePrice = (salePrice && salePrice > 0) 
+    ? salePrice 
+    : (currentAmountToPay + currentTradeInPrice + depositAmount);
+    
+  return Math.max(0, basePrice - nextTradeInPrice - depositAmount);
 };
 
-const captureTradeInCacheSnapshot = (queryClient: QueryClient, orderId: string): TradeInCacheSnapshot => ({
-  previousAdminDetail: queryClient.getQueryData<TradeInOrderDetailResponse>(tradeInOrderKeys.detail(orderId)),
-  previousCustomerDetail: queryClient.getQueryData<TradeInOrderDetailResponse>(tradeInOrderKeys.customerDetail(orderId)),
-  previousAdminLists: queryClient.getQueriesData<AdminTradeInOrderListResponse>({ queryKey: tradeInOrderKeys.listPrefix() }),
-  previousWaitingLists: queryClient.getQueriesData<AdminTradeInOrderListResponse>({ queryKey: tradeInOrderKeys.waitingPrefix() }),
-  previousCustomerLists: queryClient.getQueriesData<AdminTradeInOrderListResponse>({ queryKey: tradeInOrderKeys.customerListPrefix() }),
-});
-
-const restoreTradeInCacheSnapshot = (
-  queryClient: QueryClient,
-  orderId: string,
-  snapshot: TradeInCacheSnapshot,
-) => {
-  queryClient.setQueryData(tradeInOrderKeys.detail(orderId), snapshot.previousAdminDetail);
-  queryClient.setQueryData(tradeInOrderKeys.customerDetail(orderId), snapshot.previousCustomerDetail);
-
-  snapshot.previousAdminLists.forEach(([queryKey, previous]) => {
-    queryClient.setQueryData(queryKey, previous);
-  });
-  snapshot.previousWaitingLists.forEach(([queryKey, previous]) => {
-    queryClient.setQueryData(queryKey, previous);
-  });
-  snapshot.previousCustomerLists.forEach(([queryKey, previous]) => {
-    queryClient.setQueryData(queryKey, previous);
-  });
-};
-
-const invalidateTradeInCaches = (queryClient: QueryClient, orderId: string) => {
-  void queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.detail(orderId) });
-  void queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.customerDetail(orderId) });
-  void queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.listPrefix() });
-  void queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.waitingPrefix() });
-  void queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.customerListPrefix() });
-};
-
-const updateDetailStatus = (
-  detail: TradeInOrderDetailResponse | undefined,
-  orderId: string,
-  nextStatus: string,
-) => {
-  if (!detail || detail.tradeInOrderId !== orderId || detail.status === nextStatus) {
-    return detail;
-  }
-
-  return {
-    ...detail,
-    status: nextStatus,
-  };
-};
-
-const updateListStatus = (
+const updateOrderInList = (
   list: AdminTradeInOrderListResponse | undefined,
   orderId: string,
-  nextStatus: string,
-  options?: { removeIfNotWaiting?: boolean },
-) => {
-  if (!list || !Array.isArray(list.items) || list.items.length === 0) {
-    return list;
-  }
+  updater: (item: AdminTradeInOrderListResponse['items'][0]) => AdminTradeInOrderListResponse['items'][0] | null
+): AdminTradeInOrderListResponse | undefined => {
+  if (!list?.items) return list;
 
   let changed = false;
-  let removedCount = 0;
-
-  const items = list.items.reduce<AdminTradeInOrderListResponse['items']>((acc, item) => {
+  const nextItems = list.items.reduce<AdminTradeInOrderListResponse['items']>((acc, item) => {
     if (item.tradeInOrderId !== orderId) {
       acc.push(item);
       return acc;
     }
 
-    if (options?.removeIfNotWaiting && !isTradeInWaitingStatus(nextStatus)) {
+    const updated = updater(item);
+    if (updated) {
+      acc.push(updated);
+      if (updated !== item) changed = true;
+    } else {
       changed = true;
-      removedCount += 1;
-      return acc;
     }
-
-    if (item.status !== nextStatus) {
-      changed = true;
-      acc.push({
-        ...item,
-        status: nextStatus,
-      });
-      return acc;
-    }
-
-    acc.push(item);
     return acc;
   }, []);
 
-  if (!changed) {
-    return list;
-  }
-
-  return {
-    ...list,
-    items,
-    totalCount:
-      typeof list.totalCount === 'number'
-        ? Math.max(0, list.totalCount - removedCount)
-        : list.totalCount,
-  };
+  if (!changed) return list;
+  return { ...list, items: nextItems, totalCount: list.totalCount - (list.items.length - nextItems.length) };
 };
 
-const updateDetailAfterConfirm = (
-  detail: TradeInOrderDetailResponse | undefined,
-  orderId: string,
-  nextTradeInPrice: number,
-  nextStatus: string,
-) => {
-  if (!detail || detail.tradeInOrderId !== orderId) {
-    return detail;
-  }
-
-  const nextAmountToPay = resolveAmountToPayAfterConfirm({
-    salePrice: detail.productVariant?.salePrice,
-    currentAmountToPay: detail.amountToPay,
-    currentTradeInPrice: detail.tradeInPrice,
-    depositAmount: detail.depositAmount,
-    nextTradeInPrice,
-  });
-
-  if (
-    detail.tradeInPrice === nextTradeInPrice
-    && detail.amountToPay === nextAmountToPay
-    && detail.status === nextStatus
-  ) {
-    return detail;
-  }
-
-  return {
-    ...detail,
-    tradeInPrice: nextTradeInPrice,
-    amountToPay: nextAmountToPay,
-    status: nextStatus,
-  };
-};
-
-const updateListAfterConfirm = (
-  list: AdminTradeInOrderListResponse | undefined,
-  orderId: string,
-  nextTradeInPrice: number,
-  nextStatus: string,
-  options?: { removeIfNotWaiting?: boolean },
-) => {
-  if (!list || !Array.isArray(list.items) || list.items.length === 0) {
-    return list;
-  }
-
-  let changed = false;
-  let removedCount = 0;
-
-  const items = list.items.reduce<AdminTradeInOrderListResponse['items']>((acc, item) => {
-    if (item.tradeInOrderId !== orderId) {
-      acc.push(item);
-      return acc;
-    }
-
-    if (options?.removeIfNotWaiting && !isTradeInWaitingStatus(nextStatus)) {
-      changed = true;
-      removedCount += 1;
-      return acc;
-    }
-
-    const nextAmountToPay = resolveAmountToPayAfterConfirm({
-      currentAmountToPay: item.amountToPay,
-      currentTradeInPrice: item.tradeInPrice,
-      depositAmount: item.depositAmount,
-      nextTradeInPrice,
-    });
-
-    if (
-      item.tradeInPrice !== nextTradeInPrice
-      || item.amountToPay !== nextAmountToPay
-      || item.status !== nextStatus
-    ) {
-      changed = true;
-      acc.push({
-        ...item,
-        tradeInPrice: nextTradeInPrice,
-        amountToPay: nextAmountToPay,
-        status: nextStatus,
-      });
-      return acc;
-    }
-
-    acc.push(item);
-    return acc;
-  }, []);
-
-  if (!changed) {
-    return list;
-  }
-
-  return {
-    ...list,
-    items,
-    totalCount:
-      typeof list.totalCount === 'number'
-        ? Math.max(0, list.totalCount - removedCount)
-        : list.totalCount,
-  };
-};
-
-const syncTransitionStatusCaches = (
-  queryClient: QueryClient,
-  orderId: string,
-  nextStatus: string,
-) => {
-  queryClient.setQueryData<TradeInOrderDetailResponse>(
-    tradeInOrderKeys.detail(orderId),
-    (previous) => updateDetailStatus(previous, orderId, nextStatus),
-  );
-
-  queryClient.setQueryData<TradeInOrderDetailResponse>(
-    tradeInOrderKeys.customerDetail(orderId),
-    (previous) => updateDetailStatus(previous, orderId, nextStatus),
-  );
-
-  queryClient.setQueriesData<AdminTradeInOrderListResponse>(
-    { queryKey: tradeInOrderKeys.listPrefix() },
-    (previous) => updateListStatus(previous, orderId, nextStatus),
-  );
-
-  queryClient.setQueriesData<AdminTradeInOrderListResponse>(
-    { queryKey: tradeInOrderKeys.waitingPrefix() },
-    (previous) => updateListStatus(previous, orderId, nextStatus, { removeIfNotWaiting: true }),
-  );
-
-  queryClient.setQueriesData<AdminTradeInOrderListResponse>(
-    { queryKey: tradeInOrderKeys.customerListPrefix() },
-    (previous) => updateListStatus(previous, orderId, nextStatus),
-  );
-};
-
-const syncConfirmDealCaches = (
-  queryClient: QueryClient,
-  orderId: string,
-  tradeInPrice: number,
-  nextStatus: string,
-) => {
-  queryClient.setQueryData<TradeInOrderDetailResponse>(
-    tradeInOrderKeys.detail(orderId),
-    (previous) => updateDetailAfterConfirm(previous, orderId, tradeInPrice, nextStatus),
-  );
-
-  queryClient.setQueryData<TradeInOrderDetailResponse>(
-    tradeInOrderKeys.customerDetail(orderId),
-    (previous) => updateDetailAfterConfirm(previous, orderId, tradeInPrice, nextStatus),
-  );
-
-  queryClient.setQueriesData<AdminTradeInOrderListResponse>(
-    { queryKey: tradeInOrderKeys.listPrefix() },
-    (previous) => updateListAfterConfirm(previous, orderId, tradeInPrice, nextStatus),
-  );
-
-  queryClient.setQueriesData<AdminTradeInOrderListResponse>(
-    { queryKey: tradeInOrderKeys.waitingPrefix() },
-    (previous) => updateListAfterConfirm(previous, orderId, tradeInPrice, nextStatus, { removeIfNotWaiting: true }),
-  );
-
-  queryClient.setQueriesData<AdminTradeInOrderListResponse>(
-    { queryKey: tradeInOrderKeys.customerListPrefix() },
-    (previous) => updateListAfterConfirm(previous, orderId, tradeInPrice, nextStatus),
-  );
-};
+// ── Queries Options (Restored for Admin Orders page) ───────────
 
 export const adminTradeInOrdersQueryOptions = (params?: AdminTradeInOrderSearchParams) => ({
   queryKey: tradeInOrderKeys.list(params),
   queryFn: () => tradeInOrderService.getAdminTradeInOrders(params),
   placeholderData: keepPreviousData,
-  staleTime: 0,
+  staleTime: 30000,
 });
+
+export const waitingTradeInOrdersQueryOptions = (params?: { pageNumber?: number; pageSize?: number }) => ({
+  queryKey: tradeInOrderKeys.waitingList(params),
+  queryFn: () => tradeInOrderService.getWaitingOrders(params),
+  placeholderData: keepPreviousData,
+  staleTime: 30000,
+});
+
+// ── Hooks ───────────────────────────────────────────────────────
 
 export const useAdminTradeInOrders = (params?: AdminTradeInOrderSearchParams, options?: { enabled?: boolean }) => {
-  const role = useAuthStore(state => state.role);
-  const isAdminOrManager = role === 'Admin' || role === 'Manager';
-
+  const role = useAuthStore(s => s.role);
   return useQuery({
     ...adminTradeInOrdersQueryOptions(params),
-    enabled: (options?.enabled ?? true) && isAdminOrManager,
+    enabled: (options?.enabled ?? true) && isAdminOrManager(role),
   });
 };
-
-export const adminTradeInOrderDetailQueryOptions = (id: string) => ({
-  queryKey: tradeInOrderKeys.detail(id),
-  queryFn: () => tradeInOrderService.getTradeInOrderById(id),
-  enabled: !!id,
-});
 
 export const useAdminTradeInOrderDetail = (id: string, options?: { enabled?: boolean }) => {
-  const role = useAuthStore(state => state.role);
-  const canAccessTradeInDetail = role === 'Admin' || role === 'Manager' || role === 'Seller';
-
+  const role = useAuthStore(s => s.role);
   return useQuery({
-    ...adminTradeInOrderDetailQueryOptions(id),
-    enabled: (options?.enabled ?? true) && !!id && canAccessTradeInDetail,
+    queryKey: tradeInOrderKeys.detail(id),
+    queryFn: () => tradeInOrderService.getTradeInOrderById(id),
+    enabled: (options?.enabled ?? true) && !!id && isAnyStaff(role),
+    staleTime: 10000,
   });
 };
-
-export const customerTradeInOrderDetailQueryOptions = (id: string) => ({
-  queryKey: tradeInOrderKeys.customerDetail(id),
-  queryFn: () => tradeInOrderService.getTradeInOrderById(id),
-  enabled: !!id,
-});
 
 export const useCustomerTradeInOrderDetail = (id: string, options?: { enabled?: boolean }) => {
   return useQuery({
-    ...customerTradeInOrderDetailQueryOptions(id),
+    queryKey: tradeInOrderKeys.customerDetail(id),
+    queryFn: () => tradeInOrderService.getTradeInOrderById(id),
     enabled: (options?.enabled ?? true) && !!id,
+    staleTime: 10000,
+  });
+};
+
+export const useTransitionTradeInStatus = (orderId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation<TradeInActionResponse, Error, TransitionPayload, CacheSnapshot>({
+    mutationFn: ({ toStatus }) => tradeInOrderService.updateStatus(orderId, toStatus),
+    onMutate: async ({ toStatus }) => {
+      const nextStatus = normalizeTradeInStatus(toStatus);
+      await queryClient.cancelQueries({ queryKey: tradeInOrderKeys.all });
+
+      const snapshot: CacheSnapshot = {
+        previousAdminDetail: queryClient.getQueryData(tradeInOrderKeys.detail(orderId)),
+        previousCustomerDetail: queryClient.getQueryData(tradeInOrderKeys.customerDetail(orderId)),
+        previousAdminLists: queryClient.getQueriesData({ queryKey: tradeInOrderKeys.lists() }),
+      };
+
+      // Apply Optimistic Update
+      const updateStatus = (prev?: TradeInOrderDetailResponse) => prev ? { ...prev, status: nextStatus } : prev;
+      queryClient.setQueryData(tradeInOrderKeys.detail(orderId), updateStatus);
+      queryClient.setQueryData(tradeInOrderKeys.customerDetail(orderId), updateStatus);
+
+      queryClient.setQueriesData<AdminTradeInOrderListResponse>({ queryKey: tradeInOrderKeys.lists() }, (prev) => 
+        updateOrderInList(prev, orderId, (item) => ({ ...item, status: nextStatus }))
+      );
+
+      return snapshot;
+    },
+    onError: (_err, _vars, context) => {
+      if (context) {
+        queryClient.setQueryData(tradeInOrderKeys.detail(orderId), context.previousAdminDetail);
+        queryClient.setQueryData(tradeInOrderKeys.customerDetail(orderId), context.previousCustomerDetail);
+        context.previousAdminLists.forEach(([key, data]) => queryClient.setQueryData(key, data));
+      }
+      toast.error('Failed to update status');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.all });
+    }
+  });
+};
+
+export const useConfirmTradeInDeal = (orderId: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation<TradeInActionResponse, Error, ConfirmDealPayload, CacheSnapshot>({
+    mutationFn: ({ tradeInPrice }) => tradeInOrderService.confirmDeal(orderId, tradeInPrice),
+    onMutate: async ({ tradeInPrice }) => {
+      const confirmedStatus = 'CONFIRMED';
+      await queryClient.cancelQueries({ queryKey: tradeInOrderKeys.all });
+
+      const snapshot: CacheSnapshot = {
+        previousAdminDetail: queryClient.getQueryData(tradeInOrderKeys.detail(orderId)),
+        previousAdminLists: queryClient.getQueriesData({ queryKey: tradeInOrderKeys.lists() }),
+      };
+
+      const updateDeal = (item: TradeInOrderDetailResponse) => {
+        const nextAmountToPay = calculateAmountToPay({
+          salePrice: item.productVariant?.salePrice,
+          currentAmountToPay: item.amountToPay,
+          currentTradeInPrice: item.tradeInPrice,
+          depositAmount: item.depositAmount,
+          nextTradeInPrice: tradeInPrice,
+        });
+        return { ...item, tradeInPrice, amountToPay: nextAmountToPay, status: confirmedStatus };
+      };
+
+      queryClient.setQueryData<TradeInOrderDetailResponse>(tradeInOrderKeys.detail(orderId), (prev) => prev ? updateDeal(prev) : prev);
+      queryClient.setQueriesData<AdminTradeInOrderListResponse>({ queryKey: tradeInOrderKeys.lists() }, (prev) => 
+        updateOrderInList(prev, orderId, (item) => {
+          const nextAmountToPay = calculateAmountToPay({
+            currentAmountToPay: item.amountToPay,
+            currentTradeInPrice: item.tradeInPrice,
+            depositAmount: item.depositAmount,
+            nextTradeInPrice: tradeInPrice,
+          });
+          return { ...item, tradeInPrice, amountToPay: nextAmountToPay, status: confirmedStatus };
+        })
+      );
+
+      return snapshot;
+    },
+    onSuccess: () => {
+      toast.success('Trade-in deal confirmed');
+    },
+    onError: (_err, _vars, context) => {
+      if (context) {
+        queryClient.setQueryData(tradeInOrderKeys.detail(orderId), context.previousAdminDetail);
+        context.previousAdminLists.forEach(([key, data]) => queryClient.setQueryData(key, data));
+      }
+      toast.error('Failed to confirm deal');
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.all });
+    }
   });
 };
 
@@ -403,176 +246,35 @@ export const useAdminCancelTradeInOrder = () => {
     mutationFn: ({ id, reason }: { id: string; reason: string }) =>
       tradeInOrderService.adminCancel(id, reason),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.all });
-      toast.success('Trade-in order terminated successfully.');
+      queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.all });
+      toast.success('Order cancelled');
     },
   });
 };
 
-export const useCustomerTradeInOrders = (params?: { pageNumber?: number; pageSize?: number }, options?: { enabled?: boolean }) => {
+export const useCustomerTradeInOrders = (params?: { pageNumber?: number; pageSize?: number }) => {
   return useQuery({
     queryKey: tradeInOrderKeys.customerList(params),
     queryFn: () => tradeInOrderService.getCustomerTradeInOrders(params),
     placeholderData: keepPreviousData,
-    ...options,
-  });
-};
-
-export const useReOrderFailedTradeInOrder = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (tradeInOrderId: string) => tradeInOrderService.reOrderFailedTradeInOrder(tradeInOrderId),
-    onSuccess: (_response, tradeInOrderId) => {
-      invalidateTradeInCaches(queryClient, tradeInOrderId);
-    },
+    staleTime: 30000,
   });
 };
 
 export const useWaitingTradeInOrders = (params?: { pageNumber?: number; pageSize?: number }, options?: { enabled?: boolean }) => {
   return useQuery({
-    queryKey: tradeInOrderKeys.waiting(params),
-    queryFn: () => tradeInOrderService.getWaitingOrders(params),
-    placeholderData: keepPreviousData,
-    ...options,
+    ...waitingTradeInOrdersQueryOptions(params),
+    enabled: options?.enabled ?? true,
   });
 };
 
-export const waitingTradeInOrdersQueryOptions = (params?: { pageNumber?: number; pageSize?: number }) => ({
-  queryKey: tradeInOrderKeys.waiting(params),
-  queryFn: () => tradeInOrderService.getWaitingOrders(params),
-  placeholderData: keepPreviousData,
-  staleTime: 0,
-});
-
-export const useTransitionTradeInStatus = (orderId: string) => {
+export const useReOrderFailedTradeInOrder = () => {
   const queryClient = useQueryClient();
-
-  return useMutation<TradeInActionResponse, Error, TransitionTradeInStatusPayload, TransitionTradeInStatusContext>({
-    mutationFn: ({ toStatus }) => {
-      const nextStatus = normalizeTradeInStatus(toStatus);
-
-      if (!isTradeInTransitionTarget(nextStatus)) {
-        throw new Error(`Unsupported status update: ${toStatus}`);
-      }
-
-      return tradeInOrderService.updateStatus(orderId, nextStatus);
-    },
-    onMutate: async ({ fromStatus, toStatus }) => {
-      const nextStatus = normalizeTradeInStatus(toStatus);
-      if (!isTradeInTransitionTarget(nextStatus)) {
-        throw new Error(`Unsupported status update: ${toStatus}`);
-      }
-
-      const normalizedFromStatus = toTradeInStatus(fromStatus);
-      if (normalizedFromStatus && !canTransitionTradeInStatus(normalizedFromStatus, nextStatus)) {
-        throw new Error(`Invalid trade-in transition: ${fromStatus} -> ${nextStatus}`);
-      }
-
-      await Promise.all([
-        queryClient.cancelQueries({ queryKey: tradeInOrderKeys.detail(orderId) }),
-        queryClient.cancelQueries({ queryKey: tradeInOrderKeys.customerDetail(orderId) }),
-        queryClient.cancelQueries({ queryKey: tradeInOrderKeys.listPrefix() }),
-        queryClient.cancelQueries({ queryKey: tradeInOrderKeys.waitingPrefix() }),
-        queryClient.cancelQueries({ queryKey: tradeInOrderKeys.customerListPrefix() }),
-      ]);
-
-      const snapshot = captureTradeInCacheSnapshot(queryClient, orderId);
-
-      syncTransitionStatusCaches(queryClient, orderId, nextStatus);
-
-      return {
-        ...snapshot,
-        nextStatus,
-      };
-    },
-    onError: (_error, _variables, context) => {
-      if (!context) {
-        return;
-      }
-
-      restoreTradeInCacheSnapshot(queryClient, orderId, context);
-    },
-    onSuccess: (response, _variables, context) => {
-      const confirmedStatus = normalizeTradeInStatus(response.data?.status || context?.nextStatus);
-      if (!confirmedStatus) {
-        return;
-      }
-
-      syncTransitionStatusCaches(queryClient, orderId, confirmedStatus);
-    },
-    onSettled: () => {
-      invalidateTradeInCaches(queryClient, orderId);
+  return useMutation({
+    mutationFn: (id: string) => tradeInOrderService.reOrderFailedTradeInOrder(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.all });
+      toast.success('Re-payment initiated');
     },
   });
 };
-
-export const useConfirmTradeInDeal = (orderId: string) => {
-  const queryClient = useQueryClient();
-  const confirmedStatus = 'CONFIRMED';
-
-  return useMutation<TradeInActionResponse, Error, ConfirmTradeInDealPayload, ConfirmTradeInDealContext>({
-    mutationFn: ({ tradeInPrice }) => {
-      if (!Number.isFinite(tradeInPrice) || tradeInPrice < 0) {
-        throw new Error('Trade-in price is invalid.');
-      }
-      return tradeInOrderService.confirmDeal(orderId, tradeInPrice);
-    },
-    onMutate: async ({ fromStatus, tradeInPrice }) => {
-      if (!Number.isFinite(tradeInPrice) || tradeInPrice < 0) {
-        throw new Error('Trade-in price is invalid.');
-      }
-
-      await Promise.all([
-        queryClient.cancelQueries({ queryKey: tradeInOrderKeys.detail(orderId) }),
-        queryClient.cancelQueries({ queryKey: tradeInOrderKeys.customerDetail(orderId) }),
-        queryClient.cancelQueries({ queryKey: tradeInOrderKeys.listPrefix() }),
-        queryClient.cancelQueries({ queryKey: tradeInOrderKeys.waitingPrefix() }),
-        queryClient.cancelQueries({ queryKey: tradeInOrderKeys.customerListPrefix() }),
-      ]);
-
-      const snapshot = captureTradeInCacheSnapshot(queryClient, orderId);
-      const resolvedFromStatus =
-        fromStatus
-        || snapshot.previousAdminDetail?.status
-        || snapshot.previousCustomerDetail?.status;
-      const normalizedFromStatus = toTradeInStatus(resolvedFromStatus);
-
-      if (normalizedFromStatus && !canTransitionTradeInStatus(normalizedFromStatus, confirmedStatus)) {
-        throw new Error(`Invalid trade-in transition: ${resolvedFromStatus} -> ${confirmedStatus}`);
-      }
-
-      syncConfirmDealCaches(queryClient, orderId, tradeInPrice, confirmedStatus);
-
-      return {
-        ...snapshot,
-        nextStatus: confirmedStatus,
-        tradeInPrice,
-      };
-    },
-    onError: (_error, _variables, context) => {
-      if (!context) {
-        return;
-      }
-
-      restoreTradeInCacheSnapshot(queryClient, orderId, context);
-    },
-    onSuccess: (response, _variables, context) => {
-      const nextStatus = normalizeTradeInStatus(response.data?.status || context?.nextStatus || confirmedStatus);
-      const nextTradeInPrice =
-        typeof response.data?.tradeInPrice === 'number'
-          ? response.data.tradeInPrice
-          : context?.tradeInPrice;
-
-      if (typeof nextTradeInPrice === 'number') {
-        syncConfirmDealCaches(queryClient, orderId, nextTradeInPrice, nextStatus || confirmedStatus);
-      } else {
-        syncTransitionStatusCaches(queryClient, orderId, nextStatus || confirmedStatus);
-      }
-    },
-    onSettled: () => {
-      invalidateTradeInCaches(queryClient, orderId);
-    },
-  });
-};
-

@@ -68,7 +68,6 @@ export const TradeInAnalytics: React.FC = () => {
 
   return (
     <div className="space-y-8 pb-10">
-      {/* Dynamic Header & Filter */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-2">
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-primary font-black uppercase tracking-[0.2em] text-[10px]">
@@ -99,36 +98,10 @@ export const TradeInAnalytics: React.FC = () => {
 
       {/* Hero Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard
-          label="Gross Transactions"
-          value={stats.totalTradeInOrders}
-          icon={RefreshCw}
-          color="blue"
-          sub="Recorded requests"
-        />
-        <StatCard
-          label="Total Revenue"
-          value={formatPrice(stats.totalAmount)}
-          icon={Banknote}
-          color="emerald"
-          sub="Gross settlement"
-          trend={12.4}
-        />
-        <StatCard
-          label="Acquisition Cost"
-          value={formatPrice(stats.totalPurchaseAmount)}
-          icon={CheckCircle2}
-          color="indigo"
-          sub="Paid to customers"
-        />
-        <StatCard
-          label="Refund Liability"
-          value={formatPrice(stats.totalRefundAmount)}
-          icon={AlertCircle}
-          color="amber"
-          sub="Processing returns"
-          negative
-        />
+        <StatCard label="Gross Transactions" value={stats.totalTradeInOrders} icon={RefreshCw} color="blue" sub="Recorded requests" />
+        <StatCard label="Total Revenue" value={formatPrice(stats.totalAmount)} icon={Banknote} color="emerald" sub="Gross settlement" trend={12.4} />
+        <StatCard label="Acquisition Cost" value={formatPrice(stats.totalPurchaseAmount)} icon={CheckCircle2} color="indigo" sub="Paid to customers" />
+        <StatCard label="Refund Liability" value={formatPrice(stats.totalRefundAmount)} icon={AlertCircle} color="amber" sub="Processing returns" negative />
       </div>
 
       {/* Main Analytical Grid */}
@@ -293,8 +266,8 @@ const CustomPieTooltip = ({ active, payload }: TooltipProps) => {
     return (
       <div className="bg-white px-4 py-3 rounded-2xl border border-slate-100 shadow-xl">
         <div className="flex items-center gap-1.5 mb-1">
-           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">{payload[0].name}</p>
+          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">{payload[0].name}</p>
         </div>
         <p className="text-lg font-black text-slate-900 leading-none">{payload[0].value} Orders</p>
       </div>
@@ -311,8 +284,8 @@ const CustomBarTooltip = ({ active, payload }: TooltipProps) => {
     return (
       <div className="bg-white px-5 py-3.5 rounded-2xl border border-slate-100 shadow-xl">
         <div className="flex items-center gap-1.5 mb-1.5">
-           <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-           <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">{payload[0].name} Revenue</p>
+          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none">{payload[0].name} Revenue</p>
         </div>
         <p className="text-xl font-black leading-none" style={{ color }}>{formatPrice(payload[0].value)}</p>
       </div>

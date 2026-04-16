@@ -30,11 +30,17 @@ import { cn } from "@/lib/utils";
 import { useProcessExchangeTradeInShippingTask } from "@/hooks/queries/useShippingTask";
 import { useStaffs } from "@/hooks/queries/useStaff";
 import { useVariant } from "@/hooks/queries/useVariant";
+import { usePermission } from "@/hooks/usePermission";
 import { getColorHex } from "@/utils/color-utils";
 import { uploadEvidenceItems } from "@/utils/evidenceUpload";
 
 const MAX_EVIDENCE_FILES = 5;
 const MAX_EVIDENCE_FILE_SIZE_MB = 10;
+
+import { 
+  EXCHANGE_REASONS, 
+  OTHER_REASON_LABEL 
+} from "@/constants/logistics";
 
 type EvidenceStatus = "pending" | "uploading" | "uploaded" | "failed";
 
@@ -90,6 +96,7 @@ export function TradeInProcessExchangeDialog({
   defaultProductVariantId,
 }: TradeInProcessExchangeDialogProps) {
   const [exchangeNote, setExchangeNote] = useState("");
+  const [selectedReason, setSelectedReason] = useState("");
   const [isDamagedSelected, setIsDamagedSelected] = useState(true);
   const [selectedStaffId, setSelectedStaffId] = useState("");
   const [evidenceItems, setEvidenceItems] = useState<EvidenceItem[]>([]);
@@ -100,10 +107,13 @@ export function TradeInProcessExchangeDialog({
     [defaultProductVariantId],
   );
 
-  const { data: staffData, isLoading: isLoadingStaff } = useStaffs({
-    pageSize: 100,
-    Role: "DeliveryStaff",
-  });
+  const { isAdmin, isManager } = usePermission();
+  const canAssignStaff = isAdmin || isManager;
+
+  const { data: staffData, isLoading: isLoadingStaff } = useStaffs(
+    canAssignStaff ? { pageSize: 100, Role: "DeliveryStaff" } : undefined,
+    { enabled: canAssignStaff && isOpen }
+  );
 
   const processExchange = useProcessExchangeTradeInShippingTask();
   const { data: targetVariant, isLoading: isLoadingTargetVariant } = useVariant(resolvedProductVariantId);
@@ -128,6 +138,7 @@ export function TradeInProcessExchangeDialog({
       setExchangeNote("");
       setIsDamagedSelected(true);
       setSelectedStaffId("");
+      setSelectedReason("");
       setEvidenceItems((prev) => {
         prev.forEach((item) => URL.revokeObjectURL(item.previewUrl));
         return [];
@@ -154,6 +165,7 @@ export function TradeInProcessExchangeDialog({
     setExchangeNote("");
     setIsDamagedSelected(true);
     setSelectedStaffId("");
+    setSelectedReason("");
     setEvidenceItems((prev) => {
       prev.forEach((item) => URL.revokeObjectURL(item.previewUrl));
       return [];
@@ -292,7 +304,7 @@ export function TradeInProcessExchangeDialog({
         tradeInOrderId,
         data: {
           newStaffId: selectedStaffId,
-          exchangeNote: exchangeNote.trim() || undefined,
+          exchangeNote: (selectedReason === OTHER_REASON_LABEL ? exchangeNote : selectedReason).trim() || undefined,
           evidenceUrls: evidenceUrls.length > 0 ? evidenceUrls : undefined,
           productVariantId: isDamagedOutcome ? resolvedProductVariantId : undefined,
         },
@@ -312,6 +324,8 @@ export function TradeInProcessExchangeDialog({
     }
   }, [
     exchangeNote,
+    selectedReason,
+    evidenceItems,
     processExchange,
     resetAndClose,
     resolvedProductVariantId,
@@ -444,14 +458,34 @@ export function TradeInProcessExchangeDialog({
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-[13px] font-semibold text-slate-700">Exchange Note</Label>
-            <Textarea
-              value={exchangeNote}
-              onChange={(event) => setExchangeNote(event.target.value)}
-              placeholder="Enter exchange handling note"
-              className="min-h-[86px] resize-none rounded-lg"
-            />
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-[13px] font-semibold text-slate-700">
+                Exchange Reason
+              </Label>
+              <Select value={selectedReason} onValueChange={setSelectedReason}>
+                <SelectTrigger className="h-10 rounded-lg border-slate-200 bg-white">
+                  <SelectValue placeholder="Select a reason..." />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-slate-200">
+                  {EXCHANGE_REASONS.map((r) => (
+                    <SelectItem key={r} value={r} className="py-2 text-sm">{r}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {(selectedReason === OTHER_REASON_LABEL || !selectedReason) && (
+              <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                <Label className="text-[13px] font-semibold text-slate-700">Detail Note</Label>
+                <Textarea
+                  value={exchangeNote}
+                  onChange={(event) => setExchangeNote(event.target.value)}
+                  placeholder="Enter exchange handling note detail"
+                  className="min-h-[86px] resize-none rounded-lg"
+                />
+              </div>
+            )}
           </div>
 
           <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3.5">

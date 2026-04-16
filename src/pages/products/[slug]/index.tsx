@@ -177,6 +177,7 @@ export default function ProductDetail() {
               onTabChange={actions.setActiveTab}
               productName={product.name}
               description={product.description}
+              summary={product.summary}
               specs={apiSpecs}
               reviews={reviews}
               averageRating={averageRating}

@@ -13,6 +13,7 @@ interface OrderSidebarProps {
   technician?: Staff | null;
   scheduledDate: string | null | undefined;
   scheduledTime: string | null | undefined;
+  permissions?: { canAssign: boolean; isAssigned: boolean };
   onAssign?: () => void;
 }
 
@@ -24,6 +25,7 @@ export const OrderSidebar = memo(function OrderSidebar({
   technician,
   scheduledDate,
   scheduledTime,
+  permissions,
   onAssign
 }: OrderSidebarProps) {
   return (
@@ -93,20 +95,23 @@ export const OrderSidebar = memo(function OrderSidebar({
         </div>
 
         <div className="space-y-5">
-           {technician ? (
-             <div className="space-y-4">
-                <div className="flex items-center gap-3.5 p-4 bg-slate-50 rounded-[1.5rem] border border-slate-100 shadow-sm group hover:bg-white transition-all duration-300">
+            {technician || permissions?.isAssigned ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3.5 p-4 bg-slate-50 rounded-[1.5rem] border border-slate-100 shadow-sm group hover:bg-white transition-all duration-300 relative">
                   <Avatar className="h-12 w-12 border-2 border-white shadow-sm ring-1 ring-slate-100 bg-slate-50">
-                    <AvatarImage src={technician.avatarUrl || undefined} className="object-cover" />
+                    <AvatarImage src={technician?.avatarUrl || undefined} className="object-cover" />
                     <AvatarFallback className="bg-slate-200 text-slate-500 font-black text-sm">
-                      {technician.fullName.charAt(0)}
+                      {technician?.fullName?.charAt(0) || 'T'}
                     </AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1">
-                    <p className="font-bold text-slate-900 text-sm truncate tracking-tight">{technician.fullName}</p>
+                    <p className="font-bold text-slate-900 text-sm truncate tracking-tight">
+                      {technician?.fullName || (permissions?.isAssigned ? 'Assigned Personnel' : 'N/A')}
+                    </p>
                     <div className="flex items-center gap-3 mt-0.5">
                        <span className="text-[9px] font-bold text-slate-400 uppercase flex items-center gap-1">
-                         <ShieldCheck className="h-3 w-3 text-blue-500" /> Verified Personnel
+                         <ShieldCheck className="h-3 w-3 text-blue-500" /> 
+                         {technician ? 'Verified Personnel' : 'Resource Allocated'}
                        </span>
                     </div>
                   </div>
@@ -135,21 +140,31 @@ export const OrderSidebar = memo(function OrderSidebar({
                      </div>
                    )}
                 </div>
-             </div>
-           ) : (
-             <button
-                onClick={onAssign}
-                className="w-full py-12 rounded-[2rem] border-2 border-dashed border-slate-100 flex flex-col items-center justify-center gap-4 hover:bg-slate-50/50 hover:border-blue-200 transition-all group bg-white"
-             >
-                <div className="h-14 w-14 rounded-full bg-slate-50/50 flex items-center justify-center text-slate-200 group-hover:text-blue-500 group-hover:bg-blue-50 transition-all duration-500">
-                  <UserPlus className="h-7 w-7" />
+              </div>
+            ) : permissions?.canAssign ? (
+              <button
+                 onClick={onAssign}
+                 className="w-full py-12 rounded-[2rem] border-2 border-dashed border-slate-100 flex flex-col items-center justify-center gap-4 hover:bg-slate-50/50 hover:border-blue-200 transition-all group bg-white"
+              >
+                 <div className="h-14 w-14 rounded-full bg-slate-50/50 flex items-center justify-center text-slate-200 group-hover:text-blue-500 group-hover:bg-blue-50 transition-all duration-500">
+                   <UserPlus className="h-7 w-7" />
+                 </div>
+                 <div className="text-center space-y-1">
+                   <span className="block text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] group-hover:text-slate-600 transition-colors">Assign Technician</span>
+                   <span className="block text-[9px] font-bold text-slate-300 group-hover:text-slate-400 transition-colors">Dispatch personnel to begin execution</span>
+                 </div>
+              </button>
+            ) : (
+              <div className="py-12 rounded-[2rem] border-2 border-dashed border-slate-50 flex flex-col items-center justify-center gap-4 bg-slate-50/30 opacity-60">
+                <div className="h-12 w-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-300">
+                  <Briefcase className="h-5 w-5" />
                 </div>
-                <div className="text-center space-y-1">
-                  <span className="block text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] group-hover:text-slate-600 transition-colors">Unassigned Asset</span>
-                  <span className="block text-[9px] font-bold text-slate-300 group-hover:text-slate-400 transition-colors">Dispatch personnel to begin execution</span>
+                <div className="text-center px-6">
+                  <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest leading-tight">Technician Assignment Locked</span>
+                  <span className="block text-[8px] font-bold text-slate-300 mt-1">Available only after booking confirmation</span>
                 </div>
-             </button>
-           )}
+              </div>
+            )}
         </div>
       </div>
 

@@ -16,6 +16,7 @@ import { ChromaProfile } from "./components/ChromaProfile";
 import { TextureLab } from "./components/TextureLab";
 import { cn } from "@/lib/utils";
 import { ArtisticRefinement } from "./components/ArtisticRefinement";
+import { uploadToCloudinary } from "@/lib/uploadCloudinary";
 
 import {
   generateConfigHash
@@ -38,6 +39,7 @@ const CustomizeStudio = () => {
   const navigate = useNavigate();
   const { addItem } = useCartStore();
   const [isAdding, setIsAdding] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
 
   // 1. Fetch Dynamic Data from API
   const { data: apiProducts, isLoading: productsLoading } = useFullyCustomizedProducts();
@@ -167,6 +169,11 @@ const CustomizeStudio = () => {
     return group?.options[0]?.customizeTypeId;
   }, [customSchema]);
 
+  const embroideryOptionId = useMemo(() => {
+    const group = customSchema?.customizeOptionGroups?.find(g => g.category === 'Embroidery');
+    return group?.options[0]?.customizeTypeId;
+  }, [customSchema]);
+
   const embroideryAddOnFee = useMemo(() => {
     const group = customSchema?.customizeOptionGroups?.find(g => g.category === 'Embroidery');
     if (group && group.options.length > 0) {
@@ -232,12 +239,13 @@ const CustomizeStudio = () => {
     const mult = currentMaterial?.priceMultiplier ?? 1.0;
     const embAdd = activeDesign.embroideryText.trim().length > 0 ? embroideryAddOnFee : 0;
 
-    // Logic chuẩn Backend: (Base * Hệ số chất liệu) + Phí Size + Phí Màu + Phí Thêu + MaterialAddon
-    // Giải thích: Tiền vật liệu = Base * (Multiplier - 1)
+    // 237: Phí Size + Phí Màu/Wrap + Phí Thêu + MaterialAddon
     const currentTotal = Math.round(baseSale * mult + matAdd) + sizeFee + colorAdd + embAdd;
 
     return { current: currentTotal };
   }, [selectedProduct, currentSize, currentMaterial, activeDesign, colorAddOnFee, embroideryAddOnFee, sizeAddOnFee]);
+
+  const wrapAddOnFee = colorAddOnFee;
 
   const totalPrice = pricingResults.current;
 
@@ -258,15 +266,45 @@ const CustomizeStudio = () => {
     });
   }, []);
 
-  const handleAddToCart = () => {
+  const handleImageUpload = (file: File | null) => {
+    if (!file) {
+      setPendingFile(null);
+      updateDesign({ customImage: undefined });
+      return;
+    }
+
+    setPendingFile(file);
+    const localUrl = URL.createObjectURL(file);
+    updateDesign({ customImage: localUrl, imageMode: "wrap" });
+  };
+
+  const handleAddToCart = async () => {
     if (!selectedProduct || !customSchema) return;
+
+    let finalImageUrl = activeDesign.customImage;
+
+    // 🔥 Upload pending file if exists
+    if (pendingFile) {
+      setIsAdding(true);
+      try {
+        const res = await uploadToCloudinary(pendingFile);
+        if (res && res.secure_url) {
+          finalImageUrl = res.secure_url;
+        }
+      } catch (err) {
+        console.error("[CustomizeStudio] Submit upload failed:", err);
+        toast.error("Failed to synchronize design assets.");
+        setIsAdding(false);
+        return;
+      }
+    }
 
     // Build the Bespoke Detail List
     const customizeDetails = [];
 
     const isGuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 
-    // 1. Size (Luôn lấy, nếu không có ID cụ thể thì dùng ID mặc định của nhóm Size)
+    // 1. Size
     const activeSizeId = (currentSize && isGuid(currentSize.id)) ? currentSize.id : sizeOptionId;
     if (activeSizeId && isGuid(activeSizeId)) {
       customizeDetails.push({
@@ -275,11 +313,11 @@ const CustomizeStudio = () => {
       });
     }
 
-    // 2. Color (Luôn lấy)
+    // 2. Color / Custom Wrap
     if (colorOptionId && isGuid(colorOptionId)) {
       customizeDetails.push({
         ProductCustomizeTypeId: colorOptionId,
-        CustomizeContent: activeDesign.baseColor || "#B0D4F1"
+        CustomizeContent: finalImageUrl || activeDesign.baseColor || "#B0D4F1"
       });
     }
 
@@ -288,6 +326,14 @@ const CustomizeStudio = () => {
       customizeDetails.push({
         ProductCustomizeTypeId: currentMaterial.id,
         CustomizeContent: currentMaterial.name
+      });
+    }
+
+    // 4. Embroidery / Engraving
+    if (activeDesign.embroideryText.trim() && embroideryOptionId && isGuid(embroideryOptionId)) {
+      customizeDetails.push({
+        ProductCustomizeTypeId: embroideryOptionId,
+        CustomizeContent: `${activeDesign.embroideryText.trim()} (${activeDesign.embroideryPosition})`
       });
     }
 
@@ -442,16 +488,10 @@ const CustomizeStudio = () => {
                 selectedMaterial={activeDesign.material}
                 materials={derivedMaterials}
                 basePrice={(selectedProduct?.salePrice || selectedProduct?.basePrice || 0) + (activeDesign.size === "custom" ? 50000 : (currentSize?.priceAdd || 0))}
+                addOnFee={wrapAddOnFee}
                 onPatternSelect={(p) => updateDesign({ pattern: p })}
                 onMaterialSelect={(m) => updateDesign({ material: m })}
-                onImageUpload={(f) => {
-                  if (f) {
-                    const url = URL.createObjectURL(f);
-                    updateDesign({ customImage: url, imageMode: "wrap" });
-                  } else {
-                    updateDesign({ customImage: undefined });
-                  }
-                }}
+                onImageUpload={handleImageUpload}
               />
 
               <ArtisticRefinement

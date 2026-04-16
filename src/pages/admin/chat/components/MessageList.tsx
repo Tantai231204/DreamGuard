@@ -31,23 +31,25 @@ function MessageListInner({
   const prevLenRef = useRef(0);
   const [showScrollFab, setShowScrollFab] = useState(false);
 
-  /* ---- Scroll listener for FAB visibility ----------------- */
+  /* ---- Scroll listener for FAB visibility (Throttled) ------- */
   const handleScroll = useCallback(() => {
+    if (!containerRef.current) return;
     const container = containerRef.current;
-    if (!container) return;
     
-    // Show FAB if we are more than 200px away from bottom
-    const isOffBottom = 
-      container.scrollHeight - container.scrollTop - container.clientHeight > 200;
-      
-    setShowScrollFab(isOffBottom);
+    // Use requestAnimationFrame to avoid layout thrashing
+    requestAnimationFrame(() => {
+      if (!container) return;
+      const isOffBottom = 
+        container.scrollHeight - container.scrollTop - container.clientHeight > 300;
+      setShowScrollFab(isOffBottom);
+    });
   }, []);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
     
-    container.addEventListener('scroll', handleScroll);
+    container.addEventListener('scroll', handleScroll, { passive: true });
     return () => container.removeEventListener('scroll', handleScroll);
   }, [handleScroll]);
 
@@ -59,16 +61,22 @@ function MessageListInner({
     const isNewMessage = messages.length > prevLenRef.current;
     prevLenRef.current = messages.length;
 
-    const isNearBottom =
-      container.scrollHeight - container.scrollTop - container.clientHeight < 150;
+    if (isNewMessage) {
+      const isNearBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight < 250;
 
-    if (isNewMessage && isNearBottom) {
-      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+      if (isNearBottom) {
+        requestAnimationFrame(() => {
+          bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+        });
+      }
     }
   }, [messages]);
 
   const scrollToBottom = useCallback(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    requestAnimationFrame(() => {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    });
   }, []);
 
   /* ---- Group messages by date ----------------------------- */

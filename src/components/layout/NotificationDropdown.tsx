@@ -21,6 +21,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
 import { useNavigate } from 'react-router-dom';
+import { isAnyStaff } from '@/lib/role';
 
 const getNotificationConfig = (message: string, actionType: string) => {
   const type = actionType.toLowerCase();
@@ -90,6 +91,7 @@ const formatNotificationMessage = (message: string) => {
   return <p className="text-[12px] text-slate-500 leading-snug">{sanitized}</p>;
 };
 
+
 export const NotificationDropdown: React.FC = () => {
   const { isAuthenticated, role } = useAuthStore();
   const queryClient = useQueryClient();
@@ -114,7 +116,7 @@ export const NotificationDropdown: React.FC = () => {
     }
 
     // Admin/Staff navigation
-    if (role === 'Admin' || role === 'Manager' || role === 'Seller') {
+    if (isAnyStaff(role)) {
       const idRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
       const match = notification.message.match(idRegex);
       if (match) {

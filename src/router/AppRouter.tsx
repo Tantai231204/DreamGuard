@@ -11,13 +11,14 @@ import { AppRoute, UserRole } from "../lib/constants";
 import { PermissionGuard } from "../components/router/PermissionGuard";
 import { RouteUXEnhancer } from "../components/router/RouteUXEnhancer";
 import { useAuthStore } from "../store/authStore";
+import { isSellerRole } from "../lib/role";
 
 /* =======================
    Helper Components
 ======================= */
 function AdminRootRedirect() {
     const { role } = useAuthStore();
-    if (role === UserRole.SELLER) {
+    if (isSellerRole(role)) {
         return <Navigate to="/admin/orders" replace />;
     }
     return <AdminDashboard />;

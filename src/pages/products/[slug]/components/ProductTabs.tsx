@@ -12,6 +12,7 @@ interface ProductTabsProps {
     onTabChange: (tab: TabType) => void;
     productName: string;
     description?: string | null;
+    summary?: string | null;
     specs: ProductSpec[];
     reviews: Review[];
     averageRating: number;
@@ -24,6 +25,7 @@ export const ProductTabs = memo(({
     onTabChange,
     productName,
     description,
+    summary,
     specs,
     reviews,
     averageRating
@@ -100,23 +102,36 @@ export const ProductTabs = memo(({
                             transition={{ duration: 0.3 }}
                         >
                             <TabsContent value="description" className="mt-0 outline-none">
-                                {/* ── Description Content ── */}
-                                <div>
-                                    {description ? (
-                                        <FormattedDescription
-                                            content={description}
-                                            className="font-outfit"
-                                        />
-                                    ) : (
-                                        <div className="space-y-6 text-slate-500 font-medium italic text-[15px]" style={{ lineHeight: 1.85 }}>
-                                            <p>Experience the pinnacle of sleep luxury with the {productName}. Every detail is meticulously crafted to provide unparalleled comfort and support, ensuring your little one enjoys the most peaceful rest possible.</p>
-                                            <p>Our commitment to quality means using only the finest sustainable materials, rigorously tested for safety and durability. It's not just a product; it's an investment in your family's well-being.</p>
+                                {/* ── Summary & Description Content ── */}
+                                <div className="space-y-4">
+                                    {summary && (
+                                        <div className="relative group">
+                                            <div className="flex items-center gap-3 mb-4">
+                                                <div className="h-px w-8 bg-slate-900" />
+                                                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-900">Abstract</span>
+                                            </div>
+                                            <p className="text-[15px] sm:text-[16px] font-medium text-slate-900 leading-[1.6] tracking-tight font-outfit max-w-4xl">
+                                                {summary}
+                                            </p>
                                         </div>
                                     )}
+                                    <div className="pt-0">
+                                        {description ? (
+                                            <FormattedDescription
+                                                content={description}
+                                                className="font-outfit"
+                                            />
+                                        ) : (
+                                            <div className="space-y-8 text-slate-400 font-medium italic text-[16px] leading-relaxed max-w-3xl">
+                                                <p>Experience the pinnacle of sleep luxury with the {productName}. Every detail is meticulously crafted to provide unparalleled comfort and support, ensuring your little one enjoys the most peaceful rest possible.</p>
+                                                <p>Our commitment to quality means using only the finest sustainable materials, rigorously tested for safety and durability. It's not just a product; it's an investment in your family's well-being.</p>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* ── Highlight Callout ── */}
-                                <div className="mt-16 flex items-start gap-6 p-8 rounded-2xl bg-slate-50 border border-slate-100">
+                                <div className="mt-10 flex items-start gap-6 p-8 rounded-2xl bg-slate-50 border border-slate-100">
                                     <div className="h-10 w-10 shrink-0 bg-white rounded-xl shadow-sm flex items-center justify-center border border-slate-100">
                                         <Sparkles className="h-4 w-4 text-amber-400" />
                                     </div>

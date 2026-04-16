@@ -93,6 +93,7 @@ export default function ServiceDetail() {
                 technician={order.staff}
                 scheduledDate={order.scheduledDate}
                 scheduledTime={order.scheduledTime}
+                permissions={permissions}
                 onAssign={actions.handleAssignOpen}
               />
             </div>

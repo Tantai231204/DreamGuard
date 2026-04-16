@@ -86,17 +86,26 @@ export function CertificateTableContent({ table }: CertificateTableContentProps)
               ))
             ) : (
               <TableRow className="hover:bg-transparent">
-                <TableCell colSpan={columnCount} className="h-[400px] text-center">
+                <TableCell colSpan={columnCount} className="h-[200px] text-center border-b border-slate-50">
                   <div className="flex flex-col items-center justify-center gap-3 text-slate-400">
-                    <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center border border-slate-100">
-                      <ArchiveX className="w-8 h-8 text-slate-300" />
+                    <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center border border-slate-100">
+                      <ArchiveX className="w-6 h-6 text-slate-300" />
                     </div>
-                    <div className="text-sm font-bold text-slate-500 mt-2">No certificates found</div>
-                    <p className="text-xs font-medium text-slate-400">Try adjusting your filters or search terms.</p>
+                    <div className="text-xs font-bold text-slate-500 mt-2 uppercase tracking-widest">No certificates found</div>
+                    <p className="text-[10px] font-medium text-slate-400 uppercase tracking-tight opacity-60">Adjust your search or active filters</p>
                   </div>
                 </TableCell>
               </TableRow>
             )}
+
+            {/* 🔥 filler rows logic so the table doesn't shift height */}
+            {Array.from({ length: Math.max(0, (table.getState().pagination.pageSize || 10) - (rows.length > 0 ? rows.length : 1)) }).map((_, index) => (
+              <TableRow key={`fill-${index}`} className="border-b border-slate-50/50 hover:bg-transparent">
+                {Array.from({ length: columnCount }).map((__, i) => (
+                  <TableCell key={i} className="px-6 py-6">&nbsp;</TableCell>
+                ))}
+              </TableRow>
+            ))}
           </AnimatePresence>
         </TableBody>
       </Table>

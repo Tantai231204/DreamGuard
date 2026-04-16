@@ -114,3 +114,42 @@ export const itemVariants = {
   hidden: { opacity: 0, y: 20 },
   show: { opacity: 1, y: 0 },
 };
+
+export const bestSellingProducts = [
+  {
+    id: 1,
+    name: "Luxury Silk Pillowcase",
+    sales: 145,
+    revenue: "₫12,450,000",
+    growth: "+15.2%",
+    image: "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=100&h=100&fit=crop",
+    color: "bg-indigo-500"
+  },
+  {
+    id: 2,
+    name: "Egyptian Cotton Sheet Set",
+    sales: 98,
+    revenue: "₫24,800,000",
+    growth: "+8.4%",
+    image: "https://images.unsplash.com/photo-1584132967334-10e028bd69f7?w=100&h=100&fit=crop",
+    color: "bg-emerald-500"
+  },
+  {
+    id: 3,
+    name: "Weighted Cooling Blanket",
+    sales: 76,
+    revenue: "₫18,900,000",
+    growth: "+12.1%",
+    image: "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=100&h=100&fit=crop",
+    color: "bg-blue-500"
+  },
+  {
+    id: 4,
+    name: "Hybrid Memory Foam Mattress",
+    sales: 42,
+    revenue: "₫84,000,000",
+    growth: "+5.7%",
+    image: "https://images.unsplash.com/photo-1505693357370-58c2c733bf95?w=100&h=100&fit=crop",
+    color: "bg-amber-500"
+  }
+];

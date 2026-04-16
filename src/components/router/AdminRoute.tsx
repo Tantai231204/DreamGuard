@@ -1,6 +1,7 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuthStore } from "../../store/authStore";
-import { AppRoute, UserRole } from "../../lib/constants";
+import { AppRoute } from "../../lib/constants";
+import { isAnyStaff } from "../../lib/role";
 
 /**
  * AdminRoute component - Protects routes that require staff privileges
@@ -11,7 +12,7 @@ export default function AdminRoute() {
   const { isAuthenticated, role } = useAuthStore();
   const location = useLocation();
 
-  const isStaff = role === UserRole.ADMIN || role === UserRole.MANAGER || role === UserRole.SELLER;
+  const isStaff = isAnyStaff(role);
 
   // Check authentication
   if (!isAuthenticated) {
