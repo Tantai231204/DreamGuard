@@ -12,6 +12,7 @@ interface ProductTabsProps {
     onTabChange: (tab: TabType) => void;
     productName: string;
     description?: string | null;
+    summary?: string | null;
     specs: ProductSpec[];
     reviews: Review[];
     averageRating: number;
@@ -24,6 +25,7 @@ export const ProductTabs = memo(({
     onTabChange,
     productName,
     description,
+    summary,
     specs,
     reviews,
     averageRating
@@ -48,19 +50,45 @@ export const ProductTabs = memo(({
                 onValueChange={handleTabChange}
                 className="w-full"
             >
-                <div className="border-b border-slate-100 mb-12">
-                    <TabsList className="bg-transparent h-auto p-0 gap-10">
-                        {TAB_ORDER.map((tab) => (
-                            <TabsTrigger
-                                key={tab}
-                                value={tab}
-                                className="bg-transparent border-b-2 border-transparent data-[state=active]:border-slate-900 data-[state=active]:bg-transparent rounded-none px-0 py-4 text-[10px] font-black uppercase tracking-widest text-slate-300 data-[state=active]:text-slate-900 transition-all font-inter"
-                            >
-                                {tab === 'description' ? 'Description' :
-                                    tab === 'specs' ? 'Specifications' :
-                                        `Reviews (${reviews.length})`}
-                            </TabsTrigger>
-                        ))}
+                <div className="border-b border-slate-100 mb-12 relative">
+                    <TabsList className="bg-transparent h-auto p-0 gap-10 relative">
+                        {TAB_ORDER.map((tab) => {
+                            const isActive = activeTab === tab;
+
+                            return (
+                                <div key={tab} className="relative flex-1 w-full flex flex-col items-center">
+                                    <TabsTrigger
+                                        value={tab}
+                                        className={`
+            relative px-0 ${tab === 'reviews' ? 'py-2 text-[9px] min-w-[80px]' : 'py-4 text-[10px]'} font-black uppercase tracking-widest font-inter
+            transition-colors duration-300 border-none
+            ${isActive ? 'text-slate-900' : 'text-slate-300 hover:text-slate-500'}
+          `}
+                                        style={{ zIndex: 2, background: 'none' }}
+                                    >
+                                        {tab === 'description'
+                                            ? 'Description'
+                                            : tab === 'specs'
+                                                ? 'Specifications'
+                                                : `Reviews (${reviews.length})`}
+                                    </TabsTrigger>
+
+                                    {isActive && (
+                                        <motion.div
+                                            layoutId="tab-underline"
+                                            className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-slate-900 rounded-full"
+                                            style={{ zIndex: 1 }}
+                                            transition={{
+                                                type: 'spring',
+                                                stiffness: 420,
+                                                damping: 30,
+                                                mass: 0.7,
+                                            }}
+                                        />
+                                    )}
+                                </div>
+                            );
+                        })}
                     </TabsList>
                 </div>
 
@@ -74,23 +102,36 @@ export const ProductTabs = memo(({
                             transition={{ duration: 0.3 }}
                         >
                             <TabsContent value="description" className="mt-0 outline-none">
-                                {/* ── Description Content ── */}
-                                <div>
-                                    {description ? (
-                                        <FormattedDescription 
-                                            content={description}
-                                            className="font-outfit"
-                                        />
-                                    ) : (
-                                        <div className="space-y-6 text-slate-500 font-medium italic text-[15px]" style={{ lineHeight: 1.85 }}>
-                                            <p>Experience the pinnacle of sleep luxury with the {productName}. Every detail is meticulously crafted to provide unparalleled comfort and support, ensuring your little one enjoys the most peaceful rest possible.</p>
-                                            <p>Our commitment to quality means using only the finest sustainable materials, rigorously tested for safety and durability. It's not just a product; it's an investment in your family's well-being.</p>
+                                {/* ── Summary & Description Content ── */}
+                                <div className="space-y-4">
+                                    {summary && (
+                                        <div className="relative group">
+                                            <div className="flex items-center gap-3 mb-4">
+                                                <div className="h-px w-8 bg-slate-900" />
+                                                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-900">Abstract</span>
+                                            </div>
+                                            <p className="text-[15px] sm:text-[16px] font-medium text-slate-900 leading-[1.6] tracking-tight font-outfit max-w-4xl">
+                                                {summary}
+                                            </p>
                                         </div>
                                     )}
+                                    <div className="pt-0">
+                                        {description ? (
+                                            <FormattedDescription
+                                                content={description}
+                                                className="font-outfit"
+                                            />
+                                        ) : (
+                                            <div className="space-y-8 text-slate-400 font-medium italic text-[16px] leading-relaxed max-w-3xl">
+                                                <p>Experience the pinnacle of sleep luxury with the {productName}. Every detail is meticulously crafted to provide unparalleled comfort and support, ensuring your little one enjoys the most peaceful rest possible.</p>
+                                                <p>Our commitment to quality means using only the finest sustainable materials, rigorously tested for safety and durability. It's not just a product; it's an investment in your family's well-being.</p>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {/* ── Highlight Callout ── */}
-                                <div className="mt-16 flex items-start gap-6 p-8 rounded-2xl bg-slate-50 border border-slate-100">
+                                <div className="mt-10 flex items-start gap-6 p-8 rounded-2xl bg-slate-50 border border-slate-100">
                                     <div className="h-10 w-10 shrink-0 bg-white rounded-xl shadow-sm flex items-center justify-center border border-slate-100">
                                         <Sparkles className="h-4 w-4 text-amber-400" />
                                     </div>

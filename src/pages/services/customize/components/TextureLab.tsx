@@ -12,6 +12,7 @@ interface TextureLabProps {
   onPatternSelect: (p: string) => void;
   onMaterialSelect: (m: string) => void;
   onImageUpload: (f: File | null) => void;
+  addOnFee?: number;
 }
 
 export const TextureLab = memo(({
@@ -21,7 +22,8 @@ export const TextureLab = memo(({
   basePrice = 0,
   onPatternSelect,
   onMaterialSelect,
-  onImageUpload
+  onImageUpload,
+  addOnFee = 0
 }: TextureLabProps) => {
   const [preview, setPreview] = useState<string | null>(null);
 
@@ -123,9 +125,15 @@ export const TextureLab = memo(({
         </div>
       )}
 
-      {/* BESPOKE WRAP */}
       <div className="space-y-2">
-        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Bespoke Wrap</p>
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Bespoke Wrap</p>
+          {addOnFee > 0 && (
+            <span className="text-[9px] font-bold text-[#4988c4] font-mono bg-[#4988c4]/8 px-2 py-0.5 rounded-md border border-[#4988c4]/20">
+              +{new Intl.NumberFormat("vi-VN").format(addOnFee)}
+            </span>
+          )}
+        </div>
 
         {!preview ? (
           <label className="group flex items-center justify-center gap-2 w-full h-16 rounded-xl border-2 border-dashed border-slate-200 hover:border-[#4988c4]/50 hover:bg-[#4988c4]/3 transition-all duration-200 cursor-pointer">

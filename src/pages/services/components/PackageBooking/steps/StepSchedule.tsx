@@ -26,11 +26,23 @@ export default function StepSchedule({ form }: StepScheduleProps) {
     if (date) {
       const formatted = format(date, "yyyy-MM-dd");
       setValue("scheduledDate", formatted, { shouldValidate: true });
+      // Clear time slot if it's now invalid for the new date
+      if (scheduledTime) {
+        const isTodayTemp = formatted === format(new Date(), "yyyy-MM-dd");
+        const slotHour = parseInt(scheduledTime.split(":")[0], 10);
+        if (isTodayTemp && slotHour <= new Date().getHours()) {
+          setValue("scheduledTime", "", { shouldValidate: false });
+        }
+      }
     } else {
       setValue("scheduledDate", "", { shouldValidate: true });
+      setValue("scheduledTime", "", { shouldValidate: false });
     }
     setIsEditingDate(false);
   };
+
+  const currentHour = new Date().getHours();
+  const allSlotsPastToday = timeSlots.every(ts => parseInt(ts.split(":")[0], 10) <= currentHour);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -84,7 +96,15 @@ export default function StepSchedule({ form }: StepScheduleProps) {
                     mode="single"
                     selected={selectedDateObject}
                     onSelect={handleDateSelect}
-                    disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                    disabled={(date) => {
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      const currentDate = new Date(date);
+                      currentDate.setHours(0, 0, 0, 0);
+                      if (currentDate.getTime() < today.getTime()) return true;
+                      if (currentDate.getTime() === today.getTime() && allSlotsPastToday) return true;
+                      return false;
+                    }}
                     className="rounded-xl border-0 p-3 w-full max-w-[280px]"
                   />
                 </div>
@@ -145,21 +165,30 @@ export default function StepSchedule({ form }: StepScheduleProps) {
             >
               {timeSlots.map((ts) => {
                 const isSelected = scheduledTime === ts;
+                const isToday = scheduledDate === format(new Date(), "yyyy-MM-dd");
+                const slotHour = parseInt(ts.split(":")[0], 10);
+                const isPast = isToday && slotHour <= currentHour;
+                
                 return (
                   <motion.button
                     key={ts}
                     type="button"
+                    disabled={isPast || !scheduledDate}
                     variants={{
                       hidden: { opacity: 0, y: 8 },
                       visible: { opacity: 1, y: 0 }
                     }}
-                    whileHover={{ scale: 1.02, y: -1 }}
-                    whileTap={{ scale: 0.98 }}
+                    whileHover={(!isPast && scheduledDate) ? { scale: 1.02, y: -1 } : {}}
+                    whileTap={(!isPast && scheduledDate) ? { scale: 0.98 } : {}}
                     onClick={() => { setValue("scheduledTime", ts, { shouldValidate: true }); trigger("scheduledTime"); }}
                     className={`relative py-3 px-3 rounded-xl border text-center transition-all duration-300
-                      ${isSelected
-                        ? "border-[#4988c4] bg-[#4988c4]/[0.04] shadow-md shadow-[#4988c4]/5 text-[#4988c4] font-black"
-                        : "border-slate-100 bg-white hover:border-[#4988c4]/40 hover:bg-[#4988c4]/5 text-slate-600 font-bold"
+                      ${!scheduledDate 
+                        ? "border-slate-100 bg-slate-50 text-slate-300 opacity-50 cursor-not-allowed"
+                        : isPast 
+                          ? "border-slate-100 bg-slate-50 text-slate-300 opacity-50 cursor-not-allowed" 
+                          : isSelected
+                            ? "border-[#4988c4] bg-[#4988c4]/[0.04] shadow-md shadow-[#4988c4]/5 text-[#4988c4] font-black"
+                            : "border-slate-100 bg-white hover:border-[#4988c4]/40 hover:bg-[#4988c4]/5 text-slate-600 font-bold"
                       }
                     `}
                   >

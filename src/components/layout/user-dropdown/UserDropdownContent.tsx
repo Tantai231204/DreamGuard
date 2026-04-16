@@ -8,6 +8,7 @@ import { LogoutButton } from "./LogoutButton"
 import { mockUser } from "./data"
 import { useProfile } from "@/hooks/queries"
 import { useLogout } from "@/hooks/useAuth"
+import { isAnyStaff } from "@/lib/role"
 
 export function UserDropdownContent() {
     const { role } = useAuthStore()
@@ -67,7 +68,7 @@ export function UserDropdownContent() {
                     title="Account Security"
                 />
 
-                {(role === "Admin" || role === "Manager" || role === "Seller") && (
+                {isAnyStaff(role) && (
                     <>
                         <DropdownMenuSeparator className="mx-4 my-2 opacity-50" />
                         <MenuItem

@@ -110,7 +110,15 @@ const orderService = {
         if (Array.isArray(payload)) return toTradeInEligibleOrderItems(payload);
         if (Array.isArray(payload?.items)) return toTradeInEligibleOrderItems(payload.items);
         return toTradeInEligibleOrderItems([]);
+    },
+
+    getDashboardData: async (fromDate: string, toDate: string): Promise<import('../types/order').OrderDashboardResponse> => {
+        const res = await apiClient.get('/Order/get-order-dash-board', {
+            params: { fromDate, toDate }
+        });
+        return res.data?.data ?? res.data;
     }
 };
 
 export default orderService;
+

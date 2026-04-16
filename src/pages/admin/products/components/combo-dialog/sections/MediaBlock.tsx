@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Upload, Trash2, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { useUploadComboImage, useDeleteComboImage } from '@/hooks/queries/useCombo';
 import { ImageUploadDialog } from '../../dialogs';
+import { cn } from '@/lib/utils';
 import type { Path, PathValue } from 'react-hook-form';
 import type { ComboFormValues } from '../index';
 import type { SetFieldFn } from '../combo-form.types';
@@ -65,47 +66,74 @@ const MediaBlock = memo(function MediaBlock({ watchValues, comboId, setField }: 
     const hasPendingFile = watchValues.imageFile instanceof File;
 
     return (
-        <>
-            <div className="relative overflow-hidden rounded-lg border border-slate-200 bg-white group">
+        <div className="space-y-4">
+            <div className="relative group overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 transition-all hover:border-blue-200 hover:shadow-xl hover:shadow-blue-500/5">
                 {isMediaLoading && (
-                    <div className="absolute inset-0 z-10 bg-white/70 flex items-center justify-center">
-                        <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+                    <div className="absolute inset-0 z-30 bg-white/80 backdrop-blur-[2px] flex items-center justify-center">
+                        <div className="flex flex-col items-center gap-2">
+                            <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Processing</span>
+                        </div>
                     </div>
                 )}
-                <div className="h-32 bg-slate-50 flex items-center justify-center overflow-hidden">
+
+                {/* Main Preview Area */}
+                <div className="aspect-[16/9] w-full flex items-center justify-center relative overflow-hidden">
                     {hasImage ? (
-                        <img
-                            src={previewUrl!}
-                            alt="Combo"
-                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
+                        <>
+                            <img
+                                src={previewUrl!}
+                                alt="Combo Preview"
+                                className="h-full w-full object-contain transition-transform duration-700 group-hover:scale-110"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-slate-900/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        </>
                     ) : (
-                        <ImageIcon className="h-8 w-8 text-slate-300" />
+                        <div className="flex flex-col items-center gap-3 py-10">
+                            <div className="w-16 h-16 rounded-2xl bg-white shadow-sm border border-slate-100 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                                <ImageIcon className="h-7 w-7 text-slate-300" />
+                            </div>
+                            <div className="text-center">
+                                <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">No Media Uploaded</p>
+                                <p className="text-[10px] text-slate-400 font-medium mt-0.5">Recommended: 1200×800px</p>
+                            </div>
+                        </div>
                     )}
-                </div>
-                <div className="flex items-center justify-between gap-2 px-3 py-2.5 border-t border-slate-100">
-                    <p className="text-[10px] font-mono text-slate-400 truncate min-w-0">
-                        {hasPendingFile
-                            ? <span className="text-amber-500 font-semibold">Pending upload</span>
-                            : (watchValues.imagePublicId || '—')
-                        }
-                    </p>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                        {(watchValues.imagePublicId || hasPendingFile) && (
+
+                    {/* Quick Action Overlay */}
+                    {hasImage && !isMediaLoading && (
+                        <div className="absolute bottom-4 right-4 flex items-center gap-2 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
                             <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                className="h-7 w-7 text-red-400 hover:bg-red-50"
+                                className="h-9 w-9 rounded-xl shadow-lg border-2 border-white/20 backdrop-blur-md bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white"
                                 onClick={hasPendingFile
                                     ? () => setField('imageFile' as Path<ComboFormValues>, undefined as PathValue<ComboFormValues, 'imageFile'>)
                                     : handleDelete
                                 }
-                                disabled={isMediaLoading}
                             >
-                                <Trash2 className="h-3.5 w-3.5" />
+                                <Trash2 className="h-4 w-4" />
                             </Button>
-                        )}
+                        </div>
+                    )}
+                </div>
+
+                {/* Info Bar */}
+                <div className="px-4 py-3 bg-white border-t border-slate-100 flex items-center justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                            <div className={cn(
+                                "w-1.5 h-1.5 rounded-full animate-pulse",
+                                hasPendingFile ? "bg-amber-400" : hasImage ? "bg-emerald-400" : "bg-slate-300"
+                            )} />
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate">
+                                {hasPendingFile ? "Pending local sync" : (watchValues.imagePublicId || (hasImage ? "Active Asset" : "Standby"))}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
                         <input
                             ref={fileInputRef}
                             type="file"
@@ -115,17 +143,20 @@ const MediaBlock = memo(function MediaBlock({ watchValues, comboId, setField }: 
                         />
                         <Button
                             type="button"
-                            size="sm"
-                            className="h-7 px-3 text-[11px] font-semibold rounded-md"
                             onClick={handleUploadClick}
                             disabled={isMediaLoading}
+                            className="h-9 px-4 rounded-xl shadow-lg shadow-blue-500/20 transition-all hover:-translate-y-0.5"
+                            variant="default"
                         >
-                            <Upload className="h-3 w-3 mr-1.5" />
-                            {hasImage ? 'Change' : 'Upload'}
+                            <Upload className="h-3.5 w-3.5 mr-2" />
+                            <span className="text-[11px] font-black uppercase tracking-widest">
+                                {hasImage ? 'Change Image' : 'Select File'}
+                            </span>
                         </Button>
                     </div>
                 </div>
             </div>
+
             {comboId && showUploadDialog && (
                 <ImageUploadDialog
                     open={showUploadDialog}
@@ -139,7 +170,7 @@ const MediaBlock = memo(function MediaBlock({ watchValues, comboId, setField }: 
                     isUploading={uploadMutation.isPending}
                 />
             )}
-        </>
+        </div>
     );
 });
 

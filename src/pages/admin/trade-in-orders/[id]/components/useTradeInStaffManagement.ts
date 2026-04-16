@@ -8,7 +8,6 @@ import type { TradeInOrderDetailResponse } from "@/api/types/tradeInOrder";
 import {
   tradeInOrderKeys,
   useConfirmTradeInDeal,
-  useTransitionTradeInStatus,
 } from "@/hooks/queries";
 import { useShippingTasksByTradeInOrder } from "@/hooks/queries/useShippingTask";
 import { usePermission } from "@/hooks/usePermission";
@@ -248,8 +247,7 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
     },
   });
 
-  const { mutate: transitionStatus, isPending: isTransitioning } =
-    useTransitionTradeInStatus(order.tradeInOrderId);
+  // Removed transitionStatus to solve isTransitioning double declaration conflict
 
   const previewAmountToPay = useMemo(
     () =>
@@ -278,7 +276,9 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
   const canProcessReturningUnhappy =
     isAdminOrManager && status === "RETURNING" && !!returningShippingTask?.shippingTaskId;
   const canAssignDeliveryTask =
-    isAdminOrManager && status === "CONFIRMED";
+    isAdminOrManager &&
+    isTradeInActiveProgressStatus(status) &&
+    status !== "NEGOTIATING";
   const activeShippingTaskId = activeShippingTask?.shippingTaskId || "";
   const returningShippingTaskId = returningShippingTask?.shippingTaskId || "";
   const defaultProductVariantId =
@@ -334,6 +334,18 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
     setIsCancelDialogOpen(true);
   }, [canHandleUnhappyCase]);
 
+  const { mutate: finalizeTradeInOrder, isPending: isTransitioning } = useMutation({
+    mutationFn: () => tradeInOrderService.completed(order.tradeInOrderId),
+    onSuccess: () => {
+      setIsCompleteConfirmDialogOpen(false);
+      invalidateTradeInDetail();
+      toast.success("Trade-in completed successfully.");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Failed to complete trade-in.");
+    },
+  });
+
   const handleFinalizeTradeIn = useCallback(() => {
     if (isTransitioning) return;
     setIsCompleteConfirmDialogOpen(true);
@@ -341,20 +353,8 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
 
   const handleConfirmFinalizeTradeIn = useCallback(() => {
     if (isTransitioning) return;
-
-    transitionStatus(
-      { fromStatus: status, toStatus: "COMPLETED" },
-      {
-        onSuccess: () => {
-          setIsCompleteConfirmDialogOpen(false);
-          toast.success("Status updated.");
-        },
-        onError: (error: Error) => {
-          toast.error(error.message || "Unable to update status.");
-        },
-      },
-    );
-  }, [isTransitioning, status, transitionStatus]);
+    finalizeTradeInOrder();
+  }, [isTransitioning, finalizeTradeInOrder]);
 
   const handleCloseCompleteConfirmDialog = useCallback(() => {
     if (isTransitioning) return;

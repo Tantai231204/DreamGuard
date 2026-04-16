@@ -10,8 +10,8 @@ import {
     DropdownMenuItem,
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu"
+import StatusSelectionDropdown from "./items-table/StatusSelectionDropdown"
 import {
-    Check,
     ChevronDown,
     ChevronRight,
     Copy,
@@ -24,16 +24,11 @@ import {
     Trash2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { getAllowedComboStatusTransitions, normalizeStatus } from "../../types"
+import { normalizeStatus } from "../../types"
 import type { Combo, ComboItem } from "../../types"
 import type { ProductItemResponse } from "@/api/services/comboService"
 
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from "@/components/ui/tooltip"
+
 
 const columnHelper = createColumnHelper<Combo>()
 
@@ -83,7 +78,7 @@ interface UseComboColumnsOptions {
     onDelete?: (combo: Combo) => void
     onDuplicate?: (combo: Combo) => void
     onAddVariant?: (combo: Combo) => void
-    onUpdateStatus?: (id: string, status: string, comboName?: string, currentStatus?: string) => void
+    onUpdateStatus?: (id: string, status: string, comboName?: string, currentStatus?: string, totalStock?: number, hasPublishedChild?: boolean) => void
 }
 
 export function useComboColumns(options: UseComboColumnsOptions = {}) {
@@ -350,91 +345,24 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
                     // Senior Parent Detection: Combine row depth with entity structure
                     const isParent = info.row.depth === 0 && !combo.comboParentId;
 
-                    // Robust Child Check: Look into all possible child containers
-                    const children = (combo.subRows || combo.childCombos || combo.productItems || []);
-                    const hasChildCombos = children.length > 0;
+                    // Robust Child Check: Look into all possible child containers (variants)
+                    const variants = (combo.subRows || combo.childCombos || []);
+                    const hasPublishedChild = variants.some((c: Combo) => normalizeStatus(c.status) === 'Published');
 
                     if (!onUpdateStatus) return <AdminStatusBadge status={normalizedStatus} />
 
-                    const allowed = getAllowedComboStatusTransitions(normalizedStatus)
-
                     return (
-                        <DropdownMenu>
-                            <DropdownMenuTrigger className="outline-none group/sbadge">
-                                <AdminStatusBadge
-                                    status={normalizedStatus}
-                                    className="cursor-pointer hover:shadow-md transition-all group-hover/sbadge:ring-2 group-hover/sbadge:ring-blue-100"
-                                />
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start" className="w-52 p-1 rounded-2xl shadow-2xl border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                                <div className="flex items-center justify-between px-3 py-2 mb-1 border-b border-slate-50/50">
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-0.5">Status</span>
-                                    <div className="px-2 py-0.5 rounded-md bg-primary-50 border border-primary-100 shadow-sm">
-                                        <span className="text-[9px] font-black text-primary-500 uppercase tracking-tight">
-                                            {isParent ? 'Collection' : 'Variant'}
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="p-1 space-y-1">
-                                    {allowed.map((s) => {
-                                        const isBlockedPublished = s === 'Published' && isParent && !hasChildCombos;
-                                        const isActive = normalizedStatus === s;
-                                        const isDisabledOption = isBlockedPublished;
-
-                                        return (
-                                            <TooltipProvider key={s} delayDuration={0}>
-                                                <Tooltip>
-                                                    <TooltipTrigger asChild>
-                                                        <div className="w-full">
-                                                            <DropdownMenuItem
-                                                                disabled={isDisabledOption}
-                                                                className={cn(
-                                                                    "rounded-xl px-2 py-2 cursor-pointer transition-all w-full flex items-center justify-between",
-                                                                    isActive
-                                                                        ? "bg-primary-50 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.15)] font-bold mb-0.5 hover:bg-primary-100/40"
-                                                                        : "hover:bg-blue-50/50",
-                                                                    isDisabledOption && "opacity-50 cursor-not-allowed"
-                                                                )}
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    if (!isActive && !isDisabledOption) {
-                                                                        onUpdateStatus(combo.id, s, combo.name, normalizedStatus);
-                                                                    }
-                                                                }}
-                                                            >
-                                                                <div className="flex flex-1 items-center gap-3 pointer-events-none">
-                                                                    <AdminStatusBadge
-                                                                        status={s}
-                                                                        className="border-none shadow-none bg-transparent pl-0 py-0"
-                                                                    />
-                                                                </div>
-                                                                <div className="flex items-center gap-1.5 ml-2">
-                                                                    {isActive && <Check className="h-4 w-4 text-primary-500" />}
-                                                                    {isBlockedPublished && (
-                                                                        <span className="text-[9px] font-black text-rose-500 uppercase tracking-tighter bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100 italic">
-                                                                            Locked
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                            </DropdownMenuItem>
-                                                        </div>
-                                                    </TooltipTrigger>
-                                                    {isBlockedPublished && (
-                                                        <TooltipContent
-                                                            side="right"
-                                                            className="bg-slate-900 text-white border-none text-[11px] font-bold px-3 py-1.5 rounded-lg shadow-xl z-[100]"
-                                                        >
-                                                            Add variants to this combo before publishing.
-                                                        </TooltipContent>
-                                                    )}
-                                                </Tooltip>
-                                            </TooltipProvider>
-                                        );
-                                    })}
-                                </div>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    )
+                        <StatusSelectionDropdown
+                            id={combo.id}
+                            name={combo.name}
+                            status={normalizedStatus}
+                            totalStock={combo.totalStock}
+                            hasPublishedChild={hasPublishedChild}
+                            onUpdateStatus={onUpdateStatus}
+                            badgeLabel={isParent ? 'Collection' : 'Variant'}
+                            align="start"
+                        />
+                    );
                 },
             }),
 

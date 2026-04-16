@@ -5,6 +5,7 @@ import { useComboDetail, useComboParents } from '@/hooks/queries/useCombo';
 import { useAllVariantOptions, type VariantOption } from '@/hooks/queries/useProduct';
 import { comboSchema } from './comboSchema';
 import type { Combo } from '../../types';
+import { normalizeStatus } from '../../types';
 import type { CreateComboRequest, ComboItemRequest } from '@/api/services/comboService';
 import { toSlug, getInitialState, type ComboFormValues } from './index';
 import { toast } from 'sonner';
@@ -82,13 +83,46 @@ export function useComboForm({
     const watchAgeGroup = useWatch({ control: typedForm.control, name: 'ageGroup' });
     const watchImageFile = useWatch({ control: typedForm.control, name: 'imageFile' });
 
-    // Senior Logic: Automatic Price Synchronization
+    // Global queries (cached by React Query)
+    const { data: parentsResp } = useComboParents(open && mode === 'variant');
+    const { data: variantsResp, isLoading: isLoadingVariants } = useAllVariantOptions(open && mode === 'variant');
+
+    const variantOptions = useMemo(() => variantsResp || [], [variantsResp]);
+
+    // Senior Logic: Automatic Price Synchronization & Meta Recovery
     // Calculates total market value from items and updates basePrice automatically
     useEffect(() => {
         if (!watchItems || watchItems.length === 0) return;
 
-        const totalMarketValue = watchItems.reduce((sum, item) => {
-            return sum + (Number(item.salePrice || 0) * Number(item.quantity || 0));
+        let totalMarketValue = 0;
+        let hasChanges = false;
+
+        const updatedItems = watchItems.map(item => {
+            // Meta-Recovery: If prices are 0 or missing, try to bridge from variantOptions
+            if (item.productVariantId && (item.salePrice === 0 || !item.sku)) {
+                const vOpt = variantOptions.find(v => v.variantId === item.productVariantId);
+                if (vOpt) {
+                    hasChanges = true;
+                    return {
+                        ...item,
+                        salePrice: vOpt.salePrice,
+                        basePrice: vOpt.basePrice,
+                        productName: vOpt.productName,
+                        sku: vOpt.sku,
+                        color: vOpt.color,
+                        size: vOpt.size,
+                    };
+                }
+            }
+            return item;
+        });
+
+        if (hasChanges) {
+            typedForm.setValue('items', updatedItems, { shouldValidate: true });
+        }
+
+        totalMarketValue = updatedItems.reduce((sum, item) => {
+            return sum + (Number(item.salePrice || 0) * Number(item.quantity || 1));
         }, 0);
 
         if (totalMarketValue > 0) {
@@ -103,7 +137,7 @@ export function useComboForm({
                 typedForm.setValue('salePrice', totalMarketValue, { shouldValidate: true });
             }
         }
-    }, [watchItems, isEdit, typedForm, watchBasePrice, watchSalePrice]);
+    }, [watchItems, variantOptions, isEdit, typedForm, watchBasePrice, watchSalePrice]);
 
     const completionScore = useMemo(() => {
         let score = 0;
@@ -124,9 +158,6 @@ export function useComboForm({
         return Math.min(score, 100);
     }, [watchName, watchAgeGroup, watchBasePrice, watchSalePrice, watchDescription, watchStatus, watchImageUrl, watchImageFile, mode, watchComboParentId, watchItems]);
 
-    // Global queries (cached by React Query)
-    const { data: parentsResp } = useComboParents(open && mode === 'variant');
-    const { data: variantsResp, isLoading: isLoadingVariants } = useAllVariantOptions(open && mode === 'variant');
 
     const comboParents = useMemo(() => {
         const list = (parentsResp || []) as { id: string; name: string; imageUrl?: string; sku?: string }[];
@@ -150,13 +181,53 @@ export function useComboForm({
         typedForm.setValue(field, value, { shouldValidate: true, shouldDirty: true });
     }, [typedForm]);
 
+    const rawChildren = useMemo(() => {
+        if (mode !== 'parent') return [];
+        // Use primary detail response first, then fallback to passed object
+        const source = comboResp || combo;
+        if (!source) return [];
+        const rawSource = source as unknown as Record<string, unknown>;
+        return (rawSource.subRows || rawSource.childCombos || []) as Record<string, unknown>[];
+    }, [mode, combo, comboResp]);
+
+    const hasChildCombos = rawChildren.length > 0;
+    const hasPublishedChild = rawChildren.some((c) => {
+        const combo = c as unknown as Combo;
+        return normalizeStatus(combo.status) === 'Published';
+    });
+
+    const parentPriceRange = useMemo(() => {
+        if (!hasChildCombos) return null;
+
+        const childPrices = rawChildren.map(c => Number(c.baseSalePrice ?? c.salePrice ?? 0)).filter(p => p > 0);
+        if (childPrices.length === 0) return null;
+
+        const min = Math.min(...childPrices);
+        const max = Math.max(...childPrices);
+        if (min === max) return `${min.toLocaleString("en-US")}₫`;
+        return `${min.toLocaleString("en-US")}₫ - ${max.toLocaleString("en-US")}₫`;
+    }, [hasChildCombos, rawChildren]);
+
     const onFormSubmit = async (values: ComboFormValues) => {
-        // Core Guard: Prevent publishing parent without children
-        if (mode === 'parent' && values.status === 'Published' && !hasChildCombos) {
-            toast.error("Cannot publish collection", {
-                description: "Add at least one variant before publishing this combo."
-            });
-            return;
+        // block published combo nếu không có combo con
+        if (values.status === 'Published') {
+            if (mode === 'parent' && !hasChildCombos) {
+                toast.error("Cannot publish collection", {
+                    description: "At least one variant must be created first."
+                });
+                return;
+            }
+
+            // trong combo con không chọn quá stock product variant hoặc chưa published hoặc out of stock
+            // [RELAXED] Allowing variant updates without strict constituent guards per user request
+            if (mode === 'variant') {
+                const comboItems = values.items || [];
+                if (comboItems.length === 0) {
+                    toast.error("Cannot publish variant", { description: "At least one product item is required." });
+                    return;
+                }
+                // Guards for stock and constituent status removed to allow flexible management
+            }
         }
 
         try {
@@ -209,29 +280,6 @@ export function useComboForm({
         }
     };
 
-    const rawChildren = useMemo(() => {
-        if (mode !== 'parent') return [];
-        // Use primary detail response first, then fallback to passed object
-        const source = comboResp || combo;
-        if (!source) return [];
-        const rawSource = source as unknown as Record<string, unknown>;
-        return (rawSource.subRows || rawSource.childCombos || []) as Record<string, unknown>[];
-    }, [mode, combo, comboResp]);
-
-    const hasChildCombos = rawChildren.length > 0;
-
-    const parentPriceRange = useMemo(() => {
-        if (!hasChildCombos) return null;
-
-        const childPrices = rawChildren.map(c => Number(c.baseSalePrice ?? c.salePrice ?? 0)).filter(p => p > 0);
-        if (childPrices.length === 0) return null;
-
-        const min = Math.min(...childPrices);
-        const max = Math.max(...childPrices);
-        if (min === max) return `${min.toLocaleString("en-US")}₫`;
-        return `${min.toLocaleString("en-US")}₫ - ${max.toLocaleString("en-US")}₫`;
-    }, [hasChildCombos, rawChildren]);
-
     return {
         form: typedForm,
         register: typedForm.register,
@@ -241,6 +289,7 @@ export function useComboForm({
         isLoadingVariants,
         parentPriceRange,
         hasChildCombos,
+        hasPublishedChild,
         comboParents,
         variantOptions: (variantsResp || []) as VariantOption[],
         handleNameChange,
@@ -263,7 +312,7 @@ export function useComboForm({
             size: watchSize,
             ageGroup: watchAgeGroup
         }), [
-            watchName, watchDescription, watchBasePrice, watchSalePrice, watchStatus, 
+            watchName, watchDescription, watchBasePrice, watchSalePrice, watchStatus,
             watchImageUrl, watchComboParentId, watchItems, watchImagePublicId, watchImageFile,
             watchColor, watchSize, watchAgeGroup
         ]),

@@ -103,39 +103,46 @@ export function getInitialState(
     // Senior Data Normalization: Handle both lightweight table objects and full response objects
     const items: ComboItemEntry[] = [];
 
-    if ('productItems' in combo && Array.isArray(combo.productItems)) {
-      // Full ComboResponse mapping
-      combo.productItems.forEach((pi, idx) => {
-        items.push({
-          id: `existing-${idx}-${pi.productVariantId}`,
-          productVariantId: pi.productVariantId,
-          quantity: pi.quantity,
-          label: pi.productName,
-          productName: pi.productName,
-          sku: pi.sku,
-          color: undefined,
-          size: undefined,
-          salePrice: pi.salePrice,
-          basePrice: pi.basePrice,
-        });
-      });
-    } else if (Array.isArray(combo.items)) {
-      // Fallback for limited Combo objects
-      combo.items.forEach((item, idx) => {
-        items.push({
-          id: `existing-${idx}-${item.variantId || item.productId}`,
-          productVariantId: item.variantId || item.productId,
-          quantity: item.quantity,
-          label: `${item.productName}${item.variantLabel ? ` — ${item.variantLabel}` : ""}`,
-          productName: item.productName,
-          sku: item.variantId || "",
-          color: undefined,
-          size: item.variantLabel,
-          salePrice: 0,
-          basePrice: 0,
-        });
-      });
+    // Safely extract items from any available property
+    const sourceItems = ('productItems' in combo && combo.productItems && combo.productItems.length > 0)
+      ? combo.productItems 
+      : (Array.isArray(combo.items) ? combo.items : []);
+
+    interface RawComboItem {
+      productVariantId?: string;
+      variantId?: string;
+      productId?: string;
+      quantity?: number;
+      productName?: string;
+      label?: string;
+      sku?: string;
+      color?: string;
+      size?: string;
+      variantLabel?: string;
+      dimensions?: string;
+      salePrice?: number | string;
+      basePrice?: number | string;
     }
+
+    sourceItems.forEach((rawPi: unknown, idx: number) => {
+      const pi = rawPi as RawComboItem;
+      // Handle ID mapping based on source structure
+      const vid = pi.productVariantId || pi.variantId || pi.productId || '';
+      if (!vid) return;
+
+      items.push({
+        id: `existing-${idx}-${vid}`,
+        productVariantId: vid,
+        quantity: pi.quantity || 1,
+        label: pi.productName || pi.label || '',
+        productName: pi.productName || pi.label || '',
+        sku: pi.sku || pi.variantId || '',
+        color: pi.color || undefined,
+        size: pi.size || pi.variantLabel || pi.dimensions || undefined,
+        salePrice: Number(pi.salePrice || 0),
+        basePrice: Number(pi.basePrice || 0),
+      });
+    });
 
     return {
       name: combo.name ?? "",

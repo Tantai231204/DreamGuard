@@ -8,14 +8,15 @@ import AdminPageHeader from "@/components/layout/AdminPageHeader";
 import { useAuthStore } from "@/store/authStore";
 import { mockOrders } from "../data";
 import { quickActions, statsConfig } from "./data";
-import { QuickActions, RecentOrders, StatsGrid, ServiceOrderAnalytics, TradeInAnalytics } from "./components";
+import { QuickActions, RecentOrders, StatsGrid, ServiceOrderAnalytics, TradeInAnalytics, OrderAnalytics, BestSellingProducts } from "./components";
 import { cn } from "@/lib/utils";
 
 export default function Dashboard() {
   const role = useAuthStore((state) => state.role);
   const [isLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'service' | 'tradein'>('service');
+  const [activeTab, setActiveTab] = useState<'service' | 'tradein' | 'order'>('order');
 
+  const tabOrder = ['order', 'service', 'tradein'] as const;
   const recentOrders = mockOrders.slice(0, 5);
 
   const filteredQuickActions = quickActions.filter(action => {
@@ -35,66 +36,64 @@ export default function Dashboard() {
               : "Your daily performance summary."
           }
           actions={
-            <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Online</span>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Live</span>
+              </div>
             </div>
           }
         />
       </div>
 
-      {/* Content */}
       <div className="px-8 pb-12 space-y-8">
-        {/* KPI Cards */}
         <StatsGrid stats={statsConfig} isLoading={isLoading} />
-
-        {/* Quick Navigation */}
         <QuickActions actions={filteredQuickActions} isLoading={isLoading} />
 
-        {/* Analytics & Activity Grid */}
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
-          {/* Main: Analytics Tabs */}
-          <div className="xl:col-span-7 space-y-6">
-            <div className="flex items-center gap-6 border-b-2 border-slate-50 mb-8">
-              <button
-                onClick={() => setActiveTab('service')}
-                className={cn(
-                  "relative pb-3 text-[11px] font-black uppercase tracking-[0.15em] transition-colors focus:outline-none",
-                  activeTab === 'service' ? "text-[#4988c4]" : "text-slate-400 hover:text-slate-600"
-                )}
-              >
-                Service Analytics
-                {activeTab === 'service' && (
-                  <motion.div layoutId="active-dashboard-tab" className="absolute -bottom-[2px] left-0 right-0 h-0.5 bg-[#4988c4]" />
-                )}
-              </button>
-              <button
-                onClick={() => setActiveTab('tradein')}
-                className={cn(
-                  "relative pb-3 text-[11px] font-black uppercase tracking-[0.15em] transition-colors focus:outline-none",
-                  activeTab === 'tradein' ? "text-emerald-500" : "text-slate-400 hover:text-slate-600"
-                )}
-              >
-                Trade-In Analytics
-                {activeTab === 'tradein' && (
-                  <motion.div layoutId="active-dashboard-tab" className="absolute -bottom-[2px] left-0 right-0 h-0.5 bg-emerald-500" />
-                )}
-              </button>
+          <div className="xl:col-span-12 space-y-6">
+            <div className="flex items-center gap-8 border-b border-slate-100 mb-10">
+              {tabOrder.map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={cn(
+                    "relative pb-4 text-[11px] font-black uppercase tracking-[0.2em] transition-all focus:outline-none",
+                    activeTab === tab ? "text-[#4988c4]" : "text-slate-400 hover:text-slate-500"
+                  )}
+                >
+                  <span className="relative z-10">{tab} Analytics</span>
+                  {activeTab === tab && (
+                    <motion.div
+                      layoutId="active-dashboard-tab"
+                      className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#4988c4] z-20"
+                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                    />
+                  )}
+                </button>
+              ))}
             </div>
 
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3 }}
-            >
-              {activeTab === 'service' ? <ServiceOrderAnalytics /> : <TradeInAnalytics />}
-            </motion.div>
+            <div className="relative overflow-hidden">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+              >
+                {activeTab === 'order' ? (
+                  <OrderAnalytics />
+                ) : activeTab === 'service' ? (
+                  <ServiceOrderAnalytics />
+                ) : (
+                  <TradeInAnalytics />
+                )}
+              </motion.div>
+            </div>
           </div>
 
-          {/* Sidebar: Recent Orders */}
-          <div className="xl:col-span-5">
+          <div className="xl:col-span-6">
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
@@ -115,6 +114,10 @@ export default function Dashboard() {
               </div>
               <RecentOrders orders={recentOrders} isLoading={isLoading} />
             </motion.div>
+          </div>
+
+          <div className="xl:col-span-6">
+             <BestSellingProducts />
           </div>
         </div>
       </div>

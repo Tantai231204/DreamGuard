@@ -116,8 +116,8 @@ export function useOrderDetail() {
 
   const isInitialLoading = (orderQuery.isLoading && !orderQuery.data);
 
-  const isAssigned = !!mergedOrder?.staff || !!mergedOrder?.technician;
-  
+  const isAssigned = !!mergedOrder?.staff || !!mergedOrder?.technician || !!mergedOrder?.serviceTask;
+
   const canConfirm = useMemo(() => {
     if (!mergedOrder) return false;
     return mergedOrder.status?.toLowerCase() === 'pending' &&
@@ -131,8 +131,19 @@ export function useOrderDetail() {
 
   const canAssign = useMemo(() => {
     if (!mergedOrder) return false;
-    return mergedOrder.status?.toLowerCase() === 'confirmed' && !isAssigned;
+    const status = mergedOrder.status?.toLowerCase();
+    return (status === 'confirmed' || status === 'processing') && !isAssigned;
   }, [mergedOrder, isAssigned]);
+
+  const canComplete = useMemo(() => {
+    if (!mergedOrder) return false;
+    const orderStatus = mergedOrder.status?.toLowerCase();
+    const taskStatus = mergedOrder.serviceTask?.status?.toLowerCase();
+    // Manager/Admin can complete if order is in processing 
+    // AND technician has indicated progress completion (either by status or checkout timestamp)
+    return orderStatus === 'processing' &&
+      (taskStatus === 'completed' || !!mergedOrder.serviceTask?.checkOut);
+  }, [mergedOrder]);
 
   // 5. Actions
   const handleAssignOpen = useCallback(() => {
@@ -162,6 +173,7 @@ export function useOrderDetail() {
       canConfirm,
       canAssign,
       canCancel,
+      canComplete,
       isAssigned
     },
     actions: {

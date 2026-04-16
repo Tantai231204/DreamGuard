@@ -118,9 +118,9 @@ export const useProcessReturnedTradeInShippingTask = () => {
             queryClient.invalidateQueries({ queryKey: shippingKeys.byTradeInOrder(tradeInOrderId) });
             queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.detail(tradeInOrderId) });
             queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.customerDetail(tradeInOrderId) });
-            queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.listPrefix() });
-            queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.waitingPrefix() });
-            queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.customerListPrefix() });
+            queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.waitingLists() });
+            queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.customerLists() });
         },
     });
 };
@@ -141,9 +141,9 @@ export const useProcessExchangeTradeInShippingTask = () => {
             queryClient.invalidateQueries({ queryKey: shippingKeys.byTradeInOrder(tradeInOrderId) });
             queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.detail(tradeInOrderId) });
             queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.customerDetail(tradeInOrderId) });
-            queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.listPrefix() });
-            queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.waitingPrefix() });
-            queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.customerListPrefix() });
+            queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.lists() });
+            queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.waitingLists() });
+            queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.customerLists() });
         },
     });
 };

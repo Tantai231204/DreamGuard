@@ -30,6 +30,7 @@ import { useLogout } from '@/hooks/useAuth';
 import { ProductAssetIcons } from '@/components/common/icons';
 import { UserRole } from '@/lib/constants';
 import { useAuthStore } from '@/store/authStore';
+import { hasRole, isSellerRole } from '@/lib/role';
 import { chatService } from '@/api/services';
 import api from '@/lib/api';
 
@@ -101,11 +102,11 @@ const navSections: NavSection[] = [
   {
     label: 'Support',
     items: [
-      { 
-        title: 'Chat Support', 
-        href: '/admin/chat', 
-        icon: MessageSquare, 
-        allowedRoles: [UserRole.SELLER] 
+      {
+        title: 'Chat Support',
+        href: '/admin/chat',
+        icon: MessageSquare,
+        allowedRoles: [UserRole.SELLER]
       },
     ],
   },
@@ -119,19 +120,21 @@ export default function AdminSidebar() {
   const { role, isAuthenticated } = useAuthStore();
 
   const { data: chatData } = useQuery({
-    queryKey: ['admin', 'conversations', ''], 
+    queryKey: ['admin', 'conversations', ''],
     queryFn: () => chatService.getConversations({ pageNumber: 1, pageSize: 50 }),
-    enabled: isAuthenticated && role === UserRole.SELLER,
-    refetchInterval: 60000,
-    staleTime: 30000, 
+    enabled: isAuthenticated && isSellerRole(role),
+    refetchInterval: 300000, // 5 mins fallback
+    staleTime: 300000,      // 5 mins fresh
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const unreadChatCount = useMemo(() => {
     if (!chatData) return 0;
-    const items = Array.isArray(chatData) 
-      ? chatData 
-      : ((chatData as { items?: { unreadCount?: number }[] }).items || []);
-    return items.reduce((acc: number, curr: { unreadCount?: number }) => acc + (Number(curr.unreadCount) || 0), 0);
+    const items = Array.isArray(chatData)
+      ? chatData
+      : ((chatData as unknown as { items?: import('@/api/services/chatService').BackendConversation[] }).items || []);
+    return items.filter((convo) => convo.hasUnread).length;
   }, [chatData]);
 
   const { data: serviceData } = useQuery({
@@ -142,7 +145,7 @@ export default function AdminSidebar() {
       });
       return (res.data?.data ?? res.data) as { items: { status: string; staff?: Record<string, unknown> | null }[] };
     },
-    enabled: isAuthenticated && role !== UserRole.SELLER,
+    enabled: isAuthenticated && !isSellerRole(role),
     staleTime: 60 * 1000,
     gcTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
@@ -171,9 +174,10 @@ export default function AdminSidebar() {
           return { ...item, badge: pendingServiceCount };
         }
         return item;
-      }).filter(item =>
-        !item.allowedRoles || item.allowedRoles.includes(role as UserRole)
-      )
+      }).filter(item => {
+        if (!item.allowedRoles) return true;
+        return hasRole(role, item.allowedRoles);
+      })
     })).filter(section => section.items.length > 0);
   }, [role, unreadChatCount, pendingServiceCount]);
 

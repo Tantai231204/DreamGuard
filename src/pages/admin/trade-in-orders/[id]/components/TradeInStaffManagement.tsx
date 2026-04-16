@@ -351,7 +351,7 @@ export const TradeInStaffManagement = memo(function TradeInStaffManagement({ ord
         )}
         confirmText="Confirm Deal"
         onConfirm={handleConfirmDealFinal}
-        variant="tradein"
+        variant="success"
         isLoading={isConfirming}
       />
 

@@ -542,7 +542,7 @@ export function useAdminProductMutations({ state }: MutationProps) {
               status: data.status,
             });
           }
-          toast.success("Combo updated", "Success.");
+          toast.success("Combo synchronized successfully", "All changes saved.");
         } else {
           await createComboMutation.mutateAsync(data);
           toast.success("Combo created", "Success.");
@@ -612,6 +612,7 @@ export function useAdminProductMutations({ state }: MutationProps) {
 
   const handleConfirmStatusChange = useCallback(async () => {
     if (!statusChangeData) return;
+
     try {
       if (statusChangeData.type === "product") {
         await updateProductStatusMutation.mutateAsync({
@@ -630,9 +631,9 @@ export function useAdminProductMutations({ state }: MutationProps) {
         });
       }
       setStatusChangeData(null);
-      toast.success("Status updated", "Success.");
     } catch (error) {
       console.error(error);
+      setStatusChangeData(null);
     }
   }, [
     statusChangeData,
@@ -640,7 +641,6 @@ export function useAdminProductMutations({ state }: MutationProps) {
     updateComboStatusMutation,
     updateVariantStatusMutation,
     setStatusChangeData,
-    toast,
   ]);
 
   const handleConfirmDelete = useCallback(

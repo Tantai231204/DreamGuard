@@ -14,10 +14,11 @@ interface ShippingAssignmentCardProps {
 }
 
 import { useAuthStore } from '@/store/authStore';
+import { isAdminOrManager as checkIsAdminOrManager } from '@/lib/role';
 
 export function ShippingAssignmentCard({ orderId, onOpenAssign, canAssign, delay = 0 }: ShippingAssignmentCardProps) {
         const role = useAuthStore((s) => s.role);
-        const isAdminOrManager = role === 'Admin' || role === 'Manager';
+        const isAdminOrManager = checkIsAdminOrManager(role);
         const { data: staffsResponse } = useStaffs(
             isAdminOrManager ? { pageSize: 100, Role: "DeliveryStaff" } : undefined,
             { enabled: isAdminOrManager }

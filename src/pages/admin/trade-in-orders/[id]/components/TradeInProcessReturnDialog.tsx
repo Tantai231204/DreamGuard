@@ -22,11 +22,23 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useProcessReturnedTradeInShippingTask } from "@/hooks/queries/useShippingTask";
 import { useVariant } from "@/hooks/queries/useVariant";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { getColorHex } from "@/utils/color-utils";
 import { uploadEvidenceItems } from "@/utils/evidenceUpload";
 
 const MAX_EVIDENCE_FILES = 5;
 const MAX_EVIDENCE_FILE_SIZE_MB = 10;
+
+import { 
+  RETURN_REASONS, 
+  OTHER_REASON_LABEL 
+} from "@/constants/logistics";
 
 type EvidenceStatus = "pending" | "uploading" | "uploaded" | "failed";
 
@@ -71,6 +83,7 @@ export function TradeInProcessReturnDialog({
   defaultProductVariantId,
 }: TradeInProcessReturnDialogProps) {
   const [damageNote, setDamageNote] = useState("");
+  const [selectedReason, setSelectedReason] = useState("");
   const [isDamagedSelected, setIsDamagedSelected] = useState(false);
   const [evidenceItems, setEvidenceItems] = useState<EvidenceItem[]>([]);
   const [isUploadingEvidence, setIsUploadingEvidence] = useState(false);
@@ -102,6 +115,7 @@ export function TradeInProcessReturnDialog({
     if (isOpen) {
       setIsDamagedSelected(false);
       setDamageNote("");
+      setSelectedReason("");
       setEvidenceItems((prev) => {
         prev.forEach((item) => URL.revokeObjectURL(item.previewUrl));
         return [];
@@ -117,6 +131,7 @@ export function TradeInProcessReturnDialog({
 
   const resetAndClose = useCallback(() => {
     setDamageNote("");
+    setSelectedReason("");
     setIsDamagedSelected(false);
     setEvidenceItems((prev) => {
       prev.forEach((item) => URL.revokeObjectURL(item.previewUrl));
@@ -132,6 +147,7 @@ export function TradeInProcessReturnDialog({
       setIsDamagedSelected(damaged);
       if (!damaged) {
         setDamageNote("");
+        setSelectedReason("");
         setEvidenceItems((prev) => {
           prev.forEach((item) => URL.revokeObjectURL(item.previewUrl));
           return [];
@@ -257,11 +273,13 @@ export function TradeInProcessReturnDialog({
       const evidenceUrls = isDamagedOutcome ? await uploadEvidenceUrls() : [];
       const normalizedProductVariantId = isDamagedOutcome ? resolvedProductVariantId : "";
 
+      const finalNote = selectedReason === OTHER_REASON_LABEL ? damageNote : selectedReason;
+
       await processReturned.mutateAsync({
         taskId,
         tradeInOrderId,
         data: {
-          damageNote: isDamagedOutcome ? damageNote.trim() || undefined : undefined,
+          damageNote: isDamagedOutcome ? finalNote.trim() || undefined : undefined,
           evidenceUrls: isDamagedOutcome && evidenceUrls.length > 0 ? evidenceUrls : undefined,
           productVariantId: normalizedProductVariantId || undefined,
         },
@@ -282,7 +300,9 @@ export function TradeInProcessReturnDialog({
     }
   }, [
     damageNote,
+    selectedReason,
     isDamagedOutcome,
+    evidenceItems,
     processReturned,
     resetAndClose,
     resolvedProductVariantId,
@@ -385,14 +405,35 @@ export function TradeInProcessReturnDialog({
 
           {isDamagedOutcome && (
             <>
-              <div className="space-y-1.5">
-                <Label className="text-[13px] font-semibold text-slate-700">Damage Note</Label>
-                <Textarea
-                  value={damageNote}
-                  onChange={(event) => setDamageNote(event.target.value)}
-                  placeholder="Enter damage or return note"
-                  className="min-h-[86px] resize-none rounded-lg"
-                />
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label className="text-[13px] font-semibold text-slate-700">
+                    Outcome Reason
+                    <span className="text-[11px] font-normal text-rose-500">(Required)</span>
+                  </Label>
+                  <Select value={selectedReason} onValueChange={setSelectedReason}>
+                    <SelectTrigger className="h-10 rounded-lg border-slate-200 bg-white">
+                      <SelectValue placeholder="Select a reason..." />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-slate-200">
+                      {RETURN_REASONS.map((r) => (
+                        <SelectItem key={r} value={r} className="py-2 text-sm">{r}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {(selectedReason === OTHER_REASON_LABEL || !selectedReason) && (
+                  <div className="space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                    <Label className="text-[13px] font-semibold text-slate-700">Detail Note</Label>
+                    <Textarea
+                      value={damageNote}
+                      onChange={(event) => setDamageNote(event.target.value)}
+                      placeholder="Enter damage or return note detail"
+                      className="min-h-[86px] resize-none rounded-lg"
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3.5">

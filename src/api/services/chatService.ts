@@ -17,6 +17,7 @@ export interface BackendConversation {
   customerId: string;
   staffId?: string;
   createdAt: string;
+  hasUnread?: boolean;
   tradeInOrder?: {
     orderCode?: string;
     receiverName?: string;
@@ -35,6 +36,7 @@ export interface BackendMessage {
   content?: string;
   createdAt?: string;
   timestamp?: string;
+  isRead?: boolean;
   attachments?: MessageAttachment[];
 }
 
@@ -139,6 +141,7 @@ export const mapConversation = (item: BackendConversation): Conversation => ({
   lastMessage: `Order: ${item.tradeInOrder?.orderCode || 'N/A'}`,
   lastMessageTime: item.createdAt || new Date().toISOString(),
   unreadCount: resolveUnreadCount(item),
+  hasUnread: item.hasUnread,
   status: (item.tradeInOrder?.status?.toLowerCase() || 'active') as Conversation['status'],
   isOnline: resolveOnlineStatus(item)
 });
@@ -191,7 +194,8 @@ export const mapMessage = (item: BackendMessage, convoId: string): Message | nul
     senderRole: isStaff ? 'admin' : 'customer',
     content: parsedPayload.text,
     timestamp: item.createdAt || item.timestamp || new Date().toISOString(),
-    status: 'sent',
+    status: item.isRead ? 'read' : 'sent',
+    isRead: item.isRead,
     attachments,
     appointment: parsedPayload.metadata?.appointment,
   };
@@ -245,6 +249,11 @@ const chatService = {
     throw lastError ?? new Error('Unable to update conversation status.');
   },
 
+  /** PATCH /api/Conversations/{conversationId}/mark-as-read */
+  markAsRead: async (conversationId: string): Promise<void> => {
+    await api.patch(`/Conversations/${conversationId}/mark-as-read`);
+  },
+
   /* ---- Messages ---------------------------------------- */
 
   /**
@@ -272,3 +281,4 @@ const chatService = {
 };
 
 export default chatService;
+

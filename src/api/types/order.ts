@@ -85,3 +85,16 @@ export interface OrderDetailResponse extends OrderResponse {
     shippingStaffAvatarUrl?: string;
     paymentStatus?: string;
 }
+
+export interface OrderDashboardResponse {
+    totalOrders: number;
+    totalCompletedOrders: number;
+    totalCancelledOrders: number;
+    totalRefundedOrders: number;
+    totalAmount: number;
+    totalCODAmount: number;
+    totalRefundAmount: number;
+    totalVnPayAmount: number;
+    fromDate: string;
+    toDate: string;
+}

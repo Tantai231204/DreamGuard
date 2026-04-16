@@ -366,9 +366,10 @@ export function useSignalR({
       if (!parsedPayload.text && attachments.length === 0 && !hasPinnedAppointment) return;
 
       const payloadConversationId = data.conversationId || data.ConversationId || data.roomId;
-      const resolvedConversationId = payloadConversationId || conversationIdRef.current || '';
+      const resolvedConversationId = payloadConversationId || '';
+      
       if (!resolvedConversationId) {
-        console.warn('[SignalR] ReceiveMessage ignored because conversationId is missing.');
+        console.warn('[SignalR] ReceiveMessage ignored: missing conversationId in payload. Fallback ignored to prevent cross-chat contamination.', data);
         return;
       }
 

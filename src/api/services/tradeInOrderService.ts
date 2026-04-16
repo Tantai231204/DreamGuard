@@ -407,7 +407,7 @@ const tradeInOrderService = {
 
   /** User specific cancel */
   cancelDeal: async (tradeInOrderId: string, reason?: string): Promise<TradeInActionResponse> => {
-    const res = await apiClient.post(`/TradeInOrders/${tradeInOrderId}/cancel`, { reason });
+    const res = await apiClient.patch(`/TradeInOrders/${tradeInOrderId}/cancel`, { reason });
     return res.data;
   },
 

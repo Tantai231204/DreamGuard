@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AdminStatusBadge } from "@/components/admin";
 import { formatDateTime } from "@/lib/utils";
+import { usePermission } from "@/hooks/usePermission";
 
 interface TradeInShippingAssignmentCardProps {
   tradeInOrderId: string;
@@ -23,7 +24,12 @@ export function TradeInShippingAssignmentCard({
   canAssign,
   delay = 0,
 }: TradeInShippingAssignmentCardProps) {
-  const { data: staffsResponse } = useStaffs({ pageSize: 100, Role: "DeliveryStaff" });
+  const { isAdmin, isManager } = usePermission();
+  const canViewStaffs = isAdmin || isManager;
+  const { data: staffsResponse } = useStaffs(
+    canViewStaffs ? { pageSize: 100, Role: "DeliveryStaff" } : undefined,
+    { enabled: canViewStaffs }
+  );
   const { data: tasks } = useShippingTasksByTradeInOrder(tradeInOrderId);
 
   const sortedTasks = [...(tasks || [])].sort((a, b) => {
@@ -53,11 +59,10 @@ export function TradeInShippingAssignmentCard({
         {currentStaff ? (
           <div className="space-y-4">
             <div
-              className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${
-                canAssign
-                  ? "bg-slate-50 border-slate-100/80 cursor-pointer hover:bg-slate-100/60"
-                  : "bg-slate-50 border-slate-100/40 cursor-default"
-              }`}
+              className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${canAssign
+                ? "bg-slate-50 border-slate-100/80 cursor-pointer hover:bg-slate-100/60"
+                : "bg-slate-50 border-slate-100/40 cursor-default"
+                }`}
               onClick={canAssign ? onOpenAssign : undefined}
               title={canAssign ? "Click to Reassign" : "View assigned personnel details"}
             >
@@ -117,28 +122,24 @@ export function TradeInShippingAssignmentCard({
           <button
             onClick={canAssign ? onOpenAssign : undefined}
             disabled={!canAssign}
-            className={`w-full h-full flex flex-col items-center justify-center py-10 rounded-xl border-[1.5px] border-dashed text-center transition-all duration-300 ${
-              canAssign
-                ? "bg-slate-50/50 border-slate-200 hover:bg-slate-50 hover:border-slate-300 group cursor-pointer"
-                : "bg-slate-50/30 border-slate-100 cursor-default"
-            }`}
+            className={`w-full h-full flex flex-col items-center justify-center py-10 rounded-xl border-[1.5px] border-dashed text-center transition-all duration-300 ${canAssign
+              ? "bg-slate-50/50 border-slate-200 hover:bg-slate-50 hover:border-slate-300 group cursor-pointer"
+              : "bg-slate-50/30 border-slate-100 cursor-default"
+              }`}
             title={!canAssign ? "Order must be Confirmed to assign delivery personnel." : "Assign Delivery Personnel"}
           >
             <div
-              className={`h-10 w-10 rounded-full flex items-center justify-center mb-3 transition-colors ${
-                canAssign ? "bg-slate-100 group-hover:bg-slate-200/50" : "bg-slate-100"
-              }`}
+              className={`h-10 w-10 rounded-full flex items-center justify-center mb-3 transition-colors ${canAssign ? "bg-slate-100 group-hover:bg-slate-200/50" : "bg-slate-100"
+                }`}
             >
               <User
-                className={`h-4 w-4 transition-colors ${
-                  canAssign ? "text-slate-400 group-hover:text-slate-500" : "text-slate-300"
-                }`}
+                className={`h-4 w-4 transition-colors ${canAssign ? "text-slate-400 group-hover:text-slate-500" : "text-slate-300"
+                  }`}
               />
             </div>
             <span
-              className={`text-[10px] font-black uppercase tracking-widest transition-colors ${
-                canAssign ? "text-slate-400 group-hover:text-slate-500" : "text-slate-300"
-              }`}
+              className={`text-[10px] font-black uppercase tracking-widest transition-colors ${canAssign ? "text-slate-400 group-hover:text-slate-500" : "text-slate-300"
+                }`}
             >
               {canAssign ? "Assign Technician" : "Awaiting Confirmation"}
             </span>

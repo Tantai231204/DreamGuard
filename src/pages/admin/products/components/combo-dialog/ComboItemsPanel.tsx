@@ -96,10 +96,18 @@ const ComboItemsPanel = memo(function ComboItemsPanel({
 
     const handleQty = useCallback(
         (id: string, qty: number) => {
-            if (qty < 1) return;
+            const item = items.find(i => i.id === id);
+            if (!item || qty < 1) return;
+
+            // trong combo con không chọn quá stock product variant
+            const vOpt = variantOptions.find(v => v.variantId === item.productVariantId);
+            if (vOpt && qty > vOpt.stockQuantity) {
+                return;
+            }
+
             onChange(items.map(i => (i.id === id ? { ...i, quantity: qty } : i)));
         },
-        [items, onChange],
+        [items, onChange, variantOptions],
     );
 
     const clearPending = useCallback(
@@ -226,6 +234,32 @@ const ComboItemsPanel = memo(function ComboItemsPanel({
                                                             {item.size}
                                                         </span>
                                                     )}
+
+                                                    {/* Status & Stock Warning Badges */}
+                                                    {(() => {
+                                                        const vOpt = variantOptions.find(v => v.variantId === item.productVariantId);
+                                                        const isUnpublished = vOpt && vOpt.status !== 'Published';
+                                                        const isOOS = vOpt && vOpt.stockQuantity <= 0;
+
+                                                        return (
+                                                            <>
+                                                                {isUnpublished && (
+                                                                    <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">
+                                                                        Not Published
+                                                                    </span>
+                                                                )}
+                                                                {isOOS ? (
+                                                                    <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100">
+                                                                        Out of Stock
+                                                                    </span>
+                                                                ) : vOpt && vOpt.stockQuantity < item.quantity && (
+                                                                     <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100">
+                                                                        Stock Insufficient ({vOpt.stockQuantity})
+                                                                    </span>
+                                                                )}
+                                                            </>
+                                                        );
+                                                    })()}
                                                 </div>
                                             </div>
 

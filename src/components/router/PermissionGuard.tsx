@@ -2,6 +2,8 @@ import React from 'react';
 import { Navigate, useLocation, Outlet } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { UserRole, AppRoute } from '@/lib/constants';
+import { hasRole } from '@/lib/role';
+
 
 interface PermissionGuardProps {
   allowedRoles: UserRole[];
@@ -22,7 +24,7 @@ export function PermissionGuard({
   const { role } = useAuthStore();
   const location = useLocation();
 
-  const hasPermission = role ? allowedRoles.includes(role as UserRole) : false;
+  const hasPermission = hasRole(role, allowedRoles as string[]);
 
   if (!hasPermission) {
     if (mode === 'hide') {

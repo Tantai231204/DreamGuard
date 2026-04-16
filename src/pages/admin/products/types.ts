@@ -125,7 +125,7 @@ export function getAllowedStatusTransitions(currentStatus: string): ProductStatu
   }
 }
 
-/** Specific transitions for combos (no stock logic) */
+/** Specific transitions for combos (explicitly stock-independent) */
 export function getAllowedComboStatusTransitions(currentStatus: string): ProductStatus[] {
   return getAllowedStatusTransitions(currentStatus).filter(s => s !== 'OutOfStock');
 }
@@ -414,6 +414,8 @@ export interface StatusChangeData {
   type: 'product' | 'combo' | 'variant';
   currentStatus: ProductStatus;
   newStatus: ProductStatus;
+  totalStock?: number;
+  hasPublishedChild?: boolean;
 }
 
 export interface AdminProductState {

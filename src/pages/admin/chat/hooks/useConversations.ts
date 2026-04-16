@@ -54,24 +54,22 @@ export function useConversations({ pollEnabled = true }: UseConversationsOptions
     queryKey: [...CONVERSATIONS_QUERY_KEY, debouncedSearch],
     queryFn: async () => {
       if (USE_MOCK) return (mockConversations as unknown as Conversation[]).sort((a, b) => b.lastMessageTime.localeCompare(a.lastMessageTime));
-      // Map to server-side search param 'Key'
       const items = await chatService.getConversations({
         Key: debouncedSearch || undefined,
         pageNumber: 1,
-        pageSize: 50 // Bulk load for now or implement scroll
+        pageSize: 50
       });
-      // Always sort by time
       return items.sort((a, b) => b.lastMessageTime.localeCompare(a.lastMessageTime));
     },
-    refetchInterval: pollEnabled ? POLLING_INTERVAL_MS : false,
-    refetchOnMount: 'always',
-    staleTime: 0,
+    // ---- PERFORMANCE OPTIMIZATIONS ----
+    refetchInterval: pollEnabled ? POLLING_INTERVAL_MS * 2 : false, // Slower polling if enabled
+    refetchOnWindowFocus: false, // Don't refetch on tab switch (we have SignalR)
+    refetchOnMount: false, // Don't refetch if data is available
+    staleTime: 1000 * 60 * 5, // Data is fresh for 5 mins (standard)
+    gcTime: 1000 * 60 * 30, // Keep in cache for 30 mins
   });
 
   const conversations = useMemo(() => data ?? [], [data]);
-
-  // When navigating from waiting orders with /admin/chat?id=..., refetch quickly
-  // until the newly created conversation appears in list, so user does not need F5.
   useEffect(() => {
     if (!urlId) return;
 
@@ -116,7 +114,7 @@ export function useConversations({ pollEnabled = true }: UseConversationsOptions
 
       // Optimistic: zero unread in all conversation query variants (search/no-search)
       queryClient.setQueriesData<Conversation[]>({ queryKey: CONVERSATIONS_QUERY_KEY }, (prev) =>
-        prev?.map((c) => (c.id === id ? { ...c, unreadCount: 0 } : c))
+        prev?.map((c) => (c.id === id ? { ...c, unreadCount: 0, hasUnread: false } : c))
       );
     },
     [queryClient, setSearchParams]

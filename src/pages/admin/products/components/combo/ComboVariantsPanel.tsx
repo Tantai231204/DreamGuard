@@ -19,6 +19,7 @@ import {
     Trash2,
     Copy,
     MoreVertical,
+    Check,
 } from 'lucide-react';
 import { useComboDetail } from '@/hooks/queries/useCombo';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -112,7 +113,7 @@ const ComboVariantRowInternal = memo(({
     onEdit?: (v: Combo) => void;
     onDelete?: (v: Combo) => void;
     onDuplicate?: (v: Combo) => void;
-    onUpdateStatus?: (id: string, status: string, name?: string, currentStatus?: string) => void;
+    onUpdateStatus?: (id: string, status: string, name?: string, currentStatus?: string, totalStock?: number) => void;
 }) => {
     const [expanded, setExpanded] = useState(false);
     const statusKey = (variant.status || 'Draft').toLowerCase().replace(' ', '');
@@ -167,15 +168,26 @@ const ComboVariantRowInternal = memo(({
                             </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="center" className="w-32 rounded-xl">
-                            {Object.entries(STATUS_CONFIG).map(([key, config]) => (
-                                <DropdownMenuItem
-                                    key={key}
-                                    onClick={() => onUpdateStatus?.(variant.id, config.label, variant.name, variant.status)}
-                                    className="text-[11px] font-bold"
-                                >
-                                    {config.label}
-                                </DropdownMenuItem>
-                            ))}
+                            {Object.entries(STATUS_CONFIG).map(([key, config]) => {
+                                const isActive = variant.status === config.label;
+
+                                return (
+                                    <DropdownMenuItem
+                                        key={key}
+                                        disabled={isActive}
+                                        onClick={() => onUpdateStatus?.(variant.id, config.label, variant.name, variant.status, variant.totalStock)}
+                                        className={cn(
+                                            "text-[11px] font-bold",
+                                            isActive && "bg-primary-50 text-primary-700"
+                                        )}
+                                    >
+                                        <div className="flex items-center justify-between w-full">
+                                            {config.label}
+                                            {isActive && <Check className="h-3 w-3" />}
+                                        </div>
+                                    </DropdownMenuItem>
+                                );
+                            })}
                         </DropdownMenuContent>
                     </DropdownMenu>
                 </div>
@@ -230,7 +242,7 @@ interface ComboVariantsPanelProps {
     onEditVariant?: (variant: Combo) => void;
     onDeleteVariant?: (variant: Combo) => void;
     onDuplicateVariant?: (variant: Combo) => void;
-    onUpdateStatus?: (id: string, status: string, name?: string, currentStatus?: string) => void;
+    onUpdateStatus?: (id: string, status: string, name?: string, currentStatus?: string, totalStock?: number) => void;
 }
 
 const ComboVariantsPanel = memo(({

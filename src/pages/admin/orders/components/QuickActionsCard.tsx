@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, Truck, XCircle, Zap, ShieldCheck, History, ShieldAlert, Package, Clock, RefreshCw, RotateCcw } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
+import { isAdminOrManager as checkIsAdminOrManager } from '@/lib/role';
 import { OrderStatus } from '../constants';
 
 interface QuickActionsCardProps {
@@ -27,7 +28,7 @@ export function QuickActionsCard({
   delay = 0,
 }: QuickActionsCardProps) {
   const role = useAuthStore((s) => s.role);
-  const isAdminOrManager = role === 'Admin' || role === 'Manager';
+  const isAdminOrManager = checkIsAdminOrManager(role);
 
   return (
     <motion.div

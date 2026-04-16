@@ -105,7 +105,7 @@ const BookingCard = React.forwardRef<
               Confirm
             </button>
           )}
-          {booking.status === 'confirmed' && !booking.staff && !booking.technician && (
+          {(booking.status === 'confirmed' || booking.status === 'processing') && !booking.staff && !booking.technician && (
             <button
               onClick={(e) => { e.stopPropagation(); onAssign(); }}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 text-[10px] font-bold hover:bg-blue-600 hover:text-white transition-all border border-blue-100/50"
