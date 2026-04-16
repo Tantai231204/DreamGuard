@@ -24,6 +24,7 @@ import { StaffDialog, type StaffFormValues } from './components/StaffDialog';
 import { ChangeRoleDialog } from './components/ChangeRoleDialog';
 import { motion } from 'framer-motion';
 import { useStaffs, useCreateStaff, useUpdateStaff, useUpdateStaffRole, useUpdateStaffAccount } from '@/hooks/queries/useStaff';
+import { useProfile } from '@/hooks/queries/useUser';
 import { useToast } from '@/hooks/useToast';
 import { useDebounce } from '@/hooks/useDebounce';
 import { downloadCSV } from '@/lib/export';
@@ -87,8 +88,17 @@ export default function StaffPage() {
     Role: roleFilter !== 'all' ? roleFilter : undefined,
   });
 
+  const { data: profile } = useProfile();
+  const currentStaffId = profile?.staffId;
+
   const staffList = useMemo(() => {
-    const list = data?.items || [];
+    let list = data?.items || [];
+
+    // Filter out current user from the management list to prevent self-actions
+    if (currentStaffId) {
+      list = list.filter(staff => staff.staffId !== currentStaffId);
+    }
+
     if (roleFilter !== 'all') {
       const targetRole = roleFilter.toLowerCase();
       return list.filter(staff => {
@@ -106,7 +116,7 @@ export default function StaffPage() {
       });
     }
     return list;
-  }, [data, roleFilter]);
+  }, [data, roleFilter, currentStaffId]);
 
   const createMutation = useCreateStaff();
   const updateMutation = useUpdateStaff();

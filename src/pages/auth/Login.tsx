@@ -36,19 +36,25 @@ export default function Login() {
       let targetPath: string = AppRoute.PROFILE;
 
       if (isStaff) {
-        targetPath = AppRoute.ADMIN;
+        targetPath = role === UserRole.SELLER ? "/admin/orders" : AppRoute.ADMIN;
       }
       
       if (from) {
-        if (typeof from === 'string') targetPath = from;
+        let fromPath = '';
+        if (typeof from === 'string') fromPath = from;
         else if (typeof from === 'object' && from && 'pathname' in from) {
-            targetPath = (from as { pathname: string }).pathname;
+            fromPath = (from as { pathname: string }).pathname;
+        }
+
+        // Only use 'from' if it's actually a specific deep link, not just the home page
+        if (fromPath && fromPath !== '/' && fromPath !== AppRoute.HOME) {
+            targetPath = fromPath;
         }
       }
 
       // Avoid infinite loop if target is somehow login
       if (targetPath === AppRoute.LOGIN || targetPath === "/login") {
-        targetPath = isStaff ? AppRoute.ADMIN : AppRoute.PROFILE;
+        targetPath = role === UserRole.SELLER ? "/admin/orders" : (isStaff ? AppRoute.ADMIN : AppRoute.PROFILE);
       }
 
       navigate(targetPath, { replace: true });

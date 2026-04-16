@@ -2,8 +2,8 @@ import { memo } from 'react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { INPUT_CLS, TEXTAREA_CLS } from './constants';
+import { INPUT_CLS } from './constants';
+import AdminRichEditor from '@/components/admin/AdminRichEditor';
 
 interface GeneralSectionProps {
     name: string;
@@ -109,18 +109,15 @@ const GeneralSection = memo(function GeneralSection({
                     <FieldError error={errors?.summary} />
                 </div>
 
-                <div className="space-y-2.5">
+                <div className="col-span-12 space-y-3">
                     <Label htmlFor="description" className="text-[10px] uppercase tracking-wider font-bold text-slate-400 flex items-center gap-2 ml-1">
                         <AlignLeft className="h-3.5 w-3.5" /> FULL DESCRIPTION <span className="text-rose-500">*</span>
                     </Label>
-                    <Textarea
-                        id="description"
-                        placeholder="Explain the build quality, material density, comfort levels, and shipping info..."
+                    <AdminRichEditor
                         value={description}
-                        onChange={(e) => onDescriptionChange(e.target.value)}
+                        onChange={onDescriptionChange}
                         disabled={isLoading}
-                        rows={4}
-                        className={cn(TEXTAREA_CLS, "min-h-[140px] p-4 text-[14px] leading-relaxed font-medium border-slate-200 text-slate-600 shadow-sm", errors?.description && errorClasses)}
+                        placeholder="Explain the build quality, material density, comfort levels, and shipping info..."
                     />
                     <FieldError error={errors?.description} />
                 </div>

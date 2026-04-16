@@ -489,12 +489,12 @@ export function useAdminProductMutations({ state }: MutationProps) {
                 : null),
             warrantyPolicyDay:
               data.warrantyPolicyDay !== undefined &&
-              data.warrantyPolicyDay !== null
+                data.warrantyPolicyDay !== null
                 ? Number(data.warrantyPolicyDay)
                 : null,
             returnPolicyDay:
               data.returnPolicyDay !== undefined &&
-              data.returnPolicyDay !== null
+                data.returnPolicyDay !== null
                 ? Number(data.returnPolicyDay)
                 : null,
             cateId: data.cateId ? Number(data.cateId) : null,
@@ -702,9 +702,9 @@ export function useAdminProductMutations({ state }: MutationProps) {
     [deleteCertMutation],
   );
 
-  const handleConfirmBulkDelete = useCallback(async () => {}, []);
+  const handleConfirmBulkDelete = useCallback(async () => { }, []);
 
-  const handleExport = useCallback(() => {}, []);
+  const handleExport = useCallback(() => { }, []);
 
   const handleBulkDelete = useCallback(
     (

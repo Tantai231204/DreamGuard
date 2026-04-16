@@ -5,6 +5,7 @@ import { AdminStatusBadge } from '@/components/admin';
 import { CalendarRange, Coins, Tag, TicketPercent } from 'lucide-react';
 import type { Voucher } from '../types';
 import { formatDate, formatPrice } from '@/lib/utils';
+import { FormattedDescription } from '@/components/common/FormattedDescription';
 
 interface VoucherDetailDialogProps {
   open: boolean;
@@ -77,9 +78,10 @@ export default function VoucherDetailDialog({
 
           <div className="rounded-2xl bg-white border border-slate-200 p-4">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Description</p>
-            <p className="text-sm text-slate-700 leading-relaxed">
-              {voucher.description || 'No description provided.'}
-            </p>
+            <FormattedDescription 
+              content={voucher.description || 'No description provided.'}
+              className="text-sm text-slate-700 leading-relaxed"
+            />
           </div>
         </div>
 

@@ -46,13 +46,13 @@ const configs = {
     },
     success: {
         icon: ShieldCheck,
-        iconColor: 'text-emerald-500',
-        iconBg: 'bg-emerald-100/50',
-        ring: 'ring-emerald-100',
-        glow: 'shadow-emerald-500/20',
-        btn: 'bg-emerald-500 hover:bg-emerald-600 focus-visible:ring-emerald-500 text-white',
-        gradient: 'from-emerald-500/10 via-transparent to-transparent',
-        highlight: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+        iconColor: 'text-[#4988c4]',
+        iconBg: 'bg-[#4988c4]/10',
+        ring: 'ring-[#4988c4]/20',
+        glow: 'shadow-[#4988c4]/20',
+        btn: 'bg-[#4988c4] hover:bg-[#3a6fa0] focus-visible:ring-[#4988c4] text-white',
+        gradient: 'from-[#4988c4]/10 via-transparent to-transparent',
+        highlight: 'bg-[#4988c4]/10 text-[#4988c4] border-[#4988c4]/20',
     },
     info: {
         icon: Info,
@@ -151,9 +151,8 @@ export function ConfirmDialog({
                             delay: 0.1
                         }}
                         className={cn(
-                            "w-16 h-16 rounded-2xl flex items-center justify-center mb-5 ring-8",
-                            c.iconBg,
-                            c.ring
+                            "w-16 h-16 rounded-2xl flex items-center justify-center mb-5",
+                            c.iconBg
                         )}
                     >
                         <Icon className={cn("w-7 h-7", c.iconColor)} strokeWidth={2.5} />
@@ -200,9 +199,8 @@ export function ConfirmDialog({
                             }}
                             disabled={isLoading}
                             className={cn(
-                                "flex-1 h-12 rounded-lg text-[14px] font-bold transition-all shadow-lg focus:ring-2 focus:ring-offset-2 flex justify-center items-center border-0 border-transparent",
-                                c.btn,
-                                c.glow
+                                "flex-1 h-12 rounded-lg text-[14px] font-bold transition-all focus:ring-2 focus:ring-offset-2 flex justify-center items-center border-0",
+                                c.btn
                             )}
                         >
                             {isLoading ? (

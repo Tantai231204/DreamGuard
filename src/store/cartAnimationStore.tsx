@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, type ReactNode } from 'react';
+import { useState, useCallback, useRef, type ReactNode, forwardRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CartAnimationContext } from './cartAnimationContext';
@@ -29,7 +29,7 @@ export function CartAnimationProvider({ children }: { children: ReactNode }) {
         const endRect = cartIconRef.current.getBoundingClientRect();
 
         const newItem: FlyingItem = {
-            id: `fly-${Math.random().toString(36).substr(2, 9)}`,
+            id: `fly-${Math.random().toString(36).substring(2, 11)}`,
             image,
             startX: startRect.left + startRect.width / 2,
             startY: startRect.top + startRect.height / 2,
@@ -73,9 +73,10 @@ function FlyingItemsOverlay({ items }: { items: FlyingItem[] }) {
     );
 }
 
-function FlyingItemElement({ item }: { item: FlyingItem }) {
+const FlyingItemElement = forwardRef<HTMLDivElement, { item: FlyingItem }>(({ item }, ref) => {
     return (
         <motion.div
+            ref={ref}
             initial={{ 
                 x: item.startX, 
                 y: item.startY, 
@@ -136,4 +137,6 @@ function FlyingItemElement({ item }: { item: FlyingItem }) {
             />
         </motion.div>
     );
-}
+});
+
+FlyingItemElement.displayName = 'FlyingItemElement';

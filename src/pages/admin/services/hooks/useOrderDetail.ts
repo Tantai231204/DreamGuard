@@ -65,7 +65,8 @@ export function useOrderDetail() {
     },
     placeholderData: () => queryClient.getQueryData<ServiceBooking>(['serviceOrder', id]),
     enabled: !!id,
-    staleTime: 0,
+    staleTime: 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 
   // 2. Task Evidences Fetching
@@ -80,7 +81,8 @@ export function useOrderDetail() {
       return data?.items || data || [];
     },
     enabled: !!id,
-    staleTime: 0,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
   });
 
   // 3. Parallel Package Mapping Fetching

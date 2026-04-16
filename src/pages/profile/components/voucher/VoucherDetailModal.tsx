@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Copy, Check, Clock, Calendar, Coins } from "lucide-react"
+import { FormattedDescription } from "@/components/common/FormattedDescription"
 import type { ProfileVoucher } from "./types"
 import { VOUCHER_STATUS_COLORS } from "../../constants"
 import {
@@ -79,9 +80,10 @@ export default function VoucherDetailModal({
                                 Expires in {getDaysRemaining(voucher.endDate)} days
                             </p>
                         )}
-                        <p className="text-slate-500 text-sm font-medium leading-relaxed">
-                            {voucher.description}
-                        </p>
+                        <FormattedDescription 
+                            content={voucher.description}
+                            className="text-slate-500 text-sm font-medium leading-relaxed"
+                        />
                     </div>
 
                     {/* Voucher Code Area */}

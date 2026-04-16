@@ -27,13 +27,13 @@ const FEEDBACK_REWARD_PRIORITY_KEYS = [
 
 const normalizeKey = (key: string) => key.trim().toUpperCase();
 
-const parsePositiveInteger = (value: string) => {
+const parsePositiveNumber = (value: string) => {
   const trimmed = value.trim();
   if (!trimmed) return null;
 
   const exactNumber = Number(trimmed);
   if (Number.isFinite(exactNumber) && exactNumber > 0) {
-    return Math.round(exactNumber);
+    return exactNumber;
   }
 
   const matched = trimmed.match(/\d+(?:\.\d+)?/);
@@ -42,7 +42,7 @@ const parsePositiveInteger = (value: string) => {
   const extracted = Number(matched[0]);
   if (!Number.isFinite(extracted) || extracted <= 0) return null;
 
-  return Math.round(extracted);
+  return extracted;
 };
 
 const resolveCoinValue = (
@@ -57,8 +57,8 @@ const resolveCoinValue = (
     const config = keyMap.get(key);
     if (!config) continue;
 
-    const parsed = parsePositiveInteger(config.configValue);
-    if (parsed) return parsed;
+    const parsed = parsePositiveNumber(config.configValue);
+    if (parsed !== null) return parsed;
   }
 
   if (fallbackKeys) {
@@ -66,8 +66,8 @@ const resolveCoinValue = (
       const config = keyMap.get(key);
       if (!config) continue;
 
-      const parsed = parsePositiveInteger(config.configValue);
-      if (parsed) return parsed;
+      const parsed = parsePositiveNumber(config.configValue);
+      if (parsed !== null) return parsed;
     }
   }
 

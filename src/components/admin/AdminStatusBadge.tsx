@@ -32,7 +32,8 @@ const STATUS_MAP: Record<string, StatusType> = {
   'codpaid': 'success',
   'codunpaid': 'neutral',
   'forcedcancelled': 'rose',
-  'forcenancelled': 'rose',
+  'admincancelled': 'rose',
+  'admin_cancelled': 'rose',
   'refunded_and_restocked': 'success',
   'refundedandrestocked': 'success',
   'refunded_and_damaged': 'rose',
@@ -51,6 +52,7 @@ const STATUS_MAP: Record<string, StatusType> = {
   'cancelled': 'rose',
   'returning': 'primary',
   'exchangerequested': 'info',
+  'exchange_requested': 'info',
   'shipping_replacement': 'info',
   'shippingreplacement': 'info',
   'returned': 'danger',
@@ -182,9 +184,12 @@ const ICON_MAP: Record<string, React.ElementType> = {
   'refunded_and_damaged': ShieldAlert,
   'refundedanddamaged': ShieldAlert,
   '10': ShieldAlert,
+  'admincancelled': X,
+  'forcedcancelled': X,
   'negotiating': ArrowLeftRight,
-  'exchangerequested': RotateCcw,
   '11': RotateCcw,
+  'exchange_requested': RotateCcw,
+  'exchangerequested': RotateCcw,
   'shipping_replacement': Truck,
   'shippingreplacement': Truck,
   '12': Truck,
@@ -269,6 +274,7 @@ const LABEL_MAP: Record<string, string> = {
   'refunded_and_damaged': 'Refunded (Damaged)',
   'refundedanddamaged': 'Refunded (Damaged)',
   'exchangerequested': 'Exchange Requested',
+  'exchange_requested': 'Exchange Requested',
   'shipping_replacement': 'Shipping Replacement',
   'shippingreplacement': 'Shipping Replacement',
   'pending_payment': 'Pending Payment',
@@ -278,6 +284,8 @@ const LABEL_MAP: Record<string, string> = {
   'failed': 'Payment Failed',
   'published': 'Published',
   'draft': 'Draft',
+  'admin_cancelled': 'Admin Cancelled',
+  'admincancelled': 'Admin Cancelled',
   'outofstock': 'OutOfStock',
   'hidden': 'Hidden',
   'purchase': 'Purchase',
@@ -286,6 +294,15 @@ const LABEL_MAP: Record<string, string> = {
   'service': 'Service',
   'order': 'Product Order',
   'tradein': 'Trade-In Order',
+};
+
+const formatLabelFallback = (label: string) => {
+  if (!label) return '';
+  return label
+    .replace(/_/g, ' ')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z])([A-Z][a-z])/g, '$1 $2')
+    .trim();
 };
 
 export const AdminStatusBadge = React.forwardRef<HTMLDivElement, AdminStatusBadgeProps>(({
@@ -313,7 +330,7 @@ export const AdminStatusBadge = React.forwardRef<HTMLDivElement, AdminStatusBadg
 
   // Icons and Labels
   let Icon = ICON_MAP[normalizedStatus] || ICON_MAP[searchStr] || TYPE_CONFIG[finalType as StatusType]?.icon || Check;
-  let displayLabel = LABEL_MAP[normalizedStatus] || LABEL_MAP[searchStr] || status;
+  let displayLabel = LABEL_MAP[normalizedStatus] || LABEL_MAP[searchStr] || formatLabelFallback(status);
 
   // Payment overrides
   let payConfig = null;

@@ -125,6 +125,11 @@ export function getAllowedStatusTransitions(currentStatus: string): ProductStatu
   }
 }
 
+/** Specific transitions for combos (no stock logic) */
+export function getAllowedComboStatusTransitions(currentStatus: string): ProductStatus[] {
+  return getAllowedStatusTransitions(currentStatus).filter(s => s !== 'OutOfStock');
+}
+
 
 // ── Size Options ─────────────────────────────────────────
 export const SIZE_OPTIONS = [

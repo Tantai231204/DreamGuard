@@ -24,7 +24,7 @@ import {
     Trash2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { getAllowedStatusTransitions, normalizeStatus } from "../../types"
+import { getAllowedComboStatusTransitions, normalizeStatus } from "../../types"
 import type { Combo, ComboItem } from "../../types"
 import type { ProductItemResponse } from "@/api/services/comboService"
 
@@ -324,23 +324,18 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
                 },
             }),
 
-            /* ── Stock ────────────────────────────────────────────── */
-            columnHelper.accessor("totalStock", {
-                header: "Stock",
-                cell: (info) => {
-                    const stock = info.getValue() ?? 0
-                    const color =
-                        stock === 0 ? "text-red-600" : stock < 10 ? "text-orange-600" : "text-green-600"
-                    return <span className={cn("font-bold text-sm", color)}>{stock}</span>
-                },
-            }),
-
             /* ── Sales ────────────────────────────────────────────── */
             columnHelper.accessor("sales", {
-                header: "Sales",
+                header: () => <div className="text-center">Sales</div>,
                 cell: (info) => {
-                    const sales = info.getValue() ?? 0
-                    return <span className="font-bold text-sm text-gray-700">{sales}</span>
+                    const sales = info.getValue() || 0;
+                    return (
+                        <div className="flex flex-col items-center">
+                            <span className="text-[14px] font-black text-slate-700 bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-200 min-w-[40px] text-center">
+                                {sales.toLocaleString()}
+                            </span>
+                        </div>
+                    );
                 },
             }),
 
@@ -361,7 +356,7 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
 
                     if (!onUpdateStatus) return <AdminStatusBadge status={normalizedStatus} />
 
-                    const allowed = getAllowedStatusTransitions(normalizedStatus)
+                    const allowed = getAllowedComboStatusTransitions(normalizedStatus)
 
                     return (
                         <DropdownMenu>

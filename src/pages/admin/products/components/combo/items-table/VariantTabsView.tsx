@@ -1,7 +1,7 @@
 import React from 'react';
 import { Plus, SortAsc } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getAllowedStatusTransitions } from '../../../types';
+import { getAllowedComboStatusTransitions } from '../../../types';
 import {
     useReactTable,
     getCoreRowModel,
@@ -111,7 +111,6 @@ export function VariantTabsView({
                         {rows.map(row => {
                             const child = row.original;
                             const isActive = activeTab === child.id;
-                            const isWarning = child.status === 'OutOfStock' || (child.totalStock ?? 0) < 5;
 
                             return (
                                 <TabsTrigger
@@ -130,9 +129,6 @@ export function VariantTabsView({
                                                         className={`w-2 h-2 rounded-full ring-2 ring-white shadow-inner transition-transform duration-300 ${isActive ? 'scale-125' : ''}`}
                                                         style={{ backgroundColor: getColorHex(child.color) }}
                                                     />
-                                                    {isWarning && (
-                                                        <span className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-red-500 rounded-full ring-1 ring-white animate-pulse" />
-                                                    )}
                                                 </div>
                                                 <span className={`text-[12px] font-black tracking-tight truncate max-w-[140px] transition-colors
                                                     ${isActive ? 'text-primary-600' : 'text-gray-700'}`}>
@@ -148,7 +144,7 @@ export function VariantTabsView({
                                                         />
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="center" className="w-40 shadow-xl border-slate-200/60 rounded-xl p-1 animate-in fade-in zoom-in-95 duration-100">
-                                                        {getAllowedStatusTransitions(child.status).map((s) => {
+                                                        {getAllowedComboStatusTransitions(child.status).map((s) => {
                                                             const normalized = s.toLowerCase();
                                                             const colorCls = 
                                                                 normalized === 'published' ? "text-emerald-600 hover:bg-emerald-50" :
@@ -192,7 +188,6 @@ export function VariantTabsView({
                                                 <span className="font-mono text-[9px] text-gray-400 bg-gray-100/50 px-1 rounded truncate max-w-[80px]">
                                                     {child.sku}
                                                 </span>
-                                                {isWarning && <span className="text-[8px] text-red-500 font-black animate-bounce">! STOCK</span>}
                                             </div>
                                             <span className={`text-[10px] font-black ${isActive ? 'text-primary-600' : 'text-gray-800'}`}>
                                                 {(child.salePrice || child.basePrice).toLocaleString('en-US')}₫
@@ -237,7 +232,7 @@ export function VariantTabsView({
                                                     </button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="center" className="w-40 shadow-xl border-slate-200/60 rounded-xl p-1 animate-in fade-in zoom-in-95 duration-100 mt-1">
-                                                    {getAllowedStatusTransitions(child.status).map((s) => {
+                                                    {getAllowedComboStatusTransitions(child.status).map((s) => {
                                                         const normalized = s.toLowerCase();
                                                         const colorCls = 
                                                             normalized === 'published' ? "text-emerald-600 hover:bg-emerald-50" :

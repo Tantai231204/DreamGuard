@@ -1,9 +1,9 @@
 import { motion } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard,
   ShoppingCart,
-  MessageSquare,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -19,6 +19,8 @@ import {
   CircleDot,
   UserCheck,
   Activity,
+  History as HistoryIcon,
+  MessageSquare,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { useState, useMemo } from 'react';
@@ -28,6 +30,9 @@ import { useLogout } from '@/hooks/useAuth';
 import { ProductAssetIcons } from '@/components/common/icons';
 import { UserRole } from '@/lib/constants';
 import { useAuthStore } from '@/store/authStore';
+import { chatService } from '@/api/services';
+import api from '@/lib/api';
+
 
 interface NavItem {
   title: string;
@@ -50,9 +55,8 @@ const navSections: NavSection[] = [
   {
     label: 'Overview',
     items: [
-      { title: 'Dashboard', href: '/admin', icon: LayoutDashboard, allowedRoles: ALL_ROLES },
+      { title: 'Dashboard', href: '/admin', icon: LayoutDashboard, allowedRoles: ADMIN_MANAGER },
       { title: 'Analytics', href: '/admin/analytics', icon: BarChart3, allowedRoles: ADMIN_MANAGER },
-      { title: 'Chat', href: '/admin/chat', icon: MessageSquare, badge: 3, allowedRoles: ALL_ROLES },
     ],
   },
   {
@@ -74,7 +78,7 @@ const navSections: NavSection[] = [
   {
     label: 'Services',
     items: [
-      { title: 'Services', href: '/admin/services', icon: Sparkles, badge: 2, allowedRoles: ADMIN_MANAGER },
+      { title: 'Services', href: '/admin/services', icon: Sparkles, allowedRoles: ADMIN_MANAGER },
       { title: 'Service Packages', href: '/admin/service-packages', icon: Package, allowedRoles: ADMIN_MANAGER },
       { title: 'Customize Types', href: '/admin/customize-types', icon: CircleDot, allowedRoles: ADMIN_MANAGER },
     ],
@@ -90,7 +94,19 @@ const navSections: NavSection[] = [
     label: 'System',
     items: [
       { title: 'Registry', href: '/admin/system-configs', icon: Activity, allowedRoles: ADMIN_ONLY },
+      { title: 'Audit Logs', href: '/admin/audit-logs', icon: HistoryIcon, allowedRoles: ADMIN_ONLY },
       { title: 'Settings', href: '/admin/settings', icon: Settings, allowedRoles: ADMIN_MANAGER },
+    ],
+  },
+  {
+    label: 'Support',
+    items: [
+      { 
+        title: 'Chat Support', 
+        href: '/admin/chat', 
+        icon: MessageSquare, 
+        allowedRoles: [UserRole.SELLER] 
+      },
     ],
   },
 ];
@@ -100,16 +116,66 @@ export default function AdminSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const { data: profile } = useProfile();
   const { mutate: logout } = useLogout();
-  const { role } = useAuthStore();
+  const { role, isAuthenticated } = useAuthStore();
+
+  const { data: chatData } = useQuery({
+    queryKey: ['admin', 'conversations', ''], 
+    queryFn: () => chatService.getConversations({ pageNumber: 1, pageSize: 50 }),
+    enabled: isAuthenticated && role === UserRole.SELLER,
+    refetchInterval: 60000,
+    staleTime: 30000, 
+  });
+
+  const unreadChatCount = useMemo(() => {
+    if (!chatData) return 0;
+    const items = Array.isArray(chatData) 
+      ? chatData 
+      : ((chatData as { items?: { unreadCount?: number }[] }).items || []);
+    return items.reduce((acc: number, curr: { unreadCount?: number }) => acc + (Number(curr.unreadCount) || 0), 0);
+  }, [chatData]);
+
+  const { data: serviceData } = useQuery({
+    queryKey: ['serviceOrders', 'admin-stats'],
+    queryFn: async () => {
+      const res = await api.post('/ServiceOrders/AdminSearchOrderService', {}, {
+        params: { pageNumber: 1, pageSize: 100 }
+      });
+      return (res.data?.data ?? res.data) as { items: { status: string; staff?: Record<string, unknown> | null }[] };
+    },
+    enabled: isAuthenticated && role !== UserRole.SELLER,
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  const pendingServiceCount = useMemo(() => {
+    if (!serviceData?.items) return 0;
+    return serviceData.items.filter((item) => {
+      const status = item.status?.toLowerCase();
+      // Needs confirmation
+      if (status === 'pending') return true;
+      // Needs assignment (Confirmed but no staff/technician)
+      if (status === 'confirmed' && !item.staff) return true;
+      return false;
+    }).length;
+  }, [serviceData]);
 
   const filteredSections = useMemo(() => {
     return navSections.map(section => ({
       ...section,
-      items: section.items.filter(item => 
+      items: section.items.map(item => {
+        if (item.title === 'Chat Support') {
+          return { ...item, badge: unreadChatCount };
+        }
+        if (item.title === 'Services' && item.href === '/admin/services') {
+          return { ...item, badge: pendingServiceCount };
+        }
+        return item;
+      }).filter(item =>
         !item.allowedRoles || item.allowedRoles.includes(role as UserRole)
       )
     })).filter(section => section.items.length > 0);
-  }, [role]);
+  }, [role, unreadChatCount, pendingServiceCount]);
 
   const isActive = (path: string) => {
     const [targetPath, targetQuery] = path.split('?');
@@ -206,7 +272,7 @@ export default function AdminSidebar() {
                 </h3>
               )}
               {collapsed && idx > 0 && <div className="mx-4 border-t border-gray-100 my-4 opacity-40" />}
-              
+
               <ul className={cn("transition-all duration-300", collapsed ? "space-y-2" : "space-y-1.5")}>
                 {section.items.map((item) => {
                   const Icon = item.icon;
@@ -220,8 +286,8 @@ export default function AdminSidebar() {
                           whileTap={{ scale: 0.96 }}
                           className={cn(
                             'group relative flex items-center transition-all duration-300 z-[60]',
-                            collapsed 
-                              ? 'justify-center w-12 h-12 mx-auto rounded-2xl' 
+                            collapsed
+                              ? 'justify-center w-12 h-12 mx-auto rounded-2xl'
                               : 'gap-3 px-4 py-3 mx-2 rounded-xl',
                             active
                               ? 'text-[var(--color-primary)] font-bold'
@@ -234,8 +300,8 @@ export default function AdminSidebar() {
                               layoutId="active-highlight"
                               className={cn(
                                 "absolute inset-0 -z-10",
-                                collapsed 
-                                  ? "bg-[var(--color-primary)] rounded-2xl" 
+                                collapsed
+                                  ? "bg-[var(--color-primary)] rounded-2xl"
                                   : "bg-gray-100 rounded-xl"
                               )}
                               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
@@ -272,25 +338,28 @@ export default function AdminSidebar() {
                               />
                             )}
 
-                            {item.badge && collapsed && (
-                              <div className="absolute -top-2 -right-2 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 border-2 border-white px-1 text-[9px] font-black text-white">
-                                {item.badge}
+                            {(item.badge ?? 0) > 0 && (
+                              <div className="absolute -top-1 -right-1 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-blue-500 ring-2 ring-white">
+                                <span className="absolute inset-0 rounded-full bg-blue-400 animate-ping opacity-75" />
                               </div>
                             )}
                           </div>
 
                           {!collapsed && (
-                            <span className="text-[13px] transition-colors relative z-10 truncate tracking-wide">
+                            <span className={cn(
+                              "text-[13px] transition-colors relative z-10 truncate tracking-wide",
+                              (item.badge ?? 0) > 0 && "font-black text-gray-900"
+                            )}>
                               {item.title}
                             </span>
                           )}
 
-                          {item.badge && !collapsed && (
-                            <div className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[var(--color-primary)] px-1.5 text-[10px] font-black text-white">
-                              {item.badge}
+                          {(item.badge ?? 0) > 0 && !collapsed && (
+                            <div className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-blue-500 px-1.5 text-[9px] font-black text-white shadow-lg shadow-blue-200">
+                              {item.badge! > 99 ? '99+' : item.badge}
                             </div>
                           )}
-                          
+
                           {/* Tooltip Enhanced (Visible only in collapsed state) */}
                           {collapsed && (
                             <div className="absolute left-[calc(100%+0.5rem)] invisible group-hover:visible opacity-0 group-hover:opacity-100 transition-all duration-500 px-3 py-2 bg-gray-900 border border-white/10 text-white text-[11px] font-bold rounded-xl whitespace-nowrap z-[100] translate-x-[-10px] group-hover:translate-x-0">
@@ -313,38 +382,38 @@ export default function AdminSidebar() {
 
       {/* User Actions & Profile */}
       <div className="p-4 bg-gray-50/30 border-t border-gray-50">
-         <div className={cn(
-           "mb-4 flex items-center transition-all duration-300",
-           collapsed ? "justify-center" : "bg-white p-2.5 rounded-2xl border border-gray-100 gap-3"
-         )}>
-           <div className="relative group/avatar">
-             <Avatar className="h-10 w-10 border-2 border-white ring-2 ring-[var(--color-primary-light)] ring-offset-2 flex-shrink-0 transition-transform hover:scale-105">
-                <AvatarImage src={profile?.avatarUrl} alt={profile?.fullName || "Admin"} />
-                <AvatarFallback className="bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-hover)] text-white font-black text-xs">
-                  {profile?.fullName ? profile.fullName[0].toUpperCase() : 'AD'}
-                </AvatarFallback>
-              </Avatar>
-              <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 border-2 border-white rounded-full" />
-              
-              {collapsed && (
-                <div className="absolute left-full invisible group-hover/avatar:visible opacity-0 group-hover/avatar:opacity-100 transition-all duration-500 ml-5 px-4 py-3 bg-white border border-gray-100 text-gray-900 text-xs rounded-2xl whitespace-nowrap z-[100] translate-x-[-10px] group-hover/avatar:translate-x-0 min-w-[150px]">
-                  <p className="font-black text-sm">{profile?.fullName || 'Administrator'}</p>
-                  <p className="text-[10px] text-gray-500 font-medium mt-0.5">{profile?.email || 'admin@dreamguard.com'}</p>
-                </div>
-              )}
-           </div>
+        <div className={cn(
+          "mb-4 flex items-center transition-all duration-300",
+          collapsed ? "justify-center" : "bg-white p-2.5 rounded-2xl border border-gray-100 gap-3"
+        )}>
+          <div className="relative group/avatar">
+            <Avatar className="h-10 w-10 border-2 border-white ring-2 ring-[var(--color-primary-light)] ring-offset-2 flex-shrink-0 transition-transform hover:scale-105">
+              <AvatarImage src={profile?.avatarUrl} alt={profile?.fullName || "Admin"} />
+              <AvatarFallback className="bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-hover)] text-white font-black text-xs">
+                {profile?.fullName ? profile.fullName[0].toUpperCase() : 'AD'}
+              </AvatarFallback>
+            </Avatar>
+            <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 border-2 border-white rounded-full" />
 
-            {!collapsed && (
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-black text-gray-900 truncate tracking-tight">
-                  {profile?.fullName || 'Administrator'}
-                </p>
-                <p className="text-[10px] text-gray-400 font-bold truncate tracking-wide mt-0.5">{profile?.email || 'admin@dreamguard.com'}</p>
+            {collapsed && (
+              <div className="absolute left-full invisible group-hover/avatar:visible opacity-0 group-hover/avatar:opacity-100 transition-all duration-500 ml-5 px-4 py-3 bg-white border border-gray-100 text-gray-900 text-xs rounded-2xl whitespace-nowrap z-[100] translate-x-[-10px] group-hover/avatar:translate-x-0 min-w-[150px]">
+                <p className="font-black text-sm">{profile?.fullName || 'Administrator'}</p>
+                <p className="text-[10px] text-gray-500 font-medium mt-0.5">{profile?.email || 'admin@dreamguard.com'}</p>
               </div>
             )}
-         </div>
+          </div>
 
-         <button
+          {!collapsed && (
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-black text-gray-900 truncate tracking-tight">
+                {profile?.fullName || 'Administrator'}
+              </p>
+              <p className="text-[10px] text-gray-400 font-bold truncate tracking-wide mt-0.5">{profile?.email || 'admin@dreamguard.com'}</p>
+            </div>
+          )}
+        </div>
+
+        <button
           onClick={() => logout()}
           className={cn(
             "flex items-center transition-all duration-300 group rounded-xl",

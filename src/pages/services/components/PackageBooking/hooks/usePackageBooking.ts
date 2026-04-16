@@ -223,6 +223,7 @@ export function usePackageBooking(initialPackageId?: string) {
       notes: "",
     });
     setStep(0);
+    setIsSuccess(false);
     setUploadedFiles([]);
     setAppliedVoucher(null);
     toast.success("Draft cleared.");

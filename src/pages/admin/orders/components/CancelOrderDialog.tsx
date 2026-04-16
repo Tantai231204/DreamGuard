@@ -1,18 +1,22 @@
-import { useState } from 'react';
+import React from "react";
 import {
   Dialog,
   DialogContent,
+  DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { AlertCircle, Loader2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+} from "@/components/ui/select";
+import { AlertTriangle, ShieldAlert, XCircle, Loader2 } from "lucide-react";
 
 interface CancelOrderDialogProps {
   open: boolean;
@@ -22,6 +26,14 @@ interface CancelOrderDialogProps {
   orderCode?: string;
 }
 
+const REASONS = [
+  "Customer requested cancellation",
+  "Delivery failed (Unreachable)",
+  "Stock issues / Unavailable",
+  "Incorrect shipping address",
+  "Other"
+];
+
 export function CancelOrderDialog({
   open,
   onOpenChange,
@@ -29,155 +41,133 @@ export function CancelOrderDialog({
   isLoading = false,
   orderCode,
 }: CancelOrderDialogProps) {
-  const [reason, setReason] = useState('');
-  const [description, setDescription] = useState('');
-  const [error, setError] = useState('');
+  const [selectedReason, setSelectedReason] = React.useState<string>("");
+  const [otherReason, setOtherReason] = React.useState("");
+  const [error, setError] = React.useState("");
 
   const handleConfirm = () => {
-    if (!reason) {
-      setError('Please select a reason for cancellation.');
+    const finalReason = selectedReason === "Other" ? otherReason : selectedReason;
+
+    if (!finalReason.trim()) {
+      setError("Please select or provide a reason.");
       return;
     }
-    setError('');
-    const fullLog = description.trim() 
-      ? `[${reason}] ${description.trim()}` 
-      : reason;
-    onConfirm(fullLog);
+
+    if (selectedReason === "Other" && otherReason.length < 10) {
+      setError("Please provide a more detailed reason (at least 10 characters).");
+      return;
+    }
+
+    setError("");
+    onConfirm(finalReason);
   };
 
   const handleClose = (val: boolean) => {
     if (!isLoading) {
       onOpenChange(val);
       if (!val) {
-        setReason('');
-        setDescription('');
-        setError('');
+        setSelectedReason("");
+        setOtherReason("");
+        setError("");
       }
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden border border-rose-100 shadow-3xl rounded-[28px] gap-0">
-        
-        {/* Header Section */}
-        <div className="p-8 pb-7 bg-[#F8FAFC] border-b border-rose-50 relative overflow-hidden">
-          <div className="absolute -top-6 -right-6 opacity-5 rotate-12">
-            <AlertCircle className="w-32 h-32 text-rose-500" />
-          </div>
-          
-          <div className="relative z-10 flex flex-col gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-rose-600 flex items-center justify-center shadow-lg shadow-rose-500/30">
-              <AlertCircle className="w-7 h-7 text-white" strokeWidth={2.5} />
-            </div>
-            <div>
-              <DialogTitle className="text-2xl font-black text-slate-900 tracking-tighter uppercase leading-tight">
-                Abort Logistics Dispatch
-              </DialogTitle>
-              <div className="flex items-center gap-2 mt-2">
-                <span className="px-2 py-0.5 rounded-md bg-rose-100 text-rose-600 text-[9px] font-black uppercase tracking-widest">Permanent Action</span>
-                <span className="text-[10px] font-mono text-slate-400 font-bold uppercase tracking-wider">REF: {orderCode || 'DG-XXXXX'}</span>
+      <DialogContent className="max-w-md p-0 overflow-hidden border border-slate-200 rounded-3xl shadow-xl">
+        <div className="bg-white p-6 space-y-6">
+          <DialogHeader className="space-y-3 text-left">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center border border-slate-200">
+                <ShieldAlert className="h-5 w-5 text-slate-600" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-black text-slate-900 uppercase tracking-tight">
+                  Cancel Logistics Order
+                </DialogTitle>
+                <DialogDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  Reference #{orderCode || 'DG-XXXXX'}
+                </DialogDescription>
               </div>
             </div>
-          </div>
-        </div>
+          </DialogHeader>
 
-        <div className="p-8 space-y-7 bg-white">
-          {/* Irreversibility Warning */}
-          <div className="flex items-start gap-4 p-5 bg-amber-50/60 border border-amber-100/50 rounded-[22px] relative group overflow-hidden">
-             <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-400/50" />
-             <div className="w-6 h-6 rounded-full bg-amber-400 flex items-center justify-center shrink-0 shadow-sm">
-                <span className="text-white text-[10px] font-black">!</span>
-             </div>
-             <p className="text-[12.5px] text-amber-900/80 leading-relaxed font-semibold">
-               Confirming this will <span className="font-black text-amber-600 underline decoration-2 underline-offset-4">permanently terminate</span> the dispatch process. This cannot be undone.
-             </p>
-          </div>
-
-          <div className="space-y-6">
-            {/* Reason Selection */}
-            <div className="space-y-3">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">
-                Termination Protocol Reason
-              </label>
-              <Select 
-                onValueChange={(val) => {
-                  setReason(val);
-                  setError('');
-                }}
-                disabled={isLoading}
-                value={reason}
-              >
-                <SelectTrigger className="h-14 px-6 rounded-[20px] border-2 border-slate-100 bg-slate-50/50 hover:border-rose-400/30 transition-all focus:ring-rose-500/10 text-sm font-bold text-slate-700 shadow-sm">
-                  <SelectValue placeholder="Identify Reason..." />
-                </SelectTrigger>
-                <SelectContent className="rounded-2xl border-slate-100 shadow-3xl p-1.5 overflow-hidden">
-                  <div className="px-3 py-2 border-b border-slate-50 mb-1">
-                    <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest leading-none">Standard Protocols</span>
-                  </div>
-                  <SelectItem value="Customer requested cancellation" className="rounded-xl py-3 cursor-pointer">Customer requested cancellation</SelectItem>
-                  <SelectItem value="Delivery failed (Unreachable)" className="rounded-xl py-3 cursor-pointer">Delivery failed (Unreachable)</SelectItem>
-                  <SelectItem value="Stock issues / Unavailable" className="rounded-xl py-3 cursor-pointer">Stock issues / Unavailable</SelectItem>
-                  <SelectItem value="Incorrect shipping address" className="rounded-xl py-3 cursor-pointer">Incorrect shipping address</SelectItem>
-                  <SelectItem value="Other (See description)" className="rounded-xl py-3 cursor-pointer">Other (See description)</SelectItem>
-                </SelectContent>
-              </Select>
+          <div className="space-y-5">
+            <div className="bg-white border-l-4 border-rose-500 p-4 flex items-start gap-3 shadow-sm transition-all hover:bg-rose-50/10">
+              <AlertTriangle className="h-5 w-5 text-rose-500 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="text-[10px] font-black text-rose-600 uppercase tracking-widest">Permanent Termination</p>
+                <p className="text-[12px] text-slate-600 font-medium leading-relaxed">
+                  This action will immediately stop the shipping process and flag the order as cancelled. This cannot be reversed.
+                </p>
+              </div>
             </div>
 
-            {/* Detailed Notes */}
-            <div className="space-y-3">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-1">
-                Audit Registry Notes <span className="text-slate-200 ml-1">(Optional)</span>
-              </label>
-              <textarea
-                rows={3}
-                placeholder="Detailed explanation for logistics archive..."
-                className="w-full bg-slate-50/30 border-2 border-slate-100 rounded-[22px] px-6 py-4 text-[13.5px] text-slate-700 placeholder:text-slate-300 resize-none outline-none focus:border-rose-300 focus:bg-white transition-all duration-300 font-bold shadow-inner"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                disabled={isLoading}
-              />
-            </div>
+            <div className="space-y-4 pt-2">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">
+                  Select Reason <span className="text-rose-500">*</span>
+                </label>
+                <Select onValueChange={setSelectedReason} value={selectedReason} disabled={isLoading}>
+                  <SelectTrigger className="w-full h-12 rounded-xl border-slate-200 bg-white text-sm font-medium focus:ring-0 focus:border-slate-400 transition-all">
+                    <SelectValue placeholder="Choose a cancellation reason" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-slate-200">
+                    {REASONS.map((r) => (
+                      <SelectItem key={r} value={r} className="text-sm font-medium focus:bg-slate-50 rounded-lg py-3 cursor-pointer">
+                        {r}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <AnimatePresence>
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="flex items-center gap-2.5 px-3 py-2 bg-rose-50 border border-rose-100 rounded-xl"
-                >
-                  <AlertCircle className="w-3.5 h-3.5 text-rose-600" />
-                  <p className="text-[11px] text-rose-600 font-black uppercase tracking-tight">{error}</p>
-                </motion.div>
+              {selectedReason === "Other" && (
+                <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-300">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">
+                    Detailed Explanation <span className="text-rose-500">*</span>
+                  </label>
+                  <Textarea
+                    placeholder="Specify the reason for this action..."
+                    className="min-h-[100px] rounded-xl border-slate-200 bg-white focus:ring-0 focus:border-slate-400 transition-all resize-none text-sm font-medium"
+                    value={otherReason}
+                    onChange={(e) => setOtherReason(e.target.value)}
+                    disabled={isLoading}
+                  />
+                </div>
               )}
-            </AnimatePresence>
+
+              {error && (
+                <p className="text-[10px] font-bold text-rose-500 ml-1 flex items-center gap-1">
+                  <XCircle className="h-3 w-3" /> {error}
+                </p>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Action Bar */}
-        <div className="px-8 py-7 bg-[#F8FAFC] border-t border-rose-50 flex items-center gap-4">
-          <button
+        <DialogFooter className="bg-slate-50/50 p-6 border-t border-slate-100 flex flex-row items-center justify-end gap-3">
+          <Button
+            variant="ghost"
             onClick={() => handleClose(false)}
             disabled={isLoading}
-            className="flex-1 h-12 rounded-[18px] bg-white border border-slate-200 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:bg-slate-50 hover:text-slate-800 transition-all duration-300 shadow-sm"
+            className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 hover:bg-transparent"
           >
-            Stay Active
-          </button>
-          <button
+            Go Back
+          </Button>
+          <Button
             onClick={handleConfirm}
-            disabled={isLoading}
-            className="flex-1 h-12 rounded-[18px] bg-rose-600 text-[11px] font-black uppercase tracking-[0.15em] text-white hover:bg-rose-700 shadow-lg shadow-rose-500/30 active:scale-[0.97] transition-all flex items-center justify-center gap-2 border-none"
+            disabled={isLoading || !selectedReason}
+            className="bg-rose-600 hover:bg-rose-700 text-white font-black text-[10px] uppercase tracking-widest px-8 h-12 rounded-xl transition-all active:scale-95 disabled:opacity-50 !border-0"
           >
             {isLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <>
-                Confirm Abort
-              </>
-            )}
-          </button>
-        </div>
+              <span className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" /> Processing...
+              </span>
+            ) : "Confirm Cancel"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

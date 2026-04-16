@@ -6,14 +6,19 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import ProductDescriptionCard from './components/detail/ProductDescriptionCard';
+import ProductDialog from './components/product-dialog';
+import { TemplateDialog } from '../templates/components/TemplateDialog';
 import { Badge } from '@/components/ui/badge';
 import { Layers } from 'lucide-react';
 import {
     useProductDetail,
     useUploadProductImage,
     useDeleteProductImage,
+    useUpdateProduct,
     productKeys,
 } from '@/hooks/queries/useProduct';
+import type { UpdateProductRequest } from '@/api';
 import { useProductCertificates } from '@/hooks/queries/useCertificate';
 import { useCategories } from '@/hooks/queries/useCategory';
 import { useQueryClient } from '@tanstack/react-query';
@@ -44,24 +49,25 @@ export default function AdminProductDetailPage() {
     const canManageCertificates = role !== UserRole.MANAGER;
 
     const [showUploadDialog, setShowUploadDialog] = useState(false);
+    const [showEditDialog, setShowEditDialog] = useState(false);
     const [deletingAssetId, setDeletingAssetId] = useState<string | null>(null);
     const [copiedSlug, setCopiedSlug] = useState(false);
     const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
     const activeTab = searchParams.get('tab') || 'overview';
     const effectiveActiveTab = !canManageCertificates && activeTab === 'certificates' ? 'overview' : activeTab;
-    const setActiveTab = (tab: string) => {
+    const setActiveTab = useCallback((tab: string) => {
         setSearchParams((prev) => {
             prev.set('tab', tab);
             return prev;
         });
-    };
+    }, [setSearchParams]);
 
     useEffect(() => {
         if (!canManageCertificates && activeTab === 'certificates') {
             setActiveTab('overview');
         }
-    }, [activeTab, canManageCertificates]);
+    }, [activeTab, canManageCertificates, setActiveTab]);
 
     useEffect(() => {
         // Force body scroll lock to prevent double scrollbars
@@ -80,6 +86,7 @@ export default function AdminProductDetailPage() {
     });
     const uploadMutation = useUploadProductImage();
     const deleteMutation = useDeleteProductImage();
+    const updateProductMutation = useUpdateProduct();
     const { data: categories } = useCategories();
 
     const handleCopySlug = useCallback(() => {
@@ -88,6 +95,17 @@ export default function AdminProductDetailPage() {
         setCopiedSlug(true);
         setTimeout(() => setCopiedSlug(false), 2000);
     }, [product]);
+
+    const handleEditClick = useCallback(() => {
+        setShowEditDialog(true);
+    }, []);
+
+    const handleEditSubmit = async (data: Partial<UpdateProductRequest>) => {
+        if (!id) return;
+        await updateProductMutation.mutateAsync({ id, ...data } as UpdateProductRequest);
+        queryClient.invalidateQueries({ queryKey: productKeys.detail(id) });
+        setShowEditDialog(false);
+    };
 
     const categoryName = useMemo(() => {
         if (product?.categoryName) return product.categoryName;
@@ -279,6 +297,18 @@ export default function AdminProductDetailPage() {
                                     </TabsTrigger>
                                 )}
                                 <TabsTrigger
+                                    value="description"
+                                    className="rounded-md px-8 h-full text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-[var(--color-primary)] data-[state=active]:shadow-sm transition-all flex items-center gap-3 relative"
+                                >
+                                    Description Content
+                                    {effectiveActiveTab === 'description' && (
+                                        <motion.div
+                                            layoutId="active-nav-underline"
+                                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--color-primary)]"
+                                        />
+                                    )}
+                                </TabsTrigger>
+                                <TabsTrigger
                                     value="reviews"
                                     className="rounded-md px-8 h-full text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-white data-[state=active]:text-[var(--color-primary)] data-[state=active]:shadow-sm transition-all flex items-center gap-3 relative"
                                 >
@@ -425,6 +455,24 @@ export default function AdminProductDetailPage() {
                                     </TabsContent>
                                 )}
 
+                                <TabsContent value="description" key="description" className="mt-0 outline-none ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                                    <motion.div
+                                        initial={{ opacity: 0, scale: 0.98 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.98 }}
+                                        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+                                    >
+                                        <ProductDescriptionCard 
+                                            product={{
+                                                name: product.name,
+                                                summary: product.summary,
+                                                description: product.description
+                                            }}
+                                            onEdit={() => handleEditClick()}
+                                        />
+                                    </motion.div>
+                                </TabsContent>
+
                                 <TabsContent value="reviews" key="reviews" className="mt-0 outline-none ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
                                     <motion.div
                                         initial={{ opacity: 0, x: 20 }}
@@ -473,6 +521,36 @@ export default function AdminProductDetailPage() {
                 variant="danger"
                 isLoading={deleteMutation.isPending}
             />
+
+            {/* ── Edit Dialogs ── */}
+            {showEditDialog && product.fullyCustomizedProductType === 'None' && (
+                <ProductDialog
+                    open={showEditDialog}
+                    onOpenChange={setShowEditDialog}
+                    product={{
+                        ...product,
+                        ageGroup: product.ageGroup != null ? String(product.ageGroup) : null,
+                        status: product.status as import('./types').ProductStatus
+                    } as import('./types').Product}
+                    onSubmit={handleEditSubmit}
+                    isLoading={updateProductMutation.isPending}
+                    categories={categories || []}
+                    certificates={certificates || []}
+                />
+            )}
+
+            {showEditDialog && product.fullyCustomizedProductType !== 'None' && (
+                <TemplateDialog
+                    open={showEditDialog}
+                    onOpenChange={setShowEditDialog}
+                    product={{
+                        ...product,
+                        fullyCustomizedProductType: product.fullyCustomizedProductType as import('@/api/types/product.types').FullyCustomizedProductType
+                    } as unknown as import('@/api').FullyCustomizedProductResponse}
+                    onSubmit={handleEditSubmit}
+                    isSubmitting={updateProductMutation.isPending}
+                />
+            )}
         </div>
     );
 }

@@ -18,12 +18,12 @@ import {
 } from "@/components/ui/select";
 import { AlertTriangle, ShieldAlert, XCircle } from "lucide-react";
 
-interface CancelServiceDialogProps {
+interface CancelBookingDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (reason: string) => void;
-  isLoading: boolean;
-  orderCode: string;
+  isLoading?: boolean;
+  orderCode?: string;
   status: string;
 }
 
@@ -37,14 +37,14 @@ const REASONS = [
   "Other"
 ];
 
-export function CancelServiceDialog({
+export function CancelBookingDialog({
   isOpen,
   onClose,
   onConfirm,
   isLoading,
   orderCode,
   status
-}: CancelServiceDialogProps) {
+}: CancelBookingDialogProps) {
   const [selectedReason, setSelectedReason] = React.useState<string>("");
   const [otherReason, setOtherReason] = React.useState("");
   const [error, setError] = React.useState("");
@@ -157,7 +157,7 @@ export function CancelServiceDialog({
           <Button
             onClick={handleConfirm}
             disabled={isLoading || !selectedReason}
-            className="bg-rose-600 hover:bg-rose-700 text-white font-black text-[10px] uppercase tracking-widest px-8 h-12 rounded-xl transition-all active:scale-95 disabled:opacity-50 ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 outline-none"
+            className="bg-rose-600 hover:bg-rose-700 text-white font-black text-[10px] uppercase tracking-widest px-8 h-12 rounded-xl transition-all active:scale-95 disabled:opacity-50 border-none outline-none ring-0 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
           >
             {isLoading ? "Executing..." : (isReject ? "Reject Order" : "Cancel Order")}
           </Button>

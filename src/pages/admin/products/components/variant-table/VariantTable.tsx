@@ -160,7 +160,7 @@ export default function VariantTable({
             <Button
               size="sm"
               onClick={onAddVariant}
-              className="h-8 px-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg shadow-sm"
+              className="h-8 px-4 bg-[#4988c4] hover:bg-[#3a6fa0] text-white rounded-lg border-0 shadow-none transition-all active:scale-95"
             >
               <Plus className="h-3.5 w-3.5 mr-1.5" />
               Add Variant
@@ -217,7 +217,7 @@ export default function VariantTable({
             </span>
             <span className="text-gray-300">|</span>
             <span>
-              In stock: <span className="font-bold text-green-600">{stats.inStock}</span>
+              In stock: <span className="font-bold text-[#4988c4]">{stats.inStock}</span>
             </span>
             <span className="text-gray-300">|</span>
             <span>
@@ -371,7 +371,7 @@ function ColorGroupRow({
 
 /* ─── Variant Status Config ─────────────────────────────── */
 const variantStatusStyles: Record<string, { dot: string; label: string; variant: 'success' | 'warning' | 'info' }> = {
-  Published: { dot: 'bg-emerald-500', label: 'Published', variant: 'success' },
+  Published: { dot: 'bg-[#4988c4]', label: 'Published', variant: 'success' },
   Draft: { dot: 'bg-amber-400', label: 'Draft', variant: 'warning' },
   Hidden: { dot: 'bg-gray-400', label: 'Hidden', variant: 'info' },
 };
@@ -527,8 +527,8 @@ function VariantRow({
             className={cn(
               "h-7 w-7 p-0 rounded-lg transition-all scale-90",
               variant.isOutOfStock
-                ? "opacity-100 text-emerald-600 hover:bg-emerald-50"
-                : "opacity-0 group-hover/vrow:opacity-100 hover:bg-emerald-50 hover:text-emerald-600"
+                ? "opacity-100 text-[#4988c4] hover:bg-blue-50"
+                : "opacity-0 group-hover/vrow:opacity-100 hover:bg-blue-50 hover:text-[#4988c4]"
             )}
           >
             <Plus className="h-3.5 w-3.5" />
@@ -642,7 +642,7 @@ function VariantRow({
                     >
                       <span className={cn('w-2.5 h-2.5 rounded-full', style.dot)} />
                       <span className={cn("text-[13px] flex-1", isDisabled && "text-gray-400")}>{style.label}</span>
-                      {currentStatus === value && <Check className="h-3.5 w-3.5 text-emerald-500" />}
+                      {currentStatus === value && <Check className="h-3.5 w-3.5 text-[#4988c4]" />}
                     </DropdownMenuItem>
                   );
                 })}

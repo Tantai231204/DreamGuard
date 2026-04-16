@@ -5,6 +5,7 @@ import { Breadcrumb } from "../components/common";
 import { useBreadcrumb } from "../components/common/BreadcrumbNav";
 import { AppRoute } from "../lib/constants";
 import FloatingChat from "../components/chat/FloatingChat";
+import { useNotificationHub } from "@/hooks/useNotificationHub";
 
 interface AppLayoutProps {
   variant?: "home" | "checkout";
@@ -16,6 +17,7 @@ interface AppLayoutProps {
  * - "checkout": Minimalist header (logo only) for reduced friction in checkout.
  */
 export default function AppLayout({ variant = "home" }: AppLayoutProps) {
+  useNotificationHub();
   const { items: breadcrumbItems } = useBreadcrumb();
 
   // Checkout variant with minimalist header

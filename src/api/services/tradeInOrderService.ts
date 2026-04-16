@@ -11,7 +11,8 @@ import type {
   UploadTradeInOrderImagesOptions,
   UploadTradeInOrderImagesResponse,
   TradeInOrderDetailResponse,
-  TradeInActionResponse
+  TradeInActionResponse,
+  TradeInDashboardResponse
 } from "@/api/types/tradeInOrder";
 import { normalizeTradeInStatus } from '@/utils/tradeInWorkflow';
 
@@ -429,6 +430,11 @@ const tradeInOrderService = {
   /** POST /TradeInOrders/:orderId/CreateConversation */
   createConversation: async (tradeInOrderId: string): Promise<Record<string, unknown>> => {
     const res = await apiClient.post(`/TradeInOrders/${tradeInOrderId}/CreateConversation`);
+    return res.data?.data ?? res.data;
+  },
+
+  getTradeInDashboard: async (params: { fromDate: string; toDate: string }): Promise<TradeInDashboardResponse> => {
+    const res = await apiClient.get("/TradeInOrders/get-trade-in-dash-board", { params });
     return res.data?.data ?? res.data;
   },
 };

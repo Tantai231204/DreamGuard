@@ -69,3 +69,17 @@ export interface ReOrderFailedServiceOrderResponse {
   id?: string;
   [key: string]: unknown;
 }
+
+export interface ServiceDashboardResponse {
+  totalServiceOrders: number;
+  totalCancelledOrders: number;
+  totalCompletedOrders: number;
+  totalRejectedOrders: number;
+  totalRefundOrders: number;
+  totalAmount: number;
+  totalRefundAmount: number;
+  fromDate: string;
+  toDate: string;
+  totalVnPayAmount: number;
+  totalCODAmount: number;
+}
