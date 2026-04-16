@@ -246,6 +246,7 @@ const PAYMENT_STATUS_MAP: Record<string, { type: StatusType, label: string, icon
   'pending_payment': { type: 'warning', label: 'Pending Payment', icon: Clock4 },
   'paid': { type: 'success', label: 'Paid', icon: Check },
   'failed': { type: 'danger', label: 'Payment Failed', icon: X },
+  'refunded': { type: 'danger', label: 'Refunded', icon: RotateCcw }, // đổi type sang 'success' (emerald)
 };
 
 const LABEL_MAP: Record<string, string> = {
@@ -282,6 +283,7 @@ const LABEL_MAP: Record<string, string> = {
   'waitingforstaff': 'Waiting For Staff',
   'paid': 'Paid',
   'failed': 'Payment Failed',
+  'refunded': 'Refunded',
   'published': 'Published',
   'draft': 'Draft',
   'admin_cancelled': 'Admin Cancelled',

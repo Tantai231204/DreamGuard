@@ -48,19 +48,45 @@ export const ProductTabs = memo(({
                 onValueChange={handleTabChange}
                 className="w-full"
             >
-                <div className="border-b border-slate-100 mb-12">
-                    <TabsList className="bg-transparent h-auto p-0 gap-10">
-                        {TAB_ORDER.map((tab) => (
-                            <TabsTrigger
-                                key={tab}
-                                value={tab}
-                                className="bg-transparent border-b-2 border-transparent data-[state=active]:border-slate-900 data-[state=active]:bg-transparent rounded-none px-0 py-4 text-[10px] font-black uppercase tracking-widest text-slate-300 data-[state=active]:text-slate-900 transition-all font-inter"
-                            >
-                                {tab === 'description' ? 'Description' :
-                                    tab === 'specs' ? 'Specifications' :
-                                        `Reviews (${reviews.length})`}
-                            </TabsTrigger>
-                        ))}
+                <div className="border-b border-slate-100 mb-12 relative">
+                    <TabsList className="bg-transparent h-auto p-0 gap-10 relative">
+                        {TAB_ORDER.map((tab) => {
+                            const isActive = activeTab === tab;
+
+                            return (
+                                <div key={tab} className="relative flex-1 w-full flex flex-col items-center">
+                                    <TabsTrigger
+                                        value={tab}
+                                        className={`
+            relative px-0 ${tab === 'reviews' ? 'py-2 text-[9px] min-w-[80px]' : 'py-4 text-[10px]'} font-black uppercase tracking-widest font-inter
+            transition-colors duration-300 border-none
+            ${isActive ? 'text-slate-900' : 'text-slate-300 hover:text-slate-500'}
+          `}
+                                        style={{ zIndex: 2, background: 'none' }}
+                                    >
+                                        {tab === 'description'
+                                            ? 'Description'
+                                            : tab === 'specs'
+                                                ? 'Specifications'
+                                                : `Reviews (${reviews.length})`}
+                                    </TabsTrigger>
+
+                                    {isActive && (
+                                        <motion.div
+                                            layoutId="tab-underline"
+                                            className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-slate-900 rounded-full"
+                                            style={{ zIndex: 1 }}
+                                            transition={{
+                                                type: 'spring',
+                                                stiffness: 420,
+                                                damping: 30,
+                                                mass: 0.7,
+                                            }}
+                                        />
+                                    )}
+                                </div>
+                            );
+                        })}
                     </TabsList>
                 </div>
 
@@ -77,7 +103,7 @@ export const ProductTabs = memo(({
                                 {/* ── Description Content ── */}
                                 <div>
                                     {description ? (
-                                        <FormattedDescription 
+                                        <FormattedDescription
                                             content={description}
                                             className="font-outfit"
                                         />
