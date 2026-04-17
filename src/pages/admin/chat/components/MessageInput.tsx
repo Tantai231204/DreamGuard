@@ -327,52 +327,60 @@ function MessageInputInner({
             <PopoverContent
               align="start"
               side="top"
-              className="w-80 p-3 rounded-xl shadow-xl border-gray-100"
+              className="w-80 p-4 rounded-3xl shadow-2xl border-none bg-white ring-1 ring-black/[0.03]"
             >
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
-                Pin Appraisal Appointment
-              </p>
-
-              <div className="space-y-2.5">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center">
+                  <CalendarClock className="h-4 w-4 text-emerald-600" />
+                </div>
                 <div>
-                  <label className="text-[11px] text-gray-500">Date & time</label>
+                  <p className="text-[11px] font-black text-slate-900 uppercase tracking-widest">
+                    Schedule Appraisal
+                  </p>
+                  <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">Protocol Placement</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Event Horizon</label>
                   <input
                     type="datetime-local"
                     value={appointmentDateTime}
                     onChange={(event) => setAppointmentDateTime(event.target.value)}
-                    className="mt-1 w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs text-gray-700 focus:outline-none focus:border-emerald-400"
+                    className="w-full rounded-xl bg-slate-50/80 border-none px-3 py-2.5 text-xs text-slate-700 focus:ring-2 focus:ring-emerald-500/20 focus:bg-white transition-all outline-none"
                   />
                 </div>
 
-                <div>
-                  <label className="text-[11px] text-gray-500">Location (optional)</label>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Operations Hub</label>
                   <input
                     type="text"
                     value={appointmentLocation}
                     onChange={(event) => setAppointmentLocation(event.target.value)}
-                    placeholder="Store or appraisal address"
-                    className="mt-1 w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs text-gray-700 placeholder:text-gray-300 focus:outline-none focus:border-emerald-400"
+                    placeholder="Store or site address"
+                    className="w-full rounded-xl bg-slate-50/80 border-none px-3 py-2.5 text-xs text-slate-700 placeholder:text-slate-300 focus:ring-2 focus:ring-emerald-500/20 focus:bg-white transition-all outline-none"
                   />
                 </div>
 
-                <div>
-                  <label className="text-[11px] text-gray-500">Note (optional)</label>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Special Directives</label>
                   <input
                     type="text"
                     value={appointmentNote}
                     onChange={(event) => setAppointmentNote(event.target.value)}
-                    placeholder="Extra note for customer"
-                    className="mt-1 w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs text-gray-700 placeholder:text-gray-300 focus:outline-none focus:border-emerald-400"
+                    placeholder="Brief instruction for client"
+                    className="w-full rounded-xl bg-slate-50/80 border-none px-3 py-2.5 text-xs text-slate-700 placeholder:text-gray-300 focus:ring-2 focus:ring-emerald-500/20 focus:bg-white transition-all outline-none"
                   />
                 </div>
 
                 <Button
                   type="button"
-                  className="w-full h-8 rounded-lg bg-emerald-600 text-white text-[11px] font-semibold hover:bg-emerald-700"
+                  className="w-full h-11 rounded-xl bg-emerald-600 text-white text-[11px] font-black uppercase tracking-widest hover:bg-emerald-700 shadow-xl shadow-emerald-500/20 transition-all active:scale-[0.98] mt-2"
                   disabled={!appointmentDateTime || isSending}
                   onClick={handlePinAppointment}
                 >
-                  Pin Appointment
+                  Confirm & Pin Protocol
                 </Button>
               </div>
             </PopoverContent>

@@ -1,11 +1,15 @@
-import { memo } from 'react';
+import { memo, lazy, Suspense } from 'react';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import ProductDialog from './product-dialog';
-import VariantDialog from './variant-dialog/VariantDialog';
-import { ComboDialog } from './combo-dialog';
-import { CertificateDialog } from './certificate/CertificateDialog';
-import { ImageUploadDialog, ProductCreationSuccess } from './dialogs';
-import { TemplateDialog } from '../../templates/components/TemplateDialog';
+
+// Lazy Load heavy dialog components
+const ProductDialog = lazy(() => import('./product-dialog'));
+const VariantDialog = lazy(() => import('./variant-dialog/VariantDialog'));
+const ComboDialog = lazy(() => import('./combo-dialog').then(module => ({ default: module.ComboDialog })));
+const CertificateDialog = lazy(() => import('./certificate/CertificateDialog').then(module => ({ default: module.CertificateDialog })));
+const ImageUploadDialog = lazy(() => import('./dialogs').then(module => ({ default: module.ImageUploadDialog })));
+const ProductCreationSuccess = lazy(() => import('./dialogs').then(module => ({ default: module.ProductCreationSuccess })));
+const TemplateDialog = lazy(() => import('../../templates/components/TemplateDialog').then(module => ({ default: module.TemplateDialog })));
+
 import type { AdminProductState, AdminProductMutations } from '../types';
 
 interface ProductDialogsProps {
@@ -22,6 +26,7 @@ interface ProductDialogsProps {
 export const ProductDialogs = memo(({ state, mutations, onRefresh }: ProductDialogsProps) => {
   return (
     <>
+    <Suspense fallback={null}>
       {state.dialogOpen && state.activeTab !== 'customize' && (
         <ProductDialog
           open={state.dialogOpen}
@@ -104,6 +109,7 @@ export const ProductDialogs = memo(({ state, mutations, onRefresh }: ProductDial
           isUploading={mutations.uploadImagesMutation?.isPending || mutations.uploadComboImageMutation?.isPending}
         />
       )}
+    </Suspense>
 
       <ConfirmDialog
         open={!!state.deleteProduct}

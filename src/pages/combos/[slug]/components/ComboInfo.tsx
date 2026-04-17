@@ -4,7 +4,9 @@ import { Star, Leaf, Package } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Combo, RichComboItem } from "../../types";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, cn } from "@/lib/utils";
+import { useVariant } from "@/hooks/queries/useVariant";
+import type { VariantResponse, VariantAttributes } from "@/api/services/variantService";
 
 interface Props {
     combo: Combo;
@@ -14,6 +16,42 @@ interface Props {
     totalIndividualPrice: number;
     totalBundleSavings: number;
 }
+
+import { useProductDetail } from "@/hooks/queries/useProduct";
+
+const SubItemImage = memo(({ variantId, fallbackImage, alt }: { variantId: string; fallbackImage?: string; alt: string }) => {
+    const { data: variantData, isLoading: isVarLoading } = useVariant(variantId || "");
+    const variant = variantData as VariantResponse;
+    const vImg = (variant?.attributes as VariantAttributes)?.imageUrl || (variant as { imageUrl?: string })?.imageUrl;
+    
+    // Recovery: Fetch root product if variant has no image
+    const productId = variant?.productId || (variant as { product?: { id: string } })?.product?.id || "";
+    const { data: productData } = useProductDetail(productId, !!productId && (!vImg || (vImg as string).length < 5) && (!fallbackImage || (fallbackImage as string).length < 5));
+    
+    const pData = productData as { imageUrls?: string[]; imageUrl?: string; assets?: { url: string }[] };
+    const pImg = pData?.imageUrls?.[0] || pData?.imageUrl || pData?.assets?.[0]?.url || (variant as { product?: { imageUrl?: string } })?.product?.imageUrl;
+
+    const imageUrl = ((vImg as string)?.length > 5) ? (vImg as string) : ((fallbackImage as string)?.length > 5) ? (fallbackImage as string) : (pImg as string);
+    const isLoading = isVarLoading;
+
+    if (isLoading && !imageUrl) {
+        return <div className="w-full h-full bg-slate-50 animate-pulse" />;
+    }
+
+    return (
+        <img
+            src={imageUrl || "/images/placeholder-product.svg"}
+            alt={alt}
+            className={cn("w-full h-full object-contain transition-all duration-500", !imageUrl && "opacity-0", imageUrl && "opacity-100")}
+            onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                if (!target.src.includes('placeholder-product.svg')) {
+                    target.src = "/images/placeholder-product.svg";
+                }
+            }}
+        />
+    );
+});
 
 export const ComboInfo = memo(({
     combo,
@@ -162,11 +200,11 @@ export const ComboInfo = memo(({
                                 return (
                                     <div key={i} className="px-5 py-4 flex items-center gap-4 hover:bg-slate-50/50 transition-colors">
                                         {/* Thumbnail */}
-                                        <div className="relative w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center p-1.5 shrink-0">
-                                            <img
-                                                src={item.imageUrl || "/images/placeholder-product.svg"}
-                                                alt={item.productName}
-                                                className="w-full h-full object-contain"
+                                        <div className="relative w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center p-1.5 shrink-0 overflow-hidden">
+                                            <SubItemImage
+                                                variantId={item.productVariantId || item.variantId || ""}
+                                                fallbackImage={item.imageUrl}
+                                                alt={item.productName || ""}
                                             />
                                             {item.quantity > 1 && (
                                                 <div className="absolute -top-1 -right-1 bg-[#4988c4] text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center ring-2 ring-white">

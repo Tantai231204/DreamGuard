@@ -8,6 +8,7 @@ import type { TradeInOrderDetailResponse } from "@/api/types/tradeInOrder";
 import {
   tradeInOrderKeys,
   useConfirmTradeInDeal,
+  paymentKeys,
 } from "@/hooks/queries";
 import { useShippingTasksByTradeInOrder } from "@/hooks/queries/useShippingTask";
 import { usePermission } from "@/hooks/usePermission";
@@ -206,6 +207,8 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
   );
   const invalidateTradeInDetail = useCallback(() => {
     void queryClient.invalidateQueries({ queryKey: detailQueryKey });
+    void queryClient.invalidateQueries({ queryKey: paymentKeys.all });
+    void queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.lists() });
   }, [detailQueryKey, queryClient]);
 
   const navigateToChat = useCallback(

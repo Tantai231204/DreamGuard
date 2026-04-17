@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import variantService from "@/api/services/variantService";
 import { certificateService } from "@/api";
 import { useComboBySlug, useComboDetail as useComboDetailQuery } from "@/hooks/queries/useCombo";
+import { useProductDetail, useVariantDetail } from "@/hooks/queries/useProduct";
 import { useCartStore } from "@/store/useCartStore";
 import { useBreadcrumb } from "@/components/common/BreadcrumbNav";
 import { toast } from "sonner";
@@ -79,42 +80,6 @@ export function useComboDetail() {
 
 
 
-    const handleAddToCart = useCallback(() => {
-        if (!combo) return;
-
-        // Strict Business Rule: If the selection doesn't result in a valid combo variant, block
-        if (!activeCombo) {
-            toast.error("The selected combination is not available for this bundle.");
-            return;
-        }
-
-        // Check stock
-        if (activeCombo.stock !== undefined && activeCombo.stock === 0) {
-            toast.error("This selection is currently out of stock.");
-            return;
-        }
-
-        addItem({
-            id: activeCombo.id,
-            productId: activeCombo.id, // Compatibility with cart store expectation
-            productVariantId: null, // Combos are treated as unique IDs in our store
-            comboId: activeCombo.id,
-            name: combo.name + (activeCombo.id !== combo.id ? ` - (${activeCombo.color} / ${activeCombo.size})` : ""),
-            price: activeCombo.salePrice,
-            image: activeCombo.imageUrl || combo.imageUrl,
-            quantity: quantity,
-            color: activeCombo.color,
-            size: activeCombo.size,
-            sku: activeCombo.sku,
-            isCustom: false
-        });
-    }, [activeCombo, combo, quantity, addItem]);
-
-    const toggleWishlist = () => {
-        setIsWishlisted(prev => !prev);
-        if (!isWishlisted) toast.success("Added to wishlist!");
-    };
-
     // ─────────────────────────────────────────────────────────────
     // NEW: FETCH DATA FOR INDIVIDUAL PRODUCT VARIANTS IN COMBO
     // ─────────────────────────────────────────────────────────────
@@ -144,15 +109,88 @@ export function useComboDetail() {
         });
     }, [activeCombo, variantQueries]);
 
-    // SMART IMAGE FALLBACK: If combo has no image, use the first component's image if available
-    const displayImage = useMemo(() => {
-        if (activeCombo?.imageUrl) return activeCombo.imageUrl;
-        if (combo?.imageUrl) return combo.imageUrl;
+    // ─────────────────────────────────────────────────────────────
+    // NEW: DATA RECOVERY FOR MISSING COMBO IMAGES
+    // ─────────────────────────────────────────────────────────────
+    // Identify the "Hero" item (e.g., if combo is "Mattress Set", find the item with "Mattress" in name)
+    const heroItem = useMemo(() => {
+        if (!activeCombo?.productItems || activeCombo.productItems.length === 0) return null;
+        const comboNameLower = (activeCombo.name || "").toLowerCase();
+        
+        // Try to find an item whose name is a significant part of the combo name
+        return activeCombo.productItems.find(item => 
+            comboNameLower.includes((item.productName || "").toLowerCase()) ||
+            (item.productName || "").toLowerCase().includes(comboNameLower.split(' ')[0])
+        ) || activeCombo.productItems[0];
+    }, [activeCombo]);
 
-        // Find first item with an image in enriched metadata
-        const firstWithImage = enrichedItems.find(i => i.imageUrl || i.enrichedDetail?.attributes?.imageUrl);
-        return firstWithImage?.imageUrl || (firstWithImage?.enrichedDetail?.attributes?.imageUrl as string) || null;
-    }, [activeCombo, combo, enrichedItems]);
+    // Fetch the specific variant detail for the hero item (to get its productId)
+    const heroVariantId = heroItem?.productVariantId || "";
+    const { data: heroVariant } = useVariantDetail(heroVariantId || "", !!heroVariantId && !activeCombo?.imageUrl && !combo?.imageUrl);
+    
+    // Fetch the root product for the hero item to get the high-quality imageUrls
+    const heroProductId = (heroVariant as { productId?: string })?.productId || "";
+    const { data: heroProduct } = useProductDetail(heroProductId, !!heroProductId);
+
+    // SMART IMAGE FALLBACK: Hierarchical resolution
+    const displayImage = useMemo(() => {
+        // 1. Specific selection image
+        if (activeCombo?.imageUrl && activeCombo.imageUrl.length > 5) return activeCombo.imageUrl;
+        
+        // 2. Root combo fallback
+        if (combo?.imageUrl && combo.imageUrl.length > 5) return combo.imageUrl;
+
+        // 3. Hero Product Image Fallback (Recovered from internal items)
+        const hpData = heroProduct as { imageUrls?: string[]; imageUrl?: string } | undefined;
+        const heroProductImg = hpData?.imageUrls?.[0] || hpData?.imageUrl;
+        if (heroProductImg) return heroProductImg;
+
+        // 4. Any internal item image
+        const firstWithImage = enrichedItems.find(i => 
+            (i.imageUrl && i.imageUrl.length > 5) || 
+            (i.enrichedDetail?.attributes?.imageUrl as string)?.length > 5
+        );
+        
+        return (firstWithImage?.imageUrl && firstWithImage.imageUrl.length > 5) 
+            ? firstWithImage.imageUrl 
+            : (firstWithImage?.enrichedDetail?.attributes?.imageUrl as string) || null;
+    }, [activeCombo, combo, enrichedItems, heroProduct]);
+
+    const handleAddToCart = useCallback(() => {
+        if (!combo) return;
+
+        // Strict Business Rule: If the selection doesn't result in a valid combo variant, block
+        if (!activeCombo) {
+            toast.error("The selected combination is not available for this bundle.");
+            return;
+        }
+
+        // Check stock
+        if (activeCombo.stock !== undefined && activeCombo.stock === 0) {
+            toast.error("This selection is currently out of stock.");
+            return;
+        }
+
+        addItem({
+            id: activeCombo.id,
+            productId: activeCombo.id, // Compatibility with cart store expectation
+            productVariantId: null, // Combos are treated as unique IDs in our store
+            comboId: activeCombo.id,
+            name: combo.name + (activeCombo.id !== combo.id ? ` - (${activeCombo.color} / ${activeCombo.size})` : ""),
+            price: activeCombo.salePrice,
+            image: displayImage || "",
+            quantity: quantity,
+            color: activeCombo.color,
+            size: activeCombo.size,
+            sku: activeCombo.sku,
+            isCustom: false
+        });
+    }, [activeCombo, combo, quantity, addItem, displayImage]);
+
+    const toggleWishlist = () => {
+        setIsWishlisted(prev => !prev);
+        if (!isWishlisted) toast.success("Added to wishlist!");
+    };
 
     const totalIndividualPrice = useMemo(() => {
         if (!enrichedItems || enrichedItems.length === 0) return 0;

@@ -45,15 +45,15 @@ export const useServiceActions = () => {
     });
 
     const completeMutation = useMutation({
-        mutationFn: async (id: string) => {
-            await api.patch(`/ServiceOrders/${id}/complete`);
+        mutationFn: async ({ taskId }: { taskId: string; orderId: string }) => {
+            await api.patch(`/ServiceTasks/${taskId}/updateCompletedStatus`);
         },
-        onSuccess: (_, id) => {
-            toast.success(`Service booking ${id} completed successfully`);
+        onSuccess: (_, { orderId }) => {
+            toast.success(`Service task completed successfully`);
             queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
-            queryClient.invalidateQueries({ queryKey: ['serviceOrder', id] });
+            queryClient.invalidateQueries({ queryKey: ['serviceOrder', orderId] });
         },
-        onError: () => toast.error('Failed to complete service booking'),
+        onError: () => toast.error('Failed to complete service task'),
     });
 
     return {

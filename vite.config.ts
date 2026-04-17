@@ -30,6 +30,7 @@ export default defineConfig({
     },
   },
   build: {
+    target: 'esnext',
     chunkSizeWarningLimit: 1200,
     rollupOptions: {
       onwarn(warning, warn) {
@@ -57,20 +58,16 @@ export default defineConfig({
         manualChunks(id) {
           if (!id.includes('node_modules')) return;
 
-          if (id.includes('@tanstack/react-query')) {
-            return 'react-query';
-          }
-
-          if (id.includes('framer-motion')) {
-            return 'framer-motion';
+          if (id.includes('react-markdown') || id.includes('remark-') || id.includes('rehype-') || id.includes('micromark') || id.includes('decode-named-character-reference')) {
+            return 'markdown-vendor';
           }
 
           if (id.includes('lucide-react')) {
-            return 'icons';
+            return 'icons-vendor';
           }
 
           if (id.includes('@microsoft/signalr')) {
-            return 'signalr';
+            return 'signalr-vendor';
           }
 
           if (id.includes('three') || id.includes('@react-three') || id.includes('@pmndrs')) {
@@ -78,11 +75,15 @@ export default defineConfig({
           }
 
           if (id.includes('zod')) {
-            return 'zod';
+            return 'schema-vendor';
           }
 
           if (id.includes('date-fns') || id.includes('react-day-picker')) {
             return 'date-picker-vendor';
+          }
+
+          if (id.includes('framer-motion')) {
+            return 'motion-vendor';
           }
 
           const isRadixSelectOrTooltip =
@@ -101,7 +102,11 @@ export default defineConfig({
             id.includes('@floating-ui/');
 
           if (isRadixSelectOrTooltip || isRadixSharedRuntime) {
-            return 'radix-select-tooltip';
+            return 'radix-ui-vendor';
+          }
+
+          if (id.includes('axios') || id.includes('clsx') || id.includes('tailwind-merge')) {
+            return 'utils-vendor';
           }
 
         },

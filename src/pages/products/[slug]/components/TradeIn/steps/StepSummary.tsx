@@ -21,6 +21,11 @@ interface StepSummaryProps {
   isEstimatingPrice?: boolean;
 }
 
+const truncateOrderId = (id: string) => {
+  if (!id) return '';
+  return id.length > 8 ? `...${id.slice(-8)}` : id;
+};
+
 export const StepSummary = memo(function StepSummary({
   eligibleProducts,
   selectedProducts,
@@ -98,7 +103,7 @@ export const StepSummary = memo(function StepSummary({
 
       <div className="w-full rounded-[24px] border border-[#EDE8E1] bg-white p-5 text-left shadow-sm">
         <div className="flex items-center justify-between gap-3 mb-4">
-          <div>
+          <div className="flex-1">
             <p className="text-[10px] font-black text-[#A89E94] uppercase tracking-[0.2em]">Trade Route</p>
             <p className="text-[12px] text-[#6D5F54] font-semibold mt-1">Click remove on selected card, then pick another order item card</p>
           </div>
@@ -118,8 +123,8 @@ export const StepSummary = memo(function StepSummary({
                 <p className="text-[13px] font-bold text-[#1A1A1A] line-clamp-2">
                   {selectedSourceProduct?.name || 'No source item selected'}
                 </p>
-                <p className="text-[10px] text-[#6D7B6E] font-semibold mt-1">
-                  {selectedSourceProduct ? `Order #${selectedSourceProduct.orderId || '--'}` : 'Please choose one order item card below'}
+                <p className="text-[10px] text-[#6D7B6E] font-bold mt-1.5">
+                  {selectedSourceProduct ? `REF: ${truncateOrderId(selectedSourceProduct.orderId)}` : 'Please choose one order item card below'}
                 </p>
               </div>
 
@@ -158,35 +163,35 @@ export const StepSummary = memo(function StepSummary({
             <p className="text-[10px] uppercase tracking-[0.14em] font-black text-[#A89E94]">Other order item cards</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
               {(selectedSourceProduct ? alternativeSourceProducts : eligibleProducts).map((product) => {
-              const previewValue = typeof product.tradeInValue === 'number'
-                ? product.tradeInValue
-                : product.originalPrice;
+                const previewValue = typeof product.tradeInValue === 'number'
+                  ? product.tradeInValue
+                  : product.originalPrice;
 
-              return (
-                <button
-                  key={product.id}
-                  type="button"
-                  onClick={() => handleSelectTradeInProduct(product.id)}
-                  className="rounded-xl border border-[#EDE8E1] bg-white px-3.5 py-2.5 text-left hover:border-[#3D5140]/30 hover:bg-[#F7FBF7] transition-colors"
-                >
-                  <p className="text-[11px] font-bold text-[#1A1A1A] line-clamp-2">{product.name}</p>
-                  <div className="mt-1.5 flex items-center justify-between gap-2">
-                    <p className="text-[10px] font-semibold text-[#7B8B7C]">Order #{product.orderId || '--'}</p>
-                    <p className="text-[10px] font-bold text-[#3D5140]">From {formatPrice(previewValue)}</p>
-                  </div>
-                  <div className="mt-2 inline-flex items-center rounded-full border border-[#DDE9DF] bg-[#F4F7F4] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-[#5E7463]">
-                    Replace with this card
-                  </div>
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    key={product.id}
+                    type="button"
+                    onClick={() => handleSelectTradeInProduct(product.id)}
+                    className="rounded-xl border border-[#EDE8E1] bg-white px-3.5 py-2.5 text-left hover:border-[#3D5140]/30 hover:bg-[#F7FBF7] transition-colors"
+                  >
+                    <p className="text-[11px] font-bold text-[#1A1A1A] line-clamp-1">{product.name}</p>
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <p className="text-[10px] font-bold text-[#7B8B7C]">REF: {truncateOrderId(product.orderId)}</p>
+                      <p className="text-[10px] font-black text-[#3D5140] tracking-tight">{formatPrice(previewValue)}</p>
+                    </div>
+                    <div className="mt-2 inline-flex items-center rounded-full border border-[#DDE9DF] bg-[#F4F7F4] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-[#5E7463]">
+                      Replace with this card
+                    </div>
+                  </button>
+                );
+              })}
 
-            {selectedSourceProduct && !canReplaceSelectedCard && (
-              <div className="rounded-lg border border-dashed border-[#E5DDD4] bg-[#FDFCFA] px-3 py-2 text-[11px] font-semibold text-[#8B7E71]">
-                No other order item card available to replace.
-              </div>
-            )}
-          </div>
+              {selectedSourceProduct && !canReplaceSelectedCard && (
+                <div className="rounded-lg border border-dashed border-[#E5DDD4] bg-[#FDFCFA] px-3 py-2 text-[11px] font-semibold text-[#8B7E71]">
+                  No other order item card available to replace.
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

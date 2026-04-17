@@ -6,6 +6,7 @@ import type { DetailOrder, StatusConfigItem } from './types';
 import { useServiceActions } from '../../hooks/useServiceActions';
 import { CancelBookingDialog } from '../CancelBookingDialog';
 import { ConfirmServiceDialog } from '../ConfirmServiceDialog';
+import { CompleteServiceDialog } from '../CompleteServiceDialog';
 import { toast } from 'sonner';
 import { AdminStatusBadge } from '@/components/admin';
 import { memo, useState } from 'react';
@@ -33,6 +34,7 @@ export const OrderHeader = memo(function OrderHeader({
 }: OrderHeaderProps) {
   const [isCancelOpen, setIsCancelOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isCompleteOpen, setIsCompleteOpen] = useState(false);
   
   const StatusIcon = statusCfg?.icon;
   const { confirmBooking, cancelBooking, completeBooking, isConfirming, isCancelling, isCompleting } = useServiceActions();
@@ -46,7 +48,23 @@ export const OrderHeader = memo(function OrderHeader({
   };
 
   const handleCompleteAction = () => {
-    completeBooking(order.soId || order.id || "");
+    setIsCompleteOpen(true);
+  };
+
+  const handleConfirmComplete = () => {
+    const taskId = order.serviceTask?.serviceTaskId || order.serviceTask?.taskId;
+    const orderId = order.soId || order.id || "";
+    
+    if (!taskId) {
+      toast.error("No active task found to complete");
+      return;
+    }
+
+    completeBooking({ taskId, orderId }, {
+      onSuccess: () => {
+        setIsCompleteOpen(false);
+      }
+    });
   };
 
   const handleCancelConfirm = (reason: string) => {
@@ -114,7 +132,7 @@ export const OrderHeader = memo(function OrderHeader({
                 size="sm"
                 onClick={handleCompleteAction}
                 disabled={isCompleting}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] uppercase tracking-widest rounded-xl gap-2 shadow-xl shadow-blue-500/10 transition-all hover:scale-105 active:scale-95 h-12 px-6 border-0"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] uppercase tracking-widest rounded-xl gap-2 shadow-xl shadow-emerald-500/10 transition-all hover:scale-105 active:scale-95 h-12 px-6 border-0"
               >
                 <CheckCircle className="h-4 w-4" /> {isCompleting ? "Executing..." : "Mark as Completed"}
               </Button>
@@ -179,6 +197,14 @@ export const OrderHeader = memo(function OrderHeader({
         isLoading={isCancelling}
         orderCode={order.orderCode || ''}
         status={order.status || ''}
+      />
+
+      <CompleteServiceDialog
+        isOpen={isCompleteOpen}
+        onClose={() => setIsCompleteOpen(false)}
+        onConfirm={handleConfirmComplete}
+        isLoading={isCompleting}
+        orderCode={order.orderCode || ''}
       />
     </div>
   );

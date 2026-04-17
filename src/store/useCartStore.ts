@@ -47,20 +47,33 @@ const normalizeAttrKey = (name: string): string => {
     const n = name.toLowerCase().trim();
     if (n === 'color' || n === 'màu sắc' || n === 'màu') return 'color';
     if (n === 'size' || n === 'kích thước' || n === 'kích cỡ') return 'size';
+    if ((n.includes('wrap') && n.includes('image')) || n.includes('ảnh bọc')) return 'wrapImage';
     return n;
 };
 
 export const generateConfigHash = (
     productVariantId: string | null | undefined,
     comboId: string | null | undefined,
-    customDetails?: Array<{ ProductCustomizeTypeId?: string; CustomizeContent?: string; customizeTypeName?: string; customizeContent?: string }>
+    customDetails?: Array<{
+        ProductCustomizeTypeId?: string;
+        CustomizeContent?: string;
+        customizeTypeId?: string;
+        customizeTypeName?: string;
+        customizeContent?: string
+    }>
 ) => {
     const base = comboId ? `combo:${comboId}` : `var:${productVariantId || 'base'}`;
     if (!customDetails || customDetails.length === 0) return CryptoJS.MD5(`${base}|std`).toString();
 
+    // Preserve casing for URLs/Content as Cloudinary is case-sensitive
+    // Include type IDs to avoid collisions between different customization types
     const normalized = customDetails
-        .map(d => (d.CustomizeContent || d.customizeContent || "").trim().toLowerCase().replace(/\s+/g, ''))
-        .filter(Boolean)
+        .map(d => {
+            const typeId = (d.ProductCustomizeTypeId || d.customizeTypeId || "").toLowerCase().trim();
+            const content = (d.CustomizeContent || d.customizeContent || "").trim().replace(/\s+/g, '');
+            return `${typeId}:${content}`;
+        })
+        .filter(s => s.length > 1) // Ensure it's not just ":"
         .sort((a, b) => a.localeCompare(b))
         .join('&');
 
@@ -145,27 +158,87 @@ export const useCartStore = create<CartState>()(
                         const unitPrice = (serverMatch.unitPrice || 0) + (serverMatch.totalAddOnPrice || 0);
                         const apiAttrs: Record<string, string | number | undefined> = { ...localItem.customAttributes };
 
-                        // Ánh xạ mọi chi tiết tùy chỉnh từ Server vào thuộc tính hiển thị
                         serverMatch.productCustomizeDetails?.forEach(d => {
                             const key = normalizeAttrKey(d.customizeTypeName);
                             apiAttrs[key] = d.customizeContent;
+                            // Also ensure wrapImage is directly accessible if normalized
+                            if (key === 'wrapImage') apiAttrs.wrapImage = d.customizeContent;
                         });
+
+                        const isServerCustom = !!(serverMatch.productCustomizeDetails && serverMatch.productCustomizeDetails.length > 0);
+                        const isLocalCustom = !!localItem.isCustom;
+
+                        const serverImg = (serverMatch.imageUrl && serverMatch.imageUrl.trim() !== "") ? serverMatch.imageUrl : null;
+                        const localImg = (localItem.image && localItem.image.trim() !== "") ? localItem.image : null;
+
+                        const finalImage = (apiAttrs.wrapImage as string) ||
+                            (localImg?.startsWith('blob:') ? localImg : null) ||
+                            serverImg ||
+                            (isServerCustom || isLocalCustom ? "/images/logo_no_name.svg" : (localImg || "/placeholder.png"));
+
+                        // Heuristic: Enrich color/size from itemName if missing
+                        let inferredColor = localItem.color || (apiAttrs.color as string) || "";
+                        let inferredSize = localItem.size || (apiAttrs.size as string) || "";
+
+                        const nameParts = (serverMatch.itemName || localItem.name).split(" - ");
+                        let cleanName = nameParts[0];
+
+                        if (nameParts.length > 1) {
+                            nameParts.slice(1).forEach(p => {
+                                const val = p.trim();
+                                const isHex = val.startsWith('#');
+                                const isSize = (/\d+x\d+/.test(val) || val.toLowerCase().match(/^(s|m|l|xl|xxl)$/));
+
+                                if (isHex || isSize || val.length < 15) {
+                                    if (!inferredSize && isSize) inferredSize = val;
+                                    else if (!inferredColor && (isHex || (!isSize && val.length > 2))) inferredColor = val;
+                                } else {
+                                    cleanName += ` - ${val}`;
+                                }
+                            });
+                        }
 
                         newCart.push({
                             ...localItem,
                             id: serverMatch.id,
+                            isCustom: isServerCustom || isLocalCustom,
                             quantity: serverMatch.quantity,
                             price: unitPrice,
                             subtotal: unitPrice * serverMatch.quantity,
                             sku: serverMatch.sku || localItem.sku,
+                            image: finalImage,
+                            name: cleanName,
+                            color: inferredColor,
+                            size: inferredSize,
                             customAttributes: apiAttrs,
                             isAvailable: serverMatch.isAvailable,
                             availableStock: serverMatch.availableStock,
+                            comboId: serverMatch.comboId || localItem.comboId, // Preserve local ID (slug) if server returns null
+                            productVariantId: serverMatch.productVariantId || localItem.productVariantId,
                         });
                         localHashesProcessed.add(hash);
                     } else {
+                        // FUZZY MATCHING: Stricter check to allow multiple different custom items
                         const isPending = localItem.id.startsWith('c_') || localItem.id.startsWith('l_') || localItem.id.includes('_');
+
+                        let likelyMatchedOnServer = false;
                         if (isPending) {
+                            for (const sItem of serverPool.values()) {
+                                // Match only if same variant AND it hasn't been claimed by another hash-match yet
+                                // AND it has a similar number of custom details (heuristic for being the "same" item)
+                                if (sItem.productVariantId === localItem.productVariantId && sItem.comboId === localItem.comboId) {
+                                    const sCustomLen = sItem.productCustomizeDetails?.length || 0;
+                                    const lCustomLen = localItem.ProductCustomizeDetailRequest?.length || 0;
+
+                                    if (Math.abs(sCustomLen - lCustomLen) <= 1) { // Accept minor normalization differences
+                                        likelyMatchedOnServer = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+
+                        if (isPending && !likelyMatchedOnServer) {
                             newCart.push(localItem);
                             localHashesProcessed.add(hash);
                         }
@@ -175,6 +248,24 @@ export const useCartStore = create<CartState>()(
                 for (const [hash, sItem] of serverPool.entries()) {
                     if (localHashesProcessed.has(hash)) continue;
 
+                    // FUZZY RECOVERY: The ultimate matching strategy to bridge Guest -> User gap
+                    const sNameRaw = sItem.itemName || "";
+                    const sNameNorm = sNameRaw.toLowerCase().replace(/[^a-z0-9]/g, '');
+                    
+                    const localMatch = currentCart.find(l => {
+                        const lNameRaw = l.name || "";
+                        const lNameNorm = lNameRaw.toLowerCase().replace(/[^a-z0-9]/g, '');
+                        
+                        const nameMatch = lNameNorm === sNameNorm || 
+                                        (lNameNorm.includes(sNameNorm) && sNameNorm.length > 5) ||
+                                        (sNameNorm.includes(lNameNorm) && lNameNorm.length > 5);
+                        
+                        return (l.productVariantId === sItem.productVariantId && l.productVariantId !== null) ||
+                               (l.comboId === sItem.comboId && l.comboId !== null) ||
+                               (l.sku === sItem.sku && sItem.sku) ||
+                               nameMatch;
+                    });
+
                     const unitPrice = (sItem.unitPrice || 0) + (sItem.totalAddOnPrice || 0);
                     const apiAttrs: Record<string, string | number | undefined> = {};
 
@@ -182,23 +273,48 @@ export const useCartStore = create<CartState>()(
                         apiAttrs[normalizeAttrKey(d.customizeTypeName)] = d.customizeContent;
                     });
 
+                    // Heuristic: Extract color/size from itemName for standard products if missing
+                    let inferredColor = (apiAttrs.color as string) || (localMatch?.color) || "";
+                    let inferredSize = (apiAttrs.size as string) || (localMatch?.size) || "";
+
+                    const nameParts = (sItem.itemName || "DreamGuard Product").split(" - ");
+                    let cleanName = nameParts[0];
+
+                    if (nameParts.length > 1) {
+                        nameParts.slice(1).forEach(p => {
+                            const val = p.trim();
+                            const isHex = val.startsWith('#');
+                            const isSize = (/\d+x\d+/.test(val) || val.toLowerCase().match(/^(s|m|l|xl|xxl)$/));
+
+                            if (isHex || isSize || val.length < 15) {
+                                if (!inferredSize && isSize) inferredSize = val;
+                                else if (!inferredColor && (isHex || (!isSize && val.length > 2))) inferredColor = val;
+                            } else {
+                                cleanName += ` - ${val}`;
+                            }
+                        });
+                    }
+
+                    const serverImg = (sItem.imageUrl && sItem.imageUrl.trim() !== "") ? sItem.imageUrl : null;
+                    const fallbackImg = localMatch?.image || (sItem.comboId ? "/images/combo-placeholder.png" : "/placeholder.png");
+
                     newCart.push({
                         id: sItem.id,
-                        name: sItem.itemName || "Bespoke Product",
-                        image: sItem.imageUrl || "",
+                        name: cleanName,
+                        image: serverImg || fallbackImg,
                         price: unitPrice,
                         quantity: sItem.quantity,
                         subtotal: unitPrice * sItem.quantity,
                         productVariantId: sItem.productVariantId ?? null,
                         comboId: sItem.comboId ?? null,
-                        color: (apiAttrs.color as string) || "",
-                        size: (apiAttrs.size as string) || "",
+                        color: inferredColor,
+                        size: inferredSize,
                         customAttributes: apiAttrs,
                         configHash: hash,
                         sku: sItem.sku,
                         availableStock: sItem.availableStock,
                         isAvailable: sItem.isAvailable,
-                        isCustom: sItem.productCustomizeDetails && sItem.productCustomizeDetails.length > 0
+                        isCustom: localMatch?.isCustom || (sItem.productCustomizeDetails && sItem.productCustomizeDetails.length > 0)
                     } as CartItem);
                 }
 

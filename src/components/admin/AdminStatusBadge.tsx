@@ -71,6 +71,12 @@ const STATUS_MAP: Record<string, StatusType> = {
   'purchase': 'emerald',
   'deposit': 'emerald',
   'tradein': 'emerald',
+  'checkedin': 'sky',
+  'checked_in': 'sky',
+  'checkedout': 'neutral',
+  'checked_out': 'neutral',
+  'inprogress': 'amber',
+  'in_progress': 'amber',
 
   // Neutral for fallback
   'archived': 'neutral',
@@ -225,6 +231,12 @@ const ICON_MAP: Record<string, React.ElementType> = {
   'service': Sparkles,
   'order': Package,
   'tradein': RefreshCcw,
+  'checkedin': MapPin,
+  'checked_in': MapPin,
+  'checkedout': MinusCircle,
+  'checked_out': MinusCircle,
+  'inprogress': Clock4,
+  'in_progress': Clock4,
 };
 
 const PAYMENT_CONFIG: Record<string, { container: string, textColor: string, iconBg: string, icon: string }> = {
@@ -296,6 +308,12 @@ const LABEL_MAP: Record<string, string> = {
   'service': 'Service',
   'order': 'Product Order',
   'tradein': 'Trade-In Order',
+  'checkedin': 'Checked In',
+  'checked_in': 'Checked In',
+  'checkedout': 'Checked Out',
+  'checked_out': 'Checked Out',
+  'inprogress': 'In Progress',
+  'in_progress': 'In Progress',
 };
 
 const formatLabelFallback = (label: string) => {

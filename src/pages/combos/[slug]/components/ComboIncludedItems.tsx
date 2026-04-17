@@ -1,7 +1,11 @@
+import { memo } from "react";
 import { motion } from "framer-motion";
 import { Package } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Combo, RichComboItem } from "../../types";
+import { useVariant } from "@/hooks/queries/useVariant";
+import type { VariantResponse, VariantAttributes } from "@/api/services/variantService";
+import { cn } from "@/lib/utils";
 
 interface Props {
     combo: Combo;
@@ -9,6 +13,42 @@ interface Props {
     isLoading?: boolean;
     enrichedItems?: RichComboItem[];
 }
+
+import { useProductDetail } from "@/hooks/queries/useProduct";
+
+const SubItemImage = memo(({ variantId, fallbackImage, alt }: { variantId: string; fallbackImage?: string; alt: string }) => {
+    const { data: variantData, isLoading: isVarLoading } = useVariant(variantId || "");
+    const variant = variantData as VariantResponse;
+    const vImg = (variant?.attributes as VariantAttributes)?.imageUrl || (variant as { imageUrl?: string })?.imageUrl;
+    
+    // Recovery: Fetch root product if variant has no image
+    const productId = variant?.productId || (variant as { product?: { id: string } })?.product?.id || "";
+    const { data: productData } = useProductDetail(productId, !!productId && (!vImg || (vImg as string).length < 5) && (!fallbackImage || (fallbackImage as string).length < 5));
+    
+    const pData = productData as { imageUrls?: string[]; imageUrl?: string; assets?: { url: string }[] };
+    const pImg = pData?.imageUrls?.[0] || pData?.imageUrl || pData?.assets?.[0]?.url || (variant as { product?: { imageUrl?: string } })?.product?.imageUrl;
+
+    const imageUrl = ((vImg as string)?.length > 5) ? (vImg as string) : ((fallbackImage as string)?.length > 5) ? (fallbackImage as string) : (pImg as string);
+    const isLoading = isVarLoading;
+
+    if (isLoading && !imageUrl) {
+        return <div className="w-full h-full bg-slate-50 animate-pulse" />;
+    }
+
+    return (
+        <img 
+            src={imageUrl || "/placeholder.png"} 
+            alt={alt} 
+            className={cn("w-full h-full object-contain transition-all duration-700 group-hover:scale-110 group-hover:rotate-3", !imageUrl && "opacity-0", imageUrl && "opacity-100")} 
+            onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                if (!target.src.includes('placeholder.png')) {
+                    target.src = "/placeholder.png";
+                }
+            }}
+        />
+    );
+});
 
 export const ComboIncludedItems = ({ combo, activeCombo, isLoading, enrichedItems }: Props) => {
     const current = activeCombo || combo;
@@ -80,18 +120,11 @@ export const ComboIncludedItems = ({ combo, activeCombo, isLoading, enrichedItem
 
                                 <div className="relative mb-8">
                                     <div className="aspect-square rounded-[2rem] bg-slate-50 overflow-hidden flex items-center justify-center p-8 border border-slate-100 group-hover:bg-primary-50/30 transition-colors duration-500">
-                                         {item.imageUrl ? (
-                                            <img 
-                                                src={item.imageUrl} 
-                                                alt={item.productName} 
-                                                className="w-full h-full object-contain group-hover:scale-110 group-hover:rotate-3 transition-transform duration-700"
-                                            />
-                                         ) : (
-                                            <div className="flex flex-col items-center gap-3">
-                                                <Package className="w-12 h-12 text-slate-200 group-hover:text-primary-200 transition-colors" />
-                                                <div className="px-3 py-1 bg-white border border-slate-100 rounded-lg text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Premium Item</div>
-                                            </div>
-                                         )}
+                                         <SubItemImage 
+                                            variantId={item.productVariantId || item.variantId || ""} 
+                                            fallbackImage={item.imageUrl} 
+                                            alt={item.productName || ""} 
+                                         />
                                     </div>
                                 </div>
                                 
