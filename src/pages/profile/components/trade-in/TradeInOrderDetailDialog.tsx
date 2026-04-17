@@ -3,7 +3,6 @@ import { createPortal } from "react-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import {
     MapPin,
     ArrowLeftRight,
@@ -27,6 +26,7 @@ import { normalizeTradeInStatus } from "@/utils/tradeInWorkflow";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { FormattedDescription } from "@/components/common/FormattedDescription";
+import { useProductDetail } from "@/hooks/queries";
 
 interface TradeInOrderDetailDialogProps {
     tradeInOrderId: string;
@@ -37,6 +37,13 @@ interface TradeInOrderDetailDialogProps {
 export const TradeInOrderDetailDialog = ({ tradeInOrderId, orderCode, trigger }: TradeInOrderDetailDialogProps) => {
     const [open, setOpen] = React.useState(false);
     const { data: order, isLoading } = useCustomerTradeInOrderDetail(tradeInOrderId, { enabled: open });
+    const { data: product } = useProductDetail(order?.productVariant?.productId || "", !!order?.productVariant?.productId);
+
+    const targetProductImage = (order?.productVariant?.attributes?.imageUrls as string[])?.[0] ||
+        (order?.productVariant?.attributes?.imageUrl as string) ||
+        product?.imageUrls?.[0] ||
+        product?.assets?.[0]?.url;
+
     const [previewIndex, setPreviewIndex] = React.useState<number | null>(null);
     const [isRetryingPayment, setIsRetryingPayment] = React.useState(false);
     const [isRetryPaymentConfirmOpen, setIsRetryPaymentConfirmOpen] = React.useState(false);
@@ -83,12 +90,12 @@ export const TradeInOrderDetailDialog = ({ tradeInOrderId, orderCode, trigger }:
         if (!order) return [];
         const imgs: string[] = [];
         if ((order.orderItem as { image?: string })?.image) imgs.push((order.orderItem as { image?: string }).image!);
-        if ((order.productVariant as { image?: string })?.image) imgs.push((order.productVariant as { image?: string }).image!);
+        if (targetProductImage) imgs.push(targetProductImage);
         if (order.tradeInImages) {
             order.tradeInImages.forEach(img => imgs.push(img.imageUrl));
         }
         return imgs;
-    }, [order]);
+    }, [order, targetProductImage]);
 
     const handlePrev = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -106,22 +113,23 @@ export const TradeInOrderDetailDialog = ({ tradeInOrderId, orderCode, trigger }:
                 <DialogTrigger asChild>
                     {trigger}
                 </DialogTrigger>
-                <DialogContent className="max-w-3xl max-h-[92vh] p-0 overflow-hidden rounded-xl border-none shadow-2xl bg-gray-100 flex flex-col">
-                    <DialogHeader className="bg-white border-b border-gray-100 pl-6 pr-12 py-4 flex flex-row items-center justify-between shrink-0 relative space-y-0">
-                        <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center text-primary">
-                                <Box className="w-5 h-5" />
+                <DialogContent className="max-w-4xl max-h-[92vh] p-0 overflow-hidden rounded-2xl border-none shadow-[0_32px_64px_-16px_rgba(0,0,0,0.2)] bg-gray-50/50 flex flex-col">
+                    <DialogHeader className="bg-white border-b border-slate-100 pl-8 pr-12 py-6 flex flex-row items-center justify-between shrink-0 relative space-y-0">
+                        <div className="flex items-center gap-5">
+                            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
+                                <Box className="w-6 h-6" />
                             </div>
                             <div className="text-left">
-                                <DialogTitle className="text-[16px] font-black text-gray-900 uppercase tracking-tight">Trade-In Manifest</DialogTitle>
-                                <div className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">
-                                    Transaction Code: {orderCode}
+                                <DialogTitle className="text-xl font-black text-slate-900 uppercase tracking-tight leading-none">Trade-In Manifest</DialogTitle>
+                                <div className="text-[12px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-2 flex items-center gap-2">
+                                    <span className="w-2 h-[1px] bg-slate-200" />
+                                    Transaction: {orderCode}
                                 </div>
                             </div>
                         </div>
                         {order && statusTheme && (
                             <div
-                                className="px-4 py-1.5 rounded-full text-[11px] font-bold text-white uppercase tracking-widest shadow-sm"
+                                className="px-6 py-2 rounded-xl text-[12px] font-black text-white uppercase tracking-[0.15em] shadow-lg shadow-primary/20"
                                 style={{ backgroundColor: statusTheme.color }}
                             >
                                 {statusTheme.label}
@@ -129,24 +137,26 @@ export const TradeInOrderDetailDialog = ({ tradeInOrderId, orderCode, trigger }:
                         )}
                     </DialogHeader>
 
-                    <div className="flex-1 overflow-y-auto no-scrollbar">
+                    <div className="flex-1 overflow-y-auto no-scrollbar scroll-smooth">
                         {isLoading ? (
-                            <div className="flex flex-col items-center justify-center py-40 gap-4 bg-white">
-                                <div className="w-7 h-7 border-[3px] border-primary border-t-transparent rounded-full animate-spin" />
-                                <p className="text-[12px] font-bold text-gray-400 tracking-wider uppercase">Fetching assessment details...</p>
+                            <div className="flex flex-col items-center justify-center py-48 gap-6 bg-white">
+                                <div className="w-10 h-10 border-[4px] border-primary/20 border-t-primary rounded-full animate-spin" />
+                                <p className="text-[13px] font-black text-slate-400 tracking-[0.3em] uppercase">Authenticating request details...</p>
                             </div>
                         ) : order ? (
-                            <div className="space-y-3 pb-8">
+                            <div className="space-y-4 pb-12">
                                 {/* Upgrade Path Section */}
-                                <div className="bg-white">
-                                    <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
-                                        <div className="flex items-center gap-2.5">
-                                            <Truck className="w-4 h-4 text-gray-400" />
-                                            <span className="text-[13px] font-black text-gray-800 tracking-tight uppercase">Logistics Manifest</span>
+                                <div className="bg-white shadow-sm">
+                                    <div className="px-8 py-5 border-b border-slate-50 flex items-center justify-between bg-slate-50/30">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-1.5 bg-white rounded-lg border border-slate-200 shadow-sm">
+                                                <Truck className="w-4 h-4 text-primary" />
+                                            </div>
+                                            <span className="text-[14px] font-black text-slate-800 tracking-tight uppercase">Strategic Exchange Program</span>
                                         </div>
-                                        <Badge variant="outline" className="text-[9px] font-black border-slate-100 text-slate-400">Standard Fulfillment</Badge>
+                                        <Badge variant="outline" className="text-[10px] font-black border-primary/20 text-primary bg-primary/[0.02] px-3">Standard Fulfilment</Badge>
                                     </div>
-                                    <div className="p-6">
+                                    <div className="p-8">
                                         <div className="flex flex-col md:flex-row items-stretch gap-4 relative">
                                             {/* Source Device Package */}
                                             <div className="flex-1 p-5 rounded-2xl bg-slate-50/50 border border-slate-200/60 shadow-sm relative group/card">
@@ -157,7 +167,7 @@ export const TradeInOrderDetailDialog = ({ tradeInOrderId, orderCode, trigger }:
                                                             {(order.orderItem as { image?: string })?.image ? (
                                                                 <img
                                                                     src={(order.orderItem as { image?: string }).image}
-                                                                    className="w-full h-full object-cover rounded-lg cursor-zoom-in"
+                                                                    className="w-full h-full object-contain rounded-lg cursor-zoom-in"
                                                                     alt="Source"
                                                                     onClick={() => setPreviewIndex(0)}
                                                                 />
@@ -184,7 +194,7 @@ export const TradeInOrderDetailDialog = ({ tradeInOrderId, orderCode, trigger }:
                                                                         key={idx}
                                                                         className="w-12 h-12 rounded-lg overflow-hidden border border-slate-200 bg-white shadow-xs flex-shrink-0 transition-all hover:scale-105 hover:border-primary/40 cursor-zoom-in relative group/img"
                                                                         onClick={() => {
-                                                                            const baseOffset = ((order.orderItem as { image?: string })?.image ? 1 : 0) + ((order.productVariant as { image?: string })?.image ? 1 : 0);
+                                                                            const baseOffset = ((order.orderItem as { image?: string })?.image ? 1 : 0) + (targetProductImage ? 1 : 0);
                                                                             setPreviewIndex(baseOffset + idx);
                                                                         }}
                                                                     >
@@ -212,10 +222,10 @@ export const TradeInOrderDetailDialog = ({ tradeInOrderId, orderCode, trigger }:
                                                 <div className="space-y-4 relative z-10">
                                                     <div className="flex gap-4">
                                                         <div className="w-20 h-20 rounded-xl bg-white border border-primary/10 overflow-hidden shrink-0 shadow-sm p-1">
-                                                            {(order.productVariant as { image?: string })?.image ? (
+                                                            {targetProductImage ? (
                                                                 <img
-                                                                    src={(order.productVariant as { image?: string }).image}
-                                                                    className="w-full h-full object-cover rounded-lg cursor-zoom-in"
+                                                                    src={targetProductImage}
+                                                                    className="w-full h-full object-contain rounded-lg cursor-zoom-in"
                                                                     alt="Target"
                                                                     onClick={() => {
                                                                         const sourceOffset = (order.orderItem as { image?: string })?.image ? 1 : 0;
@@ -232,12 +242,17 @@ export const TradeInOrderDetailDialog = ({ tradeInOrderId, orderCode, trigger }:
                                                             <p className="text-[10px] font-black text-primary uppercase tracking-widest">Luxury Outbound</p>
                                                             <p className="text-[14px] font-black text-slate-900 leading-tight truncate">{order.productVariant?.sku}</p>
                                                             <div className="flex flex-wrap gap-1">
-                                                                <Badge variant="outline" className="text-[8px] font-black uppercase tracking-tight bg-white border-slate-200 h-4 px-1.5">Size: {order.productVariant?.size}</Badge>
-                                                                {Object.entries(order.productVariant?.attributes || {}).slice(0, 2).map(([key, val]) => (
-                                                                    <Badge key={key} variant="outline" className="text-[8px] font-black uppercase tracking-tight bg-white border-slate-200 h-4 px-1.5">
-                                                                        {key[0]}: {String(val)}
-                                                                    </Badge>
-                                                                ))}
+                                                                {order.productVariant?.size && (
+                                                                    <Badge variant="outline" className="text-[8px] font-black uppercase tracking-tight bg-white border-slate-200 h-4 px-1.5">Size: {order.productVariant?.size}</Badge>
+                                                                )}
+                                                                {Object.entries(order.productVariant?.attributes || {}).slice(0, 2).map(([key, val]) => {
+                                                                    const displayKey = key.toLowerCase().replace('variant', '').replace('color', 'Clr');
+                                                                    return (
+                                                                        <Badge key={key} variant="outline" className="text-[8px] font-black uppercase tracking-tight bg-white border-slate-200 h-4 px-1.5">
+                                                                            {displayKey}: {String(val)}
+                                                                        </Badge>
+                                                                    );
+                                                                })}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -259,96 +274,109 @@ export const TradeInOrderDetailDialog = ({ tradeInOrderId, orderCode, trigger }:
                                 </div>
 
                                 {/* Assessment Details */}
-                                <div className="bg-white px-6 py-5 space-y-4">
-                                    <div className="flex items-center gap-2.5 mb-2">
-                                        <ShieldCheck className="w-4 h-4 text-gray-500" />
-                                        <span className="text-[14px] font-bold text-gray-800 tracking-tight">Technical Assessment</span>
+                                <div className="bg-white px-8 py-8 space-y-6 shadow-sm">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-1.5 bg-slate-50 rounded-lg border border-slate-100">
+                                            <ShieldCheck className="w-5 h-5 text-primary" />
+                                        </div>
+                                        <span className="text-[16px] font-black text-slate-800 tracking-tight uppercase">Technical Assessment</span>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="p-4 rounded-xl border border-gray-100 bg-gray-50/50 space-y-1">
-                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Product Condition</p>
-                                            <div className="flex items-center gap-1.5 pt-1">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="p-5 rounded-2xl border border-slate-100 bg-slate-50/30 space-y-3">
+                                            <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.15em]">Authentic State</p>
+                                            <div className="flex items-center gap-2">
                                                 {order.isGood ? (
-                                                    <Badge className="bg-emerald-50 text-emerald-600 border-emerald-100 rounded-lg text-[9px] font-black uppercase tracking-widest px-2 py-0.5 shadow-none">
-                                                        <span className="w-1 h-1 rounded-full bg-emerald-500 mr-1.5" />
-                                                        Premium State
+                                                    <Badge className="bg-emerald-500 text-white border-none rounded-xl text-[10px] font-black uppercase tracking-widest px-3 py-1 shadow-md shadow-emerald-200/50">
+                                                        Premium Selection
                                                     </Badge>
                                                 ) : (
-                                                    <Badge className="bg-amber-50 text-amber-600 border-amber-100 rounded-lg text-[9px] font-black uppercase tracking-widest px-2 py-0.5 shadow-none">
-                                                        <span className="w-1 h-1 rounded-full bg-amber-500 mr-1.5" />
-                                                        Standard State
+                                                    <Badge className="bg-amber-500 text-white border-none rounded-xl text-[10px] font-black uppercase tracking-widest px-3 py-1 shadow-md shadow-amber-200/50">
+                                                        Authenticated Standard
                                                     </Badge>
                                                 )}
                                             </div>
                                         </div>
-                                        <div className="p-4 rounded-xl border border-gray-100 bg-gray-50/50 space-y-1 text-right">
-                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Assessment Date</p>
-                                            <p className="text-xs font-bold text-gray-900 pt-1 uppercase tracking-tight">{formatDate(order.createdAt)}</p>
+                                        <div className="p-5 rounded-2xl border border-slate-100 bg-slate-50/30 space-y-3">
+                                            <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.15em]">Assessment Timeline</p>
+                                            <p className="text-sm font-black text-slate-700 uppercase tracking-tighter">{formatDate(order.createdAt)}</p>
                                         </div>
                                     </div>
-                                        <div className="p-4 bg-gray-50/80 rounded-lg border border-gray-100 text-left">
-                                            <div className="flex items-center gap-2 mb-1.5">
-                                                <Info className="w-3 h-3 text-gray-400" />
-                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Expert Notes</span>
-                                            </div>
-                                            <FormattedDescription 
-                                                content={order.description ? `"${order.description}"` : null}
-                                                className="text-[12px] text-gray-600 italic font-medium leading-relaxed"
-                                            />
+                                    <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100/50 text-left relative overflow-hidden group">
+                                        <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                                            <Info className="w-12 h-12" />
                                         </div>
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Expert Log</span>
+                                        </div>
+                                        <FormattedDescription
+                                            content={order.description ? `"${order.description}"` : "No specific technical deviations recorded during inspection."}
+                                            className="text-[13px] text-slate-600 font-medium leading-relaxed italic"
+                                        />
+                                    </div>
                                 </div>
 
                                 {/* Logistics info */}
-                                <div className="bg-white px-6 py-5">
-                                    <div className="flex items-center gap-2.5 mb-4">
-                                        <MapPin className="w-4 h-4 text-gray-500" />
-                                        <span className="text-[14px] font-bold text-gray-800 tracking-tight">Logistics Details</span>
+                                <div className="bg-white px-8 py-8 shadow-sm">
+                                    <div className="flex items-center gap-3 mb-6">
+                                        <div className="p-1.5 bg-slate-50 rounded-lg border border-slate-100">
+                                            <MapPin className="w-5 h-5 text-primary" />
+                                        </div>
+                                        <span className="text-[16px] font-black text-slate-800 tracking-tight uppercase">Fulfilment Coordinates</span>
                                     </div>
-                                    <div className="grid md:grid-cols-2 gap-6">
-                                        <div className="space-y-1.5">
-                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Recipient</p>
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500">
-                                                    <User className="w-4 h-4" />
+                                    <div className="grid md:grid-cols-2 gap-10">
+                                        <div className="space-y-3">
+                                            <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.15em]">Designated Recipient</p>
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-500 shadow-inner">
+                                                    <User className="w-6 h-6" />
                                                 </div>
                                                 <div>
-                                                    <p className="text-[12px] font-bold text-gray-900">{order.receiverName}</p>
-                                                    <p className="text-[11px] font-medium text-gray-500">{order.phoneNumber}</p>
+                                                    <p className="text-[14px] font-black text-slate-900 leading-none">{order.receiverName}</p>
+                                                    <p className="text-[12px] font-bold text-slate-400 mt-2 tracking-tight">{order.phoneNumber}</p>
                                                 </div>
                                             </div>
                                         </div>
-                                        <div className="space-y-1.5">
-                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Pickup/Delivery Address</p>
-                                            <p className="text-[12px] font-medium text-gray-600 leading-snug">{order.address}</p>
+                                        <div className="space-y-3">
+                                            <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.15em]">Logistics Address</p>
+                                            <p className="text-[14px] font-bold text-slate-600 leading-relaxed max-w-[280px]">{order.address}</p>
                                         </div>
                                     </div>
                                 </div>
 
-                                {/* Financial Summary - Refined to match standard PricingSummary */}
-                                <div className="bg-white px-6 py-6 space-y-4">
-                                    <div className="flex justify-between items-center text-[13px] font-medium text-gray-500">
-                                        <span>Target Investment</span>
-                                        <span className="text-gray-900 font-bold">{formatPrice(order.productVariant?.salePrice || 0)}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center text-[13px] font-medium">
-                                        <span className="text-emerald-600 font-bold">Trade-In Allowance</span>
-                                        <span className="text-emerald-600 font-bold">-{formatPrice(order.tradeInPrice)}</span>
-                                    </div>
-                                    {order.depositAmount > 0 && (
-                                        <div className="flex justify-between items-center text-[13px] font-medium text-gray-500">
-                                            <div className="flex items-center gap-2">
-                                                <span>Initial Deposit</span>
-                                                <Badge variant="outline" className="h-5 px-2 bg-emerald-50 border-emerald-100 text-emerald-600 text-[9px] font-black uppercase shadow-none">Verified</Badge>
-                                            </div>
-                                            <span className="text-red-500">-{formatPrice(order.depositAmount)}</span>
+                                {/* Financial Summary */}
+                                <div className="bg-slate-900 mx-8 mt-4 rounded-3xl p-8 space-y-6 shadow-2xl shadow-slate-900/20 relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full -mr-32 -mt-32 blur-3xl" />
+                                    <div className="flex items-center gap-3 relative z-10">
+                                        <div className="p-1.5 bg-white/10 rounded-lg border border-white/5">
+                                            <ArrowLeftRight className="w-4 h-4 text-white" />
                                         </div>
-                                    )}
-                                    <Separator className="bg-gray-50 my-2" />
-                                    <div className="flex justify-between items-center pt-1">
-                                        <span className="text-[15px] font-bold text-gray-900">Net Settlement</span>
-                                        <span className="text-[24px] font-black text-primary tracking-tighter">
-                                            {formatPrice(order.amountToPay)}
-                                        </span>
+                                        <span className="text-[14px] font-black text-white/60 tracking-[0.2em] uppercase">Settlement Manifest</span>
+                                    </div>
+                                    <div className="space-y-4 relative z-10">
+                                        <div className="flex justify-between items-center text-sm font-bold text-white/40 uppercase tracking-widest">
+                                            <span>Acquisition Value</span>
+                                            <span className="text-white">{formatPrice(order.productVariant?.salePrice || 0)}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-sm font-black tracking-widest">
+                                            <span className="text-emerald-400 uppercase">Trade-In Allowance</span>
+                                            <span className="text-emerald-400">-{formatPrice(order.tradeInPrice)}</span>
+                                        </div>
+                                        {order.depositAmount > 0 && (
+                                            <div className="flex justify-between items-center text-sm font-bold text-white/40 tracking-widest">
+                                                <span className="uppercase">Retained Deposit</span>
+                                                <span className="text-rose-400">-{formatPrice(order.depositAmount)}</span>
+                                            </div>
+                                        )}
+                                        <div className="h-[1px] bg-white/10 my-4" />
+                                        <div className="flex justify-between items-end pt-2">
+                                            <div className="flex flex-col">
+                                                <span className="text-[11px] font-black text-primary uppercase tracking-[0.3em] mb-1">Total Net Settle</span>
+                                                <span className="text-[10px] text-white/30 font-bold uppercase tracking-widest italic">Includes all authenticated deductions</span>
+                                            </div>
+                                            <span className="text-4xl font-black text-white tracking-tighter tabular-nums drop-shadow-md">
+                                                {formatPrice(order.amountToPay)}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
 

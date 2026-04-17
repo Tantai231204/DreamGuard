@@ -11,6 +11,11 @@ interface ProductCardProps {
   isEstimatingPrice?: boolean;
 }
 
+const truncateOrderId = (id: string) => {
+  if (!id) return '';
+  return id.length > 8 ? `...${id.slice(-8)}` : id;
+};
+
 export const ProductCard = memo(function ProductCard({
   product,
   isSelected,
@@ -81,7 +86,7 @@ export const ProductCard = memo(function ProductCard({
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-1">
             <span className="text-[10px] font-black text-[#5C7261] uppercase tracking-[0.14em]">
-              Order #{product.orderId || '--'}
+              REF: {truncateOrderId(product.orderId)}
             </span>
             <span className="h-1 w-1 rounded-full bg-[#DCE7DF]" />
             <div className="flex items-center gap-1.5 text-[10px] text-[#7D8E80] font-bold uppercase tracking-wider">

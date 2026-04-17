@@ -14,6 +14,7 @@ import type {
   TradeInActionResponse,
   TradeInOrderDetailResponse,
 } from '@/api/types/tradeInOrder';
+import { paymentKeys } from './usePayment';
 import { useAuthStore } from '@/store/authStore';
 import { isAdminOrManager, isAnyStaff } from '@/lib/role';
 import {
@@ -180,6 +181,7 @@ export const useTransitionTradeInStatus = (orderId: string) => {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.all });
+      queryClient.invalidateQueries({ queryKey: paymentKeys.all });
     }
   });
 };
@@ -236,6 +238,7 @@ export const useConfirmTradeInDeal = (orderId: string) => {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.all });
+      queryClient.invalidateQueries({ queryKey: paymentKeys.all });
     }
   });
 };

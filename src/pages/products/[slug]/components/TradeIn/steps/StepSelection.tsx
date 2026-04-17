@@ -45,6 +45,9 @@ export const StepSelection = memo(function StepSelection({
                 ? 'Loading your eligible bedding order items'
                 : `${eligibleProducts.length} items eligible. We show trade-in value as From estimate, then finalize after inspection.`}
             </p>
+            <p className="mt-2 text-[11px] text-[#8C7A6B] font-bold italic leading-relaxed">
+              * Note: Only applicable for products purchased in the same category (parent category) as the product you want to trade up to.
+            </p>
           </div>
 
           {selectedCount > 0 && (

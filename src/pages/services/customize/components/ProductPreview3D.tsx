@@ -141,8 +141,15 @@ const GLTFModel = memo(({ url, designRef, customImage, transformRef, onBoundsRea
       return;
     }
 
+    let active = true;
     const loader = new THREE.TextureLoader();
+    
     loader.load(customImage, (tex) => {
+      if (!active) {
+        tex.dispose();
+        return;
+      }
+
       tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
       tex.minFilter = THREE.LinearMipmapLinearFilter;
       tex.magFilter = THREE.LinearFilter;
@@ -150,9 +157,19 @@ const GLTFModel = memo(({ url, designRef, customImage, transformRef, onBoundsRea
       tex.anisotropy = Math.min(gl.capabilities.getMaxAnisotropy(), 8);
       tex.generateMipmaps = true;
       tex.needsUpdate = true;
+
+      // Dispose previous texture if it's a real texture (not the placeholder)
+      if (uRef.current.uMap.value && uRef.current.uMap.value.dispose && uRef.current.uMap.value.image) {
+        uRef.current.uMap.value.dispose();
+      }
+
       uRef.current.uMap.value = tex;
       uRef.current.uUseMap.value = 1;
     });
+
+    return () => {
+      active = false;
+    };
   }, [customImage, gl]);
 
   useLayoutEffect(() => {
@@ -176,17 +193,40 @@ const GLTFModel = memo(({ url, designRef, customImage, transformRef, onBoundsRea
     }
   }, [nodes, mat, scene, onBoundsReady]);
 
+  const lastState = useRef({ color: "", x: 0, y: 0, scale: 0, rotation: 0 });
+
   useFrame(() => {
     const d = designRef.current;
     const u = uRef.current;
     if (!d) return;
 
-    u.uColor.value.set(d.baseColor || "#B0D4F1");
-    if (u.uUseMap.value > 0.5) {
-      const t = transformRef.current;
-      u.uMapScale.value = t.scale;
-      u.uMapOffset.value.set(t.x, t.y);
-      u.uRotation.value = t.rotation || 0;
+    const t = transformRef.current;
+    const currentColor = d.baseColor || "#B0D4F1";
+
+    // Only update uniforms if state has drifted
+    if (
+      lastState.current.color !== currentColor ||
+      lastState.current.x !== t.x ||
+      lastState.current.y !== t.y ||
+      lastState.current.scale !== t.scale ||
+      lastState.current.rotation !== t.rotation
+    ) {
+      u.uColor.value.set(currentColor);
+      
+      if (u.uUseMap.value > 0.5) {
+        u.uMapScale.value = t.scale;
+        u.uMapOffset.value.set(t.x, t.y);
+        u.uRotation.value = t.rotation || 0;
+      }
+
+      // Sync local state bitmask
+      lastState.current = {
+        color: currentColor,
+        x: t.x,
+        y: t.y,
+        scale: t.scale,
+        rotation: t.rotation
+      };
     }
   });
 

@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useState, memo } from "react";
 import { motion } from "framer-motion";
-import { Heart, Share2, Sparkles, Package } from "lucide-react";
+import { Heart, Share2, Sparkles } from "lucide-react";
 import { cn, formatPrice } from "@/lib/utils";
 import type { Combo, RichComboItem } from "../../types";
+import { useProductDetail } from "@/hooks/queries/useProduct";
+import { useVariant } from "@/hooks/queries/useVariant";
+import type { VariantResponse, VariantAttributes } from "@/api/services/variantService";
 
 interface Props {
     combo: Combo;
@@ -12,6 +15,40 @@ interface Props {
     displayImage?: string | null;
     enrichedItems?: RichComboItem[];
 }
+
+const SubItemImage = memo(({ variantId, fallbackImage, alt }: { variantId: string; fallbackImage?: string; alt: string }) => {
+    const { data: variantData, isLoading: isVarLoading } = useVariant(variantId || "");
+    const variant = variantData as VariantResponse;
+    const vImg = (variant?.attributes as VariantAttributes)?.imageUrl || (variant as { imageUrl?: string })?.imageUrl;
+    
+    // Recovery: Fetch root product if variant has no image
+    const productId = variant?.productId || (variant as { product?: { id: string } })?.product?.id || "";
+    const { data: productData } = useProductDetail(productId, !!productId && (!vImg || (vImg as string).length < 5) && (!fallbackImage || fallbackImage.length < 5));
+    
+    const pData = productData as { imageUrls?: string[]; imageUrl?: string; assets?: { url: string }[] };
+    const pImg = pData?.imageUrls?.[0] || pData?.imageUrl || pData?.assets?.[0]?.url || (variant as { product?: { imageUrl?: string } })?.product?.imageUrl;
+
+    const imageUrl = ((vImg as string)?.length > 5) ? (vImg as string) : ((fallbackImage as string)?.length > 5) ? (fallbackImage as string) : (pImg as string);
+    const isLoading = isVarLoading;
+
+    if (isLoading && !imageUrl) {
+        return <div className="w-full h-full bg-slate-50 animate-pulse" />;
+    }
+
+    return (
+        <img 
+            src={imageUrl || "/placeholder.png"} 
+            alt={alt} 
+            className={cn("w-full h-full object-contain transition-all duration-700 group-hover:scale-110", !imageUrl && "opacity-0", imageUrl && "opacity-100")} 
+            onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                if (!target.src.includes('placeholder.png')) {
+                    target.src = "/placeholder.png";
+                }
+            }}
+        />
+    );
+});
 
 export const ComboImageGallery = ({ combo, activeCombo, isWishlisted, onToggleWishlist, displayImage, enrichedItems }: Props) => {
     const [imgError, setImgError] = useState(false);
@@ -57,7 +94,7 @@ export const ComboImageGallery = ({ combo, activeCombo, isWishlisted, onToggleWi
                 ) : (
                     /* Clean Bundle Composition Visual */
                     <div className="aspect-[4/3] flex flex-col items-center justify-center p-8 md:p-12">
-                        <div className="flex items-center justify-center gap-4 md:gap-6 mb-6">
+                        <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6 mb-6">
                             {items.map((item, i) => (
                                 <motion.div
                                     key={i}
@@ -66,8 +103,12 @@ export const ComboImageGallery = ({ combo, activeCombo, isWishlisted, onToggleWi
                                     transition={{ delay: 0.15 + i * 0.12 }}
                                     className="bg-white rounded-2xl shadow-sm border border-white p-5 md:p-6 flex flex-col items-center gap-3 w-[140px] md:w-[160px]"
                                 >
-                                    <div className="w-14 h-14 rounded-2xl bg-[#4988c4]/8 flex items-center justify-center">
-                                        <Package className="w-6 h-6 text-[#4988c4]/60" />
+                                    <div className="w-14 h-14 rounded-2xl bg-[#4988c4]/8 flex items-center justify-center overflow-hidden">
+                                        <SubItemImage 
+                                            variantId={item.productVariantId || ""} 
+                                            fallbackImage={item.imageUrl} 
+                                            alt={item.productName || ""} 
+                                        />
                                     </div>
                                     <p className="text-[12px] font-bold text-slate-700 text-center leading-tight line-clamp-2">
                                         {item.productName}
@@ -78,7 +119,6 @@ export const ComboImageGallery = ({ combo, activeCombo, isWishlisted, onToggleWi
                                 </motion.div>
                             ))}
                         </div>
-
                         {/* Connecting line */}
                         <div className="flex items-center gap-3 text-[#4988c4]/40">
                             <div className="h-px w-8 bg-[#4988c4]/20" />
@@ -135,8 +175,12 @@ export const ComboImageGallery = ({ combo, activeCombo, isWishlisted, onToggleWi
                                 transition={{ delay: 0.4 + i * 0.08 }}
                                 className="relative bg-white rounded-2xl border border-slate-200/60 p-4 flex flex-col items-center gap-2 hover:border-[#4988c4]/30 hover:shadow-md transition-all group cursor-default"
                             >
-                                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center group-hover:bg-[#4988c4]/5 transition-colors">
-                                    <Package className="w-4 h-4 text-slate-300 group-hover:text-[#4988c4] transition-colors" />
+                                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center group-hover:bg-[#4988c4]/5 transition-colors overflow-hidden">
+                                    <SubItemImage 
+                                        variantId={item.productVariantId || ""} 
+                                        fallbackImage={item.imageUrl} 
+                                        alt={item.productName || ""} 
+                                    />
                                 </div>
                                 <p className="text-[11px] font-bold text-slate-700 text-center leading-tight line-clamp-1 group-hover:text-[#4988c4] transition-colors">
                                     {item.productName}

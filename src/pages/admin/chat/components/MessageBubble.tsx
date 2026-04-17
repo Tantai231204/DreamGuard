@@ -114,30 +114,45 @@ function MessageBubbleInner({ message, formatTime, isLastOutgoing = false, onRet
         {appointment && (
           <div
             className={cn(
-              'w-full rounded-xl border px-3 py-2.5 shadow-sm',
+              'w-full rounded-2xl px-4 py-3.5 shadow-sm',
               isAdmin
-                ? 'bg-emerald-600/95 text-white border-emerald-500'
-                : 'bg-emerald-50 text-emerald-800 border-emerald-200',
+                ? 'bg-emerald-600 text-white shadow-emerald-900/10'
+                : 'bg-emerald-50/80 text-emerald-900 border-none',
             )}
           >
-            <div className="flex items-center gap-1.5 text-[11px] font-semibold">
-              <Pin className="h-3.5 w-3.5" />
-              Lich hen tham dinh da ghim
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className={cn(
+                  "w-6 h-6 rounded-lg flex items-center justify-center",
+                  isAdmin ? "bg-white/20" : "bg-emerald-100"
+                )}>
+                  <Pin className="h-3 w-3" />
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-90">Pinned Protocol</span>
+              </div>
+              <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
             </div>
 
-            <div className="mt-2 space-y-1.5 text-[12px]">
-              <p className="flex items-center gap-1.5">
-                <CalendarClock className="h-3.5 w-3.5" />
-                {appointmentTime}
-              </p>
+            <div className="space-y-2.5">
+              <div className="flex items-center gap-3">
+                <CalendarClock className="h-4 w-4 opacity-70" strokeWidth={2.5} />
+                <span className="text-[13px] font-bold tracking-tight">{appointmentTime}</span>
+              </div>
+              
               {appointment.location && (
-                <p className="flex items-center gap-1.5">
-                  <MapPin className="h-3.5 w-3.5" />
-                  {appointment.location}
-                </p>
+                <div className="flex items-start gap-3">
+                  <MapPin className="h-4 w-4 mt-0.5 opacity-70" strokeWidth={2.5} />
+                  <span className="text-[12px] font-medium leading-tight opacity-90">{appointment.location}</span>
+                </div>
               )}
+
               {appointment.note && (
-                <p className="text-[11px] opacity-90">{appointment.note}</p>
+                <div className={cn(
+                  "mt-3 p-3 rounded-xl text-[11px] font-medium italic leading-relaxed",
+                  isAdmin ? "bg-black/10 text-emerald-50" : "bg-white/60 text-emerald-800"
+                )}>
+                  "{appointment.note}"
+                </div>
               )}
             </div>
           </div>

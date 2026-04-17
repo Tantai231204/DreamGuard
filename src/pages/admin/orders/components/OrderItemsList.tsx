@@ -8,6 +8,7 @@ import { getColorHex } from '@/utils/color-utils';
 import { useVariant } from '@/hooks/queries/useVariant';
 import { useComboDetail } from '@/hooks/queries/useCombo';
 import { ShoppingBag, Box, Layers, ListTree, ChevronDown } from 'lucide-react';
+import { useProductDetail } from '@/hooks/queries';
 
 const MAX_VISIBLE = 3;
 
@@ -82,7 +83,25 @@ function OrderItemRow({ item, index }: OrderItemRowProps) {
   const { data: comboDetail } = useComboDetail(item.comboId || "", isCombo);
 
   const attributes = (variant?.attributes || {}) as Record<string, unknown>;
-  const displayImage = item.image || (attributes.imageUrls as string[])?.[0] || '/images/placeholder-product.svg';
+  const { data: product } = useProductDetail(variant?.productId || "", !!variant?.productId);
+
+  const wrapDetail = item.productCustomizeDetails?.find(d =>
+    d.customizeTypeName.toLowerCase().includes('wrap') ||
+    d.customizeTypeName.toLowerCase().includes('ảnh bọc')
+  );
+
+  const isBespoke = item.productCustomizeDetails && item.productCustomizeDetails.length > 0;
+  
+  const variantImage = (attributes?.imageUrls as string[])?.[0] || 
+                       (attributes?.imageUrl as string) || 
+                       product?.imageUrls?.[0] || 
+                       product?.assets?.[0]?.url;
+
+  const comboImage = comboDetail?.imageUrl;
+
+  const displayImage = (wrapDetail?.customizeContent && wrapDetail.customizeContent.includes('http'))
+    ? wrapDetail.customizeContent
+    : (item.image || comboImage || variantImage || (isBespoke ? '/images/logo_no_name.svg' : '/images/placeholder-product.svg'));
 
   return (
     <motion.div
@@ -98,7 +117,7 @@ function OrderItemRow({ item, index }: OrderItemRowProps) {
               <img
                 src={displayImage}
                 alt={item.itemName}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain"
               />
             </div>
             {isCombo && (
@@ -150,28 +169,39 @@ function OrderItemRow({ item, index }: OrderItemRowProps) {
             {/* Bespoke Manufacturing Section */}
             {item.productCustomizeDetails && item.productCustomizeDetails.length > 0 && (
               <div className="flex flex-wrap gap-2.5 pt-1.5">
-                {item.productCustomizeDetails.map((detail, idx) => (
-                  <div key={idx} className="flex items-center overflow-hidden rounded-lg border border-slate-100 bg-white shadow-sm hover:border-[#4988c4]/30 transition-all">
-                    <div className="px-3 py-1.5 bg-slate-50/50 border-r border-slate-100 flex flex-col justify-center">
-                      <span className="text-[7.5px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none mb-1 opacity-70">{detail.customizeTypeName}</span>
-                      <div className="flex items-center gap-1.5">
-                        {(detail.customizeTypeName.toLowerCase().includes('color')) && (
-                          <div 
-                            className="w-2.5 h-2.5 rounded-full border border-white shadow-sm ring-1 ring-slate-100" 
-                            style={{ backgroundColor: getColorHex(detail.customizeContent) }}
-                          />
-                        )}
-                        <span className="text-[11px] font-bold text-slate-800 leading-none">{detail.customizeContent}</span>
+                {item.productCustomizeDetails.map((detail, idx) => {
+                  const isUrl = detail.customizeContent.includes('http');
+                  const displayContent = isUrl
+                    ? (detail.customizeContent.split('/').pop()?.split('?')[0] || 'Image Asset')
+                    : detail.customizeContent;
+
+                  return (
+                    <div key={idx} className="flex items-center overflow-hidden rounded-lg border border-slate-100 bg-white shadow-sm hover:border-[#4988c4]/30 transition-all">
+                      <div className="px-3 py-1.5 bg-slate-50/50 border-r border-slate-100 flex flex-col justify-center">
+                        <span className="text-[7.5px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none mb-1 opacity-70">
+                          {detail.customizeTypeName}
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          {(detail.customizeTypeName.toLowerCase().includes('color')) && (
+                            <div
+                              className="w-2.5 h-2.5 rounded-full border border-white shadow-sm ring-1 ring-slate-100"
+                              style={{ backgroundColor: getColorHex(detail.customizeContent) }}
+                            />
+                          )}
+                          <span className="text-[10px] font-bold text-slate-800 leading-none max-w-[100px] truncate">
+                            {displayContent}
+                          </span>
+                        </div>
                       </div>
+                      {detail.addOnPrice > 0 && (
+                        <div className="px-3 py-1.5 bg-[#4988c4] flex flex-col justify-center">
+                          <span className="text-[7px] font-black text-white/50 uppercase tracking-[0.1em] leading-none mb-0.5">Premium</span>
+                          <span className="text-[10px] font-black text-white leading-none tabular-nums">+{formatPrice(detail.addOnPrice)}</span>
+                        </div>
+                      )}
                     </div>
-                    {detail.addOnPrice > 0 && (
-                      <div className="px-3 py-1.5 bg-[#4988c4] flex flex-col justify-center">
-                        <span className="text-[7px] font-black text-white/50 uppercase tracking-[0.1em] leading-none mb-0.5">Premium</span>
-                        <span className="text-[10px] font-black text-white leading-none tabular-nums">+{formatPrice(detail.addOnPrice)}</span>
-                      </div>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

@@ -14,6 +14,8 @@ import {
     normalizeTradeInStatus,
 } from "@/utils/tradeInWorkflow";
 import { useCustomerTradeInOrderDetail } from "@/hooks/queries/useTradeInOrder";
+import { useVariant } from "@/hooks/queries/useVariant";
+import { useProductDetail } from "@/hooks/queries";
 
 interface TradeInOrderCardProps {
     order: TradeInOrderListItem & { productVariant?: { sku: string }; orderItem?: { itemName: string } };
@@ -59,6 +61,14 @@ export const TradeInOrderCard = memo(({
     const tradedName = order.orderItem?.itemName || `Device #${order.pOrderItemId.split('-')[0]}...`;
     const targetName = order.productVariant?.sku || `Upgrade #${order.productVariantId.split('-')[0]}...`;
 
+    const { data: variant } = useVariant(order.productVariantId);
+    const { data: product } = useProductDetail(variant?.productId || "", !!variant?.productId);
+
+    const targetImage = (variant?.attributes?.imageUrls as string[])?.[0] || 
+                        (variant?.attributes?.imageUrl as string) || 
+                        product?.imageUrls?.[0] || 
+                        product?.assets?.[0]?.url;
+
     const handleChat = useCallback(() => onChatClick(order.tradeInOrderId), [onChatClick, order.tradeInOrderId]);
     const handleCancel = useCallback((reason: string) => onCancelRequest(order.tradeInOrderId, reason), [onCancelRequest, order.tradeInOrderId]);
     const handleRetryPayment = useCallback(() => onRetryPaymentRequest(order.tradeInOrderId), [onRetryPaymentRequest, order.tradeInOrderId]);
@@ -88,8 +98,12 @@ export const TradeInOrderCard = memo(({
             {/* Body Sync */}
             <div className="p-6 flex flex-col md:flex-row gap-6">
                 <div className="relative shrink-0">
-                    <div className="w-20 h-20 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center">
-                        <Package className="w-8 h-8 text-slate-300" />
+                    <div className="w-20 h-20 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center overflow-hidden">
+                        {targetImage ? (
+                            <img src={targetImage} alt={targetName} className="w-full h-full object-contain" />
+                        ) : (
+                            <Package className="w-8 h-8 text-slate-300" />
+                        )}
                     </div>
                 </div>
                 <div className="flex-1 flex flex-col justify-center space-y-4">

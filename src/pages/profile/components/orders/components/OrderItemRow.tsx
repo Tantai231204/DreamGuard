@@ -6,6 +6,7 @@ import type { OrderItem, OrderStatus } from "@/api/types/order"
 import { useProductFeedback } from "@/hooks/queries/useProductFeedback"
 import { FeedbackDialog } from "./FeedbackDialog"
 import { Star } from "lucide-react"
+import { useProductDetail } from "@/hooks/queries"
 
 interface OrderItemRowProps {
     item: OrderItem;
@@ -19,17 +20,33 @@ export function OrderItemRow({ item, orderStatus }: OrderItemRowProps) {
     const isCombo = !!item.comboId;
     const { data: variant, isLoading: isVariantLoading } = useVariant(isCombo ? "" : (item.productVariantId || ""));
     const { data: comboDetail, isLoading: isComboLoading } = useComboDetail(item.comboId || "", isCombo);
+    const { data: product } = useProductDetail(variant?.productId || "", !!variant?.productId);
 
     const isLoading = isCombo ? isComboLoading : isVariantLoading;
     const attributes = (variant?.attributes || {}) as Record<string, unknown>;
-    const displayImage = item.image || (attributes.imageUrls as string[])?.[0] || comboDetail?.imageUrl;
+
+    const wrapDetail = item.productCustomizeDetails?.find(d =>
+        d.customizeTypeName.toLowerCase().includes('wrap') ||
+        d.customizeTypeName.toLowerCase().includes('ảnh bọc')
+    );
+
+    const isBespoke = item.productCustomizeDetails && item.productCustomizeDetails.length > 0;
+
+    const variantImage = (attributes?.imageUrls as string[])?.[0] ||
+        (attributes?.imageUrl as string) ||
+        product?.imageUrls?.[0] ||
+        product?.assets?.[0]?.url;
+
+    const displayImage = (wrapDetail?.customizeContent && wrapDetail.customizeContent.includes('http'))
+        ? wrapDetail.customizeContent
+        : (item.image || comboDetail?.imageUrl || variantImage || (isBespoke ? '/images/logo_no_name.svg' : '/images/placeholder-product.svg'));
 
     return (
         <div className="p-6 flex flex-col bg-white border-b border-gray-100 last:border-0 hover:bg-gray-50/20 transition-all">
             <div className="flex gap-5">
                 <div className="w-20 h-20 rounded-2xl border border-gray-200 overflow-hidden bg-white shadow-sm flex items-center justify-center shrink-0 p-1 text-left">
                     {displayImage ? (
-                        <img src={displayImage} alt={item.itemName} className="w-full h-full object-cover rounded-xl" />
+                        <img src={displayImage} alt={item.itemName} className="w-full h-full object-contain rounded-xl" />
                     ) : (
                         <Package className="w-8 h-8 text-gray-200" />
                     )}
@@ -86,28 +103,38 @@ export function OrderItemRow({ item, orderStatus }: OrderItemRowProps) {
                     {/* Bespoke Manufacturing Section */}
                     {item.productCustomizeDetails && item.productCustomizeDetails.length > 0 && (
                         <div className="flex flex-wrap gap-3 mt-4">
-                            {item.productCustomizeDetails.map((detail, idx) => (
-                                <div key={idx} className="group relative flex items-center bg-white rounded-xl border-2 border-slate-100/80 hover:border-[#4988c4]/40 hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-500 overflow-hidden">
-                                    <div className="flex flex-col px-4 py-2 bg-gradient-to-br from-white to-slate-50/50">
-                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.25em] leading-none mb-1.5 peer-hover:text-[#4988c4] transition-colors">{detail.customizeTypeName}</span>
-                                        <div className="flex items-center gap-2">
-                                            {detail.customizeTypeName.toLowerCase().includes('color') && (
-                                                <div
-                                                    className="w-3 h-3 rounded-full border border-black/10 shadow-sm shrink-0"
-                                                    style={{ backgroundColor: detail.customizeContent }}
-                                                />
-                                            )}
-                                            <span className="text-sm font-bold text-slate-900 tracking-tight">{detail.customizeContent}</span>
+                            {item.productCustomizeDetails.map((detail, idx) => {
+                                const isUrl = detail.customizeContent.includes('http');
+                                const displayContent = isUrl
+                                    ? (detail.customizeContent.split('/').pop()?.split('?')[0] || 'Image Asset')
+                                    : detail.customizeContent;
+                                const displayLabel = detail.customizeTypeName.toLowerCase().includes('wrap') || detail.customizeTypeName.toLowerCase().includes('ảnh bọc')
+                                    ? 'Design'
+                                    : detail.customizeTypeName;
+
+                                return (
+                                    <div key={idx} className="group relative flex items-center bg-white rounded-xl border-2 border-slate-100/80 hover:border-[#4988c4]/40 hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-500 overflow-hidden">
+                                        <div className="flex flex-col px-4 py-2 bg-gradient-to-br from-white to-slate-50/50">
+                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.25em] leading-none mb-1.5 peer-hover:text-[#4988c4] transition-colors">{displayLabel}</span>
+                                            <div className="flex items-center gap-2">
+                                                {detail.customizeTypeName.toLowerCase().includes('color') && (
+                                                    <div
+                                                        className="w-3 h-3 rounded-full border border-black/10 shadow-sm shrink-0"
+                                                        style={{ backgroundColor: detail.customizeContent }}
+                                                    />
+                                                )}
+                                                <span className="text-sm font-bold text-slate-900 tracking-tight max-w-[120px] truncate">{displayContent}</span>
+                                            </div>
                                         </div>
+                                        {detail.addOnPrice > 0 && (
+                                            <div className="h-full px-3.5 py-2 bg-[#4988c4] flex flex-col justify-center border-l-2 border-[#4988c4]">
+                                                <span className="text-[8px] font-black text-white/60 uppercase tracking-[0.1em] leading-none mb-1">Premium</span>
+                                                <span className="text-[12px] font-black text-white leading-none tabular-nums">+{formatPrice(detail.addOnPrice)}</span>
+                                            </div>
+                                        )}
                                     </div>
-                                    {detail.addOnPrice > 0 && (
-                                        <div className="h-full px-3.5 py-2 bg-[#4988c4] flex flex-col justify-center border-l-2 border-[#4988c4]">
-                                            <span className="text-[8px] font-black text-white/60 uppercase tracking-[0.1em] leading-none mb-1">Premium</span>
-                                            <span className="text-[12px] font-black text-white leading-none tabular-nums">+{formatPrice(detail.addOnPrice)}</span>
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
 

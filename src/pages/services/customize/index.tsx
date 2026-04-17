@@ -169,19 +169,29 @@ const CustomizeStudio = () => {
     return group?.options[0]?.customizeTypeId;
   }, [customSchema]);
 
-  const embroideryOptionId = useMemo(() => {
-    const group = customSchema?.customizeOptionGroups?.find(g => g.category === 'Embroidery');
-    return group?.options[0]?.customizeTypeId;
-  }, [customSchema]);
+  const embroideryGroup = useMemo(() =>
+    customSchema?.customizeOptionGroups?.find((g: CustomizeOptionGroupResponse) => g.category === 'Embroidery'),
+    [customSchema]
+  );
 
-  const embroideryAddOnFee = useMemo(() => {
-    const group = customSchema?.customizeOptionGroups?.find(g => g.category === 'Embroidery');
-    if (group && group.options.length > 0) {
-      const opt = group.options[0];
-      return opt.overridePrice ?? opt.defaultPrice ?? 0;
+  const embroideryTextOptionId = embroideryGroup?.options?.[0]?.customizeTypeId;
+  const embroideryImageOptionId = embroideryGroup?.options?.[1]?.customizeTypeId || embroideryTextOptionId;
+
+  const embroideryTextFee = useMemo(() => {
+    if (embroideryGroup && embroideryGroup.options.length > 0) {
+      const opt = embroideryGroup.options[0];
+      return opt.overridePrice ?? opt.defaultPrice ?? 80000;
     }
-    return 80000; // Final Fallback
-  }, [customSchema]);
+    return 80000;
+  }, [embroideryGroup]);
+
+  const embroideryImageFee = useMemo(() => {
+    if (embroideryGroup && embroideryGroup.options.length > 1) {
+      const opt = embroideryGroup.options[1];
+      return opt.overridePrice ?? opt.defaultPrice ?? embroideryTextFee;
+    }
+    return embroideryTextFee;
+  }, [embroideryGroup, embroideryTextFee]);
 
 
 
@@ -231,21 +241,23 @@ const CustomizeStudio = () => {
     // TRUY XUẤT PHÍ SIZE CHÍNH XÁC (NẾU CHỌN SIZE SẼ CỘNG PHÍ TỪ CATEGORY)
     const sizeFee = (activeDesign.size || currentSize) ? sizeAddOnFee : 0;
 
-    const colorAdd = activeDesign.baseColor ? colorAddOnFee : 0;
-
+    const isWrapped = !!activeDesign.customImage;
+    // Nếu bọc ảnh thì phí màu = 0 (theo yêu cầu user: color tính là không có)
+    const colorAdd = isWrapped ? 0 : (activeDesign.baseColor ? colorAddOnFee : 0);
+    const wrapAdd = isWrapped ? embroideryImageFee : 0;
 
     // HỖ TRỢ CẢ HAI: CÔNG THỨC PHÉP CỘNG VÀ HỆ SỐ NHÂN (DỰA TRÊN JSON API)
     const matAdd = currentMaterial?.priceAdd ?? 0;
     const mult = currentMaterial?.priceMultiplier ?? 1.0;
-    const embAdd = activeDesign.embroideryText.trim().length > 0 ? embroideryAddOnFee : 0;
+    const embTextAdd = activeDesign.embroideryText.trim().length > 0 ? embroideryTextFee : 0;
 
-    // 237: Phí Size + Phí Màu/Wrap + Phí Thêu + MaterialAddon
-    const currentTotal = Math.round(baseSale * mult + matAdd) + sizeFee + colorAdd + embAdd;
+    // Phí Size + Phí Màu + Phí Bọc Ảnh + Phí Thêu + MaterialAddon
+    const currentTotal = Math.round(baseSale * mult + matAdd) + sizeFee + colorAdd + wrapAdd + embTextAdd;
 
     return { current: currentTotal };
-  }, [selectedProduct, currentSize, currentMaterial, activeDesign, colorAddOnFee, embroideryAddOnFee, sizeAddOnFee]);
+  }, [selectedProduct, currentSize, currentMaterial, activeDesign, colorAddOnFee, embroideryTextFee, embroideryImageFee, sizeAddOnFee]);
 
-  const wrapAddOnFee = colorAddOnFee;
+  const wrapAddOnFee = embroideryImageFee;
 
   const totalPrice = pricingResults.current;
 
@@ -266,9 +278,12 @@ const CustomizeStudio = () => {
     });
   }, []);
 
-  const handleImageUpload = (file: File | null) => {
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
+
+  const handleImageUpload = async (file: File | null) => {
     if (!file) {
       setPendingFile(null);
+      setUploadedImageUrl(null);
       updateDesign({ customImage: undefined });
       return;
     }
@@ -276,70 +291,91 @@ const CustomizeStudio = () => {
     setPendingFile(file);
     const localUrl = URL.createObjectURL(file);
     updateDesign({ customImage: localUrl, imageMode: "wrap" });
+
+    // 🔥 Rapid Background Synchronization: Start upload immediately so it's ready when user clicks Add
+    try {
+      const res = await uploadToCloudinary(file);
+      if (res?.secure_url) {
+        setUploadedImageUrl(res.secure_url);
+      }
+    } catch (err) {
+      console.error("[CustomizeStudio] Pre-sync failed:", err);
+    }
   };
 
   const handleAddToCart = async () => {
-    if (!selectedProduct || !customSchema) return;
+    if (!selectedProduct || !customSchema || isAdding) return;
 
-    let finalImageUrl = activeDesign.customImage;
+    setIsAdding(true);
+    let finalImageUrl = uploadedImageUrl;
 
-    // 🔥 Upload pending file if exists
-    if (pendingFile) {
-      setIsAdding(true);
+    // 1. Asset Finalization (only wait if background sync hasn't finished)
+    if (pendingFile && !finalImageUrl) {
       try {
         const res = await uploadToCloudinary(pendingFile);
-        if (res && res.secure_url) {
+        if (res?.secure_url) {
           finalImageUrl = res.secure_url;
+          setUploadedImageUrl(finalImageUrl);
         }
-      } catch (err) {
-        console.error("[CustomizeStudio] Submit upload failed:", err);
-        toast.error("Failed to synchronize design assets.");
+      } catch {
+        toast.error("Cloud synchronization failed.");
         setIsAdding(false);
         return;
       }
     }
 
-    // Build the Bespoke Detail List
+    // Default image for Bespoke items without wrap is the project logo
+    const cartDisplayImage = finalImageUrl || "/images/logo_no_name.svg";
+
+    // 2. Bespoke Matrix Construction
+    const isActuallyGuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
     const customizeDetails = [];
 
-    const isGuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
-
-    // 1. Size
-    const activeSizeId = (currentSize && isGuid(currentSize.id)) ? currentSize.id : sizeOptionId;
-    if (activeSizeId && isGuid(activeSizeId)) {
+    // Size
+    const activeSizeId = (currentSize && isActuallyGuid(currentSize.id)) ? currentSize.id : sizeOptionId;
+    if (activeSizeId && isActuallyGuid(activeSizeId)) {
       customizeDetails.push({
         ProductCustomizeTypeId: activeSizeId,
         CustomizeContent: activeDesign.size === 'custom' ? `${customDims.width}x${customDims.height}cm` : (currentSize?.label || "Standard Size")
       });
     }
 
-    // 2. Color / Custom Wrap
-    if (colorOptionId && isGuid(colorOptionId)) {
+    // Color / Custom Wrap
+    const isWrapped = !!finalImageUrl;
+    if (!isWrapped && colorOptionId && isActuallyGuid(colorOptionId)) {
       customizeDetails.push({
         ProductCustomizeTypeId: colorOptionId,
-        CustomizeContent: finalImageUrl || activeDesign.baseColor || "#B0D4F1"
+        CustomizeContent: activeDesign.baseColor || "#B0D4F1"
       });
     }
 
-    // 3. Material
-    if (currentMaterial && isGuid(currentMaterial.id)) {
+    // Embroidery Image (Wrap)
+    if (isWrapped && embroideryImageOptionId && isActuallyGuid(embroideryImageOptionId)) {
+      customizeDetails.push({
+        ProductCustomizeTypeId: embroideryImageOptionId,
+        CustomizeContent: finalImageUrl
+      });
+    }
+
+    // Material
+    if (currentMaterial && isActuallyGuid(currentMaterial.id)) {
       customizeDetails.push({
         ProductCustomizeTypeId: currentMaterial.id,
         CustomizeContent: currentMaterial.name
       });
     }
 
-    // 4. Embroidery / Engraving
-    if (activeDesign.embroideryText.trim() && embroideryOptionId && isGuid(embroideryOptionId)) {
+    // Embroidery Text
+    if (activeDesign.embroideryText.trim() && embroideryTextOptionId && isActuallyGuid(embroideryTextOptionId)) {
       customizeDetails.push({
-        ProductCustomizeTypeId: embroideryOptionId,
+        ProductCustomizeTypeId: embroideryTextOptionId,
         CustomizeContent: `${activeDesign.embroideryText.trim()} (${activeDesign.embroideryPosition})`
       });
     }
 
     const configHash = generateConfigHash(customSchema.id, null, customizeDetails);
+    const sanitizedName = selectedProduct.name.replace(/[-\s]+$/, '').trim();
 
-    setIsAdding(true);
     addItem({
       productVariantId: customSchema.id,
       comboId: null,
@@ -347,32 +383,32 @@ const CustomizeStudio = () => {
       ProductCustomizeDetailRequest: customizeDetails,
       id: `item_${customSchema.id}_bespoke_${configHash}`,
       productId: selectedProduct.id,
-      name: selectedProduct.name,
-      image: selectedProduct.image,
+      name: sanitizedName,
+      image: cartDisplayImage,
       price: totalPrice,
-      color: activeDesign.baseColor,
+      color: isWrapped ? undefined : activeDesign.baseColor,
       size: activeDesign.size === 'custom' ? `${customDims.width}x${customDims.height}x15 cm` : (currentSize?.label || ""),
       customAttributes: {
-        colorHex: activeDesign.baseColor,
+        colorHex: isWrapped ? undefined : activeDesign.baseColor,
         material: currentMaterial?.name || "",
         embroidery: activeDesign.embroideryText || "",
-        // Keep dimensions ONLY as numbers for the specialized chip to detect but avoid the redundant loop display
+        wrapImage: finalImageUrl || undefined,
         length: parseInt(customDims.height) || undefined,
         width: parseInt(customDims.width) || undefined,
-        thickness: 15, // Standard thickness for now or parse from customDims
+        thickness: 15,
       },
       configHash: configHash,
       isCustom: true,
-    }).then(() => {
-      toast.success("Design saved to sanctuary.");
-      // Small delay to allow store to settle before navigation
-      setTimeout(() => navigate("/cart"), 50);
-    }).catch(() => {
-      toast.error("Failed to add bespoke design.");
-    }).finally(() => {
-      // Keep isAdding true for a bit longer to prevent double clicks during navigation
-      setTimeout(() => setIsAdding(false), 500);
     });
+
+    toast.success("Design saved to sanctuary.", {
+      description: "Redirecting to your collection..."
+    });
+
+    setTimeout(() => {
+      navigate("/cart");
+      setIsAdding(false);
+    }, 150);
   };
 
   if (productsLoading) {
