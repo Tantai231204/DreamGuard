@@ -2,23 +2,21 @@ import { memo } from 'react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { INPUT_CLS, TEXTAREA_CLS } from './constants';
+import { INPUT_CLS } from './constants';
+import AdminRichEditor from '@/components/admin/AdminRichEditor';
 
 interface GeneralSectionProps {
     name: string;
     slug: string;
     summary: string;
     description: string;
-    status: import('../../types').ProductStatus;
     isLoading: boolean;
     onNameChange: (value: string) => void;
     onSlugChange: (value: string) => void;
     onSummaryChange: (value: string) => void;
     onDescriptionChange: (value: string) => void;
-    onStatusChange: (value: string) => void;
     errors?: import('react-hook-form').FieldErrors<import('./productSchema').ProductFormValues>;
-    isEdit: boolean;
+    
 }
 
 import { Type, Link2, FileText, AlignLeft, AlertCircle } from 'lucide-react';
@@ -37,8 +35,8 @@ const GeneralSection = memo(function GeneralSection({
     name, slug, summary, description,
     isLoading,
     onNameChange, onSlugChange, onSummaryChange, onDescriptionChange,
-    errors
-}: Omit<GeneralSectionProps, 'status' | 'onStatusChange' | 'isEdit'>) {
+    errors,
+    }: GeneralSectionProps) {
     const errorClasses = "border-rose-300 bg-rose-50/20 focus:border-rose-500 focus:ring-rose-500/20";
 
     return (
@@ -68,7 +66,6 @@ const GeneralSection = memo(function GeneralSection({
                     <FieldError error={errors?.name} />
                 </div>
 
-
                 {/* URL Slug */}
                 <div className="col-span-12 space-y-2.5">
                     <Label htmlFor="slug" className="text-[10px] uppercase tracking-wider font-bold text-slate-400 flex items-center gap-2 ml-1">
@@ -87,7 +84,7 @@ const GeneralSection = memo(function GeneralSection({
                             disabled={isLoading}
                             className={cn(
                                 INPUT_CLS, 
-                                'pl-24 font-mono text-[13px] tracking-tight font-medium text-indigo-600 bg-slate-50/20 border-slate-200 shadow-inner h-11',
+                                'pl-24 font-mono text-[13px] tracking-tight font-medium text-primary-600 bg-slate-50/20 border-slate-200 shadow-inner h-11',
                                 errors?.slug && errorClasses
                             )}
                         />
@@ -112,18 +109,15 @@ const GeneralSection = memo(function GeneralSection({
                     <FieldError error={errors?.summary} />
                 </div>
 
-                <div className="space-y-2.5">
+                <div className="col-span-12 space-y-3">
                     <Label htmlFor="description" className="text-[10px] uppercase tracking-wider font-bold text-slate-400 flex items-center gap-2 ml-1">
                         <AlignLeft className="h-3.5 w-3.5" /> FULL DESCRIPTION <span className="text-rose-500">*</span>
                     </Label>
-                    <Textarea
-                        id="description"
-                        placeholder="Explain the build quality, material density, comfort levels, and shipping info..."
+                    <AdminRichEditor
                         value={description}
-                        onChange={(e) => onDescriptionChange(e.target.value)}
+                        onChange={onDescriptionChange}
                         disabled={isLoading}
-                        rows={4}
-                        className={cn(TEXTAREA_CLS, "min-h-[140px] p-4 text-[14px] leading-relaxed font-medium border-slate-200 text-slate-600 shadow-sm", errors?.description && errorClasses)}
+                        placeholder="Explain the build quality, material density, comfort levels, and shipping info..."
                     />
                     <FieldError error={errors?.description} />
                 </div>

@@ -22,7 +22,8 @@ import {
     OrderStepFlow,
     AddressSection,
     PricingSummary,
-    PaymentDetailsCard
+    PaymentDetailsCard,
+    ShipperInfoSection
 } from "./components"
 
 const MAX_VISIBLE = 3;
@@ -42,11 +43,11 @@ export function OrderDetailDialog({ orderId, orderCode, trigger }: OrderDetailDi
     const { mutate: cancelOrder, isPending: isCancelling } = useCancelOrder({ meta: { hideToast: true } })
     const navigate = useNavigate()
 
-    const theme = useMemo(() => order ? getStatusTheme(order.status) : getStatusTheme("Pending"), [order?.status])
+    const theme = useMemo(() => order ? getStatusTheme(order.status) : getStatusTheme("Pending"), [order])
     const isCancelled = theme.label === "Cancelled"
     const canCancel = theme.step === 0
 
-    const allItems = order?.items || []
+    const allItems = useMemo(() => order?.items || [], [order?.items])
     const needsCollapse = allItems.length > MAX_VISIBLE
     const visibleItems = useMemo(
         () => needsCollapse && !itemsExpanded ? allItems.slice(0, MAX_VISIBLE) : allItems,
@@ -118,17 +119,22 @@ export function OrderDetailDialog({ orderId, orderCode, trigger }: OrderDetailDi
                         ) : order ? (
                             <div className="space-y-3">
                                 <OrderStepFlow step={theme.step} color={theme.color} isCancelled={isCancelled} />
+                                <ShipperInfoSection
+                                    staffName={order.shippingStaffName}
+                                    shippingStatus={order.shippingStatus}
+                                    avatarUrl={order.shippingStaffAvatarUrl}
+                                />
                                 <AddressSection order={order} />
 
                                 {/* Items */}
-                                <div className="bg-white">
+                                <div className="bg-white" id="order-items-section">
                                     <div className="px-6 py-4 border-b border-gray-50 flex items-center gap-2.5">
                                         <Store className="w-4 h-4 text-gray-500" />
                                         <span className="text-[14px] font-bold text-gray-800 tracking-tight">DreamGuard Official</span>
                                         <ChevronRight className="w-4 h-4 text-gray-300" />
                                     </div>
                                     <div className="divide-y divide-gray-50">
-                                        {visibleItems.map((item) => <OrderItemRow key={item.id} item={item} />)}
+                                        {visibleItems.map((item) => <OrderItemRow key={item.id} item={item} orderStatus={order.status} />)}
                                     </div>
                                     {needsCollapse && (
                                         <button
@@ -143,9 +149,23 @@ export function OrderDetailDialog({ orderId, orderCode, trigger }: OrderDetailDi
                                 </div>
 
                                 {/* Pricing & Notes */}
-                                <div className="bg-white pb-8 pt-4">
+                                <div className="bg-white pb-7 pt-4">
                                     <PricingSummary order={order} />
-                                    <PaymentDetailsCard order={order} payment={payment} />
+                                    <div className="mx-6 mt-5 pt-4 border-t border-slate-100/80">
+                                        <PaymentDetailsCard
+                                            payments={payment ? [payment] : undefined}
+                                            fallbackPayment={{
+                                                id: order.orderCode,
+                                                orderCode: order.orderCode,
+                                                paymentMethod: order.paymentMethod || "COD",
+                                                paymentType: "Purchase",
+                                                status: order.paymentStatus || "Pending",
+                                                amount: order.totalAmount,
+                                                createdAt: order.createdAt,
+                                            }}
+                                            className="mx-0"
+                                        />
+                                    </div>
 
                                     {order.note && (
                                         <div className="mx-6 mt-6 p-4 bg-amber-50/30 rounded-lg border border-amber-100/50 text-left">

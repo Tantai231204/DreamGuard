@@ -1,7 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
 import * as Accordion from "@radix-ui/react-accordion";
+import gsap from "gsap";
 import {
   ArrowRight,
   ChevronDown,
@@ -11,7 +11,6 @@ import {
   Sparkles,
 } from "lucide-react";
 
-import { useBreadcrumb } from "@/components/common/BreadcrumbNav";
 import { AppRoute } from "@/lib/constants";
 
 const faqGroups = [
@@ -118,31 +117,40 @@ const shortcuts = [
   },
 ];
 
-const sectionMotion = {
-  initial: { opacity: 0, y: 24 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, amount: 0.2 },
-  transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] as const },
-};
-
 export default function FAQPage() {
-  const { setItems } = useBreadcrumb();
+  const pageRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    setItems([
-      { label: "Home", href: AppRoute.HOME },
-      { label: "FAQ", active: true },
-    ]);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
 
-    return () => setItems([]);
-  }, [setItems]);
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        "[data-page-hero]",
+        { autoAlpha: 0, y: 8 },
+        { autoAlpha: 1, y: 0, duration: 0.28, ease: "power1.out" }
+      );
+
+      const cards = gsap.utils.toArray<HTMLElement>("[data-page-card]").slice(0, 6);
+      if (cards.length > 0) {
+        gsap.fromTo(
+          cards,
+          { autoAlpha: 0, y: 8 },
+          { autoAlpha: 1, y: 0, duration: 0.24, stagger: 0.03, delay: 0.04, ease: "power1.out" }
+        );
+      }
+    }, pageRef);
+
+    return () => ctx.revert();
+  }, []);
 
   return (
-    <div className="bg-white text-[#4988c4]-900">
-      <section className="relative overflow-hidden border-b border-[#4988c4]-200 bg-[radial-gradient(circle_at_top_left,_rgba(73,136,196,0.18),_transparent_40%),linear-gradient(135deg,_#eff6ff_0%,_#ffffff_52%,_rgba(189,232,245,0.2)_100%)]">
+    <div ref={pageRef} className="bg-slate-50 text-slate-800">
+      <section className="relative overflow-hidden border-b border-slate-200 bg-gradient-to-b from-[#eff6ff] to-white">
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#4988c4]/50 to-transparent" />
         <div className="container mx-auto grid max-w-7xl gap-10 px-6 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:px-8 lg:py-20">
-          <motion.div {...sectionMotion} className="max-w-3xl">
+          <div data-page-hero className="max-w-3xl">
             <div className="inline-flex items-center gap-2 rounded-full border border-[#4988c4]/15 bg-white/85 px-4 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-[#4988c4] shadow-sm backdrop-blur">
               <Sparkles className="h-4 w-4" />
               FAQ
@@ -153,9 +161,9 @@ export default function FAQPage() {
             <p className="mt-5 max-w-2xl text-sm leading-7 text-[#4988c4]-600 sm:text-base">
               Browse the FAQ before contacting support to find fast guidance about ordering, shipping, returns, warranty coverage, and product care.
             </p>
-          </motion.div>
+          </div>
 
-          <motion.div {...sectionMotion} transition={{ duration: 0.5, delay: 0.08, ease: [0.22, 1, 0.36, 1] as const }} className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
+          <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
             {shortcuts.map((item) => {
               const Icon = item.icon;
 
@@ -163,7 +171,8 @@ export default function FAQPage() {
                 <Link
                   key={item.title}
                   to={item.to}
-                  className="rounded-[28px] border border-white/70 bg-white/90 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] backdrop-blur transition hover:-translate-y-0.5"
+                  data-page-card
+                  className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5"
                 >
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#4988c4]/10 text-[#4988c4]">
                     <Icon className="h-5 w-5" />
@@ -177,12 +186,12 @@ export default function FAQPage() {
                 </Link>
               );
             })}
-          </motion.div>
+          </div>
         </div>
       </section>
 
       <section className="container mx-auto max-w-7xl px-6 py-14 lg:px-8">
-        <motion.div {...sectionMotion}>
+        <div>
           <div className="gap-3">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.28em] text-[#4988c4]">Common questions</p>
@@ -196,7 +205,7 @@ export default function FAQPage() {
 
           <div className="mt-8 grid gap-6 xl:grid-cols-2">
             {faqGroups.map((group) => (
-              <div key={group.title} className="rounded-[30px] border border-[#4988c4]-200 bg-white p-6 shadow-[0_18px_60px_rgba(15,23,42,0.05)]">
+              <div key={group.title} data-page-card className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <h3 className="text-xl font-black uppercase tracking-wide text-[#4988c4]-950">{group.title}</h3>
                 <Accordion.Root type="single" collapsible className="mt-5 space-y-3">
                   {group.items.map((item, index) => (
@@ -222,7 +231,7 @@ export default function FAQPage() {
               </div>
             ))}
           </div>
-        </motion.div>
+        </div>
       </section>
     </div>
   );

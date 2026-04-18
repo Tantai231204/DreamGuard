@@ -22,6 +22,9 @@ interface Product {
     ageLabel?: string;
     warrantyPolicyDay?: number | null;
     returnPolicyDay?: number | null;
+    isTradeInEligible?: boolean;
+    minTradeInPrice?: number;
+    depositAmount?: number;
 }
 
 interface ProductInfoProps {
@@ -139,8 +142,8 @@ export const ProductInfo = memo(({
                     </Badge>
                 )}
                 {(canCustomizeColor || canCustomizeSize) && (
-                    <Badge className="bg-indigo-50 text-indigo-700 border border-indigo-100 px-2.5 py-1 text-[10px] font-black tracking-wider rounded-lg flex items-center gap-1.5 shadow-sm">
-                        <Sparkles className="w-3 h-3 text-indigo-500 animate-pulse" />
+                    <Badge className="bg-primary-50 text-primary-700 border border-primary-100 px-2.5 py-1 text-[10px] font-black tracking-wider rounded-lg flex items-center gap-1.5 shadow-sm">
+                        <Sparkles className="w-3 h-3 text-primary-500 animate-pulse" />
                         BESPOKE / MADE-TO-MEASURE
                     </Badge>
                 )}
@@ -227,6 +230,30 @@ export const ProductInfo = memo(({
                                 <span>Includes {formatPrice(colorSurchargePrice)} surcharge for custom color</span>
                             </div>
                         )}
+                    </div>
+                )}
+
+                {product.isTradeInEligible ? (
+                    <div className="flex flex-col gap-1.5 pt-2 border-t border-slate-200/50">
+                        <div className="flex items-center gap-2 text-[11.5px] font-bold text-blue-600">
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            <span>Trade-In Available for this variant</span>
+                        </div>
+                        {product.depositAmount && product.depositAmount > 0 && (
+                             <div className="flex items-center gap-2 text-[11px] font-semibold text-slate-500 pl-5">
+                                 Pay today: {formatPrice(product.depositAmount)} deposit.
+                             </div>
+                        )}
+                        <div className="flex items-center gap-2 text-[11px] font-semibold text-slate-500 pl-5">
+                            Deduction amount uses the selected old variant trade-in price (min reference: {formatPrice(product.minTradeInPrice || 0)}).
+                        </div>
+                    </div>
+                ) : (
+                    <div className="flex flex-col pt-2 border-t border-slate-200/50 pointer-events-none opacity-60 grayscale">
+                        <div className="flex items-center gap-2 text-[11.5px] font-bold text-gray-500">
+                             <RotateCcw className="w-3.5 h-3.5" />
+                             <span>Trade-In Note Eligible: Not applicable.</span>
+                        </div>
                     </div>
                 )}
 

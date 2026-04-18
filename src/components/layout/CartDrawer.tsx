@@ -1,17 +1,252 @@
-import { useMemo, useCallback } from "react"
+import { useMemo, useCallback, memo } from "react"
 import { useNavigate } from "react-router-dom"
 import { Drawer } from "vaul"
-import { ShoppingCart, X, Minus, Plus, ShoppingBag, Trash2, RefreshCcw, Loader2 } from "lucide-react"
+import { ShoppingCart, X, Minus, Plus, ShoppingBag, Trash2, RefreshCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useCart } from "@/store/useCart"
+import { useEnrichCartItem } from "../../pages/cart/hooks/useEnrichCartItem"
 import { useCartStore } from "@/store/useCartStore"
 import { type CartItem } from "@/store/cartTypes"
 import { useCartAnimation } from "@/store/useCartAnimation"
 import { AppRoute } from "@/lib/constants"
-import { formatPrice } from "@/lib/utils"
+import { cn, formatPrice } from "@/lib/utils"
 import { getColorHex } from "@/utils/color-utils"
 import "./cart-drawer.css"
+
+import { useVariant } from "@/hooks/queries/useVariant"
+import type { VariantResponse, VariantAttributes } from "@/api/services/variantService"
+import { useProductDetail } from "@/hooks/queries/useProduct";
+import { Skeleton } from "@/components/ui/skeleton";
+
+const SubItemImage = memo(({ variantId, fallbackImage, alt }: { variantId: string; fallbackImage?: string; alt: string }) => {
+    const { data: variantData, isLoading: isVarLoading } = useVariant(variantId || "");
+    const variant = variantData as VariantResponse;
+    const vImg = (variant?.attributes as VariantAttributes)?.imageUrl || (variant as { imageUrl?: string })?.imageUrl;
+    
+    // Recovery: Fetch root product if variant has no image
+    const productId = variant?.productId || (variant as { product?: { id: string } })?.product?.id || "";
+    const { data: productData } = useProductDetail(productId, !!productId && (!vImg || (vImg as string).length < 5) && (!fallbackImage || (fallbackImage as string).length < 5));
+    
+    const pData = productData as { imageUrls?: string[]; imageUrl?: string; assets?: { url: string }[] };
+    const pImg = pData?.imageUrls?.[0] || pData?.imageUrl || pData?.assets?.[0]?.url || (variant as { product?: { imageUrl?: string } })?.product?.imageUrl;
+
+    const imageUrl = ((vImg as string)?.length > 5) ? (vImg as string) : ((fallbackImage as string)?.length > 5) ? (fallbackImage as string) : (pImg as string);
+    const isLoading = isVarLoading;
+
+    if (isLoading && !imageUrl) {
+        return <Skeleton className="w-full h-full bg-slate-100" />;
+    }
+
+    return (
+        <img 
+            src={imageUrl || "/images/placeholder-product.svg"} 
+            alt={alt} 
+            className={cn("w-full h-full object-cover transition-all duration-500", !imageUrl && "opacity-0", imageUrl && "opacity-100")} 
+            onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                if (!target.src.includes('placeholder-product.svg')) {
+                    target.src = "/images/placeholder-product.svg";
+                }
+            }}
+        />
+    );
+});
+
+function CartDrawerItem({
+    item,
+    loadingIds,
+    syncingIds,
+    onUpdateQuantity,
+    onRemove
+}: {
+    item: CartItem;
+    loadingIds: string[];
+    syncingIds: string[];
+    onUpdateQuantity: (id: string, delta: number) => void;
+    onRemove: (id: string) => void;
+}) {
+    const enriched = useEnrichCartItem(item);
+    const hasTradeIn = !!(item.tradeIn?.totalValue)
+    const itemKey = item.configHash || item.id;
+    const isLoading = loadingIds?.includes(item.id) ?? false
+    const isSyncing = syncingIds?.includes(item.id) ?? false
+
+    return (
+        <div
+            key={itemKey}
+            className={cn(
+                "group relative flex flex-col pt-4 pb-2 transition-opacity duration-150 animate-slide-in-item",
+                (isLoading || isSyncing) && "opacity-50 pointer-events-none"
+            )}
+            style={{ contain: 'content' }}
+        >
+            {(isLoading || isSyncing) && (
+                <div className="absolute inset-0 z-20 flex items-center justify-center bg-white/10 backdrop-blur-[0.5px]">
+                    <RefreshCcw className="w-5 h-5 text-[#4988c4] animate-spin" />
+                </div>
+            )}
+            <div className="flex gap-3">
+                {/* Ảnh */}
+                <div className="relative h-[66px] w-[66px] flex-shrink-0 rounded-xl overflow-hidden bg-slate-50 group border border-slate-100 shadow-sm">
+                    {enriched.isLoading && !enriched.image ? (
+                        <Skeleton className="w-full h-full bg-slate-100" />
+                    ) : (
+                        <img
+                            src={enriched.image || "/images/placeholder-product.svg"}
+                            alt={enriched.name || item.name}
+                            className={cn(
+                                "w-full h-full object-contain transition-all duration-500 group-hover:scale-105",
+                                !enriched.image && !isLoading ? "opacity-50" : "opacity-100"
+                            )}
+                            decoding="async"
+                            onError={(e) => {
+                                (e.target as HTMLImageElement).src = "/images/placeholder-product.svg"
+                            }}
+                        />
+                    )}
+                    {item.isCustom && (
+                        <div className="absolute top-0 left-0 bg-amber-500 text-white text-[6px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded-br-md z-10 shadow-sm">
+                            Custom
+                        </div>
+                    )}
+                    {enriched.isCombo && (
+                        <div className="absolute top-0 left-0 bg-[#4988c4] text-white text-[6px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded-br-md z-10 shadow-sm">
+                            Bundle
+                        </div>
+                    )}
+                </div>
+
+                {/* Nội dung */}
+                <div className="flex flex-1 flex-col min-w-0">
+                    <div className="flex items-start justify-between gap-2 mb-1">
+                        <h4 className="text-[13px] font-bold text-gray-900 leading-snug line-clamp-2 flex-1 group-hover:text-[#4988c4] transition-colors uppercase tracking-tight">
+                            {enriched.name || item.name}
+                        </h4>
+                        <button
+                            onClick={() => onRemove(item.id)}
+                            className="flex-shrink-0 p-1.5 -mt-1 -mr-1 rounded-full text-gray-300 hover:text-rose-500 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-all duration-200"
+                        >
+                            <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                        {item.isCustom && (
+                            <span className="text-[8px] font-black text-amber-700 bg-amber-50 border border-amber-200/60 px-1.5 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1">
+                                Bespoke
+                            </span>
+                        )}
+                        {(enriched.color || item.color) && (
+                            <span className="text-[9px] font-bold text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded flex items-center gap-1 border border-gray-100">
+                                <div className="w-2 h-2 rounded-full border border-gray-200" style={{ backgroundColor: getColorHex(enriched.color || item.color) }} />
+                                {enriched.color || item.color}
+                            </span>
+                        )}
+                        {(enriched.size || item.size) && (
+                            <span className="text-[9px] font-bold text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">
+                                {enriched.size || item.size}
+                            </span>
+                        )}
+                        {item.customAttributes && Object.entries(item.customAttributes).map(([k, v]) => {
+                            if (['length', 'width', 'thickness', 'size', 'colorHex', 'imageMode', 'productVariantId'].includes(k) || !v) return null;
+                            const isUrl = typeof v === 'string' && (v.includes('cloudinary.com') || v.startsWith('blob:'));
+                            const displayValue = isUrl ? (v.split('/').pop() || 'Design') : v;
+                            return (
+                                <span key={k} className="text-[9px] font-bold text-amber-600 bg-amber-50/30 px-1.5 py-0.5 rounded border border-amber-100/30">
+                                    <span className="opacity-40 uppercase text-[7px]">{k}:</span> {displayValue}
+                                </span>
+                            );
+                        })}
+                    </div>
+
+                    {/* Trade-in */}
+                    {hasTradeIn && (
+                        <TooltipProvider delayDuration={200}>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <button className="self-start mb-2 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-100 flex items-center gap-1 text-[9px] text-emerald-600 font-bold hover:bg-emerald-100">
+                                        <RefreshCcw className="w-2.5 h-2.5" />
+                                        {item.tradeIn!.products.length} Trade-in · −{formatPrice(item.tradeIn!.totalValue)}
+                                    </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" align="start" className="w-56 p-3 bg-white border border-slate-100 shadow-xl rounded-xl">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Trade-in bundle</p>
+                                    <div className="space-y-2">
+                                        {item.tradeIn!.products.map((p) => (
+                                            <div key={p.id} className="flex items-center gap-2">
+                                                <img src={p.image} alt={p.name} className="w-7 h-7 rounded-lg object-cover border border-slate-100" />
+                                                <span className="flex-1 text-[11px] font-bold text-slate-600 truncate">{p.name}</span>
+                                                <span className="text-emerald-600 font-bold">−{formatPrice(p.tradeInValue)}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+                    )}
+
+                    {/* Qty & Price */}
+                    <div className="flex items-center justify-between mt-0.5">
+                        <div className="flex items-center gap-1.5">
+                            <button
+                                onClick={() => onUpdateQuantity(item.id, -1)}
+                                disabled={item.quantity <= 1}
+                                className="h-6 w-6 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 hover:border-[#4988c4] hover:text-[#4988c4] disabled:opacity-30 transition-colors"
+                            >
+                                <Minus className="h-2.5 w-2.5" />
+                            </button>
+                            <span className="w-6 text-center text-xs font-bold text-gray-800 tabular-nums">
+                                {item.quantity}
+                            </span>
+                            <button
+                                onClick={() => onUpdateQuantity(item.id, 1)}
+                                className="h-6 w-6 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 hover:border-[#4988c4] hover:text-[#4988c4] transition-colors"
+                            >
+                                <Plus className="h-2.5 w-2.5" />
+                            </button>
+                        </div>
+                        <div className="text-right">
+                            <span className="text-sm font-black text-slate-900 tabular-nums">
+                                {formatPrice(item.subtotal)}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Combo Expansion Details */}
+            {enriched.isCombo && enriched.subItems && enriched.subItems.length > 0 && (
+                <div className="mt-3 ml-[78px] space-y-2 border-t border-dashed border-slate-100 pt-3">
+                    <div className="flex items-center gap-2 mb-1">
+                        <div className="w-1 h-1 rounded-full bg-[#4988c4]" />
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none">Includes</span>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                        {enriched.subItems.map((sub, idx) => (
+                            <div key={idx} className="flex items-center gap-2">
+                                <div className="h-4 w-4 rounded bg-slate-50 border border-slate-100 overflow-hidden shrink-0">
+                                    <SubItemImage
+                                        variantId={sub.productVariantId || ""}
+                                        fallbackImage={sub.image}
+                                        alt={sub.name}
+                                    />
+                                </div>
+                                <span className="text-[10px] font-bold text-slate-500 truncate flex-1">{sub.name}</span>
+                                <span className="text-[9px] font-black text-[#4988c4]">x{sub.quantity * item.quantity}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Artistic Animated Separator */}
+            <div className="absolute bottom-0 left-0 right-0 h-px overflow-hidden mt-2">
+                <div className="w-full h-full border-t border-dashed border-slate-100" />
+            </div>
+        </div>
+    );
+}
 
 export function CartDrawer() {
     const { cart, updateQuantity, removeItem, totalItems, totalPrice, totalTradeInDiscount, finalTotal, loadingIds, syncingIds } = useCart()
@@ -33,175 +268,16 @@ export function CartDrawer() {
     }, [navigate, setOpen])
 
     const cartItems = useMemo(() => (
-        cart.map((item: CartItem) => {
-            const hasTradeIn = !!(item.tradeIn?.totalValue)
-            const itemKey = item.configHash || item.id;
-            const isLoading = loadingIds?.includes(item.id) ?? false
-            const isSyncing = syncingIds?.includes(item.id) ?? false
-
-            return (
-                <div
-                    key={itemKey}
-                    className={`group relative flex gap-3 py-4 transition-opacity duration-150 animate-slide-in-item ${isLoading ? 'opacity-50 pointer-events-none' : ''}`}
-                    style={{ contain: 'content' }}
-                >
-                    {/* Artistic Animated Separator */}
-                    <div className="absolute bottom-0 left-0 right-0 h-px overflow-hidden">
-                        <div className="w-full h-full border-t border-dashed border-slate-100" />
-                        <div className="absolute inset-0 border-t border-dashed border-[#4988c4]/20 scale-x-0 group-hover:scale-x-100 transition-transform duration-700 origin-left" />
-                    </div>
-                    {/* Ảnh */}
-                    <div className="relative h-[66px] w-[66px] flex-shrink-0 rounded-xl overflow-hidden bg-gray-100 group">
-                        <img
-                            src={item.image || '/placeholder.png'}
-                            alt={item.name}
-                            className="h-full w-full object-cover"
-                            decoding="async"
-                        />
-                        {item.isCustom && (
-                            <div className="absolute top-0 left-0 bg-amber-500 text-white text-[6px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded-br-md z-10 shadow-sm">
-                                Custom
-                            </div>
-                        )}
-                        {/* Loading overlay trên ảnh - Chỉ dành for Load (Add/Remove) */}
-                        {isLoading && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-white/70">
-                                <Loader2 className="h-4 w-4 text-[#4988c4] animate-spin" />
-                            </div>
-                        )}
-                        {/* Syncing indicator - Nhẹ nhàng cho Update */}
-                        {isSyncing && !isLoading && (
-                            <div className="absolute top-1 right-1">
-                                <RefreshCcw className="h-3 w-3 text-[#4988c4] animate-spin opacity-70" />
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Nội dung */}
-                    <div className="flex flex-1 flex-col min-w-0">
-                        {/* Tên + xóa */}
-                        <div className="flex items-start justify-between gap-2 mb-1">
-                            <h4 className="text-[13px] font-bold text-gray-900 leading-snug line-clamp-2 flex-1 group-hover:text-[#4988c4] transition-colors">
-                                {item.name}
-                            </h4>
-                            <button
-                                onClick={() => handleRemoveItem(item.id)}
-                                className="flex-shrink-0 p-1.5 -mt-1 -mr-1 rounded-full text-gray-300 hover:text-rose-500 hover:bg-rose-50 opacity-0 group-hover:opacity-100 transition-all duration-200"
-                                aria-label="Remove"
-                            >
-                                <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                        </div>
-
-                        {/* Details & Info — unified layout for both custom and standard items */}
-                        <div className="flex flex-wrap items-center gap-1.5 mb-2">
-                            {/* Custom badge */}
-                            {item.isCustom && (
-                                <span className="text-[9px] font-black text-amber-700 bg-amber-50 border border-amber-200/60 px-1.5 py-0.5 rounded-md uppercase tracking-wider flex items-center gap-1">
-                                    <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" /></svg>
-                                    Custom
-                                </span>
-                            )}
-                            {/* Color — resolve from customAttributes.colorHex or item.color */}
-                            {(item.customAttributes?.colorHex || item.color) && (
-                                <span className="text-[10px] font-medium text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded flex items-center gap-1">
-                                    <div className="w-2 h-2 rounded-full border border-gray-200" style={{ backgroundColor: getColorHex(item.color || item.customAttributes?.colorHex) }} />
-                                    {item.customAttributes?.colorHex || item.color}
-                                </span>
-                            )}
-                            {/* Size — resolve from customAttributes dimensions or item.size */}
-                            {(item.customAttributes?.length || item.size) && (
-                                <span className="text-[10px] font-medium text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded">
-                                    {item.customAttributes?.length
-                                        ? `${item.customAttributes.length}×${item.customAttributes.width}×${item.customAttributes.thickness} cm`
-                                        : item.size}
-                                </span>
-                            )}
-                            {/* General Custom Attributes (e.g. Silk, Material, etc) */}
-                            {item.customAttributes && Object.entries(item.customAttributes).map(([k, v]) => {
-                                // Bỏ qua các trường đã xử lý riêng ở trên hoặc trường nội bộ
-                                if (['length', 'width', 'thickness', 'size', 'colorHex', 'imageMode', 'productVariantId'].includes(k) || !v) return null;
-                                return (
-                                    <span key={k} className="text-[10px] font-bold text-amber-600 bg-amber-50/50 px-1.5 py-0.5 rounded border border-amber-100/30 shadow-sm">
-                                        <span className="opacity-50 uppercase text-[8px]">{k}:</span> {v}
-                                    </span>
-                                );
-                            })}
-                        </div>
-
-                        {/* Trade-in */}
-                        {hasTradeIn && (
-                            <TooltipProvider delayDuration={200}>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <button className="self-start mb-2 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-100 flex items-center gap-1 text-[10px] text-emerald-600 font-bold hover:bg-emerald-100 transition-colors">
-                                            <RefreshCcw className="w-2.5 h-2.5" />
-                                            {item.tradeIn!.products.length} trade-in · −{formatPrice(item.tradeIn!.totalValue)}
-                                        </button>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="bottom" align="start" className="w-56 p-3 bg-white border border-gray-200 shadow-lg rounded-xl text-xs">
-                                        <p className="font-semibold text-gray-700 mb-2">Trade-in details</p>
-                                        <div className="space-y-2">
-                                            {item.tradeIn!.products.map((p: import("@/store/cartTypes").TradeInItem) => (
-                                                <div key={p.id} className="flex items-center gap-2">
-                                                    <img src={p.image} alt={p.name} className="w-7 h-7 rounded-md object-cover flex-shrink-0 border border-gray-100" />
-                                                    <span className="flex-1 text-gray-600 truncate">{p.name}</span>
-                                                    <span className="text-emerald-600 font-semibold flex-shrink-0">−{formatPrice(p.tradeInValue)}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <div className="mt-2 pt-2 border-t border-gray-100 flex justify-between text-gray-500">
-                                            <span>Total saved</span>
-                                            <span className="font-semibold text-emerald-600">−{formatPrice(item.tradeIn!.totalValue)}</span>
-                                        </div>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-                        )}
-
-                        {/* Qty stepper + giá */}
-                        <div className="flex items-center justify-between mt-0.5">
-                            <div className="flex items-center gap-1.5">
-                                <button
-                                    onClick={() => handleUpdateQuantity(item.id, -1)}
-                                    disabled={item.quantity <= 1}
-                                    className="h-6 w-6 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 hover:border-[#4988c4] hover:text-[#4988c4] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                                >
-                                    <Minus className="h-2.5 w-2.5" />
-                                </button>
-                                <span className="w-6 text-center text-xs font-semibold text-gray-800 tabular-nums">
-                                    {item.quantity}
-                                </span>
-                                <button
-                                    onClick={() => handleUpdateQuantity(item.id, 1)}
-                                    className="h-6 w-6 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 hover:border-[#4988c4] hover:text-[#4988c4] transition-colors"
-                                >
-                                    <Plus className="h-2.5 w-2.5" />
-                                </button>
-                            </div>
-
-                            <div className="text-right">
-                                {hasTradeIn ? (
-                                    <div className="flex items-baseline gap-1.5">
-                                        <span className="text-[11px] text-gray-400 line-through">
-                                            {formatPrice(item.quantity * item.price)}
-                                        </span>
-                                        <span className="text-sm font-semibold text-emerald-600">
-                                            {formatPrice(item.subtotal)}
-                                        </span>
-                                    </div>
-                                ) : (
-                                    <span className="text-sm font-semibold text-gray-900">
-                                        {formatPrice(item.subtotal)}
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-            )
-        })
+        cart.map((item: CartItem) => (
+            <CartDrawerItem
+                key={item.configHash || item.id}
+                item={item}
+                loadingIds={loadingIds}
+                syncingIds={syncingIds}
+                onUpdateQuantity={handleUpdateQuantity}
+                onRemove={handleRemoveItem}
+            />
+        ))
     ), [cart, loadingIds, syncingIds, handleUpdateQuantity, handleRemoveItem])
 
     return (
@@ -260,7 +336,7 @@ export function CartDrawer() {
                     </div>
 
                     {/* Items */}
-                    <div className="cart-drawer-scroll flex-1 overflow-y-auto px-5 overscroll-contain">
+                    <div className="custom-scrollbar scrollbar-profile flex-1 overflow-y-auto px-5 overscroll-contain">
                         {cart.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-full text-center px-8 relative overflow-hidden">
                                 {/* Decorative Background Elements */}

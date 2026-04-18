@@ -8,9 +8,12 @@ import { useCategories } from '@/hooks/queries/useCategory';
 import { mapCombosToSubRows } from '../components/combo';
 import type { ComboDialogMode } from '../components/combo-dialog';
 import type { Product, Combo, ProductVariant, AdminProductState, Certificate, StatusChangeData } from '../types';
+import { useAuthStore } from '@/store/authStore';
+import { isAdminRole } from '@/lib/role';
 
 export function useAdminProductState(): AdminProductState {
   const [searchParams, setSearchParams] = useSearchParams();
+  const role = useAuthStore((s) => s.role);
 
   // Categories
   const { data: categories, isLoading: isLoadingCategories } = useCategories();
@@ -74,6 +77,8 @@ export function useAdminProductState(): AdminProductState {
     pageNumber: certPagination.pageIndex + 1,
     pageSize: certPagination.pageSize,
     name: certGlobalFilter,
+  }, {
+    enabled: activeTab === 'certificate' && isAdminRole(role)
   });
 
   const combos = useMemo(() =>

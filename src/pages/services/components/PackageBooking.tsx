@@ -35,6 +35,9 @@ export default function PackageBooking({ initialPackageId }: { initialPackageId?
     uploadProgress,
     submissionStatus,
     isLoadingData,
+    availableVouchers,
+    isLoadingVouchers,
+    isVoucherError,
     
     // Form & Data
     form,
@@ -49,6 +52,7 @@ export default function PackageBooking({ initialPackageId }: { initialPackageId?
     setPaymentMethod,
     handleApplyVoucher,
     handleRemoveVoucher,
+    refetchVouchers,
     go,
     jumpToStep,
     handleClearDraft,
@@ -115,8 +119,12 @@ export default function PackageBooking({ initialPackageId }: { initialPackageId?
                 <StepConfirm
                   form={form}
                   appliedVoucher={appliedVoucher}
+                  availableVouchers={availableVouchers}
+                  isVoucherLoading={isLoadingVouchers}
+                  isVoucherError={isVoucherError}
                   onApplyVoucher={handleApplyVoucher}
                   onRemoveVoucher={handleRemoveVoucher}
+                  onRetryVouchers={refetchVouchers}
                   onEditStep={jumpToStep}
                   isSidebar={false}
                   paymentMethod={paymentMethod}
@@ -174,8 +182,12 @@ export default function PackageBooking({ initialPackageId }: { initialPackageId?
             <StepConfirm
               form={form}
               appliedVoucher={appliedVoucher}
+              availableVouchers={availableVouchers}
+              isVoucherLoading={isLoadingVouchers}
+              isVoucherError={isVoucherError}
               onApplyVoucher={handleApplyVoucher}
               onRemoveVoucher={handleRemoveVoucher}
+              onRetryVouchers={refetchVouchers}
               onEditStep={jumpToStep}
               isSidebar={true}
               paymentMethod={paymentMethod}

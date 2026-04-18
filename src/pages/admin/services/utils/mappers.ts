@@ -75,8 +75,8 @@ export const mapApiItemToServiceOrder = (item: AdminSearchOrderServiceItem): Ser
     scheduledTime: time,
     address: parseAddress(item.address),
     items: item.items || item.orderDetails || item.serviceOrderItems || [],
-    staff: item.staff, // Consistent with API naming
-    technician: item.staff, // Kept for backward compatibility in UI components
+    staff: item.staff || null,
+    technician: item.staff || null,
     serviceTask: item.serviceTask || item.task || item.orderTask || item.serviceOrderTask,
     imageUrl: item.imageUrl || [],
     totalPrice: item.totalPrice || 0,

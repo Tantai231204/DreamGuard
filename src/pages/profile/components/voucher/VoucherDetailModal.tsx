@@ -7,28 +7,33 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Copy, Check, Clock, Calendar } from "lucide-react"
-import type { Voucher } from "../../types"
+import { Copy, Check, Clock, Calendar, Coins } from "lucide-react"
+import { FormattedDescription } from "@/components/common/FormattedDescription"
+import type { ProfileVoucher } from "./types"
 import { VOUCHER_STATUS_COLORS } from "../../constants"
 import {
+    formatCoin,
     formatCurrency,
     formatDate,
     getDiscountDisplay,
     getStatusLabel,
     getDaysRemaining,
     isExpiringSoon,
+    getVoucherTypeLabel,
 } from "./utils"
 
 interface VoucherDetailModalProps {
-    voucher: Voucher | null
+    voucher: ProfileVoucher | null
     open: boolean
     onOpenChange: (open: boolean) => void
+    onApplyToCheckout?: (voucher: ProfileVoucher) => void
 }
 
 export default function VoucherDetailModal({
     voucher,
     open,
     onOpenChange,
+    onApplyToCheckout,
 }: VoucherDetailModalProps) {
     const [copied, setCopied] = useState(false)
 
@@ -45,8 +50,7 @@ export default function VoucherDetailModal({
 
     const handleApply = () => {
         handleCopy()
-        // TODO: Navigate to products/checkout
-        console.log("Apply voucher:", voucher.code)
+        onApplyToCheckout?.(voucher)
     }
 
     return (
@@ -57,7 +61,7 @@ export default function VoucherDetailModal({
                         Voucher Details
                     </DialogTitle>
                     <Badge
-                        className={`${statusColors.bg} ${statusColors.text} border-none font-bold uppercase tracking-wider text-[10px] px-3 py-1 rounded-lg shadow-none`}
+                        className={`${statusColors.bg} ${statusColors.text} ${statusColors.border} border font-bold uppercase tracking-wider text-[10px] px-3 py-1 rounded-lg shadow-none`}
                     >
                         {getStatusLabel(voucher.status)}
                     </Badge>
@@ -68,17 +72,18 @@ export default function VoucherDetailModal({
                     {/* Title & Description */}
                     <div>
                         <h3 className="text-2xl font-bold text-slate-900 mb-2">
-                            {voucher.title}
+                            {voucher.name}
                         </h3>
                         {isActive && isExpiringSoon(voucher) && (
                             <p className="flex items-center gap-1.5 text-rose-500 font-bold text-sm mb-3">
                                 <Clock className="h-4 w-4" />
-                                Expires in {getDaysRemaining(voucher.validTo)} days
+                                Expires in {getDaysRemaining(voucher.endDate)} days
                             </p>
                         )}
-                        <p className="text-slate-500 text-sm font-medium leading-relaxed">
-                            {voucher.description}
-                        </p>
+                        <FormattedDescription 
+                            content={voucher.description}
+                            className="text-slate-500 text-sm font-medium leading-relaxed"
+                        />
                     </div>
 
                     {/* Voucher Code Area */}
@@ -122,21 +127,20 @@ export default function VoucherDetailModal({
                                     <span className="w-1.5 h-1.5 rounded-full bg-[#4988c4] mt-1.5 shrink-0" />
                                     <span>Discount: <strong>{getDiscountDisplay(voucher)}</strong></span>
                                 </p>
-                                {voucher.discountType === "percentage" && voucher.maxDiscount && (
-                                    <p className="flex items-start gap-2 pl-3.5 italic text-slate-400 text-xs">
-                                        Up to {formatCurrency(voucher.maxDiscount)}
+                                <p className="flex items-start gap-2">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-[#4988c4] mt-1.5 shrink-0" />
+                                    <span>Max discount: <strong>{formatCurrency(voucher.maxDiscountAmount)}</strong></span>
+                                </p>
+                                {voucher.requiredCoin !== undefined && voucher.requiredCoin > 0 && (
+                                    <p className="flex items-start gap-2">
+                                        <Coins className="h-4 w-4 text-amber-500 shrink-0" />
+                                        <span>Required coin: <strong>{formatCoin(voucher.requiredCoin)}</strong></span>
                                     </p>
                                 )}
                                 <p className="flex items-start gap-2">
                                     <span className="w-1.5 h-1.5 rounded-full bg-[#4988c4] mt-1.5 shrink-0" />
-                                    <span>Min spend: <strong>{formatCurrency(voucher.minPurchase)}</strong></span>
+                                    <span>Applicable to: <strong>{getVoucherTypeLabel(voucher.voucherType)}</strong></span>
                                 </p>
-                                {voucher.category && (
-                                    <p className="flex items-start gap-2">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-[#4988c4] mt-1.5 shrink-0" />
-                                        <span>Category: <strong>{voucher.category}</strong></span>
-                                    </p>
-                                )}
                             </div>
                         </div>
 
@@ -145,59 +149,25 @@ export default function VoucherDetailModal({
                                 Validity
                             </h4>
                             <div className="space-y-3 text-sm text-slate-600 font-medium">
+                                {voucher.startDate && (
+                                    <p className="flex items-start gap-2">
+                                        <Calendar className="h-4 w-4 text-slate-400 shrink-0" />
+                                        <span>From: <strong>{formatDate(voucher.startDate)}</strong></span>
+                                    </p>
+                                )}
                                 <p className="flex items-start gap-2">
                                     <Calendar className="h-4 w-4 text-slate-400 shrink-0" />
-                                    <span>From: <strong>{formatDate(voucher.validFrom)}</strong></span>
+                                    <span>Until: <strong>{formatDate(voucher.endDate)}</strong></span>
                                 </p>
-                                <p className="flex items-start gap-2">
-                                    <Calendar className="h-4 w-4 text-slate-400 shrink-0" />
-                                    <span>Until: <strong>{formatDate(voucher.validTo)}</strong></span>
-                                </p>
-                                {voucher.quantity !== undefined && voucher.usedCount !== undefined && (
+                                {voucher.claimedAt && (
                                     <p className="flex items-start gap-2">
                                         <span className="w-1.5 h-1.5 rounded-full bg-[#4988c4] mt-1.5 shrink-0" />
-                                        <span>Stock: <strong>{voucher.quantity - voucher.usedCount} left</strong></span>
+                                        <span>Claimed at: <strong>{formatDate(voucher.claimedAt)}</strong></span>
                                     </p>
                                 )}
                             </div>
                         </div>
                     </div>
-
-                    {/* Terms */}
-                    {voucher.terms && voucher.terms.length > 0 && (
-                        <div>
-                            <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">
-                                Terms & Conditions
-                            </h4>
-                            <div className="space-y-2 text-sm text-slate-500 font-medium bg-slate-50 p-4 rounded-xl">
-                                {voucher.terms.map((term, i) => (
-                                    <p key={i} className="flex items-start gap-2">
-                                        <span className="text-slate-300">•</span>
-                                        {term}
-                                    </p>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Usage Instructions */}
-                    {voucher.usageInstructions && voucher.usageInstructions.length > 0 && (
-                        <div>
-                            <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4">
-                                How to use
-                            </h4>
-                            <div className="grid grid-cols-1 gap-3">
-                                {voucher.usageInstructions.map((instruction, i) => (
-                                    <div key={i} className="flex gap-4 items-center p-3 rounded-xl border border-slate-100">
-                                        <span className="w-6 h-6 rounded-lg bg-blue-50 text-[#4988c4] text-xs font-bold flex items-center justify-center shrink-0">
-                                            {i + 1}
-                                        </span>
-                                        <p className="text-sm text-slate-600 font-medium">{instruction}</p>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
 
                     {/* Used Status Info */}
                     {voucher.status === "used" && voucher.usedAt && (
@@ -213,7 +183,7 @@ export default function VoucherDetailModal({
                     {isActive && (
                         <Button
                             size="lg"
-                            className="w-full bg-slate-900 hover:bg-black h-12 text-sm font-bold uppercase tracking-wider rounded-xl transition-all active:scale-95"
+                            className="w-full bg-[#4988c4] hover:bg-[#3a6fa0] h-12 text-sm font-bold uppercase tracking-wider rounded-xl transition-all active:scale-95"
                             onClick={handleApply}
                         >
                             Apply to Checkout

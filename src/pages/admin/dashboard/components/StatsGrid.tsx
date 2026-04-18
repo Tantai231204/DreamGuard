@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { TrendingUp } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import type { DashboardStat } from "../types";
 import { containerVariants, itemVariants } from "../data";
 
@@ -41,29 +42,24 @@ export default function StatsGrid({ stats, isLoading }: StatsGridProps) {
         const Icon = stat.icon;
         return (
           <motion.div key={stat.label} variants={itemVariants}>
-            <Card
-              className={`relative overflow-hidden border-l-4 ${stat.borderColor} bg-gradient-to-br ${stat.gradientBg} p-6 hover:shadow-xl transition-all duration-300`}
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 rounded-xl ${stat.lightBg}`}>
-                  <Icon className={`h-6 w-6 ${stat.textColor}`} />
+            <Card className="relative overflow-hidden bg-white p-6 border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 group">
+              <div className="flex items-center justify-between mb-6">
+                <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center transition-transform duration-500 group-hover:scale-110", stat.lightBg)}>
+                  <Icon className={cn("h-6 w-6", stat.textColor)} />
                 </div>
-                <div
-                  className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${stat.lightBg} ${stat.textColor}`}
-                >
+                <div className={cn("flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black border", stat.lightBg, stat.textColor, "border-current/10")}>
                   <TrendingUp className="h-3 w-3" />
                   {stat.change}
                 </div>
               </div>
               <div>
-                <p className="text-sm text-gray-600 font-medium mb-1">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">
                   {stat.label}
                 </p>
-                <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
+                <p className="text-3xl font-black text-slate-900 tracking-tight">{stat.value}</p>
               </div>
-              <div
-                className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${stat.color}`}
-              />
+              {/* Subtle accent bar */}
+              <div className={cn("absolute bottom-0 left-0 h-1 transition-all duration-500 group-hover:w-full w-4", stat.textColor.replace('text-', 'bg-'))} />
             </Card>
           </motion.div>
         );

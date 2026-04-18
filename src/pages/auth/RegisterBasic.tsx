@@ -139,12 +139,12 @@ export default function RegisterBasic() {
 
         {/* Login */}
         <p className="text-center text-sm text-gray-500 mt-3">
-          Do you already have an account?{" "}
+          Already have an account?{" "}
           <Link
             to={redirect ? `${AppRoute.LOGIN}?redirect=${encodeURIComponent(redirect)}` : AppRoute.LOGIN}
             className="text-[var(--color-auth-link-dark)] font-semibold hover:underline"
           >
-            Log in
+            Log In
           </Link>
         </p>
       </form>

@@ -1,6 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import gsap from "gsap";
 import {
   ArrowRight,
   BadgeHelp,
@@ -14,7 +14,6 @@ import {
   TimerReset,
 } from "lucide-react";
 
-import { useBreadcrumb } from "@/components/common/BreadcrumbNav";
 import { AppRoute } from "@/lib/constants";
 
 const supportChannels = [
@@ -102,31 +101,40 @@ const serviceCommitments = [
   "Escalation support when an issue requires technical review or policy re-check.",
 ];
 
-const sectionMotion = {
-  initial: { opacity: 0, y: 24 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, amount: 0.2 },
-  transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] as const },
-};
-
 export default function HelpCenterPage() {
-  const { setItems } = useBreadcrumb();
+  const pageRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    setItems([
-      { label: "Home", href: AppRoute.HOME },
-      { label: "Help Center", active: true },
-    ]);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
 
-    return () => setItems([]);
-  }, [setItems]);
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        "[data-page-hero]",
+        { autoAlpha: 0, y: 8 },
+        { autoAlpha: 1, y: 0, duration: 0.28, ease: "power1.out" }
+      );
+
+      const cards = gsap.utils.toArray<HTMLElement>("[data-page-card]").slice(0, 8);
+      if (cards.length > 0) {
+        gsap.fromTo(
+          cards,
+          { autoAlpha: 0, y: 8 },
+          { autoAlpha: 1, y: 0, duration: 0.24, stagger: 0.03, delay: 0.04, ease: "power1.out" }
+        );
+      }
+    }, pageRef);
+
+    return () => ctx.revert();
+  }, []);
 
   return (
-    <div className="bg-white text-[#4988c4]-900">
-      <section className="relative overflow-hidden border-b border-[#4988c4]-200 bg-[radial-gradient(circle_at_top_left,_rgba(73,136,196,0.16),_transparent_40%),linear-gradient(135deg,_#eff6ff_0%,_#ffffff_50%,_rgba(125,211,232,0.18)_100%)]">
+    <div ref={pageRef} className="bg-slate-50 text-slate-800">
+      <section className="relative overflow-hidden border-b border-slate-200 bg-gradient-to-b from-[#eff6ff] to-white">
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#4988c4]/50 to-transparent" />
         <div className="container mx-auto grid max-w-7xl gap-10 px-6 py-16 lg:grid-cols-[1.15fr_0.85fr] lg:px-8 lg:py-20">
-          <motion.div {...sectionMotion} className="max-w-3xl">
+          <div data-page-hero className="max-w-3xl">
             <div className="inline-flex items-center gap-2 rounded-full border border-[#4988c4]/15 bg-white/85 px-4 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-[#4988c4] shadow-sm backdrop-blur">
               <Sparkles className="h-4 w-4" />
               Help Center
@@ -153,9 +161,9 @@ export default function HelpCenterPage() {
                 View products
               </Link>
             </div>
-          </motion.div>
+          </div>
 
-          <motion.div {...sectionMotion} transition={{ duration: 0.5, delay: 0.08, ease: [0.22, 1, 0.36, 1] as const }} className="grid gap-4">
+          <div className="grid gap-4">
             {supportChannels.map((channel) => {
               const Icon = channel.icon;
 
@@ -163,9 +171,10 @@ export default function HelpCenterPage() {
                 <a
                   key={channel.title}
                   href={channel.href}
+                  data-page-card
                   target={channel.href.startsWith("http") ? "_blank" : undefined}
                   rel={channel.href.startsWith("http") ? "noreferrer" : undefined}
-                  className="rounded-[28px] border border-white/70 bg-white/90 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] backdrop-blur transition hover:-translate-y-0.5"
+                  className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5"
                 >
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#4988c4]/10 text-[#4988c4]">
                     <Icon className="h-5 w-5" />
@@ -176,12 +185,12 @@ export default function HelpCenterPage() {
                 </a>
               );
             })}
-          </motion.div>
+          </div>
         </div>
       </section>
 
       <section className="container mx-auto max-w-7xl px-6 py-14 lg:px-8">
-        <motion.div {...sectionMotion}>
+        <div>
           <div className="gap-3">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.28em] text-[#4988c4]">Quick access</p>
@@ -201,7 +210,8 @@ export default function HelpCenterPage() {
                 <Link
                   key={item.title}
                   to={item.to}
-                  className="rounded-[28px] border border-[#4988c4]-200 bg-white p-6 shadow-[0_16px_50px_rgba(15,23,42,0.05)] transition hover:border-[#4988c4]/40 hover:shadow-[0_20px_60px_rgba(15,23,42,0.08)]"
+                  data-page-card
+                  className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-[#4988c4]/40"
                 >
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#4988c4]/10 text-[#4988c4]">
                     <Icon className="h-5 w-5" />
@@ -216,17 +226,17 @@ export default function HelpCenterPage() {
               );
             })}
           </div>
-        </motion.div>
+        </div>
       </section>
 
-      <section className="border-y border-[#4988c4]-100 bg-[#4988c4]-50/60">
+      <section className="border-y border-slate-200 bg-white">
         <div className="container mx-auto max-w-7xl px-6 py-14 lg:px-8">
-          <motion.div {...sectionMotion} className="grid gap-6 xl:grid-cols-3">
+          <div className="grid gap-6 xl:grid-cols-3">
             {supportTopics.map((topic) => {
               const Icon = topic.icon;
 
               return (
-                <div key={topic.title} className="rounded-[30px] border border-[#4988c4]-200 bg-white p-7 shadow-[0_18px_60px_rgba(15,23,42,0.05)]">
+                <div key={topic.title} data-page-card className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
                   <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-[#4988c4]/10 text-[#4988c4]">
                     <Icon className="h-6 w-6" />
                   </div>
@@ -242,24 +252,24 @@ export default function HelpCenterPage() {
                 </div>
               );
             })}
-          </motion.div>
+          </div>
         </div>
       </section>
 
       <section className="container mx-auto max-w-7xl px-6 py-14 lg:px-8">
-        <motion.div {...sectionMotion} className="rounded-[36px] border border-[#4988c4]/15 bg-[linear-gradient(135deg,_rgba(73,136,196,0.08)_0%,_rgba(255,255,255,1)_48%,_rgba(189,232,245,0.22)_100%)] p-8 shadow-[0_24px_80px_rgba(73,136,196,0.08)] lg:p-10">
+        <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm lg:p-10">
           <p className="text-xs font-black uppercase tracking-[0.28em] text-[#4988c4]">Support standard</p>
           <h2 className="mt-3 text-3xl font-black uppercase tracking-tight text-[#4988c4]-950">What customers should expect from DreamGuard support</h2>
 
           <div className="mt-8 grid gap-4 md:grid-cols-2">
             {serviceCommitments.map((item) => (
-              <div key={item} className="rounded-[24px] border border-white bg-white/90 p-5 shadow-[0_12px_40px_rgba(15,23,42,0.04)]">
+              <div key={item} data-page-card className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                 <BadgeHelp className="h-5 w-5 text-[#4988c4]" />
                 <p className="mt-4 text-sm leading-7 text-[#4988c4]-700">{item}</p>
               </div>
             ))}
           </div>
-        </motion.div>
+        </div>
       </section>
     </div>
   );

@@ -93,7 +93,7 @@ export const serviceTypeConfig: Record<ServiceType, {
   deep_clean: {
     label: 'Deep Clean',
     icon: Sparkles,
-    color: 'text-indigo-600',
+    color: 'text-primary-600',
     description: 'Comprehensive deeper sterilization',
   },
   basic_clean: {

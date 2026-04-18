@@ -65,7 +65,8 @@ export function useOrderDetail() {
     },
     placeholderData: () => queryClient.getQueryData<ServiceBooking>(['serviceOrder', id]),
     enabled: !!id,
-    staleTime: 0,
+    staleTime: 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 
   // 2. Task Evidences Fetching
@@ -80,7 +81,8 @@ export function useOrderDetail() {
       return data?.items || data || [];
     },
     enabled: !!id,
-    staleTime: 0,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 15 * 60 * 1000,
   });
 
   // 3. Parallel Package Mapping Fetching
@@ -114,8 +116,8 @@ export function useOrderDetail() {
 
   const isInitialLoading = (orderQuery.isLoading && !orderQuery.data);
 
-  const isAssigned = !!mergedOrder?.staff || !!mergedOrder?.technician;
-  
+  const isAssigned = !!mergedOrder?.staff || !!mergedOrder?.technician || !!mergedOrder?.serviceTask;
+
   const canConfirm = useMemo(() => {
     if (!mergedOrder) return false;
     return mergedOrder.status?.toLowerCase() === 'pending' &&
@@ -124,13 +126,24 @@ export function useOrderDetail() {
 
   const canCancel = useMemo(() => {
     if (!mergedOrder) return false;
-    return !['cancelled', 'completed', 'refunded', 'forcedcancelled'].includes(mergedOrder.status?.toLowerCase() || '');
+    return !['cancelled', 'completed', 'refunded', 'forcedcancelled', 'rejected'].includes(mergedOrder.status?.toLowerCase() || '');
   }, [mergedOrder]);
 
   const canAssign = useMemo(() => {
     if (!mergedOrder) return false;
-    return mergedOrder.status?.toLowerCase() === 'confirmed' && !isAssigned;
+    const status = mergedOrder.status?.toLowerCase();
+    return (status === 'confirmed' || status === 'processing') && !isAssigned;
   }, [mergedOrder, isAssigned]);
+
+  const canComplete = useMemo(() => {
+    if (!mergedOrder) return false;
+    const orderStatus = mergedOrder.status?.toLowerCase();
+    const taskStatus = mergedOrder.serviceTask?.status?.toLowerCase();
+    // Manager/Admin can complete if order is in processing 
+    // AND technician has indicated progress completion (either by status or checkout timestamp)
+    return orderStatus === 'processing' &&
+      (taskStatus === 'completed' || !!mergedOrder.serviceTask?.checkOut);
+  }, [mergedOrder]);
 
   // 5. Actions
   const handleAssignOpen = useCallback(() => {
@@ -160,6 +173,7 @@ export function useOrderDetail() {
       canConfirm,
       canAssign,
       canCancel,
+      canComplete,
       isAssigned
     },
     actions: {

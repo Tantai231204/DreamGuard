@@ -2,6 +2,8 @@
    CHAT DOMAIN — STRICT TYPE DEFINITIONS
    ============================================================ */
 
+import type { ChatPayloadAppointment } from '@/utils/chatPayload';
+
 export type ConversationStatus = 'active' | 'resolved' | 'pending' | 'archived';
 export type MessageRole       = 'admin' | 'customer';
 export type MessageStatus     = 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
@@ -10,11 +12,13 @@ export type MessageStatus     = 'sending' | 'sent' | 'delivered' | 'read' | 'fai
 export interface Conversation {
   id: string;
   customerId: string;
+  staffId?: string;
   customerName: string;
   customerAvatar?: string;
   lastMessage: string;
   lastMessageTime: string;   // ISO 8601
   unreadCount: number;
+  hasUnread?: boolean;
   status: ConversationStatus;
   isOnline?: boolean;
   tags?: string[];
@@ -30,7 +34,9 @@ export interface Message {
   content: string;
   timestamp: string;         // ISO 8601
   status: MessageStatus;
+  isRead?: boolean;
   attachments?: MessageAttachment[];
+  appointment?: ChatPayloadAppointment;
 }
 
 export interface MessageAttachment {

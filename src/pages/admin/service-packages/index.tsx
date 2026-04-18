@@ -151,15 +151,6 @@ export default function ServicePackagesPage() {
     };
 
     const handleSubmit = async (formData: PackageFormData) => {
-        const body = new FormData();
-        body.append('PackageName', formData.packageName);
-        body.append('Description', formData.description || '');
-        body.append('ServiceContent', formData.serviceContent || '');
-        body.append('SuitableFor', formData.suitableFor || '');
-        body.append('Benefits', formData.benefits || '');
-        body.append('Duration', String(formData.duration));
-        body.append('Status', formData.status); // Backend strictly evaluates 'Active' vs 'Inactive'
-
         try {
             if (!editingPackage && !formData.file) {
                 toast.error('Validation Error', 'A visual cover image is required by the API to create a new package.');
@@ -167,19 +158,37 @@ export default function ServicePackagesPage() {
             }
 
             if (editingPackage) {
-                // Senior Optimization: Run non-dependent mutations concurrently
+                // Use JSON for basic details to avoid 415 error
+                const updateData = {
+                    packageName: formData.packageName,
+                    description: formData.description || '',
+                    serviceContent: formData.serviceContent || '',
+                    suitableFor: formData.suitableFor || '',
+                    benefits: formData.benefits || '',
+                    duration: formData.duration,
+                    status: formData.status
+                };
+
                 const tasks: Promise<unknown>[] = [
-                    updateMutation.mutateAsync({ id: editingPackage.servicePackageId, data: body })
+                    updateMutation.mutateAsync({ id: editingPackage.servicePackageId, data: updateData })
                 ];
 
                 if (formData.file) {
                     tasks.push(replaceImageMutation.mutateAsync({ id: editingPackage.servicePackageId, file: formData.file }));
                 }
 
-
                 await Promise.all(tasks);
                 toast.success('Sync Complete', 'Service tier updated successfully.');
             } else {
+                // Create still uses FormData because it bundle the file normally in POST
+                const body = new FormData();
+                body.append('PackageName', formData.packageName);
+                body.append('Description', formData.description || '');
+                body.append('ServiceContent', formData.serviceContent || '');
+                body.append('SuitableFor', formData.suitableFor || '');
+                body.append('Benefits', formData.benefits || '');
+                body.append('Duration', String(formData.duration));
+                body.append('Status', formData.status);
                 if (formData.file) {
                     body.append('FormFile', formData.file);
                 }

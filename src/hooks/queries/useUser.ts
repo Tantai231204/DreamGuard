@@ -20,6 +20,7 @@ export interface NormalizedProfile {
     avatarUrl?: string;
     gender?: string;
     dateOfBirth?: string;
+    memberCoin: number;
 }
 
 function normalizeProfile(profile: StaffResponse | UserProfile): NormalizedProfile {
@@ -33,6 +34,7 @@ function normalizeProfile(profile: StaffResponse | UserProfile): NormalizedProfi
         firstName: String(raw.firstName || firstNameFromFull || "").trim(),
         lastName: String(raw.lastName || lastNameFromFull || "").trim(),
         fullName: fullName || `${firstNameFromFull || ""} ${lastNameFromFull || ""}`.trim(),
+        memberCoin: Number(raw.memberCoin || 0),
     } as NormalizedProfile;
 }
 

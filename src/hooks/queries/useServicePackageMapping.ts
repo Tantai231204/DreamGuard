@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import servicePackageMappingService, { type ServicePackageMapping } from '@/api/services/servicePackageMappingService';
 
 export const mappingKeys = {
@@ -12,7 +12,6 @@ export const usePackageMappings = (pkgId?: string, enabled = true) => {
         queryKey: mappingKeys.byPackage(pkgId),
         queryFn: () => servicePackageMappingService.getAll({ servicePackageId: pkgId, pageSize: 200 }),
         enabled: enabled && !!pkgId,
-        placeholderData: keepPreviousData,
     });
 };
 
@@ -23,7 +22,6 @@ export const useAllPackageMappings = () => {
             const data = await servicePackageMappingService.getAll({ pageSize: 1000 });
             return (Array.isArray(data) ? data : (data?.items ?? [])) as ServicePackageMapping[];
         },
-        staleTime: 60000,
     });
 };
 
@@ -41,7 +39,20 @@ export const useAssignMapping = () => {
 export const useUpdateMapping = () => {
     const queryClient = useQueryClient();
     return useMutation({
-        mutationFn: (data: { mappingId: string; price: number; duration: number; servicePackage: { packageName: string; duration: number; suitableFor: string; benefits: string; serviceContent: string } }) =>
+        mutationFn: (data: { 
+            mappingId: string; 
+            price: number; 
+            duration: number; 
+            servicePackageId?: string;
+            productTypeId?: string;
+            servicePackage: { 
+                packageName: string; 
+                duration: number; 
+                suitableFor: string; 
+                benefits: string; 
+                serviceContent: string 
+            } 
+        }) =>
             servicePackageMappingService.update(data.mappingId, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: mappingKeys.all });

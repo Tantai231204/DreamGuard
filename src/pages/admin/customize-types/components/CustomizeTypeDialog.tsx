@@ -230,7 +230,7 @@ const CustomizeTypeDialog = memo(function CustomizeTypeDialog({
                       control={control}
                       render={({ field }) => (
                         <Select onValueChange={field.onChange} value={field.value} disabled={isLoading}>
-                          <SelectTrigger className="h-12 rounded-xl border-slate-200 bg-slate-50/20 px-3.5 text-[13px] font-bold text-indigo-700 shadow-sm hover:bg-white transition-all">
+                          <SelectTrigger className="h-12 rounded-xl border-slate-200 bg-slate-50/20 px-3.5 text-[13px] font-bold text-primary-700 shadow-sm hover:bg-white transition-all">
                             <SelectValue placeholder="Target" />
                           </SelectTrigger>
                           <SelectContent className="rounded-xl border-slate-100 shadow-2xl">
@@ -251,7 +251,7 @@ const CustomizeTypeDialog = memo(function CustomizeTypeDialog({
             <section className="space-y-6">
               <div>
                 <Label className="text-[10px] uppercase tracking-[0.15em] font-black text-slate-400 flex items-center gap-1.5 mb-2.5 px-1">
-                  <Calculator className="h-3.5 w-3.5 text-indigo-400" /> PRICING STRUCTURE
+                  <Calculator className="h-3.5 w-3.5 text-primary-400" /> PRICING STRUCTURE
                 </Label>
                 <div className="h-px w-full bg-slate-100" />
               </div>

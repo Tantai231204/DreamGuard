@@ -1,5 +1,5 @@
 import { memo, useMemo } from 'react';
-import { Phone, Video, MoreVertical, Shield, Star, ChevronDown } from 'lucide-react';
+import { Phone, Video, MoreVertical, Shield, Star, ChevronDown, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -15,10 +15,18 @@ import { cn } from '@/lib/utils';
 interface ChatHeaderProps {
   conversation: Conversation;
   isTyping?: boolean;
+  onResolveConversation?: () => void;
+  isResolving?: boolean;
 }
 
-function ChatHeaderInner({ conversation, isTyping = false }: ChatHeaderProps) {
+function ChatHeaderInner({
+  conversation,
+  isTyping = false,
+  onResolveConversation,
+  isResolving = false,
+}: ChatHeaderProps) {
   const { customerName, isOnline, status } = conversation;
+  const isResolved = status === 'resolved';
 
   const gradient = useMemo(() => getAvatarGradient(customerName), [customerName]);
   const initials = useMemo(
@@ -73,6 +81,18 @@ function ChatHeaderInner({ conversation, isTyping = false }: ChatHeaderProps) {
 
       {/* Right — Actions */}
       <div className="flex items-center gap-0.5">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={isResolved || isResolving || !onResolveConversation}
+          onClick={onResolveConversation}
+          className="h-7 rounded-md px-2.5 text-[10px] font-semibold mr-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
+          title={isResolved ? 'Conversation already resolved' : 'Mark conversation as resolved'}
+        >
+          {isResolving ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Shield className="h-3 w-3 mr-1" />}
+          {isResolved ? 'Resolved' : 'Resolve'}
+        </Button>
+
         {/* Conversation status badge */}
         <span
           className={cn(
@@ -90,7 +110,7 @@ function ChatHeaderInner({ conversation, isTyping = false }: ChatHeaderProps) {
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 w-8 p-0 rounded-xl hover:bg-blue-50 hover:text-[var(--color-primary)] transition-all"
+          className="h-8 w-8 p-0 rounded-lg hover:bg-blue-50 hover:text-[var(--color-primary)] transition-all"
           title="Voice call"
         >
           <Phone className="h-3.5 w-3.5" />
@@ -99,7 +119,7 @@ function ChatHeaderInner({ conversation, isTyping = false }: ChatHeaderProps) {
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 w-8 p-0 rounded-xl hover:bg-blue-50 hover:text-[var(--color-primary)] transition-all"
+          className="h-8 w-8 p-0 rounded-lg hover:bg-blue-50 hover:text-[var(--color-primary)] transition-all"
           title="Video call"
         >
           <Video className="h-3.5 w-3.5" />
@@ -110,23 +130,33 @@ function ChatHeaderInner({ conversation, isTyping = false }: ChatHeaderProps) {
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0 rounded-xl hover:bg-blue-50 hover:text-[var(--color-primary)] transition-all"
+              className="h-8 w-8 p-0 rounded-lg hover:bg-blue-50 hover:text-[var(--color-primary)] transition-all"
             >
               <MoreVertical className="h-3.5 w-3.5" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-52 shadow-lg rounded-xl border-gray-100">
-            <DropdownMenuItem className="gap-2 text-xs cursor-pointer rounded-lg">
+          <DropdownMenuContent align="end" className="w-52 shadow-lg rounded-lg border-gray-100">
+            <DropdownMenuItem className="gap-2 text-xs cursor-pointer rounded-md">
               <Star className="h-3.5 w-3.5 text-amber-400" />
               Mark as priority
             </DropdownMenuItem>
-            <DropdownMenuItem className="gap-2 text-xs cursor-pointer rounded-lg">
+            <DropdownMenuItem className="gap-2 text-xs cursor-pointer rounded-md">
               <Shield className="h-3.5 w-3.5 text-blue-500" />
               View customer profile
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="gap-2 text-xs cursor-pointer text-red-500 rounded-lg focus:text-red-500 focus:bg-red-50">
-              Delete conversation
+            <DropdownMenuItem
+              disabled={isResolved || isResolving || !onResolveConversation}
+              onSelect={(event) => {
+                event.preventDefault();
+                if (!isResolved && !isResolving) {
+                  onResolveConversation?.();
+                }
+              }}
+              className="gap-2 text-xs cursor-pointer text-emerald-600 rounded-md focus:text-emerald-600 focus:bg-emerald-50 disabled:opacity-50"
+            >
+              {isResolving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Shield className="h-3.5 w-3.5" />}
+              {isResolved ? 'Conversation resolved' : 'Mark as resolved'}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

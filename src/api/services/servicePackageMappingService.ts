@@ -26,7 +26,19 @@ const servicePackageMappingService = {
             ]
         }).then(res => res.data?.data ?? res.data),
 
-    update: (mappingId: string, data: { price: number; duration: number; servicePackage: { packageName: string; duration: number; suitableFor: string; benefits: string; serviceContent: string } }): Promise<void> =>
+    update: (mappingId: string, data: { 
+        price: number; 
+        duration: number; 
+        servicePackageId?: string;
+        productTypeId?: string;
+        servicePackage: { 
+            packageName: string; 
+            duration: number; 
+            suitableFor: string; 
+            benefits: string; 
+            serviceContent: string 
+        } 
+    }): Promise<void> =>
         apiClient.put(`/ServicePackageMappings/${mappingId}`, data).then(res => res.data),
 
     delete: (mappingId: string): Promise<void> =>

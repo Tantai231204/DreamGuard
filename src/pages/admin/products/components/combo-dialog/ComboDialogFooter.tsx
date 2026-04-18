@@ -47,7 +47,7 @@ const ComboDialogFooter = memo(function ComboDialogFooter({
                 disabled={isLoading || !isValid}
                 className={cn(
                     "flex-1 h-11 rounded-xl font-medium transition-all text-white",
-                    "bg-primary-500 hover:bg-primary-600 shadow-sm shadow-primary-500/10",
+                    "bg-[#4988c4] hover:bg-[#3a6fa0] shadow-sm border-0",
                     "disabled:opacity-50 disabled:shadow-none"
                 )}
             >

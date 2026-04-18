@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tansta
 import { certificateService } from '@/api';
 import type { CreateCertificateRequest, CertificateParams } from '@/pages/admin/products/types';
 import { toast } from 'sonner';
+import { useAuthStore } from '@/store/authStore';
+import { isAdminOrManager } from '@/lib/role';
 
 export const certificateKeys = {
   all: ['certificates'] as const,
@@ -12,20 +14,26 @@ export const certificateKeys = {
 };
 
 /** Fetch certificates by product ID */
-export const useProductCertificates = (productId: string) => {
+export const useProductCertificates = (productId: string, options?: { enabled?: boolean; staleTime?: number }) => {
   return useQuery({
     queryKey: certificateKeys.byProduct(productId),
     queryFn: () => certificateService.getByProductId(productId),
-    enabled: !!productId,
+    enabled: options?.enabled !== undefined ? (options.enabled && !!productId) : !!productId,
+    staleTime: options?.staleTime,
   });
 };
 
 /** Fetch paginated certificates */
-export const useAdminCertificates = (params: CertificateParams = {}) => {
+export const useAdminCertificates = (params: CertificateParams = {}, options?: { enabled?: boolean }) => {
+  const role = useAuthStore((s) => s.role);
+
   return useQuery({
     queryKey: certificateKeys.admin(params),
     queryFn: () => certificateService.getAll(params),
     placeholderData: keepPreviousData,
+    enabled: options?.enabled !== undefined 
+      ? (options.enabled && isAdminOrManager(role)) 
+      : isAdminOrManager(role),
   });
 };
 

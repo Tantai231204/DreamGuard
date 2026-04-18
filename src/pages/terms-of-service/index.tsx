@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import gsap from "gsap";
 import {
   AlertTriangle,
   ArrowRight,
@@ -14,7 +15,6 @@ import {
   Wallet,
 } from "lucide-react";
 
-import { useBreadcrumb } from "@/components/common/BreadcrumbNav";
 import { AppRoute } from "@/lib/constants";
 
 const overviewItems = [
@@ -112,30 +112,46 @@ const legalNotes = [
 ];
 
 const sectionMotion = {
-  initial: { opacity: 0, y: 24 },
+  initial: { opacity: 1, y: 0 },
   whileInView: { opacity: 1, y: 0 },
   viewport: { once: true, amount: 0.2 },
-  transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] as const },
+  transition: { duration: 0 },
 };
 
 export default function TermsOfServicePage() {
-  const { setItems } = useBreadcrumb();
+  const pageRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    setItems([
-      { label: "Home", href: AppRoute.HOME },
-      { label: "Terms of Service", active: true },
-    ]);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
 
-    return () => setItems([]);
-  }, [setItems]);
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        "[data-page-hero]",
+        { autoAlpha: 0, y: 8 },
+        { autoAlpha: 1, y: 0, duration: 0.28, ease: "power1.out" }
+      );
+
+      const cards = gsap.utils.toArray<HTMLElement>("[data-page-card]").slice(0, 8);
+      if (cards.length > 0) {
+        gsap.fromTo(
+          cards,
+          { autoAlpha: 0, y: 8 },
+          { autoAlpha: 1, y: 0, duration: 0.24, stagger: 0.03, delay: 0.04, ease: "power1.out" }
+        );
+      }
+    }, pageRef);
+
+    return () => ctx.revert();
+  }, []);
 
   return (
-    <div className="bg-white text-[#4988c4]-900">
-      <section className="relative overflow-hidden border-b border-[#4988c4]-200 bg-[radial-gradient(circle_at_top_left,_rgba(73,136,196,0.18),_transparent_40%),linear-gradient(135deg,_#eff6ff_0%,_#ffffff_52%,_rgba(191,219,254,0.22)_100%)]">
+    <div ref={pageRef} className="bg-slate-50 text-slate-800">
+      <section className="relative overflow-hidden border-b border-slate-200 bg-gradient-to-b from-[#eff6ff] to-white">
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#4988c4]/50 to-transparent" />
         <div className="container mx-auto grid max-w-7xl gap-10 px-6 py-16 lg:grid-cols-[1.2fr_0.8fr] lg:px-8 lg:py-20">
-          <motion.div {...sectionMotion} className="max-w-3xl">
+          <motion.div {...sectionMotion} data-page-hero className="max-w-3xl">
             <div className="inline-flex items-center gap-2 rounded-full border border-[#4988c4]/15 bg-white/85 px-4 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-[#4988c4] shadow-sm backdrop-blur">
               <Sparkles className="h-4 w-4" />
               Terms of Service
@@ -168,7 +184,8 @@ export default function TermsOfServicePage() {
             {overviewItems.map((item, index) => (
               <div
                 key={item}
-                className="rounded-[28px] border border-white/70 bg-white/90 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] backdrop-blur"
+                data-page-card
+                className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
               >
                 <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#4988c4]/10 text-sm font-black text-[#4988c4]">
                   0{index + 1}
@@ -198,7 +215,7 @@ export default function TermsOfServicePage() {
               const Icon = item.icon;
 
               return (
-                <div key={item.title} className="rounded-[30px] border border-[#4988c4]-200 bg-white p-7 shadow-[0_18px_60px_rgba(15,23,42,0.05)]">
+                <div key={item.title} data-page-card className="rounded-3xl border border-slate-200 bg-white p-7 shadow-sm">
                   <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-[#4988c4]/10 text-[#4988c4]">
                     <Icon className="h-6 w-6" />
                   </div>
@@ -229,7 +246,7 @@ export default function TermsOfServicePage() {
                 const Icon = item.icon;
 
                 return (
-                  <div key={item.title} className="rounded-[32px] border border-[#4988c4]-200 bg-white p-7 shadow-[0_18px_60px_rgba(15,23,42,0.06)]">
+                  <div key={item.title} data-page-card className="rounded-[32px] border border-[#4988c4]-200 bg-white p-7 shadow-[0_18px_60px_rgba(15,23,42,0.06)]">
                     <div className="flex items-start gap-4">
                       <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-[#4988c4]/10 text-[#4988c4]">
                         <Icon className="h-6 w-6" />

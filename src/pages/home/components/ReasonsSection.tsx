@@ -1,3 +1,8 @@
+import { useEffect, useRef } from 'react'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+
+gsap.registerPlugin(ScrollTrigger)
 
 const reasons = [
     {
@@ -28,7 +33,6 @@ const reasons = [
     },
 ]
 
-
 const certifications = [
     {
         id: 1,
@@ -52,15 +56,56 @@ const certifications = [
     },
 ]
 
-
-
 export default function ReasonsSection() {
+    const sectionRef = useRef<HTMLElement>(null)
+
+    useEffect(() => {
+        const ctx = gsap.context(() => {
+            gsap.from(".anim-header", {
+                scrollTrigger: {
+                    trigger: ".anim-header",
+                    start: "top 85%",
+                },
+                y: 30,
+                opacity: 0,
+                duration: 0.8,
+                ease: "power2.out"
+            });
+
+            gsap.from(".anim-reason", {
+                scrollTrigger: {
+                    trigger: ".anim-reason-container",
+                    start: "top 80%",
+                },
+                y: 40,
+                opacity: 0,
+                duration: 0.8,
+                stagger: 0.15,
+                ease: "power2.out"
+            });
+
+            gsap.from(".anim-cert-box", {
+                scrollTrigger: {
+                    trigger: ".anim-cert-box",
+                    start: "top 85%",
+                },
+                y: 40,
+                opacity: 0,
+                scale: 0.98,
+                duration: 0.8,
+                ease: "power2.out"
+            });
+        }, sectionRef)
+
+        return () => ctx.revert()
+    }, [])
+
     return (
-        <section className="py-18 bg-white">
+        <section ref={sectionRef} className="py-18 bg-white">
             <div className="container mx-auto max-w-4xl px-4 mb-12">
 
                 {/* ===== HEADER ===== */}
-                <div className="text-center mb-20">
+                <div className="anim-header text-center mb-20">
                     <h2 className="text-2xl md:text-3xl font-semibold text-[#4A7EDC] mb-3">
                         Reasons for choosing DreamGuard
                     </h2>
@@ -71,9 +116,9 @@ export default function ReasonsSection() {
                 </div>
 
                 {/* ===== REASONS ===== */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-12 mb-24">
+                <div className="anim-reason-container grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-12 mb-24">
                     {reasons.map((item) => (
-                        <div key={item.id} className="text-center max-w-[220px] mx-auto">
+                        <div key={item.id} className="anim-reason text-center max-w-[220px] mx-auto">
                             {/* Icon blob */}
                             <div className="mx-auto mb-6 w-20 h-20 flex items-center justify-center blob">
                                 <img
@@ -95,22 +140,11 @@ export default function ReasonsSection() {
 
                 {/* ===== CERTIFICATION BOX ===== */}
                 <div
-                    className="
-    relative
-    rounded-[32px]
-    px-8 py-14
-    overflow-hidden
-  "
+                    className="anim-cert-box relative rounded-[32px] px-8 py-14 overflow-hidden"
                 >
                     {/* ===== Background image ===== */}
                     <div
-                        className="
-    absolute inset-0
-    bg-[url('/images/bg-section.png')]
-    bg-no-repeat
-    bg-contain
-    bg-center
-  "
+                        className="absolute inset-0 bg-[url('/images/bg-section.png')] bg-no-repeat bg-contain bg-center"
                     />
                     {/* ===== CONTENT ===== */}
                     <div className="relative z-10 px-8 mb-2">
@@ -148,10 +182,8 @@ export default function ReasonsSection() {
 
                 </div>
 
-
             </div>
         </section>
     )
 }
-
 

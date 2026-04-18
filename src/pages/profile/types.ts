@@ -7,6 +7,7 @@ export type TabId =
     | "addresses"
     | "notifications"
     | "security"
+    | "trade-in-orders"
 
 export interface Tab {
     id: TabId

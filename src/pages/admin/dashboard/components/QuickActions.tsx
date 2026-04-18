@@ -2,8 +2,7 @@ import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import type { QuickAction } from "../types";
 
 interface QuickActionsProps {
@@ -14,15 +13,15 @@ interface QuickActionsProps {
 export default function QuickActions({ actions, isLoading }: QuickActionsProps) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {[1, 2, 3, 4].map((i) => (
-          <Card key={i} className="p-6 bg-white border border-slate-100 flex items-center gap-4">
-             <Skeleton className="h-14 w-14 rounded-xl" />
+          <div key={i} className="p-4 bg-white border border-slate-100 rounded-2xl flex items-center gap-3">
+             <Skeleton className="h-10 w-10 rounded-xl" />
              <div className="space-y-2 flex-1">
-                <Skeleton className="h-5 w-3/4" />
-                <Skeleton className="h-3 w-1/2" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-2 w-1/2" />
              </div>
-          </Card>
+          </div>
         ))}
       </div>
     );
@@ -30,65 +29,48 @@ export default function QuickActions({ actions, isLoading }: QuickActionsProps) 
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.4 }}
-      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ delay: 0.2 }}
+      className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
     >
       {actions.map((action) => {
         const Icon = action.icon;
 
         const cardContent = (
-          <Card
-            className={`p-6 hover:shadow-2xl transition-all group border-2 border-transparent ${action.hoverBorder} bg-gradient-to-br from-white to-gray-50 relative ${
-              action.disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"
-            }`}
+          <div
+            className={cn(
+              "p-4 rounded-2xl transition-all group border border-slate-100 bg-white hover:shadow-md hover:border-[#4988c4]/20 relative",
+              action.disabled && "cursor-not-allowed opacity-40"
+            )}
           >
-            <div className="flex items-center gap-4">
-              <div
-                className={`h-14 w-14 rounded-xl ${action.iconBg} flex items-center justify-center transition-shadow`}
-              >
-                <Icon className="h-7 w-7 text-white" />
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-slate-50 group-hover:bg-[#4988c4] flex items-center justify-center transition-colors duration-300">
+                <Icon className="h-5 w-5 text-slate-400 group-hover:text-white transition-colors duration-300" />
               </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-lg text-gray-900">
+              <div className="flex-1 min-w-0">
+                <h3 className="font-bold text-sm text-slate-900 tracking-tight truncate">
                   {action.title}
                 </h3>
-                <p className="text-sm text-gray-500">{action.description}</p>
+                <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider truncate">{action.description}</p>
               </div>
               {!action.disabled && (
-                <ArrowRight className="h-6 w-6 text-gray-400 group-hover:text-[var(--color-primary)] group-hover:translate-x-2 transition-all" />
+                <ArrowRight className="h-4 w-4 text-slate-300 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
               )}
             </div>
             {action.badge && (
-              <Badge className="absolute top-4 right-4 bg-red-500 text-white">
+              <span className="absolute top-3 right-3 h-5 min-w-[20px] px-1 flex items-center justify-center text-[9px] font-black bg-red-500 text-white rounded-full">
                 {action.badge}
-              </Badge>
+              </span>
             )}
-          </Card>
+          </div>
         );
 
-        if (action.disabled) {
-          return (
-            <motion.div
-              key={action.title}
-              whileHover={{ scale: 1.03, y: -5 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            >
-              {cardContent}
-            </motion.div>
-          );
-        }
+        if (action.disabled) return <div key={action.title}>{cardContent}</div>;
 
         return (
           <Link key={action.title} to={action.to}>
-            <motion.div
-              whileHover={{ scale: 1.03, y: -5 }}
-              whileTap={{ scale: 0.98 }}
-              transition={{ type: "spring", stiffness: 300 }}
-            >
-              {cardContent}
-            </motion.div>
+            {cardContent}
           </Link>
         );
       })}

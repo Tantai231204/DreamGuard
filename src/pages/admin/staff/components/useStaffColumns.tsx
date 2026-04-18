@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { SortableHeader, AdminRowActions, AdminStatusBadge, StaffRoleBadge } from '@/components/admin';
 import type { Staff } from '../types';
+import { isAdminRole } from '@/lib/role';
 // import { formatDate } from '@/lib/utils';
 
 const columnHelper = createColumnHelper<Staff>();
@@ -67,7 +68,7 @@ export function useStaffColumns({ onEdit, onChangeRole }: StaffColumnsProps = {}
             <div className="flex items-center gap-3">
               <Avatar className="h-9 w-9 border-2 border-slate-100 shadow-sm">
                 <AvatarImage src={staff.avatarUrl || randomAvatarUrl} />
-                <AvatarFallback className="bg-indigo-600 text-white text-xs font-semibold">
+                <AvatarFallback className="bg-primary-600 text-white text-xs font-semibold">
                   {staff.fullName ? staff.fullName.charAt(0) : 'U'}
                 </AvatarFallback>
               </Avatar>
@@ -139,7 +140,7 @@ export function useStaffColumns({ onEdit, onChangeRole }: StaffColumnsProps = {}
         header: () => null,
         cell: ({ row }) => {
           const staff = row.original;
-          const isAdmin = staff.role?.toLowerCase() === 'admin';
+          const isAdmin = isAdminRole(staff.role);
 
           return (
             <div className="flex justify-end">

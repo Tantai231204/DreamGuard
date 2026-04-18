@@ -96,10 +96,18 @@ const ComboItemsPanel = memo(function ComboItemsPanel({
 
     const handleQty = useCallback(
         (id: string, qty: number) => {
-            if (qty < 1) return;
+            const item = items.find(i => i.id === id);
+            if (!item || qty < 1) return;
+
+            // trong combo con không chọn quá stock product variant
+            const vOpt = variantOptions.find(v => v.variantId === item.productVariantId);
+            if (vOpt && qty > vOpt.stockQuantity) {
+                return;
+            }
+
             onChange(items.map(i => (i.id === id ? { ...i, quantity: qty } : i)));
         },
-        [items, onChange],
+        [items, onChange, variantOptions],
     );
 
     const clearPending = useCallback(
@@ -226,6 +234,32 @@ const ComboItemsPanel = memo(function ComboItemsPanel({
                                                             {item.size}
                                                         </span>
                                                     )}
+
+                                                    {/* Status & Stock Warning Badges */}
+                                                    {(() => {
+                                                        const vOpt = variantOptions.find(v => v.variantId === item.productVariantId);
+                                                        const isUnpublished = vOpt && vOpt.status !== 'Published';
+                                                        const isOOS = vOpt && vOpt.stockQuantity <= 0;
+
+                                                        return (
+                                                            <>
+                                                                {isUnpublished && (
+                                                                    <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">
+                                                                        Not Published
+                                                                    </span>
+                                                                )}
+                                                                {isOOS ? (
+                                                                    <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100">
+                                                                        Out of Stock
+                                                                    </span>
+                                                                ) : vOpt && vOpt.stockQuantity < item.quantity && (
+                                                                     <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100">
+                                                                        Stock Insufficient ({vOpt.stockQuantity})
+                                                                    </span>
+                                                                )}
+                                                            </>
+                                                        );
+                                                    })()}
                                                 </div>
                                             </div>
 
@@ -387,14 +421,23 @@ const ComboItemsPanel = memo(function ComboItemsPanel({
 
                     {/* Drift warning (sale price ≠ market total) */}
                     {!isSynced && marketTotal > 0 && (
-                        <div className="mx-5 mb-4 flex items-start gap-2 px-3 py-2.5 rounded-lg bg-amber-50 border border-amber-200/60">
-                            <AlertCircle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
-                            <p className="text-[11px] text-amber-700 leading-relaxed">
-                                {(comboPriceOverride ?? 0) > marketTotal
-                                    ? 'Sale price exceeds the combined item total.'
-                                    : 'Sale price is lower than the combined item total.'}
-                                {' '}Use "Sync" to align them.
-                            </p>
+                        <div className="mx-5 mb-4 flex flex-col gap-2 p-3.5 rounded-xl bg-amber-50/70 border border-amber-200 shadow-sm animate-in fade-in slide-in-from-bottom-2">
+                            <div className="flex items-start gap-2.5">
+                                <AlertCircle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                                <div className="space-y-1">
+                                    <p className="text-[11px] font-bold text-amber-800 uppercase tracking-tight">
+                                        Important Notice: Price Mismatch Detected
+                                    </p>
+                                    <p className="text-[11px] text-amber-700 leading-relaxed font-medium">
+                                        {(comboPriceOverride ?? 0) > marketTotal
+                                            ? 'The sale price currently exceeds the combined total of your items.'
+                                            : 'The sale price is lower than the combined total of your items.'}
+                                        <span className="block mt-1 font-bold text-amber-900 border-t border-amber-200/50 pt-1">
+                                            Note: You have modified the quantities. Please adjust the price accordingly before saving changes.
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>

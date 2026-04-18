@@ -128,7 +128,7 @@ const VirtualVariantSelect = memo(function VirtualVariantSelect({
                     onClick={() => setOpen(true)}
                     className={cn(
                         'h-7 px-2.5 text-[11px] font-medium rounded-md border border-gray-200',
-                        'text-gray-500 hover:text-primary-600 hover:border-primary-300 hover:bg-primary-50',
+                        'text-gray-500 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50',
                         'transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1',
                     )}
                 >
@@ -146,7 +146,7 @@ const VirtualVariantSelect = memo(function VirtualVariantSelect({
                     onClick={() => setOpen(true)}
                     className={cn(
                         'flex w-full items-center gap-2 h-10 rounded-lg border border-dashed border-gray-300',
-                        'px-3 text-sm text-gray-400 hover:border-primary-400 hover:text-primary-500 hover:bg-primary-50/50',
+                        'px-3 text-sm text-gray-400 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50/50',
                         'transition-all disabled:opacity-40 disabled:cursor-not-allowed',
                     )}
                 >
@@ -165,8 +165,8 @@ const VirtualVariantSelect = memo(function VirtualVariantSelect({
                 onClick={() => setOpen(true)}
                 className={cn(
                     'flex w-full items-center gap-2.5 min-h-[48px] py-2 px-3 rounded-lg',
-                    'border border-primary-200 bg-primary-50/40',
-                    'hover:border-primary-300 hover:bg-primary-50/70 transition-all',
+                    'border border-blue-200 bg-blue-50/40',
+                    'hover:border-blue-300 hover:bg-blue-50/70 transition-all',
                     'disabled:opacity-40 disabled:cursor-not-allowed',
                 )}
             >
@@ -194,7 +194,7 @@ const VirtualVariantSelect = memo(function VirtualVariantSelect({
                     </div>
                 </div>
                 <div className="text-right shrink-0">
-                    <div className="text-xs font-bold text-primary-600">{formatNumber(selectedOption.salePrice)}₫</div>
+                    <div className="text-xs font-bold text-blue-600">{formatNumber(selectedOption.salePrice)}₫</div>
                     <ChevronDown className="h-3 w-3 text-gray-400 mx-auto mt-0.5" />
                 </div>
             </button>
@@ -252,7 +252,7 @@ const VirtualVariantSelect = memo(function VirtualVariantSelect({
                             <span className="font-semibold text-gray-600">{filtered.length}</span> variants available
                         </span>
                         {excludeIds.length > 0 && (
-                            <span className="text-[11px] text-primary-500 font-medium">
+                            <span className="text-[11px] text-blue-500 font-medium">
                                 {excludeIds.length} already in combo
                             </span>
                         )}
@@ -261,7 +261,7 @@ const VirtualVariantSelect = memo(function VirtualVariantSelect({
                     {/* Virtualized list */}
                     {isLoading ? (
                         <div className="flex flex-col items-center justify-center py-12 gap-3">
-                            <div className="h-6 w-6 border-2 border-primary-300 border-t-primary-600 rounded-full animate-spin" />
+                            <div className="h-6 w-6 border-2 border-blue-300 border-t-blue-600 rounded-full animate-spin" />
                             <span className="text-sm text-gray-500">Loading variants...</span>
                         </div>
                     ) : rows.length === 0 ? (
@@ -270,7 +270,7 @@ const VirtualVariantSelect = memo(function VirtualVariantSelect({
                             <p className="text-sm text-gray-400">No matching variants found</p>
                             {search && (
                                 <button type="button" onClick={() => setSearch('')}
-                                    className="text-xs text-violet-500 hover:underline">
+                                    className="text-xs text-blue-500 hover:underline">
                                     Clear search
                                 </button>
                             )}
@@ -302,13 +302,13 @@ const VirtualVariantSelect = memo(function VirtualVariantSelect({
                                                         const firstV = filtered.find(v => v.productId === row.productId);
                                                         if (firstV) handleSelect(firstV.variantId);
                                                     }}
-                                                    className="flex items-center gap-2 w-full px-3 py-2 bg-gray-50 border-y border-gray-100 hover:bg-primary-50 transition-colors group/header"
+                                                    className="flex items-center gap-2 w-full px-3 py-2 bg-gray-50 border-y border-gray-100 hover:bg-blue-50 transition-colors group/header"
                                                 >
-                                                    <Package className="h-3.5 w-3.5 text-primary-500 shrink-0 group-hover/header:scale-110 transition-transform" />
+                                                    <Package className="h-3.5 w-3.5 text-blue-500 shrink-0 group-hover/header:scale-110 transition-transform" />
                                                     <span className="text-[12px] font-bold text-gray-800 truncate flex-1 text-left">
                                                         {row.productName || `Product ${row.productId.slice(0, 8)}…`}
                                                     </span>
-                                                    <span className="text-[10px] text-primary-500 font-semibold bg-primary-50 px-1.5 py-0.5 rounded shrink-0 flex items-center gap-1 group-hover/header:bg-primary-100">
+                                                    <span className="text-[10px] text-blue-500 font-semibold bg-blue-50 px-1.5 py-0.5 rounded shrink-0 flex items-center gap-1 group-hover/header:bg-blue-100">
                                                         {row.count} variant{row.count !== 1 ? 's' : ''}
                                                         <ChevronDown className="h-2.5 w-2.5 opacity-0 group-hover/header:opacity-100 transition-opacity" />
                                                     </span>
@@ -337,7 +337,7 @@ const VirtualVariantSelect = memo(function VirtualVariantSelect({
                                                     'flex items-center gap-3 w-full px-3 py-2.5 text-left',
                                                     'transition-colors outline-none',
                                                     value === opt.variantId
-                                                        ? 'bg-primary-50 border-l-2 border-primary-500'
+                                                        ? 'bg-blue-50 border-l-2 border-blue-500'
                                                         : 'hover:bg-gray-50 border-l-2 border-transparent',
                                                 )}
                                             >
@@ -389,7 +389,7 @@ const VirtualVariantSelect = memo(function VirtualVariantSelect({
 
                                                 {/* Check mark */}
                                                 {value === opt.variantId && (
-                                                    <Check className="h-4 w-4 text-primary-600 shrink-0" />
+                                                    <Check className="h-4 w-4 text-blue-600 shrink-0" />
                                                 )}
                                             </button>
                                         </div>

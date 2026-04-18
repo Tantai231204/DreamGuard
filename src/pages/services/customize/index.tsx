@@ -15,6 +15,8 @@ import { Button } from "@/components/ui/button";
 import { ChromaProfile } from "./components/ChromaProfile";
 import { TextureLab } from "./components/TextureLab";
 import { cn } from "@/lib/utils";
+import { ArtisticRefinement } from "./components/ArtisticRefinement";
+import { uploadToCloudinary } from "@/lib/uploadCloudinary";
 
 import {
   generateConfigHash
@@ -37,6 +39,7 @@ const CustomizeStudio = () => {
   const navigate = useNavigate();
   const { addItem } = useCartStore();
   const [isAdding, setIsAdding] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
 
   // 1. Fetch Dynamic Data from API
   const { data: apiProducts, isLoading: productsLoading } = useFullyCustomizedProducts();
@@ -166,14 +169,29 @@ const CustomizeStudio = () => {
     return group?.options[0]?.customizeTypeId;
   }, [customSchema]);
 
-  const embroideryAddOnFee = useMemo(() => {
-    const group = customSchema?.customizeOptionGroups?.find(g => g.category === 'Embroidery');
-    if (group && group.options.length > 0) {
-      const opt = group.options[0];
-      return opt.overridePrice ?? opt.defaultPrice ?? 0;
+  const embroideryGroup = useMemo(() =>
+    customSchema?.customizeOptionGroups?.find((g: CustomizeOptionGroupResponse) => g.category === 'Embroidery'),
+    [customSchema]
+  );
+
+  const embroideryTextOptionId = embroideryGroup?.options?.[0]?.customizeTypeId;
+  const embroideryImageOptionId = embroideryGroup?.options?.[1]?.customizeTypeId || embroideryTextOptionId;
+
+  const embroideryTextFee = useMemo(() => {
+    if (embroideryGroup && embroideryGroup.options.length > 0) {
+      const opt = embroideryGroup.options[0];
+      return opt.overridePrice ?? opt.defaultPrice ?? 80000;
     }
-    return 80000; // Final Fallback
-  }, [customSchema]);
+    return 80000;
+  }, [embroideryGroup]);
+
+  const embroideryImageFee = useMemo(() => {
+    if (embroideryGroup && embroideryGroup.options.length > 1) {
+      const opt = embroideryGroup.options[1];
+      return opt.overridePrice ?? opt.defaultPrice ?? embroideryTextFee;
+    }
+    return embroideryTextFee;
+  }, [embroideryGroup, embroideryTextFee]);
 
 
 
@@ -198,6 +216,24 @@ const CustomizeStudio = () => {
   const currentMaterial = useMemo(() => derivedMaterials.find(m => m.id === activeDesign.material) || derivedMaterials[0], [activeDesign.material, derivedMaterials]);
   const currentSize = useMemo(() => availableSizes.find((s: { id: string }) => s.id === activeDesign.size), [availableSizes, activeDesign.size]);
 
+  // 🔥 Visual Scaling Logic
+  const sizeDims = useMemo(() => {
+    if (activeDesign.size === 'custom') {
+      return {
+        width: parseFloat(customDims.width) || (selectedProduct?.id.includes('crib') ? 60 : 25),
+        length: parseFloat(customDims.height) || (selectedProduct?.id.includes('crib') ? 120 : 35)
+      };
+    }
+    if (!currentSize) return { width: 60, length: 120 };
+
+    // Extract digits from labels like "60 × 120 cm"
+    const match = currentSize.label.match(/(\d+)\s*[×x]\s*(\d+)/);
+    if (match) {
+      return { width: parseFloat(match[1]), length: parseFloat(match[2]) };
+    }
+    return { width: 60, length: 120 };
+  }, [activeDesign.size, currentSize, customDims, selectedProduct]);
+
   const pricingResults = useMemo(() => {
     if (!selectedProduct) return { current: 0 };
     const baseSale = selectedProduct.salePrice && selectedProduct.salePrice > 0 ? selectedProduct.salePrice : selectedProduct.basePrice;
@@ -205,63 +241,141 @@ const CustomizeStudio = () => {
     // TRUY XUẤT PHÍ SIZE CHÍNH XÁC (NẾU CHỌN SIZE SẼ CỘNG PHÍ TỪ CATEGORY)
     const sizeFee = (activeDesign.size || currentSize) ? sizeAddOnFee : 0;
 
-    const colorAdd = activeDesign.baseColor ? colorAddOnFee : 0;
-
+    const isWrapped = !!activeDesign.customImage;
+    // Nếu bọc ảnh thì phí màu = 0 (theo yêu cầu user: color tính là không có)
+    const colorAdd = isWrapped ? 0 : (activeDesign.baseColor ? colorAddOnFee : 0);
+    const wrapAdd = isWrapped ? embroideryImageFee : 0;
 
     // HỖ TRỢ CẢ HAI: CÔNG THỨC PHÉP CỘNG VÀ HỆ SỐ NHÂN (DỰA TRÊN JSON API)
     const matAdd = currentMaterial?.priceAdd ?? 0;
     const mult = currentMaterial?.priceMultiplier ?? 1.0;
-    const embAdd = activeDesign.embroideryText.trim().length > 0 ? embroideryAddOnFee : 0;
+    const embTextAdd = activeDesign.embroideryText.trim().length > 0 ? embroideryTextFee : 0;
 
-    // Logic chuẩn Backend: (Base * Hệ số chất liệu) + Phí Size + Phí Màu + Phí Thêu + MaterialAddon
-    // Giải thích: Tiền vật liệu = Base * (Multiplier - 1)
-    const currentTotal = Math.round(baseSale * mult + matAdd) + sizeFee + colorAdd + embAdd;
+    // Phí Size + Phí Màu + Phí Bọc Ảnh + Phí Thêu + MaterialAddon
+    const currentTotal = Math.round(baseSale * mult + matAdd) + sizeFee + colorAdd + wrapAdd + embTextAdd;
 
     return { current: currentTotal };
-  }, [selectedProduct, currentSize, currentMaterial, activeDesign, colorAddOnFee, embroideryAddOnFee, sizeAddOnFee]);
+  }, [selectedProduct, currentSize, currentMaterial, activeDesign, colorAddOnFee, embroideryTextFee, embroideryImageFee, sizeAddOnFee]);
+
+  const wrapAddOnFee = embroideryImageFee;
 
   const totalPrice = pricingResults.current;
 
   const updateDesign = useCallback((updates: Partial<DesignConfig>) => {
-    setDesignState(prev => ({ ...prev, ...updates }));
+    setDesignState(prev => {
+      const newState = { ...prev, ...updates };
+
+      // Mutual Exclusivity: Color vs Custom Image (UX Fix)
+      if (updates.customImage) {
+        // If image uploaded, use neutral white as foundation to avoid tinting
+        newState.baseColor = "#FFFFFF";
+      } else if (updates.baseColor && updates.baseColor !== prev.baseColor) {
+        // If color specifically changed, clear the custom image bọc
+        newState.customImage = undefined;
+      }
+
+      return newState;
+    });
   }, []);
 
-  const handleAddToCart = () => {
-    if (!selectedProduct || !customSchema) return;
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
 
-    // Build the Bespoke Detail List
+  const handleImageUpload = async (file: File | null) => {
+    if (!file) {
+      setPendingFile(null);
+      setUploadedImageUrl(null);
+      updateDesign({ customImage: undefined });
+      return;
+    }
+
+    setPendingFile(file);
+    const localUrl = URL.createObjectURL(file);
+    updateDesign({ customImage: localUrl, imageMode: "wrap" });
+
+    // 🔥 Rapid Background Synchronization: Start upload immediately so it's ready when user clicks Add
+    try {
+      const res = await uploadToCloudinary(file);
+      if (res?.secure_url) {
+        setUploadedImageUrl(res.secure_url);
+      }
+    } catch (err) {
+      console.error("[CustomizeStudio] Pre-sync failed:", err);
+    }
+  };
+
+  const handleAddToCart = async () => {
+    if (!selectedProduct || !customSchema || isAdding) return;
+
+    setIsAdding(true);
+    let finalImageUrl = uploadedImageUrl;
+
+    // 1. Asset Finalization (only wait if background sync hasn't finished)
+    if (pendingFile && !finalImageUrl) {
+      try {
+        const res = await uploadToCloudinary(pendingFile);
+        if (res?.secure_url) {
+          finalImageUrl = res.secure_url;
+          setUploadedImageUrl(finalImageUrl);
+        }
+      } catch {
+        toast.error("Cloud synchronization failed.");
+        setIsAdding(false);
+        return;
+      }
+    }
+
+    // Default image for Bespoke items without wrap is the project logo
+    const cartDisplayImage = finalImageUrl || "/images/logo_no_name.svg";
+
+    // 2. Bespoke Matrix Construction
+    const isActuallyGuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
     const customizeDetails = [];
 
-    const isGuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
-
-    // 1. Size (Luôn lấy, nếu không có ID cụ thể thì dùng ID mặc định của nhóm Size)
-    const activeSizeId = (currentSize && isGuid(currentSize.id)) ? currentSize.id : sizeOptionId;
-    if (activeSizeId && isGuid(activeSizeId)) {
+    // Size
+    const activeSizeId = (currentSize && isActuallyGuid(currentSize.id)) ? currentSize.id : sizeOptionId;
+    if (activeSizeId && isActuallyGuid(activeSizeId)) {
       customizeDetails.push({
         ProductCustomizeTypeId: activeSizeId,
         CustomizeContent: activeDesign.size === 'custom' ? `${customDims.width}x${customDims.height}cm` : (currentSize?.label || "Standard Size")
       });
     }
 
-    // 2. Color (Luôn lấy)
-    if (colorOptionId && isGuid(colorOptionId)) {
+    // Color / Custom Wrap
+    const isWrapped = !!finalImageUrl;
+    if (!isWrapped && colorOptionId && isActuallyGuid(colorOptionId)) {
       customizeDetails.push({
         ProductCustomizeTypeId: colorOptionId,
         CustomizeContent: activeDesign.baseColor || "#B0D4F1"
       });
     }
 
-    // 3. Material
-    if (currentMaterial && isGuid(currentMaterial.id)) {
+    // Embroidery Image (Wrap)
+    if (isWrapped && embroideryImageOptionId && isActuallyGuid(embroideryImageOptionId)) {
+      customizeDetails.push({
+        ProductCustomizeTypeId: embroideryImageOptionId,
+        CustomizeContent: finalImageUrl
+      });
+    }
+
+    // Material
+    if (currentMaterial && isActuallyGuid(currentMaterial.id)) {
       customizeDetails.push({
         ProductCustomizeTypeId: currentMaterial.id,
         CustomizeContent: currentMaterial.name
       });
     }
 
-    const configHash = generateConfigHash(customSchema.id, null, customizeDetails);
+    // Embroidery Text
+    if (activeDesign.embroideryText.trim() && embroideryTextOptionId && isActuallyGuid(embroideryTextOptionId)) {
+      customizeDetails.push({
+        ProductCustomizeTypeId: embroideryTextOptionId,
+        CustomizeContent: `${activeDesign.embroideryText.trim()} (${activeDesign.embroideryPosition})`
+      });
+    }
 
-    setIsAdding(true);
+    const configHash = generateConfigHash(customSchema.id, null, customizeDetails);
+    const sanitizedName = selectedProduct.name.replace(/[-\s]+$/, '').trim();
+
     addItem({
       productVariantId: customSchema.id,
       comboId: null,
@@ -269,32 +383,32 @@ const CustomizeStudio = () => {
       ProductCustomizeDetailRequest: customizeDetails,
       id: `item_${customSchema.id}_bespoke_${configHash}`,
       productId: selectedProduct.id,
-      name: selectedProduct.name,
-      image: selectedProduct.image,
+      name: sanitizedName,
+      image: cartDisplayImage,
       price: totalPrice,
-      color: activeDesign.baseColor,
+      color: isWrapped ? undefined : activeDesign.baseColor,
       size: activeDesign.size === 'custom' ? `${customDims.width}x${customDims.height}x15 cm` : (currentSize?.label || ""),
       customAttributes: {
-        colorHex: activeDesign.baseColor,
+        colorHex: isWrapped ? undefined : activeDesign.baseColor,
         material: currentMaterial?.name || "",
         embroidery: activeDesign.embroideryText || "",
-        // Keep dimensions ONLY as numbers for the specialized chip to detect but avoid the redundant loop display
+        wrapImage: finalImageUrl || undefined,
         length: parseInt(customDims.height) || undefined,
         width: parseInt(customDims.width) || undefined,
-        thickness: 15, // Standard thickness for now or parse from customDims
+        thickness: 15,
       },
       configHash: configHash,
       isCustom: true,
-    }).then(() => {
-      toast.success("Design saved to sanctuary.");
-      // Small delay to allow store to settle before navigation
-      setTimeout(() => navigate("/cart"), 50);
-    }).catch(() => {
-      toast.error("Failed to add bespoke design.");
-    }).finally(() => {
-      // Keep isAdding true for a bit longer to prevent double clicks during navigation
-      setTimeout(() => setIsAdding(false), 500);
     });
+
+    toast.success("Design saved to sanctuary.", {
+      description: "Redirecting to your collection..."
+    });
+
+    setTimeout(() => {
+      navigate("/cart");
+      setIsAdding(false);
+    }, 150);
   };
 
   if (productsLoading) {
@@ -410,16 +524,16 @@ const CustomizeStudio = () => {
                 selectedMaterial={activeDesign.material}
                 materials={derivedMaterials}
                 basePrice={(selectedProduct?.salePrice || selectedProduct?.basePrice || 0) + (activeDesign.size === "custom" ? 50000 : (currentSize?.priceAdd || 0))}
+                addOnFee={wrapAddOnFee}
                 onPatternSelect={(p) => updateDesign({ pattern: p })}
                 onMaterialSelect={(m) => updateDesign({ material: m })}
-                onImageUpload={(f) => {
-                  if (f) {
-                    const url = URL.createObjectURL(f);
-                    updateDesign({ customImage: url, imageMode: "wrap" });
-                  } else {
-                    updateDesign({ customImage: undefined });
-                  }
-                }}
+                onImageUpload={handleImageUpload}
+              />
+
+              <ArtisticRefinement
+                design={activeDesign}
+                productName={selectedProduct?.name}
+                updateDesign={updateDesign}
               />
 
               {/* Bottom spacer */}
@@ -460,7 +574,7 @@ const CustomizeStudio = () => {
           {/* MAIN PREVIEW AREA */}
           <div className="flex-1 relative overflow-hidden bg-white">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(73,136,196,0.03)_0%,rgba(255,255,255,1)_100%)] pointer-events-none" />
-            <ProductPreview3D product={selectedProduct} design={activeDesign} />
+            <ProductPreview3D product={selectedProduct} design={activeDesign} sizeDims={sizeDims} />
           </div>
         </div>
       </main>

@@ -10,28 +10,7 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Button } from "../../components/ui/button";
 import { useLogin } from "../../hooks/useAuth";
-
-// Google Icon Component
-const GoogleIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
-    <path
-      fill="#4285F4"
-      d="M19.6 10.23c0-.68-.06-1.36-.17-2H10v3.8h5.38a4.6 4.6 0 01-2 3.02v2.5h3.24c1.89-1.74 2.98-4.3 2.98-7.32z"
-    />
-    <path
-      fill="#34A853"
-      d="M10 20c2.7 0 4.96-.9 6.62-2.42l-3.24-2.5c-.9.6-2.04.95-3.38.95-2.6 0-4.8-1.76-5.58-4.12H1.08v2.58A9.99 9.99 0 0010 20z"
-    />
-    <path
-      fill="#FBBC05"
-      d="M4.42 11.91A6.01 6.01 0 014.1 10c0-.66.11-1.3.32-1.91V5.51H1.08A9.99 9.99 0 000 10c0 1.61.39 3.14 1.08 4.49l3.34-2.58z"
-    />
-    <path
-      fill="#EA4335"
-      d="M10 3.98c1.47 0 2.79.5 3.83 1.5l2.87-2.87C14.96.99 12.7 0 10 0 6.09 0 2.71 2.24 1.08 5.51l3.34 2.58c.78-2.36 2.98-4.11 5.58-4.11z"
-    />
-  </svg>
-);
+import { isAnyStaff, isSellerRole } from "../../lib/role";
 
 const loginSchema = z.object({
   phoneNumber: z.string().min(9, "Invalid phone number"),
@@ -45,30 +24,36 @@ export default function Login() {
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const { isAuthenticated, role } = useAuthStore();
-  
+
   const redirect = searchParams.get("redirect");
   const from = location.state?.from?.pathname || location.state?.from || redirect;
   const [showPassword, setShowPassword] = useState(false);
 
-  // Proactive redirection if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      // Resolve "from" path
+      const isStaff = isAnyStaff(role);
       let targetPath: string = AppRoute.PROFILE;
-      if (role?.toLowerCase() === "admin") {
-        targetPath = AppRoute.ADMIN;
+
+      if (isStaff) {
+        targetPath = isSellerRole(role) ? "/admin/orders" : AppRoute.ADMIN;
       }
-      
+
       if (from) {
-        if (typeof from === 'string') targetPath = from;
+        let fromPath = '';
+        if (typeof from === 'string') fromPath = from;
         else if (typeof from === 'object' && from && 'pathname' in from) {
-            targetPath = (from as { pathname: string }).pathname;
+          fromPath = (from as { pathname: string }).pathname;
+        }
+
+        // Only use 'from' if it's actually a specific deep link, not just the home page
+        if (fromPath && fromPath !== '/' && fromPath !== AppRoute.HOME) {
+          targetPath = fromPath;
         }
       }
 
       // Avoid infinite loop if target is somehow login
       if (targetPath === AppRoute.LOGIN || targetPath === "/login") {
-        targetPath = role?.toLowerCase() === "admin" ? AppRoute.ADMIN : AppRoute.PROFILE;
+        targetPath = isSellerRole(role) ? "/admin/orders" : (isStaff ? AppRoute.ADMIN : AppRoute.PROFILE);
       }
 
       navigate(targetPath, { replace: true });
@@ -183,16 +168,6 @@ export default function Login() {
         >
           {isPending ? "Logging in..." : "Log In"}
         </Button>
-
-        {/* Google Login */}
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full h-11 bg-[var(--color-auth-btn-outline-bg)] text-[var(--color-auth-btn-outline-text)] border-2 border-[var(--color-auth-btn-border)] rounded-lg font-medium flex items-center justify-center gap-2 hover:bg-[var(--color-auth-btn-outline-hover-bg)] shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98]"
-        >
-          <GoogleIcon />
-          Login with Google
-        </Button>
       </form>
 
       {/* Register Link */}
@@ -202,7 +177,7 @@ export default function Login() {
           to={redirect ? `/register?redirect=${encodeURIComponent(redirect)}` : "/register"}
           className="text-[var(--color-auth-link-dark)] font-semibold hover:underline"
         >
-          Sign In
+          Sign up
         </Link>
       </p>
     </div>

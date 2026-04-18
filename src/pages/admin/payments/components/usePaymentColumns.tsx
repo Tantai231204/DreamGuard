@@ -77,6 +77,18 @@ export const usePaymentColumns = ({ onView }: usePaymentColumnsProps) => {
                 ),
             },
             {
+                accessorKey: 'paymentType',
+                header: ({ column }: HeaderContext<PaymentResponse, unknown>) => <SortableHeader column={column} label="Type" />,
+                cell: ({ row }: CellContext<PaymentResponse, unknown>) => {
+                    const type = row.original.paymentType;
+                    return (
+                        <AdminStatusBadge 
+                            status={type} 
+                        />
+                    );
+                },
+            },
+            {
                 accessorKey: 'amount',
                 header: ({ column }: HeaderContext<PaymentResponse, unknown>) => <SortableHeader column={column} label="Amount" />,
                 cell: ({ row }: CellContext<PaymentResponse, unknown>) => (

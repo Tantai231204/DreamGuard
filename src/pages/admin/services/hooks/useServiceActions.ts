@@ -18,7 +18,7 @@ export const useServiceActions = () => {
     });
 
     const cancelMutation = useMutation({
-        mutationFn: async ({ id, status }: { id: string; status: string }) => {
+        mutationFn: async ({ id, status, reason }: { id: string; status: string; reason?: string }) => {
             let endpoint = '';
             const normalizedStatus = status.toLowerCase();
             switch (normalizedStatus) {
@@ -34,7 +34,7 @@ export const useServiceActions = () => {
                 default:
                     throw new Error('Invalid status for cancellation');
             }
-            await api.patch(endpoint);
+            await api.patch(endpoint, { cancellationReason: reason });
         },
         onSuccess: (_, { id }) => {
             toast.success(`Action applied successfully to booking ${id}`);
@@ -44,10 +44,24 @@ export const useServiceActions = () => {
         onError: () => toast.error('Failed to cancel/reject booking'),
     });
 
+    const completeMutation = useMutation({
+        mutationFn: async ({ taskId }: { taskId: string; orderId: string }) => {
+            await api.patch(`/ServiceTasks/${taskId}/updateCompletedStatus`);
+        },
+        onSuccess: (_, { orderId }) => {
+            toast.success(`Service task completed successfully`);
+            queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
+            queryClient.invalidateQueries({ queryKey: ['serviceOrder', orderId] });
+        },
+        onError: () => toast.error('Failed to complete service task'),
+    });
+
     return {
         confirmBooking: confirmMutation.mutate,
         isConfirming: confirmMutation.isPending,
         cancelBooking: cancelMutation.mutate,
         isCancelling: cancelMutation.isPending,
+        completeBooking: completeMutation.mutate,
+        isCompleting: completeMutation.isPending,
     };
 };

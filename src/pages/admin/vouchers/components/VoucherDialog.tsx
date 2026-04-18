@@ -4,34 +4,51 @@ import {
     DialogContent,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, Save, X, PanelTop } from 'lucide-react';
-import type { VoucherResponse } from '@/api';
+import { Loader2, X, PanelTop } from 'lucide-react';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { VoucherBasicInfo } from './VoucherBasicInfo';
 import { VoucherDiscountSettings } from './VoucherDiscountSettings';
 import { VoucherDateRange } from './VoucherDateRange';
 import { VoucherStatus } from './VoucherStatus';
 import VoucherCard from './VoucherCard';
-import type { Voucher } from '../types';
+import type { Voucher, VoucherFormValues } from '../types';
+import { formatPrice } from '@/lib/utils';
 
 interface VoucherDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    voucher?: VoucherResponse | null;
-    onSubmit: (data: {
-        code: string;
-        name: string;
-        description: string;
-        discountType: 'percent' | 'fixed';
-        discountValue: number;
-        minDiscountAmount: number;
-        maxDiscountAmount: number;
-        startDate: string;
-        endDate: string;
-        isActive: boolean;
-    }) => void;
+    voucher?: Voucher | null;
+    onSubmit: (data: VoucherFormValues) => void;
     isLoading?: boolean;
 }
+
+type VoucherValidationErrors = {
+    discountValue?: string;
+    maxDiscountAmount?: string;
+    requiredCoin?: string;
+    dateRange?: string;
+};
+
+const parseDiscountRatio = (value: string): number => {
+    const normalized = value.replace(',', '.').trim();
+    if (!normalized) return Number.NaN;
+
+    const parsed = Number.parseFloat(normalized);
+    if (!Number.isFinite(parsed) || parsed <= 0) return Number.NaN;
+
+    if (parsed > 1) {
+        if (parsed <= 100) return parsed / 100;
+        return Number.NaN;
+    }
+
+    return parsed;
+};
+
+const parseWholeNumber = (value: string): number => {
+    const digits = value.replace(/\D/g, '');
+    if (!digits) return Number.NaN;
+    return Number.parseInt(digits, 10);
+};
 
 function VoucherDialogInner({
     voucher,
@@ -40,74 +57,155 @@ function VoucherDialogInner({
     isLoading = false,
 }: Omit<VoucherDialogProps, 'open'>) {
     const isEdit = !!voucher;
+    const voucherFormId = 'voucher-form';
 
     const [code, setCode] = useState(voucher?.code ?? '');
     const [name, setName] = useState(voucher?.name ?? '');
     const [description, setDescription] = useState(voucher?.description ?? '');
-    const [discountType, setDiscountType] = useState<'percent' | 'fixed'>(voucher?.discountType ?? 'percent');
+    const [voucherType, setVoucherType] = useState(voucher?.voucherType ?? 'Both');
     const [discountValue, setDiscountValue] = useState(voucher?.discountValue?.toString() ?? '');
-    const [minDiscountAmount, setMinDiscountAmount] = useState(voucher?.minDiscountAmount?.toString() ?? '');
     const [maxDiscountAmount, setMaxDiscountAmount] = useState(voucher?.maxDiscountAmount?.toString() ?? '');
+    const [requiredCoin, setRequiredCoin] = useState(voucher?.requiredCoin?.toString() ?? '');
     const [startDate, setStartDate] = useState(voucher?.startDate?.split('T')[0] ?? '');
     const [endDate, setEndDate] = useState(voucher?.endDate?.split('T')[0] ?? '');
     const [isActive, setIsActive] = useState(voucher?.isActive ?? true);
 
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+    const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
+    const [touchedFields, setTouchedFields] = useState({
+        discountValue: false,
+        maxDiscountAmount: false,
+        requiredCoin: false,
+        dateRange: false,
+    });
 
     const hasChanges = useMemo(() => {
         const initial = {
             code: voucher?.code ?? '',
             name: voucher?.name ?? '',
             description: voucher?.description ?? '',
-            discountType: voucher?.discountType ?? 'percent',
+            voucherType: voucher?.voucherType ?? 'Both',
             discountValue: voucher?.discountValue?.toString() ?? '',
-            minDiscountAmount: voucher?.minDiscountAmount?.toString() ?? '',
             maxDiscountAmount: voucher?.maxDiscountAmount?.toString() ?? '',
+            requiredCoin: voucher?.requiredCoin?.toString() ?? '',
             startDate: voucher?.startDate?.split('T')[0] ?? '',
             endDate: voucher?.endDate?.split('T')[0] ?? '',
             isActive: voucher?.isActive ?? true,
         };
 
         const current = {
-            code, name, description, discountType, discountValue,
-            minDiscountAmount, maxDiscountAmount, startDate, endDate, isActive,
+            code,
+            name,
+            description,
+            voucherType,
+            discountValue,
+            maxDiscountAmount,
+            requiredCoin,
+            startDate,
+            endDate,
+            isActive,
         };
 
         return JSON.stringify(initial) !== JSON.stringify(current);
-    }, [code, name, description, discountType, discountValue, minDiscountAmount, maxDiscountAmount, startDate, endDate, isActive, voucher]);
+    }, [code, name, description, voucherType, discountValue, maxDiscountAmount, requiredCoin, startDate, endDate, isActive, voucher]);
 
     const handleClose = () => {
         if (hasChanges) setShowCancelConfirm(true);
         else onOpenChange(false);
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const discountValueNumber = parseDiscountRatio(discountValue);
+    const maxDiscountAmountNumber = parseWholeNumber(maxDiscountAmount);
+    const requiredCoinNumber = parseWholeNumber(requiredCoin);
+    const rawDiscountInput = Number.parseFloat(discountValue.replace(',', '.'));
+
+    const validationErrors = useMemo<VoucherValidationErrors>(() => {
+        const errors: VoucherValidationErrors = {};
+
+        if (!discountValue.trim() || !Number.isFinite(rawDiscountInput)) {
+            errors.discountValue = 'Discount value is required';
+        } else if (rawDiscountInput <= 0) {
+            errors.discountValue = 'Discount value must be greater than 0';
+        } else if (rawDiscountInput > 100) {
+            errors.discountValue = 'Discount cannot exceed 100%';
+        }
+
+        if (!Number.isFinite(maxDiscountAmountNumber) || maxDiscountAmountNumber <= 0) {
+            errors.maxDiscountAmount = 'Max discount amount must be greater than 0';
+        }
+
+        if (!Number.isFinite(requiredCoinNumber) || requiredCoinNumber <= 0) {
+            errors.requiredCoin = 'Required coin must be greater than 0';
+        } else if (!Number.isInteger(requiredCoinNumber)) {
+            errors.requiredCoin = 'Required coin must be a whole number';
+        }
+
+        if (startDate && endDate && startDate > endDate) {
+            errors.dateRange = 'End date must be on or after start date';
+        }
+
+        return errors;
+    }, [discountValue, rawDiscountInput, maxDiscountAmountNumber, requiredCoinNumber, startDate, endDate]);
+
+    const visibleErrors = useMemo<VoucherValidationErrors>(() => {
+        return {
+            discountValue: (touchedFields.discountValue || hasAttemptedSubmit) ? validationErrors.discountValue : undefined,
+            maxDiscountAmount: (touchedFields.maxDiscountAmount || hasAttemptedSubmit) ? validationErrors.maxDiscountAmount : undefined,
+            requiredCoin: (touchedFields.requiredCoin || hasAttemptedSubmit) ? validationErrors.requiredCoin : undefined,
+            dateRange: (touchedFields.dateRange || hasAttemptedSubmit) ? validationErrors.dateRange : undefined,
+        };
+    }, [validationErrors, touchedFields, hasAttemptedSubmit]);
+
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        setHasAttemptedSubmit(true);
+
+        if (!isFormValid) {
+            return;
+        }
+
         onSubmit({
             code: code.trim().toUpperCase(),
             name: name.trim(),
             description: description.trim(),
-            discountType,
-            discountValue: parseFloat(discountValue) || 0,
-            minDiscountAmount: parseFloat(minDiscountAmount) || 0,
-            maxDiscountAmount: parseFloat(maxDiscountAmount) || 0,
+            voucherType,
+            discountValue: discountValueNumber,
+            maxDiscountAmount: maxDiscountAmountNumber,
+            requiredCoin: Math.floor(requiredCoinNumber),
             startDate,
             endDate,
             isActive,
         });
     };
 
-    const isFormValid = code.trim() && name.trim() && discountValue && startDate && endDate;
+    const hasBusinessErrors = Object.keys(validationErrors).length > 0;
+    const isFormValid = Boolean(
+        code.trim() &&
+        name.trim() &&
+        startDate &&
+        endDate &&
+        !hasBusinessErrors
+    );
+
+    const discountPercentPreview = Number.isFinite(discountValueNumber)
+        ? `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(discountValueNumber * 100)}%`
+        : '--';
+    const maxDiscountPreview = Number.isFinite(maxDiscountAmountNumber) && maxDiscountAmountNumber > 0
+        ? formatPrice(maxDiscountAmountNumber)
+        : '--';
+    const requiredCoinPreview = Number.isFinite(requiredCoinNumber) && requiredCoinNumber > 0
+        ? Math.floor(requiredCoinNumber).toLocaleString('vi-VN')
+        : '--';
 
     const previewVoucher: Voucher = {
         voucherId: 'preview',
         code: code || 'CODE24',
         name: name || 'NEW VOUCHER',
         description: description || '',
-        discountType,
-        discountValue: parseFloat(discountValue) || 0,
-        minDiscountAmount: parseFloat(minDiscountAmount) || 0,
-        maxDiscountAmount: parseFloat(maxDiscountAmount) || 0,
+        voucherType,
+        discountValue: Number.isFinite(discountValueNumber) && discountValueNumber > 0 ? discountValueNumber : 0,
+        maxDiscountAmount: Number.isFinite(maxDiscountAmountNumber) && maxDiscountAmountNumber > 0 ? maxDiscountAmountNumber : 0,
+        requiredCoin: Number.isFinite(requiredCoinNumber) && requiredCoinNumber > 0 ? Math.floor(requiredCoinNumber) : 0,
         startDate: startDate || new Date().toISOString(),
         endDate: endDate || new Date().toISOString(),
         isActive,
@@ -133,7 +231,7 @@ function VoucherDialogInner({
                     </div>
                 </header>
 
-                <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-10 space-y-10 scrollbar-hide">
+                <form id={voucherFormId} onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-10 space-y-10 scrollbar-hide">
                     <VoucherBasicInfo
                         code={code}
                         name={name}
@@ -145,22 +243,41 @@ function VoucherDialogInner({
                     />
 
                     <VoucherDiscountSettings
-                        discountType={discountType}
+                        voucherType={voucherType}
                         discountValue={discountValue}
-                        minDiscountAmount={minDiscountAmount}
                         maxDiscountAmount={maxDiscountAmount}
-                        onDiscountTypeChange={setDiscountType}
-                        onDiscountValueChange={(e) => setDiscountValue(e.target.value)}
-                        onMinAmountChange={(e) => setMinDiscountAmount(e.target.value)}
-                        onMaxAmountChange={(e) => setMaxDiscountAmount(e.target.value)}
+                        requiredCoin={requiredCoin}
+                        discountValueError={visibleErrors.discountValue}
+                        maxDiscountAmountError={visibleErrors.maxDiscountAmount}
+                        requiredCoinError={visibleErrors.requiredCoin}
+                        onVoucherTypeChange={setVoucherType}
+                        onDiscountValueChange={(value) => {
+                            setTouchedFields((prev) => ({ ...prev, discountValue: true }));
+                            setDiscountValue(value);
+                        }}
+                        onMaxAmountChange={(value) => {
+                            setTouchedFields((prev) => ({ ...prev, maxDiscountAmount: true }));
+                            setMaxDiscountAmount(value);
+                        }}
+                        onRequiredCoinChange={(value) => {
+                            setTouchedFields((prev) => ({ ...prev, requiredCoin: true }));
+                            setRequiredCoin(value);
+                        }}
                         isLoading={isLoading}
                     />
 
                     <VoucherDateRange
                         startDate={startDate}
                         endDate={endDate}
-                        onStartDateChange={(e) => setStartDate(e.target.value)}
-                        onEndDateChange={(e) => setEndDate(e.target.value)}
+                        dateRangeError={visibleErrors.dateRange}
+                        onStartDateChange={(e) => {
+                            setTouchedFields((prev) => ({ ...prev, dateRange: true }));
+                            setStartDate(e.target.value);
+                        }}
+                        onEndDateChange={(e) => {
+                            setTouchedFields((prev) => ({ ...prev, dateRange: true }));
+                            setEndDate(e.target.value);
+                        }}
                         isLoading={isLoading}
                     />
 
@@ -169,37 +286,38 @@ function VoucherDialogInner({
 
                 <footer className="px-10 py-6 border-t bg-gray-50 flex items-center gap-4 shrink-0">
                     <Button 
-                        variant="ghost" 
+                        type="button"
+                        variant="outline" 
                         onClick={handleClose} 
                         disabled={isLoading} 
-                        className="flex-1 h-12 rounded-2xl font-black uppercase tracking-widest text-[9px] text-gray-400"
+                        className="flex-1 h-11 rounded-xl border-gray-200 hover:border-gray-300 hover:bg-gray-50 font-medium transition-all"
                     >
-                        Discard
+                        Cancel
                     </Button>
                     <Button 
+                        form={voucherFormId}
                         type="submit" 
-                        onClick={handleSubmit}
-                        disabled={isLoading || !isFormValid} 
-                        className="flex-[2] h-12 bg-blue-600 hover:bg-black text-white shadow-xl shadow-blue-100 rounded-2xl gap-3 font-black uppercase tracking-widest text-[9px] transition-all active:scale-[0.98]"
+                        disabled={isLoading} 
+                        className="flex-[2] h-11 rounded-xl font-medium transition-all text-white bg-[#4988c4] hover:bg-[#3a6fa0] shadow-sm disabled:opacity-50 disabled:shadow-none"
                     >
-                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
                         {isEdit ? 'Sync Campaign' : 'Initialize'}
                     </Button>
                 </footer>
             </div>
 
             {/* Preview Side */}
-            <aside className="w-full lg:w-[480px] bg-[#f8fbff] p-12 relative flex flex-col items-center justify-center shrink-0 border-l">
+            <aside className="w-full lg:w-[480px] bg-[#f8fbff] p-12 relative flex flex-col items-center justify-center shrink-0 border-l [@media(max-height:900px)]:p-9 [@media(max-height:820px)]:p-7 [@media(max-height:760px)]:p-6 [@media(max-height:760px)]:justify-start">
                 <div className="absolute inset-0 opacity-10 pointer-events-none" 
                      style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, #1a202c 1px, transparent 0)', backgroundSize: '40px 40px' }} />
                 
-                <div className="relative z-10 w-full flex flex-col items-center max-w-[360px]">
-                    <div className="text-center mb-10 w-full">
-                        <span className="px-5 py-2 bg-white rounded-full text-[10px] font-black uppercase tracking-[0.25em] text-gray-400 border border-gray-100 shadow-sm inline-block">
-                           Marketplace Mock
+                <div className="relative z-10 w-full flex flex-col items-center max-w-[360px] [@media(max-height:900px)]:max-w-[330px] [@media(max-height:820px)]:max-w-[305px] [@media(max-height:760px)]:max-w-[280px]">
+                    <div className="text-center mb-10 w-full [@media(max-height:900px)]:mb-7 [@media(max-height:760px)]:mb-5">
+                        <span className="px-5 py-2 bg-white rounded-full text-[10px] font-black uppercase tracking-[0.25em] text-[#4988c4] border border-blue-100 shadow-sm inline-block">
+                           Live Voucher Review
                         </span>
-                        <p className="text-[10px] text-gray-300 font-bold uppercase mt-5 tracking-[0.2em] opacity-60">
-                            Digital Display Preview
+                        <p className="text-[10px] text-gray-400 font-bold uppercase mt-5 tracking-[0.2em] [@media(max-height:760px)]:mt-3 [@media(max-height:760px)]:text-[9px]">
+                            Preview uses real formatting rules
                         </p>
                     </div>
 
@@ -207,15 +325,18 @@ function VoucherDialogInner({
                         <VoucherCard voucher={previewVoucher} />
                     </div>
 
-                    <div className="mt-14 w-full p-6 bg-white border border-gray-100 rounded-[24px] flex items-start gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
-                           <span className="text-blue-500 text-xs font-black italic">!</span>
+                    <div className="mt-8 w-full grid grid-cols-3 gap-2 [@media(max-height:900px)]:mt-6 [@media(max-height:760px)]:mt-4">
+                        <div className="rounded-xl border border-blue-100 bg-blue-50/40 px-3 py-3 [@media(max-height:760px)]:px-2.5 [@media(max-height:760px)]:py-2">
+                            <p className="text-[9px] font-bold uppercase tracking-wider text-blue-500">Discount</p>
+                            <p className="text-sm font-black text-blue-700 mt-1 [@media(max-height:760px)]:text-[13px]">{discountPercentPreview}</p>
                         </div>
-                        <div className="space-y-1">
-                            <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-800">Visual Integrity</h4>
-                            <p className="text-[10px] leading-relaxed text-gray-400 font-bold">
-                                Vouchers utilize hardware-accelerated static rendering for ultra-sharp displays.
-                            </p>
+                        <div className="rounded-xl border border-slate-200 bg-white px-3 py-3 [@media(max-height:760px)]:px-2.5 [@media(max-height:760px)]:py-2">
+                            <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Cap</p>
+                            <p className="text-sm font-black text-slate-700 mt-1 truncate [@media(max-height:760px)]:text-[13px]">{maxDiscountPreview}</p>
+                        </div>
+                        <div className="rounded-xl border border-primary-200 bg-primary-50/50 px-3 py-3 [@media(max-height:760px)]:px-2.5 [@media(max-height:760px)]:py-2">
+                            <p className="text-[9px] font-bold uppercase tracking-wider text-primary-600">Coin</p>
+                            <p className="text-sm font-black text-primary-700 mt-1 [@media(max-height:760px)]:text-[13px]">{requiredCoinPreview}</p>
                         </div>
                     </div>
                 </div>

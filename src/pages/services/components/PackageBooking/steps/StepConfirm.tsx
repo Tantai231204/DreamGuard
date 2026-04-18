@@ -2,18 +2,23 @@ import { useState } from "react";
 import { CalendarDays, Check, CheckCircle2, MapPin, ShieldCheck, Tag, Ticket, Trash2, User, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { BookingFormValues } from "../schema";
-import type { Voucher } from "../vouchers";
 import VoucherSelectModal from "../VoucherSelectModal";
 import { formatPrice, formatDate } from "@/lib/utils";
+import { calculateVoucherDiscount } from "@/utils/user-voucher";
 import { useBookingData, type ProductType, type ServiceTier } from "../useBookingData";
 import { ProductAssetIcons, type ProductAssetIconKey } from "@/components/common/icons";
 import { useWatch, type UseFormReturn } from "react-hook-form";
+import type { BookingVoucher } from "../types";
 
 interface StepConfirmProps {
     form: UseFormReturn<BookingFormValues>;
-    appliedVoucher: Voucher | null;
-    onApplyVoucher: (code: string) => "ok" | "invalid";
+    appliedVoucher: BookingVoucher | null;
+    availableVouchers: BookingVoucher[];
+    isVoucherLoading: boolean;
+    isVoucherError: boolean;
+    onApplyVoucher: (voucher: BookingVoucher) => void;
     onRemoveVoucher: () => void;
+    onRetryVouchers: () => void;
     onEditStep?: (target: number) => void;
     isSidebar?: boolean;
     paymentMethod: 'COD' | 'VNPAY';
@@ -24,19 +29,28 @@ interface StepConfirmProps {
 export default function StepConfirm({
     form,
     appliedVoucher,
+    availableVouchers,
+    isVoucherLoading,
+    isVoucherError,
     onApplyVoucher,
     onRemoveVoucher,
+    onRetryVouchers,
     onEditStep,
     isSidebar = false,
     paymentMethod,
     onPaymentChange,
     onClearDraft,
 }: StepConfirmProps) {
-    const values = useWatch({ control: form.control });
+    const items = useWatch({ control: form.control, name: "items" }) ?? [];
+    const scheduledDate = useWatch({ control: form.control, name: "scheduledDate" });
+    const scheduledTime = useWatch({ control: form.control, name: "scheduledTime" });
+    const customerName = useWatch({ control: form.control, name: "customerName" });
+    const customerPhone = useWatch({ control: form.control, name: "customerPhone" });
+    const address = useWatch({ control: form.control, name: "address" });
+    const notes = useWatch({ control: form.control, name: "notes" });
     const { productTypes, getProductTierPrice } = useBookingData();
     const [modalOpen, setModalOpen] = useState(false);
 
-    const items = (values.items as BookingFormValues['items']) || [];
     const totalBeforeVoucher = items.reduce((sum, it) => {
         const type = it.itemType || "";
         const pkg = it.packageId || "";
@@ -45,17 +59,18 @@ export default function StepConfirm({
     }, 0);
 
     const discountAmt = appliedVoucher
-        ? Math.round(totalBeforeVoucher * (appliedVoucher.discountPct / 100))
+        ? calculateVoucherDiscount(totalBeforeVoucher, {
+            discountValue: appliedVoucher.discountRatio,
+            maxDiscountAmount: appliedVoucher.maxDiscountAmount,
+        })
         : 0;
-    const finalPrice = totalBeforeVoucher - discountAmt;
+    const finalPrice = Math.max(0, totalBeforeVoucher - discountAmt);
 
-    function handleSelectVoucher(v: Voucher) {
-        onApplyVoucher(v.code);
-        setModalOpen(false);
+    function handleSelectVoucher(v: BookingVoucher) {
+        onApplyVoucher(v);
     }
     function handleSkipVoucher() {
         onRemoveVoucher();
-        setModalOpen(false);
     }
 
     const cardClass = "rounded-2xl border-2 border-slate-100 bg-white p-6 shadow-md shadow-slate-100/50";
@@ -124,7 +139,10 @@ export default function StepConfirm({
                             </span>
                             <div>
                                 <p className="text-sm font-black text-[#4988c4] tracking-wide">{appliedVoucher.code}</p>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{appliedVoucher.label} — {appliedVoucher.discountPct}% off</p>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                    {appliedVoucher.label} — {appliedVoucher.discountPct}% off
+                                    {appliedVoucher.maxDiscountAmount ? ` (cap ${formatPrice(appliedVoucher.maxDiscountAmount)})` : ""}
+                                </p>
                             </div>
                         </div>
                         <button
@@ -180,10 +198,14 @@ export default function StepConfirm({
 
             <VoucherSelectModal
                 open={modalOpen}
-                onClose={() => setModalOpen(false)}
+                onOpenChange={setModalOpen}
                 onSelect={handleSelectVoucher}
                 onSkip={handleSkipVoucher}
                 appliedCode={appliedVoucher?.code}
+                vouchers={availableVouchers}
+                isLoading={isVoucherLoading}
+                isError={isVoucherError}
+                onRetry={onRetryVouchers}
             />
 
             {/* Services Summary Card */}
@@ -233,7 +255,7 @@ export default function StepConfirm({
             {/* Lower Grid for Info */}
             <div className={`grid gap-6 ${isSidebar ? "grid-cols-1" : "md:grid-cols-2"}`}>
                 {/* Schedule card */}
-                {!isSidebar && values.scheduledDate && (
+                {!isSidebar && scheduledDate && (
                     <div className={cardClass}>
                         <div className={titleClass}>
                             <div className="flex items-center gap-2">
@@ -246,18 +268,18 @@ export default function StepConfirm({
                         <div className="flex items-center justify-between gap-4">
                             <div>
                                 <p className="text-[11px] font-black uppercase tracking-widest text-slate-500 mb-1">Date</p>
-                                <p className="text-base font-black text-slate-900">{formatDate(values.scheduledDate)}</p>
+                                <p className="text-base font-black text-slate-900">{formatDate(scheduledDate)}</p>
                             </div>
                             <div className="text-right">
                                 <p className="text-[11px] font-black uppercase tracking-widest text-slate-500 mb-1">Time</p>
-                                <p className="text-base font-black text-slate-900">{values.scheduledTime}</p>
+                                <p className="text-base font-black text-slate-900">{scheduledTime}</p>
                             </div>
                         </div>
                     </div>
                 )}
 
                 {/* Contact Information */}
-                {!isSidebar && values.customerName && (
+                {!isSidebar && customerName && (
                     <div className={cardClass}>
                         <div className={titleClass}>
                             <div className="flex items-center gap-2">
@@ -270,11 +292,11 @@ export default function StepConfirm({
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
                                 <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">Name</span>
-                                <span className="text-sm font-bold text-slate-700">{values.customerName}</span>
+                                <span className="text-sm font-bold text-slate-700">{customerName}</span>
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="text-[11px] font-black uppercase tracking-widest text-slate-500">Phone</span>
-                                <span className="text-sm font-bold text-slate-700">{values.customerPhone}</span>
+                                <span className="text-sm font-bold text-slate-700">{customerPhone}</span>
                             </div>
                         </div>
                     </div>
@@ -282,7 +304,7 @@ export default function StepConfirm({
             </div>
 
             {/* Address */}
-            {!isSidebar && values.address && values.address.street && (
+            {!isSidebar && address && address.street && (
                 <div className={`${cardClass} space-y-2`}>
                     <div className={titleClass}>
                         <div className="flex items-center gap-2">
@@ -293,14 +315,14 @@ export default function StepConfirm({
                         )}
                     </div>
                     <p className="text-base font-black text-slate-900 tracking-tight">
-                        {[values.address.street, values.address.ward, values.address.district, values.address.city]
+                        {[address.street, address.ward, address.district, address.city]
                             .filter(Boolean)
                             .join(", ")}
                     </p>
-                    {values.notes && (
+                    {notes && (
                         <div className="mt-4 pt-4 border-t border-slate-100 border-dashed">
                             <p className="text-[11px] font-black uppercase tracking-widest text-slate-500 mb-1">Notes / Instructions</p>
-                            <p className="text-sm font-medium text-slate-700 leading-relaxed">{values.notes}</p>
+                            <p className="text-sm font-medium text-slate-700 leading-relaxed">{notes}</p>
                         </div>
                     )}
                 </div>

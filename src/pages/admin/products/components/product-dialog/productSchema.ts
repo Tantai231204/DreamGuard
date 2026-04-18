@@ -18,6 +18,9 @@ export const productSchema = z.object({
     basePrice: z.coerce.number().min(0).default(0),
     salePrice: z.coerce.number().min(0).default(0),
     weight: z.coerce.number().min(0).default(0),
+    isTradeInEligible: z.boolean().default(false),
+    minTradeInPrice: z.coerce.number().min(0).default(0),
+    depositAmount: z.coerce.number().min(0).default(0),
 });
 
 export type ProductFormValues = z.infer<typeof productSchema>;

@@ -18,7 +18,9 @@ export const OrderStatusValue = {
     Returned: 7,
     Returning: 8,
     RefundedAndRestocked: 9,
-    RefundedAndDamaged: 10
+    RefundedAndDamaged: 10,
+    ExchangeRequested: 11,
+    Shipping_Replacement: 12
 } as const;
 
 export interface OrderResponse {
@@ -54,6 +56,16 @@ export interface OrderItem {
     customizeHash?: string;
 }
 
+export interface TradeInEligibleOrderItem extends OrderItem {
+    tradeInUsedAmount: number;
+    productCustomizeDetails: ProductCustomizeDetail[];
+    customizeHash: string;
+    orderId?: string;
+    purchaseDate?: string;
+    createdAt?: string;
+    tradeInValue?: number;
+}
+
 export interface OrderDetailResponse extends OrderResponse {
     receiverName: string;
     phoneNumber: string;
@@ -68,4 +80,21 @@ export interface OrderDetailResponse extends OrderResponse {
     voucherDiscountValue: number | null;
     note: string;
     updatedAt: string;
+    shippingStaffName?: string;
+    shippingStatus?: string;
+    shippingStaffAvatarUrl?: string;
+    paymentStatus?: string;
+}
+
+export interface OrderDashboardResponse {
+    totalOrders: number;
+    totalCompletedOrders: number;
+    totalCancelledOrders: number;
+    totalRefundedOrders: number;
+    totalAmount: number;
+    totalCODAmount: number;
+    totalRefundAmount: number;
+    totalVnPayAmount: number;
+    fromDate: string;
+    toDate: string;
 }

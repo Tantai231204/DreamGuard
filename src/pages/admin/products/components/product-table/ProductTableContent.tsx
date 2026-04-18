@@ -56,7 +56,6 @@ export default function ProductTableContent<T = unknown>({
 
   const pageSize = table.getState().pagination.pageSize;
   const columnCount = table.getAllColumns().length;
-  const emptyRowsCount = Math.max(0, pageSize - rootRows.length);
 
   return (
     <TableUI>
@@ -79,140 +78,138 @@ export default function ProductTableContent<T = unknown>({
 
       <TableBody>
         {rootRows.length > 0 ? (
-          <>
-            {rootRows.map((row) => {
-              const item = row.original as ExtendedRow;
-              const isExpanded = row.getIsExpanded();
-              const isCombo = type === 'combo' || item?.type === 'combo';
+          rootRows.map((row) => {
+            const item = row.original as ExtendedRow;
+            const isExpanded = row.getIsExpanded();
+            const isCombo = type === 'combo' || item?.type === 'combo';
 
-              const hasProductVariants =
-                !isCombo &&
-                ((item.variants?.length ?? 0) > 0 || (item.variantCount ?? 0) > 0);
+            const hasProductVariants =
+              !isCombo &&
+              ((item.variants?.length ?? 0) > 0 || (item.variantCount ?? 0) > 0);
 
-              const hasComboItems =
-                isCombo &&
-                ((item.items?.length ?? 0) > 0 ||
-                  (item.productItems?.length ?? 0) > 0 ||
-                  row.getCanExpand());
+            const hasComboItems =
+              isCombo &&
+              ((item.items?.length ?? 0) > 0 ||
+                (item.productItems?.length ?? 0) > 0 ||
+                row.getCanExpand());
 
-              const isClickable = hasProductVariants || hasComboItems || (isCombo && row.getCanExpand());
+            const isClickable = hasProductVariants || hasComboItems || (isCombo && row.getCanExpand());
 
-              return (
-                <React.Fragment key={row.id}>
-                  {/* ── Data row ── */}
-                  <TableRow
-                    data-state={row.getIsSelected() && 'selected'}
-                    className={cn(
-                      'group transition-colors duration-200 border-b border-slate-100',
-                      'hover:bg-slate-50/80',
-                      'data-[state=selected]:bg-blue-50/40 data-[state=selected]:border-blue-100',
-                      isExpanded && 'bg-slate-50/80 border-b-transparent relative z-20 shadow-md',
-                      isClickable && 'cursor-pointer'
-                    )}
-                    onClick={(e) => {
-                      if (!isClickable) return;
-                      const target = e.target as HTMLElement;
-                      if (
-                        target.closest('button') ||
-                        target.closest('[role="checkbox"]') ||
-                        target.closest('[role="menuitem"]') ||
-                        target.closest('.dropdown-trigger')
-                      )
-                        return;
-                      row.toggleExpanded();
-                    }}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="py-4 first:pl-6 last:pr-6 whitespace-nowrap">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                  </TableRow>
+            return (
+              <React.Fragment key={row.id}>
+                {/* ── Data row ── */}
+                <TableRow
+                  data-state={row.getIsSelected() && 'selected'}
+                  className={cn(
+                    'group transition-colors duration-200 border-b border-slate-100',
+                    'hover:bg-slate-50/80',
+                    'data-[state=selected]:bg-blue-50/40 data-[state=selected]:border-blue-100',
+                    isExpanded && 'bg-slate-50/80 border-b-transparent relative z-20 shadow-md',
+                    isClickable && 'cursor-pointer'
+                  )}
+                  onClick={(e) => {
+                    if (!isClickable) return;
+                    const target = e.target as HTMLElement;
+                    if (
+                      target.closest('button') ||
+                      target.closest('[role="checkbox"]') ||
+                      target.closest('[role="menuitem"]') ||
+                      target.closest('.dropdown-trigger')
+                    )
+                      return;
+                    row.toggleExpanded();
+                  }}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id} className="py-4 first:pl-6 last:pr-6 whitespace-nowrap">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
 
-                  {/* ── Expanded panel ── */}
-                  <AnimatePresence>
-                    {isExpanded && (
-                      <TableRow key={`expanded-${row.id}`} className="hover:bg-transparent border-none">
-                        <TableCell colSpan={columnCount} className="p-0 border-none">
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            transition={{ duration: 0.2, ease: "easeOut" }}
-                            className="overflow-hidden"
-                          >
-                            <div className="relative pl-12 pb-6 pr-6">
-                              {/* Visual Connector Line */}
-                              <div className="absolute left-6 top-0 bottom-6 w-px bg-slate-200" />
-                              <div className="absolute left-6 bottom-6 w-4 h-px bg-slate-200" />
+                {/* ── Expanded panel ── */}
+                <AnimatePresence>
+                  {isExpanded && (
+                    <TableRow key={`expanded-${row.id}`} className="hover:bg-transparent border-none">
+                      <TableCell colSpan={columnCount} className="p-0 border-none">
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.2, ease: "easeOut" }}
+                          className="overflow-hidden"
+                        >
+                          <div className="relative pl-12 pb-6 pr-6">
+                            {/* Visual Connector Line */}
+                            <div className="absolute left-6 top-0 bottom-6 w-px bg-slate-200" />
+                            <div className="absolute left-6 bottom-6 w-4 h-px bg-slate-200" />
 
-                              <div className="bg-white rounded-xl border border-slate-200 mt-1 mx-2 overflow-hidden">
-                                {/* Single product → variant table */}
-                                {!isCombo && hasProductVariants && (
-                                  <VariantTableWrapper
-                                    productId={item.id}
-                                    productName={item.name}
-                                    isTemplate={!!item.fullyCustomizedProductType && item.fullyCustomizedProductType !== 'None'}
-                                    onAddVariant={() =>
-                                      onAddVariant?.(
-                                        item.id,
-                                        item.name,
-                                        item.slug,
-                                        item.variants?.length ?? item.variantCount ?? 0,
-                                        item.fullyCustomizedProductType
-                                      )
-                                    }
-                                    onEditVariant={(v) => onEditVariant?.(v, item.name, item.slug, item.fullyCustomizedProductType)}
-                                    onDeleteVariant={(v) => onDeleteVariant?.(v)}
-                                  />
-                                )}
+                            <div className="bg-white rounded-xl border border-slate-200 mt-1 mx-2 overflow-hidden">
+                              {/* Single product → variant table */}
+                              {!isCombo && hasProductVariants && (
+                                <VariantTableWrapper
+                                  productId={item.id}
+                                  productName={item.name}
+                                  isTemplate={!!item.fullyCustomizedProductType && item.fullyCustomizedProductType !== 'None'}
+                                  onAddVariant={() =>
+                                    onAddVariant?.(
+                                      item.id,
+                                      item.name,
+                                      item.slug,
+                                      item.variants?.length ?? item.variantCount ?? 0,
+                                      item.fullyCustomizedProductType
+                                    )
+                                  }
+                                  onEditVariant={(v) => onEditVariant?.(v, item.name, item.slug, item.fullyCustomizedProductType)}
+                                  onDeleteVariant={(v) => onDeleteVariant?.(v)}
+                                />
+                              )}
 
-                                {/* Combo → items table */}
-                                {isCombo && (
-                                  <ComboItemsTable
-                                    comboId={item.id}
-                                    items={(item.items as ComboItem[]) ?? []}
-                                    childCombos={item.childCombos}
-                                    comboName={item.name}
-                                    discount={item.discount ?? 0}
-                                    onAddVariant={onAddComboVariant}
-                                    onEditVariant={onEditCombo}
-                                    onDeleteVariant={onDeleteCombo}
-                                    onUpdateStatus={onUpdateStatus}
-                                  />
-                                )}
-                              </div>
+                              {/* Combo → items table */}
+                              {isCombo && (
+                                <ComboItemsTable
+                                  comboId={item.id}
+                                  items={(item.items as ComboItem[]) ?? []}
+                                  childCombos={item.childCombos}
+                                  comboName={item.name}
+                                  discount={item.discount ?? 0}
+                                  onAddVariant={onAddComboVariant}
+                                  onEditVariant={onEditCombo}
+                                  onDeleteVariant={onDeleteCombo}
+                                  onUpdateStatus={onUpdateStatus}
+                                />
+                              )}
                             </div>
-                          </motion.div>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </AnimatePresence>
-                </React.Fragment>
-              );
-            })}
-
-            {/* Empty filler rows */}
-            {Array.from({ length: emptyRowsCount }).map((_, index) => (
-              <TableRow key={`empty-${index}`} className="border-b border-gray-100">
-                {Array.from({ length: columnCount }).map((_, cellIndex) => (
-                  <TableCell key={cellIndex} className="py-4">
-                    <div className="h-6">&nbsp;</div>
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
-          </>
+                          </div>
+                        </motion.div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </AnimatePresence>
+              </React.Fragment>
+            );
+          })
         ) : (
-          <TableRow>
-            <TableCell colSpan={columnCount} className="h-64 text-center">
-              <div className="flex flex-col items-center justify-center text-gray-500">
-                <p className="text-lg font-medium">{emptyMessage}</p>
-                <p className="text-sm mt-1">Try adjusting your search or filters</p>
+          <TableRow className="bg-white/50">
+            <TableCell colSpan={columnCount} className="py-12 text-center border-b border-slate-100">
+              <div className="flex flex-col items-center justify-center text-slate-400 gap-2">
+                <p className="text-sm font-black uppercase tracking-widest text-slate-500">{emptyMessage}</p>
+                <p className="text-[10px] font-bold uppercase tracking-tight opacity-60">Adjust your search or active filters</p>
               </div>
             </TableCell>
           </TableRow>
         )}
+
+        {/* ── Filler Rows ── */}
+        {Array.from({ length: Math.max(0, pageSize - (rootRows.length > 0 ? rootRows.length : 1)) }).map((_, index) => (
+          <TableRow key={`empty-${index}`} className="border-b border-slate-50/50 hover:bg-transparent transition-none">
+            {Array.from({ length: columnCount }).map((_, cellIndex) => (
+              <TableCell key={cellIndex} className="py-5">
+                <div className="h-6">&nbsp;</div>
+              </TableCell>
+            ))}
+          </TableRow>
+        ))}
       </TableBody>
     </TableUI>
   );

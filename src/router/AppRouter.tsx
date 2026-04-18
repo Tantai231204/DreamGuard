@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import AppLayout from "../layouts/AppLayout";
 import AuthLayout from "../layouts/AuthLayout";
 import AdminLayout from "../layouts/AdminLayout";
@@ -7,11 +7,22 @@ import PrivateRoute from "../components/router/PrivateRoute";
 import AdminRoute from "../components/router/AdminRoute";
 import UserGuard from "../components/router/UserGuard";
 import { PageLoader } from "../components/common";
-import { AppRoute } from "../lib/constants";
+import { AppRoute, UserRole } from "../lib/constants";
+import { PermissionGuard } from "../components/router/PermissionGuard";
+import { RouteUXEnhancer } from "../components/router/RouteUXEnhancer";
+import { useAuthStore } from "../store/authStore";
+import { isSellerRole } from "../lib/role";
 
 /* =======================
-   Lazy loaded pages
+   Helper Components
 ======================= */
+function AdminRootRedirect() {
+    const { role } = useAuthStore();
+    if (isSellerRole(role)) {
+        return <Navigate to="/admin/orders" replace />;
+    }
+    return <AdminDashboard />;
+}
 
 // Public
 const Home = lazy(() => import("../pages/home"));
@@ -52,7 +63,6 @@ const OrderDetail = lazy(() => import("../pages/admin/orders/[id]"));
 const ServiceManagement = lazy(() => import("../pages/admin/services"));
 const ServiceDetail = lazy(() => import("../pages/admin/services/[id].tsx"));
 const ServicePackagesPage = lazy(() => import("../pages/admin/service-packages"));
-const ChatAdmin = lazy(() => import("../pages/admin/chat"));
 const ProductManagement = lazy(() => import("../pages/admin/products"));
 const AdminProductDetail = lazy(() => import("../pages/admin/products/[id]"));
 const ProductTypeManagement = lazy(() => import("../pages/admin/product-types"));
@@ -63,6 +73,10 @@ const StaffManagement = lazy(() => import("../pages/admin/staff"));
 const PaymentManagement = lazy(() => import("../pages/admin/payments"));
 const CustomizeTypeManagement = lazy(() => import("../pages/admin/customize-types"));
 const TemplateManagement = lazy(() => import("../pages/admin/templates"));
+const SystemConfigManagement = lazy(() => import("../pages/admin/system-configs"));
+const TradeInOrderDetail = lazy(() => import("../pages/admin/trade-in-orders/[id]"));
+const GlobalAuditLogs = lazy(() => import("../pages/admin/audit-logs"));
+const ChatAdmin = lazy(() => import("../pages/admin/chat"));
 
 import { AuthRedirectNotice } from "../components/router/AuthRedirectNotice";
 
@@ -73,6 +87,7 @@ export default function AppRouter() {
     return (
         <Suspense fallback={<PageLoader />}>
             <AuthRedirectNotice />
+            <RouteUXEnhancer />
             <Routes>
 
                 {/* ===== Public & Auth Routes (Restricted for Admins) ===== */}
@@ -127,23 +142,44 @@ export default function AppRouter() {
                 {/* ===== Admin Routes ===== */}
                 <Route element={<AdminRoute />}>
                     <Route element={<AdminLayout />}>
-                        <Route path={AppRoute.ADMIN} element={<AdminDashboard />} />
+                        {/* Dynamic Root Redirection for Admin Home */}
+                        <Route path={AppRoute.ADMIN} element={
+                            <PermissionGuard allowedRoles={[UserRole.ADMIN, UserRole.MANAGER, UserRole.SELLER]}>
+                                <AdminRootRedirect />
+                            </PermissionGuard>
+                        } />
+
                         <Route path="/admin/orders" element={<OrderManagement />} />
                         <Route path="/admin/orders/:id" element={<OrderDetail />} />
-                        <Route path="/admin/services" element={<ServiceManagement />} />
-                        <Route path="/admin/services/:id" element={<ServiceDetail />} />
-                        <Route path="/admin/service-packages" element={<ServicePackagesPage />} />
-                        <Route path="/admin/chat" element={<ChatAdmin />} />
-                        <Route path="/admin/products" element={<ProductManagement />} />
-                        <Route path="/admin/products/:id" element={<AdminProductDetail />} />
-                        <Route path={AppRoute.ADMIN_PRODUCT_TYPES} element={<ProductTypeManagement />} />
-                        <Route path="/admin/categories" element={<CategoryManagement />} />
-                        <Route path="/admin/vouchers" element={<VoucherManagement />} />
-                        <Route path="/admin/users" element={<UserManagement />} />
-                        <Route path="/admin/staff" element={<StaffManagement />} />
-                        <Route path="/admin/payments" element={<PaymentManagement />} />
-                        <Route path="/admin/customize-types" element={<CustomizeTypeManagement />} />
-                        <Route path={AppRoute.ADMIN_TEMPLATES} element={<TemplateManagement />} />
+                        <Route path="/admin/trade-in-orders/:id" element={<TradeInOrderDetail />} />
+                        <Route path="/admin/audit-logs" element={<GlobalAuditLogs />} />
+                        <Route path={AppRoute.ADMIN_TRADE_IN_ORDERS} element={<Navigate to="/admin/orders?view=trade-in" replace />} />
+
+                        <Route element={<PermissionGuard allowedRoles={[UserRole.ADMIN, UserRole.MANAGER]} />}>
+                            <Route path="/admin/analytics" element={<div>Analytics Page</div>} />
+                            <Route path="/admin/services" element={<ServiceManagement />} />
+                            <Route path="/admin/services/:id" element={<ServiceDetail />} />
+                            <Route path="/admin/service-packages" element={<ServicePackagesPage />} />
+                            <Route path={AppRoute.ADMIN_PRODUCT_TYPES} element={<ProductTypeManagement />} />
+                            <Route path="/admin/categories" element={<CategoryManagement />} />
+                            <Route path="/admin/vouchers" element={<VoucherManagement />} />
+                            <Route path="/admin/users" element={<UserManagement />} />
+                            <Route path="/admin/payments" element={<PaymentManagement />} />
+                            <Route path="/admin/customize-types" element={<CustomizeTypeManagement />} />
+                            <Route path={AppRoute.ADMIN_TEMPLATES} element={<TemplateManagement />} />
+                            <Route path="/admin/products" element={<ProductManagement />} />
+                            <Route path="/admin/products/:id" element={<AdminProductDetail />} />
+                            <Route path="/admin/settings" element={<div>Settings Page</div>} />
+                        </Route>
+
+                        <Route element={<PermissionGuard allowedRoles={[UserRole.ADMIN]} />}>
+                            <Route path="/admin/staff" element={<StaffManagement />} />
+                            <Route path={AppRoute.ADMIN_SYSTEM_CONFIGS} element={<SystemConfigManagement />} />
+                        </Route>
+
+                        <Route element={<PermissionGuard allowedRoles={[UserRole.SELLER]} />}>
+                            <Route path="/admin/chat" element={<ChatAdmin />} />
+                        </Route>
                     </Route>
                 </Route>
 

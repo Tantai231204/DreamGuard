@@ -1,18 +1,80 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { PlusIcon } from "@radix-ui/react-icons";
 import { Baby, Sparkles, ChevronRight } from "lucide-react";
 import { Button } from "../../../components/ui/button";
-import { mockRecommendations } from "../data";
 import { formatPrice } from "../utils";
 import { useBabyProfiles, useDeleteBabyProfile } from "@/hooks/useBabyProfile";
+import { useProducts } from "@/hooks/queries/useProduct";
 import BabyFormDialog, { type BabyFormDialogProps } from "./baby/BabyFormDialog";
 import BabyCard from "./baby/BabyCard";
 
+const fallbackRecommendations = [
+  {
+    id: "1",
+    name: "Nệm cao su non cho bé 6-12 tháng",
+    price: 1290000,
+    image:
+      "https://i.pinimg.com/1200x/78/47/1d/78471d920e63312ee215e0f328a67b37.jpg",
+    forAge: "6-12 tháng",
+  },
+  {
+    id: "2",
+    name: "Chăn cotton organic mềm mại",
+    price: 590000,
+    image:
+      "https://i.pinimg.com/1200x/78/47/1d/78471d920e63312ee215e0f328a67b37.jpg",
+    forAge: "0-3 tuổi",
+  },
+  {
+    id: "3",
+    name: "Gối chống trào ngược cho bé sơ sinh",
+    price: 450000,
+    image:
+      "https://i.pinimg.com/1200x/78/47/1d/78471d920e63312ee215e0f328a67b37.jpg",
+    forAge: "0-6 tháng",
+  },
+];
+
+const fallbackRecommendationImage =
+  "https://i.pinimg.com/1200x/78/47/1d/78471d920e63312ee215e0f328a67b37.jpg";
+
+function resolveProductPrice(product: {
+  variants?: Array<{ salePrice: number; basePrice: number }>;
+  minPrice?: number;
+  maxPrice?: number;
+}) {
+  const variantPrices = (product.variants ?? [])
+    .map((variant) => variant.salePrice || variant.basePrice)
+    .filter((price) => Number.isFinite(price) && price > 0);
+
+  if (variantPrices.length > 0) {
+    return Math.min(...variantPrices);
+  }
+
+  return product.minPrice || product.maxPrice || 0;
+}
+
 export default function BabiesTab() {
   const { data: babies = [], isLoading } = useBabyProfiles();
+  const { data: apiProducts = [] } = useProducts();
   const deleteMutation = useDeleteBabyProfile();
   const [showForm, setShowForm] = useState(false);
   const [editingBaby, setEditingBaby] = useState<BabyFormDialogProps["initialData"]>(null);
+
+  const recommendations = useMemo(() => {
+    const mappedProducts = apiProducts
+      .filter((product) => String(product.status).toLowerCase() !== "outofstock")
+      .slice(0, 3)
+      .map((product) => ({
+        id: product.id,
+        name: product.name,
+        price: resolveProductPrice(product),
+        image: product.imageUrls?.[0] || product.assets?.[0]?.url || fallbackRecommendationImage,
+        forAge: product.ageGroup ? `${product.ageGroup}` : "Mọi độ tuổi",
+      }));
+
+    return mappedProducts.length > 0 ? mappedProducts : fallbackRecommendations;
+  }, [apiProducts]);
 
   if (isLoading) {
     return (
@@ -106,7 +168,7 @@ export default function BabiesTab() {
         </div>
         <div className="p-6">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {mockRecommendations.map((product) => (
+            {recommendations.map((product) => (
               <div
                 key={product.id}
                 className="group flex items-center gap-4 p-3 rounded-xl border border-slate-100 hover:border-[#4988c4]/30 hover:bg-slate-50 transition-all cursor-pointer"

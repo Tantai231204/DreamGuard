@@ -1,7 +1,9 @@
 import React from 'react';
 import { Plus, SortAsc } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { getAllowedStatusTransitions } from '../../../types';
+import StatusSelectionDropdown from './StatusSelectionDropdown';
+import { Separator } from '@/components/ui/separator';
+import { VariantActionDropdown } from './VariantActionDropdown';
+import { getColorHex } from '../combo-utils';
 import {
     useReactTable,
     getCoreRowModel,
@@ -9,24 +11,20 @@ import {
     type SortingState,
 } from '@tanstack/react-table';
 import {
-    Tabs,
-    TabsList,
-    TabsTrigger,
-    TabsContent,
-} from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { AdminStatusBadge } from '@/components/admin';
-import { Separator } from '@/components/ui/separator';
-import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+    Tabs,
+    TabsList,
+    TabsTrigger,
+    TabsContent,
+} from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import ChildComboItems from '../ChildComboItems';
-import { getColorHex } from '../combo-utils';
-import { VariantActionDropdown } from './VariantActionDropdown';
 import { EmptyResults } from './StatsAndFeedback';
 import type { Combo } from '../../../types';
 
@@ -35,7 +33,7 @@ interface VariantTabsViewProps {
     onAddVariant?: () => void;
     onEditVariant?: (v: Combo) => void;
     onDeleteVariant?: (v: Combo) => void;
-    onUpdateStatus?: (id: string, status: string, name?: string, currentStatus?: string) => void;
+    onUpdateStatus?: (id: string, status: string, name?: string, currentStatus?: string, totalStock?: number) => void;
 }
 
 export function VariantTabsView({
@@ -111,7 +109,6 @@ export function VariantTabsView({
                         {rows.map(row => {
                             const child = row.original;
                             const isActive = activeTab === child.id;
-                            const isWarning = child.status === 'OutOfStock' || (child.totalStock ?? 0) < 5;
 
                             return (
                                 <TabsTrigger
@@ -130,9 +127,6 @@ export function VariantTabsView({
                                                         className={`w-2 h-2 rounded-full ring-2 ring-white shadow-inner transition-transform duration-300 ${isActive ? 'scale-125' : ''}`}
                                                         style={{ backgroundColor: getColorHex(child.color) }}
                                                     />
-                                                    {isWarning && (
-                                                        <span className="absolute -top-1 -right-1 w-1.5 h-1.5 bg-red-500 rounded-full ring-1 ring-white animate-pulse" />
-                                                    )}
                                                 </div>
                                                 <span className={`text-[12px] font-black tracking-tight truncate max-w-[140px] transition-colors
                                                     ${isActive ? 'text-primary-600' : 'text-gray-700'}`}>
@@ -140,51 +134,15 @@ export function VariantTabsView({
                                                 </span>
                                             </div>
                                             <div onClick={(e) => e.stopPropagation()}>
-                                                <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                        <AdminStatusBadge 
-                                                            status={child.status} 
-                                                            className="h-4 px-1.5 cursor-pointer hover:border-slate-300 transition-colors" 
-                                                        />
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="center" className="w-40 shadow-xl border-slate-200/60 rounded-xl p-1 animate-in fade-in zoom-in-95 duration-100">
-                                                        {getAllowedStatusTransitions(child.status).map((s) => {
-                                                            const normalized = s.toLowerCase();
-                                                            const colorCls = 
-                                                                normalized === 'published' ? "text-emerald-600 hover:bg-emerald-50" :
-                                                                normalized === 'draft' ? "text-amber-600 hover:bg-amber-50" :
-                                                                normalized === 'hidden' ? "text-blue-600 hover:bg-blue-50" :
-                                                                normalized === 'archived' ? "text-slate-500 hover:bg-slate-50" :
-                                                                normalized === 'outofstock' ? "text-rose-600 hover:bg-rose-50" :
-                                                                "text-slate-600 text-opacity-70 hover:bg-slate-50";
-
-                                                            return (
-                                                                <DropdownMenuItem
-                                                                    key={s}
-                                                                    disabled={child.status === s}
-                                                                    className={cn(
-                                                                        "rounded-lg cursor-pointer py-1.5 px-3 text-[11px] font-black uppercase tracking-tight transition-all mb-0.5 last:mb-0",
-                                                                        child.status === s ? "bg-slate-50 text-slate-300" : colorCls
-                                                                    )}
-                                                                    onClick={() => child.status !== s && onUpdateStatus?.(child.id, s, child.name, child.status)}
-                                                                >
-                                                                    <div className="flex items-center gap-2">
-                                                                        <div className={cn(
-                                                                            "w-1.5 h-1.5 rounded-full",
-                                                                            normalized === 'published' ? "bg-emerald-500" :
-                                                                            normalized === 'draft' ? "bg-amber-500" :
-                                                                            normalized === 'hidden' ? "bg-blue-500" :
-                                                                            normalized === 'archived' ? "bg-slate-400" :
-                                                                            normalized === 'outofstock' ? "bg-rose-500" :
-                                                                            "bg-slate-300"
-                                                                        )} />
-                                                                        {s}
-                                                                    </div>
-                                                                </DropdownMenuItem>
-                                                            );
-                                                        })}
-                                                    </DropdownMenuContent>
-                                                </DropdownMenu>
+                                                <StatusSelectionDropdown 
+                                                    id={child.id}
+                                                    name={child.name}
+                                                    status={child.status}
+                                                    totalStock={child.totalStock}
+                                                    onUpdateStatus={onUpdateStatus}
+                                                    triggerClassName="h-4 px-1.5"
+                                                    badgeLabel="Variant"
+                                                />
                                             </div>
                                         </div>
                                         <div className="flex items-center justify-between w-full mt-0.5">
@@ -192,7 +150,6 @@ export function VariantTabsView({
                                                 <span className="font-mono text-[9px] text-gray-400 bg-gray-100/50 px-1 rounded truncate max-w-[80px]">
                                                     {child.sku}
                                                 </span>
-                                                {isWarning && <span className="text-[8px] text-red-500 font-black animate-bounce">! STOCK</span>}
                                             </div>
                                             <span className={`text-[10px] font-black ${isActive ? 'text-primary-600' : 'text-gray-800'}`}>
                                                 {(child.salePrice || child.basePrice).toLocaleString('en-US')}₫
@@ -227,53 +184,14 @@ export function VariantTabsView({
                                     <div className="flex items-center gap-2">
                                         <h3 className="text-lg font-black text-gray-900 tracking-tight">{child.name}</h3>
                                         <div onClick={(e) => e.stopPropagation()}>
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <button className="outline-none focus:ring-0 group">
-                                                        <AdminStatusBadge 
-                                                            status={child.status} 
-                                                            className="cursor-pointer hover:border-slate-300 transition-colors"
-                                                        />
-                                                    </button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="center" className="w-40 shadow-xl border-slate-200/60 rounded-xl p-1 animate-in fade-in zoom-in-95 duration-100 mt-1">
-                                                    {getAllowedStatusTransitions(child.status).map((s) => {
-                                                        const normalized = s.toLowerCase();
-                                                        const colorCls = 
-                                                            normalized === 'published' ? "text-emerald-600 hover:bg-emerald-50" :
-                                                            normalized === 'draft' ? "text-amber-600 hover:bg-amber-50" :
-                                                            normalized === 'hidden' ? "text-blue-600 hover:bg-blue-50" :
-                                                            normalized === 'archived' ? "text-slate-500 hover:bg-slate-50" :
-                                                            normalized === 'outofstock' ? "text-rose-600 hover:bg-rose-50" :
-                                                            "text-slate-600 text-opacity-70 hover:bg-slate-50";
-
-                                                        return (
-                                                            <DropdownMenuItem
-                                                                key={s}
-                                                                disabled={child.status === s}
-                                                                className={cn(
-                                                                    "rounded-lg cursor-pointer py-1.5 px-3 text-[11px] font-black uppercase tracking-tight transition-all mb-0.5 last:mb-0",
-                                                                    child.status === s ? "bg-slate-100 text-slate-400 opacity-50" : colorCls
-                                                                )}
-                                                                onClick={() => child.status !== s && onUpdateStatus?.(child.id, s, child.name, child.status)}
-                                                            >
-                                                                <div className="flex items-center gap-2">
-                                                                    <div className={cn(
-                                                                        "w-1.5 h-1.5 rounded-full",
-                                                                        normalized === 'published' ? "bg-emerald-500" :
-                                                                        normalized === 'draft' ? "bg-amber-500" :
-                                                                        normalized === 'hidden' ? "bg-blue-500" :
-                                                                        normalized === 'archived' ? "bg-slate-400" :
-                                                                        normalized === 'outofstock' ? "bg-rose-500" :
-                                                                        "bg-slate-300"
-                                                                    )} />
-                                                                    {s}
-                                                                </div>
-                                                            </DropdownMenuItem>
-                                                        );
-                                                    })}
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
+                                            <StatusSelectionDropdown 
+                                                id={child.id}
+                                                name={child.name}
+                                                status={child.status}
+                                                totalStock={child.totalStock}
+                                                onUpdateStatus={onUpdateStatus}
+                                                badgeLabel="Variant"
+                                            />
                                         </div>
                                     </div>
                                     <p className="text-[11px] text-gray-400 font-bold uppercase tracking-widest mt-0.5 italic">Variant SKU: {child.sku}</p>

@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo } from "react"
+import { memo, useCallback, useMemo, lazy, Suspense } from "react"
 import { Store, Package, Truck, ShieldCheck } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button"
 import { formatPrice, formatDate } from "../../utils"
 import type { OrderResponse } from "@/api/types/order"
 import { getStatusTheme } from "../../constants"
-import { OrderDetailDialog } from "./OrderDetailDialog"
 import { useNavigate } from "react-router-dom"
 import { orderKeys } from "@/hooks/queries/useOrder"
 import { queryClient } from "@/lib/queryClient"
 import orderService from "@/api/services/orderService"
+
+// Lazy load heavy dialog component
+const OrderDetailDialog = lazy(() => import("./OrderDetailDialog").then(m => ({ default: m.OrderDetailDialog })));
 
 interface OrderCardProps {
     order: OrderResponse
@@ -106,15 +108,21 @@ export const OrderCard = memo(({ order }: OrderCardProps) => {
                     </button>
                 </div>
                 <div className="flex items-center gap-2">
-                    <OrderDetailDialog
-                        orderId={order.id}
-                        orderCode={order.orderCode}
-                        trigger={
-                            <Button variant="outline" className="h-9 px-4 rounded-lg text-xs font-bold uppercase tracking-wider border-slate-200 hover:bg-white transition-all">
-                                Details
-                            </Button>
-                        }
-                    />
+                    <Suspense fallback={
+                        <Button variant="outline" className="h-9 px-4 rounded-lg text-xs font-bold uppercase tracking-wider border-slate-200 opacity-70 animate-pulse" disabled>
+                            Details
+                        </Button>
+                    }>
+                        <OrderDetailDialog
+                            orderId={order.id}
+                            orderCode={order.orderCode}
+                            trigger={
+                                <Button variant="outline" className="h-9 px-4 rounded-lg text-xs font-bold uppercase tracking-wider border-slate-200 hover:bg-white transition-all">
+                                    Details
+                                </Button>
+                            }
+                        />
+                    </Suspense>
 
                     {isShipping && (
                         <Button
@@ -128,9 +136,17 @@ export const OrderCard = memo(({ order }: OrderCardProps) => {
 
                     {isDelivered && (
                         <div className="flex items-center gap-2">
-                            <Button variant="ghost" className="h-9 px-4 rounded-lg text-[10px] font-black uppercase tracking-wider text-amber-600 hover:bg-amber-50">
-                                Write Review
-                            </Button>
+                            <Suspense fallback={null}>
+                                <OrderDetailDialog
+                                    orderId={order.id}
+                                    orderCode={order.orderCode}
+                                    trigger={
+                                        <Button variant="ghost" className="h-9 px-4 rounded-lg text-[10px] font-black uppercase tracking-wider text-amber-600 hover:bg-amber-50">
+                                            Write Review
+                                        </Button>
+                                    }
+                                />
+                            </Suspense>
                             <BuyAgainButton onClick={handleReOrder} onMouseEnter={prefetch} />
                         </div>
                     )}

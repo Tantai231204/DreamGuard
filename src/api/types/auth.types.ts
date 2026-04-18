@@ -12,6 +12,7 @@ export interface LoginRequest {
 
 export interface AuthResponse {
   roleName: string;
+  accessToken?: string; // Used exclusively for SignalR connection
 }
 
 // Note: Tokens are handled via HttpOnly cookies (Pure Cookie Approach).

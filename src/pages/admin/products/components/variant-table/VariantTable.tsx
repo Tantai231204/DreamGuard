@@ -160,7 +160,7 @@ export default function VariantTable({
             <Button
               size="sm"
               onClick={onAddVariant}
-              className="h-8 px-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg shadow-sm"
+              className="h-8 px-4 bg-[#4988c4] hover:bg-[#3a6fa0] text-white rounded-lg border-0 shadow-none transition-all active:scale-95"
             >
               <Plus className="h-3.5 w-3.5 mr-1.5" />
               Add Variant
@@ -217,7 +217,7 @@ export default function VariantTable({
             </span>
             <span className="text-gray-300">|</span>
             <span>
-              In stock: <span className="font-bold text-green-600">{stats.inStock}</span>
+              In stock: <span className="font-bold text-[#4988c4]">{stats.inStock}</span>
             </span>
             <span className="text-gray-300">|</span>
             <span>
@@ -298,7 +298,7 @@ function ColorGroupRow({
           "w-6 h-6 rounded-full flex items-center justify-center transition-transform",
           isExpanded ? "rotate-180" : ""
         )}>
-          <ChevronDown className={cn("h-4 w-4 transition-colors", isExpanded ? "text-indigo-600" : "text-slate-400")} />
+          <ChevronDown className={cn("h-4 w-4 transition-colors", isExpanded ? "text-primary-600" : "text-slate-400")} />
         </div>
 
         <div className="relative">
@@ -308,7 +308,7 @@ function ColorGroupRow({
             title={group.color}
           />
           {isExpanded && (
-            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-0.5 h-8 bg-gradient-to-b from-indigo-200 to-transparent" />
+            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-0.5 h-8 bg-gradient-to-b from-primary-200 to-transparent" />
           )}
         </div>
 
@@ -371,7 +371,7 @@ function ColorGroupRow({
 
 /* ─── Variant Status Config ─────────────────────────────── */
 const variantStatusStyles: Record<string, { dot: string; label: string; variant: 'success' | 'warning' | 'info' }> = {
-  Published: { dot: 'bg-emerald-500', label: 'Published', variant: 'success' },
+  Published: { dot: 'bg-[#4988c4]', label: 'Published', variant: 'success' },
   Draft: { dot: 'bg-amber-400', label: 'Draft', variant: 'warning' },
   Hidden: { dot: 'bg-gray-400', label: 'Hidden', variant: 'info' },
 };
@@ -398,19 +398,12 @@ function VariantRow({
 }) {
   const hasSale = variant.salePrice > 0 && variant.salePrice < variant.basePrice;
   const displayPrice = variant.salePrice > 0 ? variant.salePrice : variant.basePrice;
-  const toast = useToast();
-  const hasZeroStock = !variant.stockQuantity || variant.stockQuantity <= 0;
+
 
   const handleQuickStatus = useCallback((newStatus: string) => {
     if (newStatus === variant.status) return;
-
-    if (hasZeroStock && (newStatus === 'Published' || newStatus === 'Hidden')) {
-      toast.error('Invalid Status', 'Cannot activate or hide variant with zero stock.');
-      return;
-    }
-
     onStatusChange(variant.id, variant.sku, newStatus);
-  }, [variant.id, variant.sku, variant.status, hasZeroStock, onStatusChange, toast]);
+  }, [variant.id, variant.sku, variant.status, onStatusChange]);
 
   const currentStatus = variant.status || 'Draft';
   const statusStyle = variantStatusStyles[currentStatus] || variantStatusStyles.Draft;
@@ -419,7 +412,7 @@ function VariantRow({
     if (!variant.isVariantCustomizable) {
       return {
         label: variant.dimensions || 'N/A',
-        cls: "bg-white border-slate-200 text-slate-700 group-hover/vrow:border-indigo-200 group-hover/vrow:bg-indigo-50/30 font-medium"
+        cls: "bg-white border-slate-200 text-slate-700 group-hover/vrow:border-primary-200 group-hover/vrow:bg-primary-50/30 font-medium"
       };
     }
 
@@ -429,7 +422,7 @@ function VariantRow({
     if (variant.isFullBespoke) {
       return {
         label: `Full: ${displayNames}`,
-        cls: "bg-indigo-50 border-indigo-200 text-indigo-700 group-hover/vrow:bg-indigo-100/50 shadow-sm font-black"
+        cls: "bg-primary-50 border-primary-200 text-primary-700 group-hover/vrow:bg-primary-100/50 shadow-sm font-black"
       };
     }
 
@@ -527,8 +520,8 @@ function VariantRow({
             className={cn(
               "h-7 w-7 p-0 rounded-lg transition-all scale-90",
               variant.isOutOfStock
-                ? "opacity-100 text-emerald-600 hover:bg-emerald-50"
-                : "opacity-0 group-hover/vrow:opacity-100 hover:bg-emerald-50 hover:text-emerald-600"
+                ? "opacity-100 text-[#4988c4] hover:bg-blue-50"
+                : "opacity-0 group-hover/vrow:opacity-100 hover:bg-blue-50 hover:text-[#4988c4]"
             )}
           >
             <Plus className="h-3.5 w-3.5" />
@@ -628,21 +621,19 @@ function VariantRow({
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent className="w-44 rounded-xl shadow-xl border border-slate-200/60 p-1">
                 {Object.entries(variantStatusStyles).map(([value, style]) => {
-                  const isDisabled = hasZeroStock && (value === 'Published' || value === 'Hidden');
                   return (
                     <DropdownMenuItem
                       key={value}
-                      onClick={() => !isDisabled && handleQuickStatus(value)}
-                      disabled={isDisabled}
+                      onClick={() => handleQuickStatus(value)}
+                      disabled={currentStatus === value}
                       className={cn(
                         "rounded-lg cursor-pointer py-2 px-3 font-medium text-slate-600 gap-2.5",
                         currentStatus === value && "bg-slate-50"
                       )}
-                      title={isDisabled ? "Cannot activate or hide variant with zero stock." : undefined}
                     >
                       <span className={cn('w-2.5 h-2.5 rounded-full', style.dot)} />
-                      <span className={cn("text-[13px] flex-1", isDisabled && "text-gray-400")}>{style.label}</span>
-                      {currentStatus === value && <Check className="h-3.5 w-3.5 text-emerald-500" />}
+                      <span className="text-[13px] flex-1">{style.label}</span>
+                      {currentStatus === value && <Check className="h-3.5 w-3.5 text-[#4988c4]" />}
                     </DropdownMenuItem>
                   );
                 })}

@@ -43,6 +43,12 @@ export const useOrderColumns = (onCancelRequested: (order: OrderResponse) => voi
                 enableSorting: false,
             },
             {
+                id: 'type',
+                header: () => <span className="font-semibold">Type</span>,
+                cell: () => <AdminStatusBadge status="order" />,
+                size: 100,
+            },
+            {
                 accessorKey: 'orderCode',
                 enableSorting: true,
                 header: ({ column }) => <SortableHeader column={column} label="Order ID" />,

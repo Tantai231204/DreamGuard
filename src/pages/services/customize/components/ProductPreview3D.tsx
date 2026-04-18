@@ -13,7 +13,7 @@ import {
   ContactShadows,
 } from "@react-three/drei";
 import * as THREE from "three";
-import { Camera, RefreshCcw, Maximize2, Move, ZoomIn, RotateCcw } from "lucide-react";
+import { Camera, RefreshCcw, Maximize2, Move, ZoomIn, RotateCcw, LayoutPanelLeft } from "lucide-react";
 
 // ================== PREMIUM BESPOKE SHADER (FABRIC SPECIALIST) ==================
 const LUXURY_FRAGMENT = `
@@ -112,7 +112,7 @@ const LUXURY_VERTEX = `
 
 // ================== CORE ENGINE ==================
 
-const GLTFModel = memo(({ url, designRef, customImage, transformRef }: any) => {
+const GLTFModel = memo(({ url, designRef, customImage, transformRef, onBoundsReady }: any) => {
   const { scene } = useGLTF(url) as any;
   const { nodes } = useGraph(scene);
   const { gl } = useThree();
@@ -141,8 +141,15 @@ const GLTFModel = memo(({ url, designRef, customImage, transformRef }: any) => {
       return;
     }
 
+    let active = true;
     const loader = new THREE.TextureLoader();
+    
     loader.load(customImage, (tex) => {
+      if (!active) {
+        tex.dispose();
+        return;
+      }
+
       tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
       tex.minFilter = THREE.LinearMipmapLinearFilter;
       tex.magFilter = THREE.LinearFilter;
@@ -150,9 +157,19 @@ const GLTFModel = memo(({ url, designRef, customImage, transformRef }: any) => {
       tex.anisotropy = Math.min(gl.capabilities.getMaxAnisotropy(), 8);
       tex.generateMipmaps = true;
       tex.needsUpdate = true;
+
+      // Dispose previous texture if it's a real texture (not the placeholder)
+      if (uRef.current.uMap.value && uRef.current.uMap.value.dispose && uRef.current.uMap.value.image) {
+        uRef.current.uMap.value.dispose();
+      }
+
       uRef.current.uMap.value = tex;
       uRef.current.uUseMap.value = 1;
     });
+
+    return () => {
+      active = false;
+    };
   }, [customImage, gl]);
 
   useLayoutEffect(() => {
@@ -163,27 +180,213 @@ const GLTFModel = memo(({ url, designRef, customImage, transformRef }: any) => {
         n.receiveShadow = true;
       }
     });
-  }, [nodes, mat]);
+
+    // Report bounding box to parent after layout
+    if (onBoundsReady) {
+      const box = new THREE.Box3().setFromObject(scene);
+      const center = new THREE.Vector3();
+      const size = new THREE.Vector3();
+      box.getCenter(center);
+      box.getSize(size);
+      console.log('[DreamGuard 3D] Model bounds:', { center: center.toArray(), size: size.toArray(), min: box.min.toArray(), max: box.max.toArray() });
+      onBoundsReady({ box, center, size });
+    }
+  }, [nodes, mat, scene, onBoundsReady]);
+
+  const lastState = useRef({ color: "", x: 0, y: 0, scale: 0, rotation: 0 });
 
   useFrame(() => {
     const d = designRef.current;
     const u = uRef.current;
     if (!d) return;
 
-    u.uColor.value.set(d.baseColor || "#B0D4F1");
-    if (u.uUseMap.value > 0.5) {
-      const t = transformRef.current;
-      u.uMapScale.value = t.scale;
-      u.uMapOffset.value.set(t.x, t.y);
-      u.uRotation.value = t.rotation || 0;
+    const t = transformRef.current;
+    const currentColor = d.baseColor || "#B0D4F1";
+
+    // Only update uniforms if state has drifted
+    if (
+      lastState.current.color !== currentColor ||
+      lastState.current.x !== t.x ||
+      lastState.current.y !== t.y ||
+      lastState.current.scale !== t.scale ||
+      lastState.current.rotation !== t.rotation
+    ) {
+      u.uColor.value.set(currentColor);
+      
+      if (u.uUseMap.value > 0.5) {
+        u.uMapScale.value = t.scale;
+        u.uMapOffset.value.set(t.x, t.y);
+        u.uRotation.value = t.rotation || 0;
+      }
+
+      // Sync local state bitmask
+      lastState.current = {
+        color: currentColor,
+        x: t.x,
+        y: t.y,
+        scale: t.scale,
+        rotation: t.rotation
+      };
     }
   });
 
   return <primitive object={scene} />;
 });
 
-const SceneRoot = memo(({ product, designRef, customImage, transformRef }: any) => {
+// ================== SURFACE TEXT ENGINE ==================
+// Creates text as a CanvasTexture and places it precisely on model surface
+
+const useTextTexture = (text: string, color: string, isCrib: boolean) => {
+  return useMemo(() => {
+    if (!text) return null;
+    const canvas = document.createElement("canvas");
+    canvas.width = 1024;
+    canvas.height = 256;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (isCrib) {
+      // Wood engraving look: darker, bolder, sans-serif
+      ctx.fillStyle = color;
+      ctx.font = `bold 110px "Georgia", serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      // Subtle shadow for depth illusion
+      ctx.shadowColor = "rgba(0,0,0,0.3)";
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+      ctx.shadowBlur = 4;
+      ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+    } else {
+      // Embroidery look: stitched, italic serif
+      ctx.fillStyle = color;
+      ctx.font = `italic 100px "Georgia", serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      // Thread-like double rendering for embroidery effect
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.5;
+      ctx.strokeText(text, canvas.width / 2, canvas.height / 2);
+      ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+    }
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.anisotropy = 8;
+    tex.needsUpdate = true;
+    return tex;
+  }, [text, color, isCrib]);
+};
+
+// SurfaceText: Uses real bounds from GLTFModel to place text on the correct face
+const SurfaceText = memo(({ bounds, texture, position: posType, isCrib }: {
+  bounds: { center: THREE.Vector3; size: THREE.Vector3; box: THREE.Box3 };
+  texture: THREE.Texture;
+  position: string;
+  isCrib: boolean;
+}) => {
+  const { center, size, box } = bounds;
+  const eps = 0.008; // offset to sit just above surface
+
+  const placement = useMemo(() => {
+    if (isCrib) {
+      const textW = Math.max(size.x * 0.5, 0.15);
+      const textH = textW * 0.25;
+
+      switch (posType) {
+        case "side-rail":
+          return {
+            pos: [box.max.x + eps, center.y, center.z] as [number, number, number],
+            rot: [0, Math.PI / 2, 0] as [number, number, number],
+            scale: [textW, textH, 1] as [number, number, number],
+          };
+        case "headboard":
+          return {
+            pos: [center.x, center.y + size.y * 0.25, box.min.z - eps] as [number, number, number],
+            rot: [0, Math.PI, 0] as [number, number, number],
+            scale: [textW, textH, 1] as [number, number, number],
+          };
+        case "front-rail":
+        default:
+          return {
+            pos: [center.x, center.y, box.max.z + eps] as [number, number, number],
+            rot: [0, 0, 0] as [number, number, number],
+            scale: [textW, textH, 1] as [number, number, number],
+          };
+      }
+    } else {
+      const textW = Math.max(size.x * 0.6, 0.12);
+      const textH = textW * 0.25;
+
+      switch (posType) {
+        case "corner":
+          return {
+            pos: [center.x + size.x * 0.15, box.max.y + eps, center.z - size.z * 0.15] as [number, number, number],
+            rot: [-Math.PI / 2, 0, 0] as [number, number, number],
+            scale: [textW * 0.7, textH * 0.7, 1] as [number, number, number],
+          };
+        case "bottom-edge":
+          return {
+            pos: [center.x, box.max.y + eps, center.z + size.z * 0.25] as [number, number, number],
+            rot: [-Math.PI / 2, 0, 0] as [number, number, number],
+            scale: [textW * 0.8, textH * 0.8, 1] as [number, number, number],
+          };
+        case "center":
+        default:
+          return {
+            pos: [center.x, box.max.y + eps, center.z] as [number, number, number],
+            rot: [-Math.PI / 2, 0, 0] as [number, number, number],
+            scale: [textW, textH, 1] as [number, number, number],
+          };
+      }
+    }
+  }, [center, size, box, posType, isCrib]);
+
+  return (
+    <mesh
+      position={placement.pos}
+      rotation={placement.rot}
+      scale={placement.scale}
+    >
+      <planeGeometry args={[1, 1]} />
+      <meshBasicMaterial
+        map={texture}
+        transparent
+        alphaTest={0.01}
+        side={THREE.DoubleSide}
+        depthWrite={false}
+      />
+    </mesh>
+  );
+});
+
+// ================== SCENE ROOT ==================
+
+const SceneRoot = memo(({ product, design, designRef, customImage, transformRef, sizeDims }: any) => {
   const isCrib = product.type === "crib_bedding_set";
+  const modelUrl = isCrib ? "/models/real_bumper.glb" : "/models/real_pillow.glb";
+
+  const [modelBounds, setModelBounds] = useState<{ center: THREE.Vector3; size: THREE.Vector3; box: THREE.Box3 } | null>(null);
+
+  const handleBoundsReady = useCallback((b: any) => {
+    setModelBounds(b);
+  }, []);
+
+  const visualScale = useMemo(() => {
+    const baseW = isCrib ? 60 : 25;
+    const baseL = isCrib ? 120 : 35;
+    const factorW = sizeDims.width / baseW;
+    const factorL = sizeDims.length / baseL;
+    return [
+      Math.min(Math.max(factorW, 0.5), 2.0),
+      1,
+      Math.min(Math.max(factorL, 0.5), 2.0)
+    ] as [number, number, number];
+  }, [sizeDims, isCrib]);
+
+  const textColor = isCrib ? "#3d2b1f" : "#4988c4";
+  const textTexture = useTextTexture(design.embroideryText, textColor, isCrib);
 
   return (
     <>
@@ -199,11 +402,9 @@ const SceneRoot = memo(({ product, designRef, customImage, transformRef }: any) 
       />
 
       <Suspense fallback={null}>
-        {/* studio preset cho ánh sáng mềm, đồng đều hơn city */}
         <Environment preset="studio" blur={0.8} />
       </Suspense>
 
-      {/* Ánh sáng chéo (Oblique Key Light) — tránh rọi thẳng mặt */}
       <spotLight
         position={[18, 12, -4]}
         angle={0.2}
@@ -213,20 +414,28 @@ const SceneRoot = memo(({ product, designRef, customImage, transformRef }: any) 
         shadow-mapSize={[1024, 1024]}
         shadow-bias={-0.0001}
       />
-      {/* Fill light từ góc xa để bù sáng mềm */}
       <pointLight position={[-12, 6, 8]} intensity={0.15} color="#dbeafe" />
-      {/* Top soft bounce lệch tâm */}
       <pointLight position={[4, 12, 4]} intensity={0.1} color="#fff8f4" />
       <ambientLight intensity={0.45} />
 
-      <group position={[0, -0.4, 0]}>
+      <group position={[0, -0.4, 0]} scale={visualScale}>
         <GLTFModel
           key={isCrib ? "crib" : "standard"}
-          url={isCrib ? "/models/real_bumper.glb" : "/models/real_pillow.glb"}
+          url={modelUrl}
           designRef={designRef}
           customImage={customImage}
           transformRef={transformRef}
+          onBoundsReady={handleBoundsReady}
         />
+
+        {design.embroideryText && textTexture && modelBounds && (
+          <SurfaceText
+            bounds={modelBounds}
+            texture={textTexture}
+            position={design.embroideryPosition || (isCrib ? "front-rail" : "center")}
+            isCrib={isCrib}
+          />
+        )}
       </group>
 
       <ContactShadows
@@ -240,9 +449,17 @@ const SceneRoot = memo(({ product, designRef, customImage, transformRef }: any) 
       />
     </>
   );
-}, (prev, next) => prev.product.id === next.product.id && prev.customImage === next.customImage);
+}, (prev, next) =>
+  prev.product.id === next.product.id &&
+  prev.customImage === next.customImage &&
+  prev.design.size === next.design.size &&
+  prev.design.embroideryText === next.design.embroideryText &&
+  prev.design.embroideryPosition === next.design.embroideryPosition &&
+  prev.sizeDims.width === next.sizeDims.width &&
+  prev.sizeDims.length === next.sizeDims.length
+);
 
-const PureCanvas = memo(({ product, designRef, customImage, transformRef, canvasRef }: any) => (
+const PureCanvas = memo(({ product, design, designRef, customImage, transformRef, canvasRef, sizeDims }: any) => (
   <Canvas
     ref={canvasRef}
     gl={{
@@ -257,9 +474,24 @@ const PureCanvas = memo(({ product, designRef, customImage, transformRef, canvas
     dpr={[1, 1.5]}
     style={{ background: '#f8fafc' }}
   >
-    <SceneRoot product={product} designRef={designRef} customImage={customImage} transformRef={transformRef} />
+    <SceneRoot
+      product={product}
+      design={design}
+      designRef={designRef}
+      customImage={customImage}
+      transformRef={transformRef}
+      sizeDims={sizeDims}
+    />
   </Canvas>
-), (prev, next) => prev.product.id === next.product.id && prev.customImage === next.customImage);
+), (prev, next) =>
+  prev.product.id === next.product.id &&
+  prev.customImage === next.customImage &&
+  prev.design.size === next.design.size &&
+  prev.design.embroideryText === next.design.embroideryText &&
+  prev.design.embroideryPosition === next.design.embroideryPosition &&
+  prev.sizeDims.width === next.sizeDims.width &&
+  prev.sizeDims.length === next.sizeDims.length
+);
 
 // ================== ISOLATED SUB-COMPONENTS ==================
 
@@ -388,8 +620,55 @@ const CalibrationPanel = memo(({ customImage, transformRef }: any) => {
   );
 });
 
+const DesignManifest = memo(({ product, design }: any) => {
+  const isCrib = product?.id?.includes('crib');
+  
+  const specs = [
+    { label: "Fabric Base", value: design.material || "Standard" },
+    { label: "Tone", value: design.customImage ? "Bespoke Wrap" : (design.baseColor || "#B0D4F1"), swatch: design.customImage ? null : design.baseColor },
+    { label: "Volume", value: design.size || "Default" },
+    ...(design.embroideryText ? [{
+      label: isCrib ? "Signature" : "Stitch",
+      value: `"${design.embroideryText}"`,
+      sub: design.embroideryPosition
+    }] : [])
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="absolute bottom-8 right-8 z-20 pointer-events-none"
+    >
+      <div className="bg-white/80 backdrop-blur-xl p-6 rounded-[2rem] border border-slate-200/50 shadow-2xl w-64 space-y-4">
+        <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+          <LayoutPanelLeft className="h-3.5 w-3.5 text-blue-600" />
+          <span className="text-[10px] font-black uppercase tracking-widest text-slate-900">Design Manifest</span>
+        </div>
+
+        <div className="space-y-3">
+          {specs.map((s, i) => (
+            <div key={i} className="flex flex-col gap-0.5">
+              <span className="text-[8px] font-black text-slate-400 uppercase tracking-tight">{s.label}</span>
+              <div className="flex items-center gap-2">
+                {s.swatch && <div className="h-2 w-2 rounded-full border border-slate-200" style={{ backgroundColor: s.swatch }} />}
+                <span className="text-[11px] font-bold text-slate-700 truncate">{s.value}</span>
+              </div>
+              {s.sub && (
+                <span className="text-[8px] font-bold text-blue-500 uppercase tracking-widest opacity-80 mt-0.5">
+                  Pos: {s.sub}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </motion.div>
+  );
+});
+
 // ================== MAIN VIEW ==================
-const ProductPreview3D = memo(({ product, design }: any) => {
+const ProductPreview3D = memo(({ product, design, sizeDims }: any) => {
   const designRef = useRef(design);
   const transformRef = useRef({ x: 0, y: 0, scale: 1, rotation: 0 });
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -407,7 +686,15 @@ const ProductPreview3D = memo(({ product, design }: any) => {
   return (
     <div className="w-full h-full flex flex-col bg-[#f8fafc] overflow-hidden relative font-sans">
       <div className="flex-1 relative cursor-grab active:cursor-grabbing">
-        <PureCanvas product={product} designRef={designRef} customImage={design.customImage} transformRef={transformRef} canvasRef={canvasRef} />
+        <PureCanvas
+          product={product}
+          design={design}
+          designRef={designRef}
+          customImage={design.customImage}
+          transformRef={transformRef}
+          canvasRef={canvasRef}
+          sizeDims={sizeDims}
+        />
 
         <div className="absolute bottom-8 left-8 z-10 flex flex-col gap-4 pointer-events-none">
           <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="flex items-center gap-5 bg-white/90 backdrop-blur-md border border-slate-200/50 p-2.5 pr-8 rounded-[1.5rem] shadow-xl">
@@ -433,6 +720,8 @@ const ProductPreview3D = memo(({ product, design }: any) => {
         <AnimatePresence>
           <CalibrationPanel customImage={design.customImage} transformRef={transformRef} />
         </AnimatePresence>
+
+        <DesignManifest product={product} design={design} />
       </div>
     </div>
   );

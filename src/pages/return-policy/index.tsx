@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import gsap from "gsap";
 import {
   ArrowRight,
   BadgeCheck,
@@ -14,7 +15,6 @@ import {
   Truck,
 } from "lucide-react";
 
-import { useBreadcrumb } from "@/components/common/BreadcrumbNav";
 import { AppRoute } from "@/lib/constants";
 
 const scopeItems = [
@@ -146,30 +146,46 @@ const importantNotes = [
 ];
 
 const sectionMotion = {
-  initial: { opacity: 0, y: 24 },
+  initial: { opacity: 1, y: 0 },
   whileInView: { opacity: 1, y: 0 },
   viewport: { once: true, amount: 0.2 },
-  transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] as const },
+  transition: { duration: 0 },
 };
 
 export default function ReturnPolicyPage() {
-  const { setItems } = useBreadcrumb();
+  const pageRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    setItems([
-      { label: "Home", href: AppRoute.HOME },
-      { label: "Return Policy", active: true },
-    ]);
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
 
-    return () => setItems([]);
-  }, [setItems]);
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        "[data-page-hero]",
+        { autoAlpha: 0, y: 8 },
+        { autoAlpha: 1, y: 0, duration: 0.28, ease: "power1.out" }
+      );
+
+      const cards = gsap.utils.toArray<HTMLElement>("[data-page-card]").slice(0, 8);
+      if (cards.length > 0) {
+        gsap.fromTo(
+          cards,
+          { autoAlpha: 0, y: 8 },
+          { autoAlpha: 1, y: 0, duration: 0.24, stagger: 0.03, delay: 0.04, ease: "power1.out" }
+        );
+      }
+    }, pageRef);
+
+    return () => ctx.revert();
+  }, []);
 
   return (
-    <div className="bg-white text-[#4988c4]-900">
-      <section className="relative overflow-hidden border-b border-[#4988c4]-200 bg-[radial-gradient(circle_at_top_left,_rgba(73,136,196,0.18),_transparent_40%),linear-gradient(135deg,_#eff6ff_0%,_#ffffff_52%,_#f8fafc_100%)]">
+    <div ref={pageRef} className="bg-slate-50 text-slate-800">
+      <section className="relative overflow-hidden border-b border-slate-200 bg-gradient-to-b from-[#eff6ff] to-white">
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#4988c4]/50 to-transparent" />
         <div className="container mx-auto grid max-w-7xl gap-10 px-6 py-16 lg:grid-cols-[1.2fr_0.8fr] lg:px-8 lg:py-20">
-          <motion.div {...sectionMotion} className="max-w-3xl">
+          <motion.div {...sectionMotion} data-page-hero className="max-w-3xl">
             <div className="inline-flex items-center gap-2 rounded-full border border-[#4988c4]/15 bg-white/80 px-4 py-2 text-[11px] font-black uppercase tracking-[0.24em] text-[#4988c4] shadow-sm backdrop-blur">
               <Sparkles className="h-4 w-4" />
               Return Policy
@@ -212,7 +228,8 @@ export default function ReturnPolicyPage() {
             {timelineItems.map((item) => (
               <div
                 key={item.label}
-                className="rounded-[28px] border border-white/70 bg-white/85 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.06)] backdrop-blur"
+                data-page-card
+                className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
               >
                 <p className="text-xs font-black uppercase tracking-[0.28em] text-[#4988c4]-400">
                   Duration
@@ -253,7 +270,8 @@ export default function ReturnPolicyPage() {
             {scopeItems.map((item, index) => (
               <div
                 key={item}
-                className="rounded-[28px] border border-[#4988c4]-200 bg-white p-6 shadow-[0_16px_50px_rgba(15,23,42,0.05)]"
+                data-page-card
+                className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"
               >
                 <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#4988c4]/10 text-sm font-black text-[#4988c4]">
                   0{index + 1}
@@ -288,6 +306,7 @@ export default function ReturnPolicyPage() {
               {conditions.map((condition) => (
                 <div
                   key={condition}
+                  data-page-card
                   className="rounded-[24px] border border-[#4988c4]-200 bg-white p-5 shadow-[0_10px_40px_rgba(15,23,42,0.04)]"
                 >
                   <BadgeCheck className="h-5 w-5 text-[#4988c4]" />
@@ -317,6 +336,7 @@ export default function ReturnPolicyPage() {
               return (
                 <div
                   key={item.title}
+                  data-page-card
                   className="rounded-[32px] border border-[#4988c4]-200 bg-white p-7 shadow-[0_18px_60px_rgba(15,23,42,0.06)]"
                 >
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">

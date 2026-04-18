@@ -21,6 +21,7 @@ export type HighlightCard = {
 interface NavDropdownProps {
     label: string
     items: DropdownLink[]
+    href?: string
     highlight?: HighlightCard
     isActive?: boolean
     isSimpleMenu?: boolean
@@ -32,11 +33,30 @@ interface NavDropdownProps {
 export function NavDropdown({
     label,
     items,
+    href,
     isActive,
     isSimpleMenu,
     onOpen,
     onClose,
 }: NavDropdownProps) {
+    const renderTrigger = () => {
+        const triggerContent = (
+            <button className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${(!isSimpleMenu && isActive) ? 'text-[#4988c4] bg-[#4988c4]/5' : 'text-slate-400 hover:text-slate-900 hover:bg-slate-50'}`}>
+                {label}
+                <ChevronDown className={`h-3 w-3 opacity-60 transition-transform duration-300 ${(!isSimpleMenu && isActive) ? 'rotate-180' : 'group-hover:rotate-180'}`} />
+            </button>
+        );
+
+        if (href) {
+            return (
+                <a href={href} className="flex items-center">
+                    {triggerContent}
+                </a>
+            );
+        }
+        return triggerContent;
+    };
+
     return (
         <>
             {/* Desktop trigger */}
@@ -45,10 +65,7 @@ export function NavDropdown({
                 onMouseEnter={isSimpleMenu ? undefined : onOpen}
                 onMouseLeave={isSimpleMenu ? undefined : onClose}
             >
-                <button className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${(!isSimpleMenu && isActive) ? 'text-[#4988c4] bg-[#4988c4]/5' : 'text-slate-400 hover:text-slate-900 hover:bg-slate-50'}`}>
-                    {label}
-                    <ChevronDown className={`h-3 w-3 opacity-60 transition-transform duration-300 ${(!isSimpleMenu && isActive) ? 'rotate-180' : 'group-hover:rotate-180'}`} />
-                </button>
+                {renderTrigger()}
                 {isSimpleMenu && (
                     <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 hidden w-56 rounded-2xl bg-white p-3 shadow-[0_15px_30px_-10px_rgba(0,0,0,0.05)] ring-1 ring-slate-100 group-hover:block z-50 border border-slate-50 animate-in fade-in zoom-in-95 duration-200">
                         {/* Top accent for dropdown */}

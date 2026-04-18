@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import AdminPageHeader from '@/components/layout/AdminPageHeader';
 import { Skeleton } from '@/components/ui/skeleton';
 
-import { ServiceCalendar, AssignTechnicianDialog } from './components';
+import { ServiceCalendar, AssignTechnicianDialog, CancelBookingDialog, ConfirmServiceDialog } from './components';
 import { useServiceManagement } from './hooks/useServiceManagement';
 
 export default function ServiceManagement() {
@@ -13,14 +13,24 @@ export default function ServiceManagement() {
     stats,
     filteredBookings,
     isLoading,
+    isAssignOpen,
+    setIsAssignOpen,
+    isCancelOpen,
+    setIsCancelOpen,
+    cancelOrderInfo,
     handleViewBooking,
     handleCreateNew,
     selectedOrderId,
-    isAssignOpen,
-    setIsAssignOpen,
     handleConfirmBooking,
-    handleCancelBooking,
+    handleConfirmBookingConfirm,
+    handleCancelBookingTrigger,
+    handleCancelBookingConfirm,
     handleAssignTechnician,
+    isPendingCancel,
+    isPendingConfirm,
+    isConfirmOpen,
+    setIsConfirmOpen,
+    confirmOrderInfo,
   } = useServiceManagement();
 
   return (
@@ -69,7 +79,7 @@ export default function ServiceManagement() {
                 bookings={filteredBookings}
                 onViewBooking={handleViewBooking}
                 onConfirmBooking={handleConfirmBooking}
-                onCancelBooking={handleCancelBooking}
+                onCancelBooking={handleCancelBookingTrigger}
                 onAssignTechnician={handleAssignTechnician}
               />
             ) : (
@@ -103,6 +113,23 @@ export default function ServiceManagement() {
         orderId={selectedOrderId}
         isOpen={isAssignOpen}
         onClose={() => setIsAssignOpen(false)}
+      />
+
+      <ConfirmServiceDialog
+        isOpen={isConfirmOpen}
+        onClose={() => setIsConfirmOpen(false)}
+        onConfirm={handleConfirmBookingConfirm}
+        isLoading={isPendingConfirm}
+        orderCode={confirmOrderInfo.orderCode || ''}
+      />
+
+      <CancelBookingDialog
+        isOpen={isCancelOpen}
+        onClose={() => setIsCancelOpen(false)}
+        onConfirm={handleCancelBookingConfirm}
+        isLoading={isPendingCancel}
+        status={cancelOrderInfo.status}
+        orderCode={cancelOrderInfo.orderCode}
       />
     </div>
   );

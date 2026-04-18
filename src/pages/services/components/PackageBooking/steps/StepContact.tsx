@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import type { UseFormReturn } from "react-hook-form";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useWatch, type UseFormReturn } from "react-hook-form";
 import { CheckCircle2, MessageSquare, MapPin, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,12 +25,12 @@ function FieldError({ message }: { message?: string }) {
 }
 
 export default function StepContact({ form }: StepContactProps) {
-  const { register, setValue, watch, formState: { errors } } = form;
+  const { register, setValue, formState: { errors } } = form;
 
-  const notesValue = watch("notes") ?? "";
-  const selectedCityCode = watch("address.city");
-  const selectedDistrictCode = watch("address.district");
-  const selectedWardCode = watch("address.ward");
+  const notesValue = useWatch({ control: form.control, name: "notes" }) ?? "";
+  const selectedCityCode = useWatch({ control: form.control, name: "address.city" });
+  const selectedDistrictCode = useWatch({ control: form.control, name: "address.district" });
+  const selectedWardCode = useWatch({ control: form.control, name: "address.ward" });
 
   const { isAuthenticated } = useAuthStore();
   const { data: addresses, isLoading: isLoadingAddresses } = useAddresses();
@@ -86,8 +86,14 @@ export default function StepContact({ form }: StepContactProps) {
   }, [addresses, isLoadingAddresses, isAuthenticated, selectedId, handleSelectAddress, isManualEntry]);
 
   const provinces = vnAddress;
-  const districts = provinces.find(p => p.code === selectedCityCode)?.districts || [];
-  const wards = districts.find(d => d.code === selectedDistrictCode)?.wards || [];
+  const districts = useMemo(
+    () => provinces.find((p) => p.code === selectedCityCode)?.districts || [],
+    [selectedCityCode]
+  );
+  const wards = useMemo(
+    () => districts.find((d) => d.code === selectedDistrictCode)?.wards || [],
+    [districts, selectedDistrictCode]
+  );
 
   const cellClass = "flex flex-col px-4 py-3 rounded-xl border border-dashed border-slate-200 bg-white focus-within:border-[#4988c4] focus-within:border-solid focus-within:ring-1 focus-within:ring-[#4988c4]/20 focus-within:shadow-sm transition-all";
   const cellInputClass = "p-0 mt-1 h-auto border-0 bg-transparent focus-visible:ring-0 font-black text-slate-900 placeholder:text-slate-300 text-sm";
@@ -284,7 +290,7 @@ export default function StepContact({ form }: StepContactProps) {
             )}
           </AnimatePresence>
 
-          <div className="space-y-1.5 pt-1 border-t border-slate-100/80 pt-4">
+          <div className="space-y-1.5 border-t border-slate-100/80 pt-4">
             <div className="flex items-center justify-between mb-1">
               <Label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] flex items-center gap-1.5"><MessageSquare className="w-3.5 h-3.5" /> Notes Settings</Label>
               <span className="text-[9px] font-black text-slate-400 bg-slate-100 rounded-md px-1.5 py-0.5">{notesValue.length} / 500</span>

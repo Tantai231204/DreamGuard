@@ -5,19 +5,23 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 interface AdminTablePaginationProps<T> {
   table: Table<T>;
   itemLabel?: string;
+  totalItems?: number;
 }
 
 export function AdminTablePagination<T>({ 
   table,
-  itemLabel = 'items'
+  itemLabel = 'items',
+  totalItems,
 }: AdminTablePaginationProps<T>) {
   const pageIndex = table.getState().pagination.pageIndex;
   const pageSize = table.getState().pagination.pageSize;
-  const totalRows = table.getFilteredRowModel().rows.length;
+  const totalRows = totalItems ?? table.getFilteredRowModel().rows.length;
+  const currentRows = table.getRowModel().rows.length;
   const pageCount = table.getPageCount();
+  const displayPageCount = pageCount > 0 ? pageCount : Math.max(1, Math.ceil(totalRows / Math.max(1, pageSize)));
 
   const startRow = totalRows === 0 ? 0 : pageIndex * pageSize + 1;
-  const endRow = Math.min((pageIndex + 1) * pageSize, totalRows);
+  const endRow = totalRows === 0 ? 0 : Math.min(pageIndex * pageSize + currentRows, totalRows);
 
   return (
     <div className="flex items-center justify-between px-6 py-5 border-t-2 border-gray-200 bg-gradient-to-r from-gray-50 to-white">
@@ -48,7 +52,7 @@ export function AdminTablePagination<T>({
           <span className="text-sm font-medium text-gray-600">Page</span>
           <span className="px-2.5 py-1 rounded-lg bg-gradient-to-r from-[var(--color-primary)] to-blue-600 text-white font-bold">{pageIndex + 1}</span>
           <span className="text-sm font-medium text-gray-600">of</span>
-          <span className="font-bold text-gray-900">{pageCount}</span>
+          <span className="font-bold text-gray-900">{displayPageCount}</span>
         </div>
         
         <Button

@@ -2,8 +2,7 @@ import { useState, useMemo, useCallback } from "react";
 import type { ProductVariantResponse, ProductResponse } from "@/api/types/product.types";
 import { useCartStore } from "@/store/useCartStore";
 import { useCartAnimation } from "@/store/useCartAnimation";
-import { calculateTradeInValue } from "../utils/tradeIn";
-import { mockEligibleTradeInProducts, MATTRESS_LIMITS } from "../constants";
+import { MATTRESS_LIMITS } from "../constants";
 import type { TabType } from "../types";
 import { toast } from "sonner";
 import { getColorHex as resolveColorHex } from "@/utils/color-utils";
@@ -34,6 +33,7 @@ export function useProductDetailState({ product, productImageRef }: UseProductDe
     const [isWishlisted, setIsWishlisted] = useState(false);
     const [activeTab, setActiveTab] = useState<TabType>("description");
     const [selectedTradeInProducts, setSelectedTradeInProducts] = useState<string[]>([]);
+    const [isTradeInOpen, setIsTradeInOpen] = useState(false);
 
     // Customization flags
     const [isCustomSize, setIsCustomSize] = useState(false);
@@ -239,7 +239,11 @@ export function useProductDetailState({ product, productImageRef }: UseProductDe
 
     const currentPriceInfo = useMemo(() => {
         if (!product) return { price: 0, originalPrice: undefined, colorSurcharge: 0, sizeSurcharge: 0 };
-        const basePrice = currentVariant?.salePrice ?? currentVariant?.basePrice ?? product.minPrice ?? 0;
+        const salePrice = currentVariant?.salePrice;
+        const variantBasePrice = currentVariant?.basePrice;
+        const basePrice = typeof salePrice === 'number' && salePrice > 0
+            ? salePrice
+            : (variantBasePrice ?? product.minPrice ?? 0);
 
         const colorSurcharge = isCustomColor ? (customizationCaps.colorPrice || 0) : 0;
         const sizeSurcharge = (isCustomSize && canCustomizeSize) ? (customizationCaps.sizePrice || 0) : 0;
@@ -371,7 +375,7 @@ export function useProductDetailState({ product, productImageRef }: UseProductDe
 
     // ── FINAL STABLE STATE & ACTIONS ──
     const state = useMemo(() => ({
-        selectedImage, selectedColor, selectedSize, quantity, isWishlisted, activeTab, selectedTradeInProducts,
+        selectedImage, selectedColor, selectedSize, quantity, isWishlisted, activeTab, selectedTradeInProducts, isTradeInOpen,
         productImages: product?.imageUrls?.filter(Boolean) || product?.assets?.map(a => a.url).filter(Boolean) || ["/images/placeholder-product.svg"],
         dynamicColorOptions: processedData.colorOptions,
         dynamicSizeOptions: (isCustomColor || !selectedColor) ? [] : processedData.sizeOptions.filter(opt => {
@@ -381,19 +385,15 @@ export function useProductDetailState({ product, productImageRef }: UseProductDe
         disabledColors: processedData.colorOptions.filter(c => !processedData.colorsWithStock.has(c.value.toLowerCase())).map(c => c.value),
         disabledSizes: processedData.sizeOptions.filter(s => !processedData.availableSizesByColor.get(selectedColor.toLowerCase())?.has(s.value)).map(s => s.value),
         isCustomSize: isCustomColor || isCustomSize,
-        isCustomColor, customDimensions, customColorHex, canCustomizeColor, canCustomizeSize,
-        tradeInValue: selectedTradeInProducts.reduce((acc, id) => {
-            const p = mockEligibleTradeInProducts.find(x => x.id === id);
-            return p?.canTradeIn ? acc + calculateTradeInValue(p.originalPrice, 30) : acc;
-        }, 0)
+        isCustomColor, customDimensions, customColorHex, canCustomizeColor, canCustomizeSize
     }), [
-        selectedImage, selectedColor, selectedSize, quantity, isWishlisted, activeTab, selectedTradeInProducts,
+        selectedImage, selectedColor, selectedSize, quantity, isWishlisted, activeTab, selectedTradeInProducts, isTradeInOpen,
         product, processedData, isCustomColor, isCustomSize, canCustomizeColor, canCustomizeSize,
         currentVariant, currentPriceInfo, currentStock, customDimensions, customColorHex
     ]);
 
     const actions = useMemo(() => ({
-        setSelectedImage, setUserSelectedColor, setUserSelectedSize, setQuantity, setIsWishlisted, setActiveTab, setSelectedTradeInProducts,
+        setSelectedImage, setUserSelectedColor, setUserSelectedSize, setQuantity, setIsWishlisted, setActiveTab, setSelectedTradeInProducts, setIsTradeInOpen,
         handleColorChange, handleSizeChange: setUserSelectedSize, handleAddToCart, setIsCustomSize: handleSetIsCustomSize,
         setIsCustomColor: handleSetIsCustomColor,
         handleCustomDimensionChange: (field: keyof typeof customDimensions, val: number) => setCustomDimensions(p => ({ ...p, [field]: val })),

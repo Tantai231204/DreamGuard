@@ -5,9 +5,12 @@ import { useComboDetail, useComboParents } from '@/hooks/queries/useCombo';
 import { useAllVariantOptions, type VariantOption } from '@/hooks/queries/useProduct';
 import { comboSchema } from './comboSchema';
 import type { Combo } from '../../types';
+import { normalizeStatus } from '../../types';
 import type { CreateComboRequest, ComboItemRequest } from '@/api/services/comboService';
 import { toSlug, getInitialState, type ComboFormValues } from './index';
 import { toast } from 'sonner';
+import { uploadToCloudinary } from '@/lib/uploadCloudinary';
+import { useState } from 'react';
 
 interface UseComboFormProps {
     open: boolean;
@@ -25,6 +28,7 @@ export function useComboForm({
     onSubmit,
 }: UseComboFormProps) {
     const isEdit = !!combo;
+    const [isSaving, setIsSaving] = useState(false);
 
     const { data: comboResp, isLoading: isLoadingDetail } = useComboDetail(
         combo?.id || '',
@@ -77,14 +81,48 @@ export function useComboForm({
     const watchColor = useWatch({ control: typedForm.control, name: 'color' });
     const watchSize = useWatch({ control: typedForm.control, name: 'size' });
     const watchAgeGroup = useWatch({ control: typedForm.control, name: 'ageGroup' });
+    const watchImageFile = useWatch({ control: typedForm.control, name: 'imageFile' });
 
-    // Senior Logic: Automatic Price Synchronization
+    // Global queries (cached by React Query)
+    const { data: parentsResp } = useComboParents(open && mode === 'variant');
+    const { data: variantsResp, isLoading: isLoadingVariants } = useAllVariantOptions(open && mode === 'variant');
+
+    const variantOptions = useMemo(() => variantsResp || [], [variantsResp]);
+
+    // Senior Logic: Automatic Price Synchronization & Meta Recovery
     // Calculates total market value from items and updates basePrice automatically
     useEffect(() => {
         if (!watchItems || watchItems.length === 0) return;
 
-        const totalMarketValue = watchItems.reduce((sum, item) => {
-            return sum + (Number(item.salePrice || 0) * Number(item.quantity || 0));
+        let totalMarketValue = 0;
+        let hasChanges = false;
+
+        const updatedItems = watchItems.map(item => {
+            // Meta-Recovery: If prices are 0 or missing, try to bridge from variantOptions
+            if (item.productVariantId && (item.salePrice === 0 || !item.sku)) {
+                const vOpt = variantOptions.find(v => v.variantId === item.productVariantId);
+                if (vOpt) {
+                    hasChanges = true;
+                    return {
+                        ...item,
+                        salePrice: vOpt.salePrice,
+                        basePrice: vOpt.basePrice,
+                        productName: vOpt.productName,
+                        sku: vOpt.sku,
+                        color: vOpt.color,
+                        size: vOpt.size,
+                    };
+                }
+            }
+            return item;
+        });
+
+        if (hasChanges) {
+            typedForm.setValue('items', updatedItems, { shouldValidate: true });
+        }
+
+        totalMarketValue = updatedItems.reduce((sum, item) => {
+            return sum + (Number(item.salePrice || 0) * Number(item.quantity || 1));
         }, 0);
 
         if (totalMarketValue > 0) {
@@ -99,7 +137,7 @@ export function useComboForm({
                 typedForm.setValue('salePrice', totalMarketValue, { shouldValidate: true });
             }
         }
-    }, [watchItems, isEdit, typedForm, watchBasePrice, watchSalePrice]);
+    }, [watchItems, variantOptions, isEdit, typedForm, watchBasePrice, watchSalePrice]);
 
     const completionScore = useMemo(() => {
         let score = 0;
@@ -109,7 +147,7 @@ export function useComboForm({
         if ((watchSalePrice || 0) > 0) score += 10;
         if ((watchDescription?.trim().length || 0) >= 5) score += 15;
         if (watchStatus) score += 10;
-        if (watchImageUrl) score += 10;
+        if (watchImageUrl || watchImageFile) score += 10;
         if (mode === 'variant') {
             if (watchComboParentId) score += 10;
             if (watchItems?.some(i => i.productVariantId)) score += 10;
@@ -118,11 +156,8 @@ export function useComboForm({
             score += 20;
         }
         return Math.min(score, 100);
-    }, [watchName, watchAgeGroup, watchBasePrice, watchSalePrice, watchDescription, watchStatus, watchImageUrl, mode, watchComboParentId, watchItems]);
+    }, [watchName, watchAgeGroup, watchBasePrice, watchSalePrice, watchDescription, watchStatus, watchImageUrl, watchImageFile, mode, watchComboParentId, watchItems]);
 
-    // Global queries (cached by React Query)
-    const { data: parentsResp } = useComboParents(open && mode === 'variant');
-    const { data: variantsResp, isLoading: isLoadingVariants } = useAllVariantOptions(open && mode === 'variant');
 
     const comboParents = useMemo(() => {
         const list = (parentsResp || []) as { id: string; name: string; imageUrl?: string; sku?: string }[];
@@ -143,44 +178,8 @@ export function useComboForm({
 
     const setField = useCallback(<K extends Path<ComboFormValues>>(field: K, value: PathValue<ComboFormValues, K>) => {
         // Enforced strict path-value coupling for 100% type safety
-        typedForm.setValue(field, value, { shouldValidate: true });
+        typedForm.setValue(field, value, { shouldValidate: true, shouldDirty: true });
     }, [typedForm]);
-
-    const onFormSubmit = (values: ComboFormValues) => {
-        // Core Guard: Prevent publishing parent without children
-        if (mode === 'parent' && values.status === 'Published' && !hasChildCombos) {
-            toast.error("Cannot publish collection", {
-                description: "Add at least one variant before publishing this combo."
-            });
-            return;
-        }
-
-        const payload: CreateComboRequest = {
-            name: values.name.trim(),
-            slug: values.slug.trim(),
-            ageGroup: Number(values.ageGroup),
-            color: values.color || "",
-            size: values.size || "",
-            basePrice: mode === 'parent' ? 0 : Number(values.basePrice || 0),
-            salePrice: mode === 'parent' ? 0 : Number(values.salePrice || 0),
-            description: (values.description || "").trim(),
-            imageUrl: values.imageUrl || "",
-            imagePublicId: values.imagePublicId || "",
-            // Variants don't have a status selector, default to parent's published state.
-            // Parents DO have a selector again, so we use their selected value.
-            status: values.status || "Published",
-            comboParentId: mode === 'variant' ? values.comboParentId : undefined,
-            items: mode === 'variant'
-                ? (values.items || [])
-                    .filter(i => i.productVariantId)
-                    .map(item => ({
-                        productVariantId: item.productVariantId,
-                        quantity: item.quantity
-                    } as ComboItemRequest))
-                : []
-        };
-        onSubmit(payload);
-    };
 
     const rawChildren = useMemo(() => {
         if (mode !== 'parent') return [];
@@ -192,6 +191,10 @@ export function useComboForm({
     }, [mode, combo, comboResp]);
 
     const hasChildCombos = rawChildren.length > 0;
+    const hasPublishedChild = rawChildren.some((c) => {
+        const combo = c as unknown as Combo;
+        return normalizeStatus(combo.status) === 'Published';
+    });
 
     const parentPriceRange = useMemo(() => {
         if (!hasChildCombos) return null;
@@ -205,6 +208,78 @@ export function useComboForm({
         return `${min.toLocaleString("en-US")}₫ - ${max.toLocaleString("en-US")}₫`;
     }, [hasChildCombos, rawChildren]);
 
+    const onFormSubmit = async (values: ComboFormValues) => {
+        // block published combo nếu không có combo con
+        if (values.status === 'Published') {
+            if (mode === 'parent' && !hasChildCombos) {
+                toast.error("Cannot publish collection", {
+                    description: "At least one variant must be created first."
+                });
+                return;
+            }
+
+            // trong combo con không chọn quá stock product variant hoặc chưa published hoặc out of stock
+            // [RELAXED] Allowing variant updates without strict constituent guards per user request
+            if (mode === 'variant') {
+                const comboItems = values.items || [];
+                if (comboItems.length === 0) {
+                    toast.error("Cannot publish variant", { description: "At least one product item is required." });
+                    return;
+                }
+                // Guards for stock and constituent status removed to allow flexible management
+            }
+        }
+
+        try {
+            setIsSaving(true);
+            let finalImageUrl = values.imageUrl || "";
+            let finalImagePublicId = values.imagePublicId || "";
+
+            // Performance Optimizer: If a local file exists, upload it now
+            if (values.imageFile instanceof File) {
+                const uploadToastId = toast.loading("Optimizing & uploading image...");
+                try {
+                    const res = await uploadToCloudinary(values.imageFile);
+                    finalImageUrl = res.secure_url;
+                    finalImagePublicId = res.public_id;
+                    toast.success("Image processed successfully", { id: uploadToastId });
+                } catch {
+                    toast.error("Image upload failed. Please try again.", { id: uploadToastId });
+                    setIsSaving(false);
+                    return;
+                }
+            }
+
+            const payload: CreateComboRequest = {
+                name: values.name.trim(),
+                slug: values.slug.trim(),
+                ageGroup: Number(values.ageGroup),
+                color: values.color || "",
+                size: values.size || "",
+                basePrice: mode === 'parent' ? 0 : Number(values.basePrice || 0),
+                salePrice: mode === 'parent' ? 0 : Number(values.salePrice || 0),
+                description: (values.description || "").trim(),
+                imageUrl: finalImageUrl,
+                imagePublicId: finalImagePublicId,
+                status: values.status || "Draft",
+                comboParentId: mode === 'variant' ? values.comboParentId : undefined,
+                items: mode === 'variant'
+                    ? (values.items || [])
+                        .filter(i => i.productVariantId)
+                        .map(item => ({
+                            productVariantId: item.productVariantId,
+                            quantity: item.quantity
+                        } as ComboItemRequest))
+                    : []
+            };
+            await onSubmit(payload);
+        } catch (error) {
+            console.error("[useComboForm] Submit error:", error);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     return {
         form: typedForm,
         register: typedForm.register,
@@ -214,6 +289,7 @@ export function useComboForm({
         isLoadingVariants,
         parentPriceRange,
         hasChildCombos,
+        hasPublishedChild,
         comboParents,
         variantOptions: (variantsResp || []) as VariantOption[],
         handleNameChange,
@@ -231,13 +307,15 @@ export function useComboForm({
             comboParentId: watchComboParentId,
             items: (watchItems || []) as ComboFormValues['items'],
             imagePublicId: watchImagePublicId,
+            imageFile: watchImageFile,
             color: watchColor,
             size: watchSize,
             ageGroup: watchAgeGroup
         }), [
-            watchName, watchDescription, watchBasePrice, watchSalePrice, watchStatus, 
-            watchImageUrl, watchComboParentId, watchItems, watchImagePublicId, 
+            watchName, watchDescription, watchBasePrice, watchSalePrice, watchStatus,
+            watchImageUrl, watchComboParentId, watchItems, watchImagePublicId, watchImageFile,
             watchColor, watchSize, watchAgeGroup
-        ])
+        ]),
+        isSaving
     };
 }

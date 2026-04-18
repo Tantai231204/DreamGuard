@@ -59,7 +59,7 @@ const packageStyles = {
         iconBg: 'bg-blue-50',
         icon: 'text-blue-600',
         shadow: 'shadow-blue-500/10',
-        gradient: 'from-blue-500 to-indigo-600',
+        gradient: 'from-blue-500 to-primary-600',
     },
     premium: {
         accent: 'bg-amber-500', // Gold
@@ -149,8 +149,14 @@ export default function ServicePackageDialog({
 
     useEffect(() => {
         if (pkg && open && productTypes.length > 0 && !suitableForValue) {
-            const matchedType = productTypes.find(t => t.productTypeName === pkg.suitableFor || t.productTypeId === pkg.suitableFor);
-            if (matchedType) setValue('suitableFor', matchedType.productTypeId);
+            const values = (pkg.suitableFor || '').split(',').map(s => s.trim().toLowerCase());
+            const matchedTypes = productTypes.filter(t => 
+                values.includes(t.productTypeName.toLowerCase()) || 
+                values.includes(t.productTypeId.toLowerCase())
+            );
+            if (matchedTypes.length > 0) {
+                setValue('suitableFor', matchedTypes.map(t => t.productTypeName).join(','));
+            }
         }
     }, [productTypes, pkg, open, setValue, suitableForValue]);
 

@@ -5,10 +5,11 @@ import { Loader2 } from "lucide-react";
 import { useProductDetail } from "@/hooks/queries/useProduct";
 import { useProductCertificates } from "@/hooks/queries/useCertificate";
 
-import type {
-    Product,
-    CreateProductRequest,
-    ProductStatus,
+import {
+    type Product,
+    type CreateProductRequest,
+    type ProductStatus,
+    normalizeStatus,
 } from "../../types";
 
 import type { CategoryResponse } from "@/api";
@@ -80,7 +81,7 @@ export default function ProductDialog({
         return {
             ...product,
             ...(productDetail || {}),
-            status: (productDetail?.status as ProductStatus) ?? product.status,
+            status: normalizeStatus(productDetail?.status ?? product.status),
             ageGroup: productDetail?.ageGroup != null ? String(productDetail.ageGroup) : null,
             variants: mappedVariants,
             CertificateIds: uniqueCertIds,
@@ -100,7 +101,7 @@ export default function ProductDialog({
     const formKey = useMemo(() => {
         if (!resolvedProduct) return "create-product";
         const certsString = resolvedProduct.CertificateIds?.join(',') || 'empty';
-        return `${resolvedProduct.id}-${certsString}`;
+        return `${resolvedProduct.id}-${certsString}-${resolvedProduct.status}`;
     }, [resolvedProduct]);
 
     return (
@@ -113,7 +114,7 @@ export default function ProductDialog({
                 </VisuallyHidden>
                 {showLoading ? (
                     <div className="flex items-center justify-center py-20">
-                        <Loader2 className="h-8 w-8 animate-spin text-purple-500" />
+                        <Loader2 className="h-8 w-8 animate-spin text-[#4988c4]" />
                     </div>
                 ) : (
                     <ProductDialogForm

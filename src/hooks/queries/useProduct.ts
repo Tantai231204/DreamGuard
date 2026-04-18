@@ -29,6 +29,8 @@ import type {
   ProductResponse,
   CreateFullyCustomizedProductRequest,
 } from "@/api";
+import { useAuthStore } from "@/store/authStore";
+import { isAdminOrManager } from "@/lib/role";
 
 // ========================
 // Query Keys
@@ -56,10 +58,13 @@ export const variantKeys = {
 
 /** Fetch admin paginated products list */
 export const useAdminProducts = (params: AdminProductParams = {}) => {
+  const role = useAuthStore((s) => s.role);
+
   return useQuery({
     queryKey: productKeys.admin(params),
     queryFn: () => productService.getAllAdmin(params),
     placeholderData: keepPreviousData,
+    enabled: isAdminOrManager(role),
   });
 };
 
@@ -95,6 +100,16 @@ export const useProductsByFilter = (params: ProductParams, enabled = true) => {
   });
 };
 
+/** Fetch ALL products to trade in (eligible products in category) */
+export const useAllProductToTradeIn = (params: ProductParams, enabled = true) => {
+  return useQuery({
+    queryKey: ['products', 'trade-in', params],
+    queryFn: () => productService.getAllProductToTradeIn(params),
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: enabled && !!params.cateId,
+  });
+};
+
 /** Fetch all fully customized products (for 3D Studio) */
 export const useFullyCustomizedProducts = () => {
   return useQuery({
@@ -124,10 +139,12 @@ export const useAdminProductVariants = <T = AdminVariantsByProductResponse>(
     gcTime?: number;
   }
 ) => {
+  const role = useAuthStore((s) => s.role);
+
   return useQuery({
     queryKey: variantKeys.adminByProduct(productId),
     queryFn: () => variantService.getAdminByProductId(productId),
-    enabled: !!productId && (options?.enabled !== false),
+    enabled: !!productId && isAdminOrManager(role) && (options?.enabled !== false),
     select: options?.select,
     staleTime: options?.staleTime,
     gcTime: options?.gcTime,
@@ -567,13 +584,9 @@ export interface VariantOption {
   stockStatus: string;
   status: string;
   label: string;
+  isVariantCustomizable?: boolean;
 }
 
-/**
- * Fetch all products (admin endpoint) then use admin variant endpoint
- * (`GET /variants/admin/product/:id`) per product.
- * Returns a flat VariantOption[] cached by React Query.
- */
 export const useAllVariantOptions = (enabled = true) => {
   return useQuery({
     queryKey: [...variantKeys.all, "all-options"] as const,
@@ -628,6 +641,15 @@ function flattenAdminVariants(
       // This single flag guarantees parity with the Variant Data Table logic!
       if (v.isVariantCustomizable) continue;
 
+      // 🔥 Senior Update: Allow adding variants even if they are Draft or OOS. 
+      // The publishing guard in useComboForm.ts will prevent the combo itself from being published 
+      // if its constituents are not ready. This allows pre-building combos!
+      
+      // 🔥 Senior Filtering: Exclude variants with missing/null attributes
+      const hasValidColor = group.color && group.color !== 'Unknown';
+      const hasValidSize = v.dimensions && v.dimensions !== 'N/A';
+      if (!hasValidColor || !hasValidSize) continue;
+
       const parts = [productName];
       const attrs: string[] = [];
       if (group.color && group.color !== 'Unknown') attrs.push(group.color);
@@ -648,6 +670,7 @@ function flattenAdminVariants(
         stockStatus: v.stockStatus,
         status: v.status,
         label: parts.join(" — "),
+        isVariantCustomizable: v.isVariantCustomizable,
       });
     }
   }

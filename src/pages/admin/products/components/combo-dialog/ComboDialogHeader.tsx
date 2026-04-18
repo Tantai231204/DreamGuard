@@ -3,7 +3,6 @@ import { DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { Package } from "lucide-react";
 import type { ComboDialogMode } from "./index";
-import { PRODUCT_STATUSES, PRODUCT_STATUS_COLORS, type ProductStatus } from "../../types";
 
 interface ComboDialogHeaderProps {
     mode: ComboDialogMode;
@@ -12,12 +11,12 @@ interface ComboDialogHeaderProps {
     completionScore: number;
 }
 
-const ComboDialogHeader = memo(({
+const ComboDialogHeader = memo(function ComboDialogHeader({
     mode,
     isEdit,
     status,
     completionScore
-}: ComboDialogHeaderProps) => {
+}: ComboDialogHeaderProps) {
     const isParent = mode === 'parent';
     const title = isEdit
         ? (isParent ? 'Edit Combo Parent' : 'Edit Variant Combo')
@@ -27,8 +26,6 @@ const ComboDialogHeader = memo(({
         ? "Define basic attributes and specifications for a parent combo."
         : "Configure specific variation details and bundle composition.";
 
-    const statusObj = PRODUCT_STATUSES.find(s => s.value === status) || PRODUCT_STATUSES[0];
-    const statusLabel = statusObj.label;
 
     return (
         <div className="flex items-center gap-4 pb-5 border-b border-gray-100 shrink-0">
@@ -45,8 +42,8 @@ const ComboDialogHeader = memo(({
             </div>
 
             <div className="flex flex-col items-end gap-2 shrink-0 pr-10">
-                <div className="flex items-center gap-2 bg-indigo-50/50 px-3 py-1.5 rounded-full border border-indigo-100 shadow-sm">
-                    <span className="text-[11px] font-black text-indigo-700 uppercase tracking-tighter">
+                <div className="flex items-center gap-2 bg-blue-50/50 px-3 py-1.5 rounded-full border border-blue-100 shadow-sm">
+                    <span className="text-[11px] font-black text-blue-700 uppercase tracking-tighter">
                         Strength: {completionScore}%
                     </span>
                 </div>
@@ -62,9 +59,16 @@ const ComboDialogHeader = memo(({
                     </div>
 
                     {isEdit && (
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-50 border border-slate-200">
-                            <div className={cn('h-1.5 w-1.5 rounded-full', PRODUCT_STATUS_COLORS[status as ProductStatus] || 'bg-amber-400')} />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">{statusLabel}</span>
+                        <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-slate-50 border border-slate-200 font-bold">
+                            <div className={cn(
+                                "h-1.5 w-1.5 rounded-full shrink-0",
+                                status.toLowerCase() === 'published' ? 'bg-emerald-500' :
+                                status.toLowerCase() === 'draft' ? 'bg-amber-500' :
+                                status.toLowerCase() === 'outofstock' ? 'bg-rose-500' : 'bg-blue-500'
+                            )} />
+                            <span className="text-[12px] font-bold text-slate-700 capitalize leading-none tracking-tight">
+                                {status}
+                            </span>
                         </div>
                     )}
                 </div>
@@ -72,7 +76,5 @@ const ComboDialogHeader = memo(({
         </div>
     );
 });
-
-ComboDialogHeader.displayName = 'ComboDialogHeader';
 
 export default ComboDialogHeader;

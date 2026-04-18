@@ -1,58 +1,92 @@
+import { memo } from 'react';
 import { Check, ChevronLeft, ArrowRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { formatTradeInPrice } from '../../utils/tradeIn';
-
-const formatPrice = formatTradeInPrice;
 
 interface TradeInFooterProps {
   step: string;
   stepIndex: number;
   selectedCount: number;
   totalTradeInValue: number;
+  hasEstimatedValue?: boolean;
+  isEstimatingPrice?: boolean;
   isSubmitting: boolean;
+  imagesCount: number;
   onBack: () => void;
   onNext: () => void;
   onComplete: () => void;
   onClose: () => void;
+  contact?: {
+    receiverName: string;
+    phoneNumber: string;
+    address: string;
+  };
 }
 
-export function TradeInFooter({
+export const TradeInFooter = memo(function TradeInFooter({
   step,
   stepIndex,
   selectedCount,
   totalTradeInValue,
+  hasEstimatedValue = false,
+  isEstimatingPrice = false,
   isSubmitting,
+  imagesCount,
   onBack,
   onNext,
   onComplete,
   onClose,
+  contact,
 }: TradeInFooterProps) {
+  const isLogisticsValid = Boolean(
+    contact?.receiverName?.trim() &&
+    contact?.phoneNumber?.trim() &&
+    contact?.address?.trim()
+  );
+
+  const isNextDisabled =
+    (step === 'selection' && selectedCount !== 1) ||
+    (step === 'images' && imagesCount < 5) ||
+    (step === 'logistics' && !isLogisticsValid);
+
   return (
-    <div className="px-6 py-3.5 flex items-center justify-between border-t border-[#EDE8E1] bg-white flex-shrink-0">
-      {/* Credit display */}
+    <div className="px-8 py-6 flex items-center justify-between border-t border-[#EDE8E1] bg-white flex-shrink-0 z-10 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
+      {/* Credit display on left */}
       <div className="flex flex-col">
-        <span className="text-[9px] font-bold text-[#B0A89E] uppercase tracking-[0.14em]">
-          Store Credit
+        <span className="text-[10px] font-bold text-[#A89E94] uppercase tracking-[0.2em] mb-1">
+          Trade-In From
         </span>
         <AnimatePresence mode="wait">
           {selectedCount > 0 ? (
-            <motion.span
-              key="credit"
-              initial={{ opacity: 0, y: 3 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -3 }}
-              className="font-serif italic text-[15px] text-[#3D5140] font-normal leading-tight"
-            >
-              -{formatPrice(totalTradeInValue)}
-            </motion.span>
+            isEstimatingPrice || !hasEstimatedValue ? (
+              <motion.span
+                key="loading"
+                initial={{ opacity: 0, x: -5 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 5 }}
+                className="text-[14px] text-[#8C7A6B] font-medium italic"
+              >
+                Calculating...
+              </motion.span>
+            ) : (
+              <motion.span
+                key="credit"
+                initial={{ opacity: 0, x: -5 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 5 }}
+                className="font-serif italic text-[18px] text-[#3D5140] font-normal leading-none"
+              >
+                From {formatTradeInPrice(totalTradeInValue)}
+              </motion.span>
+            )
           ) : (
             <motion.span
               key="none"
-              initial={{ opacity: 0, y: 3 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -3 }}
-              className="text-[12px] text-[#C4BDB5]"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-[14px] text-[#B0A89E] font-medium italic"
             >
               None selected
             </motion.span>
@@ -60,11 +94,11 @@ export function TradeInFooter({
         </AnimatePresence>
       </div>
 
-      {/* Actions */}
-      <div className="flex items-center gap-2">
+      {/* Actions on right */}
+      <div className="flex items-center gap-4">
         <button
           onClick={onClose}
-          className="text-[11px] text-[#B0A89E] hover:text-rose-500 transition-colors px-2 py-1.5 rounded-lg hover:bg-rose-50 font-medium"
+          className="text-[13px] text-[#B0A89E] hover:text-[#3D5140] transition-colors p-2 font-medium"
         >
           Cancel
         </button>
@@ -72,37 +106,38 @@ export function TradeInFooter({
         {stepIndex > 0 && (
           <Button
             variant="outline"
-            size="sm"
             onClick={onBack}
-            className="h-8 px-3 text-[11px] rounded-lg border-[#EDE8E1] text-[#6B5E52] hover:bg-[#F5F2EE] gap-0.5"
+            className="h-11 px-6 text-[13px] rounded-2xl border-[#EDE8E1] text-[#3D5140] hover:bg-[#F4F7F4] gap-2 font-bold"
           >
-            <ChevronLeft className="w-3.5 h-3.5" />
+            <ChevronLeft className="w-4 h-4" />
             Back
           </Button>
         )}
 
         {step !== 'summary' ? (
           <Button
-            size="sm"
             onClick={onNext}
-            disabled={selectedCount === 0}
-            className="h-8 px-4 text-[11.5px] rounded-lg bg-[#3D5140] hover:bg-[#4A5D4E] text-white font-semibold gap-1.5 disabled:opacity-25 transition-colors shadow-[0_2px_8px_rgba(61,81,64,0.25)]"
+            disabled={isNextDisabled}
+            className={cn(
+              "h-11 px-8 text-[13px] rounded-2xl font-bold gap-2 transition-all duration-300 shadow-lg",
+              "bg-[#455A48] hover:bg-[#3D5140] text-[#FDFCFA]",
+              "disabled:bg-[#EDE8E1] disabled:text-[#A89E94] disabled:shadow-none"
+            )}
           >
             Next
-            <ArrowRight className="w-3.5 h-3.5" />
+            <ArrowRight className="w-4 h-4" />
           </Button>
         ) : (
           <Button
-            size="sm"
             onClick={onComplete}
             disabled={isSubmitting}
-            className="h-8 px-5 text-[11.5px] rounded-lg bg-[#3D5140] hover:bg-[#4A5D4E] text-white font-semibold gap-1.5 shadow-[0_4px_12px_rgba(61,81,64,0.3)]"
+            className="h-11 px-8 text-[13px] rounded-2xl bg-[#455A48] hover:bg-[#3D5140] text-white font-bold gap-2 shadow-xl shadow-[#455A48]/20"
           >
-            {isSubmitting ? 'Processing…' : 'Confirm'}
-            {!isSubmitting && <Check className="w-3.5 h-3.5 stroke-[2.5]" />}
+            {isSubmitting ? 'Confirming...' : 'Confirm'}
+            {!isSubmitting && <Check className="w-4 h-4 stroke-[3]" />}
           </Button>
         )}
       </div>
     </div>
   );
-}
+});

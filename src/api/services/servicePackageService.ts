@@ -30,7 +30,7 @@ const servicePackageService = {
     create: (data: FormData): Promise<ServicePackage> =>
         apiClient.post('/ServicePackages', data).then(res => res.data?.data ?? res.data),
 
-    update: (id: string, data: FormData): Promise<ServicePackage> =>
+    update: (id: string, data: Partial<ServicePackage>): Promise<ServicePackage> =>
         apiClient.put(`/ServicePackages/${id}`, data).then(res => res.data?.data ?? res.data),
 
     updateStatus: (id: string, status: 'Active' | 'Inactive'): Promise<void> =>

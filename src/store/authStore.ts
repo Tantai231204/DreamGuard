@@ -39,6 +39,8 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: false,
           logoutReason: reason || null,
         });
+        // Side effect: clean up tokens
+        sessionStorage.removeItem('signalr_token');
       },
 
       setLoggingOut: (value) => {

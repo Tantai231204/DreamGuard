@@ -16,20 +16,48 @@ import { ProductAssetIcons, type ProductAssetIconKey } from "@/components/common
    =================================================================== */
 const PACKAGE_STYLES = {
   standard: {
-    accent: 'bg-slate-800', border: 'border-slate-800', text: 'text-slate-800',
-    icon: 'text-slate-800', shadow: 'shadow-slate-800/10'
+    gradient: 'from-slate-50 to-white',
+    border: 'border-slate-200',
+    selectedBorder: 'border-slate-900',
+    accent: 'bg-slate-900',
+    text: 'text-slate-900',
+    icon: 'text-slate-900',
+    glow: 'shadow-slate-900/10',
+    label: 'Standard Performance',
+    badge: null
   },
   medium: {
-    accent: 'bg-blue-600', border: 'border-blue-600', text: 'text-blue-700',
-    icon: 'text-blue-600', shadow: 'shadow-blue-600/10'
+    gradient: 'from-blue-50/50 to-white',
+    border: 'border-blue-100',
+    selectedBorder: 'border-blue-600',
+    accent: 'bg-blue-600',
+    text: 'text-blue-700',
+    icon: 'text-blue-600',
+    glow: 'shadow-blue-600/20',
+    label: 'Optimal Choice',
+    badge: 'Popular'
   },
   premium: {
-    accent: 'bg-amber-500', border: 'border-amber-500', text: 'text-amber-700',
-    icon: 'text-amber-600', shadow: 'shadow-amber-500/10'
+    gradient: 'from-amber-50/50 to-white',
+    border: 'border-amber-100',
+    selectedBorder: 'border-amber-500',
+    accent: 'bg-amber-500',
+    text: 'text-amber-800',
+    icon: 'text-amber-600',
+    glow: 'shadow-amber-500/25',
+    label: 'Absolute Care',
+    badge: 'Premium'
   },
   default: {
-    accent: 'bg-emerald-600', border: 'border-emerald-600', text: 'text-emerald-700',
-    icon: 'text-emerald-600', shadow: 'shadow-emerald-600/10'
+    gradient: 'from-emerald-50/50 to-white',
+    border: 'border-emerald-100',
+    selectedBorder: 'border-emerald-600',
+    accent: 'bg-emerald-600',
+    text: 'text-emerald-700',
+    icon: 'text-emerald-600',
+    glow: 'shadow-emerald-600/20',
+    label: 'Service Plus',
+    badge: null
   }
 };
 
@@ -90,32 +118,86 @@ const TierCard = memo(({
     return PACKAGE_STYLES.default;
   }, [tier.name]);
 
+  const normalizedFeatures = useMemo(() => {
+    return tier.features.flatMap(f => 
+      f.split(',').map(s => s.trim().replace(/^"|"$/g, '')).filter(Boolean)
+    );
+  }, [tier.features]);
+
   return (
-    <button type="button" onClick={() => onSelect(tier.tierId)}
+    <button
+      type="button"
+      onClick={() => onSelect(tier.tierId)}
       className={cn(
-        "group relative flex flex-col p-5 rounded-2xl border-2 transition-all duration-300 text-left flex-shrink-0 w-[210px] sm:w-full snap-center min-h-[360px] outline-none overflow-hidden bg-white",
-        isSelected ? `${style.border} shadow-xl ${style.shadow} scale-[1.03] z-20` : "border-slate-100 hover:border-slate-200 shadow-sm z-10 hover:-translate-y-1"
+        "group relative flex flex-col md:flex-row items-stretch p-0 rounded-[24px] border-2 transition-all duration-500 text-left w-full outline-none overflow-hidden bg-white mb-4 shadow-sm",
+        isSelected 
+          ? `${style.selectedBorder} shadow-[0_20px_40px_-15px_rgba(0,0,0,0.08)] ${style.glow} scale-[1.01] z-20` 
+          : `border-slate-100 hover:border-slate-200 z-10 hover:-translate-y-0.5`
+      )}
+    >
+      {/* Left: Branding & Pricing */}
+      <div className={cn(
+        "w-full md:w-[220px] p-6 flex flex-col justify-between shrink-0 relative overflow-hidden",
+        isSelected ? "bg-slate-50/40" : "bg-white"
       )}>
-      <div className={cn("absolute top-0 left-0 right-0 h-1.5 transition-all duration-300", isSelected ? style.accent : "bg-transparent group-hover:bg-slate-100")} />
-      <div className="flex items-center justify-between mb-2 mt-0.5 relative z-10 w-full">
-        <span className={cn("text-[11px] font-black uppercase tracking-[0.1em]", isSelected ? style.text : "text-slate-500")}>{tier.name}</span>
-        <div className={cn("h-5 w-5 rounded-full flex items-center justify-center transition-all duration-300", isSelected ? style.accent + " shadow-sm scale-110" : "bg-slate-50 group-hover:bg-slate-100")}>
-          <Check className={cn("h-3 w-3 transition-all duration-300", isSelected ? "text-white" : "text-transparent group-hover:text-slate-400")} strokeWidth={4} />
-        </div>
+         <div className="relative z-10">
+            {style.badge && (
+               <span className={cn(
+                 "inline-flex items-center px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest mb-2",
+                 isSelected ? `${style.accent} text-white` : "bg-slate-100 text-slate-500 shadow-sm"
+               )}>
+                 {style.badge}
+               </span>
+            )}
+            <h4 className={cn(
+              "text-[10px] font-black uppercase tracking-[0.15em] mb-1.5",
+              isSelected ? style.text : "text-slate-400"
+            )}>
+              {tier.name}
+            </h4>
+            <div className="flex items-baseline gap-1">
+              <span className={cn("text-2xl font-black tracking-tighter leading-none", isSelected ? "text-slate-900" : "text-slate-800")}>
+                {formatPrice(tier.price).replace(' ₫', '')}
+              </span>
+              <span className={cn("text-[11px] font-black uppercase", isSelected ? style.text : "text-slate-400")}>₫</span>
+            </div>
+         </div>
+         <div className="mt-4 md:mt-2 relative z-10">
+            <p className={cn("text-[9px] font-black uppercase tracking-widest", isSelected ? "text-slate-500" : "text-slate-300")}>{style.label}</p>
+         </div>
+         <div className={cn("absolute -bottom-6 -left-6 w-24 h-24 rounded-full opacity-[0.03] transition-transform duration-700", style.accent, isSelected ? "scale-150 rotate-12" : "scale-100")} />
       </div>
-      <div className="mb-1 relative z-10">
-        <span className={cn("text-2xl font-black tracking-tight", isSelected ? "text-slate-900" : "text-slate-800")}>{formatPrice(tier.price)}</span>
+
+      {/* Center: Details & Features */}
+      <div className="flex-1 p-6 flex flex-col justify-center border-y md:border-y-0 md:border-x border-slate-50/60">
+         <p className="text-[11px] font-semibold text-slate-500 mb-5 leading-relaxed">{tier.description}</p>
+         <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
+            {normalizedFeatures.map((f, idx) => (
+              <li key={idx} className={cn(
+                "flex items-start gap-3 text-[10px] font-bold leading-tight transition-all duration-300",
+                isSelected ? "text-slate-800" : "text-slate-600"
+              )}>
+                <div className={cn("p-0.5 rounded-full mt-0.5", isSelected ? `${style.accent}/10 ${style.icon}` : "text-slate-200")}>
+                   <Check className="h-2.5 w-2.5" strokeWidth={5} />
+                </div>
+                <span>{f}</span>
+              </li>
+            ))}
+         </ul>
       </div>
-      <p className={cn("text-[12px] font-semibold leading-relaxed mb-4 relative z-10 line-clamp-2", isSelected ? "text-slate-700" : "text-slate-500")}>{tier.description}</p>
-      <div className={cn("w-full h-[1px] mb-4 relative z-10 transition-colors duration-300", isSelected ? "bg-black/5" : "bg-slate-100")} />
-      <ul className="space-y-3 flex-1 w-full relative z-10">
-        {tier.features.map((f, idx) => (
-          <li key={idx} className={cn("flex items-start gap-2.5 text-[12px] font-semibold leading-tight", isSelected ? "text-slate-800" : "text-slate-600")}>
-            <Check className={cn("h-3.5 w-3.5 mt-0.5 shrink-0", isSelected ? style.icon : "text-slate-300")} strokeWidth={3.5} />
-            <span>{f}</span>
-          </li>
-        ))}
-      </ul>
+
+      {/* Right: Interaction Area */}
+      <div className={cn(
+        "w-full md:w-[100px] flex items-center justify-center p-6 transition-colors duration-500",
+        isSelected ? "bg-slate-50/30" : "bg-transparent group-hover:bg-slate-50/40"
+      )}>
+          <div className={cn(
+            "h-12 w-12 rounded-2xl flex items-center justify-center transition-all duration-500",
+            isSelected ? `${style.accent} text-white shadow-xl shadow-current/20 scale-110` : "bg-white border-2 border-slate-100 text-slate-200 group-hover:scale-105"
+          )}>
+            <Check className="h-6 w-6" strokeWidth={3.5} />
+          </div>
+      </div>
     </button>
   );
 });
@@ -255,20 +337,34 @@ const StepPackage = memo(({ form }: StepPackageProps) => {
 
       <AnimatePresence mode="wait">
         <motion.div key={currentProduct.id} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} transition={{ duration: 0.2 }} className="space-y-4">
-          <div className="flex items-center gap-4 p-4 rounded-2xl border-2 border-slate-100 bg-slate-50/30">
-            <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-[#4988c4]/[0.08] to-[#4988c4]/[0.15] flex items-center justify-center border border-[#4988c4]/15 shadow-sm">
-              <img src={iconSrc} alt="" className="h-8 w-8 object-contain scale-110 drop-shadow-sm" />
+          <div className="flex items-center gap-5 p-5 rounded-[22px] border border-white bg-white/40 backdrop-blur-sm shadow-[0_8px_32px_rgba(0,0,0,0.04)] relative overflow-hidden group">
+            {/* Subtle mesh background effect */}
+            <div className="absolute -top-12 -right-12 w-24 h-24 bg-[#4988c4]/5 rounded-full blur-3xl group-hover:bg-[#4988c4]/10 transition-all duration-700" />
+            
+            <div className="h-16 w-16 rounded-[18px] bg-gradient-to-br from-white to-slate-50 flex items-center justify-center border border-slate-100 shadow-sm relative z-10">
+              <img src={iconSrc} alt="" className="h-9 w-9 object-contain scale-110 drop-shadow-sm transition-transform duration-500 group-hover:scale-125" />
             </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="text-sm font-black text-slate-900 tracking-tight">{currentProduct.label}</h4>
-              <p className="text-[11px] text-slate-500 font-medium truncate">{currentProduct.description}</p>
+            
+            <div className="flex-1 min-w-0 relative z-10">
+              <h4 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
+                {currentProduct.label}
+                <span className="h-1 w-1 rounded-full bg-slate-300" />
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none">Focus Item</span>
+              </h4>
+              <p className="text-[11px] text-slate-500 font-semibold leading-relaxed line-clamp-1">{currentProduct.description}</p>
             </div>
-            <span className="text-[10px] font-black uppercase px-2.5 py-1 bg-[#4988c4]/10 text-[#4988c4] border border-[#4988c4]/20 rounded-lg shrink-0">{safeIdx + 1} / {products.length}</span>
+            
+            <div className="flex flex-col items-end gap-1 relative z-10 shrink-0">
+               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Progress</span>
+               <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-900/[0.03] border border-slate-900/5 rounded-full shadow-inner">
+                  <span className="text-[11px] font-black text-slate-900">{safeIdx + 1}</span>
+                  <span className="text-[9px] font-black text-slate-300">/</span>
+                  <span className="text-[11px] font-black text-slate-400">{products.length}</span>
+               </div>
+            </div>
           </div>
 
-          <div className={cn("flex sm:grid gap-8 overflow-x-auto snap-x snap-mandatory pb-4 pt-4 px-2 no-scrollbar",
-            currentProduct.tiers.length === 1 ? "sm:grid-cols-1 max-w-[260px] mx-auto" :
-              currentProduct.tiers.length === 2 ? "sm:grid-cols-2 max-w-[540px] mx-auto" : "sm:grid-cols-3 max-w-[820px] mx-auto")}>
+          <div className="flex flex-col gap-4 pb-4 pt-4 px-2">
             {currentProduct.tiers.map((tier: ServiceTier) => (
               <TierCard key={tier.tierId} tier={tier} isSelected={cartItem?.packageId === tier.tierId} onSelect={selectTier} />
             ))}

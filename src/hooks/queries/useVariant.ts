@@ -7,9 +7,13 @@ export const variantKeys = {
 };
 
 export const useVariant = (id: string) => {
+    const normalizedId = String(id || '').trim();
+
     return useQuery({
-        queryKey: variantKeys.detail(id),
-        queryFn: () => variantService.getById(id),
-        enabled: !!id,
+        queryKey: variantKeys.detail(normalizedId),
+        queryFn: () => variantService.getById(normalizedId),
+        enabled: !!normalizedId,
+        staleTime: 5 * 60 * 1000,
+        refetchOnWindowFocus: false,
     });
 };

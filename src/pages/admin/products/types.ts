@@ -125,6 +125,11 @@ export function getAllowedStatusTransitions(currentStatus: string): ProductStatu
   }
 }
 
+/** Specific transitions for combos (explicitly stock-independent) */
+export function getAllowedComboStatusTransitions(currentStatus: string): ProductStatus[] {
+  return getAllowedStatusTransitions(currentStatus).filter(s => s !== 'OutOfStock');
+}
+
 
 // ── Size Options ─────────────────────────────────────────
 export const SIZE_OPTIONS = [
@@ -205,12 +210,17 @@ export interface Product {
   basePrice?: number;
   salePrice?: number;
   weight?: number;
+  isTradeInEligible?: boolean;
+  minTradeInPrice?: number;
+  depositAmount?: number;
   // Joined / computed (from admin endpoint)
   categoryName?: string;
   variantCount?: number;
   maxPrice?: number;
   minPrice?: number;
   variants?: ProductVariant[];
+  assets?: { id: string; url: string; type: string }[];
+  feedbackCount?: number;
 }
 
 export interface CreateProductRequest {
@@ -225,11 +235,14 @@ export interface CreateProductRequest {
   status: string;
   cateId: number | null;
   CertificateIds?: string[];
-  fullyCustomizedProductType?: import("@/api/types/product.types").FullyCustomizedProductType;
+   fullyCustomizedProductType?: import("@/api/types/product.types").FullyCustomizedProductType;
   sku?: string;
   basePrice?: number;
   salePrice?: number;
   weight?: number;
+  isTradeInEligible?: boolean;
+  minTradeInPrice?: number;
+  depositAmount?: number;
 }
 
 export interface UpdateProductRequest {
@@ -250,6 +263,9 @@ export interface UpdateProductRequest {
   basePrice?: number;
   salePrice?: number;
   weight?: number;
+  isTradeInEligible?: boolean;
+  minTradeInPrice?: number;
+  depositAmount?: number;
 }
 
 // ── Product Variant ──────────────────────────────────────
@@ -398,6 +414,8 @@ export interface StatusChangeData {
   type: 'product' | 'combo' | 'variant';
   currentStatus: ProductStatus;
   newStatus: ProductStatus;
+  totalStock?: number;
+  hasPublishedChild?: boolean;
 }
 
 export interface AdminProductState {

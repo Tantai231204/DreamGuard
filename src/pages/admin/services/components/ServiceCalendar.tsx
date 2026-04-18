@@ -105,7 +105,7 @@ const BookingCard = React.forwardRef<
               Confirm
             </button>
           )}
-          {['pending', 'confirmed'].includes(booking.status) && (
+          {(booking.status === 'confirmed' || booking.status === 'processing') && !booking.staff && !booking.technician && (
             <button
               onClick={(e) => { e.stopPropagation(); onAssign(); }}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 text-[10px] font-bold hover:bg-blue-600 hover:text-white transition-all border border-blue-100/50"
@@ -114,13 +114,28 @@ const BookingCard = React.forwardRef<
               Assign
             </button>
           )}
+          {(booking.staff || booking.technician) && (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-50/50 border border-blue-100/30">
+               <span className="w-4 h-4 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[8px] font-black uppercase">
+                 {(booking.staff?.fullName || booking.technician?.fullName || 'T')[0]}
+               </span>
+               <span className="text-[10px] font-bold text-blue-800 tracking-tight truncate max-w-[80px]">
+                 {booking.staff?.fullName || booking.technician?.fullName}
+               </span>
+            </div>
+          )}
           <div className="flex-1" />
-          <button
-            onClick={(e) => { e.stopPropagation(); onCancel(); }}
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-300 hover:bg-rose-50 hover:text-rose-600 transition-all"
-          >
-            <XCircle className="w-3.5 h-3.5" />
-          </button>
+          {!['cancelled', 'rejected', 'completed', 'refunded', 'forcedcancelled'].includes(booking.status) && (
+            <button
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                onCancel(); 
+              }}
+              className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-300 hover:bg-rose-50 hover:text-rose-600 transition-all"
+            >
+              <XCircle className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </div>
     </motion.div>
@@ -228,6 +243,7 @@ export const ServiceCalendar = ({
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date>(new Date());
   const [searchQuery, setSearchQuery] = useState('');
+  const [unassignedOnly, setUnassignedOnly] = useState(false);
 
   const monthStart = startOfMonth(currentDate);
   const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });
@@ -239,16 +255,21 @@ export const ServiceCalendar = ({
     [startDate.toISOString(), endDate.toISOString()]
   );
 
+  const isUnassigned = (b: ServiceBooking) => 
+    b.status === 'confirmed' && !b.staff && !b.technician;
+
   const getDayBookings = useCallback(
-    (day: Date) =>
-      bookings.filter((b) => {
+    (day: Date) => {
+      const dayRaw = bookings.filter((b) => {
         try {
           return isSameDay(parseISO(b.scheduledDate), day);
         } catch {
           return false;
         }
-      }),
-    [bookings]
+      });
+      return unassignedOnly ? dayRaw.filter(isUnassigned) : dayRaw;
+    },
+    [bookings, unassignedOnly]
   );
 
   const selectedDayBookings = useMemo(() => {
@@ -282,7 +303,26 @@ export const ServiceCalendar = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
+            {/* Filter Toggle */}
+            <button
+              onClick={() => setUnassignedOnly(!unassignedOnly)}
+              className={cn(
+                "flex items-center gap-3 px-5 h-11 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all active:scale-95",
+                unassignedOnly 
+                  ? "bg-amber-500 text-white shadow-lg shadow-amber-200" 
+                  : "bg-gray-100/80 text-gray-400 hover:bg-gray-200/80"
+              )}
+            >
+              <div className={cn(
+                "w-4 h-4 rounded-full flex items-center justify-center transition-transform duration-300",
+                unassignedOnly ? "bg-white text-amber-500 scale-110 shadow-sm" : "bg-gray-300 text-gray-500"
+              )}>
+                <User className="w-2.5 h-2.5" />
+              </div>
+              Unassigned Only
+            </button>
+
             <button
               onClick={() => {
                 const t = new Date();
@@ -322,7 +362,12 @@ export const ServiceCalendar = ({
         {/* Grid */}
         <div className="flex-1 overflow-auto grid grid-cols-7 auto-rows-[minmax(130px,1fr)] content-start scrollbar-hide">
           {calendarDays.map((day) => {
-            const dayBookings = getDayBookings(day);
+            const rawDayBookings = bookings.filter(b => {
+              try { return isSameDay(parseISO(b.scheduledDate), day); } catch { return false; }
+            });
+            const unassignedCount = rawDayBookings.filter(isUnassigned).length;
+            const dayBookings = unassignedOnly ? rawDayBookings.filter(isUnassigned) : rawDayBookings;
+
             const inMonth = isSameMonth(day, monthStart);
             const today = isToday(day);
             const selected = isSameDay(day, selectedDay);
@@ -342,9 +387,27 @@ export const ServiceCalendar = ({
                   '[&:nth-child(7n)]:border-r-0',
                   !inMonth && 'bg-gray-50/10 opacity-30',
                   inMonth && !selected && 'hover:bg-primary-50/20',
-                  selected && 'bg-primary-50/40 ring-4 ring-inset ring-primary-500/10 z-10 shadow-[inset_0_0_40px_rgba(73,136,196,0.02)]'
+                  selected && 'bg-primary-50/40 ring-4 ring-inset ring-primary-500/10 z-10 shadow-[inset_0_0_40px_rgba(73,136,196,0.02)]',
+                  unassignedCount > 0 && inMonth && 'ring-2 ring-inset ring-amber-400/30'
                 )}
               >
+                {/* Unassigned Warning Indicator */}
+                {unassignedCount > 0 && inMonth && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="absolute top-0 right-0 w-8 h-8 flex items-center justify-center p-1 overflow-hidden"
+                  >
+                    <div className="absolute top-0 right-0 w-0 h-0 border-t-[32px] border-l-[32px] border-t-amber-500 border-l-transparent drop-shadow-sm" />
+                    <motion.div
+                      animate={{ opacity: [1, 0.5, 1] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                      <User className="relative z-10 w-2 h-2 text-white -mt-3.5 -mr-[-14px]" />
+                    </motion.div>
+                  </motion.div>
+                )}
+
                 <div className="flex items-start justify-between mb-4">
                   <span className={cn(
                     'relative inline-flex items-center justify-center w-9 h-9 rounded-2xl text-[15px] font-black transition-all duration-300',
@@ -405,20 +468,16 @@ export const ServiceCalendar = ({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[12px] font-black text-gray-300 uppercase tracking-[0.3em] mb-2">
-                {format(selectedDay, 'EEEE')}
+                {unassignedOnly ? 'NEEDS ASSIGNMENT' : format(selectedDay, 'EEEE')}
               </p>
               <h3 className="text-[28px] font-black text-gray-900 leading-none tracking-tighter">
                 {format(selectedDay, 'MMM dd, yyyy')}
               </h3>
             </div>
-            {isToday(selectedDay) ? (
-              <span className="text-[11px] font-black px-4 py-2 rounded-full bg-rose-500 text-white shadow-xl shadow-rose-200">
-                ACTIVE TODAY
+            {unassignedCountForDay(selectedDay) > 0 && (
+              <span className="text-[11px] font-black px-4 py-2 rounded-full bg-amber-500 text-white shadow-xl shadow-amber-200">
+                {unassignedCountForDay(selectedDay)} PENDING ASSIGN
               </span>
-            ) : (
-              <div className="px-4 py-2 rounded-full bg-gray-50 text-gray-400 text-[11px] font-black border border-gray-100">
-                {getDayBookings(selectedDay).length} TOTAL
-              </div>
             )}
           </div>
 
@@ -457,13 +516,14 @@ export const ServiceCalendar = ({
             'hover:[&::-webkit-scrollbar-thumb]:bg-gray-200',
           )}
         >
-          {selectedDayBookings.length === 0 && searchQuery ? (
+          {selectedDayBookings.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center mb-4">
                 <Search className="w-8 h-8 text-gray-200" />
               </div>
-              <p className="text-[15px] font-bold text-gray-900">No results found</p>
-              <p className="text-[12px] text-gray-400 mt-1">Try a different search keyword</p>
+              <p className="text-[15px] font-bold text-gray-900">
+                {unassignedOnly ? 'All tasks assigned for this day!' : 'No results found'}
+              </p>
             </div>
           ) : (
             <TimelinePanel
@@ -478,4 +538,10 @@ export const ServiceCalendar = ({
       </div>
     </div>
   );
+
+  function unassignedCountForDay(day: Date) {
+    return bookings.filter(b => {
+      try { return isSameDay(parseISO(b.scheduledDate), day) && isUnassigned(b); } catch { return false; }
+    }).length;
+  }
 };

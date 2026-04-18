@@ -3,91 +3,94 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { CalendarDays, MapPin, Phone, Package2, CreditCard, Star } from 'lucide-react';
+import { AdminStatusBadge } from '@/components/admin';
+import { CalendarDays, MapPin, Phone, Package2, Star, AlertCircle, ShieldCheck, CreditCard, Clock, Briefcase, ChevronRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useProfile } from '@/hooks/queries';
-import { useCancelServiceOrder, useServiceOrderDetail } from '@/hooks/queries/useServiceOrder';
+import { useCancelServiceOrder, useServiceOrderDetail, useReOrderFailedServiceOrder } from '@/hooks/queries/useServiceOrder';
 import { useCreateRating, useRatingByServiceOrder, useStaffRatingSummary, useUpdateRating } from '@/hooks/queries/useRating';
 import { useToast } from '@/hooks/useToast';
-import { formatDate, formatPrice } from '../../utils';
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { formatDate, formatPrice, formatTime } from '../../utils';
 import { STATUS_THEME } from '../../constants';
 import { parseAddress } from '../../../../shared/utils/address/parseAddress';
 import type { RatingResponse } from '@/api/types/rating';
 
 interface ServiceOrderDetailDialogProps {
-  serviceOrderId: string;
-  orderCode?: string;
-  trigger: React.ReactNode;
+    serviceOrderId: string;
+    orderCode?: string;
+    trigger: React.ReactNode;
 }
 
 const RATING_CACHE_KEY = 'dreamguard-service-order-ratings';
 
 function readRatingCache(): Record<string, RatingResponse> {
-  if (typeof window === 'undefined') return {};
+    if (typeof window === 'undefined') return {};
 
-  try {
-    const raw = window.localStorage.getItem(RATING_CACHE_KEY);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as Record<string, RatingResponse>;
-    return parsed && typeof parsed === 'object' ? parsed : {};
-  } catch {
-    return {};
-  }
+    try {
+        const raw = window.localStorage.getItem(RATING_CACHE_KEY);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw) as Record<string, RatingResponse>;
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+        return {};
+    }
 }
 
 function writeRatingCache(serviceOrderId: string, rating: RatingResponse) {
-  if (typeof window === 'undefined' || !serviceOrderId) return;
+    if (typeof window === 'undefined' || !serviceOrderId) return;
 
-  const cache = readRatingCache();
-  cache[serviceOrderId] = rating;
+    const cache = readRatingCache();
+    cache[serviceOrderId] = rating;
 
-  try {
-    window.localStorage.setItem(RATING_CACHE_KEY, JSON.stringify(cache));
-  } catch {
-    // Ignore storage write errors.
-  }
+    try {
+        window.localStorage.setItem(RATING_CACHE_KEY, JSON.stringify(cache));
+    } catch {
+        // Ignore storage write errors.
+    }
 }
 
 function mapEmbeddedRating(data?: Record<string, unknown>): RatingResponse | null {
-  if (!data) return null;
+    if (!data) return null;
 
-  const embedded = (
-    data.rating ||
-    data.staffRating ||
-    data.orderRating ||
-    data.review
-  ) as Record<string, unknown> | undefined;
+    const embedded = (
+        data.rating ||
+        data.staffRating ||
+        data.orderRating ||
+        data.review
+    ) as Record<string, unknown> | undefined;
 
-  if (!embedded) return null;
+    if (!embedded) return null;
 
-  const score = Number(embedded.score || embedded.ratingScore || embedded.stars || 0);
-  const comment = String(embedded.comment || embedded.feedback || '').trim();
-  const id = String(embedded.id || embedded.ratingId || '').trim();
+    const score = Number(embedded.score || embedded.ratingScore || embedded.stars || 0);
+    const comment = String(embedded.comment || embedded.feedback || '').trim();
+    const id = String(embedded.id || embedded.ratingId || '').trim();
 
-  if (!id && !comment && (!Number.isFinite(score) || score <= 0)) return null;
+    if (!id && !comment && (!Number.isFinite(score) || score <= 0)) return null;
 
-  return {
-    id: id || undefined,
-    ratingId: String(embedded.ratingId || embedded.id || '').trim() || undefined,
-    score: Number.isFinite(score) && score > 0 ? score : undefined,
-    comment: comment || undefined,
-    staffName: String(embedded.staffName || '').trim() || undefined,
-    createdAt: String(embedded.createdAt || '').trim() || undefined,
-    updatedAt: String(embedded.updatedAt || '').trim() || undefined,
-  };
+    return {
+        id: id || undefined,
+        ratingId: String(embedded.ratingId || embedded.id || '').trim() || undefined,
+        score: Number.isFinite(score) && score > 0 ? score : undefined,
+        comment: comment || undefined,
+        staffName: String(embedded.staffName || '').trim() || undefined,
+        createdAt: String(embedded.createdAt || '').trim() || undefined,
+        updatedAt: String(embedded.updatedAt || '').trim() || undefined,
+    };
 }
 
 function toThemeKey(status?: string) {
-  if (!status) return 'Pending';
-  const lower = status.toLowerCase();
-  if (lower === 'cancelled' || lower === 'canceled' || lower === 'forcedcancelled') return 'Cancelled';
-  if (lower === 'completed') return 'Completed';
-  if (lower === 'confirmed') return 'Confirmed';
-  if (lower === 'processing' || lower === 'inprogress') return 'Processing';
-  return 'Pending';
+    if (!status) return 'Pending';
+    const lower = status.toLowerCase();
+    if (lower === 'cancelled' || lower === 'canceled' || lower === 'forcedcancelled') return 'Cancelled';
+    if (lower === 'completed') return 'Completed';
+    if (lower === 'confirmed') return 'Confirmed';
+    if (lower === 'processing' || lower === 'inprogress') return 'Processing';
+    return 'Pending';
 }
 
 function normalizePhone(phone?: string) {
-  return (phone || '').replace(/\D/g, '');
+    return (phone || '').replace(/\D/g, '');
 }
 
 function normalizeStatus(status?: string) {
@@ -95,32 +98,36 @@ function normalizeStatus(status?: string) {
 }
 
 export function ServiceOrderDetailDialog({ serviceOrderId, orderCode, trigger }: ServiceOrderDetailDialogProps) {
-  const [open, setOpen] = useState(false);
+    const [open, setOpen] = useState(false);
 
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border-slate-200 p-6">
-        <ServiceOrderDetailContent
-          key={serviceOrderId}
-          serviceOrderId={serviceOrderId}
-          orderCode={orderCode}
-          open={open}
-        />
-      </DialogContent>
-    </Dialog>
-  );
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>{trigger}</DialogTrigger>
+            <DialogContent className="max-w-3xl max-h-[92vh] overflow-hidden flex flex-col p-0 rounded-xl border-none shadow-2xl bg-gray-50 [&>button:last-child]:top-6 [&>button:last-child]:right-6">
+                <ServiceOrderDetailContent
+                    key={serviceOrderId}
+                    serviceOrderId={serviceOrderId}
+                    orderCode={orderCode}
+                    open={open}
+                    setOpen={setOpen}
+                />
+            </DialogContent>
+        </Dialog>
+    );
 }
 
 function ServiceOrderDetailContent({
     serviceOrderId,
     orderCode,
-    open
+    open,
+    setOpen
 }: {
     serviceOrderId: string;
     orderCode?: string;
     open: boolean;
+    setOpen: (o: boolean) => void;
 }) {
+    const [confirmOpen, setConfirmOpen] = useState(false);
     const toast = useToast();
     const { data: profile } = useProfile();
     const [cachedRating, setCachedRating] = useState<RatingResponse | null>(() => {
@@ -152,7 +159,7 @@ function ServiceOrderDetailContent({
     const assignedStaffId = String(assignedStaff?.staffId || task?.staffId || '').trim();
     const assignedStaffNameFromOrder = String(assignedStaff?.fullName || '').trim();
 
-    const { data: existingRating, isPending: isRatingPending } = useRatingByServiceOrder(serviceOrderId, assignedStaffId, {
+    const { data: existingRating } = useRatingByServiceOrder(serviceOrderId, assignedStaffId, {
         enabled: shouldLoadRating && !!assignedStaffId,
     });
 
@@ -165,12 +172,10 @@ function ServiceOrderDetailContent({
 
     const ratedStaffName = assignedStaffNameFromOrder || resolvedRating?.staffName || 'Assigned Staff';
     const assignedStaffPhone = String(assignedStaff?.phoneNumber || '').trim();
-    const assignedStaffPosition = String(assignedStaff?.position || '').trim();
     const hasAssignedStaff = !!assignedStaffId;
     const taskStatus = String(task?.status || '').trim();
-    const canRateAssignedStaff = !!serviceOrderId && isCompletedOrder;
 
-    const { data: staffRatingSummary, isPending: isStaffRatingSummaryPending } = useStaffRatingSummary(assignedStaffId, {
+    const { data: staffRatingSummary } = useStaffRatingSummary(assignedStaffId, {
         enabled: open && hasAssignedStaff,
     });
 
@@ -210,11 +215,42 @@ function ServiceOrderDetailContent({
 
     const normalizedOrderStatus = normalizeStatus(data?.status);
     const normalizedTaskStatus = normalizeStatus(task?.status);
+
+    const reOrderFailedServiceMutation = useReOrderFailedServiceOrder();
+    const paymentMethod = String(data?.paymentMethod || '').toLowerCase();
+    const paymentStatus = String(data?.paymentStatus || '').toLowerCase();
+
+    // Support combined COD Paid status for AdminStatusBadge
+    const displayMethod = (paymentMethod === "cod" && paymentStatus === "paid")
+        ? "CODPaid"
+        : paymentMethod;
+
+    const canRetryPayment = !!serviceOrderId && 
+        paymentMethod.includes('vnpay') && 
+        paymentStatus !== 'paid' && 
+        normalizedOrderStatus === 'pending';
+
+    const handleRetryPayment = async () => {
+        if (!serviceOrderId) return;
+        try {
+            const response = await reOrderFailedServiceMutation.mutateAsync(serviceOrderId);
+            const paymentUrl = typeof response?.paymentUrl === 'string' ? response.paymentUrl : '';
+            if (paymentUrl) {
+                window.location.assign(paymentUrl);
+                return;
+            }
+            toast.warning('Unable to create payment link.', 'Please try again in a moment.');
+        } catch {
+            // Error is likely handled by global interceptor, 
+            // but we keep the catch block for stability.
+        }
+    };
+
     const hasCheckIn = !!String(task?.checkIn || '').trim();
 
     // Customer can only cancel before service execution starts.
     const canCancelService = canView && (
-        normalizedOrderStatus === 'pending'
+        ['pending', 'confirmed'].includes(normalizedOrderStatus)
     ) && !hasCheckIn && ![
         'assigned',
         'processing',
@@ -228,7 +264,6 @@ function ServiceOrderDetailContent({
         'managercancel',
         'managerforcecancel',
     ].includes(normalizedTaskStatus);
-
     const handleSubmitRating = async () => {
         if (!isCompletedOrder) {
             toast.warning('You can rate staff only after service completion.');
@@ -273,17 +308,20 @@ function ServiceOrderDetailContent({
 
     const handleCancelService = async () => {
         if (!canCancelService) return;
+        setConfirmOpen(true);
+    };
 
-        const confirmed = window.confirm('Are you sure you want to cancel this service order?');
-        if (!confirmed) return;
-
-        try {
-            await cancelMutation.mutateAsync(serviceOrderId);
-            toast.success('Service order has been cancelled.');
-        } catch (error) {
-            const message = error instanceof Error ? error.message : 'Unable to cancel service order at the moment.';
-            toast.error('Cancel service failed.', message);
-        }
+    const handleConfirmCancel = () => {
+        cancelMutation.mutate(serviceOrderId, {
+            onSuccess: () => {
+                toast.success('Service Order Cancelled', `Order #${orderCode || serviceOrderId.slice(0, 8)} has been cancelled.`);
+                setConfirmOpen(false);
+            },
+            onError: (error: unknown) => {
+                const message = error instanceof Error ? error.message : 'Cancellation could not be processed.';
+                toast.error('Request Denied', message);
+            }
+        });
     };
 
     const theme = STATUS_THEME[toThemeKey(data?.status)] || STATUS_THEME.Pending;
@@ -291,289 +329,329 @@ function ServiceOrderDetailContent({
 
     return (
         <>
-            <DialogHeader>
-                <div className="flex items-center justify-between gap-4">
-                    <DialogTitle className="text-lg font-bold text-slate-900">
-                        Service Order #{orderCode || data?.orderCode || serviceOrderId.slice(0, 8)}
-                    </DialogTitle>
-                    <Badge
-                        variant="secondary"
-                        className="w-fit px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border-none"
-                        style={{ backgroundColor: `${theme.color}14`, color: theme.color }}
-                    >
-                        {theme.label}
-                    </Badge>
-                </div>
-            </DialogHeader>
-
-            {isPending ? (
-                <div className="py-16 text-center text-sm text-slate-500 font-medium">Loading service order details...</div>
-            ) : !canView ? (
-                <div className="py-16 text-center">
-                    <p className="text-sm font-semibold text-rose-600">Access denied for this service order.</p>
-                    <p className="text-xs text-slate-500 mt-1">You can only view service orders created by your account.</p>
-                </div>
-            ) : (
-                <div className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div className="rounded-xl border border-slate-200 p-3 bg-slate-50/50">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Created At</p>
-                            <p className="text-sm font-semibold text-slate-800 mt-1">{formatDate(data?.createdAt || '')}</p>
-                        </div>
-                        <div className="rounded-xl border border-slate-200 p-3 bg-slate-50/50">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Total</p>
-                            <p className="text-sm font-semibold text-slate-800 mt-1">{formatPrice(data?.totalPrice || 0)}</p>
-                        </div>
+            {/* Header */}
+            <div className="bg-white border-b border-gray-100 pl-6 pr-12 py-4 flex items-center justify-between shrink-0 relative">
+                <DialogHeader className="flex flex-row items-center gap-4 space-y-0">
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-gray-100" onClick={() => setOpen(false)}>
+                        <ChevronRight className="w-5 h-5 rotate-180 text-gray-500" />
+                    </Button>
+                    <div className="text-left w-full">
+                        <DialogTitle className="text-[16px] font-black text-gray-900 uppercase tracking-tight">
+                            Service Journey
+                        </DialogTitle>
+                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">
+                            Order ID: {orderCode || data?.orderCode || serviceOrderId.slice(0, 8)}
+                        </p>
                     </div>
+                </DialogHeader>
+                <div
+                    className="px-4 py-1.5 rounded-full text-[11px] font-bold text-white uppercase tracking-widest shadow-sm"
+                    style={{ backgroundColor: theme.color }}
+                >
+                    {theme.label}
+                </div>
+            </div>
 
-                    <div className="rounded-xl border border-blue-200 p-4 space-y-3 bg-blue-50/30">
-                        <div className="flex items-center gap-2 text-slate-700">
-                            <CalendarDays className="w-4 h-4 text-blue-600" />
-                            <span className="text-sm font-semibold">Appointment: {data?.appointmentDate ? formatDate(data.appointmentDate) : 'Not scheduled'}</span>
-                        </div>
-                        <div className="border-t border-blue-100 pt-3">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-2">Receiver Information</p>
-                            <div className="space-y-2">
-                                {data?.receiverName && <p className="text-sm text-slate-700"><span className="text-slate-500">Name:</span> {data.receiverName}</p>}
-                                <div className="flex items-center gap-2 text-slate-700">
-                                    <Phone className="w-4 h-4 text-slate-500" />
-                                    <span className="text-sm">{data?.phoneNumber || 'No phone number'}</span>
-                                </div>
-                                <div className="flex items-start gap-2 text-slate-700">
-                                    <MapPin className="w-4 h-4 mt-0.5 text-slate-500 flex-shrink-0" />
-                                    <span className="text-sm">{parseAddress(data?.address)}</span>
-                                </div>
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto no-scrollbar bg-gray-50">
+                {isPending ? (
+                    <div className="flex flex-col items-center justify-center py-40 gap-4 bg-white">
+                        <div className="w-7 h-7 border-[3px] border-[#4988c4] border-t-transparent rounded-full animate-spin" />
+                        <p className="text-[12px] font-bold text-gray-400 tracking-wider uppercase">Loading secure details...</p>
+                    </div>
+                ) : !canView ? (
+                    <div className="py-32 flex flex-col items-center justify-center text-center bg-white">
+                        <AlertCircle className="w-12 h-12 text-gray-200 mb-4" />
+                        <p className="text-[13px] font-bold text-gray-400 uppercase tracking-widest">Access Restricted</p>
+                    </div>
+                ) : (
+                    <div className="space-y-3">
+                        {/* Summary Section */}
+                        <div className="grid grid-cols-2 gap-px bg-gray-100 border-b border-gray-100">
+                            <div className="bg-white p-6">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Created On</p>
+                                <p className="text-[15px] font-bold text-slate-800 tracking-tight">
+                                    {formatDate(data?.createdAt || '')}
+                                </p>
+                            </div>
+                            <div className="bg-white p-6">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-blue-500 mb-1">Total Value</p>
+                                <p className="text-xl font-black text-[#4988c4]">
+                                    {formatPrice(data?.totalPrice || 0)}
+                                </p>
                             </div>
                         </div>
-                    </div>
 
-                    <div className="rounded-xl border border-slate-200 p-4 bg-white">
-                        <div className="flex items-center gap-2 mb-3">
-                            <Package2 className="w-4 h-4 text-slate-600" />
-                            <h4 className="text-sm font-bold text-slate-900">Service Items</h4>
-                        </div>
-
-                        {detailItems.length ? (
-                            <div className="space-y-2">
-                                {detailItems.map((item, idx) => {
-                                    const name = item.itemName || item.serviceName || item.packageName || `Service item ${idx + 1}`;
-                                    return (
-                                        <div key={item.id || idx} className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50/40 px-3 py-2.5">
-                                            <div>
-                                                <p className="text-sm font-semibold text-slate-800">{name}</p>
-                                                <p className="text-[11px] text-slate-500">Qty: {item.quantity || 1}</p>
-                                            </div>
-                                            <p className="text-sm font-bold text-slate-900">{formatPrice(item.totalPrice || item.unitPrice || 0)}</p>
+                        {/* Appointment Section */}
+                        <div className="bg-white p-5 border-b border-gray-100">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="flex items-start gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                                        <CalendarDays className="w-3.5 h-3.5 text-[#4988c4]" />
+                                    </div>
+                                    <div className="space-y-0.5">
+                                        <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Appointment</h3>
+                                        <p className="text-[14px] font-black text-gray-900 tracking-tight">
+                                            {data?.appointmentDate ? formatDate(data.appointmentDate) : 'Pending Date'}
+                                        </p>
+                                        <div className="flex items-center gap-1.5 opacity-60">
+                                            <Clock className="w-2.5 h-2.5 text-slate-400" />
+                                            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-tighter">
+                                                {data?.appointmentDate ? formatTime(data.appointmentDate) : 'Time TBD'}
+                                            </span>
                                         </div>
-                                    );
-                                })}
+                                    </div>
+                                </div>
+                                <div className="flex items-start gap-3 border-l border-gray-50 pl-4">
+                                    <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center shrink-0">
+                                        <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                                    </div>
+                                    <div className="space-y-0.5">
+                                        <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Service Site</h3>
+                                        <p className="text-[13px] font-bold text-gray-900 truncate max-w-[140px]">
+                                            {data?.receiverName || 'Registered Client'}
+                                        </p>
+                                        <p className="text-[11px] font-medium text-slate-400 leading-tight line-clamp-1">
+                                            {parseAddress(data?.address)}
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
-                        ) : (
-                            <p className="text-sm text-slate-500">No service items found in this order.</p>
-                        )}
-                    </div>
-
-                    <div className="rounded-xl border border-slate-200 p-4 bg-white">
-                        <div className="flex items-center justify-between gap-2 mb-3">
-                            <h4 className="text-sm font-bold text-slate-900">Assigned Staff</h4>
-                            <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider border-slate-200 text-slate-600">
-                                {hasAssignedStaff ? 'Assigned' : 'Pending Assignment'}
-                            </Badge>
                         </div>
 
-                        {hasAssignedStaff ? (
-                            <div className="space-y-2">
-                                <p className="text-sm text-slate-700">
-                                    <span className="text-slate-500">Name:</span> <span className="font-semibold">{ratedStaffName}</span>
-                                </p>
-                                <p className="text-sm text-slate-700">
-                                    <span className="text-slate-500">Phone:</span> {assignedStaffPhone || 'Updating...'}
-                                </p>
-                                <p className="text-sm text-slate-700">
-                                    <span className="text-slate-500">Position:</span> {assignedStaffPosition || 'Service Staff'}
-                                </p>
-                                {taskStatus && (
-                                    <p className="text-sm text-slate-700">
-                                        <span className="text-slate-500">Task Status:</span> {taskStatus}
-                                    </p>
-                                )}
-
-                                <div className="mt-2 rounded-lg p-3">
-                                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700 mb-1">Staff Reputation</p>
-                                    {isStaffRatingSummaryPending ? (
-                                        <p className="text-sm text-slate-500">Loading staff ratings...</p>
-                                    ) : (
-                                        <div className="space-y-1.5">
-                                            <div className="flex items-center gap-2">
-                                                {[1, 2, 3, 4, 5].map((value) => (
-                                                    <Star
-                                                        key={`staff-summary-${value}`}
-                                                        className={`h-4 w-4 ${value <= Math.round(staffAverageStars) ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`}
-                                                    />
-                                                ))}
-                                                <span className="text-sm font-bold text-slate-800">{displayAverage}/5</span>
+                        {/* Items Section */}
+                        <div className="bg-white">
+                            <div className="px-6 py-4 border-b border-gray-50 flex items-center gap-2.5">
+                                <Package2 className="w-4 h-4 text-gray-400" />
+                                <span className="text-[14px] font-bold text-gray-800 tracking-tight">Consolidated Manifest</span>
+                            </div>
+                            <div className="divide-y divide-gray-50">
+                                {detailItems.length ? (
+                                    detailItems.map((item, idx) => {
+                                        const name = item.itemName || item.serviceName || item.packageName || `Service Item ${idx + 1}`;
+                                        return (
+                                            <div key={item.id || idx} className="px-6 py-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
+                                                <div className="space-y-0.5">
+                                                    <p className="text-[13px] font-bold text-gray-900 leading-tight">{name}</p>
+                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Qty: {item.quantity || 1}</p>
+                                                </div>
+                                                <p className="text-[14px] font-black text-[#4988c4] tabular-nums tracking-tighter shrink-0">
+                                                    {formatPrice(item.totalPrice || item.unitPrice || 0)}
+                                                </p>
                                             </div>
-                                            <p className="text-xs text-slate-600">
-                                                {staffTotalRatings} review{staffTotalRatings === 1 ? '' : 's'} from customers
+                                        );
+                                    })
+                                ) : (
+                                    <div className="py-12 text-center text-slate-300">
+                                        <p className="text-[11px] font-black uppercase tracking-widest">No detailed items recorded</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Personnel Section */}
+                        <div className="bg-white border-y border-gray-50">
+                            <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between bg-slate-50/50">
+                                <div className="flex items-center gap-2.5 text-emerald-600">
+                                    <ShieldCheck className="w-4 h-4" />
+                                    <span className="text-[13px] font-bold uppercase tracking-widest">Execution Staff</span>
+                                </div>
+                                <Badge className="bg-amber-50 text-amber-600 border border-amber-100 px-3 py-1 rounded text-[10px] font-black uppercase tracking-widest">
+                                    {taskStatus || 'Awaiting'}
+                                </Badge>
+                            </div>
+
+                            {hasAssignedStaff ? (
+                                <div className="p-5">
+                                    <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-100 flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-11 h-11 rounded-full bg-white border border-slate-100 flex items-center justify-center text-slate-300 overflow-hidden shadow-sm uppercase font-black text-sm">
+                                                {ratedStaffName.charAt(0)}
+                                            </div>
+                                            <div className="space-y-0.5">
+                                                <p className="text-[14px] font-bold text-gray-900 tracking-tight">{ratedStaffName}</p>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex items-center gap-1.5 text-slate-400">
+                                                        <Phone className="w-2.5 h-2.5" />
+                                                        <span className="text-[11px] font-medium tracking-tight">{assignedStaffPhone || 'Secured'}</span>
+                                                    </div>
+                                                    <div className="bg-amber-50 px-1.5 py-0.5 rounded flex items-center gap-1 border border-amber-100/50">
+                                                        <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
+                                                        <span className="text-[10px] font-black text-amber-700">{displayAverage}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {resolvedRating && (
+                                        <div className="mt-4 p-5 rounded-xl border border-blue-100 bg-blue-50/30">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-blue-500">Service Evaluation</p>
+                                                <div className="flex gap-0.5">
+                                                    {[1, 2, 3, 4, 5].map((v) => (
+                                                        <Star key={v} className={`w-3.5 h-3.5 ${v <= (resolvedRating?.score || 0) ? 'fill-blue-500 text-blue-500' : 'text-slate-200'}`} />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <p className="text-[13px] text-slate-600 font-medium italic border-l-2 border-blue-200 pl-4 py-0.5 leading-relaxed">
+                                                &ldquo;{resolvedRating?.comment || 'Exceptional work performed at the site.'}&rdquo;
                                             </p>
                                         </div>
                                     )}
                                 </div>
-                            </div>
-                        ) : (
-                            <p className="text-sm text-slate-500">No staff has been assigned to this service order yet.</p>
-                        )}
-
-                        {resolvedRating && (
-                            <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50/50 p-3 space-y-1.5">
-                                <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700">Your Submitted Rating</p>
-                                <div className="flex items-center gap-2">
-                                    {[1, 2, 3, 4, 5].map((value) => (
-                                        <Star
-                                            key={`staff-preview-${value}`}
-                                            className={`h-4 w-4 ${value <= Number(resolvedRating.score || 0) ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`}
-                                        />
-                                    ))}
-                                    <span className="text-xs font-semibold text-slate-600">
-                                        {Math.max(1, Math.min(5, Number(resolvedRating.score || 0) || 0)) || '-'}/5
-                                    </span>
+                            ) : (
+                                <div className="p-12 text-center">
+                                    <Briefcase className="w-8 h-8 text-slate-200 mx-auto mb-3" />
+                                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Optimizing staff assignment...</p>
                                 </div>
-                                {resolvedRating.comment && (
-                                    <p className="text-sm text-slate-700">{resolvedRating.comment}</p>
-                                )}
+                            )}
+                        </div>
+
+                        {/* Financial Oversight Section */}
+                        <div className="bg-white p-5 border-y border-gray-50">
+                            <div className="flex items-center gap-2 mb-4 text-[#4988c4]">
+                                <CreditCard className="w-4 h-4" />
+                                <h4 className="text-[11px] font-black uppercase tracking-widest">Financial Oversight</h4>
+                            </div>
+
+                            <div className="bg-slate-50/80 rounded-xl border border-slate-100/80 p-5">
+                                <div className="flex items-end justify-between gap-6">
+                                    <div className="flex gap-6">
+                                        <div className="space-y-1.5">
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Method</p>
+                                            <AdminStatusBadge 
+                                                status={displayMethod} 
+                                                mode="method"
+                                                className="scale-90 origin-left"
+                                            />
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Payment</p>
+                                            <AdminStatusBadge 
+                                                status={paymentStatus || "Pending"} 
+                                                mode="payment"
+                                                className="scale-90 origin-left"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1 leading-none">Net Payable</p>
+                                        <p className="text-[20px] font-black text-slate-900 tracking-tighter tabular-nums leading-none">
+                                            {formatPrice(data?.totalPrice || 0)}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Interaction Module */}
+                        {isCompletedOrder && (
+                            <div className="bg-white p-8 border-t border-gray-50">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Quality Audit</p>
+                                        <h4 className="text-[18px] font-black text-gray-900 tracking-tight uppercase">Service Evaluation</h4>
+                                    </div>
+                                    <div className="flex gap-1 p-2 bg-slate-50 rounded-xl border border-slate-100">
+                                        {[1, 2, 3, 4, 5].map((v) => (
+                                            <button
+                                                key={v}
+                                                onClick={() => setDraftScore(v)}
+                                                disabled={isSubmitting || isAlreadyRated}
+                                                className="p-1 transition-transform hover:scale-125 focus:outline-none disabled:opacity-50"
+                                            >
+                                                <Star className={`w-7 h-7 ${v <= score ? 'fill-blue-500 text-blue-500 shadow-sm' : 'text-slate-200'}`} />
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <Textarea
+                                        value={comment}
+                                        onChange={(e) => setDraftComment(e.target.value)}
+                                        placeholder="Detailed feedback regarding quality and execution..."
+                                        disabled={isSubmitting || isAlreadyRated}
+                                        className="min-h-[140px] bg-slate-50/50 border-slate-100 rounded-xl p-6 text-[14px] font-medium text-slate-800 placeholder:text-slate-300 focus:ring-1 focus:ring-blue-500/20 transition-all"
+                                    />
+                                    <div className="flex items-center justify-between px-1">
+                                        <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">
+                                            {comment.length} / 500 characters
+                                        </p>
+                                        <Button
+                                            onClick={handleSubmitRating}
+                                            disabled={isSubmitting || isAlreadyRated}
+                                            className={cn(
+                                                "px-10 h-11 rounded text-[11px] font-black uppercase tracking-widest transition-all",
+                                                isAlreadyRated
+                                                    ? "bg-slate-100 text-slate-400 border-0 cursor-not-allowed"
+                                                    : "bg-[#4988c4] text-white hover:bg-[#3b6fa3] shadow-md shadow-blue-500/10 border-0"
+                                            )}
+                                        >
+                                            {isAlreadyRated ? 'Indexed' : (isSubmitting ? 'Posting...' : 'Post Evaluation')}
+                                        </Button>
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </div>
+                )}
+            </div>
 
-                    {data?.paymentMethod && (
-                        <div className="rounded-xl border border-slate-200 p-4 bg-white">
-                            <div className="flex items-center gap-2 mb-3">
-                                <CreditCard className="w-4 h-4 text-slate-600" />
-                                <h4 className="text-sm font-bold text-slate-900">Payment Information</h4>
-                            </div>
-                            <div className="space-y-2">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm text-slate-600">Method:</span>
-                                    <Badge variant="outline" className="text-xs font-semibold">{data.paymentMethod === 'COD' ? 'Cash on Delivery' : data.paymentMethod}</Badge>
-                                </div>
-                                {data?.paymentStatus && (
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-sm text-slate-600">Status:</span>
-                                        <Badge
-                                            style={{
-                                                backgroundColor: data.paymentStatus === 'Paid' ? '#d1fae5' : '#fef3c7',
-                                                color: data.paymentStatus === 'Paid' ? '#065f46' : '#92400e',
-                                            }}
-                                            className="text-xs font-semibold border-none"
-                                        >
-                                            {data.paymentStatus}
-                                        </Badge>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {(data?.customerNote || data?.note) && (
-                        <div className="rounded-xl border border-green-200 bg-green-50/50 p-4">
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-green-700 mb-1">Customer Note</p>
-                            <p className="text-sm text-black-800">{data.customerNote || data.note}</p>
-                        </div>
-                    )}
-
-                    {isCompletedOrder && (
-                        <div className="rounded-xl border border-slate-200 p-4 bg-white space-y-3">
-                            <div className="flex items-center justify-between gap-3">
-                                <h4 className="text-sm font-bold text-slate-900">Staff Rating</h4>
-                                <Badge variant="outline" className="text-[10px] font-bold uppercase tracking-wider border-slate-200 text-slate-600">
-                                    {ratingId ? 'Staff Rated' : 'Pending Staff Rating'}
-                                </Badge>
-                            </div>
-
-                            {isRatingPending ? (
-                                <p className="text-sm text-slate-500">Loading staff rating...</p>
-                            ) : (
-                                <>
-                                    <div className="rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2">
-                                        <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Assigned Staff</p>
-                                        <p className="text-sm font-semibold text-slate-800 mt-1">
-                                            {canRateAssignedStaff ? ratedStaffName : 'No staff assigned yet'}
-                                        </p>
-                                    </div>
-
-                                    <div className="flex items-center gap-2">
-                                        {[1, 2, 3, 4, 5].map((value) => {
-                                            const active = value <= score;
-                                            return (
-                                                <button
-                                                    key={value}
-                                                    type="button"
-                                                    className="rounded-md p-1 transition hover:bg-amber-50"
-                                                    aria-label={`Rate ${value} star${value > 1 ? 's' : ''}`}
-                                                    onClick={() => setDraftScore(value)}
-                                                    disabled={isSubmitting || !canRateAssignedStaff || isAlreadyRated}
-                                                >
-                                                    <Star
-                                                        className={`h-5 w-5 ${active ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`}
-                                                    />
-                                                </button>
-                                            );
-                                        })}
-                                        <span className="text-xs font-semibold text-slate-500 ml-1">{score}/5</span>
-                                    </div>
-
-                                    <Textarea
-                                        value={comment}
-                                        onChange={(event) => setDraftComment(event.target.value)}
-                                        placeholder="Share your experience with this staff..."
-                                        className="min-h-[96px] border-slate-200"
-                                        maxLength={500}
-                                        disabled={isSubmitting || !canRateAssignedStaff || isAlreadyRated}
-                                    />
-
-                                    <div className="flex items-center justify-between gap-3">
-                                        <p className="text-[11px] text-slate-500">{comment.trim().length}/500 characters</p>
-                                        <Button
-                                            type="button"
-                                            onClick={handleSubmitRating}
-                                            disabled={isSubmitting || !canRateAssignedStaff || isAlreadyRated}
-                                            className="h-9 rounded-lg px-4 text-xs font-bold uppercase tracking-wider"
-                                        >
-                                            {isAlreadyRated ? 'Already Rated' : (isSubmitting ? 'Saving...' : 'Submit Rating')}
-                                        </Button>
-                                    </div>
-
-                                    {isAlreadyRated && (
-                                        <p className="text-xs font-medium text-slate-500">
-                                            This service order has already been rated and is now read-only.
-                                        </p>
-                                    )}
-
-                                    {!hasAssignedStaff && (
-                                        <p className="text-xs font-medium text-amber-700">
-                                            Staff detail is still syncing. You can still submit your rating for this completed order.
-                                        </p>
-                                    )}
-                                </>
-                            )}
-                        </div>
-                    )}
-
-                    {canCancelService && (
-                        <div className="pt-1">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={handleCancelService}
-                                disabled={isCancelling}
-                                className="w-full rounded-xl border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                            >
-                                {isCancelling ? 'Cancelling...' : 'Cancel Service'}
-                            </Button>
-                        </div>
-                    )}
+            {/* Sticky Action Footer */}
+            <div className="px-10 py-6 border-t border-gray-100 bg-white flex items-center justify-between gap-8 shrink-0 relative z-20">
+                <div className="flex flex-col gap-0.5">
+                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-tight leading-none">Concierge Support</p>
+                    <button
+                        onClick={() => window.alert("Initiating secure channel to support...")}
+                        className="text-[10px] font-black text-[#4988c4] uppercase tracking-widest hover:underline flex items-center gap-1.5"
+                    >
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        Priority Chat
+                    </button>
                 </div>
-            )}
+
+                <div className="flex items-center gap-3 shrink-0">
+                    {canRetryPayment && (
+                        <Button
+                            onClick={handleRetryPayment}
+                            disabled={reOrderFailedServiceMutation.isPending}
+                            className="h-11 px-10 rounded text-[11px] font-black uppercase tracking-widest bg-[#4988c4] hover:bg-[#3b6fa3] text-white shadow-md shadow-blue-500/10 border-0 transition-all active:scale-95 disabled:opacity-70"
+                        >
+                            {reOrderFailedServiceMutation.isPending ? 'Redirecting...' : 'Retry Payment'}
+                        </Button>
+                    )}
+                    {canCancelService && !isPending && (
+                        <Button
+                            variant="ghost"
+                            onClick={handleCancelService}
+                            disabled={isCancelling}
+                            className="h-11 px-6 text-[11px] font-bold text-rose-500 hover:text-rose-600 hover:bg-rose-50 uppercase tracking-widest transition-all border-0"
+                        >
+                            {isCancelling ? "Processing..." : "Cancel Service"}
+                        </Button>
+                    )}
+                    <Button
+                        variant="outline"
+                        onClick={() => setOpen(false)}
+                        className="h-11 px-10 rounded text-[11px] font-black text-[#4988c4] border border-[#4988c4] hover:bg-[#4988c4] hover:text-white uppercase tracking-widest transition-all active:scale-95 shadow-sm"
+                    >
+                        Close
+                    </Button>
+                </div>
+            </div>
+            <ConfirmDialog
+                open={confirmOpen}
+                onOpenChange={setConfirmOpen}
+                title="Cancel Service Order"
+                description={`Are you sure you want to cancel service order #${orderCode || serviceOrderId.slice(0, 8)}? This action cannot be undone.`}
+                confirmText="Yes, Cancel Service"
+                cancelText="No, Keep It"
+                onConfirm={handleConfirmCancel}
+                variant="danger"
+                isLoading={isCancelling}
+            />
         </>
     );
 }

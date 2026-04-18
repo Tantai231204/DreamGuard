@@ -27,11 +27,9 @@ const DialogFooter = memo(function DialogFooter({ isEdit, isLoading, isValid, on
                 form="product-form"
                 disabled={isLoading || !isValid}
                 className={cn(
-                    'flex-1 h-11 rounded-xl font-medium transition-all text-white',
-                    'bg-[#4988c4]',
-                    'hover:bg-[#3a6fa0]',
-                    'shadow-sm',
-                    'disabled:opacity-50 disabled:shadow-none',
+                    "flex-1 h-11 rounded-xl font-medium transition-all text-white",
+                    "bg-[#4988c4] hover:bg-[#3a6fa0] shadow-sm border-0",
+                    "disabled:opacity-50 disabled:shadow-none"
                 )}
             >
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

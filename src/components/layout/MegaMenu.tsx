@@ -125,7 +125,7 @@ export function MegaMenu({ open, items, highlight, combos = [], onMouseEnter, on
                                                         transition={{ delay: 0.15, duration: 0.5 }}
                                                     >
                                                         <Link
-                                                            to={`/combos/${combo.id}`}
+                                                            to={`/combos/${combo.slug}`}
                                                             className="group block"
                                                         >
                                                             <div className="relative aspect-video overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition-all group-hover:shadow-md group-hover:border-[#4988c4]/30">

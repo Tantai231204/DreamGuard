@@ -76,7 +76,7 @@ export const ProductCard: FC<ProductCardProps> = ({ product }) => {
                                 </Badge>
                             )}
                             {product.isNew && !discountPercent && (
-                                <Badge className="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white border-0 px-2.5 py-0.5 text-[9px] font-black rounded-lg tracking-wider shadow-md">
+                                <Badge className="bg-gradient-to-r from-primary-500 to-primary-600 text-white border-0 px-2.5 py-0.5 text-[9px] font-black rounded-lg tracking-wider shadow-md">
                                     New
                                 </Badge>
                             )}

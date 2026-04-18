@@ -1,13 +1,28 @@
 import { memo, useMemo } from 'react';
-import { Check, CheckCheck, Clock, AlertCircle } from 'lucide-react';
+import { Check, CheckCheck, Clock, AlertCircle, CalendarClock, MapPin, Pin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Message } from '../types';
 import { getAvatarGradient } from '../constants';
+import { formatAppointmentTimeLabel } from '@/utils/chatPayload';
 
 interface MessageBubbleProps {
   message: Message;
   formatTime: (iso: string) => string;
+  isLastOutgoing?: boolean;
+  onRetry?: (message: Message) => void;
 }
+
+const isIdentifierLike = (value?: string): boolean => {
+  if (!value) return true;
+  const trimmed = value.trim();
+  if (!trimmed) return true;
+
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (uuidPattern.test(trimmed)) return true;
+
+  const longTokenPattern = /^[A-Za-z0-9_-]{16,}$/;
+  return longTokenPattern.test(trimmed);
+};
 
 const STATUS_ICON = {
   sending:   <Clock       className="h-3 w-3 text-gray-300"                   />,
@@ -17,27 +32,54 @@ const STATUS_ICON = {
   failed:    <AlertCircle className="h-3 w-3 text-red-400"                    />,
 };
 
-function MessageBubbleInner({ message, formatTime }: MessageBubbleProps) {
-  const { content, timestamp, senderRole, senderName, status } = message;
-  const isAdmin = senderRole === 'admin';
+const STATUS_LABEL: Record<NonNullable<Message['status']>, string> = {
+  sending: 'Sending',
+  sent: 'Sent',
+  delivered: 'Delivered',
+  read: 'Seen',
+  failed: 'Not sent',
+};
 
-  const avatarGradient = useMemo(() => getAvatarGradient(senderName), [senderName]);
-  const initial        = senderName.charAt(0).toUpperCase();
+function MessageBubbleInner({ message, formatTime, isLastOutgoing = false, onRetry }: MessageBubbleProps) {
+  const { content, timestamp, senderRole, senderName, status, attachments } = message;
+  const isAdmin = senderRole === 'admin';
+  const hasText = content.trim().length > 0;
+  const appointment = message.appointment;
+  const resolvedStatus = status ?? 'sent';
+  const canRetry = isAdmin && resolvedStatus === 'failed' && !!onRetry && isLastOutgoing;
+  const showMessengerSignal = isAdmin && isLastOutgoing;
+
+  const imageAttachment = useMemo(
+    () => attachments?.find((attachment) => attachment.type === 'image' && !!attachment.url),
+    [attachments],
+  );
+
+  const safeSenderName = senderName || 'User';
+  const displaySenderName = useMemo(() => {
+    if (isAdmin) return 'Support';
+    return isIdentifierLike(safeSenderName) ? 'Customer' : safeSenderName;
+  }, [isAdmin, safeSenderName]);
+  const avatarGradient = useMemo(() => getAvatarGradient(displaySenderName), [displaySenderName]);
+  const initial = displaySenderName.charAt(0).toUpperCase();
   const timeStr        = useMemo(() => formatTime(timestamp), [timestamp, formatTime]);
+  const appointmentTime = useMemo(
+    () => (appointment ? formatAppointmentTimeLabel(appointment.scheduledAt) : ''),
+    [appointment],
+  );
 
   return (
     <div
       className={cn(
-        'flex items-end gap-2.5 w-full group',
+        'flex items-end gap-2.5 w-full',
         isAdmin ? 'flex-row-reverse' : 'flex-row'
       )}
     >
       {/* Avatar */}
       <div
-        title={senderName}
+        title={displaySenderName}
         className={cn(
           'w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center',
-          'text-[11px] font-bold shadow-sm mb-5 select-none',
+          'text-[11px] font-bold shadow-sm mb-4 select-none',
           isAdmin ? `bg-gradient-to-br ${avatarGradient} text-white` : 'bg-gray-200 text-gray-600'
         )}
       >
@@ -47,51 +89,115 @@ function MessageBubbleInner({ message, formatTime }: MessageBubbleProps) {
       {/* Content column */}
       <div
         className={cn(
-          'flex flex-col max-w-[68%]',
+          'flex flex-col max-w-[68%] gap-1',
           isAdmin ? 'items-end msg-anim-admin' : 'items-start msg-anim-customer'
         )}
       >
-        {/* Sender label */}
-        <span
-          className={cn(
-            'text-[10px] font-semibold mb-1 tracking-wide uppercase',
-            isAdmin ? 'text-[var(--color-primary)] opacity-80 mr-1' : 'text-gray-400 ml-1'
-          )}
-        >
-          {isAdmin ? 'Support' : senderName}
-        </span>
+        {imageAttachment && (
+          <div
+            className={cn(
+              'overflow-hidden shadow-sm border',
+              isAdmin
+                ? 'rounded-xl rounded-br-md border-black/5'
+                : 'rounded-xl rounded-bl-md border-gray-200 bg-white',
+            )}
+          >
+            <img
+              src={imageAttachment.url}
+              alt={imageAttachment.fileName || 'Attached image'}
+              className="max-w-[260px] max-h-[260px] object-cover"
+              loading="lazy"
+            />
+          </div>
+        )}
+
+        {appointment && (
+          <div
+            className={cn(
+              'w-full rounded-2xl px-4 py-3.5 shadow-sm',
+              isAdmin
+                ? 'bg-emerald-600 text-white shadow-emerald-900/10'
+                : 'bg-emerald-50/80 text-emerald-900 border-none',
+            )}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className={cn(
+                  "w-6 h-6 rounded-lg flex items-center justify-center",
+                  isAdmin ? "bg-white/20" : "bg-emerald-100"
+                )}>
+                  <Pin className="h-3 w-3" />
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-90">Pinned Protocol</span>
+              </div>
+              <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            </div>
+
+            <div className="space-y-2.5">
+              <div className="flex items-center gap-3">
+                <CalendarClock className="h-4 w-4 opacity-70" strokeWidth={2.5} />
+                <span className="text-[13px] font-bold tracking-tight">{appointmentTime}</span>
+              </div>
+              
+              {appointment.location && (
+                <div className="flex items-start gap-3">
+                  <MapPin className="h-4 w-4 mt-0.5 opacity-70" strokeWidth={2.5} />
+                  <span className="text-[12px] font-medium leading-tight opacity-90">{appointment.location}</span>
+                </div>
+              )}
+
+              {appointment.note && (
+                <div className={cn(
+                  "mt-3 p-3 rounded-xl text-[11px] font-medium italic leading-relaxed",
+                  isAdmin ? "bg-black/10 text-emerald-50" : "bg-white/60 text-emerald-800"
+                )}>
+                  "{appointment.note}"
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Bubble */}
-        <div
-          className={cn(
-            'relative px-3.5 py-2 rounded-2xl text-sm leading-relaxed shadow-sm',
-            'whitespace-pre-wrap break-words',
-            isAdmin
-              ? 'bg-gradient-to-br from-[#4988c4] to-[#3a73a8] text-white rounded-br-sm bubble-admin'
-              : 'bg-white text-gray-800 border border-gray-200 rounded-bl-sm bubble-customer'
-          )}
-        >
-          {content}
-
-          {/* Failed retry hint */}
-          {status === 'failed' && (
-            <span className="block text-[10px] text-red-300 mt-1">
-              Failed to send — tap to retry
-            </span>
-          )}
-        </div>
+        {hasText && (
+          <div
+            className={cn(
+              'relative px-3.5 py-2 rounded-xl text-sm leading-relaxed shadow-sm',
+              'whitespace-pre-wrap break-words',
+              isAdmin
+                ? 'bg-gradient-to-br from-[#4988c4] to-[#3a73a8] text-white rounded-br-md bubble-admin'
+                : 'bg-white text-gray-800 border border-gray-200 rounded-bl-md bubble-customer'
+            )}
+          >
+            {content}
+          </div>
+        )}
 
         {/* Time + status */}
         <div
           className={cn(
-            'flex items-center gap-1 mt-1 text-[10px] text-gray-400',
-            'opacity-0 group-hover:opacity-100 transition-opacity duration-200',
-            isAdmin ? 'flex-row-reverse mr-1' : 'ml-1'
+            'flex items-center gap-1 text-[9px] text-gray-400 px-1 whitespace-nowrap leading-none',
+            isAdmin ? 'self-end' : 'self-start'
           )}
         >
           <span>{timeStr}</span>
-          {isAdmin && STATUS_ICON[status ?? 'sent']}
+          {showMessengerSignal && (
+            <>
+              {STATUS_ICON[resolvedStatus]}
+              <span>{STATUS_LABEL[resolvedStatus]}</span>
+            </>
+          )}
         </div>
+
+        {canRetry && (
+          <button
+            type="button"
+            onClick={() => onRetry?.(message)}
+            className="text-[9px] text-rose-500 hover:text-rose-600 px-1 self-end whitespace-nowrap leading-none"
+          >
+            Failed to send - Tap to retry
+          </button>
+        )}
       </div>
     </div>
   );

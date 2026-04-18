@@ -4,3 +4,4 @@ export { default as ProductInfoCard } from './Productinfocard';
 export { default as ProductImagesCard } from './Productimagescard';
 export { default as QuickInfoCard } from './Quickinfocard';
 export { default as ProductCertificatesCard } from './ProductCertificatesCard';
+export * from './ProductReviewsCard';

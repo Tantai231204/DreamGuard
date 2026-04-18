@@ -26,8 +26,8 @@ const DialogHeader = memo(function DialogHeader({ isEdit, status, completionScor
             </div>
 
             <div className="flex flex-col items-end gap-2 shrink-0">
-                <div className="flex items-center gap-2 bg-indigo-50/50 px-3 py-1.5 rounded-full border border-indigo-100 shadow-sm">
-                    <span className="text-[11px] font-black text-indigo-700 uppercase tracking-tighter">
+                <div className="flex items-center gap-2 bg-primary/5 px-3 py-1.5 rounded-full border border-primary/20 shadow-sm">
+                    <span className="text-[11px] font-black text-primary uppercase tracking-tighter">
                         Product Health: {completionScore}%
                     </span>
                 </div>

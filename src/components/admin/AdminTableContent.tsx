@@ -13,16 +13,31 @@ interface AdminTableContentProps<T> {
   table: Table<T>;
   emptyMessage?: string;
   isLoading?: boolean;
+  onRowClick?: (row: T) => void;
 }
 
 export function AdminTableContent<T>({ 
   table,
   emptyMessage = "No data found",
-  isLoading = false
+  isLoading = false,
+  onRowClick,
 }: AdminTableContentProps<T>) {
   const rows = table.getRowModel().rows;
   const pageSize = table.getState().pagination.pageSize;
   const columnCount = table.getAllColumns().length;
+  const isRowClickable = typeof onRowClick === 'function';
+
+  const shouldIgnoreRowClick = (eventTarget: EventTarget | null): boolean => {
+    if (!(eventTarget instanceof Element)) {
+      return false;
+    }
+
+    return Boolean(
+      eventTarget.closest(
+        'a,button,input,textarea,select,label,[role="button"],[role="menuitem"],[data-row-click-ignore="true"]',
+      ),
+    );
+  };
 
   // Calculate empty rows needed to fill page for consistent height
   const emptyRowsCount = Math.max(0, pageSize - rows.length);
@@ -64,7 +79,14 @@ export function AdminTableContent<T>({
                 <TableRow
                   key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
-                  className="group hover:bg-gradient-to-r hover:from-blue-50/30 hover:to-transparent transition-all duration-200 border-b border-gray-100 data-[state=selected]:bg-blue-50/50"
+                  className={`group hover:bg-gradient-to-r hover:from-blue-50/30 hover:to-transparent transition-all duration-200 border-b border-gray-100 data-[state=selected]:bg-blue-50/50 ${isRowClickable ? 'cursor-pointer' : ''}`}
+                  onClick={(event) => {
+                    if (!onRowClick || shouldIgnoreRowClick(event.target)) {
+                      return;
+                    }
+
+                    onRowClick(row.original);
+                  }}
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id} className="py-4">

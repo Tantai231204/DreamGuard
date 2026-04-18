@@ -49,11 +49,48 @@ function extractMessage(data: unknown, fallback: string): string {
   return fallback;
 }
 
+function toNumericStatus(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const parsed = Number(value.trim());
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return undefined;
+}
+
+function resolveStatusCode(data: unknown, httpStatus?: number): number | undefined {
+  if (typeof httpStatus === "number" && Number.isFinite(httpStatus)) return httpStatus;
+  if (!data || typeof data !== "object") return undefined;
+
+  const d = data as Record<string, unknown>;
+  const nested = d.data && typeof d.data === "object" ? (d.data as Record<string, unknown>) : undefined;
+
+  return (
+    toNumericStatus(d.errorCode) ??
+    toNumericStatus(d.statusCode) ??
+    toNumericStatus(d.code) ??
+    toNumericStatus(nested?.errorCode) ??
+    toNumericStatus(nested?.statusCode) ??
+    toNumericStatus(nested?.code)
+  );
+}
+
+function mapStatusToErrorCode(status?: number): ApiErrorCode {
+  if (status === 422 || status === 400) return ApiErrorCode.VALIDATION;
+  if (status === 401) return ApiErrorCode.UNAUTHORIZED;
+  if (status === 403) return ApiErrorCode.FORBIDDEN;
+  if (status === 404) return ApiErrorCode.NOT_FOUND;
+  if (status === 409) return ApiErrorCode.CONFLICT;
+  if (typeof status === "number" && status >= 500) return ApiErrorCode.SERVER_ERROR;
+  return ApiErrorCode.UNKNOWN;
+}
+
 export const ERROR_TITLES: Partial<Record<ApiErrorCode, string>> = {
   [ApiErrorCode.VALIDATION]: "Invalid Data",
   [ApiErrorCode.UNAUTHORIZED]: "Unauthorized",
   [ApiErrorCode.FORBIDDEN]: "Access Denied",
   [ApiErrorCode.NOT_FOUND]: "Not Found",
+  [ApiErrorCode.CONFLICT]: "Conflict",
   [ApiErrorCode.SERVER_ERROR]: "Internal Server Error",
   [ApiErrorCode.NETWORK_ERROR]: "Connection Error",
   [ApiErrorCode.UNKNOWN]: "Something went wrong",
@@ -84,7 +121,13 @@ const processQueue = (error: unknown) => {
 ====================== */
 api.interceptors.response.use(
   (response) => {
-    // console.log("[API Debug] Response Success:", response.config.url);
+    const businessStatus = resolveStatusCode(response.data);
+    if (typeof businessStatus === "number" && businessStatus >= 400) {
+      const message = extractMessage(response.data, "An unexpected error occurred");
+      const code = mapStatusToErrorCode(businessStatus);
+      return Promise.reject(new ApiError(message, code, businessStatus));
+    }
+
     return response;
   },
   async (error) => {
@@ -121,16 +164,16 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        // Pure Cookie Refresh:
-        // No body payload needed, server will read HTTP-only RefreshToken cookie.
-        await api.post("/auths/refreshToken", {});
-
+        const refreshRes = await api.post("/auths/refreshToken", {});
+        const newToken = refreshRes.data?.data?.accessToken || refreshRes.data?.accessToken;
+        if (newToken) {
+          sessionStorage.setItem('signalr_token', newToken);
+        }
         processQueue(null);
         return api(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError);
-        // Explicitly clear auth and trigger redirect reason through the store
-        // This is the "Maximum BE Sync" pattern
+        // If refresh fails (401, 404), force logout immediately to stop loops
         useAuthStore.getState().clearAuth('session_expired');
         return Promise.reject(refreshError);
       } finally {
@@ -142,17 +185,11 @@ api.interceptors.response.use(
     if (error.response) {
       const status = error.response.status;
       const data = error.response.data;
-      let code: ApiErrorCode = ApiErrorCode.UNKNOWN;
-
+      const resolvedStatus = resolveStatusCode(data, status);
       const message = extractMessage(data, error.message || "An unexpected error occurred");
+      const code = mapStatusToErrorCode(resolvedStatus);
 
-      if (status === 422 || status === 400) code = ApiErrorCode.VALIDATION;
-      else if (status === 401) code = ApiErrorCode.UNAUTHORIZED;
-      else if (status === 403) code = ApiErrorCode.FORBIDDEN;
-      else if (status === 404) code = ApiErrorCode.NOT_FOUND;
-      else if (status >= 500) code = ApiErrorCode.SERVER_ERROR;
-
-      return Promise.reject(new ApiError(message, code, status));
+      return Promise.reject(new ApiError(message, code, resolvedStatus));
     } else if (error.request) {
       // Network/Timeout error
       const message = "Unable to connect to the server. Please check your network.";

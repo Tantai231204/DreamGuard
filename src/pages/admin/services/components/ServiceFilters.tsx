@@ -134,7 +134,7 @@ export const ServiceFilters = memo(function ServiceFilters({
                 size="sm"
                 onClick={() => onServiceTypeFilterChange(option.value as ServiceType | 'all')}
                 className={`h-8 text-xs rounded-full px-3 transition-all duration-200 flex items-center gap-1.5 ${isActive
-                  ? 'bg-indigo-50 text-indigo-700 border border-indigo-200 font-medium shadow-sm hover:bg-indigo-50 hover:text-indigo-700'
+                  ? 'bg-primary-50 text-primary-700 border border-primary-200 font-medium shadow-sm hover:bg-primary-50 hover:text-primary-700'
                   : 'bg-gray-50/50 text-gray-600 border border-transparent hover:bg-gray-100/80 hover:text-gray-900 hover:border-gray-200'
                   }`}
               >

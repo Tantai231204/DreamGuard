@@ -19,6 +19,7 @@ import {
     Trash2,
     Copy,
     MoreVertical,
+    Check,
 } from 'lucide-react';
 import { useComboDetail } from '@/hooks/queries/useCombo';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -29,7 +30,6 @@ import type { Combo } from '../../types';
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
     draft: { label: 'Draft', className: 'bg-amber-50 text-amber-700 border-amber-300' },
     published: { label: 'Published', className: '!bg-green-50 !text-green-700 !border-green-300' },
-    outofstock: { label: 'Out of Stock', className: 'bg-red-50 text-red-700 border-red-300' },
     hidden: { label: 'Hidden', className: 'bg-gray-50 text-gray-600 border-gray-300' },
 };
 
@@ -113,7 +113,7 @@ const ComboVariantRowInternal = memo(({
     onEdit?: (v: Combo) => void;
     onDelete?: (v: Combo) => void;
     onDuplicate?: (v: Combo) => void;
-    onUpdateStatus?: (id: string, status: string, name?: string, currentStatus?: string) => void;
+    onUpdateStatus?: (id: string, status: string, name?: string, currentStatus?: string, totalStock?: number) => void;
 }) => {
     const [expanded, setExpanded] = useState(false);
     const statusKey = (variant.status || 'Draft').toLowerCase().replace(' ', '');
@@ -125,7 +125,7 @@ const ComboVariantRowInternal = memo(({
             expanded ? 'border-primary-500 bg-primary-50/10' : 'border-transparent'
         )}>
             <div className={cn(
-                'grid grid-cols-[40px_1fr_140px_120px_100px_60px] gap-4 items-center px-6 py-4 transition-colors',
+                'grid grid-cols-[40px_1fr_140px_120px_60px] gap-4 items-center px-6 py-4 transition-colors',
                 isEven ? 'bg-white' : 'bg-gray-50/40',
                 'hover:bg-primary-50/40'
             )}>
@@ -168,24 +168,28 @@ const ComboVariantRowInternal = memo(({
                             </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="center" className="w-32 rounded-xl">
-                            {Object.entries(STATUS_CONFIG).map(([key, config]) => (
-                                <DropdownMenuItem
-                                    key={key}
-                                    onClick={() => onUpdateStatus?.(variant.id, config.label, variant.name, variant.status)}
-                                    className="text-[11px] font-bold"
-                                >
-                                    {config.label}
-                                </DropdownMenuItem>
-                            ))}
+                            {Object.entries(STATUS_CONFIG).map(([key, config]) => {
+                                const isActive = variant.status === config.label;
+
+                                return (
+                                    <DropdownMenuItem
+                                        key={key}
+                                        disabled={isActive}
+                                        onClick={() => onUpdateStatus?.(variant.id, config.label, variant.name, variant.status, variant.totalStock)}
+                                        className={cn(
+                                            "text-[11px] font-bold",
+                                            isActive && "bg-primary-50 text-primary-700"
+                                        )}
+                                    >
+                                        <div className="flex items-center justify-between w-full">
+                                            {config.label}
+                                            {isActive && <Check className="h-3 w-3" />}
+                                        </div>
+                                    </DropdownMenuItem>
+                                );
+                            })}
                         </DropdownMenuContent>
                     </DropdownMenu>
-                </div>
-
-                <div className="flex justify-center">
-                    <div className="bg-slate-50 px-2 py-1 rounded-lg border border-slate-100 flex items-center gap-1.5 grayscale opacity-60">
-                        <Package className="h-3 w-3 text-slate-400" />
-                        <span className="text-[11px] font-black text-slate-600">{(variant.items ?? []).length}</span>
-                    </div>
                 </div>
 
                 <div className="flex justify-end pr-2">
@@ -238,7 +242,7 @@ interface ComboVariantsPanelProps {
     onEditVariant?: (variant: Combo) => void;
     onDeleteVariant?: (variant: Combo) => void;
     onDuplicateVariant?: (variant: Combo) => void;
-    onUpdateStatus?: (id: string, status: string, name?: string, currentStatus?: string) => void;
+    onUpdateStatus?: (id: string, status: string, name?: string, currentStatus?: string, totalStock?: number) => void;
 }
 
 const ComboVariantsPanel = memo(({
@@ -293,12 +297,11 @@ const ComboVariantsPanel = memo(({
                         <>
                             {/* Column header */}
                             <div className="bg-gray-50 border-b border-gray-200">
-                                <div className="grid grid-cols-[40px_1fr_140px_120px_100px_60px] gap-4 items-center px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                                <div className="grid grid-cols-[40px_1fr_140px_120px_60px] gap-4 items-center px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                                     <div />
                                     <div>Variant</div>
                                     <div className="text-right">Price</div>
                                     <div className="text-center">Status</div>
-                                    <div className="text-center">Items</div>
                                     <div />
                                 </div>
                             </div>

@@ -1,7 +1,11 @@
+import { memo } from "react";
 import { motion } from "framer-motion";
 import { Package } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Combo, RichComboItem } from "../../types";
+import { useVariant } from "@/hooks/queries/useVariant";
+import type { VariantResponse, VariantAttributes } from "@/api/services/variantService";
+import { cn } from "@/lib/utils";
 
 interface Props {
     combo: Combo;
@@ -9,6 +13,42 @@ interface Props {
     isLoading?: boolean;
     enrichedItems?: RichComboItem[];
 }
+
+import { useProductDetail } from "@/hooks/queries/useProduct";
+
+const SubItemImage = memo(({ variantId, fallbackImage, alt }: { variantId: string; fallbackImage?: string; alt: string }) => {
+    const { data: variantData, isLoading: isVarLoading } = useVariant(variantId || "");
+    const variant = variantData as VariantResponse;
+    const vImg = (variant?.attributes as VariantAttributes)?.imageUrl || (variant as { imageUrl?: string })?.imageUrl;
+    
+    // Recovery: Fetch root product if variant has no image
+    const productId = variant?.productId || (variant as { product?: { id: string } })?.product?.id || "";
+    const { data: productData } = useProductDetail(productId, !!productId && (!vImg || (vImg as string).length < 5) && (!fallbackImage || (fallbackImage as string).length < 5));
+    
+    const pData = productData as { imageUrls?: string[]; imageUrl?: string; assets?: { url: string }[] };
+    const pImg = pData?.imageUrls?.[0] || pData?.imageUrl || pData?.assets?.[0]?.url || (variant as { product?: { imageUrl?: string } })?.product?.imageUrl;
+
+    const imageUrl = ((vImg as string)?.length > 5) ? (vImg as string) : ((fallbackImage as string)?.length > 5) ? (fallbackImage as string) : (pImg as string);
+    const isLoading = isVarLoading;
+
+    if (isLoading && !imageUrl) {
+        return <div className="w-full h-full bg-slate-50 animate-pulse" />;
+    }
+
+    return (
+        <img 
+            src={imageUrl || "/placeholder.png"} 
+            alt={alt} 
+            className={cn("w-full h-full object-contain transition-all duration-700 group-hover:scale-110 group-hover:rotate-3", !imageUrl && "opacity-0", imageUrl && "opacity-100")} 
+            onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                if (!target.src.includes('placeholder.png')) {
+                    target.src = "/placeholder.png";
+                }
+            }}
+        />
+    );
+});
 
 export const ComboIncludedItems = ({ combo, activeCombo, isLoading, enrichedItems }: Props) => {
     const current = activeCombo || combo;
@@ -66,43 +106,36 @@ export const ComboIncludedItems = ({ combo, activeCombo, isLoading, enrichedItem
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
                                 transition={{ delay: idx * 0.1, duration: 0.6 }}
-                                className="group relative bg-white rounded-[2.5rem] p-8 border border-slate-100/80 shadow-sm hover:shadow-2xl hover:shadow-indigo-100/50 hover:-translate-y-2 transition-all duration-500"
+                                className="group relative bg-white rounded-[2.5rem] p-8 border border-slate-100/80 shadow-sm hover:shadow-2xl hover:shadow-primary-100/50 hover:-translate-y-2 transition-all duration-500"
                             >
                                 {/* Quantity Badge - Floating */}
                                 <div className="absolute top-6 right-6 z-20">
                                     <div className="flex flex-col items-center">
                                         <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-0.5">Quantity</span>
-                                        <div className="bg-indigo-600 text-white w-10 h-10 rounded-2xl flex items-center justify-center text-lg font-black shadow-lg shadow-indigo-200">
+                                        <div className="bg-primary-600 text-white w-10 h-10 rounded-2xl flex items-center justify-center text-lg font-black shadow-lg shadow-primary-200">
                                             {item.quantity}
                                         </div>
                                     </div>
                                 </div>
 
                                 <div className="relative mb-8">
-                                    <div className="aspect-square rounded-[2rem] bg-slate-50 overflow-hidden flex items-center justify-center p-8 border border-slate-100 group-hover:bg-indigo-50/30 transition-colors duration-500">
-                                         {item.imageUrl ? (
-                                            <img 
-                                                src={item.imageUrl} 
-                                                alt={item.productName} 
-                                                className="w-full h-full object-contain group-hover:scale-110 group-hover:rotate-3 transition-transform duration-700"
-                                            />
-                                         ) : (
-                                            <div className="flex flex-col items-center gap-3">
-                                                <Package className="w-12 h-12 text-slate-200 group-hover:text-indigo-200 transition-colors" />
-                                                <div className="px-3 py-1 bg-white border border-slate-100 rounded-lg text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Premium Item</div>
-                                            </div>
-                                         )}
+                                    <div className="aspect-square rounded-[2rem] bg-slate-50 overflow-hidden flex items-center justify-center p-8 border border-slate-100 group-hover:bg-primary-50/30 transition-colors duration-500">
+                                         <SubItemImage 
+                                            variantId={item.productVariantId || item.variantId || ""} 
+                                            fallbackImage={item.imageUrl} 
+                                            alt={item.productName || ""} 
+                                         />
                                     </div>
                                 </div>
                                 
                                 <div className="space-y-4">
                                     <div>
-                                        <h4 className="font-black text-slate-900 text-xl leading-tight line-clamp-2 min-h-[3.5rem] group-hover:text-indigo-700 transition-colors">
+                                        <h4 className="font-black text-slate-900 text-xl leading-tight line-clamp-2 min-h-[3.5rem] group-hover:text-primary-700 transition-colors">
                                             {item.productName}
                                         </h4>
                                         {((item.enrichedDetail?.size || item.variantLabel)) && (
                                             <p className="text-[11px] font-bold text-slate-400 mt-2 flex items-center gap-2">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400/50" />
+                                                <span className="w-1.5 h-1.5 rounded-full bg-primary-400/50" />
                                                 {item.enrichedDetail?.size || item.variantLabel}
                                             </p>
                                         )}
@@ -110,7 +143,7 @@ export const ComboIncludedItems = ({ combo, activeCombo, isLoading, enrichedItem
 
                                     {/* Enriched Details Section */}
                                     {item.enrichedDetail && (
-                                        <div className="bg-slate-50/80 rounded-2xl p-4 space-y-3 border border-slate-100/50 transition-colors group-hover:bg-white group-hover:border-indigo-100 group-hover:shadow-sm">
+                                        <div className="bg-slate-50/80 rounded-2xl p-4 space-y-3 border border-slate-100/50 transition-colors group-hover:bg-white group-hover:border-primary-100 group-hover:shadow-sm">
                                             <div className="flex items-center justify-between gap-4">
                                                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">SKU</span>
                                                 <span className="text-[11px] font-mono font-bold text-slate-600 truncate max-w-[120px]">{item.enrichedDetail.sku}</span>

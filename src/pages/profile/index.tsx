@@ -12,6 +12,7 @@ import {
     ProfileInfoTab,
     ProfileSidebar,
     SecurityTab,
+    TradeInOrdersTab,
     VouchersTab,
     WishlistTab
 } from "./components"
@@ -27,6 +28,7 @@ const TAB_COMPONENTS: Record<TabId, React.ComponentType> = {
     addresses: AddressesTab,
     notifications: NotificationsTab,
     security: SecurityTab,
+    "trade-in-orders": TradeInOrdersTab,
 };
 
 export default function Profile() {
@@ -102,7 +104,7 @@ export default function Profile() {
                                         transition={{ duration: 0.25, ease: "easeOut" }}
                                         className="rounded-[3rem] border border-slate-100 bg-white shadow-xl ring-1 ring-slate-100/50 flex flex-col h-full overflow-hidden"
                                     >
-                                        <div className="flex-1 overflow-y-auto custom-scrollbar p-10 scroll-smooth">
+                                        <div className="flex-1 overflow-y-auto custom-scrollbar scrollbar-profile p-10 scroll-smooth">
                                             <ActiveComponent />
                                         </div>
                                     </motion.div>

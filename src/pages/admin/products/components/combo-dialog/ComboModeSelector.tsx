@@ -30,7 +30,7 @@ export default function ComboModeSelector({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-md rounded-2xl p-0 gap-0 overflow-hidden">
                 <div className="flex items-center gap-4 px-6 py-5 border-b border-slate-100 bg-slate-50/30">
-                    <div className="w-10 h-10 rounded-xl bg-primary-600 flex items-center justify-center shadow-lg shadow-primary-200 shrink-0">
+                    <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-200 shrink-0">
                         <Layers className="w-5 h-5 text-white" />
                     </div>
                     <div>
@@ -46,10 +46,10 @@ export default function ComboModeSelector({
                     <button
                         type="button"
                         onClick={() => onSelectMode('parent')}
-                        className="w-full flex items-center gap-4 p-5 rounded-2xl border-2 border-slate-100 hover:border-primary-500 hover:bg-primary-50/30 transition-all text-left group"
+                        className="w-full flex items-center gap-4 p-5 rounded-2xl border-2 border-slate-100 hover:border-blue-500 hover:bg-blue-50/30 transition-all text-left group"
                     >
-                        <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center shrink-0 group-hover:bg-primary-100 transition-colors">
-                            <Package className="w-5 h-5 text-slate-500 group-hover:text-primary-600 transition-colors" />
+                        <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center shrink-0 group-hover:bg-blue-100 transition-colors">
+                            <Package className="w-5 h-5 text-slate-500 group-hover:text-blue-600 transition-colors" />
                         </div>
                         <div className="flex-1 min-w-0">
                             <div className="text-[15px] font-black text-slate-900 leading-none">Combo Parent</div>
@@ -61,10 +61,10 @@ export default function ComboModeSelector({
                     <button
                         type="button"
                         onClick={() => onSelectMode('variant')}
-                        className="w-full flex items-center gap-4 p-5 rounded-2xl border-2 border-slate-100 hover:border-primary-500 hover:bg-primary-50/30 transition-all text-left group"
+                        className="w-full flex items-center gap-4 p-5 rounded-2xl border-2 border-slate-100 hover:border-blue-500 hover:bg-blue-50/30 transition-all text-left group"
                     >
-                        <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center shrink-0 group-hover:bg-primary-100 transition-colors">
-                            <GitBranch className="w-5 h-5 text-slate-500 group-hover:text-primary-600 transition-colors" />
+                        <div className="w-12 h-12 rounded-xl bg-slate-100 flex items-center justify-center shrink-0 group-hover:bg-blue-100 transition-colors">
+                            <GitBranch className="w-5 h-5 text-slate-500 group-hover:text-blue-600 transition-colors" />
                         </div>
                         <div className="flex-1 min-w-0">
                             <div className="text-[15px] font-black text-slate-900 leading-none">Combo Variant</div>
