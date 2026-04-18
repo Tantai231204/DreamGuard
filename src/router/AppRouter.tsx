@@ -27,6 +27,7 @@ const WarrantyPolicyPage = lazy(() => import("../pages/warranty-policy"));
 const HelpCenterPage = lazy(() => import("../pages/help-center"));
 const FAQPage = lazy(() => import("../pages/faq"));
 const TermsOfServicePage = lazy(() => import("../pages/terms-of-service"));
+const PrivacyPolicyPage = lazy(() => import("../pages/privacy-policy"));
 
 // Auth
 const Login = lazy(() => import("../pages/auth/Login"));
@@ -90,6 +91,7 @@ export default function AppRouter() {
                         <Route path={AppRoute.HELP_CENTER} element={<HelpCenterPage />} />
                         <Route path={AppRoute.FAQ} element={<FAQPage />} />
                         <Route path={AppRoute.TERMS_OF_SERVICE} element={<TermsOfServicePage />} />
+                        <Route path={AppRoute.PRIVACY_POLICY} element={<PrivacyPolicyPage />} />
                     </Route>
 
 

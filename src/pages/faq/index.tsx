@@ -21,7 +21,7 @@ const faqGroups = [
       {
         question: "How do I place an order on DreamGuard?",
         answer:
-          "You can place an order through the website product pages, cart, and checkout flow. Review the variant, quantity, delivery information, and payment method before confirming.",
+          "To place an order, you need to sign in first. If you don't have an account yet, please register before ordering. Then choose products from the website, add them to your cart, and complete checkout with the correct variant, quantity, delivery information, and payment method.",
       },
       {
         question: "Can I change my order after placing it?",
@@ -31,7 +31,7 @@ const faqGroups = [
       {
         question: "Which payment methods are typically supported?",
         answer:
-          "Payment availability depends on the active checkout configuration, but DreamGuard support can confirm available methods for your order if you encounter an issue during checkout.",
+          "Supported payment methods are VNPay and COD (cash on delivery).",
       },
     ],
   },
@@ -86,7 +86,7 @@ const faqGroups = [
       {
         question: "Where should I contact DreamGuard for the fastest support?",
         answer:
-          "For urgent order or after-sales cases, the hotline is usually the fastest route. For cases that need detailed review, email with attached photos or videos is more efficient.",
+          "For the fastest help, call hotline 0357968555 or chat with us directly on the website.",
       },
       {
         question: "Where can I find policy details without contacting support first?",
