@@ -1,8 +1,8 @@
-import { 
-  Clock, 
-  CheckCircle2, 
-  Loader2, 
-  XCircle, 
+import {
+  Clock,
+  CheckCircle2,
+  Loader2,
+  XCircle,
   CalendarCheck,
   Sparkles,
   Bed,
@@ -18,9 +18,9 @@ import {
 import type { ServiceStatus, ServiceType, PaymentStatus } from './types';
 
 // Status colors with gradient support
-export const statusConfig: Record<ServiceStatus, { 
-  bg: string; 
-  text: string; 
+export const statusConfig: Record<ServiceStatus, {
+  bg: string;
+  text: string;
   border: string;
   icon: typeof Clock;
   label: string;
@@ -80,6 +80,13 @@ export const statusConfig: Record<ServiceStatus, {
     border: 'border-rose-200',
     icon: XCircle,
     label: 'Forced Cancelled',
+  },
+  rescheduled: {
+    bg: 'bg-indigo-50',
+    text: 'text-indigo-700',
+    border: 'border-indigo-200',
+    icon: Repeat,
+    label: 'Rescheduled',
   },
 };
 
@@ -150,6 +157,20 @@ export const paymentStatusConfig: Record<PaymentStatus, {
     border: 'border-emerald-200',
     icon: CheckCircle2,
   },
+  pending_payment: {
+    label: 'Pending Payment',
+    bg: 'bg-amber-50',
+    text: 'text-amber-700',
+    border: 'border-amber-200',
+    icon: Clock,
+  },
+  'COD Paid': {
+    label: 'COD Paid',
+    bg: 'bg-emerald-50',
+    text: 'text-emerald-700',
+    border: 'border-emerald-200',
+    icon: CheckCircle2,
+  },
   refunded: {
     label: 'Refunded',
     bg: 'bg-amber-50',
@@ -202,8 +223,10 @@ export const statusFilterOptions = [
   { value: 'pending', label: 'Pending' },
   { value: 'confirmed', label: 'Confirmed' },
   { value: 'processing', label: 'Processing' },
+  { value: 'rescheduled', label: 'Rescheduled' },
   { value: 'completed', label: 'Completed' },
   { value: 'cancelled', label: 'Cancelled' },
+  { value: 'forcedcancelled', label: 'Forced Cancelled' },
   { value: 'rejected', label: 'Rejected' },
 ];
 

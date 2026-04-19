@@ -261,17 +261,32 @@ export default function TradeInOrderDetail() {
 
                   {/* SOURCE (OLD) PRODUCT */}
                   <div className="flex items-start gap-4 z-10">
-                    <div className="h-16 w-16 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0 shadow-sm">
-                      <History className="w-6 h-6 text-slate-400" />
+                    <div className="h-16 w-16 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center shrink-0 shadow-sm overflow-hidden">
+                      {order.oldProductVariantUrl ? (
+                        <img src={order.oldProductVariantUrl} alt="Source Product" className="w-full h-full object-cover" />
+                      ) : (
+                        <History className="w-6 h-6 text-slate-400" />
+                      )}
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest bg-slate-100 px-2 py-0.5 rounded-sm border border-slate-200/50">Source Product</span>
+                        {order.orderId && (
+                          <button
+                            onClick={() => navigate(`/admin/orders/${order.orderId}`)}
+                            className="text-[9px] font-black text-primary uppercase tracking-widest hover:underline flex items-center gap-1 bg-primary/5 px-2 py-0.5 rounded"
+                          >
+                            <ShoppingBag className="w-2.5 h-2.5" />
+                            Source Order
+                          </button>
+                        )}
                       </div>
                       <p className="text-sm font-bold text-slate-900 leading-tight pr-4">{order.orderItem?.itemName || 'Unknown Legacy Product'}</p>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1.5 flex items-center gap-1.5">
-                        O-Item ID: <span className="font-mono text-slate-500">{order.pOrderItemId?.substring(0, 8) || 'N/A'}</span>
-                      </p>
+                      <div className="flex items-center gap-3 mt-1.5 ">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                          O-Item ID: <span className="font-mono text-slate-500">{order.pOrderItemId?.substring(0, 8) || 'N/A'}</span>
+                        </p>
+                      </div>
                     </div>
                     <div className="text-right">
                       <p className="text-[9px] font-black uppercase text-slate-400 tracking-[0.2em]">Original Value</p>
@@ -288,8 +303,12 @@ export default function TradeInOrderDetail() {
 
                   {/* TARGET (NEW) PRODUCT */}
                   <div className="flex items-start gap-4 z-10">
-                    <div className="h-16 w-16 rounded-xl bg-blue-50/50 border border-blue-100 flex items-center justify-center shrink-0 shadow-sm">
-                      <ShoppingBag className="w-6 h-6 text-primary" />
+                    <div className="h-16 w-16 rounded-xl bg-blue-50/50 border border-blue-100 flex items-center justify-center shrink-0 shadow-sm overflow-hidden p-1">
+                      {order.newProductVariantUrl ? (
+                        <img src={order.newProductVariantUrl} alt="Target Upgrade" className="w-full h-full object-contain rounded-lg" />
+                      ) : (
+                        <ShoppingBag className="w-6 h-6 text-primary" />
+                      )}
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">

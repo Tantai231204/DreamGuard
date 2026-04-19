@@ -26,7 +26,10 @@ const paymentService = {
     },
 
     updatePaymentStatus: async (id: string, status: string): Promise<void> => {
-        await apiClient.patch(`/payment/admin/${id}/${status}`);
+        console.log(`[PaymentService] Updating payment ${id} to ${status}`);
+        await apiClient.put(`/payment/admin/${id}/status`, null, {
+            params: { status }
+        });
     },
 
     getPaymentByOrderId: async (orderId: string): Promise<PaymentDetailResponse> => {

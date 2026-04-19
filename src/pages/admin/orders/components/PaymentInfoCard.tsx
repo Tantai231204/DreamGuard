@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/card';
 import { formatPrice } from '@/pages/profile/utils';
@@ -15,15 +15,15 @@ interface PaymentInfoCardProps {
   delay?: number;
 }
 
-export function PaymentInfoCard({ orderCode, delay = 0 }: PaymentInfoCardProps) {
+export const PaymentInfoCard = React.memo(({ orderCode, delay = 0 }: PaymentInfoCardProps) => {
   const { data: paymentResponse, isPending: isLoading } = useAdminPayments({ orderCode });
   const payments = paymentResponse?.items || [];
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const payment = payments[currentIndex];
 
-  const handlePrev = () => setCurrentIndex(p => Math.max(0, p - 1));
-  const handleNext = () => setCurrentIndex(p => Math.min(payments.length - 1, p + 1));
+  const handlePrev = useCallback(() => setCurrentIndex(p => Math.max(0, p - 1)), []);
+  const handleNext = useCallback(() => setCurrentIndex(p => Math.min(payments.length - 1, p + 1)), [payments.length]);
 
   const rawMethod = payment?.paymentMethod || 'COD';
   const displayMethod = (rawMethod.toLowerCase() === 'cod' && payment?.status?.toLowerCase() === 'paid')
@@ -123,12 +123,20 @@ export function PaymentInfoCard({ orderCode, delay = 0 }: PaymentInfoCardProps) 
                   </div>
                 </div>
 
+                {/* Fiscal Description - Core Audit Data */}
+                <div className="mb-6 space-y-1.5 p-3 rounded-xl bg-slate-50 border border-slate-100 flex flex-col">
+                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Fiscal Identity</span>
+                  <p className="text-[10px] font-bold text-slate-600 leading-relaxed italic">
+                    {payment?.description || 'N/A: Standard Purchase Authorization'}
+                  </p>
+                </div>
+
                 {/* Auth Reference & Timestamp Row */}
                 <div className="flex items-end justify-between mb-6 gap-4">
                   <div className="space-y-1 flex-1">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Auth Reference</p>
-                    <div className="font-mono text-[10px] font-bold text-slate-600 bg-slate-50 px-2 py-1 rounded border border-slate-100/50 inline-block">
-                      {payment?.id?.substring(0, 12).toUpperCase() || 'REF-PENDING'}
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Transaction Ref</p>
+                    <div className="font-mono text-[10px] font-bold text-slate-600 px-2 py-1 rounded bg-white border border-slate-100/50 inline-block truncate max-w-[140px]">
+                      {payment?.id?.toUpperCase() || 'REF-PENDING'}
                     </div>
                   </div>
                   <div className="space-y-1 text-right flex-1">
@@ -158,6 +166,31 @@ export function PaymentInfoCard({ orderCode, delay = 0 }: PaymentInfoCardProps) 
                     </p>
                   </div>
                 )}
+
+                {/* Payment Evidence - Visual Proof */}
+                {payment?.evidenceUrl && (
+                  <div className="mt-6 pt-6 border-t border-slate-100 flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Payment Evidence</span>
+                      <a
+                        href={payment.evidenceUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[9px] font-bold text-primary hover:underline"
+                      >
+                        Open Original
+                      </a>
+                    </div>
+                    <div className="relative aspect-video rounded-xl overflow-hidden border border-slate-200 bg-slate-50 group/evidence">
+                      <img
+                        src={payment.evidenceUrl}
+                        alt="Payment Evidence"
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover/evidence:scale-105"
+                      />
+                      <div className="absolute inset-0 bg-black/5 opacity-0 group-hover/evidence:opacity-100 transition-opacity" />
+                    </div>
+                  </div>
+                )}
               </motion.div>
             </AnimatePresence>
           </div>
@@ -165,4 +198,6 @@ export function PaymentInfoCard({ orderCode, delay = 0 }: PaymentInfoCardProps) 
       </Card>
     </motion.div>
   );
-}
+});
+
+PaymentInfoCard.displayName = 'PaymentInfoCard';

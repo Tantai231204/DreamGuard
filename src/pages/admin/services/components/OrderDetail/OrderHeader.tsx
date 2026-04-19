@@ -1,4 +1,4 @@
-import { ArrowLeft, CheckCircle, XCircle, UserPlus, FileEdit } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, UserPlus, FileEdit, CalendarClock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatPrice } from '@/lib/utils';
@@ -15,12 +15,14 @@ interface OrderHeaderProps {
   order: DetailOrder;
   statusCfg?: StatusConfigItem;
   onAssign?: () => void;
+  onReschedule?: () => void;
   onBack?: () => void;
   permissions: {
       canConfirm: boolean;
       canAssign: boolean;
       canCancel: boolean;
       canComplete?: boolean;
+      canReschedule?: boolean;
       isAssigned: boolean;
   };
 }
@@ -28,7 +30,8 @@ interface OrderHeaderProps {
 export const OrderHeader = memo(function OrderHeader({ 
   order, 
   statusCfg, 
-  onAssign, 
+  onAssign,
+  onReschedule,
   onBack,
   permissions 
 }: OrderHeaderProps) {
@@ -149,6 +152,17 @@ export const OrderHeader = memo(function OrderHeader({
               </Button>
             )}
 
+            {permissions.canReschedule && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onReschedule}
+                className="bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary-hover font-black text-[10px] uppercase tracking-widest rounded-xl gap-2 h-12 px-6 transition-all border-0"
+              >
+                <CalendarClock className="h-4 w-4" /> Reschedule
+              </Button>
+            )}
+
             {permissions.canCancel && (
               <Button
                 variant="ghost"
@@ -157,7 +171,7 @@ export const OrderHeader = memo(function OrderHeader({
                 disabled={isCancelling}
                 className="text-rose-500 hover:bg-rose-50 hover:text-rose-600 font-black text-[10px] uppercase tracking-widest rounded-xl gap-2 h-12 px-6 transition-all border-0"
               >
-                <XCircle className="h-4 w-4" /> {isCancelling ? "Processing..." : (order.status?.toLowerCase() === 'pending' ? 'Reject Order' : 'Abort Service')}
+                <XCircle className="h-4 w-4" /> {isCancelling ? "Processing..." : (['pending', 'rescheduled'].includes(order.status?.toLowerCase() || '') ? 'Reject Order' : 'Abort Service')}
               </Button>
             )}
 

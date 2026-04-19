@@ -2,7 +2,7 @@ import { Package, CheckCircle2, Truck, Clock3, AlertCircle, ShieldCheck, RotateC
 import { OrderStatusValue } from "@/api/types/order"
 import { resolveTradeInStatusTheme } from "@/utils/tradeInStatusTheme"
 
-export type BadgeVariant = "default" | "secondary" | "success" | "warning" | "danger" | "outline"
+export type BadgeVariant = "default" | "secondary" | "success" | "warning" | "danger" | "outline" | "amber" | "sky"
 
 interface StatusThemeItem {
     label: string
@@ -24,17 +24,17 @@ const THEME_MAP: Record<string, StatusThemeItem> = {
     },
     Confirmed: {
         label: "Confirmed",
-        variant: "default",
+        variant: "sky",
         icon: <CheckCircle2 className="h-4 w-4" />,
-        color: "#2563eb", // Blue 600
+        color: "#0ea5e9", // Sky 500 (Admin Sky)
         step: 1,
         description: "Your order has been confirmed"
     },
     Processing: {
         label: "Processing",
-        variant: "secondary",
+        variant: "amber",
         icon: <Package className="h-4 w-4" />,
-        color: "#2563eb", // Blue 600
+        color: "#f97316", // Orange 500 (Admin Amber/Processing)
         step: 2,
         description: "We are carefully packing your items"
     },
@@ -42,13 +42,13 @@ const THEME_MAP: Record<string, StatusThemeItem> = {
         label: "Shipping",
         variant: "outline",
         icon: <Truck className="h-4 w-4" />,
-        color: "#3b82f6", // Blue 500
+        color: "#2563eb", // Blue 600 (Admin Info)
         step: 3,
         description: "On the way to your home"
     },
     Arrived: {
         label: "Arrived",
-        variant: "default",
+        variant: "sky",
         icon: <MapPin className="h-4 w-4" />,
         color: "#0ea5e9", // Sky 500
         step: 4,
@@ -80,9 +80,9 @@ const THEME_MAP: Record<string, StatusThemeItem> = {
     },
     Returning: {
         label: "Returning",
-        variant: "warning",
+        variant: "secondary",
         icon: <RotateCcw className="h-4 w-4" />,
-        color: "#f59e0b",
+        color: "#4988c4", // Primary 500 (Admin Primary)
         step: 6,
         description: "Order is being returned"
     },
@@ -90,7 +90,7 @@ const THEME_MAP: Record<string, StatusThemeItem> = {
         label: "Returned",
         variant: "danger",
         icon: <AlertCircle className="h-4 w-4" />,
-        color: "#e11d48", // Rose 600
+        color: "#e11d48", // Rose 600 (Admin Danger)
         step: 7,
         description: "Items received back at our hub"
     },
@@ -101,6 +101,22 @@ const THEME_MAP: Record<string, StatusThemeItem> = {
         color: "#10b981", // Emerald 500
         step: 5,
         description: "Your refund has been processed successfully"
+    },
+    Rescheduled: {
+        label: "Rescheduled",
+        variant: "amber",
+        icon: <RotateCcw className="h-4 w-4" />,
+        color: "#f59e0b", // Amber 500
+        step: 2,
+        description: "Your service has been rescheduled to a new date"
+    },
+    Rejected: {
+        label: "Rejected",
+        variant: "danger",
+        icon: <AlertCircle className="h-4 w-4" />,
+        color: "#e11d48", // Rose 600
+        step: -1,
+        description: "This order was rejected"
     }
 }
 
@@ -127,6 +143,10 @@ export const STATUS_THEME: Record<string | number, StatusThemeItem> = {
     "Delivered": THEME_MAP.Delivered,
     "Completed": THEME_MAP.Completed,
     "Cancelled": THEME_MAP.Cancelled,
+    "AdminCancelled": THEME_MAP.Cancelled,
+    "Admin_Cancelled": THEME_MAP.Cancelled,
+    "ForcedCancelled": THEME_MAP.Cancelled,
+    "Forced_Cancelled": THEME_MAP.Cancelled,
     "Returned": THEME_MAP.Returned,
     "Returning": THEME_MAP.Returning,
     "RefundedAndRestocked": THEME_MAP.Refunded,
@@ -139,6 +159,8 @@ export const STATUS_THEME: Record<string | number, StatusThemeItem> = {
     "Refunded": THEME_MAP.Refunded,
     "RefundedRestocked": THEME_MAP.Refunded,
     "RefundedDamaged": THEME_MAP.Refunded,
+    "Rescheduled": THEME_MAP.Rescheduled,
+    "Rejected": THEME_MAP.Rejected,
 }
 
 // Robust status theme resolver — handles all API response formats
@@ -150,10 +172,13 @@ export function getStatusTheme(status: string | number): StatusThemeItem {
     const str = String(status);
     if (STATUS_THEME[str]) return STATUS_THEME[str];
 
-    // 3. Refund keyword detection (catch-all for any refund variant)
+    // 3. Keyword detection (catch-all for variants)
     const lower = str.toLowerCase();
     if (lower.includes("refund")) return THEME_MAP.Refunded;
     if (lower.includes("return")) return THEME_MAP.Returning;
+    if (lower.includes("reschedule")) return THEME_MAP.Rescheduled;
+    if (lower.includes("reject")) return THEME_MAP.Rejected;
+    if (lower.includes("cancel")) return THEME_MAP.Cancelled;
 
     // 4. Fallback
     return THEME_MAP.Pending;

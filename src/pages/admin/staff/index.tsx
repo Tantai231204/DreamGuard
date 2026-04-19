@@ -21,15 +21,16 @@ import { AdminTableSearch, AdminTablePagination, AdminTableContent } from '@/com
 import { useStaffColumns } from './components/useStaffColumns';
 import { StaffActions } from './components/StaffActions';
 import { StaffDialog, type StaffFormValues } from './components/StaffDialog';
+import { UpdateStaffDialog, type UpdateInfoFormValues } from './components/UpdateStaffDialog';
 import { ChangeRoleDialog } from './components/ChangeRoleDialog';
 import { motion } from 'framer-motion';
-import { useStaffs, useCreateStaff, useUpdateStaff, useUpdateStaffRole, useUpdateStaffAccount } from '@/hooks/queries/useStaff';
+import { useStaffs, useCreateStaff, useUpdateStaff, useUpdateStaffAccount } from '@/hooks/queries/useStaff';
 import { useProfile } from '@/hooks/queries/useUser';
 import { useToast } from '@/hooks/useToast';
 import { useDebounce } from '@/hooks/useDebounce';
 import { downloadCSV } from '@/lib/export';
 import type { Staff } from './types';
-import type { CreateStaffRequest, UpdateStaffRequest } from '@/api/types/staff.types';
+import type { UpdateStaffAccountRequest, CreateStaffRequest, UpdateStaffRequest } from '@/api/types/staff.types';
 
 export default function StaffPage() {
   const toast = useToast();
@@ -73,10 +74,10 @@ export default function StaffPage() {
     });
   }, [setSearchParams]);
 
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
-
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [infoDialogOpen, setInfoDialogOpen] = useState(false);
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
+  const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
   const [roleStaff, setRoleStaff] = useState<{ id: string; role: string } | null>(null);
 
   const debouncedSearch = useDebounce(globalFilter, 500);
@@ -105,14 +106,14 @@ export default function StaffPage() {
         // Robust case-insensitive check against both role and position
         const staffRole = (staff.role || '').toLowerCase();
         const staffPosition = (staff.position || '').toLowerCase();
-        
-        return staffRole === targetRole || 
-               staffPosition === targetRole ||
-               // Handle "Cleaning Staff" vs "CleaningStaff"
-               (targetRole === 'cleaningstaff' && 
-                (staffRole.includes('clean') || staffPosition.includes('clean') || staffRole.includes('technician'))) ||
-               (targetRole === 'manager' && staffRole.includes('manager')) ||
-               (targetRole === 'seller' && (staffRole.includes('seller') || staffRole.includes('sale')));
+
+        return staffRole === targetRole ||
+          staffPosition === targetRole ||
+          // Handle "Cleaning Staff" vs "CleaningStaff"
+          (targetRole === 'cleaningstaff' &&
+            (staffRole.includes('clean') || staffPosition.includes('clean') || staffRole.includes('technician'))) ||
+          (targetRole === 'manager' && staffRole.includes('manager')) ||
+          (targetRole === 'seller' && (staffRole.includes('seller') || staffRole.includes('sale')));
       });
     }
     return list;
@@ -120,17 +121,16 @@ export default function StaffPage() {
 
   const createMutation = useCreateStaff();
   const updateMutation = useUpdateStaff();
-  const updateRoleMutation = useUpdateStaffRole();
   const updateAccountMutation = useUpdateStaffAccount();
 
   const handleAdd = useCallback(() => {
-    setEditingStaff(null);
-    setDialogOpen(true);
+    setSelectedStaff(null);
+    setAddDialogOpen(true);
   }, []);
 
   const handleEdit = useCallback((staff: Staff) => {
-    setEditingStaff(staff);
-    setDialogOpen(true);
+    setSelectedStaff(staff);
+    setInfoDialogOpen(true);
   }, []);
 
   const handleChangeRole = useCallback((staff: Staff) => {
@@ -151,61 +151,74 @@ export default function StaffPage() {
     downloadCSV(exportData, 'Staffs');
   }, [staffList]);
 
-  const handleSubmit = useCallback(
+  const handleAddSubmit = useCallback(
     async (data: StaffFormValues) => {
       try {
-        if (editingStaff) {
-          // Edit mode
-          const updatePayload: UpdateStaffRequest = {
-            fullName: data.fullName,
-            address: data.address || "",
-            gender: data.gender,
-            dateOfBirth: data.dateOfBirth || null,
-            avatarUrl: editingStaff.avatarUrl || "",
-          };
-          await updateMutation.mutateAsync({ id: editingStaff.staffId, data: updatePayload });
+        const createPayload: CreateStaffRequest = {
+          email: data.email,
+          phoneNumber: data.phoneNumber,
+          fullName: data.fullName,
+          gender: data.gender,
+          dateOfBirth: data.dateOfBirth || null,
+          address: data.address || "",
+          position: data.position || "",
+          role: data.role,
+        };
 
-          // Update Account details if Phone changed
-          if (data.phoneNumber && data.phoneNumber !== editingStaff.phoneNumber) {
-            await updateAccountMutation.mutateAsync({
-              id: editingStaff.staffId,
-              data: { phoneNumber: data.phoneNumber }
-            });
-          }
-
-          // Check if role changed (Disabled in Dialog, so skips safely)
-          const newRole = data.role;
-          if (newRole && newRole !== editingStaff.role) {
-            await updateRoleMutation.mutateAsync({ id: editingStaff.staffId, newRole });
-          }
-
-          toast.success('Staff updated', 'Staff details have been updated successfully.');
-        } else {
-          // Create mode
-          const createPayload: CreateStaffRequest = {
-            email: data.email,
-            phoneNumber: data.phoneNumber,
-            fullName: data.fullName,
-            gender: data.gender,
-            dateOfBirth: data.dateOfBirth || null,
-            address: data.address || "",
-            position: data.position || "",
-            role: data.role,
-          };
-
-          if (data.password) {
-            createPayload.password = data.password;
-          }
-
-          await createMutation.mutateAsync(createPayload);
-          toast.success('Staff created', 'A new staff member has been added.');
+        if (data.password) {
+          createPayload.password = data.password;
         }
-        setDialogOpen(false);
+
+        await createMutation.mutateAsync(createPayload);
+        toast.success('Staff created', 'A new staff member has been added.');
+        setAddDialogOpen(false);
       } catch (error) {
-        console.error('Error saving staff:', error);
+        console.error('Error creating staff:', error);
       }
     },
-    [editingStaff, createMutation, updateMutation, updateRoleMutation, updateAccountMutation, toast]
+    [createMutation, toast]
+  );
+
+  const handleUpdateInfoSubmit = useCallback(
+    async (data: UpdateInfoFormValues) => {
+      if (!selectedStaff) return;
+      try {
+        const updatePayload: UpdateStaffRequest = {
+          fullName: data.fullName,
+          address: data.address || "",
+          gender: data.gender,
+          dateOfBirth: data.dateOfBirth || null,
+          avatarUrl: selectedStaff.avatarUrl || "",
+        };
+        await updateMutation.mutateAsync({ id: selectedStaff.staffId, data: updatePayload });
+
+        // Update Account details if Phone or Password changed
+        const hasPhoneChanged = data.phoneNumber && data.phoneNumber !== selectedStaff.phoneNumber;
+        const hasPasswordChanged = !!data.password;
+
+        if (hasPhoneChanged || hasPasswordChanged) {
+          const accountData: UpdateStaffAccountRequest = {
+            email: selectedStaff.email,
+            phoneNumber: data.phoneNumber || selectedStaff.phoneNumber,
+          };
+
+          if (hasPasswordChanged) {
+            accountData.password = data.password;
+          }
+
+          await updateAccountMutation.mutateAsync({
+            id: selectedStaff.staffId,
+            data: accountData
+          });
+        }
+
+        toast.success('Staff updated', 'Staff details have been updated successfully.');
+        setInfoDialogOpen(false);
+      } catch (error) {
+        console.error('Error updating staff info:', error);
+      }
+    },
+    [selectedStaff, updateMutation, updateAccountMutation, toast]
   );
 
   const columns = useStaffColumns({ onEdit: handleEdit, onChangeRole: handleChangeRole });
@@ -299,12 +312,22 @@ export default function StaffPage() {
       </div>
 
       <StaffDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        staff={editingStaff}
-        onSubmit={handleSubmit}
-        isLoading={createMutation.isPending || updateMutation.isPending || updateRoleMutation.isPending}
+        open={addDialogOpen}
+        onOpenChange={setAddDialogOpen}
+        staff={null}
+        onSubmit={handleAddSubmit}
+        isLoading={createMutation.isPending}
       />
+
+      {selectedStaff && (
+        <UpdateStaffDialog
+          open={infoDialogOpen}
+          onOpenChange={setInfoDialogOpen}
+          staff={selectedStaff}
+          onSubmit={handleUpdateInfoSubmit}
+          isLoading={updateMutation.isPending || updateAccountMutation.isPending}
+        />
+      )}
 
       <ChangeRoleDialog
         open={roleDialogOpen}

@@ -4,6 +4,7 @@ import type {
   ServiceOrderListResponse,
   ServiceOrderResponse,
   ServiceDashboardResponse,
+  RescheduleServiceOrderRequest,
 } from '../types/serviceOrder';
 
 function normalizeListPayload(payload: unknown): ServiceOrderListResponse {
@@ -22,6 +23,16 @@ function normalizeListPayload(payload: unknown): ServiceOrderListResponse {
     totalPages: data?.totalPages ?? 1,
     totalCount: data?.totalCount ?? (Array.isArray(data?.items) ? data.items.length : 0),
   };
+}
+
+export interface AdminSearchServiceTaskItem {
+  serviceTaskId: string;
+  [key: string]: unknown; // Strict senior-level typing
+}
+
+export interface AdminSearchServiceTaskResponse {
+  items: AdminSearchServiceTaskItem[];
+  totalCount: number;
 }
 
 const serviceOrderService = {
@@ -74,6 +85,29 @@ const serviceOrderService = {
   getServiceDashboard: async (params: { fromDate: string; toDate: string }): Promise<ServiceDashboardResponse> => {
     const res = await apiClient.get('/ServiceOrders/get-service-order-dash-board', { params });
     return (res.data?.data ?? res.data) as ServiceDashboardResponse;
+  },
+
+  rescheduleServiceOrder: async (data: RescheduleServiceOrderRequest): Promise<void> => {
+    await apiClient.post('/ServiceOrders/reschedule-service-order', data);
+  },
+
+  managerForceCancel: async (id: string): Promise<void> => {
+    await apiClient.patch(`/ServiceOrders/${id}/manager-force-cancel`);
+  },
+
+  managerCancelConfirm: async (id: string): Promise<void> => {
+    await apiClient.patch(`/ServiceOrders/${id}/manager-cancel-confirm`);
+  },
+
+  searchServiceTasks: async (params: { 
+    soId?: string; 
+    sold?: string; 
+    staffId?: string; 
+    pageNumber?: number; 
+    pageSize?: number 
+  }): Promise<AdminSearchServiceTaskResponse> => {
+    const res = await apiClient.get('/ServiceTasks/AdminSearchServiceTask', { params });
+    return res.data?.data ?? res.data;
   },
 };
 

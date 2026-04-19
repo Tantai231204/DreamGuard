@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
+import { queryClient } from "../lib/queryClient";
 
 interface AuthState {
   role: string | null;
@@ -39,8 +40,9 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: false,
           logoutReason: reason || null,
         });
-        // Side effect: clean up tokens
+        // Side effect: clean up tokens and cached data
         sessionStorage.removeItem('signalr_token');
+        queryClient.clear();
       },
 
       setLoggingOut: (value) => {

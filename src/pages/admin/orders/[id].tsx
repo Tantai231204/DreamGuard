@@ -2,7 +2,8 @@ import { useParams } from 'react-router-dom';
 import { useMemo, useState } from 'react';
 import { Printer, Truck, History, ChevronDown, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useOrderDetail, useUpdateOrderStatus, useAdminCancelOrder, useAdminPayments, useUpdatePaymentStatus } from '@/hooks/queries';
+import { useOrderDetail, useUpdateOrderStatus, useAdminCancelOrder, useAdminPayments, useUpdatePaymentStatus, orderKeys } from '@/hooks/queries';
+import { useQueryClient } from '@tanstack/react-query';
 import { useShippingTasksByOrder } from '@/hooks/queries/useShippingTask';
 import { useAuthStore } from '@/store/authStore';
 import { formatPrice } from '@/pages/profile/utils';
@@ -41,6 +42,7 @@ export default function OrderDetail() {
   const updateStatus = useUpdateOrderStatus();
   const cancelOrder = useAdminCancelOrder();
   const updatePayment = useUpdatePaymentStatus();
+  const queryClient = useQueryClient();
 
   const { role } = useAuthStore();
   const isAdmin = ['Admin', 'Staff'].includes(role || '');
@@ -55,6 +57,14 @@ export default function OrderDetail() {
   const resolvedOrderId = order?.id || id || '';
   const { data: shippingTasks, isLoading: isTasksLoading } = useShippingTasksByOrder(resolvedOrderId);
   const { data: paymentResponse } = useAdminPayments({ orderCode: order?.orderCode });
+
+  const isPaid = useMemo(() => {
+    return paymentResponse?.items?.some(p =>
+      p.status?.toLowerCase() === 'paid' ||
+      p.status?.toLowerCase() === 'codpaid' ||
+      p.status?.toLowerCase() === 'completed'
+    );
+  }, [paymentResponse]);
 
   const sortedShippingTasks = useMemo(() => {
     const tasks = [...(shippingTasks || [])];
@@ -121,7 +131,7 @@ export default function OrderDetail() {
       return;
     }
 
-    // Business Logic: For COD orders, completing the order requires settling the payment first.
+    // Finalization Logic: Manual COD settlement drives the order completion
     if (newStatus === 'Completed') {
       const orderMethod = order?.paymentMethod?.toLowerCase();
       const hasVNPay = paymentResponse?.items?.some(p => p.paymentMethod?.toLowerCase() === 'vnpay');
@@ -129,29 +139,29 @@ export default function OrderDetail() {
 
       if (isCOD) {
         const codPayment = paymentResponse?.items?.find(p => p.paymentMethod?.toLowerCase() === 'cod') || paymentResponse?.items?.[0];
+
         if (codPayment) {
           updatePayment.mutate({ id: codPayment.id, status: 'CODPaid' }, {
             onSuccess: () => {
-              toast.success('COD Payment Settled. Engagement finalized.');
+              queryClient.invalidateQueries({ queryKey: orderKeys.detail(order.id) });
               setShowConfirmStatusDialog(false);
               setPendingStatus(null);
             },
-            onError: () => toast.error('Failed to sync COD payment status.')
+            onError: () => {
+              setShowConfirmStatusDialog(false);
+              setPendingStatus(null);
+            }
           });
-        } else {
-          toast.error('Payment Ledger Error', { description: 'Could not locate associated COD payment record.' });
         }
       } else {
-        toast.info('System Automated', { description: 'VNPay orders are finalized automatically by the system.' });
         setShowConfirmStatusDialog(false);
         setPendingStatus(null);
       }
-      return; 
+      return;
     }
 
     updateStatus.mutate({ id: order.id, status: newStatus }, {
       onSuccess: () => {
-        toast.success(`Order status synchronized to ${newStatus}`);
         setShowConfirmStatusDialog(false);
         setPendingStatus(null);
       },
@@ -165,7 +175,6 @@ export default function OrderDetail() {
   const handleCancelOrder = (reason: string) => {
     cancelOrder.mutate({ id: order.id, reason }, {
       onSuccess: () => {
-        toast.success('Order cancelled successfully');
         setShowCancelDialog(false);
       },
     });
@@ -414,6 +423,7 @@ export default function OrderDetail() {
                 onProcessExchange={() => setShowProcessExchangeDialog(true)}
                 canCancel={canCancel && isAdmin}
                 hasTask={!!activeTask}
+                isPaid={isPaid}
               />
 
               {currentStatusEnum !== OrderStatus.Cancelled && (

@@ -2,6 +2,10 @@ import React, { memo } from 'react';
 import { Truck, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CollectionType } from '../types';
+import type { Address } from '@/api/types/address';
+import { AddressCardList } from '@/pages/checkout/components/AddressCardList';
+import { Button } from '@/components/ui/button';
+import { Plus, MapPin as MapPinIcon } from 'lucide-react';
 
 interface StepLogisticsProps {
   collectionType: CollectionType;
@@ -12,6 +16,7 @@ interface StepLogisticsProps {
     address: string;
   };
   setContact: (c: { receiverName: string; phoneNumber: string; address: string }) => void;
+  addresses?: Address[];
 }
 
 const LOGISTICS_OPTIONS: Array<{
@@ -37,11 +42,45 @@ const LOGISTICS_OPTIONS: Array<{
     },
   ];
 
-export const StepLogistics = memo(function StepLogistics({ collectionType, setCollectionType, contact, setContact }: StepLogisticsProps) {
+export const StepLogistics = memo(function StepLogistics({ 
+  collectionType, 
+  setCollectionType, 
+  contact, 
+  setContact,
+  addresses = []
+}: StepLogisticsProps) {
+  const [isManualEntry, setIsManualEntry] = React.useState(addresses.length === 0);
+  const [selectedId, setSelectedId] = React.useState<string | null>(null);
+
+  const handleSelectAddress = React.useCallback((addr: Address) => {
+    setSelectedId(addr.addressId);
+    setIsManualEntry(false);
+    setContact({
+      receiverName: addr.receiverName,
+      phoneNumber: addr.phoneNumber,
+      address: [addr.street, addr.ward, addr.district, addr.province].filter(Boolean).join(", "),
+    });
+  }, [setContact]);
+
+  const handleAddCustomAddress = React.useCallback(() => {
+    setIsManualEntry(true);
+    setSelectedId(null);
+  }, []);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setContact({ ...contact, [name]: value });
   };
+
+  // Auto-select default address on first load if available
+  React.useEffect(() => {
+    if (addresses.length > 0 && !selectedId && !isManualEntry) {
+      const defaultAddr = addresses.find(a => a.isDefault) || addresses[0];
+      if (defaultAddr) {
+        handleSelectAddress(defaultAddr);
+      }
+    }
+  }, [addresses, handleSelectAddress, isManualEntry, selectedId]);
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
@@ -93,50 +132,85 @@ export const StepLogistics = memo(function StepLogistics({ collectionType, setCo
       </div>
 
       <div className="pt-4 border-t border-[#EDE8E1]/50">
-        <div className="mb-5">
-          <h3 className="font-serif italic text-[22px] text-gray-900 font-normal leading-tight">
-            Contact Details
-          </h3>
-          <p className="text-[12px] text-[#8C7A6B] mt-1 font-medium italic">
-            Provide the shipping information for your new product.
-          </p>
+        <div className="mb-5 flex items-center justify-between">
+          <div>
+            <h3 className="font-serif italic text-[22px] text-gray-900 font-normal leading-tight">
+              Contact Details
+            </h3>
+            <p className="text-[12px] text-[#8C7A6B] mt-1 font-medium italic text-left">
+              Provide the shipping information for your new product.
+            </p>
+          </div>
+
+          {addresses.length > 0 && (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setIsManualEntry(!isManualEntry);
+                if (!isManualEntry) {
+                   setSelectedId(null);
+                }
+              }}
+              className="h-9 px-3.5 rounded-xl bg-gray-50 text-gray-600 hover:bg-[#3D5140] hover:text-white transition-all duration-300"
+            >
+              <div className="flex items-center gap-2">
+                {isManualEntry ? <MapPinIcon className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+                <span className="text-[10px] font-black uppercase tracking-widest">
+                  {isManualEntry ? "Saved" : "Manual"}
+                </span>
+              </div>
+            </Button>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Recipient Name</label>
-            <input
-              type="text"
-              name="receiverName"
-              value={contact.receiverName}
-              onChange={handleChange}
-              placeholder="John Doe"
-              className="w-full h-12 px-4 rounded-xl border border-[#EDE8E1] focus:border-[#3D5140] focus:ring-1 focus:ring-[#3D5140] bg-white text-sm font-medium outline-none transition-all placeholder:text-gray-300"
+        {isManualEntry || addresses.length === 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 text-left block">Recipient Name</label>
+              <input
+                type="text"
+                name="receiverName"
+                value={contact.receiverName}
+                onChange={handleChange}
+                placeholder="John Doe"
+                className="w-full h-12 px-4 rounded-xl border border-[#EDE8E1] focus:border-[#3D5140] focus:ring-1 focus:ring-[#3D5140] bg-white text-sm font-medium outline-none transition-all placeholder:text-gray-300"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 text-left block">Phone Number</label>
+              <input
+                type="tel"
+                name="phoneNumber"
+                value={contact.phoneNumber}
+                onChange={handleChange}
+                placeholder="0901234567"
+                className="w-full h-12 px-4 rounded-xl border border-[#EDE8E1] focus:border-[#3D5140] focus:ring-1 focus:ring-[#3D5140] bg-white text-sm font-medium outline-none transition-all placeholder:text-gray-300 font-mono"
+              />
+            </div>
+            <div className="space-y-2 md:col-span-2 text-left">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 block">Delivery Address</label>
+              <input
+                type="text"
+                name="address"
+                value={contact.address}
+                onChange={handleChange}
+                placeholder="123 Luxury St, District 1, HCM"
+                className="w-full h-12 px-4 rounded-xl border border-[#EDE8E1] focus:border-[#3D5140] focus:ring-1 focus:ring-[#3D5140] bg-white text-sm font-medium outline-none transition-all placeholder:text-gray-300"
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 animate-in fade-in zoom-in-95 duration-300">
+            <AddressCardList
+              addresses={addresses}
+              selectedId={selectedId}
+              onSelectAddress={handleSelectAddress}
+              onAddCustomAddress={handleAddCustomAddress}
+              variant="tradein"
             />
           </div>
-          <div className="space-y-2">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Phone Number</label>
-            <input
-              type="tel"
-              name="phoneNumber"
-              value={contact.phoneNumber}
-              onChange={handleChange}
-              placeholder="0901234567"
-              className="w-full h-12 px-4 rounded-xl border border-[#EDE8E1] focus:border-[#3D5140] focus:ring-1 focus:ring-[#3D5140] bg-white text-sm font-medium outline-none transition-all placeholder:text-gray-300 font-mono"
-            />
-          </div>
-          <div className="space-y-2 md:col-span-2">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Delivery Address</label>
-            <input
-              type="text"
-              name="address"
-              value={contact.address}
-              onChange={handleChange}
-              placeholder="123 Luxury St, District 1, HCM"
-              className="w-full h-12 px-4 rounded-xl border border-[#EDE8E1] focus:border-[#3D5140] focus:ring-1 focus:ring-[#3D5140] bg-white text-sm font-medium outline-none transition-all placeholder:text-gray-300"
-            />
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

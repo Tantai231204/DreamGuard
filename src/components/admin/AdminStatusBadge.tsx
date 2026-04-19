@@ -77,6 +77,10 @@ const STATUS_MAP: Record<string, StatusType> = {
   'checked_out': 'neutral',
   'inprogress': 'amber',
   'in_progress': 'amber',
+  'assigned': 'sky',
+  'reassigned': 'neutral',
+  'dispatched': 'info',
+  'rescheduled': 'amber',
 
   // Neutral for fallback
   'archived': 'neutral',
@@ -186,6 +190,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   '9': History,
   'cancelled': X,
   'error': X,
+  'failed': X,
   '6': X,
   'refunded_and_damaged': ShieldAlert,
   'refundedanddamaged': ShieldAlert,
@@ -237,6 +242,10 @@ const ICON_MAP: Record<string, React.ElementType> = {
   'checked_out': MinusCircle,
   'inprogress': Clock4,
   'in_progress': Clock4,
+  'assigned': MinusCircle,
+  'reassigned': RotateCcw,
+  'dispatched': Truck,
+  'rescheduled': History,
 };
 
 const PAYMENT_CONFIG: Record<string, { container: string, textColor: string, iconBg: string, icon: string }> = {
@@ -294,7 +303,7 @@ const LABEL_MAP: Record<string, string> = {
   'waiting_for_staff': 'Waiting For Staff',
   'waitingforstaff': 'Waiting For Staff',
   'paid': 'Paid',
-  'failed': 'Payment Failed',
+  'failed': 'Failed',
   'refunded': 'Refunded',
   'published': 'Published',
   'draft': 'Draft',
@@ -312,8 +321,11 @@ const LABEL_MAP: Record<string, string> = {
   'checked_in': 'Checked In',
   'checkedout': 'Checked Out',
   'checked_out': 'Checked Out',
-  'inprogress': 'In Progress',
   'in_progress': 'In Progress',
+  'assigned': 'Assigned',
+  'reassigned': 'Reassigned',
+  'dispatched': 'Dispatched',
+  'rescheduled': 'Rescheduled',
 };
 
 const formatLabelFallback = (label: string) => {

@@ -26,6 +26,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import type { ServiceBooking, ServiceStatus } from '../types';
+import { useServiceBookingCard } from '../hooks/useServiceBookingCard';
 
 interface ServiceCalendarProps {
   bookings: ServiceBooking[];
@@ -48,6 +49,7 @@ const STATUS_CONFIG: Record<
   rejected: { dot: 'bg-gray-400', stripe: 'bg-gray-400', badge: 'bg-gray-100 text-gray-700', label: 'Rejected' },
   refunded: { dot: 'bg-purple-500', stripe: 'bg-purple-500', badge: 'bg-purple-100 text-purple-800', label: 'Refunded' },
   forcedcancelled: { dot: 'bg-rose-700', stripe: 'bg-rose-700', badge: 'bg-rose-200 text-rose-900', label: 'Forced Cancel' },
+  rescheduled: { dot: 'bg-indigo-500', stripe: 'bg-indigo-500', badge: 'bg-indigo-100 text-indigo-800', label: 'Rescheduled' },
 };
 
 // ─── Booking Card ───────────────────────────────────────────────────────────
@@ -55,13 +57,29 @@ const BookingCard = React.forwardRef<
   HTMLDivElement,
   {
     booking: ServiceBooking;
-    onView: () => void;
-    onConfirm: () => void;
-    onCancel: () => void;
-    onAssign: () => void;
+    onView?: (id: string) => void;
+    onConfirm?: (id: string) => void;
+    onCancel?: (id: string, status: string) => void;
+    onAssign?: (id: string) => void;
   }
 >(({ booking, onView, onConfirm, onCancel, onAssign }, ref) => {
-  const cfg = STATUS_CONFIG[booking.status] ?? STATUS_CONFIG.pending;
+  const {
+    statusCfg,
+    handleView,
+    handleConfirm,
+    handleCancel,
+    handleAssign,
+    technician,
+    task,
+  } = useServiceBookingCard({
+    booking,
+    onView,
+    onConfirm,
+    onCancel,
+    onAssignTechnician: onAssign,
+  });
+
+  const cfg = (statusCfg as any) || (STATUS_CONFIG[booking.status] ?? STATUS_CONFIG.pending);
 
   return (
     <motion.div
@@ -70,18 +88,18 @@ const BookingCard = React.forwardRef<
       initial={{ opacity: 0, y: 5 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -5 }}
-      onClick={onView}
+      onClick={handleView}
       className="group relative bg-white rounded-xl border border-gray-100 hover:border-blue-200 hover:shadow-sm transition-all duration-200 cursor-pointer overflow-hidden mb-2"
     >
-      <div className={cn('absolute left-0 top-0 bottom-0 w-1', cfg.stripe)} />
+      <div className={cn('absolute left-0 top-0 bottom-0 w-1', cfg.stripe || STATUS_CONFIG[booking.status]?.stripe)} />
 
       <div className="pl-4 pr-3 py-3">
         <div className="flex items-center justify-between gap-2 mb-1.5">
           <p className="text-[13px] font-bold text-gray-900 truncate leading-tight group-hover:text-blue-600 transition-colors">
             {booking.customerName}
           </p>
-          <span className={cn('shrink-0 text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider', cfg.badge)}>
-            {cfg.label}
+          <span className={cn('shrink-0 text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider', cfg.badge || STATUS_CONFIG[booking.status]?.badge)}>
+            {cfg.label || STATUS_CONFIG[booking.status]?.label}
           </span>
         </div>
 
@@ -98,30 +116,37 @@ const BookingCard = React.forwardRef<
         <div className="flex items-center gap-2">
           {booking.status === 'pending' && (
             <button
-              onClick={(e) => { e.stopPropagation(); onConfirm(); }}
+              onClick={(e) => { e.stopPropagation(); handleConfirm(); }}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-bold hover:bg-emerald-600 hover:text-white transition-all border border-emerald-100/50"
             >
               <CheckCircle2 className="w-3 h-3" />
               Confirm
             </button>
           )}
-          {(booking.status === 'confirmed' || booking.status === 'processing') && !booking.staff && !booking.technician && (
+          {(booking.status === 'confirmed' || booking.status === 'processing') && !technician && (
             <button
-              onClick={(e) => { e.stopPropagation(); onAssign(); }}
+              onClick={(e) => { e.stopPropagation(); handleAssign(); }}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 text-[10px] font-bold hover:bg-blue-600 hover:text-white transition-all border border-blue-100/50"
             >
               <User className="w-3 h-3" />
               Assign
             </button>
           )}
-          {(booking.staff || booking.technician) && (
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-50/50 border border-blue-100/30">
-               <span className="w-4 h-4 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[8px] font-black uppercase">
-                 {(booking.staff?.fullName || booking.technician?.fullName || 'T')[0]}
-               </span>
-               <span className="text-[10px] font-bold text-blue-800 tracking-tight truncate max-w-[80px]">
-                 {booking.staff?.fullName || booking.technician?.fullName}
-               </span>
+          {technician && (
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-50/50 border border-blue-100/30">
+                 <span className="w-4 h-4 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[8px] font-black uppercase">
+                   {(technician.name || 'T')[0]}
+                 </span>
+                 <span className="text-[10px] font-bold text-blue-800 tracking-tight truncate max-w-[80px]">
+                   {technician.name}
+                 </span>
+              </div>
+              {task?.status && (
+                <span className="shrink-0 text-[8px] font-black px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 uppercase tracking-wider border border-slate-200/50">
+                  {task.status}
+                </span>
+              )}
             </div>
           )}
           <div className="flex-1" />
@@ -129,7 +154,7 @@ const BookingCard = React.forwardRef<
             <button
               onClick={(e) => { 
                 e.stopPropagation(); 
-                onCancel(); 
+                handleCancel(); 
               }}
               className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-300 hover:bg-rose-50 hover:text-rose-600 transition-all"
             >

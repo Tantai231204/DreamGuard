@@ -1,4 +1,4 @@
-import type { UseFormReturn } from "react-hook-form"
+import { Controller, type UseFormReturn } from "react-hook-form"
 import type { CheckoutFormData } from "../schema"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -30,7 +30,6 @@ function DeliveryInfoSectionInner({ form }: DeliveryInfoSectionProps) {
     const { register, setValue, watch, formState: { errors } } = form
     const selectedCityCode = watch("city")
     const selectedDistrictCode = watch("district")
-    const selectedWardCode = watch("ward")
     const firstNameValue = watch("firstName")
     const lastNameValue = watch("lastName")
 
@@ -278,49 +277,84 @@ function DeliveryInfoSectionInner({ form }: DeliveryInfoSectionProps) {
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="space-y-2">
                                     <Label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Province / City</Label>
-                                    <Select value={selectedCityCode} onValueChange={(v) => {
-                                        setValue("city", v, { shouldValidate: true })
-                                        setValue("district", "")
-                                        setValue("ward", "")
-                                    }}>
-                                        <SelectTrigger className="h-12 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:ring-4 focus:ring-primary-500/5 transition-all font-bold">
-                                            <SelectValue placeholder="Select City" />
-                                        </SelectTrigger>
-                                        <SelectContent className="rounded-2xl border-slate-100 animate-in fade-in-0 zoom-in-95">
-                                            {provinces.map(p => (
-                                                <SelectItem key={p.code} value={p.code} className="rounded-xl my-1 focus:bg-primary-500 focus:text-white transition-colors">{p.name}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <Controller
+                                        name="city"
+                                        control={form.control}
+                                        render={({ field }) => (
+                                            <Select 
+                                                value={field.value || ""} 
+                                                onValueChange={(v) => {
+                                                    field.onChange(v)
+                                                    setValue("district", "")
+                                                    setValue("ward", "")
+                                                }}
+                                            >
+                                                <SelectTrigger className="h-12 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:ring-4 focus:ring-primary-500/5 transition-all font-bold">
+                                                    <SelectValue placeholder="Select City" />
+                                                </SelectTrigger>
+                                                <SelectContent className="rounded-2xl border-slate-100 animate-in fade-in-0 zoom-in-95">
+                                                    {provinces.map(p => (
+                                                        <SelectItem key={p.code} value={p.code} className="rounded-xl my-1 focus:bg-primary-500 focus:text-white transition-colors">
+                                                            {p.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        )}
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <Label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">District</Label>
-                                    <Select value={selectedDistrictCode} onValueChange={(v) => {
-                                        setValue("district", v, { shouldValidate: true })
-                                        setValue("ward", "")
-                                    }} disabled={!selectedCityCode}>
-                                        <SelectTrigger className="h-12 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:ring-4 focus:ring-primary-500/5 transition-all font-bold disabled:opacity-30">
-                                            <SelectValue placeholder="Select District" />
-                                        </SelectTrigger>
-                                        <SelectContent className="rounded-2xl border-slate-100">
-                                            {districts.map(d => (
-                                                <SelectItem key={d.code} value={d.code} className="rounded-xl my-1">{d.name}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <Controller
+                                        name="district"
+                                        control={form.control}
+                                        render={({ field }) => (
+                                            <Select 
+                                                value={field.value || ""} 
+                                                onValueChange={(v) => {
+                                                    field.onChange(v)
+                                                    setValue("ward", "")
+                                                }}
+                                                disabled={!selectedCityCode}
+                                            >
+                                                <SelectTrigger className="h-12 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:ring-4 focus:ring-primary-500/5 transition-all font-bold disabled:opacity-30">
+                                                    <SelectValue placeholder="Select District" />
+                                                </SelectTrigger>
+                                                <SelectContent className="rounded-2xl border-slate-100">
+                                                    {districts.map(d => (
+                                                        <SelectItem key={d.code} value={d.code} className="rounded-xl my-1">
+                                                            {d.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        )}
+                                    />
                                 </div>
                                 <div className="space-y-2">
                                     <Label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Ward</Label>
-                                    <Select value={selectedWardCode} onValueChange={(v) => setValue("ward", v, { shouldValidate: true })} disabled={!selectedDistrictCode}>
-                                        <SelectTrigger className="h-12 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:ring-4 focus:ring-primary-500/5 transition-all font-bold disabled:opacity-30">
-                                            <SelectValue placeholder="Select Ward" />
-                                        </SelectTrigger>
-                                        <SelectContent className="rounded-2xl border-slate-100">
-                                            {wards.map(w => (
-                                                <SelectItem key={w.code} value={w.code} className="rounded-xl my-1">{w.name}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <Controller
+                                        name="ward"
+                                        control={form.control}
+                                        render={({ field }) => (
+                                            <Select 
+                                                value={field.value || ""} 
+                                                onValueChange={field.onChange}
+                                                disabled={!selectedDistrictCode}
+                                            >
+                                                <SelectTrigger className="h-12 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:ring-4 focus:ring-primary-500/5 transition-all font-bold disabled:opacity-30">
+                                                    <SelectValue placeholder="Select Ward" />
+                                                </SelectTrigger>
+                                                <SelectContent className="rounded-2xl border-slate-100">
+                                                    {wards.map(w => (
+                                                        <SelectItem key={w.code} value={w.code} className="rounded-xl my-1">
+                                                            {w.name}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        )}
+                                    />
                                 </div>
                             </div>
                         </div>

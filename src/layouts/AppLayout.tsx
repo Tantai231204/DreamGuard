@@ -1,4 +1,4 @@
-import { Outlet, Link } from "react-router-dom";
+import { Outlet, Link, useLocation } from "react-router-dom";
 import Header from "../components/layout/Header";
 import Footer from "../components/layout/Footer";
 import { Breadcrumb } from "../components/common";
@@ -10,17 +10,13 @@ import { useNotificationHub } from "@/hooks/useNotificationHub";
 interface AppLayoutProps {
   variant?: "home" | "checkout";
 }
-
-/**
- * AppLayout provides the standard structure for the public-facing pages.
- * - "home": Full header, footer, and automatic top padding for sticky header.
- * - "checkout": Minimalist header (logo only) for reduced friction in checkout.
- */
 export default function AppLayout({ variant = "home" }: AppLayoutProps) {
   useNotificationHub();
+  const location = useLocation();
   const { items: breadcrumbItems } = useBreadcrumb();
 
-  // Checkout variant with minimalist header
+  const isHomePage = location.pathname === "/" || location.pathname === AppRoute.HOME;
+
   if (variant === "checkout") {
     return (
       <div className="min-h-screen bg-white flex flex-col relative">
@@ -45,7 +41,6 @@ export default function AppLayout({ variant = "home" }: AppLayoutProps) {
     );
   }
 
-  // Home/Standard variant with Unified Header and Footer
   return (
     <div className="min-h-screen flex flex-col relative">
       <Header />
@@ -54,7 +49,7 @@ export default function AppLayout({ variant = "home" }: AppLayoutProps) {
         tabIndex={-1}
         style={{ marginTop: 'var(--header-height, 188px)' }}
       >
-        {breadcrumbItems && breadcrumbItems.length > 0 && (
+        {!isHomePage && breadcrumbItems && breadcrumbItems.length > 0 && (
           <div className="container max-w-7xl mx-auto px-4 pt-8 lg:px-8">
             <Breadcrumb items={breadcrumbItems} />
           </div>

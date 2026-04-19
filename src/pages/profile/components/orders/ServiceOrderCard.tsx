@@ -23,6 +23,9 @@ function toThemeKey(status?: string) {
   if (lower === 'completed') return 'Completed';
   if (lower === 'confirmed') return 'Confirmed';
   if (lower === 'processing' || lower === 'inprogress') return 'Processing';
+  if (lower === 'rescheduled') return 'Rescheduled';
+  if (lower === 'rejected') return 'Rejected';
+  if (lower === 'refunded') return 'Refunded';
   return 'Pending';
 }
 

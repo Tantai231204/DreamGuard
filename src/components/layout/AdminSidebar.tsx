@@ -23,7 +23,7 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { cn } from '../../lib/utils';
 import { useProfile } from '@/hooks/queries';
 import { useLogout } from '@/hooks/useAuth';
@@ -31,7 +31,7 @@ import { ProductAssetIcons } from '@/components/common/icons';
 import { UserRole } from '@/lib/constants';
 import { useAuthStore } from '@/store/authStore';
 import { hasRole, isSellerRole } from '@/lib/role';
-import { chatService } from '@/api/services';
+import { chatService, auditLogService } from '@/api/services';
 import api from '@/lib/api';
 
 
@@ -40,6 +40,7 @@ interface NavItem {
   href: string;
   icon: React.ComponentType<{ className?: string }> | string;
   badge?: number;
+  badgeVariant?: 'blue' | 'amber';
   allowedRoles?: UserRole[];
 }
 
@@ -94,8 +95,8 @@ const navSections: NavSection[] = [
   {
     label: 'System',
     items: [
-      { title: 'Registry', href: '/admin/system-configs', icon: Activity, allowedRoles: ADMIN_ONLY },
-      { title: 'Audit Logs', href: '/admin/audit-logs', icon: HistoryIcon, allowedRoles: ADMIN_ONLY },
+      { title: 'Registry', href: '/admin/system-configs', icon: Activity, allowedRoles: ADMIN_MANAGER },
+      { title: 'Audit Logs', href: '/admin/audit-logs', icon: HistoryIcon, allowedRoles: ADMIN_MANAGER },
       { title: 'Settings', href: '/admin/settings', icon: Settings, allowedRoles: ADMIN_MANAGER },
     ],
   },
@@ -163,6 +164,30 @@ export default function AdminSidebar() {
     }).length;
   }, [serviceData]);
 
+  // Audit Logs Badge Logic
+  const { data: auditData } = useQuery({
+    queryKey: ['admin', 'audit-logs', 'count'],
+    queryFn: () => auditLogService.getLogs({ pageNumber: 1, pageSize: 1 }),
+    enabled: isAuthenticated && hasRole(role, ADMIN_MANAGER),
+    refetchInterval: 30000, // Every 30s as fallback
+  });
+
+  // Effect to sync last viewed count when on the audit logs page
+  useEffect(() => {
+    if (location.pathname === '/admin/audit-logs' && auditData?.totalCount) {
+      localStorage.setItem('lastViewedAuditCount', String(auditData.totalCount));
+    }
+  }, [location.pathname, auditData?.totalCount]);
+
+  const auditBadgeCount = useMemo(() => {
+    if (!auditData?.totalCount) return 0;
+    if (location.pathname === '/admin/audit-logs') return 0;
+
+    const lastViewed = Number(localStorage.getItem('lastViewedAuditCount') || 0);
+    const diff = auditData.totalCount - lastViewed;
+    return diff > 0 ? diff : 0;
+  }, [auditData?.totalCount, location.pathname]);
+
   const filteredSections = useMemo(() => {
     return navSections.map(section => ({
       ...section,
@@ -173,13 +198,16 @@ export default function AdminSidebar() {
         if (item.title === 'Services' && item.href === '/admin/services') {
           return { ...item, badge: pendingServiceCount };
         }
+        if (item.title === 'Audit Logs') {
+          return { ...item, badge: auditBadgeCount, badgeVariant: 'amber' as const };
+        }
         return item;
       }).filter(item => {
         if (!item.allowedRoles) return true;
         return hasRole(role, item.allowedRoles);
       })
     })).filter(section => section.items.length > 0);
-  }, [role, unreadChatCount, pendingServiceCount]);
+  }, [role, unreadChatCount, pendingServiceCount, auditBadgeCount]);
 
   const isActive = (path: string) => {
     const [targetPath, targetQuery] = path.split('?');
@@ -343,8 +371,14 @@ export default function AdminSidebar() {
                             )}
 
                             {(item.badge ?? 0) > 0 && (
-                              <div className="absolute -top-1 -right-1 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-blue-500 ring-2 ring-white">
-                                <span className="absolute inset-0 rounded-full bg-blue-400 animate-ping opacity-75" />
+                              <div className={cn(
+                                "absolute -top-1 -right-1 flex h-2.5 w-2.5 items-center justify-center rounded-full ring-2 ring-white",
+                                item.badgeVariant === 'amber' ? "bg-amber-500" : "bg-blue-500"
+                              )}>
+                                <span className={cn(
+                                  "absolute inset-0 rounded-full animate-ping opacity-75",
+                                  item.badgeVariant === 'amber' ? "bg-amber-400" : "bg-blue-400"
+                                )} />
                               </div>
                             )}
                           </div>
@@ -359,7 +393,12 @@ export default function AdminSidebar() {
                           )}
 
                           {(item.badge ?? 0) > 0 && !collapsed && (
-                            <div className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-blue-500 px-1.5 text-[9px] font-black text-white shadow-lg shadow-blue-200">
+                            <div className={cn(
+                              "ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[9px] font-black text-white shadow-lg",
+                              item.badgeVariant === 'amber'
+                                ? "bg-amber-500 shadow-amber-200"
+                                : "bg-blue-500 shadow-blue-200"
+                            )}>
                               {item.badge! > 99 ? '99+' : item.badge}
                             </div>
                           )}

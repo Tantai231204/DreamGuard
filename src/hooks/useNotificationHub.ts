@@ -66,6 +66,10 @@ export function useNotificationHub() {
 
     notiConnection.on('ReceiveNotification', (notification: NotificationPayload) => {
       console.log('[SignalR] Notification Received:', notification);
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['trade-in-orders'] });
 
       const rawMessage = notification.message || '';
       let displayMessage = rawMessage || notification.title || 'New Notification';
@@ -94,6 +98,7 @@ export function useNotificationHub() {
     notiConnection.on('ReceiveAuditLog', (audit: AuditLogPayload) => {
       console.log('[SignalR] Audit Log Received:', audit);
       queryClient.invalidateQueries({ queryKey: ['auditLogs'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'audit-logs'] });
       if (isAdminOrManager(role)) {
         toast.info(audit.action || 'System Action', {
           action: {
@@ -126,6 +131,7 @@ export function useNotificationHub() {
       systemConnection.on('ReceiveAuditLog', (audit: AuditLogPayload) => {
         console.log('[SignalR SystemHub] Audit Log Received:', audit);
         queryClient.invalidateQueries({ queryKey: ['auditLogs'] });
+        queryClient.invalidateQueries({ queryKey: ['admin', 'audit-logs'] });
         if (isAdminOrManager(role)) {
           toast.info(audit.action || 'System Action', {
             action: {
@@ -138,6 +144,10 @@ export function useNotificationHub() {
 
       systemConnection.on('ReceiveNotification', (notification: NotificationPayload) => {
         console.log('[SignalR SystemHub] Notification Received:', notification);
+        queryClient.invalidateQueries({ queryKey: ['notifications'] });
+        queryClient.invalidateQueries({ queryKey: ['orders'] });
+        queryClient.invalidateQueries({ queryKey: ['service-orders'] });
+        queryClient.invalidateQueries({ queryKey: ['trade-in-orders'] });
         const rawMessage = notification.message || '';
         let displayMessage = rawMessage || notification.title || 'New Notification';
 

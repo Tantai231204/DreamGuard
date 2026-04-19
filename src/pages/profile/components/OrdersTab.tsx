@@ -1,8 +1,9 @@
-import { useState, useMemo, useDeferredValue, lazy, Suspense } from "react"
+import { useState, useMemo, useDeferredValue, lazy, Suspense, useEffect } from "react"
 import { Search, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, ArrowUpDown } from "lucide-react"
 import { Button } from "../../../components/ui/button"
 import { Input } from "../../../components/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "../../../components/ui/tabs"
+import { useSearchParams } from "react-router-dom"
 import { Popover, PopoverContent, PopoverTrigger } from "../../../components/ui/popover"
 import { Calendar } from "../../../components/ui/calendar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../components/ui/select"
@@ -58,6 +59,8 @@ function normalizeServiceStatus(status: unknown) {
         4: "completed",
         5: "cancelled",
         6: "forcedcancelled",
+        7: "rescheduled",
+        8: "rejected",
     }
 
     if (typeof status === "number") {
@@ -73,7 +76,7 @@ function matchServiceStatusV2(status: unknown, tab: StatusTab) {
     const normalized = normalizeServiceStatus(status)
 
     if (tab === "processing") {
-        return ["pending", "confirmed", "processing", "inprogress", "inprocess", "assigned", "onroute", "shipping"].includes(normalized)
+        return ["pending", "confirmed", "processing", "inprogress", "inprocess", "assigned", "onroute", "shipping", "rescheduled"].includes(normalized)
     }
 
     if (tab === "completed") {
@@ -148,11 +151,15 @@ export default function OrdersTab() {
         })
     }, [currentCustomerId, currentPhone, serviceByCustomerData?.items, serviceFallbackData?.items])
 
+    const [searchParams] = useSearchParams()
+    const urlOrderId = searchParams.get("id")
+
     const filteredOrders = useMemo(() => {
         const orders = orderType === "product" ? (productData?.items ?? []) : ownedServiceOrders
         return orders.filter(order => {
             const orderCode = (order.orderCode || "").toLowerCase()
-            const matchesSearch = orderCode.includes(deferredSearch.toLowerCase())
+            const orderId = (order.id || "").toLowerCase()
+            const matchesSearch = orderCode.includes(deferredSearch.toLowerCase()) || orderId.includes(deferredSearch.toLowerCase())
             let matchesDate = true
             if (date?.from) {
                 const orderDate = new Date(order.createdAt || 0)
@@ -198,6 +205,54 @@ export default function OrdersTab() {
         ? isProductPending
         : (currentCustomerId ? isServiceByCustomerPending : isServiceFallbackPending)
     const tabs = orderType === "product" ? PRODUCT_TABS : SERVICE_TABS
+
+    // Deep Link Logic: Auto-find and switch to the correct view to reveal the linked order
+    useEffect(() => {
+        if (!urlOrderId || isPending) return
+
+        // 1. Determine if the order exists in product list
+        const productIndex = (productData?.items || []).findIndex(o => o.id === urlOrderId)
+        if (productIndex !== -1) {
+            const order = productData!.items[productIndex]
+            
+            // Sync view state asynchronously to avoid render cascades
+            setTimeout(() => {
+                // Sync order type
+                if (orderType !== "product") setOrderType("product")
+                
+                // 2. Find correct status tab for this order
+                const status = order.status
+                let targetTab: StatusTab = "all"
+                if (["Pending", "Confirmed", "Processing", 0, 1, 2].includes(status as string | number)) targetTab = "processing"
+                else if (["Shipping", 3].includes(status as string | number)) targetTab = "shipping"
+                else if (["Delivered", "Completed", 4, 5].includes(status as string | number)) targetTab = "completed"
+                else if (["Cancelled", 6].includes(status as string | number)) targetTab = "cancelled"
+                
+                if (activeStatusTab !== targetTab && activeStatusTab !== "all") {
+                    setActiveStatusTab("all") 
+                }
+                
+                // 3. Jump to the correct page
+                const idxInFiltered = statusFilteredOrders.findIndex(o => (o as OrderResponse).id === urlOrderId)
+                if (idxInFiltered !== -1) {
+                    const expectedPage = Math.ceil((idxInFiltered + 1) / ITEMS_PER_PAGE)
+                    if (currentPage !== expectedPage) {
+                        setCurrentPage(expectedPage)
+                    }
+                }
+            }, 0);
+            return
+        }
+
+        // 2. Check service orders if not found in products
+        const serviceIndex = (ownedServiceOrders).findIndex(o => o.id === urlOrderId)
+        if (serviceIndex !== -1) {
+            setTimeout(() => {
+                if (orderType !== "service") setOrderType("service")
+                if (activeStatusTab !== "all") setActiveStatusTab("all")
+            }, 0);
+        }
+    }, [urlOrderId, isPending, productData, ownedServiceOrders, activeStatusTab, currentPage, orderType, statusFilteredOrders])
 
     const handlePageChange = (page: number) => {
         setCurrentPage(page)

@@ -18,7 +18,8 @@ export type ServiceStatus =
   | 'cancelled'    // Khách hoặc Admin từ chối/hủy
   | 'rejected'     // Bị từ chối
   | 'refunded'
-  | 'forcedcancelled'; // Hủy cưỡng bức
+  | 'forcedcancelled'
+  | 'rescheduled'; // Đã đổi lịch
 
 export type ServiceType =
   | 'deep_clean'      // Vệ sinh sâu
@@ -43,11 +44,13 @@ export interface ServiceBooking {
   subTotalPrice?: number;
   scheduledDate: string;
   scheduledTime: string;
+  appointmentDate?: string;
   address: ServiceAddress;
   items: ServiceItem[];
   technician?: Staff | null; // Keep for backward compatibility or UI specific role, but API call it staff
   staff?: Staff | null;
   serviceTask?: ServiceTask | null;
+  serviceTasks?: ServiceTask[] | null;
   imageUrl?: string[];
   totalPrice: number;
   notes?: string;
@@ -65,12 +68,16 @@ export interface ServiceAddress {
 }
 
 export interface ServiceItem {
-  id: string;
-  name: string;
-  quantity: number;
-  unitPrice: number;
-  image?: string;
+  id?: string;
+  serviceOrderItemId?: string;
   servicePackageMappingId?: string;
+  servicePackageName?: string;
+  productTypeName?: string;
+  name?: string;
+  quantity: number;
+  unitPrice?: number;
+  totalPrice?: number;
+  image?: string;
 }
 
 export interface ServiceEvidence {
@@ -120,6 +127,8 @@ export interface ServiceTask {
   checkoutUrl?: string | null;   // Alternative name from Dialog
   checkOutUrl?: string | null;  // Inconsistent casing from API
   staffNote?: string;
+  createdAt?: string;
+  staff?: Staff | null;
   evidences?: ServiceEvidence[]; // For ServiceOrder details refined later
 }
 

@@ -8,12 +8,18 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Button } from "../../components/ui/button";
 import { useForgotPassword } from "../../hooks/useAuth";
+import { ApiError } from "@/lib/api";
 import { AppRoute } from "@/lib/constants";
 import { useForgotPasswordStore } from "../../store/forgotPasswordStore";
 
 const forgotPasswordSchema = z.object({
   phoneNumber: z.string().min(10, "Invalid phone number"),
 });
+
+const normalizePhone = (phone?: string) => {
+  if (!phone) return "";
+  return phone.replace(/\s+/g, "").replace(/^\+84/, "0");
+};
 
 type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
 
@@ -36,15 +42,21 @@ export default function ForgotPassword() {
   const { mutate, isPending, error } = useForgotPassword();
 
   const onSubmit = (data: ForgotPasswordFormData) => {
+    const normalizedPhone = normalizePhone(data.phoneNumber);
     mutate(
-      { phoneNumber: data.phoneNumber },
+      { phoneNumber: normalizedPhone },
       {
         onSuccess: () => {
-          setPhoneNumber(data.phoneNumber);
+          setPhoneNumber(normalizedPhone);
           navigate(AppRoute.RESET_PASSWORD_OTP);
         },
         onError: (err) => {
-          console.log("ERROR", err);
+          let message = "Failed to send OTP";
+
+          if (err instanceof ApiError) {
+            message = err.message;
+          }
+          console.log("ERROR", message);
         },
       },
     );

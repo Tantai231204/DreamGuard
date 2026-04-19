@@ -2,6 +2,9 @@ import React from "react";
 import {
   Dialog,
   DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -34,20 +37,19 @@ export function CompleteServiceDialog({
     <Dialog open={isOpen} onOpenChange={(open: boolean) => !open && onClose()}>
       <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden border border-slate-200 shadow-2xl rounded-xl bg-white text-slate-900">
         <div className="p-10 pb-8">
-          {/* Header Section */}
-          <div className="flex items-start gap-4 mb-10 text-left">
+          <DialogHeader className="flex flex-row items-start gap-4 mb-10 text-left">
             <div className="w-12 h-12 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center shrink-0 shadow-sm">
               <CheckCircle className="w-6 h-6 text-emerald-600" />
             </div>
             <div className="pt-1">
-              <h2 className="text-[20px] font-black text-[#1e293b] leading-tight tracking-tight uppercase">
+              <DialogTitle className="text-[20px] font-black text-[#1e293b] leading-tight tracking-tight uppercase">
                 Complete Service Task
-              </h2>
-              <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.15em] mt-1.5">
+              </DialogTitle>
+              <DialogDescription className="text-[10px] font-black text-slate-300 uppercase tracking-[0.15em] mt-1.5">
                 Internal Record #{orderCode || 'DGSVCORE-2026-X'}
-              </p>
+              </DialogDescription>
             </div>
-          </div>
+          </DialogHeader>
 
           {/* Protocol Info Block */}
           <div className="bg-emerald-50 border-l-[4px] border-emerald-500 p-6 rounded-r-lg mb-8 flex gap-4 text-left">

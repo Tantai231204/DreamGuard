@@ -23,6 +23,8 @@ export interface ServiceOrderTask {
   status?: string;
   checkIn?: string | null;
   checkOut?: string | null;
+  createdAt?: string;
+  CreatedAt?: string;
 }
 
 export interface ServiceOrderResponse {
@@ -52,6 +54,8 @@ export interface ServiceOrderResponse {
   items?: ServiceOrderItem[];
   orderDetails?: ServiceOrderItem[];
   serviceOrderItems?: ServiceOrderItem[];
+  paymentDescription?: string;
+  paymentEvidenceUrl?: string;
 }
 
 export interface ServiceOrderListResponse {
@@ -68,6 +72,12 @@ export interface ReOrderFailedServiceOrderResponse {
   soId?: string;
   id?: string;
   [key: string]: unknown;
+}
+
+export interface RescheduleServiceOrderRequest {
+  serviceOrderId: string;
+  newStaffId: string;
+  newAppointmentDate: string;
 }
 
 export interface ServiceDashboardResponse {

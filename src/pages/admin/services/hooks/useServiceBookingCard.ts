@@ -14,7 +14,8 @@ interface UseServiceBookingCardProps {
   onAssignTechnician?: (id: string) => void;
 }
 
-import { mapApiDetailToOrder } from '../utils/mappers';
+import { mapApiDetailToOrder, mapApiTaskToServiceTask } from '../utils/mappers';
+import serviceOrderService from '@/api/services/serviceOrderService';
 
 export const useServiceBookingCard = ({
   booking,
@@ -38,10 +39,27 @@ export const useServiceBookingCard = ({
     staleTime: 1000 * 60 * 5, // Cache for 5 mins
   });
 
+  const { data: taskData } = useQuery({
+    queryKey: ['serviceTask', 'detail', booking.id],
+    queryFn: async () => {
+      const res = await serviceOrderService.searchServiceTasks({
+        soId: booking.id,
+        sold: booking.id,
+        pageSize: 1,
+        pageNumber: 1
+      });
+      const items = res?.items || [];
+      return mapApiTaskToServiceTask(items[0]);
+    },
+    enabled: !!booking.id && (booking.status === 'confirmed' || booking.status === 'processing' || booking.status === 'completed' || booking.status === 'rescheduled'),
+    staleTime: 30000,
+  });
+
   const processedDetail = detailData || booking; // Use full detail if available, fallback to list item
   const orderItems = processedDetail?.items || [];
   
-  const task = processedDetail.serviceTask;
+  // Authority Principle: taskQuery.data is more authoritative for current state
+  const task = taskData || processedDetail.serviceTask;
   const staff = processedDetail.staff || processedDetail.technician;
 
   const technician = useMemo(() => {

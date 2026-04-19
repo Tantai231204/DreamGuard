@@ -3,10 +3,7 @@ import {
     MoreVertical,
     Eye,
     FileText,
-    ExternalLink,
-    CheckCircle2,
-    XCircle,
-    RotateCcw
+    ExternalLink
 } from 'lucide-react';
 import { SortableHeader, AdminStatusBadge } from '@/components/admin';
 import { formatDate, formatTime } from '@/lib/utils';
@@ -17,14 +14,12 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-    DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { useQueryClient } from '@tanstack/react-query';
 import paymentService from '@/api/services/paymentService';
-import { paymentKeys, useUpdatePaymentStatus } from '@/hooks/queries/usePayment';
+import { paymentKeys } from '@/hooks/queries/usePayment';
 import type { PaymentResponse } from '@/api/types/payment';
 import { formatPrice } from '@/pages/profile/utils';
-import { useToast } from '@/hooks/useToast';
 
 interface usePaymentColumnsProps {
     onView: (id: string) => void;
@@ -36,19 +31,6 @@ interface usePaymentColumnsProps {
 
 export const usePaymentColumns = ({ onView }: usePaymentColumnsProps) => {
     const queryClient = useQueryClient();
-    const { mutate: updateStatus } = useUpdatePaymentStatus();
-    const { success, error } = useToast();
-
-    const handleUpdateStatus = useCallback((id: string, status: string) => {
-        updateStatus({ id, status }, {
-            onSuccess: () => {
-                success("Status Updated", `Transaction status has been changed to ${status}`);
-            },
-            onError: () => {
-                error("Update Failed", "Could not update payment status. Please try again.");
-            }
-        });
-    }, [updateStatus, success, error]);
 
     const prefetchPayment = useCallback((id: string) => {
         queryClient.prefetchQuery({
@@ -82,8 +64,8 @@ export const usePaymentColumns = ({ onView }: usePaymentColumnsProps) => {
                 cell: ({ row }: CellContext<PaymentResponse, unknown>) => {
                     const type = row.original.paymentType;
                     return (
-                        <AdminStatusBadge 
-                            status={type} 
+                        <AdminStatusBadge
+                            status={type}
                         />
                     );
                 },
@@ -103,11 +85,11 @@ export const usePaymentColumns = ({ onView }: usePaymentColumnsProps) => {
                 cell: ({ row }: CellContext<PaymentResponse, unknown>) => {
                     const method = row.original.paymentMethod;
                     return (
-                        <AdminStatusBadge 
-                            status={method} 
+                        <AdminStatusBadge
+                            status={method}
                             mode="method"
-                            type="neutral" 
-                            className="bg-slate-100/50 border-slate-200" 
+                            type="neutral"
+                            className="bg-slate-100/50 border-slate-200"
                         />
                     );
                 },
@@ -118,8 +100,8 @@ export const usePaymentColumns = ({ onView }: usePaymentColumnsProps) => {
                 cell: ({ row }: CellContext<PaymentResponse, unknown>) => {
                     const status = row.original.status;
                     return (
-                        <AdminStatusBadge 
-                            status={status} 
+                        <AdminStatusBadge
+                            status={status}
                             mode="payment"
                         />
                     );
@@ -168,40 +150,13 @@ export const usePaymentColumns = ({ onView }: usePaymentColumnsProps) => {
                                     <FileText className="h-4 w-4 opacity-70" />
                                     <span className="text-[13px]">Print Receipt</span>
                                 </DropdownMenuItem>
-
-                                <DropdownMenuSeparator className="my-1 bg-slate-100" />
-
-                                <div className="px-3 py-2 border-b border-slate-50 mb-1">
-                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">State Logic</span>
-                                </div>
-                                <DropdownMenuItem
-                                    className="rounded-lg cursor-pointer py-2 px-3 font-medium text-emerald-600 hover:text-emerald-700 focus:bg-emerald-50 focus:text-emerald-800 transition-colors gap-2.5"
-                                    onClick={() => handleUpdateStatus(row.original.id, 'Paid')}
-                                >
-                                    <CheckCircle2 className="h-4 w-4 opacity-70" />
-                                    <span className="text-[13px]">Authorize as Paid</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    className="rounded-lg cursor-pointer py-2 px-3 font-medium text-rose-500 hover:text-rose-600 focus:bg-rose-50 focus:text-rose-700 transition-colors gap-2.5"
-                                    onClick={() => handleUpdateStatus(row.original.id, 'Failed')}
-                                >
-                                    <XCircle className="h-4 w-4 opacity-70" />
-                                    <span className="text-[13px]">Mark as Void/Failed</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                    className="rounded-lg cursor-pointer py-2 px-3 font-medium text-blue-600 hover:text-blue-700 focus:bg-blue-50 focus:text-blue-800 transition-colors gap-2.5"
-                                    onClick={() => handleUpdateStatus(row.original.id, 'Refunded')}
-                                >
-                                    <RotateCcw className="h-4 w-4 opacity-70" />
-                                    <span className="text-[13px]">Execute Refund</span>
-                                </DropdownMenuItem>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
                 ),
             },
         ],
-        [onView, prefetchPayment, handleUpdateStatus]
+        [onView, prefetchPayment]
     );
 
     return columns;

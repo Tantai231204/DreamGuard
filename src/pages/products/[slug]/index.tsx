@@ -36,7 +36,8 @@ export default function ProductDetail() {
     certifications,
     productImageRef,
     isAuthenticated,
-    tradeInContact
+    tradeInContact,
+    tradeInAddresses
   } = useProductDetailViewModel();
 
   if (isLoading) return <ProductDetailSkeleton />;
@@ -151,6 +152,7 @@ export default function ProductDetail() {
                 isLoadingItems={isTradeInItemsLoading}
                 isLoggedIn={isAuthenticated}
                 initialContact={tradeInContact}
+                addresses={tradeInAddresses}
               />
             </Suspense>
           </div>

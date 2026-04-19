@@ -1,6 +1,9 @@
+import { useMemo } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import api from '@/lib/api';
+import serviceOrderService from '@/api/services/serviceOrderService';
+import type { RescheduleServiceOrderRequest } from '@/api/types/serviceOrder';
 
 export const useServiceActions = () => {
     const queryClient = useQueryClient();
@@ -12,36 +15,38 @@ export const useServiceActions = () => {
         onSuccess: (_, id) => {
             toast.success(`Confirmed booking ${id}`);
             queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
-            queryClient.invalidateQueries({ queryKey: ['serviceOrder', id] });
+            queryClient.invalidateQueries({ queryKey: ['serviceOrder', 'detail', id] });
+            queryClient.invalidateQueries({ queryKey: ['serviceTask', 'detail', id] });
         },
-        onError: () => toast.error('Failed to confirm booking'),
     });
 
     const cancelMutation = useMutation({
-        mutationFn: async ({ id, status, reason }: { id: string; status: string; reason?: string }) => {
-            let endpoint = '';
+        mutationFn: async ({ id, status }: { id: string; status: string; reason?: string }) => {
             const normalizedStatus = status.toLowerCase();
-            switch (normalizedStatus) {
-                case 'pending':
-                    endpoint = `/ServiceOrders/${id}/reject`;
-                    break;
-                case 'confirmed':
-                    endpoint = `/ServiceOrders/${id}/manager-cancel`;
-                    break;
-                case 'processing':
-                    endpoint = `/ServiceOrders/${id}/manager-force-cancel`;
-                    break;
-                default:
-                    throw new Error('Invalid status for cancellation');
+            if (normalizedStatus === 'processing') {
+                await serviceOrderService.managerForceCancel(id);
+            } else {
+                await serviceOrderService.managerCancelConfirm(id);
             }
-            await api.patch(endpoint, { cancellationReason: reason });
         },
         onSuccess: (_, { id }) => {
-            toast.success(`Action applied successfully to booking ${id}`);
+            toast.success(`Cancellation logic applied to booking ${id}`);
             queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
-            queryClient.invalidateQueries({ queryKey: ['serviceOrder', id] });
+            queryClient.invalidateQueries({ queryKey: ['serviceOrder', 'detail', id] });
+            queryClient.invalidateQueries({ queryKey: ['serviceTask', 'detail', id] });
         },
-        onError: () => toast.error('Failed to cancel/reject booking'),
+    });
+
+    const rescheduleMutation = useMutation({
+        mutationFn: async (data: RescheduleServiceOrderRequest) => {
+            await serviceOrderService.rescheduleServiceOrder(data);
+        },
+        onSuccess: (_, { serviceOrderId }) => {
+            toast.success(`Order rescheduled successfully`);
+            queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
+            queryClient.invalidateQueries({ queryKey: ['serviceOrder', 'detail', serviceOrderId] });
+            queryClient.invalidateQueries({ queryKey: ['serviceTask', 'detail', serviceOrderId] });
+        },
     });
 
     const completeMutation = useMutation({
@@ -51,17 +56,29 @@ export const useServiceActions = () => {
         onSuccess: (_, { orderId }) => {
             toast.success(`Service task completed successfully`);
             queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
-            queryClient.invalidateQueries({ queryKey: ['serviceOrder', orderId] });
+            queryClient.invalidateQueries({ queryKey: ['serviceOrder', 'detail', orderId] });
+            queryClient.invalidateQueries({ queryKey: ['serviceTask', 'detail', orderId] });
+            queryClient.invalidateQueries({ queryKey: ['serviceEvidences', orderId] });
         },
-        onError: () => toast.error('Failed to complete service task'),
     });
 
-    return {
+    return useMemo(() => ({
         confirmBooking: confirmMutation.mutate,
         isConfirming: confirmMutation.isPending,
         cancelBooking: cancelMutation.mutate,
         isCancelling: cancelMutation.isPending,
         completeBooking: completeMutation.mutate,
         isCompleting: completeMutation.isPending,
-    };
+        rescheduleBooking: rescheduleMutation.mutate,
+        isRescheduling: rescheduleMutation.isPending,
+    }), [
+        confirmMutation.mutate,
+        confirmMutation.isPending,
+        cancelMutation.mutate,
+        cancelMutation.isPending,
+        completeMutation.mutate,
+        completeMutation.isPending,
+        rescheduleMutation.mutate,
+        rescheduleMutation.isPending,
+    ]);
 };

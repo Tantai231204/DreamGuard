@@ -32,9 +32,19 @@ interface OrderDetailDialogProps {
     orderId: string
     orderCode: string
     trigger: React.ReactNode
+    open?: boolean
+    onOpenChange?: (open: boolean) => void
+    initialTab?: "details" | "review"
 }
 
-export function OrderDetailDialog({ orderId, orderCode, trigger }: OrderDetailDialogProps) {
+export function OrderDetailDialog({ 
+    orderId, 
+    orderCode, 
+    trigger, 
+    open, 
+    onOpenChange,
+    initialTab = "details" 
+}: OrderDetailDialogProps) {
     const [confirmOpen, setConfirmOpen] = React.useState(false)
     const [itemsExpanded, setItemsExpanded] = React.useState(false)
     const toast = useToast()
@@ -43,8 +53,20 @@ export function OrderDetailDialog({ orderId, orderCode, trigger }: OrderDetailDi
     const { mutate: cancelOrder, isPending: isCancelling } = useCancelOrder({ meta: { hideToast: true } })
     const navigate = useNavigate()
 
+    // Scroll to items if initialTab is "review"
+    React.useEffect(() => {
+        if (open && initialTab === "review" && !isPending) {
+            setTimeout(() => {
+                const element = document.getElementById("order-items-section");
+                if (element) {
+                    element.scrollIntoView({ behavior: "smooth", block: "start" });
+                }
+            }, 300);
+        }
+    }, [open, initialTab, isPending]);
+
     const theme = useMemo(() => order ? getStatusTheme(order.status) : getStatusTheme("Pending"), [order])
-    const isCancelled = theme.label === "Cancelled"
+    const isCancelled = theme.label.toLowerCase().includes("cancel")
     const canCancel = theme.step === 0
 
     const allItems = useMemo(() => order?.items || [], [order?.items])
@@ -64,9 +86,10 @@ export function OrderDetailDialog({ orderId, orderCode, trigger }: OrderDetailDi
         navigate(`/cart?reorder=${orderId}`)
     }, [order?.items?.length, navigate, orderId])
 
-    const handleDialogChange = useCallback((open: boolean) => {
-        if (!open) setItemsExpanded(false)
-    }, [])
+    const handleDialogChange = useCallback((newOpen: boolean) => {
+        if (!newOpen) setItemsExpanded(false)
+        onOpenChange?.(newOpen)
+    }, [onOpenChange])
 
     const handleCancelConfirm = useCallback(() => {
         cancelOrder(orderId, {
@@ -85,7 +108,7 @@ export function OrderDetailDialog({ orderId, orderCode, trigger }: OrderDetailDi
 
     return (
         <>
-            <Dialog onOpenChange={handleDialogChange}>
+            <Dialog open={open} onOpenChange={handleDialogChange}>
                 <DialogTrigger asChild>{trigger}</DialogTrigger>
                 <DialogContent className="max-w-3xl max-h-[92vh] overflow-hidden flex flex-col p-0 rounded-xl border-none shadow-2xl bg-gray-50">
                     {/* Header */}

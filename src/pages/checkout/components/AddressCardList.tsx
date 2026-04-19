@@ -8,6 +8,7 @@ interface AddressCardListProps {
     selectedId: string | null;
     onSelectAddress: (addr: Address) => void;
     onAddCustomAddress: () => void;
+    variant?: "checkout" | "tradein";
 }
 
 function AddressCardListInner({
@@ -15,7 +16,10 @@ function AddressCardListInner({
     selectedId,
     onSelectAddress,
     onAddCustomAddress,
+    variant = "checkout",
 }: AddressCardListProps) {
+    const isTradeIn = variant === "tradein";
+
     return (
         <>
             {addresses.map((addr) => (
@@ -26,20 +30,28 @@ function AddressCardListInner({
                     className={cn(
                         "flex flex-col text-left p-6 rounded-[1.5rem] border-2 transition-all duration-500 relative overflow-hidden group/card",
                         selectedId === addr.addressId
-                            ? "border-primary-500 bg-primary-500 text-white shadow-2xl shadow-primary-500/30"
-                            : "border-slate-100 bg-slate-50/30 hover:border-primary-500/40 hover:bg-white text-slate-900"
+                            ? isTradeIn
+                                ? "border-[#3D5140] bg-[#3D5140] text-white shadow-2xl shadow-[#3D5140]/30"
+                                : "border-primary-500 bg-primary-500 text-white shadow-2xl shadow-primary-500/30"
+                            : isTradeIn
+                                ? "border-slate-100 bg-slate-50/30 hover:border-[#3D5140]/40 hover:bg-white text-slate-900"
+                                : "border-slate-100 bg-slate-50/30 hover:border-primary-500/40 hover:bg-white text-slate-900"
                     )}
                 >
                     <div className="flex items-center justify-between mb-4">
                         <div className={cn(
                             "px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-[0.2em]",
-                            selectedId === addr.addressId ? "bg-white/10 text-white" : "bg-white text-primary-500 shadow-sm border border-slate-100"
+                            selectedId === addr.addressId 
+                                ? "bg-white/10 text-white" 
+                                : isTradeIn
+                                    ? "bg-white text-[#3D5140] shadow-sm border border-slate-100"
+                                    : "bg-white text-primary-500 shadow-sm border border-slate-100"
                         )}>
                             {addr.isDefault ? "Primary Shipping" : "Home Address"}
                         </div>
                         {selectedId === addr.addressId && (
                             <div className="bg-white rounded-full p-1.5 shadow-lg shadow-black/5">
-                                <CheckCircle2 className="w-5 h-5 text-primary-500" />
+                                <CheckCircle2 className={cn("w-5 h-5", isTradeIn ? "text-[#3D5140]" : "text-primary-500")} />
                             </div>
                         )}
                     </div>
@@ -48,7 +60,11 @@ function AddressCardListInner({
                         <h4 className="font-black text-xl tracking-tight leading-none">{addr.receiverName}</h4>
                         <p className={cn(
                             "text-sm font-bold opacity-70",
-                            selectedId === addr.addressId ? "text-white" : "text-primary-500"
+                            selectedId === addr.addressId 
+                                ? "text-white" 
+                                : isTradeIn 
+                                    ? "text-[#3D5140]" 
+                                    : "text-primary-500"
                         )}>
                             {addr.phoneNumber}
                         </p>
@@ -81,9 +97,15 @@ function AddressCardListInner({
             <button
                 type="button"
                 onClick={onAddCustomAddress}
-                className="flex flex-col items-center justify-center p-6 rounded-[1.5rem] border-2 border-dashed border-slate-200 bg-slate-50/20 hover:bg-white hover:border-primary-500 hover:text-primary-500 transition-all duration-500 text-slate-400 gap-3 group"
+                className={cn(
+                    "flex flex-col items-center justify-center p-6 rounded-[1.5rem] border-2 border-dashed border-slate-200 bg-slate-50/20 hover:bg-white transition-all duration-500 text-slate-400 gap-3 group",
+                    isTradeIn ? "hover:border-[#3D5140] hover:text-[#3D5140]" : "hover:border-primary-500 hover:text-primary-500"
+                )}
             >
-                <div className="p-4 rounded-xl bg-slate-100 group-hover:bg-primary-500 group-hover:text-white transition-all duration-500 shadow-sm">
+                <div className={cn(
+                    "p-4 rounded-xl bg-slate-100 transition-all duration-500 shadow-sm",
+                    isTradeIn ? "group-hover:bg-[#3D5140] group-hover:text-white" : "group-hover:bg-primary-500 group-hover:text-white"
+                )}>
                     <Plus className="w-5 h-5" />
                 </div>
                 <div className="text-center">

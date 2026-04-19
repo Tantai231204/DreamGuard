@@ -41,7 +41,11 @@ export const authService = {
   forgotPassword: async (
     data: ForgotPasswordRequest,
   ): Promise<{ message: string }> => {
-    const res = await api.post("/auths/forgotpassword", data);
+    const config: CustomAxiosRequestConfig = {
+      skipAuth: true,
+      withCredentials: false,
+    };
+    const res = await api.post("/auths/forgotpassword", data, config);
     return res.data;
   },
 
@@ -55,6 +59,7 @@ export const authService = {
   ): Promise<{ message: string }> => {
     const config: CustomAxiosRequestConfig = {
       skipAuth: true,
+      withCredentials: false,
     };
 
     const res = await api.post("/auths/resetpassword", data, config);

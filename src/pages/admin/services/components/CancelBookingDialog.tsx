@@ -66,7 +66,9 @@ export function CancelBookingDialog({
     onConfirm(finalReason);
   };
 
-  const isReject = status.toLowerCase() === 'pending';
+  const normalizedStatus = status.toLowerCase();
+  const isReject = normalizedStatus === 'pending' || normalizedStatus === 'rescheduled';
+  const isManagerConfirm = normalizedStatus === 'processing';
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -79,7 +81,7 @@ export function CancelBookingDialog({
               </div>
               <div>
                 <DialogTitle className="text-lg font-black text-slate-900 uppercase tracking-tight">
-                  {isReject ? "Reject Service Order" : "Cancel Service"}
+                  {isReject ? "Reject Service Order" : isManagerConfirm ? "Confirm Override Cancel" : "Cancel Service"}
                 </DialogTitle>
                 <DialogDescription className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                   Reference #{orderCode}
@@ -96,7 +98,9 @@ export function CancelBookingDialog({
                 <p className="text-[12px] text-slate-600 font-medium leading-relaxed">
                   {isReject
                     ? "This action will immediately notify the customer and terminate the workflow."
-                    : "ACTIVE OVERRIDE: This will force the technician to stop work immediately."
+                    : isManagerConfirm
+                      ? "Technician has aborted the task. By confirming, you finalize the cancellation of this active order."
+                      : "ACTIVE OVERRIDE: This will force the technician to stop work immediately."
                   }
                 </p>
               </div>
@@ -159,7 +163,7 @@ export function CancelBookingDialog({
             disabled={isLoading || !selectedReason}
             className="bg-rose-600 hover:bg-rose-700 text-white font-black text-[10px] uppercase tracking-widest px-8 h-12 rounded-xl transition-all active:scale-95 disabled:opacity-50 border-none outline-none ring-0 focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0"
           >
-            {isLoading ? "Executing..." : (isReject ? "Reject Order" : "Cancel Order")}
+            {isLoading ? "Executing..." : (isReject ? "Reject Order" : isManagerConfirm ? "Confirm Cancel" : "Cancel Order")}
           </Button>
         </DialogFooter>
       </DialogContent>

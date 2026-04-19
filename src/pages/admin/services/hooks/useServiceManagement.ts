@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import api from '@/lib/api';
+import serviceOrderService from '@/api/services/serviceOrderService';
 import type {
   ServiceBooking,
   PaginatedAdminSearchOrderServiceResponse
@@ -60,42 +61,27 @@ export const useServiceManagement = () => {
     },
     onSuccess: () => {
       toast.success(`Booking confirmed successfully`);
-      queryClient.refetchQueries({ queryKey: ['serviceOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
       setIsConfirmOpen(false);
     },
-    onError: () => toast.error('Failed to confirm booking'),
   });
 
   const cancelMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      let endpoint = '';
-      switch (status) {
-        case 'pending':
-          endpoint = `/ServiceOrders/${id}/reject`;
-          break;
-        case 'confirmed':
-          endpoint = `/ServiceOrders/${id}/manager-cancel`;
-          break;
-        case 'processing':
-          endpoint = `/ServiceOrders/${id}/manager-force-cancel`;
-          break;
-        default:
-          throw new Error('Invalid status for cancellation');
+      const normalizedStatus = status.toLowerCase();
+      // Processing: only reachable when staff has already forced-cancelled
+      // All other states (pending, confirmed, rescheduled): manager cancel confirm
+      // Backend auto-cancels ServiceTask if pending/checked_in, or just cancels order if no task
+      if (normalizedStatus === 'processing') {
+        await serviceOrderService.forcedCancelled(id);
+      } else {
+        await serviceOrderService.managerCancelConfirm(id);
       }
-      await api.patch(endpoint);
     },
     onSuccess: () => {
       toast.success(`Action applied successfully`);
-      queryClient.refetchQueries({ queryKey: ['serviceOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
       setIsCancelOpen(false);
-    },
-    onError: (err: unknown) => {
-      let msg = 'Operation failed';
-      if (err && typeof err === 'object' && 'response' in err) {
-        const responseData = (err as { response?: { data?: { message?: string } } }).response?.data;
-        msg = responseData?.message || msg;
-      }
-      toast.error(msg);
     },
   });
 

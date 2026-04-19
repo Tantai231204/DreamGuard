@@ -31,16 +31,32 @@ export const useAssignTechnicianDialog = ({ orderId, onClose }: UseAssignTechnic
     onSuccess: () => {
       toast.success('Technician assigned successfully');
       // Force refetch to update calendar immediately
-      queryClient.refetchQueries({ queryKey: ['serviceOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
       if (orderId) {
-        queryClient.invalidateQueries({ queryKey: ['serviceOrder', orderId] });
+        queryClient.invalidateQueries({ queryKey: ['serviceOrder', 'detail', orderId] });
+        queryClient.invalidateQueries({ queryKey: ['serviceTask', 'detail', orderId] });
+        queryClient.invalidateQueries({ queryKey: ['serviceEvidences', orderId] });
       }
       onClose();
       setSelectedStaffId('');
     },
-    onError: (err) => {
+    onError: (err: unknown) => {
       console.error(err);
-      toast.error('Failed to assign technician');
+      const error = err as { response?: { data?: { message?: string } }, message?: string };
+      const errorMessage = error?.response?.data?.message || error?.message || '';
+      
+      if (errorMessage.includes('Service task already exists')) {
+        toast.error('This order already has a technician assigned.');
+        // Force refresh to sync UI
+        queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
+        if (orderId) {
+          queryClient.invalidateQueries({ queryKey: ['serviceOrder', 'detail', orderId] });
+          queryClient.invalidateQueries({ queryKey: ['serviceTask', 'detail', orderId] });
+        }
+        onClose();
+      } else {
+        toast.error('Failed to assign technician');
+      }
     },
   });
 

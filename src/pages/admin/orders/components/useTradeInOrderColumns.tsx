@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { createColumnHelper } from '@tanstack/react-table';
-import { Eye, Trash2 } from 'lucide-react';
+import { Eye, Trash2, ShoppingBag } from 'lucide-react';
 
 import { AdminStatusBadge, AdminRowActions } from '@/components/admin';
 import type { TradeInOrderListItem } from '@/api/types/tradeInOrder';
@@ -25,10 +25,21 @@ export const useTradeInOrderColumns = (onCancel: (order: TradeInOrderListItem) =
       }),
       columnHelper.accessor('orderCode', {
         enableSorting: true,
-        header: ({ column }) => <SortableHeader column={column} label="Order ID" />,
+        header: ({ column }) => <SortableHeader column={column} label="Trade-In ID" />,
         cell: ({ row }) => (
-          <div className="font-mono text-sm font-bold text-[#4988c4]">
-            #{row.original.orderCode}
+          <div className="flex flex-col gap-1">
+            <div className="font-mono text-sm font-bold text-[#4988c4]">
+              #{row.original.orderCode}
+            </div>
+            {row.original.orderId && (
+              <Link
+                to={`/admin/orders/${row.original.orderId}`}
+                className="text-[10px] font-bold text-gray-400 uppercase tracking-tight hover:text-primary hover:underline flex items-center gap-1"
+              >
+                <ShoppingBag className="w-2.5 h-2.5" />
+                Root: {row.original.orderId.substring(0, 8)}...
+              </Link>
+            )}
           </div>
         ),
       }),

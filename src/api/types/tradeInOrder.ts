@@ -55,7 +55,10 @@ export interface TradeInConversationInfo {
 export interface TradeInOrderDetailResponse {
   tradeInOrderId: string;
   customerId: string;
+  orderId?: string;
   productVariantId: string;
+  oldProductVariantUrl?: string;
+  newProductVariantUrl?: string;
   pOrderItemId: string;
   orderCode: string;
   createdAt: string;
@@ -81,6 +84,7 @@ export interface TradeInOrderDetailResponse {
     tradeInUsedAmount: number;
     productCustomizeDetails: unknown[];
     customizeHash: string;
+    image?: string;
   };
   productVariant?: {
     id: string;
@@ -118,6 +122,7 @@ export interface ReOrderFailedTradeInOrderResponse {
 export interface TradeInOrderListItem {
   tradeInOrderId: string;
   orderCode: string;
+  orderId?: string;
   customerId: string;
   productVariantId: string;
   pOrderItemId: string;

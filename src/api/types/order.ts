@@ -57,6 +57,7 @@ export interface OrderItem {
 }
 
 export interface TradeInEligibleOrderItem extends OrderItem {
+    productVariantImageUrl?: string;
     tradeInUsedAmount: number;
     productCustomizeDetails: ProductCustomizeDetail[];
     customizeHash: string;

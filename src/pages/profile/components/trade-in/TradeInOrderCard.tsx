@@ -8,6 +8,7 @@ import { getTradeInStatusTheme } from "../../constants";
 import { TradeInOrderDetailDialog } from "./TradeInOrderDetailDialog";
 import { CancelTradeInDialog } from "./CancelTradeInDialog";
 import type { TradeInOrderListItem } from "@/api/types/tradeInOrder";
+import { useNavigate } from "react-router-dom";
 import {
     isTradeInCustomerCancelableStatus,
     isTradeInWaitingStatus,
@@ -27,15 +28,16 @@ interface TradeInOrderCardProps {
     isRetryingPayment: boolean;
 }
 
-export const TradeInOrderCard = memo(({ 
-    order, 
-    onChatClick, 
-    onCancelRequest, 
+export const TradeInOrderCard = memo(({
+    order,
+    onChatClick,
+    onCancelRequest,
     onRetryPaymentRequest,
-    isCreatingChat, 
+    isCreatingChat,
     isCancelling,
     isRetryingPayment,
 }: TradeInOrderCardProps) => {
+    const navigate = useNavigate();
     const normalizedStatus = normalizeTradeInStatus(order.status);
     const isNegotiating = normalizedStatus === "NEGOTIATING";
     const isWaiting = isTradeInWaitingStatus(order.status);
@@ -43,11 +45,7 @@ export const TradeInOrderCard = memo(({
     const isPendingStatus = normalizedStatus === "PENDING";
     const theme = getTradeInStatusTheme(order.status);
 
-    const rawOrder = order as TradeInOrderListItem & {
-        payments?: Array<{ status?: string }>;
-        paymentStatus?: string;
-    };
-    const listPaymentStatus = String(rawOrder.paymentStatus || rawOrder.payments?.[0]?.status || "").toLowerCase();
+    const listPaymentStatus = String(order.paymentStatus || "").toLowerCase();
 
     const { data: pendingOrderDetail } = useCustomerTradeInOrderDetail(order.tradeInOrderId, {
         enabled: isPendingStatus && !listPaymentStatus,
@@ -57,17 +55,17 @@ export const TradeInOrderCard = memo(({
     const needsPaymentRetry = isPendingStatus && paymentStatus === "failed";
     const isAwaitingPayment = isWaiting && (paymentStatus === "pending" || paymentStatus === "unpaid");
     const canRetryPayment = needsPaymentRetry;
-    
+
     const tradedName = order.orderItem?.itemName || `Device #${order.pOrderItemId.split('-')[0]}...`;
     const targetName = order.productVariant?.sku || `Upgrade #${order.productVariantId.split('-')[0]}...`;
 
     const { data: variant } = useVariant(order.productVariantId);
     const { data: product } = useProductDetail(variant?.productId || "", !!variant?.productId);
 
-    const targetImage = (variant?.attributes?.imageUrls as string[])?.[0] || 
-                        (variant?.attributes?.imageUrl as string) || 
-                        product?.imageUrls?.[0] || 
-                        product?.assets?.[0]?.url;
+    const targetImage = (variant?.attributes?.imageUrls as string[])?.[0] ||
+        (variant?.attributes?.imageUrl as string) ||
+        product?.imageUrls?.[0] ||
+        product?.assets?.[0]?.url;
 
     const handleChat = useCallback(() => onChatClick(order.tradeInOrderId), [onChatClick, order.tradeInOrderId]);
     const handleCancel = useCallback((reason: string) => onCancelRequest(order.tradeInOrderId, reason), [onCancelRequest, order.tradeInOrderId]);
@@ -110,13 +108,20 @@ export const TradeInOrderCard = memo(({
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                         <div className="space-y-2">
                             <h4 className="text-base font-bold text-slate-900 tracking-tight">Request ID: #{order.orderCode}</h4>
-                            
+
                             <div className="flex items-center gap-3 group/info">
                                 <div className="min-w-0">
                                     <p className="text-sm font-bold text-slate-800 truncate">{targetName}</p>
                                     <p className="text-xs font-medium text-slate-500 flex items-center gap-1.5 mt-0.5">
                                         <ArrowLeftRight className="w-3 h-3 text-primary" />
-                                        Trading in: {tradedName}
+                                        Trading in: {order.orderId ? (
+                                            <button 
+                                                onClick={() => navigate(`/profile?tab=orders&id=${order.orderId}`)}
+                                                className="hover:text-primary hover:underline transition-colors font-bold text-slate-700 decoration-primary/30"
+                                            >
+                                                {tradedName}
+                                            </button>
+                                        ) : tradedName}
                                     </p>
                                     {needsPaymentRetry && (
                                         <Badge className="mt-2 h-5 px-2.5 rounded-md bg-rose-50 text-rose-600 border border-rose-100 text-[9px] font-black uppercase tracking-widest shadow-none">
@@ -131,7 +136,7 @@ export const TradeInOrderCard = memo(({
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div className="sm:text-right shrink-0">
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Remaining Balance</p>
                             <p className="text-xl font-black text-primary tabular-nums tracking-tight">

@@ -42,10 +42,30 @@ export const api = axios.create({
 function extractMessage(data: unknown, fallback: string): string {
   if (!data || typeof data !== "object") return fallback;
   const d = data as Record<string, unknown>;
-  // Support various backend error formats
-  const raw = d.message ?? d.error ?? (d.data as Record<string, unknown>)?.message ?? fallback;
+  
+  // High-reliability extraction across multiple backend standards
+  const raw = 
+    d.message ?? 
+    d.error ?? 
+    d.title ?? 
+    d.detail ?? 
+    d.description ??
+    (d.data as Record<string, unknown>)?.message ?? 
+    fallback;
+
   if (Array.isArray(raw)) return raw.join(". ");
-  if (typeof raw === "string") return raw;
+  if (typeof raw === "string") {
+    // Attempt to parse stringified arrays like '["Error message"]'
+    if (raw.trim().startsWith('[') && raw.trim().endsWith(']')) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed.join(". ");
+      } catch {
+        // Ignore parse errors
+      }
+    }
+    return raw;
+  }
   return fallback;
 }
 

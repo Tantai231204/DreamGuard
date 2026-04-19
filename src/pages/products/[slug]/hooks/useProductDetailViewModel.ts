@@ -125,7 +125,7 @@ export function useProductDetailViewModel() {
 
   const eligibleTradeInProducts = useMemo(() => {
     if (!rawTradeInItems.length) return [];
-    const fallbackImage = state.productImages[0] || "https://i.pinimg.com/736x/c5/67/61/c567613e5b7eca33961d69bb41d52355.jpg";
+    const fallbackImage = "https://i.pinimg.com/736x/c5/67/61/c567613e5b7eca33961d69bb41d52355.jpg";
 
     return rawTradeInItems
       .filter((item) => (item.tradeInUsedAmount ?? 0) < ((item.quantity ?? 1) || 1))
@@ -147,7 +147,7 @@ export function useProductDetailViewModel() {
           porderItemId: item.id,
           productVariantId: item.productVariantId,
           name: displayName,
-          image: item.image ?? resolveVariantImage(variant) ?? fallbackImage,
+          image: item.productVariantImageUrl || item.image || resolveVariantImage(variant) || fallbackImage,
           quantity: normalizedQuantity,
           unitPrice: normalizedUnitPrice,
           totalPrice: normalizedTotalPrice,
@@ -158,7 +158,7 @@ export function useProductDetailViewModel() {
           tradeInValue: typeof item.tradeInValue === "number" ? item.tradeInValue : variantTradeInValue,
         };
       });
-  }, [rawTradeInItems, resolveVariantImage, resolveVariantLabel, state.productImages, variantDetailMap]);
+  }, [rawTradeInItems, resolveVariantImage, resolveVariantLabel, variantDetailMap]);
 
   const selectedTradeInItem = useMemo(
     () => eligibleTradeInProducts.find((item) => item.id === state.selectedTradeInProducts[0]),
@@ -339,6 +339,7 @@ export function useProductDetailViewModel() {
     if (product) {
       setBreadcrumb([{ label: "Home", href: "/" }, { label: "Products", href: "/products" }, { label: product.name, active: true }]);
     }
+    return () => setBreadcrumb([]);
   }, [product, setBreadcrumb]);
 
   return {
@@ -363,6 +364,7 @@ export function useProductDetailViewModel() {
     certifications: apiCertificates || safetyCertifications,
     productImageRef,
     isAuthenticated,
-    tradeInContact
+    tradeInContact,
+    tradeInAddresses
   };
 }

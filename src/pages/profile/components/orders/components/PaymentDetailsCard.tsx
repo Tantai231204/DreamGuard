@@ -14,6 +14,8 @@ export interface PaymentDetailsCardEntry {
     amount?: number
     paymentMethod?: string
     createdAt?: string
+    description?: string
+    evidenceUrl?: string | null
 }
 
 interface PaymentDetailsCardProps {
@@ -22,7 +24,7 @@ interface PaymentDetailsCardProps {
     className?: string
 }
 
-export function PaymentDetailsCard({ payments, fallbackPayment, className }: PaymentDetailsCardProps) {
+export const PaymentDetailsCard = React.memo(({ payments, fallbackPayment, className }: PaymentDetailsCardProps) => {
     const [currentIndex, setCurrentIndex] = React.useState(0)
     const swipeStartXRef = React.useRef<number | null>(null)
     const swipeStartYRef = React.useRef<number | null>(null)
@@ -44,17 +46,17 @@ export function PaymentDetailsCard({ payments, fallbackPayment, className }: Pay
 
     const payment = entries[currentIndex]
 
-    const handlePrev = () => setCurrentIndex((prev) => Math.max(0, prev - 1))
-    const handleNext = () => setCurrentIndex((prev) => Math.min(entries.length - 1, prev + 1))
+    const handlePrev = React.useCallback(() => setCurrentIndex((prev) => Math.max(0, prev - 1)), [])
+    const handleNext = React.useCallback(() => setCurrentIndex((prev) => Math.min(entries.length - 1, prev + 1)), [entries.length])
 
-    const handleTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    const handleTouchStart = React.useCallback((event: React.TouchEvent<HTMLDivElement>) => {
         if (entries.length <= 1) return
         const touch = event.touches[0]
         swipeStartXRef.current = touch.clientX
         swipeStartYRef.current = touch.clientY
-    }
+    }, [entries.length])
 
-    const handleTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
+    const handleTouchEnd = React.useCallback((event: React.TouchEvent<HTMLDivElement>) => {
         if (entries.length <= 1) return
         if (swipeStartXRef.current === null || swipeStartYRef.current === null) return
 
@@ -75,7 +77,7 @@ export function PaymentDetailsCard({ payments, fallbackPayment, className }: Pay
         }
 
         handlePrev()
-    }
+    }, [entries.length, handleNext, handlePrev])
 
     const rawMethod = payment?.paymentMethod || "COD"
     const normalizedStatus = String(payment?.status || "Pending").toLowerCase()
@@ -177,11 +179,19 @@ export function PaymentDetailsCard({ payments, fallbackPayment, className }: Pay
                                 </div>
                             </div>
 
+                            {/* Payment Description - User Verification Data */}
+                            <div className="mb-4 sm:mb-5 space-y-1 p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex flex-col">
+                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Payment Ledger Note</span>
+                                <p className="text-[10px] font-bold text-slate-600 leading-relaxed italic truncate sm:whitespace-normal">
+                                    {payment?.description || 'N/A: Regular Settlement'}
+                                </p>
+                            </div>
+
                             <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-4 sm:mb-5 gap-3">
                                 <div className="space-y-1 flex-1">
-                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Auth Reference</p>
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Transaction Ref</p>
                                     <div className="max-w-[180px] sm:max-w-none truncate font-mono text-[10px] font-bold text-slate-600 bg-slate-50 px-2 py-1 rounded border border-slate-100/60 inline-block">
-                                        {(payment?.id || payment?.orderCode || "REF-PENDING").substring(0, 12).toUpperCase()}
+                                        {(payment?.id || payment?.orderCode || "REF-PENDING").toUpperCase()}
                                     </div>
                                 </div>
                                 <div className="space-y-1 sm:text-right flex-1">
@@ -210,6 +220,31 @@ export function PaymentDetailsCard({ payments, fallbackPayment, className }: Pay
                                     </p>
                                 </div>
                             )}
+
+                            {/* Payment Evidence - Visual Confirmation */}
+                            {payment?.evidenceUrl && (
+                                <div className="mt-4 pt-4 border-t border-slate-100 flex flex-col gap-2.5">
+                                    <div className="flex items-center justify-between px-1">
+                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Submitted Evidence</span>
+                                        <a 
+                                            href={payment.evidenceUrl} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="text-[9px] font-bold text-primary hover:underline"
+                                        >
+                                            View Original
+                                        </a>
+                                    </div>
+                                    <div className="relative aspect-[16/6] rounded-xl overflow-hidden border border-slate-200 bg-slate-50 group/evidence shadow-sm">
+                                        <img 
+                                            src={payment.evidenceUrl} 
+                                            alt="Payment Evidence" 
+                                            className="w-full h-full object-cover transition-transform duration-500 group-hover/evidence:scale-110"
+                                        />
+                                        <div className="absolute inset-0 bg-black/5 opacity-0 group-hover/evidence:opacity-100 transition-opacity" />
+                                    </div>
+                                </div>
+                            )}
                         </motion.div>
                     </AnimatePresence>
 
@@ -230,4 +265,6 @@ export function PaymentDetailsCard({ payments, fallbackPayment, className }: Pay
             )}
         </div>
     )
-}
+})
+
+PaymentDetailsCard.displayName = 'PaymentDetailsCard'
