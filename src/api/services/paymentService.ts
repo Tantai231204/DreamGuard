@@ -25,16 +25,43 @@ const paymentService = {
         return res.data?.data ?? res.data;
     },
 
-    updatePaymentStatus: async (id: string, status: string): Promise<void> => {
+    updatePaymentStatus: async (id: string, status: string, evidenceUrl?: string): Promise<void> => {
         console.log(`[PaymentService] Updating payment ${id} to ${status}`);
         await apiClient.put(`/payment/admin/${id}/status`, null, {
-            params: { status }
+            params: { 
+                status,
+                ...(evidenceUrl && { evidenceUrl })
+            }
         });
     },
 
     getPaymentByOrderId: async (orderId: string): Promise<PaymentDetailResponse> => {
         const res = await apiClient.get(`/payment/order/${orderId}`);
         return res.data?.data ?? res.data;
+    },
+
+    createAdminRefund: async (payload: {
+        orderId?: string;
+        tradeInOrderId?: string;
+        soId?: string;
+        reason: string;
+        amount: number;
+    }): Promise<void> => {
+        await apiClient.post('/payment/admin/refund', payload);
+    },
+
+    updateRefundStatus: async (id: string, status: string, evidence?: File): Promise<void> => {
+        const formData = new FormData();
+        formData.append('status', status);
+        if (evidence) {
+            formData.append('evidence', evidence);
+        }
+
+        await apiClient.patch(`/payment/admin/refund/${id}`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
     }
 };
 

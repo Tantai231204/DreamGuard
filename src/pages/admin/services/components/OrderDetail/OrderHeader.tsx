@@ -70,11 +70,12 @@ export const OrderHeader = memo(function OrderHeader({
     });
   };
 
-  const handleCancelConfirm = (reason: string) => {
+  const handleCancelConfirm = (reason: string, refundAmount?: number) => {
     cancelBooking({ 
       id: order.soId || order.id || "", 
-      status: order.status || "", 
-      reason 
+      status: order.status || "",
+      reason,
+      refundAmount
     }, {
       onSuccess: () => {
         setIsCancelOpen(false);
@@ -211,6 +212,9 @@ export const OrderHeader = memo(function OrderHeader({
         isLoading={isCancelling}
         orderCode={order.orderCode || ''}
         status={order.status || ''}
+        paymentMethod={order.paymentMethod}
+        paymentStatus={order.paymentStatus}
+        totalPrice={order.totalPrice}
       />
 
       <CompleteServiceDialog

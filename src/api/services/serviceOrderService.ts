@@ -79,7 +79,11 @@ const serviceOrderService = {
   },
 
   cancelServiceOrder: async (serviceOrderId: string): Promise<void> => {
-    await apiClient.patch(`/ServiceOrders/${serviceOrderId}/cancel`);
+    await apiClient.patch(`/ServiceOrders/${serviceOrderId}/manager-cancel`);
+  },
+
+  rejectServiceOrder: async (serviceOrderId: string): Promise<void> => {
+    await apiClient.patch(`/ServiceOrders/${serviceOrderId}/reject`);
   },
 
   getServiceDashboard: async (params: { fromDate: string; toDate: string }): Promise<ServiceDashboardResponse> => {
@@ -89,14 +93,6 @@ const serviceOrderService = {
 
   rescheduleServiceOrder: async (data: RescheduleServiceOrderRequest): Promise<void> => {
     await apiClient.post('/ServiceOrders/reschedule-service-order', data);
-  },
-
-  managerForceCancel: async (id: string): Promise<void> => {
-    await apiClient.patch(`/ServiceOrders/${id}/manager-force-cancel`);
-  },
-
-  managerCancelConfirm: async (id: string): Promise<void> => {
-    await apiClient.patch(`/ServiceOrders/${id}/manager-cancel-confirm`);
   },
 
   searchServiceTasks: async (params: { 

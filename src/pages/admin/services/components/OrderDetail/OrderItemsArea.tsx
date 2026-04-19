@@ -19,7 +19,8 @@ import {
   AlertCircle,
   Star,
   CreditCard,
-  FileCheck
+  FileCheck,
+  RotateCcw
 } from 'lucide-react';
 import { AdminStatusBadge } from '@/components/admin';
 import {
@@ -33,6 +34,8 @@ import { Badge } from '@/components/ui/badge';
 import { formatPrice } from '@/lib/utils';
 import type { UseQueryResult } from '@tanstack/react-query';
 import type { DetailOrder, ExtendedServiceItemDetail, TaskDetail, ServicePackageMappingResponse } from './types';
+import { RefundPaymentDialog } from '../RefundPaymentDialog';
+import { CreateRefundDialog } from '../CreateRefundDialog';
 
 interface OrderItemsAreaProps {
   order: DetailOrder;
@@ -40,17 +43,113 @@ interface OrderItemsAreaProps {
   mappingQueries: UseQueryResult<ServicePackageMappingResponse, Error>[];
   task?: TaskDetail;
   customerAssets?: string[];
+  payments?: any[];
 }
+
+/**
+ * ServicePackageItem: Memoized component for individual package display
+ */
+const ServicePackageItem = memo(({ 
+  item, 
+  mappingQuery 
+}: { 
+  item: ExtendedServiceItemDetail; 
+  mappingQuery?: UseQueryResult<ServicePackageMappingResponse, Error>;
+}) => {
+  const mappingData = mappingQuery?.data;
+  const isLoadingMapping = mappingQuery?.isLoading;
+
+  const benefits = useMemo(() => {
+    const rawBenefits = mappingData?.servicePackage?.benefits || '';
+    return rawBenefits
+      .split(/[\n\r,;\u2022]+/)
+      .map((b: string) => b.trim().replace(/^["']|["']$/g, ''))
+      .filter((b: string) => b.length > 0);
+  }, [mappingData]);
+
+  return (
+    <div className="group relative flex flex-col md:flex-row items-start md:items-center gap-6 p-6 bg-slate-50/30 rounded-[2rem] border border-slate-100 hover:bg-white hover:border-[#4988c4]/30 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-500">
+      <div className="relative w-28 h-28 rounded-2xl overflow-hidden bg-white border border-slate-100 flex-shrink-0 shadow-sm transition-all duration-500 group-hover:scale-105 group-hover:shadow-md">
+        {mappingData?.servicePackage?.imageUrl ? (
+          <img 
+            src={mappingData.servicePackage.imageUrl} 
+            alt="Package" 
+            className="w-full h-full object-contain p-2 mix-blend-multiply transition-all" 
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-slate-50">
+            <Briefcase className="h-10 w-10 text-slate-200" />
+          </div>
+        )}
+        <div className="absolute top-2.5 right-2.5 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[#4988c4] text-white font-black text-[10px] shadow-lg shadow-blue-500/20 ring-2 ring-white z-10 transition-transform group-hover:scale-110">
+          {item.quantity || 1}
+        </div>
+      </div>
+
+      <div className="flex-1 min-w-0 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <h4 className="text-lg font-black text-slate-900 tracking-tight uppercase leading-none">
+                {mappingData?.servicePackage?.packageName || item.servicePackageName || (isLoadingMapping ? 'Syncing...' : 'Premium Package')}
+              </h4>
+              <Badge variant="secondary" className="bg-white text-slate-500 border-slate-100 border text-[8px] font-black uppercase tracking-widest h-5 px-2 rounded-lg shadow-sm">
+                {mappingData?.productType?.productTypeName || item.productTypeName || 'Service'}
+              </Badge>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5 text-slate-400 font-bold text-[10px] bg-white px-2.5 py-1 rounded-full border border-slate-100 shadow-sm">
+                <Clock className="h-3.5 w-3.5 text-[#4988c4]" />
+                <span className="text-slate-600">{mappingData?.duration || mappingData?.servicePackage?.duration || '60'} Minutes</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-col items-end">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 text-right">Unit Price</span>
+            <div className="text-xl font-black text-slate-900 tracking-tighter tabular-nums leading-none">
+              {formatPrice(mappingData?.price ?? item.unitPrice ?? 0)}
+            </div>
+          </div>
+        </div>
+
+        {benefits.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2.5 pt-4 border-t border-slate-100/60">
+            {benefits.slice(0, 9).map((benefit: string, bIdx: number) => (
+              <div key={bIdx} className="flex items-start gap-2.5 group/item">
+                <div className="mt-0.5 flex-shrink-0">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 bg-emerald-50 rounded-full p-0.5" />
+                </div>
+                <p className="text-[11px] font-medium text-slate-500 leading-snug line-clamp-2 group-hover/item:text-slate-900 transition-colors">
+                  {benefit}
+                </p>
+              </div>
+            ))}
+            {benefits.length > 9 && (
+              <p className="text-[9px] font-black text-[#4988c4] uppercase tracking-widest pt-1 cursor-help hover:underline">
+                + {benefits.length - 9} Additional details
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});
 
 export const OrderItemsArea = memo(function OrderItemsArea({
   order,
   orderItems,
   mappingQueries,
   task,
-  customerAssets
+  customerAssets,
+  payments
 }: OrderItemsAreaProps) {
   const [showAllPackages, setShowAllPackages] = useState(false);
   const [viewerData, setViewerData] = useState<{ images: string[], index: number } | null>(null);
+  const [isRefundDialogOpen, setIsRefundDialogOpen] = useState(false);
+  const [isCreateRefundOpen, setIsCreateRefundOpen] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<any>(null);
 
   const { displayedItems, remainingPackagesCount } = useMemo(() => ({
     displayedItems: showAllPackages ? orderItems : orderItems.slice(0, 2),
@@ -109,7 +208,7 @@ export const OrderItemsArea = memo(function OrderItemsArea({
 
   return (
     <div className="space-y-6">
-      {/* PROFESSIONAL SERVICE PACKAGES omitted for brevity in instruction, keeping same structure */}
+      {/* PROFESSIONAL SERVICE PACKAGES */}
       <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6">
         <div className="flex items-center justify-between pb-4 border-b border-slate-50">
           <div className="flex items-center gap-3">
@@ -128,84 +227,15 @@ export const OrderItemsArea = memo(function OrderItemsArea({
           </Badge>
         </div>
 
-        <div className="flex flex-col gap-4">
-          {(displayedItems as ExtendedServiceItemDetail[]).map((item: ExtendedServiceItemDetail, index) => {
-            const mappingData = mappingQueries[index]?.data;
-            const isLoadingMapping = mappingQueries[index]?.isLoading;
-
-            // Smarter Benefits Splitting (handles comma, semicolon, newline, and quotes)
-            const rawBenefits = mappingData?.servicePackage?.benefits || '';
-            const benefits = rawBenefits
-              .split(/[\n\r,;\u2022]+/)
-              .map(b => b.trim().replace(/^["']|["']$/g, ''))
-              .filter(b => b.length > 0);
-
+        <div className="space-y-4">
+          {displayedItems.map((item, index) => {
+            const queryIndex = orderItems.indexOf(item);
             return (
-              <div key={item.servicePackageMappingId || index} className="group relative flex flex-col md:flex-row items-start md:items-center gap-6 p-6 bg-slate-50/30 rounded-[2rem] border border-slate-100 hover:bg-white hover:border-[#4988c4]/30 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-500">
-                {/* Visual Section */}
-                <div className="relative w-28 h-28 rounded-2xl overflow-hidden bg-white border border-slate-100 flex-shrink-0 shadow-sm transition-all duration-500 group-hover:scale-105 group-hover:shadow-md">
-                  {mappingData?.servicePackage?.imageUrl ? (
-                    <img src={mappingData.servicePackage.imageUrl} alt="Package" className="w-full h-full object-contain p-2 mix-blend-multiply transition-all" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-slate-50">
-                      <Briefcase className="h-10 w-10 text-slate-200" />
-                    </div>
-                  )}
-                  {/* Quantity Badge */}
-                  <div className="absolute top-2.5 right-2.5 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-[#4988c4] text-white font-black text-[10px] shadow-lg shadow-blue-500/20 ring-2 ring-white z-10 transition-transform group-hover:scale-110">
-                    {item.quantity || 1}
-                  </div>
-                </div>
-
-                {/* Content Section */}
-                <div className="flex-1 min-w-0 space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                    <div className="flex flex-col gap-2">
-                      <div className="flex items-center gap-2">
-                        <h4 className="text-lg font-black text-slate-900 tracking-tight uppercase leading-none">
-                          {mappingData?.servicePackage?.packageName || item.servicePackageName || (isLoadingMapping ? 'Syncing...' : 'Premium Package')}
-                        </h4>
-                        <Badge variant="secondary" className="bg-white text-slate-500 border-slate-100 border text-[8px] font-black uppercase tracking-widest h-5 px-2 rounded-lg shadow-sm">
-                          {mappingData?.productType?.productTypeName || item.productTypeName || 'Service'}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-1.5 text-slate-400 font-bold text-[10px] bg-white px-2.5 py-1 rounded-full border border-slate-100 shadow-sm">
-                          <Clock className="h-3.5 w-3.5 text-[#4988c4]" />
-                          <span className="text-slate-600">{mappingData?.duration || mappingData?.servicePackage?.duration || '60'} Minutes</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex flex-col items-end">
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1 text-right">Unit Price</span>
-                      <div className="text-xl font-black text-slate-900 tracking-tighter tabular-nums leading-none">
-                        {formatPrice(mappingData?.price ?? item.unitPrice ?? 0)}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Benefits Grid */}
-                  {benefits.length > 0 && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2.5 pt-4 border-t border-slate-100/60">
-                      {benefits.slice(0, 9).map((benefit, bIdx) => (
-                        <div key={bIdx} className="flex items-start gap-2.5 group/item">
-                          <div className="mt-0.5 flex-shrink-0">
-                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 bg-emerald-50 rounded-full p-0.5" />
-                          </div>
-                          <p className="text-[11px] font-medium text-slate-500 leading-snug line-clamp-2 group-hover/item:text-slate-900 transition-colors">
-                            {benefit}
-                          </p>
-                        </div>
-                      ))}
-                      {benefits.length > 9 && (
-                        <p className="text-[9px] font-black text-[#4988c4] uppercase tracking-widest pt-1 cursor-help hover:underline">
-                          + {benefits.length - 9} Additional details
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
+              <ServicePackageItem 
+                key={item.id || item.servicePackageMappingId || index} 
+                item={item} 
+                mappingQuery={mappingQueries[queryIndex]} 
+              />
             );
           })}
         </div>
@@ -222,31 +252,31 @@ export const OrderItemsArea = memo(function OrderItemsArea({
             ) : (
               <> <ChevronDown className="h-4 w-4" /> EXPAND {remainingPackagesCount} ADDITIONAL PACKAGES </>
             )}
-            </Button>
-          )}
-        </div>
+          </Button>
+        )}
+      </div>
 
-        {/* MEDIA DOSSIER - Side-by-Side Comparison */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-          {/* REFERENCE ASSETS (Before/Context) */}
-          {customerAssets && customerAssets.length > 0 && (
-            <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6 h-full transition-all hover:shadow-md">
-              <div className="flex items-center justify-between pb-4 border-b border-slate-50">
-                <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-xl bg-slate-50 flex items-center justify-center border border-slate-100 shadow-sm">
-                    <ImageIcon className="h-5 w-5 text-slate-400" />
-                  </div>
-                  <div>
-                    <h3 className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none mb-1">Source Documentation</h3>
-                    <p className="text-sm font-black text-slate-900 uppercase">Reference Assets</p>
-                  </div>
+      {/* MEDIA DOSSIER - Side-by-Side Comparison */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+        {/* REFERENCE ASSETS (Before/Context) */}
+        {customerAssets && customerAssets.length > 0 && (
+          <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6 h-full transition-all hover:shadow-md">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-50">
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-xl bg-slate-50 flex items-center justify-center border border-slate-100 shadow-sm">
+                  <ImageIcon className="h-5 w-5 text-slate-400" />
                 </div>
-                <Badge variant="outline" className="text-[9px] font-bold text-slate-400 border-slate-100 rounded-full h-6 px-3 uppercase tracking-tighter">
-                  {customerAssets.length} FILES
-                </Badge>
+                <div>
+                  <h3 className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] leading-none mb-1">Source Documentation</h3>
+                  <p className="text-sm font-black text-slate-900 uppercase">Reference Assets</p>
+                </div>
               </div>
+              <Badge variant="outline" className="text-[9px] font-bold text-slate-400 border-slate-100 rounded-full h-6 px-3 uppercase tracking-tighter">
+                {customerAssets.length} FILES
+              </Badge>
+            </div>
 
-              <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-3">
               {customerAssets.map((url, idx) => (
                 <div
                   key={idx}
@@ -374,8 +404,7 @@ export const OrderItemsArea = memo(function OrderItemsArea({
                         </h4>
                         <div className="flex items-center gap-1">
                           {[1, 2, 3, 4, 5].map((star) => {
-                            const rating = order.rating;
-                            const score = rating && typeof rating === 'object' ? rating.score : Number(rating || 0);
+                            const score = order.rating && typeof order.rating === 'object' ? order.rating.score : Number(order.rating || 0);
                             return (
                               <Star
                                 key={star}
@@ -389,12 +418,15 @@ export const OrderItemsArea = memo(function OrderItemsArea({
                         </div>
                       </div>
                     </div>
+                    <div className="bg-white px-3 py-1 rounded-full border border-slate-100 shadow-sm">
+                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Post-Session Evaluation</span>
+                    </div>
                   </div>
 
                   <div className="relative">
                     <div className="absolute -left-4 top-0 bottom-0 w-1 bg-amber-500/20 rounded-full" />
                     <p className="text-sm font-medium text-slate-600 leading-relaxed tracking-tight pl-2">
-                      {typeof order.rating === 'object' ? order.rating.comment : 'No qualitative feedback provided for this session.'}
+                       {typeof order.rating === 'object' ? order.rating.comment : 'No qualitative feedback provided for this session.'}
                     </p>
                   </div>
 
@@ -421,6 +453,61 @@ export const OrderItemsArea = memo(function OrderItemsArea({
             </div>
           </div>
 
+          {/* Refund Management Section */}
+          {(payments && payments.length > 0) && (
+            <div className="relative z-10 space-y-3 pt-6 border-t border-slate-100">
+              <div className="flex items-center gap-2">
+                <RotateCcw className="h-3.5 w-3.5 text-slate-400" />
+                <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Refund Transactions</h3>
+              </div>
+
+              <div className="space-y-2">
+                {payments.filter((p: any) => p.paymentType === 'Refund').map((payment: any) => (
+                  <div key={payment.id} className="flex items-center justify-between py-3 px-4 bg-slate-50/50 rounded-xl border border-slate-100 group transition-colors hover:bg-white">
+                    <div className="flex items-center gap-4">
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-slate-900">{formatPrice(payment.amount)}</span>
+                          <AdminStatusBadge status={payment.status} mode="payment" className="scale-[0.8] origin-left" />
+                        </div>
+                        <span className="text-[10px] text-slate-400 font-medium">
+                          {payment.description || 'Service Refund Settlement'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {payment.status === 'Refunding' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedPayment(payment);
+                            setIsRefundDialogOpen(true);
+                          }}
+                          className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 font-bold text-[10px] uppercase tracking-wide h-8 px-3"
+                        >
+                          Finalize Refund
+                        </Button>
+                      )}
+
+                      {payment.evidenceUrl && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => window.open(payment.evidenceUrl, '_blank')}
+                          className="text-primary hover:bg-primary/5 font-bold text-[10px] uppercase tracking-wide h-8 px-3"
+                        >
+                          View Evidence
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Supplemental Notes */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10 pt-1">
             {order.notes && (
@@ -444,6 +531,24 @@ export const OrderItemsArea = memo(function OrderItemsArea({
           </div>
         </div>
       </div>
+
+      {selectedPayment && (
+        <RefundPaymentDialog
+          isOpen={isRefundDialogOpen}
+          onClose={() => setIsRefundDialogOpen(false)}
+          paymentId={selectedPayment.id}
+          orderCode={order.orderCode || order.id || ''}
+          amount={selectedPayment.amount}
+        />
+      )}
+
+      <CreateRefundDialog
+        isOpen={isCreateRefundOpen}
+        onClose={() => setIsCreateRefundOpen(false)}
+        soId={order.soId || order.id || ''}
+        orderCode={order.orderCode || order.id || ''}
+        totalAmount={order.totalPrice || 0}
+      />
 
       {/* Gallery Dialog Viewer */}
       <Dialog open={!!viewerData} onOpenChange={(open) => !open && setViewerData(null)}>

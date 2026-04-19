@@ -29,6 +29,19 @@ export function useOrderDetail() {
     staleTime: 30000,
   });
 
+  // 1.2. Payment Data Fetching
+  const paymentsQuery = useQuery({
+    queryKey: ['payments', 'list', { orderCode: orderQuery.data?.orderCode || id }],
+    queryFn: () => api.get('/payment/admin', { 
+      params: { 
+        orderCode: orderQuery.data?.orderCode || id,
+        pageSize: 50 
+      } 
+    }).then(res => res.data?.data?.items || res.data?.items || []),
+    enabled: !!orderQuery.data,
+    staleTime: 30000,
+  });
+
   // 1.5. Task List Data Fetching (Fetch multiple tasks for rescheduling history)
   const tasksQuery = useQuery({
     queryKey: ['serviceTasks', 'list', id],
@@ -90,38 +103,44 @@ export function useOrderDetail() {
   // 4. Data Derivations
   const mergedOrder = useMemo(() => {
     if (!orderQuery.data) return null;
-    const order = { ...orderQuery.data };
-
-    // Authority Principle: Use tasksQuery as source of truth for all tasks
-    order.serviceTasks = tasks.map((t, idx) => ({
+    
+    // Efficiently merge task evidence
+    const mappedTasks = tasks.map((t, idx) => ({
       ...t,
       evidences: evidenceQueries[idx]?.data || []
     }));
 
-    // Backward compatibility & Selection: Set primary serviceTask to the one at currentTaskIndex
-    order.serviceTask = (order.serviceTasks && order.serviceTasks.length > 0)
-      ? order.serviceTasks[currentTaskIndex] || order.serviceTasks[0]
+    const order = { 
+      ...orderQuery.data,
+      serviceTasks: mappedTasks
+    };
+
+    // Primary serviceTask assignment
+    order.serviceTask = (mappedTasks.length > 0)
+      ? mappedTasks[currentTaskIndex] || mappedTasks[0]
       : order.serviceTask;
 
     return order;
   }, [orderQuery.data, tasks, evidenceQueries, currentTaskIndex]);
 
   const statusCfg = useMemo(() => {
-    if (!mergedOrder) return undefined;
+    if (!mergedOrder?.status) return undefined;
     return statusConfig[mergedOrder.status as ServiceStatus] || statusConfig.pending;
-  }, [mergedOrder]);
+  }, [mergedOrder?.status]);
 
-  const isInitialLoading = (orderQuery.isLoading && !orderQuery.data);
+  const isInitialLoading = !orderQuery.data && orderQuery.isLoading;
 
-  const isAssigned = !!mergedOrder?.staff || !!mergedOrder?.technician || !!mergedOrder?.serviceTask;
+  const isAssigned = useMemo(() => 
+    !!mergedOrder?.staff || !!mergedOrder?.technician || !!mergedOrder?.serviceTask
+  , [mergedOrder]);
 
   const canConfirm = useMemo(() => {
     if (!mergedOrder) return false;
     const status = mergedOrder.status?.toLowerCase();
-    const isConfirmableStatus = status === 'pending' || status === 'rescheduled';
+    const isConfirmableStatus = status === 'pending';
     return isConfirmableStatus &&
       (mergedOrder.paymentMethod === 'COD' || mergedOrder.paymentStatus?.toLowerCase() === 'paid');
-  }, [mergedOrder]);
+  }, [mergedOrder?.status, mergedOrder?.paymentMethod, mergedOrder?.paymentStatus]);
 
   const canCancel = useMemo(() => {
     if (!mergedOrder) return false;
@@ -157,7 +176,7 @@ export function useOrderDetail() {
     if (!mergedOrder) return false;
     const orderStatus = mergedOrder.status?.toLowerCase();
     const taskStatus = mergedOrder.serviceTask?.status?.toLowerCase();
-    return orderStatus === 'processing' &&
+    return (orderStatus === 'processing' || orderStatus === 'rescheduled') &&
       (taskStatus === 'completed' || !!mergedOrder.serviceTask?.checkOut);
   }, [mergedOrder]);
 
@@ -166,7 +185,11 @@ export function useOrderDetail() {
     const orderStatus = mergedOrder.status?.toLowerCase();
     const taskStatus = (mergedOrder.serviceTask?.status || '').toLowerCase();
     // Backend strictly enforces "Only processing order can be rescheduled"
-    return orderStatus === 'processing' && taskStatus === 'processing';
+    // We allow 'rescheduled' too in the frontend to permit multiple re-plannings
+    const isOrderReady = orderStatus === 'processing' || orderStatus === 'rescheduled';
+    const isTaskReady = taskStatus === 'processing' || taskStatus === 'pending' || taskStatus === 'confirmed';
+    
+    return isOrderReady && isTaskReady;
   }, [mergedOrder]);
 
 
@@ -226,6 +249,8 @@ export function useOrderDetail() {
     currentTaskIndex,
     selectedOrderId,
     permissions,
+    payments: paymentsQuery.data || [],
+    isPaymentsLoading: paymentsQuery.isLoading,
     actions: memoizedActions
   }), [
     mergedOrder,
@@ -238,6 +263,8 @@ export function useOrderDetail() {
     currentTaskIndex,
     selectedOrderId,
     permissions,
+    paymentsQuery.data,
+    paymentsQuery.isLoading,
     memoizedActions
   ]);
 }

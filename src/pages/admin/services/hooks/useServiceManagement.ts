@@ -69,18 +69,17 @@ export const useServiceManagement = () => {
   const cancelMutation = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const normalizedStatus = status.toLowerCase();
-      // Processing: only reachable when staff has already forced-cancelled
-      // All other states (pending, confirmed, rescheduled): manager cancel confirm
-      // Backend auto-cancels ServiceTask if pending/checked_in, or just cancels order if no task
-      if (normalizedStatus === 'processing') {
-        await serviceOrderService.forcedCancelled(id);
+      // 1. Perform cancellation/rejection based on state
+      if (normalizedStatus === 'pending' || normalizedStatus === 'waiting' || normalizedStatus === 'unconfirmed') {
+        await serviceOrderService.rejectServiceOrder(id);
       } else {
-        await serviceOrderService.managerCancelConfirm(id);
+        await serviceOrderService.cancelServiceOrder(id);
       }
     },
     onSuccess: () => {
       toast.success(`Action applied successfully`);
       queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['payments'] }); // Important for UI sync
       setIsCancelOpen(false);
     },
   });

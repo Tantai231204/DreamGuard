@@ -21,6 +21,7 @@ export { default as systemConfigService } from './systemConfigService';
 export { default as tradeInOrderService } from './tradeInOrderService';
 export { default as auditLogService } from './auditLogService';
 export { default as notificationService } from './notificationService';
+export { default as paymentService } from './paymentService';
 export * as addressService from './address.service';
 
 export type {

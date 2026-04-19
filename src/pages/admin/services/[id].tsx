@@ -31,6 +31,7 @@ export default function ServiceDetail() {
     currentTaskIndex,
     selectedOrderId,
     permissions,
+    payments,
     actions
   } = useOrderDetail();
 
@@ -86,6 +87,7 @@ export default function ServiceDetail() {
                 mappingQueries={mappingQueries}
                 task={order.serviceTask || undefined}
                 customerAssets={order.imageUrl}
+                payments={payments}
               />
             </div>
 

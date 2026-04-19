@@ -66,6 +66,8 @@ const STATUS_MAP: Record<string, StatusType> = {
   'deleted': 'danger',
   'hidden': 'info', // Screenshot has blue for Hidden (Sky/Info)
   'refund': 'rose',
+  'refunding': 'sky',
+  'refunded': 'emerald',
   'service': 'primary',
   'order': 'info',
   'purchase': 'emerald',
@@ -233,6 +235,8 @@ const ICON_MAP: Record<string, React.ElementType> = {
   'purchase': CreditCard,
   'deposit': CreditCard,
   'refund': RotateCcw,
+  'refunding': RefreshCcw,
+  'refunded': ShieldCheck,
   'service': Sparkles,
   'order': Package,
   'tradein': RefreshCcw,
@@ -267,7 +271,8 @@ const PAYMENT_STATUS_MAP: Record<string, { type: StatusType, label: string, icon
   'pending_payment': { type: 'warning', label: 'Pending Payment', icon: Clock4 },
   'paid': { type: 'success', label: 'Paid', icon: Check },
   'failed': { type: 'danger', label: 'Payment Failed', icon: X },
-  'refunded': { type: 'danger', label: 'Refunded', icon: RotateCcw }, // đổi type sang 'success' (emerald)
+  'refunding': { type: 'sky', label: 'Refunding', icon: RefreshCcw },
+  'refunded': { type: 'emerald', label: 'Refunded', icon: ShieldCheck },
 };
 
 const LABEL_MAP: Record<string, string> = {
@@ -304,6 +309,7 @@ const LABEL_MAP: Record<string, string> = {
   'waitingforstaff': 'Waiting For Staff',
   'paid': 'Paid',
   'failed': 'Failed',
+  'refunding': 'Refunding',
   'refunded': 'Refunded',
   'published': 'Published',
   'draft': 'Draft',

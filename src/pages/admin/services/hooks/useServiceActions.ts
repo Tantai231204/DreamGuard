@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import api from '@/lib/api';
 import serviceOrderService from '@/api/services/serviceOrderService';
+import paymentService from '@/api/services/paymentService';
 import type { RescheduleServiceOrderRequest } from '@/api/types/serviceOrder';
 
 export const useServiceActions = () => {
@@ -21,20 +22,67 @@ export const useServiceActions = () => {
     });
 
     const cancelMutation = useMutation({
-        mutationFn: async ({ id, status }: { id: string; status: string; reason?: string }) => {
+        mutationFn: async ({ id, status, reason, refundAmount }: { 
+            id: string; 
+            status: string;
+            reason: string;
+            refundAmount?: number;
+        }) => {
             const normalizedStatus = status.toLowerCase();
-            if (normalizedStatus === 'processing') {
-                await serviceOrderService.managerForceCancel(id);
+
+            // 1. Perform cancellation/rejection
+            if (normalizedStatus === 'pending' || normalizedStatus === 'waiting' || normalizedStatus === 'unconfirmed') {
+                await serviceOrderService.rejectServiceOrder(id);
             } else {
-                await serviceOrderService.managerCancelConfirm(id);
+                await serviceOrderService.cancelServiceOrder(id);
+            }
+
+            // 2. Integrated Refund Initialization
+            if (refundAmount && refundAmount > 0) {
+              await paymentService.createAdminRefund({
+                soId: id,
+                reason: reason || "Service Cancellation",
+                amount: refundAmount
+              });
             }
         },
         onSuccess: (_, { id }) => {
-            toast.success(`Cancellation logic applied to booking ${id}`);
+            toast.success(`Action applied to booking ${id}`);
             queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
             queryClient.invalidateQueries({ queryKey: ['serviceOrder', 'detail', id] });
             queryClient.invalidateQueries({ queryKey: ['serviceTask', 'detail', id] });
+            queryClient.invalidateQueries({ queryKey: ['payments'] }); 
         },
+    });
+
+    const createRefundMutation = useMutation({
+        mutationFn: (payload: { soId: string; reason: string; amount: number }) => 
+            paymentService.createAdminRefund(payload),
+        onSuccess: (_, { soId }) => {
+            toast.success("Refund request created successfully");
+            queryClient.invalidateQueries({ queryKey: ['serviceOrder', 'detail', soId] });
+            queryClient.invalidateQueries({ queryKey: ['payments'] });
+        }
+    });
+
+    const updateRefundStatusMutation = useMutation({
+        mutationFn: ({ id, status, evidence }: { id: string; status: string; evidence?: File }) =>
+            paymentService.updateRefundStatus(id, status, evidence),
+        onSuccess: () => {
+            toast.success("Refund status updated successfully");
+            queryClient.invalidateQueries({ queryKey: ['payments'] });
+            queryClient.invalidateQueries({ queryKey: ['serviceOrder'] }); // May affect order status if logic exists
+        }
+    });
+
+    const updatePaymentStatusMutation = useMutation({
+        mutationFn: ({ id, status, evidenceUrl }: { id: string; status: string; evidenceUrl?: string }) =>
+            paymentService.updatePaymentStatus(id, status, evidenceUrl),
+        onSuccess: () => {
+            toast.success("Payment status updated successfully");
+            queryClient.invalidateQueries({ queryKey: ['payments'] });
+            queryClient.invalidateQueries({ queryKey: ['serviceOrder'] });
+        }
     });
 
     const rescheduleMutation = useMutation({
@@ -42,22 +90,25 @@ export const useServiceActions = () => {
             await serviceOrderService.rescheduleServiceOrder(data);
         },
         onSuccess: (_, { serviceOrderId }) => {
-            toast.success(`Order rescheduled successfully`);
+            toast.success(`Order rescheduled successfully. Tasks can continue without re-confirmation.`);
             queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
             queryClient.invalidateQueries({ queryKey: ['serviceOrder', 'detail', serviceOrderId] });
             queryClient.invalidateQueries({ queryKey: ['serviceTask', 'detail', serviceOrderId] });
+            queryClient.invalidateQueries({ queryKey: ['serviceTasks', 'list', serviceOrderId] });
         },
     });
 
     const completeMutation = useMutation({
-        mutationFn: async ({ taskId }: { taskId: string; orderId: string }) => {
+        mutationFn: async ({ taskId, orderId }: { taskId: string; orderId: string }) => {
             await api.patch(`/ServiceTasks/${taskId}/updateCompletedStatus`);
+            await api.patch(`/ServiceOrders/${orderId}/completed`);
         },
         onSuccess: (_, { orderId }) => {
-            toast.success(`Service task completed successfully`);
+            toast.success(`Service task and order completed successfully`);
             queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
             queryClient.invalidateQueries({ queryKey: ['serviceOrder', 'detail', orderId] });
             queryClient.invalidateQueries({ queryKey: ['serviceTask', 'detail', orderId] });
+            queryClient.invalidateQueries({ queryKey: ['serviceTasks', 'list', orderId] });
             queryClient.invalidateQueries({ queryKey: ['serviceEvidences', orderId] });
         },
     });
@@ -71,6 +122,12 @@ export const useServiceActions = () => {
         isCompleting: completeMutation.isPending,
         rescheduleBooking: rescheduleMutation.mutate,
         isRescheduling: rescheduleMutation.isPending,
+        createRefund: createRefundMutation.mutate,
+        isCreatingRefund: createRefundMutation.isPending,
+        updateRefundStatus: updateRefundStatusMutation.mutate,
+        isUpdatingRefund: updateRefundStatusMutation.isPending,
+        updatePaymentStatus: updatePaymentStatusMutation.mutate,
+        isUpdatingPaymentStatus: updatePaymentStatusMutation.isPending,
     }), [
         confirmMutation.mutate,
         confirmMutation.isPending,
@@ -80,5 +137,11 @@ export const useServiceActions = () => {
         completeMutation.isPending,
         rescheduleMutation.mutate,
         rescheduleMutation.isPending,
+        createRefundMutation.mutate,
+        createRefundMutation.isPending,
+        updateRefundStatusMutation.mutate,
+        updateRefundStatusMutation.isPending,
+        updatePaymentStatusMutation.mutate,
+        updatePaymentStatusMutation.isPending,
     ]);
 };
