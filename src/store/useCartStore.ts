@@ -7,7 +7,7 @@ import { isAnyStaff } from "@/lib/role"
 import * as CryptoJS from "crypto-js"
 import type { CartItem } from "./cartTypes"
 
-// ── Types & Interfaces ──
+// -- Types & Interfaces --
 
 interface CartState {
     cart: CartItem[]
@@ -41,13 +41,13 @@ interface CartState {
     batchAddItems: (items: Array<{ productVariantId: string | null; comboId: string | null; quantity: number; configHash?: string; _optimisticData?: CartItem }>) => Promise<void>
 }
 
-// ── Helpers (Private) ──
+// -- Helpers (Private) --
 
 const normalizeAttrKey = (name: string): string => {
     const n = name.toLowerCase().trim();
-    if (n === 'color' || n === 'màu sắc' || n === 'màu') return 'color';
-    if (n === 'size' || n === 'kích thước' || n === 'kích cỡ') return 'size';
-    if ((n.includes('wrap') && n.includes('image')) || n.includes('ảnh bọc')) return 'wrapImage';
+    if (n === 'color' || n === 'mau sac' || n === 'mau') return 'color';
+    if (n === 'size' || n === 'kich thuoc' || n === 'kich co') return 'size';
+    if ((n.includes('wrap') && n.includes('image')) || n.includes('anh boc')) return 'wrapImage';
     return n;
 };
 
@@ -93,9 +93,9 @@ const calculateTotals = (cart: CartItem[]) => {
 
 const debounceTimers: Map<string, ReturnType<typeof setTimeout>> = new Map()
 let lastFetchedAt = 0;
-const FETCH_STALE_MS = 30_000; // 30 seconds
+const FETCH_STALE_MS = 30000; // 30 seconds
 
-// ── Store Implementation ──
+// -- Store Implementation --
 
 export const useCartStore = create<CartState>()(
     persist(
@@ -347,7 +347,7 @@ export const useCartStore = create<CartState>()(
                 // Staleness guard: skip if last successful fetch was recent
                 const now = Date.now();
                 if (now - lastFetchedAt < FETCH_STALE_MS) {
-                    console.log(`[Cart] Skipping fetch — last fetched ${Math.round((now - lastFetchedAt) / 1000)}s ago`);
+                    console.log(`[Cart] Skipping fetch - last fetched ${Math.round((now - lastFetchedAt) / 1000)}s ago`);
                     return;
                 }
 

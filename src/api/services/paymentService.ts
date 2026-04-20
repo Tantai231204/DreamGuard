@@ -20,6 +20,24 @@ const paymentService = {
         return res.data?.data ?? res.data;
     },
 
+    getPayments: async (params?: {
+        pageNumber?: number;
+        pageSize?: number;
+        status?: string;
+        method?: string;
+        orderCode?: string;
+        key?: string;
+    }): Promise<{
+        items: PaymentResponse[];
+        pageNumber: number;
+        pageSize: number;
+        totalPages: number;
+        totalCount: number;
+    }> => {
+        const res = await apiClient.get('/payment', { params });
+        return res.data?.data ?? res.data;
+    },
+
     getPaymentDetail: async (id: string): Promise<PaymentDetailResponse> => {
         const res = await apiClient.get(`/payment/admin/${id}`);
         return res.data?.data ?? res.data;

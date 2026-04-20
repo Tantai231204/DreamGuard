@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, memo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import {
   AlertCircle,
@@ -31,6 +32,7 @@ import { useProcessExchangeTradeInShippingTask } from "@/hooks/queries/useShippi
 import { useStaffs } from "@/hooks/queries/useStaff";
 import { useVariant } from "@/hooks/queries/useVariant";
 import { usePermission } from "@/hooks/usePermission";
+import { tradeInOrderKeys } from "@/hooks/queries";
 import { uploadEvidenceItems } from "@/utils/evidenceUpload";
 import { TradeInAssetCard } from "./TradeInAssetCard";
 
@@ -89,7 +91,7 @@ const formatStaffRole = (value?: string) => {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 };
 
-export function TradeInProcessExchangeDialog({
+export function TradeInProcessExchangeDialogComponent({
   isOpen,
   onClose,
   tradeInOrderId,
@@ -97,6 +99,7 @@ export function TradeInProcessExchangeDialog({
   defaultProductVariantId,
   productImageUrl,
 }: TradeInProcessExchangeDialogProps) {
+  const queryClient = useQueryClient();
   const [exchangeNote, setExchangeNote] = useState("");
   const [selectedReason, setSelectedReason] = useState("");
   const [isDamagedSelected, setIsDamagedSelected] = useState(true);
@@ -312,6 +315,9 @@ export function TradeInProcessExchangeDialog({
         },
       });
 
+      void queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.detail(tradeInOrderId) });
+      void queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.lists() });
+
       toast.success(
         isDamagedOutcome
           ? "Processed as ExchangeRequested with damaged inventory handling."
@@ -325,17 +331,18 @@ export function TradeInProcessExchangeDialog({
       setIsUploadingEvidence(false);
     }
   }, [
+    resolvedProductVariantId,
+    isDamagedOutcome,
+    taskId,
+    tradeInOrderId,
+    selectedStaffId,
+    uploadEvidenceUrls,
+    queryClient,
     exchangeNote,
     selectedReason,
     evidenceItems,
     processExchange,
     resetAndClose,
-    resolvedProductVariantId,
-    isDamagedOutcome,
-    selectedStaffId,
-    taskId,
-    tradeInOrderId,
-    uploadEvidenceUrls,
   ]);
 
   return (
@@ -571,3 +578,5 @@ export function TradeInProcessExchangeDialog({
     </Dialog>
   );
 }
+
+export const TradeInProcessExchangeDialog = memo(TradeInProcessExchangeDialogComponent);

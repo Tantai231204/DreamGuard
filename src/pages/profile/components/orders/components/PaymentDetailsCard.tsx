@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge"
 import { AdminStatusBadge } from "@/components/admin"
 import { cn, formatDate, formatTime } from "@/lib/utils"
 import { formatPrice } from "../../../utils"
+import { usePayments } from "@/hooks/queries/usePayment"
+import { PaymentDetailsSkeleton } from "@/components/common/Skeletons"
 
 export interface PaymentDetailsCardEntry {
     id?: string
@@ -21,18 +23,21 @@ export interface PaymentDetailsCardEntry {
 interface PaymentDetailsCardProps {
     payments?: PaymentDetailsCardEntry[]
     fallbackPayment?: PaymentDetailsCardEntry
+    orderCode?: string
     className?: string
 }
 
-export const PaymentDetailsCard = React.memo(({ payments, fallbackPayment, className }: PaymentDetailsCardProps) => {
+export const PaymentDetailsCard = React.memo(({ payments: propPayments, fallbackPayment, orderCode, className }: PaymentDetailsCardProps) => {
+    const { data: remoteData, isPending: isLoading } = usePayments({ orderCode: propPayments ? undefined : orderCode });
     const [currentIndex, setCurrentIndex] = React.useState(0)
     const swipeStartXRef = React.useRef<number | null>(null)
     const swipeStartYRef = React.useRef<number | null>(null)
 
     const entries = React.useMemo(() => {
-        if (payments && payments.length > 0) return payments
+        if (propPayments && propPayments.length > 0) return propPayments
+        if (remoteData?.items && remoteData.items.length > 0) return remoteData.items
         return fallbackPayment ? [fallbackPayment] : []
-    }, [payments, fallbackPayment])
+    }, [propPayments, remoteData?.items, fallbackPayment])
 
     React.useEffect(() => {
         if (entries.length === 0) {
@@ -57,8 +62,7 @@ export const PaymentDetailsCard = React.memo(({ payments, fallbackPayment, class
     }, [entries.length])
 
     const handleTouchEnd = React.useCallback((event: React.TouchEvent<HTMLDivElement>) => {
-        if (entries.length <= 1) return
-        if (swipeStartXRef.current === null || swipeStartYRef.current === null) return
+        if (entries.length <= 1 || swipeStartXRef.current === null || swipeStartYRef.current === null) return
 
         const endX = event.changedTouches[0].clientX
         const endY = event.changedTouches[0].clientY
@@ -73,17 +77,19 @@ export const PaymentDetailsCard = React.memo(({ payments, fallbackPayment, class
 
         if (deltaX < 0) {
             handleNext()
-            return
+        } else {
+            handlePrev()
         }
-
-        handlePrev()
     }, [entries.length, handleNext, handlePrev])
 
-    const rawMethod = payment?.paymentMethod || "COD"
-    const normalizedStatus = String(payment?.status || "Pending").toLowerCase()
-    const displayMethod = (rawMethod.toLowerCase() === "cod" && normalizedStatus === "paid")
-        ? "CODPaid"
-        : rawMethod
+    const { displayMethod, normalizedStatus } = React.useMemo(() => {
+        const raw = payment?.paymentMethod || "COD"
+        const status = String(payment?.status || "Pending").toLowerCase()
+        return {
+            displayMethod: (raw.toLowerCase() === "cod" && status === "paid") ? "CODPaid" : raw,
+            normalizedStatus: status
+        }
+    }, [payment?.paymentMethod, payment?.status])
 
     return (
         <div className={cn(
@@ -131,7 +137,9 @@ export const PaymentDetailsCard = React.memo(({ payments, fallbackPayment, class
                 )}
             </div>
 
-            {entries.length === 0 ? (
+            {isLoading ? (
+                <PaymentDetailsSkeleton />
+            ) : entries.length === 0 ? (
                 <div className="p-5 sm:p-6 flex flex-col items-center justify-center text-slate-400 min-h-[190px] sm:min-h-[220px] relative z-10">
                     <AlertCircle className="w-8 h-8 mb-2 opacity-20" />
                     <p className="text-[10px] uppercase font-black tracking-widest">No Payment Records</p>
@@ -223,22 +231,25 @@ export const PaymentDetailsCard = React.memo(({ payments, fallbackPayment, class
 
                             {/* Payment Evidence - Visual Confirmation */}
                             {payment?.evidenceUrl && (
-                                <div className="mt-4 pt-4 border-t border-slate-100 flex flex-col gap-2.5">
-                                    <div className="flex items-center justify-between px-1">
-                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Submitted Evidence</span>
-                                        <a 
-                                            href={payment.evidenceUrl} 
-                                            target="_blank" 
-                                            rel="noopener noreferrer"
-                                            className="text-[9px] font-bold text-primary hover:underline"
-                                        >
-                                            View Original
-                                        </a>
+                                <div className="mt-4 pt-4 border-t border-slate-100 flex items-center gap-4">
+                                    <div className="flex-1 space-y-1">
+                                        <div className="flex items-center justify-between px-1">
+                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Evidence</span>
+                                            <a
+                                                href={payment.evidenceUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-[9px] font-bold text-primary hover:underline"
+                                            >
+                                                Original
+                                            </a>
+                                        </div>
+                                        <p className="text-[8px] text-slate-400 px-1 italic">Verified administrative upload</p>
                                     </div>
-                                    <div className="relative aspect-[16/6] rounded-xl overflow-hidden border border-slate-200 bg-slate-50 group/evidence shadow-sm">
-                                        <img 
-                                            src={payment.evidenceUrl} 
-                                            alt="Payment Evidence" 
+                                    <div className="relative w-16 h-12 rounded-lg overflow-hidden border border-slate-200 bg-slate-50 group/evidence shadow-sm shrink-0">
+                                        <img
+                                            src={payment.evidenceUrl}
+                                            alt="Payment Evidence"
                                             className="w-full h-full object-cover transition-transform duration-500 group-hover/evidence:scale-110"
                                         />
                                         <div className="absolute inset-0 bg-black/5 opacity-0 group-hover/evidence:opacity-100 transition-opacity" />

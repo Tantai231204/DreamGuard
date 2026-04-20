@@ -19,8 +19,24 @@ export const useAdminPayments = (params?: {
     return useQuery({
         queryKey: paymentKeys.list(params),
         queryFn: () => paymentService.getAdminPayments(params),
+        staleTime: 0,
+    });
+};
+
+export const usePayments = (params?: {
+    pageNumber?: number;
+    pageSize?: number;
+    status?: string;
+    method?: string;
+    orderCode?: string;
+    key?: string;
+}) => {
+    return useQuery({
+        queryKey: paymentKeys.list(params),
+        queryFn: () => paymentService.getPayments(params),
         placeholderData: keepPreviousData,
         staleTime: 0,
+        enabled: !!params?.orderCode,
     });
 };
 

@@ -1,11 +1,9 @@
 import React from 'react';
 import { AlertCircle } from 'lucide-react';
+import { ServiceOrderDetailSkeleton } from '@/components/common/Skeletons';
 
 export const LoadingView = React.memo(() => (
-    <div className="flex flex-col items-center justify-center py-40 gap-4 bg-white">
-        <div className="w-7 h-7 border-[3px] border-[#4988c4] border-t-transparent rounded-full animate-spin" />
-        <p className="text-[12px] font-bold text-gray-400 tracking-wider uppercase">Loading secure details...</p>
-    </div>
+    <ServiceOrderDetailSkeleton />
 ));
 LoadingView.displayName = 'LoadingView';
 

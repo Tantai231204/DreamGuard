@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { ArrowRightLeft, Award, CreditCard, Loader2, ShieldCheck, TrendingUp, XCircle } from 'lucide-react';
 import { formatTradeInPrice } from '../../../utils/tradeIn';
 import type { TradeInProduct } from '../../../utils/tradeIn';
+import { OrderDetailDialog } from '@/pages/profile/components/orders/OrderDetailDialog';
 
 const formatPrice = formatTradeInPrice;
 
@@ -11,6 +12,7 @@ interface StepSummaryProps {
   selectedProducts: string[];
   onSelectTradeInProduct: (productId: string) => void;
   targetProductName?: string;
+  targetProductImage?: string;
   totalTradeInValue: number;
   sessionOrderId: number;
   depositAmount: number;
@@ -31,6 +33,7 @@ export const StepSummary = memo(function StepSummary({
   selectedProducts,
   onSelectTradeInProduct,
   targetProductName,
+  targetProductImage,
   totalTradeInValue,
   sessionOrderId,
   depositAmount,
@@ -105,7 +108,7 @@ export const StepSummary = memo(function StepSummary({
         <div className="flex items-center justify-between gap-3 mb-4">
           <div className="flex-1">
             <p className="text-[10px] font-black text-[#A89E94] uppercase tracking-[0.2em]">Trade Route</p>
-            <p className="text-[12px] text-[#6D5F54] font-semibold mt-1">Click remove on selected card, then pick another order item card</p>
+            <p className="text-[12px] text-[#6D5F54] font-semibold mt-1">Review your sanctuary upgrade path below</p>
           </div>
           {isEstimatingPrice && (
             <div className="inline-flex items-center gap-1.5 text-[11px] font-bold text-[#8C7A6B]">
@@ -116,45 +119,74 @@ export const StepSummary = memo(function StepSummary({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-3 items-stretch mb-4">
-          <div className="rounded-2xl border border-[#DDE9DF] bg-[#F7FBF7] px-4 py-4 shadow-sm">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-[10px] uppercase tracking-[0.14em] font-black text-[#6F8A72] mb-1">Trading From</p>
-                <p className="text-[13px] font-bold text-[#1A1A1A] line-clamp-2">
-                  {selectedSourceProduct?.name || 'No source item selected'}
-                </p>
-                <p className="text-[10px] text-[#6D7B6E] font-bold mt-1.5">
-                  {selectedSourceProduct ? `REF: ${truncateOrderId(selectedSourceProduct.orderId)}` : 'Please choose one order item card below'}
-                </p>
+          <div className="rounded-2xl border border-[#DDE9DF] bg-[#F7FBF7] px-4 py-4 shadow-sm relative overflow-hidden flex flex-col sm:flex-row gap-4">
+            {selectedSourceProduct?.image && (
+              <div className="w-20 h-20 rounded-xl overflow-hidden border border-[#DDE9DF] shrink-0 bg-white shadow-sm flex items-center justify-center p-1">
+                <img src={selectedSourceProduct.image} alt={selectedSourceProduct.name} className="w-full h-full object-cover rounded-lg" />
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] uppercase tracking-[0.14em] font-black text-[#6F8A72] mb-1">Trading From</p>
+                  <p className="text-[13px] font-bold text-[#1A1A1A] line-clamp-2">
+                    {selectedSourceProduct?.name || 'No source item selected'}
+                  </p>
+                  {selectedSourceProduct && (
+                    <div className="mt-2.5 flex items-center gap-2">
+                      <OrderDetailDialog
+                        orderId={selectedSourceProduct.orderId}
+                        orderCode={`#${truncateOrderId(selectedSourceProduct.orderId).toUpperCase()}`}
+                        trigger={
+                          <button type="button" className="group/ref inline-flex items-center gap-1.5 text-[10px] text-[#A89E94] font-black uppercase tracking-widest hover:text-[#3D5140] transition-all">
+                            <ArrowRightLeft className="w-3 h-3 opacity-40 group-hover/ref:opacity-100 transition-opacity" />
+                            <span>Show original order</span>
+                            <div className="w-1 h-1 rounded-full bg-[#3D5140]/20 group-hover/ref:bg-[#3D5140] transition-colors" />
+                          </button>
+                        }
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleRemoveSelectedCard}
+                  disabled={!selectedSourceProduct || !canReplaceSelectedCard}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[#D7E3D9] bg-white px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.08em] text-[#5E7463] hover:border-[#3D5140]/35 hover:text-[#3D5140] disabled:cursor-not-allowed disabled:opacity-45 transition-all shadow-sm"
+                >
+                  <XCircle className="w-3.5 h-3.5" />
+                  Change
+                </button>
               </div>
 
-              <button
-                type="button"
-                onClick={handleRemoveSelectedCard}
-                disabled={!selectedSourceProduct || !canReplaceSelectedCard}
-                className="inline-flex items-center gap-1 rounded-full border border-[#D7E3D9] bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.08em] text-[#5E7463] hover:border-[#3D5140]/35 hover:text-[#3D5140] disabled:cursor-not-allowed disabled:opacity-45 transition-colors"
-              >
-                <XCircle className="w-3 h-3" />
-                Remove
-              </button>
-            </div>
-
-            <div className="mt-3 inline-flex items-center rounded-full border border-[#D7E3D9] bg-white px-3 py-1 text-[10px] font-semibold text-[#5E7463]">
-              {selectedSourceProduct
-                ? `From ${formatPrice(typeof selectedSourceProduct.tradeInValue === 'number' ? selectedSourceProduct.tradeInValue : selectedSourceProduct.originalPrice)}`
-                : 'Select one card to preview estimate'}
+              <div className="mt-3 inline-flex items-center rounded-full border border-[#D7E3D9] bg-white px-3 py-1 text-[10px] font-semibold text-[#5E7463]">
+                {selectedSourceProduct
+                  ? `From ${formatPrice(typeof selectedSourceProduct.tradeInValue === 'number' ? selectedSourceProduct.tradeInValue : selectedSourceProduct.originalPrice)}`
+                  : 'Select one card to preview estimate'}
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center justify-center text-[#3D5140]">
-            <ArrowRightLeft className="w-4 h-4" />
+          <div className="flex items-center justify-center text-[#3D5140] py-6 sm:py-0">
+            <ArrowRightLeft className="w-5 h-5 opacity-40" />
           </div>
 
-          <div className="rounded-xl border border-[#DDE9DF] bg-[#F4F7F4] px-4 py-3">
-            <p className="text-[10px] uppercase tracking-[0.14em] font-black text-[#6F8A72] mb-1">Upgrading To</p>
-            <p className="text-[13px] font-bold text-[#2B4A33] line-clamp-2">
-              {resolvedTargetProductName}
-            </p>
+          <div className="rounded-2xl border border-[#DDE9DF] bg-[#F4F7F4] px-4 py-4 flex flex-col sm:flex-row gap-4">
+            {targetProductImage && (
+              <div className="w-20 h-20 rounded-xl overflow-hidden border border-[#DDE9DF] shrink-0 bg-white shadow-sm flex items-center justify-center p-1">
+                <img src={targetProductImage} alt={resolvedTargetProductName} className="w-full h-full object-cover rounded-lg" />
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] uppercase tracking-[0.14em] font-black text-[#6F8A72] mb-1">Upgrading To</p>
+              <p className="text-[13px] font-bold text-[#2B4A33] line-clamp-2">
+                {resolvedTargetProductName}
+              </p>
+              <p className="text-[10px] text-[#6A7A6B] font-bold mt-1.5 uppercase tracking-wider italic">
+                New sanctuary edition
+              </p>
+            </div>
           </div>
         </div>
 
@@ -172,15 +204,32 @@ export const StepSummary = memo(function StepSummary({
                     key={product.id}
                     type="button"
                     onClick={() => handleSelectTradeInProduct(product.id)}
-                    className="rounded-xl border border-[#EDE8E1] bg-white px-3.5 py-2.5 text-left hover:border-[#3D5140]/30 hover:bg-[#F7FBF7] transition-colors"
+                    className="rounded-xl border border-[#EDE8E1] bg-white p-3 text-left hover:border-[#3D5140]/30 hover:bg-[#F7FBF7] transition-all flex gap-3 items-center group/card"
                   >
-                    <p className="text-[11px] font-bold text-[#1A1A1A] line-clamp-1">{product.name}</p>
-                    <div className="mt-1 flex items-center justify-between gap-2">
-                      <p className="text-[10px] font-bold text-[#7B8B7C]">REF: {truncateOrderId(product.orderId)}</p>
-                      <p className="text-[10px] font-black text-[#3D5140] tracking-tight">{formatPrice(previewValue)}</p>
-                    </div>
-                    <div className="mt-2 inline-flex items-center rounded-full border border-[#DDE9DF] bg-[#F4F7F4] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-[#5E7463]">
-                      Replace with this card
+                    {product.image && (
+                      <div className="w-12 h-12 rounded-lg overflow-hidden border border-slate-100 shrink-0 shadow-sm bg-slate-50">
+                        <img src={product.image} alt={product.name} className="w-full h-full object-cover transition-transform group-hover/card:scale-110" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-bold text-[#1A1A1A] line-clamp-1">{product.name}</p>
+                      <div className="mt-1.5 flex items-center justify-between gap-2">
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <OrderDetailDialog
+                            orderId={product.orderId}
+                            orderCode={`#${truncateOrderId(product.orderId).toUpperCase()}`}
+                            trigger={
+                              <button type="button" className="text-[9px] font-black text-[#A89E94] uppercase tracking-widest hover:text-[#3D5140] transition-colors">
+                                View Order
+                              </button>
+                            }
+                          />
+                        </div>
+                        <p className="text-[10px] font-black text-[#3D5140] tracking-tight">{formatPrice(previewValue)}</p>
+                      </div>
+                      <div className="mt-2 inline-flex items-center rounded-full border border-[#DDE9DF] bg-[#F4F7F4] px-2.5 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-[#5E7463] transition-colors group-hover/card:bg-[#3D5140] group-hover/card:text-white">
+                        Use this item
+                      </div>
                     </div>
                   </button>
                 );

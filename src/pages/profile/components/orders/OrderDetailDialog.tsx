@@ -1,6 +1,5 @@
 import React, { useCallback, useMemo } from "react"
 import { useOrderDetail, useCancelOrder } from "@/hooks/queries/useOrder"
-import { usePaymentByOrderId } from "@/hooks/queries/usePayment"
 import {
     Dialog,
     DialogContent,
@@ -25,6 +24,7 @@ import {
     PaymentDetailsCard,
     ShipperInfoSection
 } from "./components"
+import { OrderDetailSkeleton } from "@/components/common/Skeletons"
 
 const MAX_VISIBLE = 3;
 
@@ -49,7 +49,6 @@ export function OrderDetailDialog({
     const [itemsExpanded, setItemsExpanded] = React.useState(false)
     const toast = useToast()
     const { data: order, isPending } = useOrderDetail(orderId)
-    const { data: payment } = usePaymentByOrderId(orderId)
     const { mutate: cancelOrder, isPending: isCancelling } = useCancelOrder({ meta: { hideToast: true } })
     const navigate = useNavigate()
 
@@ -135,10 +134,7 @@ export function OrderDetailDialog({
                     {/* Body */}
                     <div className="flex-1 overflow-y-auto no-scrollbar">
                         {isPending ? (
-                            <div className="flex flex-col items-center justify-center py-40 gap-4 bg-white">
-                                <div className="w-7 h-7 border-[3px] border-[#4988c4] border-t-transparent rounded-full animate-spin" />
-                                <p className="text-[12px] font-bold text-gray-400 tracking-wider uppercase">Loading secure details...</p>
-                            </div>
+                            <OrderDetailSkeleton />
                         ) : order ? (
                             <div className="space-y-3">
                                 <OrderStepFlow step={theme.step} color={theme.color} isCancelled={isCancelled} />
@@ -176,7 +172,7 @@ export function OrderDetailDialog({
                                     <PricingSummary order={order} />
                                     <div className="mx-6 mt-5 pt-4 border-t border-slate-100/80">
                                         <PaymentDetailsCard
-                                            payments={payment ? [payment] : undefined}
+                                            orderCode={orderCode}
                                             fallbackPayment={{
                                                 id: order.orderCode,
                                                 orderCode: order.orderCode,

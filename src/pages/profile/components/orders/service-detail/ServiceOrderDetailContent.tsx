@@ -11,7 +11,7 @@ import { AppointmentSection } from './components/AppointmentSection';
 import { ServiceSummarySection } from './components/ServiceSummarySection';
 import { ConsolidatedManifest } from './components/ConsolidatedManifest';
 import { ExecutionStaffSection } from './components/ExecutionStaffSection';
-import { FinancialOversightSection } from './components/FinancialOversightSection';
+import { PaymentDetailsCard } from '../components/PaymentDetailsCard';
 import { InteractionModule } from './components/InteractionModule';
 
 export function ServiceOrderDetailContent({
@@ -106,12 +106,20 @@ export function ServiceOrderDetailContent({
                             resolvedRating={resolvedRating}
                         />
 
-                        <FinancialOversightSection 
-                            displayMethod={data?.paymentMethod || 'COD'}
-                            paymentStatus={data?.paymentStatus || 'Pending'}
-                            totalPrice={data?.totalPrice}
-                            paymentDescription={data?.paymentDescription}
-                            paymentEvidenceUrl={data?.paymentEvidenceUrl}
+                        <PaymentDetailsCard
+                            orderCode={orderCode}
+                            fallbackPayment={{
+                                id: orderCode,
+                                orderCode: orderCode,
+                                paymentMethod: data?.paymentMethod || 'COD',
+                                paymentType: "Service",
+                                status: data?.paymentStatus || 'Pending',
+                                amount: data?.totalPrice || 0,
+                                description: data?.paymentDescription,
+                                evidenceUrl: data?.paymentEvidenceUrl,
+                                createdAt: data?.createdAt,
+                            }}
+                            className="mx-6 my-2"
                         />
 
                         {isCompletedOrder && (

@@ -26,6 +26,7 @@ import { normalizeTradeInStatus } from "@/utils/tradeInWorkflow";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useNavigate } from "react-router-dom";
+import { TradeInOrderDetailSkeleton } from "@/components/common/Skeletons";
 
 interface TradeInOrderDetailDialogProps {
     tradeInOrderId: string;
@@ -222,10 +223,7 @@ export const TradeInOrderDetailDialog = ({ tradeInOrderId, orderCode, trigger }:
                     {/* Body */}
                     <div className="flex-1 overflow-y-auto no-scrollbar scroll-smooth">
                         {isLoading ? (
-                            <div className="flex flex-col items-center justify-center py-40 gap-4 bg-white">
-                                <div className="w-7 h-7 border-[3px] border-primary/20 border-t-primary rounded-full animate-spin" />
-                                <p className="text-[12px] font-bold text-gray-400 tracking-wider uppercase">Loading secure details...</p>
-                            </div>
+                            <TradeInOrderDetailSkeleton />
                         ) : order ? (
                             <div className="space-y-3">
                                 {/* Strategic Exchange Program - Preserved as requested */}
@@ -481,7 +479,7 @@ export const TradeInOrderDetailDialog = ({ tradeInOrderId, orderCode, trigger }:
                                     {/* Payment Section */}
                                     <div className="mx-6 mt-6 pt-4 border-t border-slate-100/80">
                                         <PaymentDetailsCard
-                                            payments={order.payments}
+                                            orderCode={orderCode}
                                             fallbackPayment={{
                                                 id: order.orderCode,
                                                 orderCode: order.orderCode,

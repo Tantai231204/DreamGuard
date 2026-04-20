@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, memo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import {
   AlertCircle,
@@ -34,6 +35,7 @@ import {
 } from "@/components/ui/select";
 import { uploadEvidenceItems } from "@/utils/evidenceUpload";
 import { TradeInAssetCard } from "./TradeInAssetCard";
+import { tradeInOrderKeys, paymentKeys } from "@/hooks/queries";
 
 const MAX_EVIDENCE_FILES = 5;
 const MAX_EVIDENCE_FILE_SIZE_MB = 10;
@@ -82,7 +84,7 @@ const getEvidenceStatusLabel = (status: EvidenceStatus) => {
   return "Ready";
 };
 
-export function TradeInProcessReturnDialog({
+export function TradeInProcessReturnDialogComponent({
   isOpen,
   onClose,
   tradeInOrderId,
@@ -93,6 +95,7 @@ export function TradeInProcessReturnDialog({
   paymentStatus,
   productImageUrl,
 }: TradeInProcessReturnDialogProps) {
+  const queryClient = useQueryClient();
   const [damageNote, setDamageNote] = useState("");
   const [selectedReason, setSelectedReason] = useState("");
   const [isDamagedSelected, setIsDamagedSelected] = useState(false);
@@ -292,34 +295,36 @@ export function TradeInProcessReturnDialog({
 
       const finalNote = selectedReason === OTHER_REASON_LABEL ? damageNote : selectedReason;
 
-      // 1. Initialize Refund Settlement (Parallel execution)
-      const refundPromise = (refundAmount > 0)
-        ? paymentService.createAdminRefund({
+      // 1. Logistics Update (Must happen first to transition order status for refund eligibility)
+      await processReturned.mutateAsync({
+        taskId,
+        tradeInOrderId,
+        data: {
+          damageNote: isDamagedOutcome ? finalNote.trim() || undefined : undefined,
+          evidenceUrls: isDamagedOutcome && evidenceUrls.length > 0 ? evidenceUrls : undefined,
+          productVariantId: normalizedProductVariantId || undefined,
+        },
+      });
+
+      // 2. Financial Settlement (Administrative Refund)
+      let refundId: string | undefined;
+      if (typeof refundAmount === 'number' && refundAmount > 0) {
+        const refundObj = await paymentService.createAdminRefund({
           tradeInOrderId,
           amount: refundAmount,
           reason: "Return",
-        })
-        : Promise.resolve();
-
-      // 2. Execute primary logistics and fiscal updates in parallel
-      const results = await Promise.all([
-        processReturned.mutateAsync({
-          taskId,
-          tradeInOrderId,
-          data: {
-            damageNote: isDamagedOutcome ? finalNote.trim() || undefined : undefined,
-            evidenceUrls: isDamagedOutcome && evidenceUrls.length > 0 ? evidenceUrls : undefined,
-            productVariantId: normalizedProductVariantId || undefined,
-          },
-        }),
-        refundPromise,
-      ]);
-
-      // 3. Post-Settlement Linking: Capture refund ID and attach evidence
-      const refundObj = results[1] as { id: string } | undefined;
-      if (evidenceUrls.length > 0 && refundObj?.id) {
-        await paymentService.updateRefundStatus(refundObj.id, "Refunding", undefined, evidenceUrls[0]);
+        });
+        refundId = refundObj?.id;
       }
+
+      if (evidenceUrls.length > 0 && refundId) {
+        await paymentService.updateRefundStatus(refundId, "Refunding", undefined, evidenceUrls[0]);
+      }
+
+      // 4. Global Invalidation: Sync UI state across all related panels
+      void queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.detail(tradeInOrderId) });
+      void queryClient.invalidateQueries({ queryKey: paymentKeys.all });
+      void queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.lists() });
 
       toast.success(
         normalizedProductVariantId
@@ -346,6 +351,7 @@ export function TradeInProcessReturnDialog({
     taskId,
     tradeInOrderId,
     uploadEvidenceUrls,
+    queryClient,
   ]);
 
   return (
@@ -595,3 +601,5 @@ export function TradeInProcessReturnDialog({
     </Dialog>
   );
 }
+
+export const TradeInProcessReturnDialog = memo(TradeInProcessReturnDialogComponent);

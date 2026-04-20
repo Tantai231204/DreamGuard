@@ -21,6 +21,7 @@ export interface TradeInSelectorProps {
   eligibleProducts: TradeInProduct[];
   selectedProducts: string[];
   product?: ProductResponse | null;
+  targetProductImage?: string;
   currentProductVariantId?: string;
   onToggleProduct: (productId: string) => void;
   tradeInPercentage?: number;

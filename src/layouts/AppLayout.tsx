@@ -4,7 +4,7 @@ import Footer from "../components/layout/Footer";
 import { Breadcrumb } from "../components/common";
 import { useBreadcrumb } from "../components/common/BreadcrumbNav";
 import { AppRoute } from "../lib/constants";
-import FloatingChat from "../components/chat/FloatingChat";
+import UnifiedFloatingChat from "../components/chat/UnifiedFloatingChat";
 import { useNotificationHub } from "@/hooks/useNotificationHub";
 
 interface AppLayoutProps {
@@ -36,7 +36,7 @@ export default function AppLayout({ variant = "home" }: AppLayoutProps) {
         </main>
 
         <Footer />
-        <FloatingChat />
+        <UnifiedFloatingChat />
       </div>
     );
   }
@@ -59,7 +59,7 @@ export default function AppLayout({ variant = "home" }: AppLayoutProps) {
         </div>
       </main>
       <Footer />
-      <FloatingChat />
+      <UnifiedFloatingChat />
     </div>
   );
 }

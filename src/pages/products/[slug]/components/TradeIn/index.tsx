@@ -37,6 +37,7 @@ export const TradeInSelector = memo(function TradeInSelector({
   eligibleProducts,
   selectedProducts,
   product,
+  targetProductImage,
   currentProductVariantId,
   onToggleProduct,
   tradeInPercentage = 30,
@@ -270,6 +271,7 @@ export const TradeInSelector = memo(function TradeInSelector({
                   selectedProducts={selectedProducts}
                   onSelectTradeInProduct={handleSelectSourceItemInSummary}
                   targetProductName={product?.name}
+                  targetProductImage={targetProductImage}
                   totalTradeInValue={flow.totalTradeInValue}
                   sessionOrderId={flow.sessionOrderId}
                   depositAmount={depositAmount}

@@ -140,6 +140,7 @@ export default function ProductDetail() {
                 onToggleProduct={handleToggleTradeIn}
                 tradeInPercentage={30}
                 product={product}
+                targetProductImage={state.productImages[state.selectedImage]}
                 minTradeInPrice={tradeInSummary.minTradeInPrice}
                 depositAmount={tradeInSummary.depositAmount}
                 currentProductPrice={tradeInSummary.currentProductPrice}
