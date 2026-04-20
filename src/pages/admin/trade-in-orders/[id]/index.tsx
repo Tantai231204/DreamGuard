@@ -11,7 +11,7 @@ import { PaymentInfoCard } from '@/pages/admin/orders/components/PaymentInfoCard
 import { ShippingLogisticsEvidence } from '@/pages/admin/orders/components/ShippingLogisticsEvidence';
 import { OrderTimeline } from '@/pages/admin/orders/components/OrderTimeline';
 import { AppRoute } from '@/lib/constants';
-import { tradeInStatusBadgeValue } from '@/pages/admin/orders/components/tradeInStatus';
+import { tradeInStatusBadgeValue } from '../utils/tradeInStatus';
 import { TradeInStaffManagement } from './components/TradeInStaffManagement';
 import { TradeInAuditLogs } from './components/TradeInAuditLogs';
 

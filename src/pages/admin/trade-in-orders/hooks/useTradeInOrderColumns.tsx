@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { createColumnHelper } from '@tanstack/react-table';
-import { Eye, Trash2, ShoppingBag } from 'lucide-react';
+import { Eye, Trash2, ShoppingBag, RotateCcw } from 'lucide-react';
 
 import { AdminStatusBadge, AdminRowActions } from '@/components/admin';
 import type { TradeInOrderListItem } from '@/api/types/tradeInOrder';
@@ -9,12 +9,14 @@ import { formatPrice } from '@/pages/profile/utils';
 import { formatDate, formatTime } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { SortableHeader } from '@/components/admin';
-import { tradeInStatusBadgeValue } from './tradeInStatus';
+import { tradeInStatusBadgeValue } from '../utils/tradeInStatus';
 import { isTradeInAdminCancelableStatus } from '@/utils/tradeInWorkflow';
 
 const columnHelper = createColumnHelper<TradeInOrderListItem>();
 
-export const useTradeInOrderColumns = (onCancel: (order: TradeInOrderListItem) => void) => {
+export const useTradeInOrderColumns = (
+  onCancel: (order: TradeInOrderListItem, isRefundOnly?: boolean) => void,
+) => {
   return useMemo(
     () => [
       columnHelper.display({
@@ -123,15 +125,32 @@ export const useTradeInOrderColumns = (onCancel: (order: TradeInOrderListItem) =
           };
 
           const cancelAction = {
-            label: 'Cancel Order',
+            label: 'Terminate Request',
             icon: <Trash2 className="h-4 w-4 text-rose-500" />,
             variant: 'danger' as const,
-            onClick: () => onCancel(row.original),
+            onClick: () => onCancel(row.original, false),
           };
 
-          const actions = isTradeInAdminCancelableStatus(row.original.status)
-            ? [viewAction, cancelAction]
-            : [viewAction];
+          const isVNPayPaid = row.original.paymentMethod?.toLowerCase() === 'vnpay' &&
+            (row.original.paymentStatus?.toLowerCase() === 'paid' || row.original.paymentStatus?.toLowerCase() === 'codpaid');
+
+          const refundAction = {
+            label: 'Authorize Refund',
+            icon: <RotateCcw className="h-4 w-4 text-blue-500" />,
+            variant: 'default' as const,
+            onClick: () => onCancel(row.original, true),
+          };
+
+          const actions = [];
+          actions.push(viewAction);
+
+          if (isTradeInAdminCancelableStatus(row.original.status)) {
+            actions.push(cancelAction);
+          }
+
+          if (isVNPayPaid && row.original.amountToPay > 0) {
+            actions.push(refundAction);
+          }
 
           return (
             <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>

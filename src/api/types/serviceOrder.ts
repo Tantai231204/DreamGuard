@@ -58,6 +58,16 @@ export interface ServiceOrderResponse {
   paymentEvidenceUrl?: string;
 }
 
+export interface ServiceEvidence {
+  seId: string;
+  serviceTaskId: string;
+  imageUrl: string;
+  evidenceType: string;
+  description: string;
+  createdAt: string;
+  publicId: string;
+}
+
 export interface ServiceOrderListResponse {
   items: ServiceOrderResponse[];
   pageNumber: number;

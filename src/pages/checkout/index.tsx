@@ -152,7 +152,7 @@ export default function CheckoutPage() {
     ]);
 
     // UI Loading State (Merged) - Placed after all hooks to follow React rules
-    if (!isCartReady || (cart.length === 0 && isAuthenticated)) {
+    if (!isCartReady) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-white">
                 <div className="flex flex-col items-center gap-6">

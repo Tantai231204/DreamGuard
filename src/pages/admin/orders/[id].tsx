@@ -1,8 +1,8 @@
 import { useParams } from 'react-router-dom';
 import { useMemo, useState } from 'react';
-import { Printer, Truck, History, ChevronDown, CreditCard } from 'lucide-react';
+import { Printer, Truck, History, ChevronDown, CreditCard, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useOrderDetail, useUpdateOrderStatus, useAdminCancelOrder, useAdminPayments, useUpdatePaymentStatus, orderKeys } from '@/hooks/queries';
+import { useOrderDetail, useUpdateOrderStatus, useAdminCancelOrder, useAdminPayments, useUpdatePaymentStatus, useAdminCreateRefund, orderKeys } from '@/hooks/queries';
 import { useQueryClient } from '@tanstack/react-query';
 import { useShippingTasksByOrder } from '@/hooks/queries/useShippingTask';
 import { useAuthStore } from '@/store/authStore';
@@ -42,6 +42,7 @@ export default function OrderDetail() {
   const updateStatus = useUpdateOrderStatus();
   const cancelOrder = useAdminCancelOrder();
   const updatePayment = useUpdatePaymentStatus();
+  const createRefund = useAdminCreateRefund();
   const queryClient = useQueryClient();
 
   const { role } = useAuthStore();
@@ -52,6 +53,7 @@ export default function OrderDetail() {
   const [showProcessReturnDialog, setShowProcessReturnDialog] = useState(false);
   const [showProcessExchangeDialog, setShowProcessExchangeDialog] = useState(false);
   const [showConfirmStatusDialog, setShowConfirmStatusDialog] = useState(false);
+  const [showRefundDialog, setShowRefundDialog] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
 
   const resolvedOrderId = order?.id || id || '';
@@ -65,6 +67,25 @@ export default function OrderDetail() {
       p.status?.toLowerCase() === 'completed'
     );
   }, [paymentResponse]);
+
+  const canCreateRefund = useMemo(() => {
+    if (!order) return false;
+    const currentStatus = order.status.toString();
+    const statusEnum = ORDER_STATUS_MAP[currentStatus];
+
+    const isVNPayPaid = order.paymentMethod?.toLowerCase() === 'vnpay' && isPaid;
+    if (!isVNPayPaid) return false;
+
+    // Prevent duplicate refunds
+    const hasRefundProcess = paymentResponse?.items?.some(p =>
+      ['refunding', 'refunded'].includes(p.status?.toLowerCase())
+    ) || ['refunding', 'refunded', 'refundedandrestocked', 'refundedanddamaged'].includes(order.paymentStatus?.toLowerCase() || '');
+
+    const isRefundableState = statusEnum === OrderStatus.Cancelled ||
+      statusEnum === OrderStatus.Returned;
+
+    return isRefundableState && !hasRefundProcess;
+  }, [order, isPaid, paymentResponse]);
 
   const sortedShippingTasks = useMemo(() => {
     const tasks = [...(shippingTasks || [])];
@@ -104,14 +125,12 @@ export default function OrderDetail() {
   const handleUpdateStatus = (newStatus: string) => {
     const hasActiveTask = !!activeTask;
 
-    // Phase 1: Confirmation
     if (!pendingStatus) {
       setPendingStatus(newStatus);
       setShowConfirmStatusDialog(true);
       return;
     }
 
-    // Phase 2: Business Logic Execution (Post-Confirmation)
     if (currentStatusEnum === OrderStatus.ShippingReplacement && newStatus === 'Processing') {
       toast.info('Replacement flow is staff-driven', {
         description: 'Keep this order at Shipping Replacement. Delivery staff should update the shipping task status directly.'
@@ -121,7 +140,6 @@ export default function OrderDetail() {
       return;
     }
 
-    // Business Logic: Require staff assignment for processing/shipping
     if ((newStatus === 'Processing' || newStatus === 'Delivering') && !hasActiveTask) {
       toast.error('Logistics Constraint', {
         description: 'You must assign a technical agent before transitioning to this state.'
@@ -131,7 +149,6 @@ export default function OrderDetail() {
       return;
     }
 
-    // Finalization Logic: Manual COD settlement drives the order completion
     if (newStatus === 'Completed') {
       const orderMethod = order?.paymentMethod?.toLowerCase();
       const hasVNPay = paymentResponse?.items?.some(p => p.paymentMethod?.toLowerCase() === 'vnpay');
@@ -143,7 +160,7 @@ export default function OrderDetail() {
         if (codPayment) {
           updatePayment.mutate({ id: codPayment.id, status: 'CODPaid' }, {
             onSuccess: () => {
-              queryClient.invalidateQueries({ queryKey: orderKeys.detail(order.id) });
+              queryClient.invalidateQueries({ queryKey: orderKeys.detail(order!.id) });
               setShowConfirmStatusDialog(false);
               setPendingStatus(null);
             },
@@ -160,7 +177,7 @@ export default function OrderDetail() {
       return;
     }
 
-    updateStatus.mutate({ id: order.id, status: newStatus }, {
+    updateStatus.mutate({ id: order!.id, status: newStatus }, {
       onSuccess: () => {
         setShowConfirmStatusDialog(false);
         setPendingStatus(null);
@@ -172,17 +189,42 @@ export default function OrderDetail() {
     });
   };
 
-  const handleCancelOrder = (reason: string) => {
-    cancelOrder.mutate({ id: order.id, reason }, {
+  const handleCancelOrder = (reason: string, refundAmount?: number) => {
+    cancelOrder.mutate({ id: order!.id, reason }, {
       onSuccess: () => {
+        if (refundAmount && refundAmount > 0) {
+          createRefund.mutate({
+            orderId: order!.id,
+            reason: "Return",
+            amount: refundAmount
+          }, {
+            onSuccess: () => {
+              queryClient.invalidateQueries({ queryKey: orderKeys.detail(order!.id) });
+              queryClient.invalidateQueries({ queryKey: ['payments', 'list', { orderCode: order!.orderCode }] });
+            }
+          });
+        }
         setShowCancelDialog(false);
-      },
+      }
     });
   };
 
-  const currentStatusEnum = ORDER_STATUS_MAP[order.status.toString()];
+  const handleRefundOrder = (_reason: string, refundAmount?: number) => {
+    createRefund.mutate({
+      orderId: order!.id,
+      reason: "Return",
+      amount: refundAmount || 0
+    }, {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: orderKeys.detail(order!.id) });
+        queryClient.invalidateQueries({ queryKey: ['payments', 'list', { orderCode: order!.orderCode }] });
+        setShowRefundDialog(false);
+      }
+    });
+  };
 
-  // Flow rule: Admin can cancel before delivery staff takes over (Pending or Confirmed).
+  const currentStatusEnum = ORDER_STATUS_MAP[order!.status.toString()];
+
   const canCancel = currentStatusEnum === OrderStatus.Pending || currentStatusEnum === OrderStatus.Confirmed;
 
   const getTimelineItems = () => {
@@ -370,6 +412,18 @@ export default function OrderDetail() {
               <Printer className="h-4 w-4" />
               Intelligence Report
             </Button>
+
+            {canCreateRefund && (
+              <Button
+                onClick={() => setShowRefundDialog(true)}
+                disabled={createRefund.isPending}
+                size="sm"
+                className="h-10 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-blue-500/10 px-5 gap-2 border-0"
+              >
+                <RotateCcw className="h-4 w-4" />
+                {createRefund.isPending ? "Initializing..." : "Initialize Refund"}
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -392,6 +446,7 @@ export default function OrderDetail() {
                   <div className="flex-1">
                     <PaymentInfoCard
                       orderCode={order.orderCode}
+                      paymentMethod={order.paymentMethod}
                       delay={0.15}
                     />
                   </div>
@@ -479,6 +534,21 @@ export default function OrderDetail() {
         onConfirm={handleCancelOrder}
         isLoading={cancelOrder.isPending}
         orderCode={order.orderCode}
+        totalPrice={order.totalAmount}
+        paymentMethod={order.paymentMethod}
+        paymentStatus={order.paymentStatus}
+      />
+
+      <CancelOrderDialog
+        open={showRefundDialog}
+        onOpenChange={setShowRefundDialog}
+        onConfirm={handleRefundOrder}
+        isLoading={createRefund.isPending}
+        orderCode={order.orderCode}
+        totalPrice={order.totalAmount}
+        paymentMethod={order.paymentMethod}
+        paymentStatus={order.paymentStatus}
+        isRefundOnly={true}
       />
 
       <AssignShippingStaffDialog
@@ -490,9 +560,12 @@ export default function OrderDetail() {
       <ProcessReturnDialog
         isOpen={showProcessReturnDialog}
         onClose={() => setShowProcessReturnDialog(false)}
-        orderId={order.id}
+        orderId={order!.id}
         taskId={activeTask?.shippingTaskId || ''}
-        items={order.items || []}
+        items={order!.items || []}
+        totalPrice={order!.totalAmount}
+        paymentMethod={order!.paymentMethod}
+        paymentStatus={order!.paymentStatus}
       />
 
       <ProcessExchangeDialog

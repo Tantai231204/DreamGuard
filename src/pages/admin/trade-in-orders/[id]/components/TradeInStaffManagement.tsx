@@ -7,7 +7,7 @@ import {
 
 import { cn } from '@/lib/utils';
 import type { TradeInOrderDetailResponse } from '@/api/types/tradeInOrder';
-import { CancelTradeInOrderDialog } from '@/pages/admin/orders/components/CancelTradeInOrderDialog';
+import { CancelTradeInOrderDialog } from '../../components/CancelTradeInOrderDialog';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { AssignShippingStaffDialog } from '@/pages/admin/orders/components/AssignShippingStaffDialog';
@@ -91,6 +91,7 @@ export const TradeInStaffManagement = memo(function TradeInStaffManagement({ ord
     handleCloseProcessReturnDialog,
     handleCloseProcessExchangeDialog,
     adminCancel,
+    hasRefundPayment,
   } = useTradeInStaffManagement(order);
 
   const showDeliveryPanel = [
@@ -297,7 +298,12 @@ export const TradeInStaffManagement = memo(function TradeInStaffManagement({ ord
             )}
 
             {isFinalizedStatus && (
-              <FinalizedSection status={status} />
+              <FinalizedSection
+                status={status}
+                canHandleUnhappyCase={canHandleUnhappyCase}
+                hasRefundPayment={hasRefundPayment}
+                onOpenCancelDialog={handleOpenCancelDialog}
+              />
             )}
           </div>
         </div>
@@ -310,6 +316,9 @@ export const TradeInStaffManagement = memo(function TradeInStaffManagement({ ord
         onConfirm={adminCancel}
         isLoading={isCancelling}
         orderCode={order.orderCode}
+        totalPrice={order.depositAmount || 0}
+        paymentMethod={order.payments?.[0]?.paymentMethod}
+        paymentStatus={order.payments?.[0]?.status}
       />
 
       <ConfirmDialog
@@ -367,6 +376,10 @@ export const TradeInStaffManagement = memo(function TradeInStaffManagement({ ord
         tradeInOrderId={order.tradeInOrderId}
         taskId={returningShippingTaskId}
         defaultProductVariantId={defaultProductVariantId}
+        totalPrice={order.depositAmount || 0}
+        paymentMethod={order.payments?.[0]?.paymentMethod}
+        paymentStatus={order.payments?.[0]?.status}
+        productImageUrl={order.newProductVariantUrl}
       />
 
       <TradeInProcessExchangeDialog
@@ -375,6 +388,7 @@ export const TradeInStaffManagement = memo(function TradeInStaffManagement({ ord
         tradeInOrderId={order.tradeInOrderId}
         taskId={returningShippingTaskId}
         defaultProductVariantId={defaultProductVariantId}
+        productImageUrl={order.newProductVariantUrl}
       />
     </div>
   );

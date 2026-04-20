@@ -50,6 +50,9 @@ interface ActiveProgressSectionProps {
 
 interface FinalizedSectionProps {
   status: string;
+  canHandleUnhappyCase: boolean;
+  hasRefundPayment: boolean;
+  onOpenCancelDialog: () => void;
 }
 
 export const WaitingForStaffSection = memo(function WaitingForStaffSection({
@@ -259,24 +262,49 @@ export const ActiveProgressSection = memo(function ActiveProgressSection({
   );
 });
 
-export const FinalizedSection = memo(function FinalizedSection({ status }: FinalizedSectionProps) {
+export const FinalizedSection = memo(function FinalizedSection({ 
+  status, 
+  canHandleUnhappyCase, 
+  hasRefundPayment,
+  onOpenCancelDialog 
+}: FinalizedSectionProps) {
   return (
-    <div className="p-4 flex items-center gap-3 bg-slate-50/30">
-      <div className={cn(
-        'w-8 h-8 rounded-lg flex items-center justify-center border',
-        status === 'CANCELLED' ? 'bg-rose-50 border-rose-100 text-rose-500' : 'bg-emerald-50 border-emerald-100 text-emerald-500',
-      )}>
-        {status === 'CANCELLED' ? <XCircle className="w-4 h-4" /> : <CheckCircle2 className="w-4 h-4" />}
-      </div>
-      <div>
-        <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest leading-none">Archived</h4>
-        <p className={cn(
-          'text-[9px] font-black uppercase tracking-tight mt-1',
-          status === 'CANCELLED' ? 'text-rose-400' : 'text-emerald-500',
+    <div className="flex flex-col bg-slate-50/30">
+      <div className="p-4 flex items-center gap-3">
+        <div className={cn(
+          'w-8 h-8 rounded-lg flex items-center justify-center border',
+          status === 'CANCELLED' || status === 'FORCED_CANCELLED' || status === 'ADMIN_CANCELLED' 
+            ? 'bg-rose-50 border-rose-100 text-rose-500' 
+            : 'bg-emerald-50 border-emerald-100 text-emerald-500',
         )}>
-          Status: {status}
-        </p>
+          {status === 'CANCELLED' || status === 'FORCED_CANCELLED' || status === 'ADMIN_CANCELLED' 
+            ? <XCircle className="w-4 h-4" /> 
+            : <CheckCircle2 className="w-4 h-4" />}
+        </div>
+        <div>
+          <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest leading-none">Archived</h4>
+          <p className={cn(
+            'text-[9px] font-black uppercase tracking-tight mt-1',
+            status === 'CANCELLED' || status === 'FORCED_CANCELLED' || status === 'ADMIN_CANCELLED' 
+              ? 'text-rose-400' 
+              : 'text-emerald-500',
+          )}>
+            Status: {status}
+          </p>
+        </div>
       </div>
+
+      {canHandleUnhappyCase && !hasRefundPayment && (
+        <div className="px-4 pb-4">
+          <Button
+            variant="ghost"
+            className="w-full h-8 rounded-md text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-rose-500 hover:bg-rose-50/30 transition-all border border-slate-200/50"
+            onClick={onOpenCancelDialog}
+          >
+            Authorize Post-Final Refund
+          </Button>
+        </div>
+      )}
     </div>
   );
 });

@@ -219,18 +219,21 @@ export function useServiceOrderDetailLogic(serviceOrderId: string, open: boolean
         setConfirmOpen(true);
     }, [canCancelService]);
 
-    const handleConfirmCancel = useCallback(() => {
-        cancelMutation.mutate(serviceOrderId, {
-            onSuccess: () => {
-                toast.success('Service Order Cancelled');
-                setConfirmOpen(false);
-            },
-            onError: (error: unknown) => {
-                const message = error instanceof Error ? error.message : 'Cancellation failed.';
-                toast.error('Request Denied', message);
-            }
-        });
-    }, [cancelMutation, serviceOrderId, toast]);
+    const handleConfirmCancel = useCallback(async () => {
+        if (!canCancelService || !serviceOrderId) return;
+
+        try {
+            // Execute standard cancellation
+            await cancelMutation.mutateAsync(serviceOrderId);
+
+            toast.success('Cancellation Processed', 'The service order has been successfully cancelled.');
+            setConfirmOpen(false);
+            setOpen(false); // Close the detail dialog too for a clean exit
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Unable to complete cancellation request.';
+            toast.error('Operation Failed', message);
+        }
+    }, [cancelMutation, serviceOrderId, canCancelService, toast, setOpen]);
 
     const theme = STATUS_THEME[toThemeKey(data?.status)] || STATUS_THEME.Pending;
     const detailItems = data?.items || data?.orderDetails || data?.serviceOrderItems || [];

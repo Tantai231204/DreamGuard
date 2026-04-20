@@ -34,6 +34,7 @@ import { Badge } from '@/components/ui/badge';
 import { formatPrice } from '@/lib/utils';
 import type { UseQueryResult } from '@tanstack/react-query';
 import type { DetailOrder, ExtendedServiceItemDetail, TaskDetail, ServicePackageMappingResponse } from './types';
+import type { PaymentResponse } from '@/api/types/payment';
 import { RefundPaymentDialog } from '../RefundPaymentDialog';
 import { CreateRefundDialog } from '../CreateRefundDialog';
 
@@ -43,17 +44,17 @@ interface OrderItemsAreaProps {
   mappingQueries: UseQueryResult<ServicePackageMappingResponse, Error>[];
   task?: TaskDetail;
   customerAssets?: string[];
-  payments?: any[];
+  payments?: PaymentResponse[];
 }
 
 /**
  * ServicePackageItem: Memoized component for individual package display
  */
-const ServicePackageItem = memo(({ 
-  item, 
-  mappingQuery 
-}: { 
-  item: ExtendedServiceItemDetail; 
+const ServicePackageItem = memo(({
+  item,
+  mappingQuery
+}: {
+  item: ExtendedServiceItemDetail;
   mappingQuery?: UseQueryResult<ServicePackageMappingResponse, Error>;
 }) => {
   const mappingData = mappingQuery?.data;
@@ -71,10 +72,10 @@ const ServicePackageItem = memo(({
     <div className="group relative flex flex-col md:flex-row items-start md:items-center gap-6 p-6 bg-slate-50/30 rounded-[2rem] border border-slate-100 hover:bg-white hover:border-[#4988c4]/30 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-500">
       <div className="relative w-28 h-28 rounded-2xl overflow-hidden bg-white border border-slate-100 flex-shrink-0 shadow-sm transition-all duration-500 group-hover:scale-105 group-hover:shadow-md">
         {mappingData?.servicePackage?.imageUrl ? (
-          <img 
-            src={mappingData.servicePackage.imageUrl} 
-            alt="Package" 
-            className="w-full h-full object-contain p-2 mix-blend-multiply transition-all" 
+          <img
+            src={mappingData.servicePackage.imageUrl}
+            alt="Package"
+            className="w-full h-full object-contain p-2 mix-blend-multiply transition-all"
             loading="lazy"
           />
         ) : (
@@ -149,7 +150,7 @@ export const OrderItemsArea = memo(function OrderItemsArea({
   const [viewerData, setViewerData] = useState<{ images: string[], index: number } | null>(null);
   const [isRefundDialogOpen, setIsRefundDialogOpen] = useState(false);
   const [isCreateRefundOpen, setIsCreateRefundOpen] = useState(false);
-  const [selectedPayment, setSelectedPayment] = useState<any>(null);
+  const [selectedPayment, setSelectedPayment] = useState<PaymentResponse | null>(null);
 
   const { displayedItems, remainingPackagesCount } = useMemo(() => ({
     displayedItems: showAllPackages ? orderItems : orderItems.slice(0, 2),
@@ -231,10 +232,10 @@ export const OrderItemsArea = memo(function OrderItemsArea({
           {displayedItems.map((item, index) => {
             const queryIndex = orderItems.indexOf(item);
             return (
-              <ServicePackageItem 
-                key={item.id || item.servicePackageMappingId || index} 
-                item={item} 
-                mappingQuery={mappingQueries[queryIndex]} 
+              <ServicePackageItem
+                key={item.id || item.servicePackageMappingId || index}
+                item={item}
+                mappingQuery={mappingQueries[queryIndex]}
               />
             );
           })}
@@ -426,7 +427,7 @@ export const OrderItemsArea = memo(function OrderItemsArea({
                   <div className="relative">
                     <div className="absolute -left-4 top-0 bottom-0 w-1 bg-amber-500/20 rounded-full" />
                     <p className="text-sm font-medium text-slate-600 leading-relaxed tracking-tight pl-2">
-                       {typeof order.rating === 'object' ? order.rating.comment : 'No qualitative feedback provided for this session.'}
+                      {typeof order.rating === 'object' ? order.rating.comment : 'No qualitative feedback provided for this session.'}
                     </p>
                   </div>
 
@@ -462,9 +463,21 @@ export const OrderItemsArea = memo(function OrderItemsArea({
               </div>
 
               <div className="space-y-2">
-                {payments.filter((p: any) => p.paymentType === 'Refund').map((payment: any) => (
+                {payments.filter((p) => p.paymentType === 'Refund').map((payment) => (
                   <div key={payment.id} className="flex items-center justify-between py-3 px-4 bg-slate-50/50 rounded-xl border border-slate-100 group transition-colors hover:bg-white">
                     <div className="flex items-center gap-4">
+                      {payment.evidenceUrl && (
+                        <div
+                          className="w-10 h-10 rounded-lg overflow-hidden border border-slate-200 cursor-zoom-in group-hover:scale-110 transition-transform flex-shrink-0 bg-slate-100"
+                          onClick={() => window.open(payment.evidenceUrl!, '_blank')}
+                        >
+                          <img
+                            src={payment.evidenceUrl}
+                            alt="Evidence"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      )}
                       <div className="flex flex-col">
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-bold text-slate-900">{formatPrice(payment.amount)}</span>
@@ -495,7 +508,7 @@ export const OrderItemsArea = memo(function OrderItemsArea({
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => window.open(payment.evidenceUrl, '_blank')}
+                          onClick={() => window.open(payment.evidenceUrl!, '_blank')}
                           className="text-primary hover:bg-primary/5 font-bold text-[10px] uppercase tracking-wide h-8 px-3"
                         >
                           View Evidence

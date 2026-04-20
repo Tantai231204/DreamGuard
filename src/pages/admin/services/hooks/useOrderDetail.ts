@@ -1,12 +1,13 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueries } from '@tanstack/react-query';
-import api from '@/lib/api';
 import { statusConfig } from '../constants';
 import { mapApiDetailToOrder, mapApiTaskToServiceTask } from '../utils/mappers';
 import serviceOrderService from '@/api/services/serviceOrderService';
+import paymentService from '@/api/services/paymentService';
+import servicePackageMappingService from '@/api/services/servicePackageMappingService';
 import type { ServiceBooking, ServiceStatus, ServiceTask } from '../types';
-import type { ExtendedServiceItemDetail, ServicePackageMappingResponse } from '../components/OrderDetail/types';
+import type { ExtendedServiceItemDetail } from '../components/OrderDetail/types';
 
 /**
  * Senior Hook for Service Order Detail Management
@@ -24,7 +25,7 @@ export function useOrderDetail() {
   // 1. Core Order Data Fetching
   const orderQuery = useQuery<ServiceBooking>({
     queryKey: ['serviceOrder', 'detail', id],
-    queryFn: () => api.get(`/ServiceOrders/${id}`).then(mapApiDetailToOrder),
+    queryFn: () => serviceOrderService.getServiceOrderById(id!).then(mapApiDetailToOrder),
     enabled: !!id,
     staleTime: 30000,
   });
@@ -32,12 +33,10 @@ export function useOrderDetail() {
   // 1.2. Payment Data Fetching
   const paymentsQuery = useQuery({
     queryKey: ['payments', 'list', { orderCode: orderQuery.data?.orderCode || id }],
-    queryFn: () => api.get('/payment/admin', { 
-      params: { 
-        orderCode: orderQuery.data?.orderCode || id,
-        pageSize: 50 
-      } 
-    }).then(res => res.data?.data?.items || res.data?.items || []),
+    queryFn: () => paymentService.getAdminPayments({
+      orderCode: orderQuery.data?.orderCode || id,
+      pageSize: 50
+    }).then(res => res.items || []),
     enabled: !!orderQuery.data,
     staleTime: 30000,
   });
@@ -77,13 +76,11 @@ export function useOrderDetail() {
   const evidenceQueries = useQueries({
     queries: tasks.map((t) => ({
       queryKey: ['serviceEvidences', id, t?.serviceTaskId],
-      queryFn: async () => {
-        const res = await api.get('/ServiceEvidences/AdminSearchSe', {
-          params: { serviceTaskId: t?.serviceTaskId, soId: id, pageSize: 50 }
-        });
-        const data = res.data?.data ?? res.data;
-        return data?.items || data || [];
-      },
+      queryFn: () => serviceOrderService.getEvidences({
+        serviceTaskId: t?.serviceTaskId,
+        soId: id,
+        pageSize: 50
+      }),
       enabled: !!id && !!t?.serviceTaskId,
       staleTime: 30000,
     }))
@@ -94,7 +91,7 @@ export function useOrderDetail() {
   const mappingQueries = useQueries({
     queries: (orderItems as ExtendedServiceItemDetail[]).map((item) => ({
       queryKey: ['servicePackageMapping', item.servicePackageMappingId],
-      queryFn: () => api.get(`/ServicePackageMappings/${item.servicePackageMappingId}`).then(res => (res.data?.data ?? res.data) as ServicePackageMappingResponse),
+      queryFn: () => servicePackageMappingService.getById(item.servicePackageMappingId!),
       enabled: !!item.servicePackageMappingId && !!orderQuery.data,
       staleTime: 1000 * 60 * 60,
     }))
@@ -103,14 +100,14 @@ export function useOrderDetail() {
   // 4. Data Derivations
   const mergedOrder = useMemo(() => {
     if (!orderQuery.data) return null;
-    
+
     // Efficiently merge task evidence
     const mappedTasks = tasks.map((t, idx) => ({
       ...t,
       evidences: evidenceQueries[idx]?.data || []
     }));
 
-    const order = { 
+    const order = {
       ...orderQuery.data,
       serviceTasks: mappedTasks
     };
@@ -126,13 +123,13 @@ export function useOrderDetail() {
   const statusCfg = useMemo(() => {
     if (!mergedOrder?.status) return undefined;
     return statusConfig[mergedOrder.status as ServiceStatus] || statusConfig.pending;
-  }, [mergedOrder?.status]);
+  }, [mergedOrder]);
 
   const isInitialLoading = !orderQuery.data && orderQuery.isLoading;
 
-  const isAssigned = useMemo(() => 
+  const isAssigned = useMemo(() =>
     !!mergedOrder?.staff || !!mergedOrder?.technician || !!mergedOrder?.serviceTask
-  , [mergedOrder]);
+    , [mergedOrder]);
 
   const canConfirm = useMemo(() => {
     if (!mergedOrder) return false;
@@ -140,7 +137,7 @@ export function useOrderDetail() {
     const isConfirmableStatus = status === 'pending';
     return isConfirmableStatus &&
       (mergedOrder.paymentMethod === 'COD' || mergedOrder.paymentStatus?.toLowerCase() === 'paid');
-  }, [mergedOrder?.status, mergedOrder?.paymentMethod, mergedOrder?.paymentStatus]);
+  }, [mergedOrder]);
 
   const canCancel = useMemo(() => {
     if (!mergedOrder) return false;
@@ -149,9 +146,15 @@ export function useOrderDetail() {
     // Core terminal states – no further cancellation possible
     if (['cancelled', 'completed', 'refunded', 'forcedcancelled', 'rejected'].includes(status || '')) return false;
 
-    // Manager cancel confirm: cancel ServiceOrder + cancel ServiceTask if pending/checked_in
-    // If no ServiceTask exists, just cancel the ServiceOrder
-    if (status === 'pending' || status === 'confirmed') return true;
+    // Manager cancel/reject logic:
+    // 1. Pending can always be Rejected
+    if (status === 'pending') return true;
+
+    // 2. Confirmed can only be Cancelled via manager-cancel IF it has a task AND that task is still pending/started
+    if (status === 'confirmed') {
+      const taskStatus = (mergedOrder.serviceTask?.status || '').toLowerCase();
+      return isAssigned && (taskStatus === 'pending' || taskStatus === 'confirmed' || taskStatus === 'waiting');
+    }
 
     // Rescheduled is a transitional state – manager can still cancel before processing resumes
     if (status === 'rescheduled') return true;
@@ -164,7 +167,7 @@ export function useOrderDetail() {
     }
 
     return false;
-  }, [mergedOrder]);
+  }, [mergedOrder, isAssigned]);
 
   const canAssign = useMemo(() => {
     if (!mergedOrder) return false;
@@ -188,7 +191,7 @@ export function useOrderDetail() {
     // We allow 'rescheduled' too in the frontend to permit multiple re-plannings
     const isOrderReady = orderStatus === 'processing' || orderStatus === 'rescheduled';
     const isTaskReady = taskStatus === 'processing' || taskStatus === 'pending' || taskStatus === 'confirmed';
-    
+
     return isOrderReady && isTaskReady;
   }, [mergedOrder]);
 
@@ -220,14 +223,38 @@ export function useOrderDetail() {
     navigate('/admin/services');
   }, [navigate]);
 
+  const canCreateRefund = useMemo(() => {
+    if (!mergedOrder) return false;
+    const orderStatus = mergedOrder.status?.toLowerCase();
+    
+    // Core Requirement: Only for VNPay orders that have been paid
+    const isVNPayPaid = mergedOrder.paymentMethod?.toLowerCase() === 'vnpay' && 
+                        (mergedOrder.paymentStatus?.toLowerCase() === 'paid' || mergedOrder.paymentStatus?.toLowerCase() === 'codpaid');
+    
+    if (!isVNPayPaid) return false;
+
+    // Check if there's already a refund process active in the payments history
+    // We prevent duplicate refund creations
+    const hasRefundProcess = (paymentsQuery.data || []).some(p => 
+        ['refunding', 'refunded'].includes(p.status?.toLowerCase())
+    ) || ['refunding', 'refunded'].includes(mergedOrder.paymentStatus?.toLowerCase() || '');
+
+    // Manager can create refund if order is in a terminal non-complete state
+    // (Cancelled by user, Rejected by admin, or Forced Cancelled during processing)
+    const isRefundableState = ['cancelled', 'rejected', 'forcedcancelled', 'managercancel'].includes(orderStatus || '');
+    
+    return isRefundableState && !hasRefundProcess;
+  }, [mergedOrder, paymentsQuery.data]);
+
   const permissions = useMemo(() => ({
     canConfirm,
     canAssign,
     canCancel,
     canComplete,
     canReschedule,
+    canCreateRefund,
     isAssigned
-  }), [canConfirm, canAssign, canCancel, canComplete, canReschedule, isAssigned]);
+  }), [canConfirm, canAssign, canCancel, canComplete, canReschedule, canCreateRefund, isAssigned]);
 
   const memoizedActions = useMemo(() => ({
     handleAssignOpen,

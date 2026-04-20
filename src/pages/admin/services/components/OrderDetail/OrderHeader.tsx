@@ -1,4 +1,4 @@
-import { ArrowLeft, CheckCircle, XCircle, UserPlus, FileEdit, CalendarClock } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, UserPlus, FileEdit, CalendarClock, RotateCcw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatPrice } from '@/lib/utils';
@@ -18,29 +18,40 @@ interface OrderHeaderProps {
   onReschedule?: () => void;
   onBack?: () => void;
   permissions: {
-      canConfirm: boolean;
-      canAssign: boolean;
-      canCancel: boolean;
-      canComplete?: boolean;
-      canReschedule?: boolean;
-      isAssigned: boolean;
+    canConfirm: boolean;
+    canAssign: boolean;
+    canCancel: boolean;
+    canComplete?: boolean;
+    canReschedule?: boolean;
+    canCreateRefund?: boolean;
+    isAssigned: boolean;
   };
 }
 
-export const OrderHeader = memo(function OrderHeader({ 
-  order, 
-  statusCfg, 
+export const OrderHeader = memo(function OrderHeader({
+  order,
+  statusCfg,
   onAssign,
   onReschedule,
   onBack,
-  permissions 
+  permissions
 }: OrderHeaderProps) {
   const [isCancelOpen, setIsCancelOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isCompleteOpen, setIsCompleteOpen] = useState(false);
-  
+  const [isRefundOpen, setIsRefundOpen] = useState(false);
+
   const StatusIcon = statusCfg?.icon;
-  const { confirmBooking, cancelBooking, completeBooking, isConfirming, isCancelling, isCompleting } = useServiceActions();
+  const { 
+    confirmBooking, 
+    cancelBooking, 
+    completeBooking, 
+    createRefund,
+    isConfirming, 
+    isCancelling, 
+    isCompleting,
+    isCreatingRefund
+  } = useServiceActions();
 
   const handleConfirmAction = () => {
     confirmBooking(order.soId || order.id || "", {
@@ -57,7 +68,7 @@ export const OrderHeader = memo(function OrderHeader({
   const handleConfirmComplete = () => {
     const taskId = order.serviceTask?.serviceTaskId || order.serviceTask?.taskId;
     const orderId = order.soId || order.id || "";
-    
+
     if (!taskId) {
       toast.error("No active task found to complete");
       return;
@@ -71,14 +82,26 @@ export const OrderHeader = memo(function OrderHeader({
   };
 
   const handleCancelConfirm = (reason: string, refundAmount?: number) => {
-    cancelBooking({ 
-      id: order.soId || order.id || "", 
+    cancelBooking({
+      id: order.soId || order.id || "",
       status: order.status || "",
       reason,
       refundAmount
     }, {
       onSuccess: () => {
         setIsCancelOpen(false);
+      }
+    });
+  };
+
+  const handleRefundConfirm = (reason: string, refundAmount?: number) => {
+    createRefund({
+      soId: order.soId || order.id || "",
+      reason,
+      amount: refundAmount || 0
+    }, {
+      onSuccess: () => {
+        setIsRefundOpen(false);
       }
     });
   };
@@ -131,6 +154,17 @@ export const OrderHeader = memo(function OrderHeader({
               </Button>
             )}
 
+            {permissions.canCreateRefund && (
+              <Button
+                size="sm"
+                onClick={() => setIsRefundOpen(true)}
+                disabled={isCreatingRefund}
+                className="bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] uppercase tracking-widest rounded-xl gap-2 shadow-xl shadow-blue-500/10 transition-all hover:scale-105 active:scale-95 h-12 px-6 border-0"
+              >
+                <RotateCcw className="h-4 w-4" /> {isCreatingRefund ? "Initializing..." : "Initialize Refund"}
+              </Button>
+            )}
+
             {permissions.canComplete && (
               <Button
                 size="sm"
@@ -172,7 +206,10 @@ export const OrderHeader = memo(function OrderHeader({
                 disabled={isCancelling}
                 className="text-rose-500 hover:bg-rose-50 hover:text-rose-600 font-black text-[10px] uppercase tracking-widest rounded-xl gap-2 h-12 px-6 transition-all border-0"
               >
-                <XCircle className="h-4 w-4" /> {isCancelling ? "Processing..." : (['pending', 'rescheduled'].includes(order.status?.toLowerCase() || '') ? 'Reject Order' : 'Abort Service')}
+                <XCircle className="h-4 w-4" />
+                {isCancelling ? "Processing..." :
+                  (order.status?.toLowerCase() === 'pending' || order.status?.toLowerCase() === 'rescheduled' ? 'Reject Order' :
+                    (order.serviceTask?.status?.toLowerCase() === 'forcedcancelled' ? 'Finalize Forced Cancel' : 'Abort Service'))}
               </Button>
             )}
 
@@ -215,6 +252,20 @@ export const OrderHeader = memo(function OrderHeader({
         paymentMethod={order.paymentMethod}
         paymentStatus={order.paymentStatus}
         totalPrice={order.totalPrice}
+        mergedOrderTaskStatus={order.serviceTask?.status}
+      />
+
+      <CancelBookingDialog
+        isOpen={isRefundOpen}
+        onClose={() => setIsRefundOpen(false)}
+        onConfirm={handleRefundConfirm}
+        isLoading={isCreatingRefund}
+        orderCode={order.orderCode || ''}
+        status={order.status || ''}
+        paymentMethod={order.paymentMethod}
+        paymentStatus={order.paymentStatus}
+        totalPrice={order.totalPrice}
+        isRefundOnly={true}
       />
 
       <CompleteServiceDialog

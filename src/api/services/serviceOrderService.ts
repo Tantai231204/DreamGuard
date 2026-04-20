@@ -5,6 +5,7 @@ import type {
   ServiceOrderResponse,
   ServiceDashboardResponse,
   RescheduleServiceOrderRequest,
+  ServiceEvidence,
 } from '../types/serviceOrder';
 
 function normalizeListPayload(payload: unknown): ServiceOrderListResponse {
@@ -78,8 +79,12 @@ const serviceOrderService = {
     return (res.data?.data ?? res.data) as ReOrderFailedServiceOrderResponse;
   },
 
-  cancelServiceOrder: async (serviceOrderId: string): Promise<void> => {
+  managerCancelServiceOrder: async (serviceOrderId: string): Promise<void> => {
     await apiClient.patch(`/ServiceOrders/${serviceOrderId}/manager-cancel`);
+  },
+
+  cancelServiceOrder: async (serviceOrderId: string): Promise<void> => {
+    await apiClient.patch(`/ServiceOrders/${serviceOrderId}/cancel`);
   },
 
   rejectServiceOrder: async (serviceOrderId: string): Promise<void> => {
@@ -95,15 +100,33 @@ const serviceOrderService = {
     await apiClient.post('/ServiceOrders/reschedule-service-order', data);
   },
 
-  searchServiceTasks: async (params: { 
-    soId?: string; 
-    sold?: string; 
-    staffId?: string; 
-    pageNumber?: number; 
-    pageSize?: number 
+  searchServiceTasks: async (params: {
+    soId?: string;
+    sold?: string;
+    staffId?: string;
+    pageNumber?: number;
+    pageSize?: number
   }): Promise<AdminSearchServiceTaskResponse> => {
     const res = await apiClient.get('/ServiceTasks/AdminSearchServiceTask', { params });
     return res.data?.data ?? res.data;
+  },
+
+  getEvidences: async (params: { serviceTaskId?: string; soId?: string; pageSize?: number }): Promise<ServiceEvidence[]> => {
+    const res = await apiClient.get('/ServiceEvidences/AdminSearchSe', { params });
+    const data = res.data?.data ?? res.data;
+    return data?.items || data || [];
+  },
+
+  confirmServiceOrder: async (id: string): Promise<void> => {
+    await apiClient.patch(`/ServiceOrders/${id}/confirm`);
+  },
+
+  updateTaskCompletedStatus: async (taskId: string): Promise<void> => {
+    await apiClient.patch(`/ServiceTasks/${taskId}/updateCompletedStatus`);
+  },
+
+  completeServiceOrder: async (orderId: string): Promise<void> => {
+    await apiClient.patch(`/ServiceOrders/${orderId}/completed`);
   },
 };
 

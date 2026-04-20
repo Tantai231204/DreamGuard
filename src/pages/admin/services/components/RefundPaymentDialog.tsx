@@ -10,8 +10,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, X, AlertCircle } from 'lucide-react';
+import { Upload, X, AlertCircle, Loader2 } from 'lucide-react';
 import { useServiceActions } from '../hooks/useServiceActions';
+import { uploadToCloudinary } from '@/lib/uploadCloudinary';
+import { Progress } from "@/components/ui/progress";
 interface RefundPaymentDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -28,11 +30,15 @@ export const RefundPaymentDialog = ({
   amount,
 }: RefundPaymentDialogProps) => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
   const { updatePaymentStatus, isUpdatingPaymentStatus } = useServiceActions();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setSelectedFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreviewUrl(reader.result as string);
@@ -43,22 +49,45 @@ export const RefundPaymentDialog = ({
 
   const clearFile = () => {
     setPreviewUrl(null);
+    setSelectedFile(null);
+    setUploadProgress(0);
+    setIsUploading(false);
   };
 
-  const handleConfirm = () => {
-    // If we had a direct URL for evidence, we'd pass it here.
-    // Since the new API expects evidenceUrl (string), and we have a File,
-    // we would ideally upload first. For now, we call status update.
-    
-    updatePaymentStatus({
-      id: paymentId,
-      status: 'Returned'
-    }, {
-      onSuccess: () => {
-        onClose();
-        clearFile();
-      }
-    });
+  const handleConfirm = async () => {
+    if (!selectedFile) {
+      updatePaymentStatus({
+        id: paymentId,
+        status: 'Refunded'
+      }, { onSuccess: () => { onClose(); clearFile(); } });
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      // 1. Optimize and Upload to Cloudinary
+      const cloudRes = await uploadToCloudinary(selectedFile, {
+        onProgress: (p) => setUploadProgress(p)
+      });
+
+      // 2. Finalize with backend using the validated status update API
+      updatePaymentStatus({
+        id: paymentId,
+        status: 'Refunded',
+        evidenceUrl: cloudRes.secure_url
+      }, {
+        onSuccess: () => {
+          onClose();
+          clearFile();
+        },
+        onError: () => {
+          setIsUploading(false);
+        }
+      });
+    } catch (error) {
+      console.error("Upload failed", error);
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -99,15 +128,33 @@ export const RefundPaymentDialog = ({
               <div className="relative rounded-xl overflow-hidden border border-slate-200 aspect-video group bg-slate-100">
                 <img src={previewUrl} alt="Preview" className="w-full h-full object-contain" />
                 <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={clearFile}
-                    className="font-bold text-[11px] h-9 px-4"
-                  >
-                    <X className="h-4 w-4 mr-2" /> Replace Proof
-                  </Button>
+                  {!isUploading && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={clearFile}
+                      className="font-bold text-[11px] h-9 px-4"
+                    >
+                      <X className="h-4 w-4 mr-2" /> Replace Proof
+                    </Button>
+                  )}
                 </div>
+                {isUploading && (
+                  <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex flex-col items-center justify-center p-4">
+                    <Loader2 className="h-8 w-8 text-emerald-500 animate-spin mb-2" />
+                    <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Optimizing & Uploading</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {isUploading && (
+              <div className="space-y-1.5 px-1">
+                <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-tight">
+                  <span className="text-slate-400">Cloudinary Sync</span>
+                  <span className="text-emerald-600">{uploadProgress}%</span>
+                </div>
+                <Progress value={uploadProgress} className="h-1 bg-slate-100 [&>div]:bg-emerald-500" />
               </div>
             )}
           </div>
@@ -130,10 +177,18 @@ export const RefundPaymentDialog = ({
           </Button>
           <Button
             onClick={handleConfirm}
-            disabled={isUpdatingPaymentStatus}
-            className="flex-1 h-10 font-bold text-xs bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 transition-all"
+            disabled={isUploading || isUpdatingPaymentStatus}
+            className="flex-1 h-10 font-bold text-xs bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 transition-all border-none relative overflow-hidden"
           >
-            {isUpdatingPaymentStatus ? "Processing..." : "Finish Refund"}
+            {isUploading ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="h-3 w-3 animate-spin" /> Uploading...
+              </span>
+            ) : isUpdatingPaymentStatus ? (
+              "Finishing..."
+            ) : (
+              "Finish Refund"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

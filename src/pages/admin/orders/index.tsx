@@ -9,8 +9,7 @@ import AdminPageHeader from '@/components/layout/AdminPageHeader';
 import { adminOrdersQueryOptions, adminTradeInOrdersQueryOptions, waitingTradeInOrdersQueryOptions } from '@/hooks/queries';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-import { ProductOrdersTab } from './components/ProductOrdersTab';
-import { TradeInOrdersTab } from './components/TradeInOrdersTab';
+import { ProductOrdersTab, TradeInOrdersTab } from './components';
 import {
   PRODUCT_ORDERS_DEFAULT_PAGE_SIZE,
   TRADE_IN_ORDERS_DEFAULT_PAGE_SIZE,

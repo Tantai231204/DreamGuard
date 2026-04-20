@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 
-import { tradeInOrderService } from "@/api/services";
+import { tradeInOrderService, paymentService } from "@/api/services";
 import type { TradeInOrderDetailResponse } from "@/api/types/tradeInOrder";
 import {
   tradeInOrderKeys,
@@ -201,6 +201,14 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
     currentSellerStaffId !== chatOwnerStaffId
   );
 
+  const hasRefundPayment = useMemo(() => {
+    return (order.payments || []).some(
+      (p) =>
+        (p.paymentType === "Refund" || p.paymentMethod === "Refund") &&
+        (p.status === "Refunding" || p.status === "Refunded" || p.status === "RefundAuthorized")
+    );
+  }, [order.payments]);
+
   const detailQueryKey = useMemo(
     () => tradeInOrderKeys.detail(order.tradeInOrderId),
     [order.tradeInOrderId],
@@ -240,15 +248,59 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
   const { mutate: confirmDeal, isPending: isConfirming } =
     useConfirmTradeInDeal(order.tradeInOrderId);
 
-  const { mutate: adminCancel, isPending: isCancelling } = useMutation({
-    mutationFn: (reason: string) =>
-      tradeInOrderService.adminCancel(order.tradeInOrderId, reason),
+  const { mutate: performAdminCancel, isPending: isCancelling } = useMutation({
+    mutationFn: async ({
+      reason,
+      refundAmount,
+      evidenceUrls
+    }: {
+      reason: string;
+      refundAmount?: number;
+      evidenceUrls?: string[]
+    }) => {
+      // 1. Order Termination (Administrative Override)
+      // Must complete before settlement to ensure status alignment if backend requires it
+      await tradeInOrderService.adminCancel(order.tradeInOrderId, reason);
+
+      // 2. Financial Settlement (Administrative Refund)
+      let refundId: string | undefined;
+      if (typeof refundAmount === 'number' && refundAmount > 0) {
+        const refundObj = await paymentService.createAdminRefund({
+          tradeInOrderId: order.tradeInOrderId,
+          amount: refundAmount,
+          reason: "Return",
+        });
+        refundId = refundObj?.id;
+      }
+
+      // 3. Post-Settlement: Attachment of Evidence (Audit Completion)
+      if (evidenceUrls && evidenceUrls.length > 0 && refundId) {
+        await paymentService.updateRefundStatus(refundId, "Refunding", undefined, evidenceUrls[0]);
+      }
+    },
     onSuccess: () => {
       setIsCancelDialogOpen(false);
       invalidateTradeInDetail();
-      toast.success("Cancelled.");
+      toast.success("Trade-in terminated. Audit logs and financial settlements updated.");
     },
+    onError: (error: Error) => {
+      toast.error(error.message || "Logistics termination failed. Please check connectivity.");
+    }
   });
+
+  const handleAdminCancel = useCallback(async (payload: {
+    reason: string;
+    refundAmount?: number;
+    evidenceUrls?: string[];
+    shouldCreateReturn?: boolean;
+    type: 'cancel' | 'refund';
+  }) => {
+    return performAdminCancel({
+      reason: payload.reason,
+      refundAmount: payload.refundAmount,
+      evidenceUrls: payload.evidenceUrls
+    });
+  }, [performAdminCancel]);
 
   // Removed transitionStatus to solve isTransitioning double declaration conflict
 
@@ -257,8 +309,8 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
       Math.max(
         0,
         (order.productVariant?.salePrice || 0) -
-          negotiatedPrice -
-          order.depositAmount,
+        negotiatedPrice -
+        order.depositAmount,
       ),
     [order.depositAmount, order.productVariant?.salePrice, negotiatedPrice],
   );
@@ -275,7 +327,7 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
   const isAdminOrManager = isAdmin || isManager;
   const canFinalizeTradeIn = isAdminOrManager && status === "DELIVERED";
   const canHandleUnhappyCase =
-    isAdminOrManager && isTradeInAdminCancelableStatus(status);
+    isAdminOrManager && (isTradeInAdminCancelableStatus(status) || isTradeInFinalStatus(status));
   const canProcessReturningUnhappy =
     isAdminOrManager && status === "RETURNING" && !!returningShippingTask?.shippingTaskId;
   const canAssignDeliveryTask =
@@ -461,6 +513,7 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
     handleCloseAssignDialog,
     handleCloseProcessReturnDialog,
     handleCloseProcessExchangeDialog,
-    adminCancel,
+    adminCancel: handleAdminCancel,
+    hasRefundPayment,
   };
 }

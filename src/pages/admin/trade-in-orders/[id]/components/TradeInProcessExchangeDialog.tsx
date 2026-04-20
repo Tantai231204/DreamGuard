@@ -31,8 +31,8 @@ import { useProcessExchangeTradeInShippingTask } from "@/hooks/queries/useShippi
 import { useStaffs } from "@/hooks/queries/useStaff";
 import { useVariant } from "@/hooks/queries/useVariant";
 import { usePermission } from "@/hooks/usePermission";
-import { getColorHex } from "@/utils/color-utils";
 import { uploadEvidenceItems } from "@/utils/evidenceUpload";
+import { TradeInAssetCard } from "./TradeInAssetCard";
 
 const MAX_EVIDENCE_FILES = 5;
 const MAX_EVIDENCE_FILE_SIZE_MB = 10;
@@ -60,6 +60,7 @@ interface TradeInProcessExchangeDialogProps {
   tradeInOrderId: string;
   taskId: string;
   defaultProductVariantId?: string;
+  productImageUrl?: string;
 }
 
 const getFileKey = (file: File) => `${file.name}-${file.size}-${file.lastModified}`;
@@ -94,6 +95,7 @@ export function TradeInProcessExchangeDialog({
   tradeInOrderId,
   taskId,
   defaultProductVariantId,
+  productImageUrl,
 }: TradeInProcessExchangeDialogProps) {
   const [exchangeNote, setExchangeNote] = useState("");
   const [selectedReason, setSelectedReason] = useState("");
@@ -417,45 +419,17 @@ export function TradeInProcessExchangeDialog({
           </div>
 
           <div className="space-y-2">
-            <Label className="text-[13px] font-semibold text-slate-700">Damaged Product Variant</Label>
-            <div
-              className={cn(
-                "rounded-xl px-3 py-2.5",
-                isDamagedOutcome
-                  ? "border border-rose-200 bg-rose-50/40"
-                  : "border border-slate-200 bg-slate-50/60",
-              )}
-            >
-              {!resolvedProductVariantId ? (
-                <p className="text-[12px] text-rose-600 mt-1">No linked target variant ID for this order.</p>
-              ) : isLoadingTargetVariant ? (
-                <p className="text-[12px] text-slate-500 mt-1">Loading variant info...</p>
-              ) : (
-                <div className="mt-1 flex min-w-0 flex-col leading-tight">
-                  <span className="truncate text-sm font-semibold text-slate-800">
-                    {targetVariant?.sku || "Trade-up variant"}
-                  </span>
-                  <span className="truncate text-[11px] text-slate-500 inline-flex items-center gap-1.5 mt-0.5">
-                    {targetVariant?.size ? `Size ${targetVariant.size}` : ""}
-                    {targetVariantColor && (
-                      <>
-                        <span className="text-slate-300">•</span>
-                        <span className="inline-flex items-center gap-1">
-                          <span
-                            className="w-2 h-2 rounded-full ring-1 ring-black/10"
-                            style={{ backgroundColor: getColorHex(targetVariantColor) }}
-                          />
-                          {targetVariantColor}
-                        </span>
-                      </>
-                    )}
-                  </span>
-                  <span className="truncate text-[10px] text-slate-400 font-mono mt-0.5">
-                    {resolvedProductVariantId}
-                  </span>
-                </div>
-              )}
-            </div>
+            <TradeInAssetCard
+              sku={targetVariant?.sku}
+              size={targetVariant?.size}
+              color={targetVariantColor}
+              imageUrl={(() => {
+                const attrs = (targetVariant?.attributes || {}) as Record<string, unknown>;
+                return productImageUrl || (attrs.imageUrls as string[])?.[0] || (attrs.imageUrl as string) || "/images/placeholder-product.svg";
+              })()}
+              isLoading={isLoadingTargetVariant}
+              isDamaged={isDamagedOutcome}
+            />
           </div>
 
           <div className="space-y-3">

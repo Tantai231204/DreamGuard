@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import api from '@/lib/api';
 import serviceOrderService from '@/api/services/serviceOrderService';
 import paymentService from '@/api/services/paymentService';
 import type { RescheduleServiceOrderRequest } from '@/api/types/serviceOrder';
@@ -10,9 +9,7 @@ export const useServiceActions = () => {
     const queryClient = useQueryClient();
 
     const confirmMutation = useMutation({
-        mutationFn: async (id: string) => {
-            await api.patch(`/ServiceOrders/${id}/confirm`);
-        },
+        mutationFn: (id: string) => serviceOrderService.confirmServiceOrder(id),
         onSuccess: (_, id) => {
             toast.success(`Confirmed booking ${id}`);
             queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
@@ -22,8 +19,8 @@ export const useServiceActions = () => {
     });
 
     const cancelMutation = useMutation({
-        mutationFn: async ({ id, status, reason, refundAmount }: { 
-            id: string; 
+        mutationFn: async ({ id, status, reason, refundAmount }: {
+            id: string;
             status: string;
             reason: string;
             refundAmount?: number;
@@ -31,19 +28,21 @@ export const useServiceActions = () => {
             const normalizedStatus = status.toLowerCase();
 
             // 1. Perform cancellation/rejection
-            if (normalizedStatus === 'pending' || normalizedStatus === 'waiting' || normalizedStatus === 'unconfirmed') {
-                await serviceOrderService.rejectServiceOrder(id);
-            } else {
+            // Branch strictly follows: Pending uses standard cancel to ensure refunding status.
+            // Statuses like Confirmed (with tasks) must use manager-cancel.
+            if (normalizedStatus === 'pending') {
                 await serviceOrderService.cancelServiceOrder(id);
+            } else {
+                await serviceOrderService.managerCancelServiceOrder(id);
             }
 
             // 2. Integrated Refund Initialization
             if (refundAmount && refundAmount > 0) {
-              await paymentService.createAdminRefund({
-                soId: id,
-                reason: reason || "Service Cancellation",
-                amount: refundAmount
-              });
+                await paymentService.createAdminRefund({
+                    soId: id,
+                    reason: reason || "Service Cancellation",
+                    amount: refundAmount
+                });
             }
         },
         onSuccess: (_, { id }) => {
@@ -51,12 +50,12 @@ export const useServiceActions = () => {
             queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
             queryClient.invalidateQueries({ queryKey: ['serviceOrder', 'detail', id] });
             queryClient.invalidateQueries({ queryKey: ['serviceTask', 'detail', id] });
-            queryClient.invalidateQueries({ queryKey: ['payments'] }); 
+            queryClient.invalidateQueries({ queryKey: ['payments'] });
         },
     });
 
     const createRefundMutation = useMutation({
-        mutationFn: (payload: { soId: string; reason: string; amount: number }) => 
+        mutationFn: (payload: { soId: string; reason: string; amount: number }) =>
             paymentService.createAdminRefund(payload),
         onSuccess: (_, { soId }) => {
             toast.success("Refund request created successfully");
@@ -66,12 +65,14 @@ export const useServiceActions = () => {
     });
 
     const updateRefundStatusMutation = useMutation({
-        mutationFn: ({ id, status, evidence }: { id: string; status: string; evidence?: File }) =>
-            paymentService.updateRefundStatus(id, status, evidence),
+        mutationFn: ({ id, status, evidence, evidenceUrl }: { id: string; status: string; evidence?: File, evidenceUrl?: string }) =>
+            paymentService.updateRefundStatus(id, status, evidence, evidenceUrl),
         onSuccess: () => {
             toast.success("Refund status updated successfully");
+            // Strategic Refetch Flow: Invalidate list and specific details
             queryClient.invalidateQueries({ queryKey: ['payments'] });
-            queryClient.invalidateQueries({ queryKey: ['serviceOrder'] }); // May affect order status if logic exists
+            queryClient.invalidateQueries({ queryKey: ['serviceOrder', 'detail'] });
+            queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
         }
     });
 
@@ -80,8 +81,10 @@ export const useServiceActions = () => {
             paymentService.updatePaymentStatus(id, status, evidenceUrl),
         onSuccess: () => {
             toast.success("Payment status updated successfully");
+            // Strategic Refetch Flow: Invalidate list and specific details
             queryClient.invalidateQueries({ queryKey: ['payments'] });
-            queryClient.invalidateQueries({ queryKey: ['serviceOrder'] });
+            queryClient.invalidateQueries({ queryKey: ['serviceOrder', 'detail'] });
+            queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
         }
     });
 
@@ -100,8 +103,8 @@ export const useServiceActions = () => {
 
     const completeMutation = useMutation({
         mutationFn: async ({ taskId, orderId }: { taskId: string; orderId: string }) => {
-            await api.patch(`/ServiceTasks/${taskId}/updateCompletedStatus`);
-            await api.patch(`/ServiceOrders/${orderId}/completed`);
+            await serviceOrderService.updateTaskCompletedStatus(taskId);
+            await serviceOrderService.completeServiceOrder(orderId);
         },
         onSuccess: (_, { orderId }) => {
             toast.success(`Service task and order completed successfully`);

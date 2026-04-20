@@ -7,6 +7,7 @@ import type {
   ServiceTask
 } from '../types';
 import type { AdminSearchServiceTaskItem } from '@/api/services/serviceOrderService';
+import type { ServiceOrderResponse } from '@/api/types/serviceOrder';
 
 /**
  * Senior-level Mapper for Service Orders
@@ -95,9 +96,19 @@ export const mapApiItemToServiceOrder = (item: AdminSearchOrderServiceItem): Ser
   };
 };
 
-export const mapApiDetailToOrder = (data: AdminSearchOrderServiceItem | { data: AdminSearchOrderServiceItem }): ServiceBooking => {
-  const item = 'data' in data ? data.data : data;
-  return mapApiItemToServiceOrder(item);
+export const mapApiDetailToOrder = (data: ServiceOrderResponse | AdminSearchOrderServiceItem | { data: ServiceOrderResponse | AdminSearchOrderServiceItem }): ServiceBooking => {
+  const item = (data && typeof data === 'object' && 'data' in data) ? data.data : data;
+  
+  // Bridge the gap between AdminSearchOrderServiceItem and ServiceOrderResponse
+  interface ItemWithIds { soId?: string; id?: string; [key: string]: unknown }
+  const itemWithIds = item as ItemWithIds;
+  
+  const normalizedItem = {
+    ...item,
+    soId: itemWithIds.soId || itemWithIds.id || '',
+  } as AdminSearchOrderServiceItem;
+
+  return mapApiItemToServiceOrder(normalizedItem);
 };
 
 /**

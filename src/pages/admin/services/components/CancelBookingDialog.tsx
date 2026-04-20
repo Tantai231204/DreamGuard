@@ -31,6 +31,8 @@ interface CancelBookingDialogProps {
   paymentMethod?: string;
   paymentStatus?: string;
   totalPrice?: number;
+  mergedOrderTaskStatus?: string;
+  isRefundOnly?: boolean;
 }
 
 const REASONS = [
@@ -40,6 +42,8 @@ const REASONS = [
   "Incorrect booking information",
   "Schedule conflict / Time unavailable",
   "Technician unassigned / Unavailable",
+  "Refund for customer-initiated cancellation",
+  "Return",
   "Other"
 ];
 
@@ -52,9 +56,11 @@ export function CancelBookingDialog({
   status,
   paymentMethod,
   paymentStatus,
-  totalPrice = 0
+  totalPrice = 0,
+  mergedOrderTaskStatus,
+  isRefundOnly
 }: CancelBookingDialogProps) {
-  const [selectedReason, setSelectedReason] = React.useState<string>("");
+  const [selectedReason, setSelectedReason] = React.useState<string>(isRefundOnly ? "Return" : "");
   const [otherReason, setOtherReason] = React.useState("");
   const [error, setError] = React.useState("");
   const [percentage, setPercentage] = React.useState<number>(100);
@@ -84,32 +90,37 @@ export function CancelBookingDialog({
   };
 
   const normalizedStatus = status.toLowerCase();
-  const isReject = normalizedStatus === 'pending' || normalizedStatus === 'rescheduled' || normalizedStatus === 'waiting' || normalizedStatus === 'unconfirmed';
+  const isForcedCancel = (mergedOrderTaskStatus || '').toLowerCase() === 'forcedcancelled';
+  const isReject = (normalizedStatus === 'pending' || normalizedStatus === 'rescheduled' || normalizedStatus === 'waiting' || normalizedStatus === 'unconfirmed') && !isForcedCancel;
 
-  const isVNPayPaid = paymentMethod?.toLowerCase() === 'vnpay' && 
-                      (paymentStatus?.toLowerCase() === 'paid' || paymentStatus?.toLowerCase() === 'codpaid');
-  const showRefundSection = isVNPayPaid && totalPrice > 0;
+  const isVNPayPaid = paymentMethod?.toLowerCase() === 'vnpay' &&
+    (paymentStatus?.toLowerCase() === 'paid' || paymentStatus?.toLowerCase() === 'codpaid');
+  const showRefundSection = isRefundOnly || (isVNPayPaid && totalPrice > 0);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-md p-0 overflow-hidden border border-slate-200 rounded-2xl shadow-xl">
         <div className="bg-white p-6 space-y-6">
           <DialogHeader className="text-left">
-            <DialogTitle className="text-lg font-bold text-slate-900 tracking-tight">
-              {isReject ? "Reject Service Order" : "Cancel Service Order"}
+            <DialogTitle className="text-lg font-bold text-slate-900 tracking-tight uppercase">
+              {isRefundOnly ? "Initialize Refund Settlement" : isForcedCancel ? "Finalize Forced Cancel" : isReject ? "Reject Service Order" : "Cancel Service Order"}
             </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
-              Reference: <span className="font-bold text-slate-900">{orderCode}</span>
+            <DialogDescription className="text-xs text-slate-500 font-medium">
+              Reference Identifier: <span className="font-bold text-slate-900">{orderCode}</span>
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-5">
-            <div className="bg-white border-l-4 border-rose-500 p-4 flex items-start gap-3 shadow-sm transition-colors hover:bg-rose-50/10">
-              <AlertTriangle className="h-4 w-4 text-rose-500 shrink-0 mt-0.5" />
-              <p className="text-xs text-rose-700 font-medium leading-relaxed">
-                {isReject
-                  ? "Rejecting this order will notify the customer and terminate the service process."
-                  : "Are you sure you want to cancel this service? This action cannot be undone."
+            <div className={`border-l-4 p-4 flex items-start gap-3 shadow-sm transition-colors ${isRefundOnly ? 'border-blue-500 bg-blue-50/20' : isForcedCancel ? 'border-amber-500 bg-amber-50/20' : 'border-rose-500 bg-white'}`}>
+              <AlertTriangle className={`h-4 w-4 shrink-0 mt-0.5 ${isRefundOnly ? 'text-blue-500' : isForcedCancel ? 'text-amber-500' : 'text-rose-500'}`} />
+              <p className={`text-xs font-medium leading-relaxed ${isRefundOnly ? 'text-blue-700' : isForcedCancel ? 'text-amber-700' : 'text-rose-700'}`}>
+                {isRefundOnly
+                  ? "This order was cancelled by the customer. Since it was prepaid via VNPay, you need to initialize a refund settlement for financial auditing."
+                  : isForcedCancel
+                    ? "A technician has force-cancelled this task. You are now finalizing the order termination. Refund logic will apply if applicable."
+                    : isReject
+                      ? "Rejecting this order will notify the customer and terminate the service process."
+                      : "Are you sure you want to cancel this service? This action cannot be undone."
                 }
               </p>
             </div>
@@ -117,7 +128,7 @@ export function CancelBookingDialog({
             <div className="space-y-4 pt-2">
               <div className="space-y-2">
                 <Label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider ml-1">
-                  Reason for cancellation <span className="text-rose-500">*</span>
+                  Reason for {isRefundOnly ? 'settlement' : 'cancellation'} <span className="text-rose-500">*</span>
                 </Label>
                 <Select onValueChange={setSelectedReason} value={selectedReason}>
                   <SelectTrigger className="w-full h-10 rounded-xl border-slate-200 bg-white text-sm focus:ring-0 focus:border-slate-400">
@@ -214,9 +225,9 @@ export function CancelBookingDialog({
           <Button
             onClick={handleConfirm}
             disabled={isLoading || !selectedReason}
-            className="flex-1 h-10 font-bold text-xs bg-rose-600 text-white hover:bg-rose-700 active:scale-95 transition-all shadow-none border-none outline-none"
+            className={`flex-1 h-10 font-bold text-xs text-white active:scale-95 transition-all shadow-none border-none outline-none ${isRefundOnly ? 'bg-blue-600 hover:bg-blue-700' : 'bg-rose-600 hover:bg-rose-700'}`}
           >
-            {isLoading ? "Processing..." : (isReject ? "Reject Order" : "Cancel Order")}
+            {isLoading ? "Processing..." : (isRefundOnly ? "Create Refund" : isReject ? "Reject Order" : "Cancel Order")}
           </Button>
         </DialogFooter>
       </DialogContent>
