@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { OrderItem } from '@/api/types/order';
@@ -81,6 +81,7 @@ function OrderItemRow({ item, index }: OrderItemRowProps) {
   const isCombo = !!item.comboId;
   const { data: variant } = useVariant(isCombo ? "" : (item.productVariantId || ""));
   const { data: comboDetail } = useComboDetail(item.comboId || "", isCombo);
+  const { data: parentCombo } = useComboDetail(comboDetail?.comboParentId || "", !!comboDetail?.comboParentId && isCombo);
 
   const attributes = (variant?.attributes || {}) as Record<string, unknown>;
   const { data: product } = useProductDetail(variant?.productId || "", !!variant?.productId);
@@ -97,11 +98,26 @@ function OrderItemRow({ item, index }: OrderItemRowProps) {
                        product?.imageUrls?.[0] || 
                        product?.assets?.[0]?.url;
 
-  const comboImage = comboDetail?.imageUrl;
+  const displayImage = useMemo(() => {
+    if (wrapDetail?.customizeContent && wrapDetail.customizeContent.includes('http')) {
+      return wrapDetail.customizeContent;
+    }
 
-  const displayImage = (wrapDetail?.customizeContent && wrapDetail.customizeContent.includes('http'))
-    ? wrapDetail.customizeContent
-    : (item.image || comboImage || variantImage || (isBespoke ? '/images/logo_no_name.svg' : '/images/placeholder-product.svg'));
+    if (isCombo) {
+      if (comboDetail?.imageUrl && comboDetail.imageUrl.length > 5) return comboDetail.imageUrl;
+      if (parentCombo?.imageUrl && parentCombo.imageUrl.length > 5) return parentCombo.imageUrl;
+      
+      if (item.image && item.image.length > 5 && !item.image.includes('placeholder')) return item.image;
+
+      const firstItemImg = comboDetail?.productItems?.[0]?.imageUrl || parentCombo?.productItems?.[0]?.imageUrl;
+      if (firstItemImg && firstItemImg.length > 5) return firstItemImg;
+    } else {
+      if (item.image && item.image.length > 5 && !item.image.includes('placeholder')) return item.image;
+      if (variantImage) return variantImage;
+    }
+
+    return isBespoke ? '/images/logo_no_name.svg' : '/images/placeholder-product.svg';
+  }, [isCombo, comboDetail, parentCombo, item.image, variantImage, wrapDetail, isBespoke]);
 
   return (
     <motion.div

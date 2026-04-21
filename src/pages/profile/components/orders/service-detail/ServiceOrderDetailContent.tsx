@@ -84,12 +84,12 @@ export function ServiceOrderDetailContent({
                     <AccessRestrictedView />
                 ) : (
                     <div className="space-y-3">
-                        <ServiceSummarySection 
-                            createdAt={data?.createdAt} 
-                            totalPrice={data?.totalPrice} 
+                        <ServiceSummarySection
+                            createdAt={data?.createdAt}
+                            totalPrice={data?.totalPrice}
                         />
-                        
-                        <AppointmentSection 
+
+                        <AppointmentSection
                             appointmentDate={data?.appointmentDate}
                             receiverName={data?.receiverName}
                             address={data?.address}
@@ -97,7 +97,7 @@ export function ServiceOrderDetailContent({
 
                         <ConsolidatedManifest items={detailItems} />
 
-                        <ExecutionStaffSection 
+                        <ExecutionStaffSection
                             hasAssignedStaff={hasAssignedStaff}
                             taskStatus={taskStatus}
                             ratedStaffName={ratedStaffName}
@@ -107,12 +107,13 @@ export function ServiceOrderDetailContent({
                         />
 
                         <PaymentDetailsCard
-                            orderCode={orderCode}
+                            orderCode={orderCode || data?.orderCode}
+                            payments={data?.payments}
                             fallbackPayment={{
-                                id: orderCode,
-                                orderCode: orderCode,
+                                id: orderCode || data?.orderCode,
+                                orderCode: orderCode || data?.orderCode,
                                 paymentMethod: data?.paymentMethod || 'COD',
-                                paymentType: "Service",
+                                paymentType: data?.paymentType || "Purchase",
                                 status: data?.paymentStatus || 'Pending',
                                 amount: data?.totalPrice || 0,
                                 description: data?.paymentDescription,
@@ -123,7 +124,7 @@ export function ServiceOrderDetailContent({
                         />
 
                         {isCompletedOrder && (
-                            <InteractionModule 
+                            <InteractionModule
                                 score={score}
                                 comment={comment}
                                 isSubmitting={isSubmitting}
@@ -179,7 +180,7 @@ export function ServiceOrderDetailContent({
                     </Button>
                 </div>
             </div>
-            
+
             <ConfirmDialog
                 open={confirmOpen}
                 onOpenChange={setConfirmOpen}

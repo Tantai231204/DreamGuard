@@ -1,3 +1,4 @@
+import { useMemo } from "react"
 import { useVariant } from "@/hooks/queries/useVariant"
 import { useComboDetail } from "@/hooks/queries/useCombo"
 import { Package } from "lucide-react"
@@ -20,9 +21,10 @@ export function OrderItemRow({ item, orderStatus }: OrderItemRowProps) {
     const isCombo = !!item.comboId;
     const { data: variant, isLoading: isVariantLoading } = useVariant(isCombo ? "" : (item.productVariantId || ""));
     const { data: comboDetail, isLoading: isComboLoading } = useComboDetail(item.comboId || "", isCombo);
+    const { data: parentCombo } = useComboDetail(comboDetail?.comboParentId || "", !!comboDetail?.comboParentId && isCombo);
     const { data: product } = useProductDetail(variant?.productId || "", !!variant?.productId);
 
-    const isLoading = isCombo ? isComboLoading : isVariantLoading;
+    const isLoading = isCombo ? (isComboLoading) : isVariantLoading;
     const attributes = (variant?.attributes || {}) as Record<string, unknown>;
 
     const wrapDetail = item.productCustomizeDetails?.find(d =>
@@ -37,9 +39,34 @@ export function OrderItemRow({ item, orderStatus }: OrderItemRowProps) {
         product?.imageUrls?.[0] ||
         product?.assets?.[0]?.url;
 
-    const displayImage = (wrapDetail?.customizeContent && wrapDetail.customizeContent.includes('http'))
-        ? wrapDetail.customizeContent
-        : (item.image || comboDetail?.imageUrl || variantImage || (isBespoke ? '/images/logo_no_name.svg' : '/images/placeholder-product.svg'));
+    const displayImage = useMemo(() => {
+        // 1. Bespoke/Customization image always takes precedence
+        if (wrapDetail?.customizeContent && wrapDetail.customizeContent.includes('http')) {
+            return wrapDetail.customizeContent;
+        }
+
+        if (isCombo) {
+            // 2. Combo-specific primary image (Child level)
+            if (comboDetail?.imageUrl && comboDetail.imageUrl.length > 5) return comboDetail.imageUrl;
+            
+            // 2.1 Parent Combo Fallback (Explicitly requested by user)
+            if (parentCombo?.imageUrl && parentCombo.imageUrl.length > 5) return parentCombo.imageUrl;
+
+            // 3. Fallback to order item's image if provided by backend
+            if (item.image && item.image.length > 5 && !item.image.includes('placeholder')) return item.image;
+
+            // 4. Fallback to first item's image in the bundle
+            const firstItemImg = comboDetail?.productItems?.[0]?.imageUrl || parentCombo?.productItems?.[0]?.imageUrl;
+            if (firstItemImg && firstItemImg.length > 5) return firstItemImg;
+        } else {
+            // 5. Standard variant/product logic
+            if (item.image && item.image.length > 5 && !item.image.includes('placeholder')) return item.image;
+            if (variantImage) return variantImage;
+        }
+
+        // 6. Absolute fallbacks
+        return isBespoke ? '/images/logo_no_name.svg' : '/images/placeholder-product.svg';
+    }, [isCombo, comboDetail, parentCombo, item.image, variantImage, wrapDetail, isBespoke]);
 
     return (
         <div className="p-6 flex flex-col bg-white border-b border-gray-100 last:border-0 hover:bg-gray-50/20 transition-all">

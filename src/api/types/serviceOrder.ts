@@ -1,3 +1,5 @@
+import type { PaymentResponse } from './payment';
+
 export interface ServiceOrderItem {
   id?: string;
   servicePackageMappingId?: string;
@@ -56,6 +58,8 @@ export interface ServiceOrderResponse {
   serviceOrderItems?: ServiceOrderItem[];
   paymentDescription?: string;
   paymentEvidenceUrl?: string;
+  paymentType?: string;
+  payments?: PaymentResponse[];
 }
 
 export interface ServiceEvidence {
