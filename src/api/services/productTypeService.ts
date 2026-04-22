@@ -46,25 +46,11 @@ const productTypeService = {
         apiClient.get(`/ProductTypes/${id}`).then(res => res.data?.data ?? res.data),
 
     create: (data: CreateProductTypeRequest): Promise<ProductType> => {
-        const formData = new FormData();
-        formData.append('ProductTypeName', data.ProductTypeName);
-        formData.append('IsActive', data.IsActive.toString());
-
-        return apiClient.post('/ProductTypes', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        }).then(res => res.data?.data ?? res.data);
+        return apiClient.post('/ProductTypes', data).then(res => res.data?.data ?? res.data);
     },
 
     update: (id: string, data: UpdateProductTypeRequest): Promise<ProductType> => {
-        const formData = new FormData();
-        formData.append('ProductTypeName', data.ProductTypeName);
-        if (data.IsActive !== undefined) {
-            formData.append('IsActive', data.IsActive.toString());
-        }
-
-        return apiClient.put(`/ProductTypes/${id}`, formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
-        }).then(res => res.data?.data ?? res.data);
+        return apiClient.put(`/ProductTypes/${id}`, data).then(res => res.data?.data ?? res.data);
     },
 
     // Using DELETE method for Deactivation as per user confirmation

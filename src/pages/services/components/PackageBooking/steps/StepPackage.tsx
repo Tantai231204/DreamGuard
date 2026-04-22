@@ -1,4 +1,4 @@
-import { memo, useState, useMemo, useCallback } from "react";
+import { memo, useState, useMemo, useCallback, useEffect } from "react";
 import {
   Check, Minus, Plus, ChevronLeft, ChevronRight, AlertTriangle
 } from "lucide-react";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { formatPrice, cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogTrigger, DialogTitle, DialogDescription, DialogHeader } from "@/components/ui/dialog";
 import { ProductAssetIcons, type ProductAssetIconKey } from "@/components/common/icons";
+import { toast } from "sonner";
 
 /* ===================================================================
    CONSTANTS & STYLES
@@ -119,7 +120,7 @@ const TierCard = memo(({
   }, [tier.name]);
 
   const normalizedFeatures = useMemo(() => {
-    return tier.features.flatMap(f => 
+    return tier.features.flatMap(f =>
       f.split(',').map(s => s.trim().replace(/^"|"$/g, '')).filter(Boolean)
     );
   }, [tier.features]);
@@ -130,8 +131,8 @@ const TierCard = memo(({
       onClick={() => onSelect(tier.tierId)}
       className={cn(
         "group relative flex flex-col md:flex-row items-stretch p-0 rounded-[24px] border-2 transition-all duration-500 text-left w-full outline-none overflow-hidden bg-white mb-4 shadow-sm",
-        isSelected 
-          ? `${style.selectedBorder} shadow-[0_20px_40px_-15px_rgba(0,0,0,0.08)] ${style.glow} scale-[1.01] z-20` 
+        isSelected
+          ? `${style.selectedBorder} shadow-[0_20px_40px_-15px_rgba(0,0,0,0.08)] ${style.glow} scale-[1.01] z-20`
           : `border-slate-100 hover:border-slate-200 z-10 hover:-translate-y-0.5`
       )}
     >
@@ -140,50 +141,50 @@ const TierCard = memo(({
         "w-full md:w-[220px] p-6 flex flex-col justify-between shrink-0 relative overflow-hidden",
         isSelected ? "bg-slate-50/40" : "bg-white"
       )}>
-         <div className="relative z-10">
-            {style.badge && (
-               <span className={cn(
-                 "inline-flex items-center px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest mb-2",
-                 isSelected ? `${style.accent} text-white` : "bg-slate-100 text-slate-500 shadow-sm"
-               )}>
-                 {style.badge}
-               </span>
-            )}
-            <h4 className={cn(
-              "text-[10px] font-black uppercase tracking-[0.15em] mb-1.5",
-              isSelected ? style.text : "text-slate-400"
+        <div className="relative z-10">
+          {style.badge && (
+            <span className={cn(
+              "inline-flex items-center px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-widest mb-2",
+              isSelected ? `${style.accent} text-white` : "bg-slate-100 text-slate-500 shadow-sm"
             )}>
-              {tier.name}
-            </h4>
-            <div className="flex items-baseline gap-1">
-              <span className={cn("text-2xl font-black tracking-tighter leading-none", isSelected ? "text-slate-900" : "text-slate-800")}>
-                {formatPrice(tier.price).replace(' ₫', '')}
-              </span>
-              <span className={cn("text-[11px] font-black uppercase", isSelected ? style.text : "text-slate-400")}>₫</span>
-            </div>
-         </div>
-         <div className="mt-4 md:mt-2 relative z-10">
-            <p className={cn("text-[9px] font-black uppercase tracking-widest", isSelected ? "text-slate-500" : "text-slate-300")}>{style.label}</p>
-         </div>
-         <div className={cn("absolute -bottom-6 -left-6 w-24 h-24 rounded-full opacity-[0.03] transition-transform duration-700", style.accent, isSelected ? "scale-150 rotate-12" : "scale-100")} />
+              {style.badge}
+            </span>
+          )}
+          <h4 className={cn(
+            "text-[10px] font-black uppercase tracking-[0.15em] mb-1.5",
+            isSelected ? style.text : "text-slate-400"
+          )}>
+            {tier.name}
+          </h4>
+          <div className="flex items-baseline gap-1">
+            <span className={cn("text-2xl font-black tracking-tighter leading-none", isSelected ? "text-slate-900" : "text-slate-800")}>
+              {formatPrice(tier.price).replace(' ₫', '')}
+            </span>
+            <span className={cn("text-[11px] font-black uppercase", isSelected ? style.text : "text-slate-400")}>₫</span>
+          </div>
+        </div>
+        <div className="mt-4 md:mt-2 relative z-10">
+          <p className={cn("text-[9px] font-black uppercase tracking-widest", isSelected ? "text-slate-500" : "text-slate-300")}>{style.label}</p>
+        </div>
+        <div className={cn("absolute -bottom-6 -left-6 w-24 h-24 rounded-full opacity-[0.03] transition-transform duration-700", style.accent, isSelected ? "scale-150 rotate-12" : "scale-100")} />
       </div>
 
       {/* Center: Details & Features */}
       <div className="flex-1 p-6 flex flex-col justify-center border-y md:border-y-0 md:border-x border-slate-50/60">
-         <p className="text-[11px] font-semibold text-slate-500 mb-5 leading-relaxed">{tier.description}</p>
-         <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
-            {normalizedFeatures.map((f, idx) => (
-              <li key={idx} className={cn(
-                "flex items-start gap-3 text-[10px] font-bold leading-tight transition-all duration-300",
-                isSelected ? "text-slate-800" : "text-slate-600"
-              )}>
-                <div className={cn("p-0.5 rounded-full mt-0.5", isSelected ? `${style.accent}/10 ${style.icon}` : "text-slate-200")}>
-                   <Check className="h-2.5 w-2.5" strokeWidth={5} />
-                </div>
-                <span>{f}</span>
-              </li>
-            ))}
-         </ul>
+        <p className="text-[11px] font-semibold text-slate-500 mb-5 leading-relaxed">{tier.description}</p>
+        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
+          {normalizedFeatures.map((f, idx) => (
+            <li key={idx} className={cn(
+              "flex items-start gap-3 text-[10px] font-bold leading-tight transition-all duration-300",
+              isSelected ? "text-slate-800" : "text-slate-600"
+            )}>
+              <div className={cn("p-0.5 rounded-full mt-0.5", isSelected ? `${style.accent}/10 ${style.icon}` : "text-slate-200")}>
+                <Check className="h-2.5 w-2.5" strokeWidth={5} />
+              </div>
+              <span>{f}</span>
+            </li>
+          ))}
+        </ul>
       </div>
 
       {/* Right: Interaction Area */}
@@ -191,12 +192,12 @@ const TierCard = memo(({
         "w-full md:w-[100px] flex items-center justify-center p-6 transition-colors duration-500",
         isSelected ? "bg-slate-50/30" : "bg-transparent group-hover:bg-slate-50/40"
       )}>
-          <div className={cn(
-            "h-12 w-12 rounded-2xl flex items-center justify-center transition-all duration-500",
-            isSelected ? `${style.accent} text-white shadow-xl shadow-current/20 scale-110` : "bg-white border-2 border-slate-100 text-slate-200 group-hover:scale-105"
-          )}>
-            <Check className="h-6 w-6" strokeWidth={3.5} />
-          </div>
+        <div className={cn(
+          "h-12 w-12 rounded-2xl flex items-center justify-center transition-all duration-500",
+          isSelected ? `${style.accent} text-white shadow-xl shadow-current/20 scale-110` : "bg-white border-2 border-slate-100 text-slate-200 group-hover:scale-105"
+        )}>
+          <Check className="h-6 w-6" strokeWidth={3.5} />
+        </div>
       </div>
     </button>
   );
@@ -204,17 +205,53 @@ const TierCard = memo(({
 
 const QuantitySelector = memo(({
   quantity,
-  onChange
+  onChange,
+  onDirectChange
 }: {
   quantity: number,
-  onChange: (d: number) => void
-}) => (
-  <div className="flex items-center border border-slate-200 rounded-lg bg-white overflow-hidden h-10 shadow-sm shadow-slate-200/50">
-    <button type="button" onClick={() => onChange(-1)} className="px-4 hover:bg-slate-50 text-slate-600 h-full border-r border-slate-200 transition-colors"><Minus className="h-3.5 w-3.5" /></button>
-    <span className="px-6 text-sm font-black text-slate-900">{quantity}</span>
-    <button type="button" onClick={() => onChange(1)} className="px-4 hover:bg-slate-50 text-slate-600 h-full border-l border-slate-200 transition-colors"><Plus className="h-3.5 w-3.5" /></button>
-  </div>
-));
+  onChange: (d: number) => void,
+  onDirectChange: (val: number) => void
+}) => {
+  const [localVal, setLocalVal] = useState(quantity.toString());
+
+  useEffect(() => {
+    setLocalVal(quantity.toString());
+  }, [quantity]);
+
+  const handleBlur = () => {
+    let val = parseInt(localVal);
+    if (isNaN(val) || val < 1) {
+      setLocalVal(quantity.toString());
+    } else {
+      if (val > 5) val = 5;
+      onDirectChange(val);
+    }
+  };
+
+  return (
+    <div className="flex items-center border border-slate-200 rounded-lg bg-white overflow-hidden h-10 shadow-sm shadow-slate-200/50">
+      <button type="button" onClick={() => onChange(-1)} className="px-4 hover:bg-slate-50 text-slate-600 h-full border-r border-slate-200 transition-colors"><Minus className="h-3.5 w-3.5" /></button>
+      <input
+        type="text"
+        className="w-12 text-center text-sm font-black text-slate-900 border-none focus:ring-0 bg-transparent selection:bg-[#4988c4]/20"
+        value={localVal}
+        onChange={(e) => {
+          const v = e.target.value;
+          if (v === "" || /^\d+$/.test(v)) {
+            setLocalVal(v);
+          }
+        }}
+        onBlur={handleBlur}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.currentTarget.blur();
+          }
+        }}
+      />
+      <button type="button" onClick={() => onChange(1)} className="px-4 hover:bg-slate-50 text-slate-600 h-full border-l border-slate-200 transition-colors"><Plus className="h-3.5 w-3.5" /></button>
+    </div>
+  );
+});
 
 /* ===================================================================
    MAIN COMPONENT
@@ -255,10 +292,17 @@ const StepPackage = memo(({ form }: StepPackageProps) => {
   const selectTier = useCallback((tierId: string) => {
     if (!currentProduct) return;
     const idx = fields.findIndex((f) => f.itemType === currentProduct.id);
+
     if (idx >= 0) {
       if (fields[idx].packageId === tierId) return;
       update(idx, { ...fields[idx], packageId: tierId });
     } else {
+      // Check total order limit (max 5)
+      const currentTotal = fields.reduce((sum, f) => sum + f.quantity, 0);
+      if (currentTotal + 1 > 5) {
+        toast.error("Total order quantity cannot exceed 5 items.");
+        return;
+      }
       append({ itemType: currentProduct.id, packageId: tierId, quantity: 1 });
     }
 
@@ -273,7 +317,36 @@ const StepPackage = memo(({ form }: StepPackageProps) => {
     if (!currentProduct) return;
     const idx = fields.findIndex((f: BookingFormValues['items'][number]) => f.itemType === currentProduct.id);
     if (idx < 0) return;
-    update(idx, { ...fields[idx], quantity: Math.max(1, fields[idx].quantity + delta) });
+
+    const currentTotal = fields.reduce((sum, f) => sum + f.quantity, 0);
+    const nextQty = fields[idx].quantity + delta;
+
+    if (delta > 0 && currentTotal + delta > 5) {
+      toast.error("Total order quantity cannot exceed 5 items.");
+      return;
+    }
+
+    update(idx, { ...fields[idx], quantity: Math.max(1, nextQty) });
+  }, [currentProduct, fields, update]);
+
+  const handleDirectQtyChange = useCallback((val: number) => {
+    if (!currentProduct) return;
+    const idx = fields.findIndex((f: BookingFormValues['items'][number]) => f.itemType === currentProduct.id);
+    if (idx < 0) return;
+
+    const currentQty = fields[idx].quantity;
+    const currentTotal = fields.reduce((sum, f) => sum + f.quantity, 0);
+    const diff = val - currentQty;
+
+    if (diff > 0 && currentTotal + diff > 5) {
+      toast.error("Total order quantity cannot exceed 5 items.");
+      // Set to max possible
+      const maxPossible = currentQty + (5 - currentTotal);
+      update(idx, { ...fields[idx], quantity: Math.max(1, maxPossible) });
+      return;
+    }
+
+    update(idx, { ...fields[idx], quantity: Math.max(1, val) });
   }, [currentProduct, fields, update]);
 
   const subtotal = useMemo(() =>
@@ -340,11 +413,11 @@ const StepPackage = memo(({ form }: StepPackageProps) => {
           <div className="flex items-center gap-5 p-5 rounded-[22px] border border-white bg-white/40 backdrop-blur-sm shadow-[0_8px_32px_rgba(0,0,0,0.04)] relative overflow-hidden group">
             {/* Subtle mesh background effect */}
             <div className="absolute -top-12 -right-12 w-24 h-24 bg-[#4988c4]/5 rounded-full blur-3xl group-hover:bg-[#4988c4]/10 transition-all duration-700" />
-            
+
             <div className="h-16 w-16 rounded-[18px] bg-gradient-to-br from-white to-slate-50 flex items-center justify-center border border-slate-100 shadow-sm relative z-10">
               <img src={iconSrc} alt="" className="h-9 w-9 object-contain scale-110 drop-shadow-sm transition-transform duration-500 group-hover:scale-125" />
             </div>
-            
+
             <div className="flex-1 min-w-0 relative z-10">
               <h4 className="text-sm font-black text-slate-900 tracking-tight flex items-center gap-2">
                 {currentProduct.label}
@@ -353,14 +426,14 @@ const StepPackage = memo(({ form }: StepPackageProps) => {
               </h4>
               <p className="text-[11px] text-slate-500 font-semibold leading-relaxed line-clamp-1">{currentProduct.description}</p>
             </div>
-            
+
             <div className="flex flex-col items-end gap-1 relative z-10 shrink-0">
-               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Progress</span>
-               <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-900/[0.03] border border-slate-900/5 rounded-full shadow-inner">
-                  <span className="text-[11px] font-black text-slate-900">{safeIdx + 1}</span>
-                  <span className="text-[9px] font-black text-slate-300">/</span>
-                  <span className="text-[11px] font-black text-slate-400">{products.length}</span>
-               </div>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Progress</span>
+              <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-900/[0.03] border border-slate-900/5 rounded-full shadow-inner">
+                <span className="text-[11px] font-black text-slate-900">{safeIdx + 1}</span>
+                <span className="text-[9px] font-black text-slate-300">/</span>
+                <span className="text-[11px] font-black text-slate-400">{products.length}</span>
+              </div>
             </div>
           </div>
 
@@ -407,7 +480,7 @@ const StepPackage = memo(({ form }: StepPackageProps) => {
             <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between p-4 rounded-2xl border-2 border-[#4988c4]/15 bg-[#4988c4]/[0.03]">
               <div className="flex items-center gap-4">
                 <span className="text-[11px] font-black uppercase text-slate-500">Qty</span>
-                <QuantitySelector quantity={cartItem.quantity} onChange={handleQtyChange} />
+                <QuantitySelector quantity={cartItem.quantity} onChange={handleQtyChange} onDirectChange={handleDirectQtyChange} />
               </div>
               <div className="text-right">
                 <p className="text-xl font-black text-[#4988c4] tracking-tight">{formatPrice(getProductTierPrice(currentProduct.id, cartItem.packageId) * cartItem.quantity)}</p>

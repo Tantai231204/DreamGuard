@@ -17,9 +17,9 @@ export const bookingSchema = z.object({
     .max(80, "Name is too long"),
   customerPhone: z
     .string()
-    .min(8, "Phone number must be at least 8 digits")
-    .max(20, "Phone number is too long")
-    .regex(/^[0-9+\s()-]+$/, "Invalid phone number format"),
+    .min(10, "Phone number must be at least 10 digits")
+    .max(11, "Phone number is too long")
+    .regex(/^(0|84)(3|5|7|8|9|2)([0-9]{8,9})$/, "Invalid phone number format (e.g. 0912345678)"),
   customerEmail: z
     .string()
     .email("Invalid email address")
