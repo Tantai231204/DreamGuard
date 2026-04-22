@@ -30,6 +30,7 @@ import productService from '@/api/services/productService';
 import variantService from '@/api/services/variantService';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import type {
   FullyCustomizedProductResponse as TemplateResponse,
   CreateFullyCustomizedProductRequest as CreateTemplateRequest,
@@ -39,6 +40,7 @@ import type {
 export default function TemplateManagement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateResponse | null>(null);
+  const [deleteTemplateId, setDeleteTemplateId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data: templates = [], isLoading } = useQuery({
@@ -344,11 +346,7 @@ export default function TemplateManagement() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => {
-                              if (window.confirm('Are you sure you want to delete this template? This cannot be undone.')) {
-                                deleteMutation.mutate(template.id);
-                              }
-                            }}
+                            onClick={() => setDeleteTemplateId(template.id)}
                             className="h-9 w-9 rounded-xl text-gray-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-100 transition-all"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -380,6 +378,23 @@ export default function TemplateManagement() {
           }
         }}
         isSubmitting={createMutation.isPending || updateMutation.isPending}
+      />
+
+      <ConfirmDialog
+        open={!!deleteTemplateId}
+        onOpenChange={(open) => !open && setDeleteTemplateId(null)}
+        title="Delete Product Template?"
+        description="Are you sure you want to permanently remove this template? All associated 3D configurations for customers will be lost. This action is irreversible."
+        onConfirm={() => {
+          if (deleteTemplateId) {
+            deleteMutation.mutate(deleteTemplateId, {
+              onSuccess: () => setDeleteTemplateId(null)
+            });
+          }
+        }}
+        confirmText="Confirm Deletion"
+        variant="danger"
+        isLoading={deleteMutation.isPending}
       />
     </div>
   );

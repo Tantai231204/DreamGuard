@@ -31,6 +31,7 @@ import type {
 } from "@/api";
 import { useAuthStore } from "@/store/authStore";
 import { isAdminOrManager } from "@/lib/role";
+import type { ProductStatus } from "@/pages/admin/products/types";
 
 // ========================
 // Query Keys
@@ -56,15 +57,44 @@ export const variantKeys = {
 // Queries
 // ========================
 
-/** Fetch admin paginated products list */
 export const useAdminProducts = (params: AdminProductParams = {}) => {
   const role = useAuthStore((s) => s.role);
 
   return useQuery({
     queryKey: productKeys.admin(params),
-    queryFn: () => productService.getAllAdmin(params),
+    queryFn: async () => {
+      const response = await productService.getAllAdmin(params);
+      if (!response.items || response.items.length === 0) return response;
+
+      // 🔥 Senior Optimization: Fetch full details for each product in the current page 
+      // in parallel to retrieve missing images/assets that the admin list API lacks.
+      const enrichedItems = await Promise.all(
+        response.items.map(async (item) => {
+          try {
+            // Fetch by ID is usually faster than Slug for primary lookups
+            const fullDetail = await productService.getById(item.id);
+            return {
+              ...item,
+              ...fullDetail,
+              // Prioritize detail images over list data (which might be empty)
+              imageUrls: fullDetail.imageUrls || item.imageUrls,
+              assets: fullDetail.assets || item.assets,
+            };
+          } catch (err) {
+            console.warn(`[useAdminProducts] Failed to enrich item ${item.id}:`, err);
+            return item;
+          }
+        })
+      );
+
+      return {
+        ...response,
+        items: enrichedItems,
+      };
+    },
     placeholderData: keepPreviousData,
     enabled: isAdminOrManager(role),
+    staleTime: 2 * 60 * 1000, // 2 min stale time to avoid excessive detail fetching
   });
 };
 
@@ -115,6 +145,74 @@ export const useFullyCustomizedProducts = () => {
   return useQuery({
     queryKey: productKeys.fullyCustomized(),
     queryFn: () => productService.getAllFullyCustomize(),
+  });
+};
+
+/** 
+ * Complex Hook: Fetch product templates by:
+ * 1. GET /product/fully-customized
+ * 2. GET /product/{id} for each
+ * 3. GET /product/admin/variants/{id} for each
+ * Then map them to a unified Product type for the admin table.
+ */
+export const useAdminProductTemplates = () => {
+  const role = useAuthStore((s) => s.role);
+
+  return useQuery({
+    queryKey: ["products", "admin", "templates"],
+    queryFn: async () => {
+      // 1. Get base customized products
+      const bases = await productService.getAllFullyCustomize();
+      if (!bases || bases.length === 0) return [];
+
+      // 2. Fetch full details and variants for each in parallel
+      const fullProducts = await Promise.all(
+        bases.map(async (base) => {
+          try {
+            const [detail, variantData] = await Promise.all([
+              productService.getById(base.id),
+              variantService.getAdminByProductId(base.id)
+            ]);
+
+            // Flatten variants from colorGroups for the Product object
+            const flattenedVariants = variantData.colorGroups.flatMap(group =>
+              group.variants.map(v => ({
+                ...v,
+                isNew: v.isNew ?? false,
+                isCustomizable: v.isCustomizable ?? v.is_customizable ?? false,
+                productId: base.id,
+                status: v.status as ProductStatus,
+              }))
+            );
+
+            // Map to the Product type expected by the UI
+            return {
+              ...detail,
+              fullyCustomizedProductType: base.fullyCustomizedProductType || detail.fullyCustomizedProductType,
+              variants: flattenedVariants,
+              variantCount: flattenedVariants.length,
+            } as ProductResponse;
+          } catch (err) {
+            console.error(`Failed to fetch details for template ${base.id}:`, err);
+            return {
+              ...base,
+              description: base.description || '',
+              material: base.material || '',
+              status: base.status || 'Draft',
+              createdAt: base.createdAt || new Date().toISOString(),
+              averageRating: base.averageRating || 0,
+              cateId: null,
+              variants: [],
+              variantCount: 0
+            } as unknown as ProductResponse;
+          }
+        })
+      );
+
+      return fullProducts;
+    },
+    enabled: isAdminOrManager(role),
+    staleTime: 5 * 60 * 1000,
   });
 };
 
@@ -644,7 +742,7 @@ function flattenAdminVariants(
       // 🔥 Senior Update: Allow adding variants even if they are Draft or OOS. 
       // The publishing guard in useComboForm.ts will prevent the combo itself from being published 
       // if its constituents are not ready. This allows pre-building combos!
-      
+
       // 🔥 Senior Filtering: Exclude variants with missing/null attributes
       const hasValidColor = group.color && group.color !== 'Unknown';
       const hasValidSize = v.dimensions && v.dimensions !== 'N/A';

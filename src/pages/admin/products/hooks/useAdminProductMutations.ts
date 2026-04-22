@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import variantService from "@/api/services/variantService";
 import { useToast } from "@/hooks/useToast";
@@ -430,6 +430,7 @@ export function useAdminProductMutations({ state }: MutationProps) {
               ageGroup: data.ageGroup,
               cateId: data.cateId,
               status: data.status,
+              CertificateIds: data.CertificateIds,
             });
           } else {
             response = await createMutation.mutateAsync(data);
@@ -472,6 +473,7 @@ export function useAdminProductMutations({ state }: MutationProps) {
               ageGroup: data.ageGroup,
               cateId: data.cateId,
               status: data.status,
+              CertificateIds: targetCertArray,
             },
           });
         } else {
@@ -535,13 +537,26 @@ export function useAdminProductMutations({ state }: MutationProps) {
     async (data: CreateComboRequest) => {
       try {
         if (editingCombo) {
+          // 1. Update Core Properties (Name, Description, Pricing, Meta)
           await updateComboMutation.mutateAsync({ id: editingCombo.id, data });
+          
+          // 2. Update Status if it changed
           if (data.status && data.status !== editingCombo.status) {
             await updateComboStatusMutation.mutateAsync({
               id: editingCombo.id,
               status: data.status,
             });
           }
+
+          // 3. Update Constituent Items (Essential for Variants)
+          // The main PUT endpoint may not handle items, so we call the dedicated products endpoint
+          if (data.items && data.items.length > 0) {
+            await updateComboItemsMutation.mutateAsync({
+              id: editingCombo.id,
+              items: data.items
+            });
+          }
+
           toast.success("Combo synchronized successfully", "All changes saved.");
         } else {
           await createComboMutation.mutateAsync(data);
@@ -550,7 +565,7 @@ export function useAdminProductMutations({ state }: MutationProps) {
         setComboDialogOpen(false);
         setEditingCombo(null);
       } catch (error) {
-        console.error(error);
+        console.error("[handleComboSubmit] Error:", error);
       }
     },
     [
@@ -558,6 +573,7 @@ export function useAdminProductMutations({ state }: MutationProps) {
       updateComboMutation,
       createComboMutation,
       updateComboStatusMutation,
+      updateComboItemsMutation,
       setComboDialogOpen,
       setEditingCombo,
       toast,
@@ -720,7 +736,7 @@ export function useAdminProductMutations({ state }: MutationProps) {
     [state],
   );
 
-  return {
+  return useMemo(() => ({
     handleSubmit,
     handleVariantSubmit,
     handleComboSubmit,
@@ -756,5 +772,41 @@ export function useAdminProductMutations({ state }: MutationProps) {
     deleteVariantMutation,
     deleteCertMutation,
     deleteComboMutation,
-  } as unknown as import("../types").AdminProductMutations;
+  }), [
+    handleSubmit,
+    handleVariantSubmit,
+    handleComboSubmit,
+    handleCertSubmit,
+    handleUploadImages,
+    handleStatusChangeRequest,
+    handleConfirmStatusChange,
+    handleConfirmDelete,
+    handleConfirmDeleteVariant,
+    handleConfirmDeleteCombo,
+    handleConfirmDeleteCert,
+    handleDeleteVariant,
+    handleDeleteCert,
+    handleConfirmBulkDelete,
+    handleExport,
+    handleBulkDelete,
+    createMutation,
+    updateMutation,
+    updateVariantMutation,
+    createVariantMutation,
+    createVariantWithCustomizeMutation,
+    createComboMutation,
+    updateComboMutation,
+    updateComboItemsMutation,
+    updateComboStatusMutation,
+    uploadComboImageMutation,
+    createCertMutation,
+    updateCertMutation,
+    uploadImagesMutation,
+    updateProductStatusMutation,
+    updateVariantStatusMutation,
+    deleteMutation,
+    deleteVariantMutation,
+    deleteCertMutation,
+    deleteComboMutation,
+  ]) as unknown as import("../types").AdminProductMutations;
 }

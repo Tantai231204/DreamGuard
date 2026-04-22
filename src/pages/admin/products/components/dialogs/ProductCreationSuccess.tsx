@@ -6,8 +6,7 @@ import {
     DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Check, ImagePlus, X } from 'lucide-react';
-import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { Check, ImagePlus } from 'lucide-react';
 
 interface ProductCreationSuccessProps {
     open: boolean;
@@ -27,10 +26,6 @@ export default function ProductCreationSuccess({
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[500px] p-8 rounded-[32px] border-none shadow-2xl overflow-hidden">
-                <DialogPrimitive.Close className="absolute right-6 top-6 rounded-sm opacity-40 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-                    <X className="h-5 w-5" />
-                    <span className="sr-only">Close</span>
-                </DialogPrimitive.Close>
 
                 <DialogHeader className="p-0 mb-8">
                     <div className="flex items-center gap-5">
@@ -76,7 +71,6 @@ export default function ProductCreationSuccess({
                         onClick={onAddImages}
                         className="flex-[1.2] h-14 bg-[#4988c4] hover:bg-[#3a6fa0] text-white shadow-xl shadow-[#4988c4]/20 font-black text-xs uppercase tracking-[0.1em] rounded-2xl transition-all active:scale-95 flex items-center justify-center gap-2"
                     >
-                        <ImagePlus className="w-5 h-5" />
                         ADD IMAGES
                     </Button>
                 </div>

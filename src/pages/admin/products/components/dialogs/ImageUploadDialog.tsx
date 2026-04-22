@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Upload, X, ImagePlus, Loader2, Trash2 } from 'lucide-react';
+import { Upload, X, Loader2, Trash2 } from 'lucide-react';
 
 interface ImageUploadDialogProps {
     open: boolean;
@@ -102,9 +102,6 @@ export default function ImageUploadDialog({
             <DialogContent className="max-w-[680px] h-[650px] max-h-[90vh] flex flex-col rounded-[1.5rem] p-7 gap-0 outline-none">
                 <DialogHeader className="pb-4 border-b flex-shrink-0">
                     <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-lg bg-primary flex items-center justify-center">
-                            <ImagePlus className="w-5 h-5 text-primary-foreground" />
-                        </div>
                         <div>
                             <DialogTitle className="text-xl font-bold text-gray-900">
                                 Upload Images

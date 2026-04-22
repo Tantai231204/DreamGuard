@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from "zustand/middleware"
 import cartService, { type CartResponse, type CartItemResponse, type AddCartItemRequest } from "@/api/services/cartService"
 import { toast } from "sonner"
 import { useAuthStore } from "./authStore"
+import { ApiError } from "@/lib/api"
 import { isAnyStaff } from "@/lib/role"
 import * as CryptoJS from "crypto-js"
 import type { CartItem } from "./cartTypes"
@@ -22,7 +23,7 @@ interface CartState {
     totalTradeInDiscount: number
     finalTotal: number
 
-    fetchCart: () => Promise<void>
+    fetchCart: (force?: boolean) => Promise<void>
     setCartOpen: (open: boolean) => void
     addItem: (item: Omit<CartItem, 'quantity' | 'subtotal' | 'productVariantId' | 'comboId' | 'isAvailable' | 'availableStock' | 'sku'> & {
         quantity?: number;
@@ -33,6 +34,7 @@ interface CartState {
         sku?: string;
     }) => Promise<void>
     updateQuantity: (id: string, delta: number) => Promise<void>
+    setQuantity: (id: string, quantity: number) => Promise<void>
     removeItem: (id: string) => Promise<void>
     clearCart: () => Promise<void>
     resetLocalCart: () => void
@@ -341,12 +343,11 @@ export const useCartStore = create<CartState>()(
                 set({ cart: newCart, ...calculateTotals(newCart) });
             },
 
-            fetchCart: async () => {
+            fetchCart: async (force = false) => {
                 if (get().isFetching) return;
 
-                // Staleness guard: skip if last successful fetch was recent
                 const now = Date.now();
-                if (now - lastFetchedAt < FETCH_STALE_MS) {
+                if (!force && now - lastFetchedAt < FETCH_STALE_MS) {
                     console.log(`[Cart] Skipping fetch - last fetched ${Math.round((now - lastFetchedAt) / 1000)}s ago`);
                     return;
                 }
@@ -398,6 +399,13 @@ export const useCartStore = create<CartState>()(
                         if (updatedCart[i].configHash === configHash) {
                             const e = updatedCart[i];
                             const nextQty = e.quantity + qty;
+                            
+                            // Client-side stock guard
+                            if (e.availableStock !== undefined && nextQty > e.availableStock) {
+                                toast.warning(`Cannot add more ${e.name}. Only ${e.availableStock} units available.`);
+                                return;
+                            }
+                            
                             updatedCart[i] = { ...e, quantity: nextQty, subtotal: nextQty * e.price };
                             merged = true;
                             break;
@@ -408,6 +416,7 @@ export const useCartStore = create<CartState>()(
                 set({ cart: updatedCart, ...calculateTotals(updatedCart) });
 
                 if (isAuthenticated) {
+                    const previousCart = currentCart;
                     set(s => ({ loadingIds: [...s.loadingIds, localId] }));
                     try {
                         const res = await cartService.addItem({
@@ -422,11 +431,15 @@ export const useCartStore = create<CartState>()(
                             description: "Your selection has been synchronized.",
                             duration: 3000,
                         });
-                        // Auto-open drawer after animation
                         setTimeout(() => get().setCartOpen(true), 1000);
-                    } catch {
-                        toast.error("Sync failed, retrying...");
-                        await get().fetchCart();
+                    } catch (err: unknown) {
+                        const displayMessage = err instanceof ApiError ? err.message : "Failed to add item";
+                        toast.error("Cart update failed", {
+                            description: displayMessage
+                        });
+                        // Revert and force refresh
+                        set({ cart: previousCart, ...calculateTotals(previousCart) });
+                        await get().fetchCart(true);
                     } finally {
                         set(s => ({ loadingIds: s.loadingIds.filter(id => id !== localId) }));
                     }
@@ -440,18 +453,71 @@ export const useCartStore = create<CartState>()(
                 const newQty = Math.max(1, item.quantity + delta);
                 if (newQty === item.quantity) return;
 
+                // Client-side stock guard for incrementing
+                if (delta > 0 && item.availableStock !== undefined && newQty > item.availableStock) {
+                    toast.warning(`Cannot exceed available stock for ${item.name}. (Limit: ${item.availableStock})`);
+                    return;
+                }
+
                 const updatedCart = cart.map(i => i.id === id ? { ...i, quantity: newQty, subtotal: newQty * i.price } : i);
                 set({ cart: updatedCart, ...calculateTotals(updatedCart) });
 
                 const { isAuthenticated } = useAuthStore.getState();
                 if (isAuthenticated && !id.startsWith('c_') && !id.startsWith('l_')) {
+                    const previousCart = cart; // Snapshot before debiting
                     if (debounceTimers.has(id)) clearTimeout(debounceTimers.get(id));
                     set(s => ({ syncingIds: [...s.syncingIds, id] }));
                     const timer = setTimeout(async () => {
                         try {
-                            await cartService.updateItem(id, newQty);
-                        } catch {
-                            await get().fetchCart();
+                            const res = await cartService.updateItem(id, newQty);
+                            get().updateStoreFromResponse(res);
+                        } catch (err: unknown) {
+                            const displayMessage = err instanceof ApiError ? err.message : "Failed to update quantity";
+                            toast.error("Stock mismatch", {
+                                description: displayMessage
+                            });
+                            // Revert immediately on sync failure
+                            set({ cart: previousCart, ...calculateTotals(previousCart) });
+                            await get().fetchCart(true);
+                        } finally {
+                            set(s => ({ syncingIds: s.syncingIds.filter(sid => sid !== id) }));
+                        }
+                    }, 800);
+                    debounceTimers.set(id, timer);
+                }
+            },
+
+            setQuantity: async (id, quantity) => {
+                const { cart } = get();
+                const item = cart.find(i => i.id === id);
+                if (!item) return;
+
+                const targetQty = Math.max(1, quantity);
+                if (targetQty === item.quantity) return;
+
+                // Client-side stock guard
+                if (item.availableStock !== undefined && targetQty > item.availableStock) {
+                    toast.warning(`Cannot exceed available stock for ${item.name}. (Limit: ${item.availableStock})`);
+                    return;
+                }
+
+                const updatedCart = cart.map(i => i.id === id ? { ...i, quantity: targetQty, subtotal: targetQty * i.price } : i);
+                set({ cart: updatedCart, ...calculateTotals(updatedCart) });
+
+                const { isAuthenticated } = useAuthStore.getState();
+                if (isAuthenticated && !id.startsWith('c_') && !id.startsWith('l_')) {
+                    const previousCart = cart;
+                    if (debounceTimers.has(id)) clearTimeout(debounceTimers.get(id));
+                    set(s => ({ syncingIds: [...s.syncingIds, id] }));
+                    const timer = setTimeout(async () => {
+                        try {
+                            const res = await cartService.updateItem(id, targetQty);
+                            get().updateStoreFromResponse(res);
+                        } catch (err: unknown) {
+                            const displayMessage = err instanceof ApiError ? err.message : "Failed to update quantity";
+                            toast.error("Stock mismatch", { description: displayMessage });
+                            set({ cart: previousCart, ...calculateTotals(previousCart) });
+                            await get().fetchCart(true);
                         } finally {
                             set(s => ({ syncingIds: s.syncingIds.filter(sid => sid !== id) }));
                         }

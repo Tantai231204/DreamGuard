@@ -44,7 +44,7 @@ function resolveItems(combo: Combo): ComboItem[] {
         return (combo.productItems as ProductItemWithLabel[]).map((pi) => ({
             productId: pi.productVariantId ?? "",
             productName: pi.productName ?? "",
-            variantId: pi.sku,
+            variantId: pi.productVariantId ?? "",
             variantLabel: pi.variantLabel || "",
             quantity: pi.quantity ?? 0,
         }))
@@ -151,12 +151,24 @@ export function useComboColumns(options: UseComboColumnsOptions = {}) {
                             </div>
 
                             <div className={cn(
-                                "h-11 w-11 flex items-center justify-center rounded-xl border flex-shrink-0 shadow-sm transition-transform group-hover/row:scale-105",
+                                "h-11 w-11 flex items-center justify-center rounded-xl border overflow-hidden flex-shrink-0 shadow-sm transition-transform group-hover/row:scale-105",
                                 isParent
                                     ? "bg-primary-50 border-primary-100 text-primary-500"
                                     : "bg-white border-slate-200 text-slate-400"
                             )}>
-                                {isParent ? <Layers className="h-5.5 w-5.5" /> : <Package className="h-5.5 w-5.5" />}
+                                {combo.imageUrl || (combo.images && combo.images.length > 0) ? (
+                                    <img
+                                        src={combo.imageUrl || (combo.images ? combo.images[0] : '')}
+                                        alt={combo.name}
+                                        className="h-full w-full object-cover"
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).src = ''; 
+                                            (e.target as HTMLImageElement).style.display = 'none';
+                                        }}
+                                    />
+                                ) : (
+                                    isParent ? <Layers className="h-5.5 w-5.5" /> : <Package className="h-5.5 w-5.5" />
+                                )}
                             </div>
 
                             <div className="min-w-0 flex flex-col gap-1">

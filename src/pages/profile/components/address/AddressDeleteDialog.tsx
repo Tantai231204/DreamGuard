@@ -41,12 +41,12 @@ export function AddressDeleteDialog({
           </AlertDialogHeader>
         </div>
 
-        <AlertDialogFooter className="bg-gray-50/70 px-6 py-4 flex gap-3 sm:space-x-0">
+        <AlertDialogFooter className="bg-gray-50/50 px-6 py-4 flex items-center gap-3 sm:gap-3">
           <AlertDialogCancel asChild>
             <Button
-              variant="outline"
+              variant="ghost"
               disabled={isDeleting}
-              className="flex-1 h-11 rounded-xl font-semibold text-gray-500 bg-white hover:bg-gray-100 border-gray-200 transition-colors"
+              className="flex-1 h-12 rounded-2xl font-bold text-gray-500 hover:bg-gray-100/80 transition-all border-none focus-visible:ring-0 focus-visible:ring-offset-0"
             >
               Cancel
             </Button>
@@ -54,11 +54,11 @@ export function AddressDeleteDialog({
           <AlertDialogAction asChild>
             <Button
               onClick={(e) => {
-                e.preventDefault(); // prevent closing on loading
+                e.preventDefault();
                 onConfirm();
               }}
               disabled={isDeleting}
-              className="flex-1 h-11 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold transition-all shadow-md shadow-red-500/10 gap-2"
+              className="flex-1 h-12 rounded-2xl bg-[#ff4d4d] hover:bg-[#ff3333] text-white font-black transition-all shadow-lg shadow-red-500/20 gap-2 border-none ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 outline-none"
             >
               {isDeleting ? (
                 <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />

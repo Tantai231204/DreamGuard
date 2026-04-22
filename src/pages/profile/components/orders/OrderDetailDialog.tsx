@@ -153,7 +153,7 @@ export function OrderDetailDialog({
                                         <ChevronRight className="w-4 h-4 text-gray-300" />
                                     </div>
                                     <div className="divide-y divide-gray-50">
-                                        {visibleItems.map((item) => <OrderItemRow key={item.id} item={item} orderStatus={order.status} />)}
+                                        {visibleItems.map((item) => <OrderItemRow key={item.id} item={item} orderStatus={order.status} orderId={order.id} />)}
                                     </div>
                                     {needsCollapse && (
                                         <button

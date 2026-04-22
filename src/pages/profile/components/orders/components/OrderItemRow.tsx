@@ -4,25 +4,33 @@ import { useComboDetail } from "@/hooks/queries/useCombo"
 import { Package } from "lucide-react"
 import { formatPrice } from "../../../utils"
 import type { OrderItem, OrderStatus } from "@/api/types/order"
-import { useProductFeedback } from "@/hooks/queries/useProductFeedback"
+import { useProductFeedbacks } from "@/hooks/queries/useProductFeedback"
 import { FeedbackDialog } from "./FeedbackDialog"
-import { Star } from "lucide-react"
 import { useProductDetail } from "@/hooks/queries"
 
 interface OrderItemRowProps {
     item: OrderItem;
     orderStatus?: OrderStatus;
+    orderId?: string;
 }
 
-export function OrderItemRow({ item, orderStatus }: OrderItemRowProps) {
-    const { data: feedback } = useProductFeedback(item.id, {
-        enabled: orderStatus === 5 || orderStatus === "Completed"
-    })
+export function OrderItemRow({ item, orderStatus, orderId }: OrderItemRowProps) {
     const isCombo = !!item.comboId;
     const { data: variant, isLoading: isVariantLoading } = useVariant(isCombo ? "" : (item.productVariantId || ""));
     const { data: comboDetail, isLoading: isComboLoading } = useComboDetail(item.comboId || "", isCombo);
     const { data: parentCombo } = useComboDetail(comboDetail?.comboParentId || "", !!comboDetail?.comboParentId && isCombo);
     const { data: product } = useProductDetail(variant?.productId || "", !!variant?.productId);
+
+    const effectiveProductId = isCombo ? item.comboId : variant?.productId;
+
+    const { data: apiFeedbacks } = useProductFeedbacks(effectiveProductId || "", {
+        enabled: (orderStatus === 5 || orderStatus === "Completed") && !!effectiveProductId
+    });
+
+    const feedback = useMemo(() => {
+        if (!apiFeedbacks?.items || !orderId) return null;
+        return apiFeedbacks.items.find(f => f.orderId === orderId && f.productId === effectiveProductId) || null;
+    }, [apiFeedbacks, orderId, effectiveProductId]);
 
     const isLoading = isCombo ? (isComboLoading) : isVariantLoading;
     const attributes = (variant?.attributes || {}) as Record<string, unknown>;
@@ -48,7 +56,7 @@ export function OrderItemRow({ item, orderStatus }: OrderItemRowProps) {
         if (isCombo) {
             // 2. Combo-specific primary image (Child level)
             if (comboDetail?.imageUrl && comboDetail.imageUrl.length > 5) return comboDetail.imageUrl;
-            
+
             // 2.1 Parent Combo Fallback (Explicitly requested by user)
             if (parentCombo?.imageUrl && parentCombo.imageUrl.length > 5) return parentCombo.imageUrl;
 
@@ -175,18 +183,12 @@ export function OrderItemRow({ item, orderStatus }: OrderItemRowProps) {
                             {/* Rating Section */}
                             {(orderStatus === 5 || orderStatus === "Completed") && (
                                 <div className="pl-4 border-l border-gray-100">
-                                    {feedback ? (
-                                        <div className="flex items-center gap-1.5 px-2.5 py-1 bg-yellow-50/50 border border-yellow-100/50 rounded-full">
-                                            <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                                            <span className="text-[12px] font-black text-yellow-700">{feedback.score}</span>
-                                        </div>
-                                    ) : (
-                                        <FeedbackDialog
-                                            orderItemId={item.id}
-                                            itemName={item.itemName}
-                                            itemImage={displayImage}
-                                        />
-                                    )}
+                                    <FeedbackDialog
+                                        orderItemId={item.id}
+                                        itemName={item.itemName}
+                                        itemImage={displayImage}
+                                        existingFeedback={feedback}
+                                    />
                                 </div>
                             )}
                         </div>

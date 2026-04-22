@@ -1,7 +1,7 @@
 import * as React from "react";
 import { format, isValid, startOfMonth, startOfYear } from "date-fns";
 import { CalendarIcon, X } from "lucide-react";
-import type { DateRange } from "react-day-picker";
+import type { DateRange, Matcher } from "react-day-picker";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,7 @@ export interface BaseDatePickerProps {
   name?: string;
   id?: string;
   onBlur?: () => void;
+  disabledDays?: Matcher | Matcher[];
 }
 
 export interface SingleDatePickerProps extends BaseDatePickerProps {
@@ -104,6 +105,7 @@ export const DatePicker = React.forwardRef<HTMLButtonElement, DatePickerProps>(
       name,
       id,
       onBlur,
+      disabledDays,
     },
     ref
   ) => {
@@ -221,7 +223,7 @@ export const DatePicker = React.forwardRef<HTMLButtonElement, DatePickerProps>(
                     captionLayout={showDropdowns ? "dropdown" : "label"}
                     fromYear={fromYear}
                     toYear={toYear}
-                    disabled={{ after: new Date() }}
+                    disabled={disabledDays}
                     initialFocus
                     className="p-3"
                   />
@@ -239,6 +241,7 @@ export const DatePicker = React.forwardRef<HTMLButtonElement, DatePickerProps>(
                     captionLayout={showDropdowns ? "dropdown" : "label"}
                     fromYear={fromYear}
                     toYear={toYear}
+                    disabled={disabledDays}
                     numberOfMonths={2}
                     initialFocus
                     className="p-3"

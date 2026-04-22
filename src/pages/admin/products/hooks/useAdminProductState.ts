@@ -1,15 +1,16 @@
 import { useState, useMemo, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { SortingState, ColumnFiltersState, RowSelectionState, ExpandedState, PaginationState } from '@tanstack/react-table';
-import { useAdminProducts } from '@/hooks/queries/useProduct';
+import { useAdminProducts, useAdminProductTemplates } from '@/hooks/queries/useProduct';
 import { useAdminCombos } from '@/hooks/queries/useCombo';
 import { useAdminCertificates } from '@/hooks/queries/useCertificate';
 import { useCategories } from '@/hooks/queries/useCategory';
+import { useDebounce } from '@/hooks/useDebounce';
 import { mapCombosToSubRows } from '../components/combo';
 import type { ComboDialogMode } from '../components/combo-dialog';
 import type { Product, Combo, ProductVariant, AdminProductState, Certificate, StatusChangeData } from '../types';
 import { useAuthStore } from '@/store/authStore';
-import { isAdminRole } from '@/lib/role';
+import { isAdminOrManager } from '@/lib/role';
 
 export function useAdminProductState(): AdminProductState {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -32,7 +33,7 @@ export function useAdminProductState(): AdminProductState {
   const page = Number(searchParams.get('page')) || 1;
   const pageSize = Number(searchParams.get('pageSize')) || 10;
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [globalFilter, setGlobalFilter] = useState('');
+  const [globalFilter, setInternalGlobalFilter] = useState('');
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const [expanded, setExpanded] = useState<ExpandedState>({});
@@ -41,9 +42,18 @@ export function useAdminProductState(): AdminProductState {
     pageSize,
   });
 
+  const setGlobalFilter = useCallback((val: string) => {
+    setInternalGlobalFilter(val);
+    setPagination(prev => ({ ...prev, pageIndex: 0 }));
+    setSearchParams(prev => {
+      prev.set('page', '1');
+      return prev;
+    }, { replace: true });
+  }, [setSearchParams]);
+
   // ── TABLE STATE: COMBOS ──────────────────────────────
   const [comboSorting, setComboSorting] = useState<SortingState>([]);
-  const [comboGlobalFilter, setComboGlobalFilter] = useState('');
+  const [comboGlobalFilter, setInternalComboGlobalFilter] = useState('');
   const [comboRowSelection, setComboRowSelection] = useState<RowSelectionState>({});
   const [comboExpanded, setComboExpanded] = useState<ExpandedState>({});
   const [comboPagination, setComboPagination] = useState<PaginationState>({
@@ -51,43 +61,68 @@ export function useAdminProductState(): AdminProductState {
     pageSize,
   });
 
+  const setComboGlobalFilter = useCallback((val: string) => {
+    setInternalComboGlobalFilter(val);
+    setComboPagination(prev => ({ ...prev, pageIndex: 0 }));
+    setSearchParams(prev => {
+      prev.set('page', '1');
+      return prev;
+    }, { replace: true });
+  }, [setSearchParams]);
+
   // ── TABLE STATE: CERTIFICATES ────────────────────────
   const [certSorting, setCertSorting] = useState<SortingState>([]);
-  const [certGlobalFilter, setCertGlobalFilter] = useState('');
+  const [certGlobalFilter, setInternalCertGlobalFilter] = useState('');
   const [certPagination, setCertPagination] = useState<PaginationState>({
     pageIndex: page - 1,
     pageSize,
   });
   const [certRowSelection, setCertRowSelection] = useState<RowSelectionState>({});
 
+  const setCertGlobalFilter = useCallback((val: string) => {
+    setInternalCertGlobalFilter(val);
+    setCertPagination(prev => ({ ...prev, pageIndex: 0 }));
+    setSearchParams(prev => {
+      prev.set('page', '1');
+      return prev;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  // ── DEBOUNCED FILTERS ────────────────────────────────
+  const debouncedGlobalFilter = useDebounce(globalFilter, 500);
+  const debouncedComboGlobalFilter = useDebounce(comboGlobalFilter, 500);
+  const debouncedCertGlobalFilter = useDebounce(certGlobalFilter, 500);
+
   // ── API DATA ─────────────────────────────────────────
   const { data: productData, isLoading: isLoadingProducts, refetch: refetchProducts } = useAdminProducts({
     pageNumber: pagination.pageIndex + 1,
     pageSize: pagination.pageSize,
-    name: globalFilter,
+    name: debouncedGlobalFilter,
   });
+
+  const { data: templateData, isLoading: isLoadingTemplates, refetch: refetchTemplates } = useAdminProductTemplates();
 
   const { data: rawComboData, isLoading: isLoadingCombos, refetch: refetchCombos } = useAdminCombos({
     pageNumber: comboPagination.pageIndex + 1,
     pageSize: comboPagination.pageSize,
-    name: comboGlobalFilter,
+    name: debouncedComboGlobalFilter,
   });
+
+  // ── DIALOG STATES ────────────────────────────────────
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   const { data: rawCertData, isLoading: isLoadingCerts, refetch: refetchCerts } = useAdminCertificates({
     pageNumber: certPagination.pageIndex + 1,
     pageSize: certPagination.pageSize,
-    name: certGlobalFilter,
+    name: debouncedCertGlobalFilter,
   }, {
-    enabled: activeTab === 'certificate' && isAdminRole(role)
+    enabled: (activeTab === 'certificate' || dialogOpen) && isAdminOrManager(role)
   });
 
   const combos = useMemo(() =>
     rawComboData?.items ? mapCombosToSubRows(rawComboData.items as Combo[]) : []
     , [rawComboData]);
-
-  // ── DIALOG STATES ────────────────────────────────────
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   const [variantDialogOpen, setVariantDialogOpen] = useState(false);
   const [editingVariant, setEditingVariant] = useState<ProductVariant | null>(null);
@@ -134,13 +169,17 @@ export function useAdminProductState(): AdminProductState {
     setSuccessDialogOpen(false);
   }, []);
 
-  const products = useMemo(() => (productData?.items as Product[]) || [], [productData]);
+  const products = useMemo(() => {
+    const all = (productData?.items as Product[]) || [];
+    // Filter out templates from the main list for the "Regular" tab
+    return all.filter(p => !p.fullyCustomizedProductType || p.fullyCustomizedProductType === 'None');
+  }, [productData]);
+
+  const templates = useMemo(() => (templateData as Product[]) || [], [templateData]);
 
   const takenCustomTypes = useMemo(() => {
-    return products
-      .filter((p: Product) => p.fullyCustomizedProductType && p.fullyCustomizedProductType !== 'None')
-      .map((p: Product) => p.fullyCustomizedProductType as string);
-  }, [products]);
+    return templates.map((p: Product) => p.fullyCustomizedProductType as string);
+  }, [templates]);
 
   return {
     activeTab, setActiveTab,
@@ -157,6 +196,8 @@ export function useAdminProductState(): AdminProductState {
     products,
     productPageData: productData ? { totalPages: productData.totalPages, totalCount: productData.totalCount } : undefined,
     isLoadingProducts, refetchProducts,
+    templates,
+    isLoadingTemplates, refetchTemplates,
     combos,
     comboPageData: rawComboData ? { totalPages: rawComboData.totalPages, totalCount: rawComboData.totalCount } : undefined,
     isLoadingCombos, refetchCombos,

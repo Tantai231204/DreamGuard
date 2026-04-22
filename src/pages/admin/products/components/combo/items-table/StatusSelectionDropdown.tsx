@@ -60,12 +60,16 @@ const StatusSelectionDropdown = memo(({
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>
-                <button className="outline-none focus:ring-0 group">
+                <div 
+                    role="button" 
+                    tabIndex={0} 
+                    className="outline-none focus:ring-0 group cursor-pointer"
+                >
                     <AdminStatusBadge 
                         status={status} 
-                        className={cn("cursor-pointer hover:shadow-md transition-all group-hover:ring-2 group-hover:ring-blue-100", triggerClassName)}
+                        className={cn("hover:shadow-md transition-all group-hover:ring-2 group-hover:ring-blue-100", triggerClassName)}
                     />
-                </button>
+                </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent 
                 align={align} 

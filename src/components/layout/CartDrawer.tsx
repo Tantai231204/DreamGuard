@@ -1,7 +1,7 @@
-import { useMemo, useCallback, memo } from "react"
+import { useMemo, useCallback, memo, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Drawer } from "vaul"
-import { ShoppingCart, X, Minus, Plus, ShoppingBag, Trash2, RefreshCcw } from "lucide-react"
+import { ShoppingCart, X, Minus, Plus, ShoppingBag, Trash2, RefreshCcw, Package } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useCart } from "@/store/useCart"
@@ -23,11 +23,11 @@ const SubItemImage = memo(({ variantId, fallbackImage, alt }: { variantId: strin
     const { data: variantData, isLoading: isVarLoading } = useVariant(variantId || "");
     const variant = variantData as VariantResponse;
     const vImg = (variant?.attributes as VariantAttributes)?.imageUrl || (variant as { imageUrl?: string })?.imageUrl;
-    
+
     // Recovery: Fetch root product if variant has no image
     const productId = variant?.productId || (variant as { product?: { id: string } })?.product?.id || "";
     const { data: productData } = useProductDetail(productId, !!productId && (!vImg || (vImg as string).length < 5) && (!fallbackImage || (fallbackImage as string).length < 5));
-    
+
     const pData = productData as { imageUrls?: string[]; imageUrl?: string; assets?: { url: string }[] };
     const pImg = pData?.imageUrls?.[0] || pData?.imageUrl || pData?.assets?.[0]?.url || (variant as { product?: { imageUrl?: string } })?.product?.imageUrl;
 
@@ -39,10 +39,10 @@ const SubItemImage = memo(({ variantId, fallbackImage, alt }: { variantId: strin
     }
 
     return (
-        <img 
-            src={imageUrl || "/images/placeholder-product.svg"} 
-            alt={alt} 
-            className={cn("w-full h-full object-cover transition-all duration-500", !imageUrl && "opacity-0", imageUrl && "opacity-100")} 
+        <img
+            src={imageUrl || "/images/placeholder-product.svg"}
+            alt={alt}
+            className={cn("w-full h-full object-cover transition-all duration-500", !imageUrl && "opacity-0", imageUrl && "opacity-100")}
             onError={(e) => {
                 const target = e.target as HTMLImageElement;
                 if (!target.src.includes('placeholder-product.svg')) {
@@ -52,25 +52,59 @@ const SubItemImage = memo(({ variantId, fallbackImage, alt }: { variantId: strin
         />
     );
 });
-
-function CartDrawerItem({
+const CartDrawerItem = memo(({
     item,
     loadingIds,
     syncingIds,
     onUpdateQuantity,
+    onSetQuantity,
     onRemove
 }: {
     item: CartItem;
     loadingIds: string[];
     syncingIds: string[];
     onUpdateQuantity: (id: string, delta: number) => void;
+    onSetQuantity: (id: string, quantity: number) => void;
     onRemove: (id: string) => void;
-}) {
+}) => {
     const enriched = useEnrichCartItem(item);
     const hasTradeIn = !!(item.tradeIn?.totalValue)
     const itemKey = item.configHash || item.id;
     const isLoading = loadingIds?.includes(item.id) ?? false
     const isSyncing = syncingIds?.includes(item.id) ?? false
+    
+    const [localQty, setLocalQty] = useState('')
+    const [isEditing, setIsEditing] = useState(false)
+
+    const handleFocus = () => {
+        setLocalQty(item.quantity.toString())
+        setIsEditing(true)
+    }
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value.replace(/[^0-9]/g, '')
+        setLocalQty(val)
+    }
+
+    const handleBlur = () => {
+        const num = parseInt(localQty)
+        setIsEditing(false)
+        if (!isNaN(num) && num >= 1 && num !== item.quantity) {
+            // Stock limit check
+            if (item.availableStock !== undefined && num > item.availableStock) {
+                // Toast is handled in store, but we can prevent calling it here too if we want
+                // or just let the store handle the warning. 
+                // To keep UI responsive, let's call the store and it will handle the revert if needed.
+            }
+            onSetQuantity(item.id, num)
+        }
+    }
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') {
+            (e.target as HTMLInputElement).blur()
+        }
+    }
 
     return (
         <div
@@ -160,6 +194,21 @@ function CartDrawerItem({
                         })}
                     </div>
 
+                    {item.availableStock !== undefined && item.availableStock <= 10 && (
+                        <div className={cn(
+                            "flex items-center gap-1.5 mb-2 px-2 py-0.5 rounded-md w-fit text-[8px] font-black uppercase tracking-[0.1em]",
+                            item.quantity >= item.availableStock
+                                ? "bg-rose-50 text-rose-600 border border-rose-100"
+                                : "bg-amber-50 text-amber-600 border border-amber-100"
+                        )}>
+                            <Package className="w-2.5 h-2.5" />
+                            {item.quantity >= item.availableStock
+                                ? `Stock Limit Reached (${item.availableStock} max)`
+                                : `Only ${item.availableStock} remaining`
+                            }
+                        </div>
+                    )}
+
                     {/* Trade-in */}
                     {hasTradeIn && (
                         <TooltipProvider delayDuration={200}>
@@ -187,21 +236,38 @@ function CartDrawerItem({
                     )}
 
                     {/* Qty & Price */}
-                    <div className="flex items-center justify-between mt-0.5">
-                        <div className="flex items-center gap-1.5">
+                    <div className="flex items-center justify-between mt-1">
+                        <div className="flex items-center gap-1.5 p-1 bg-slate-50 rounded-lg border border-slate-100">
                             <button
                                 onClick={() => onUpdateQuantity(item.id, -1)}
                                 disabled={item.quantity <= 1}
-                                className="h-6 w-6 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 hover:border-[#4988c4] hover:text-[#4988c4] disabled:opacity-30 transition-colors"
+                                className="h-7 w-7 flex items-center justify-center rounded-md bg-white border border-slate-200 text-gray-400 hover:border-[#4988c4] hover:text-[#4988c4] disabled:opacity-20 transition-all shadow-sm"
                             >
                                 <Minus className="h-2.5 w-2.5" />
                             </button>
-                            <span className="w-6 text-center text-xs font-bold text-gray-800 tabular-nums">
-                                {item.quantity}
-                            </span>
+                            
+                            <input
+                                type="text"
+                                inputMode="numeric"
+                                value={isEditing ? localQty : item.quantity.toString()}
+                                onChange={handleInputChange}
+                                onFocus={handleFocus}
+                                onBlur={handleBlur}
+                                onKeyDown={handleKeyDown}
+                                className={cn(
+                                    "w-8 text-center text-[11px] font-black text-slate-900 bg-transparent border-none focus:outline-none tabular-nums",
+                                    isEditing && "text-[#4988c4]"
+                                )}
+                            />
+
                             <button
                                 onClick={() => onUpdateQuantity(item.id, 1)}
-                                className="h-6 w-6 flex items-center justify-center rounded-md border border-gray-200 text-gray-500 hover:border-[#4988c4] hover:text-[#4988c4] transition-colors"
+                                disabled={item.availableStock !== undefined && item.quantity >= item.availableStock}
+                                className={cn(
+                                    "h-7 w-7 flex items-center justify-center rounded-md bg-white border border-slate-200 text-gray-400 transition-all shadow-sm",
+                                    "hover:border-[#4988c4] hover:text-[#4988c4]",
+                                    "disabled:opacity-20 disabled:cursor-not-allowed"
+                                )}
                             >
                                 <Plus className="h-2.5 w-2.5" />
                             </button>
@@ -246,10 +312,10 @@ function CartDrawerItem({
             </div>
         </div>
     );
-}
+});
 
 export function CartDrawer() {
-    const { cart, updateQuantity, removeItem, totalItems, totalPrice, totalTradeInDiscount, finalTotal, loadingIds, syncingIds } = useCart()
+    const { cart, updateQuantity, setQuantity, removeItem, totalItems, totalPrice, totalTradeInDiscount, finalTotal, loadingIds, syncingIds } = useCart()
     const { isCartOpen: open, setCartOpen: setOpen } = useCartStore()
     const { cartIconRef, isCartBouncing } = useCartAnimation()
     const navigate = useNavigate()
@@ -257,6 +323,10 @@ export function CartDrawer() {
     const handleUpdateQuantity = useCallback((id: string, delta: number) => {
         updateQuantity(id, delta)
     }, [updateQuantity])
+
+    const handleSetQuantity = useCallback((id: string, quantity: number) => {
+        setQuantity(id, quantity)
+    }, [setQuantity])
 
     const handleRemoveItem = useCallback((id: string) => {
         removeItem(id)
@@ -275,10 +345,11 @@ export function CartDrawer() {
                 loadingIds={loadingIds}
                 syncingIds={syncingIds}
                 onUpdateQuantity={handleUpdateQuantity}
+                onSetQuantity={handleSetQuantity}
                 onRemove={handleRemoveItem}
             />
         ))
-    ), [cart, loadingIds, syncingIds, handleUpdateQuantity, handleRemoveItem])
+    ), [cart, loadingIds, syncingIds, handleUpdateQuantity, handleSetQuantity, handleRemoveItem])
 
     return (
         <Drawer.Root

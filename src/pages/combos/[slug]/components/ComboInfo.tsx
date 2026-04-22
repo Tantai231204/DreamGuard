@@ -130,9 +130,17 @@ export const ComboInfo = memo(({
                     SKU: {current.sku || "N/A"}
                 </span>
                 <div className="h-3 w-px bg-slate-200" />
-                <div className="flex items-center gap-1.5 text-emerald-600">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-[10px] font-bold uppercase tracking-wider">In Stock</span>
+                <div className={cn(
+                    "flex items-center gap-1.5",
+                    current.stock === 0 ? "text-rose-500" : "text-emerald-600"
+                )}>
+                    <span className={cn(
+                        "w-1.5 h-1.5 rounded-full",
+                        current.stock === 0 ? "bg-rose-500" : "bg-emerald-500 animate-pulse"
+                    )} />
+                    <span className="text-[10px] font-bold uppercase tracking-wider">
+                        {current.stock === 0 ? "Out of Stock" : `${current.stock} in stock`}
+                    </span>
                 </div>
             </div>
 

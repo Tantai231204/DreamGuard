@@ -411,6 +411,7 @@ const CustomizeStudio = () => {
         thickness: 15,
       },
       configHash: configHash,
+      availableStock: customSchema.stockQuantity,
       isCustom: true,
     });
 

@@ -188,6 +188,7 @@ export interface CreateFullyCustomizedProductRequest {
   isTradeInEligible?: boolean;
   minTradeInPrice?: number;
   depositAmount?: number;
+  CertificateIds?: string[];
 }
 
 export interface UpdateFullyCustomizedProductRequest extends CreateFullyCustomizedProductRequest {

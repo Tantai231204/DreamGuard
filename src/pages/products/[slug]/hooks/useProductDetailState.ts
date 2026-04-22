@@ -369,9 +369,10 @@ export function useProductDetailState({ product, productImageRef }: UseProductDe
                 ...customDimensions,
                 colorHex: activeColorHex
             } : undefined,
+            availableStock: currentStock.stockLeft,
             configHash: configHash,
         });
-    }, [product, quantity, selectedColor, selectedSize, addItem, triggerFlyToCart, currentPriceInfo.price, productImageRef, currentVariant, isCustomSize, canCustomizeSize, isCustomColor, customDimensions, customColorHex, customizationCaps, processedData.colorOptions]);
+    }, [product, quantity, selectedColor, selectedSize, addItem, triggerFlyToCart, currentPriceInfo.price, productImageRef, currentVariant, isCustomSize, canCustomizeSize, isCustomColor, customDimensions, customColorHex, customizationCaps, processedData.colorOptions, currentStock]);
 
     // ── FINAL STABLE STATE & ACTIONS ──
     const state = useMemo(() => ({

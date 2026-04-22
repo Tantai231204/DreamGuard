@@ -23,11 +23,13 @@ export const formatDate = (dateString?: string | null): string => {
     const date = new Date(dateString)
     if (Number.isNaN(date.getTime())) return "N/A"
 
-    return date.toLocaleDateString("vi-VN", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric"
-    })
+    // Use UTC methods to avoid shifting dates based on local time
+    // since expiration dates from the backend are absolute.
+    const day = String(date.getUTCDate()).padStart(2, '0')
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0')
+    const year = date.getUTCFullYear()
+
+    return `${day}/${month}/${year}`
 }
 
 /**

@@ -23,27 +23,31 @@ export function toComboItems(combo?: ComboResponse | null): ComboItem[] {
     // Prioritize standard items array (matched with backend ComboItemResponse schema)
     const items = combo.items || [];
     if (Array.isArray(items) && items.length > 0) {
-        return items.map((pi: ComboItemResponse) => ({
-            productId: pi.productId || '',
-            productName: pi.productName || 'Unknown',
-            variantId: pi.variantId || '',
-            variantLabel: pi.variantLabel || '',
-            quantity: pi.quantity || 1,
-        }));
+        return items
+            .filter((pi) => (pi.quantity || 0) > 0)
+            .map((pi: ComboItemResponse) => ({
+                productId: pi.productId || '',
+                productName: pi.productName || 'Unknown',
+                variantId: pi.variantId || '',
+                variantLabel: pi.variantLabel || '',
+                quantity: pi.quantity || 1,
+            }));
     }
 
     // Fallback to deprecated productItems if needed
     const productItems = combo.productItems || [];
     if (Array.isArray(productItems) && productItems.length > 0) {
-        return productItems.map((pi: ProductItemResponse) => ({
-            productId: pi.productVariantId || '',
-            productName: pi.productName || 'Unknown',
-            variantId: pi.sku || '',
-            variantLabel: '',
-            quantity: pi.quantity || 1,
-            basePrice: pi.basePrice || 0,
-            salePrice: pi.salePrice || 0,
-        }));
+        return productItems
+            .filter((pi) => (pi.quantity || 0) > 0)
+            .map((pi: ProductItemResponse) => ({
+                productId: pi.productVariantId || '',
+                productName: pi.productName || 'Unknown',
+                variantId: pi.productVariantId || '',
+                variantLabel: '',
+                quantity: pi.quantity || 1,
+                basePrice: pi.basePrice || 0,
+                salePrice: pi.salePrice || 0,
+            }));
     }
 
     return [];

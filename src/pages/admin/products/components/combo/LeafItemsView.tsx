@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import { useUpdateComboItems } from '@/hooks/queries/useCombo';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import ComboVariantRow from './ComboVariantRow';
+import { toast } from 'sonner';
 import type { ComboItem } from '../../types';
 
 interface LeafItemsViewProps {
@@ -12,17 +15,30 @@ export default function LeafItemsView({
     items,
 }: LeafItemsViewProps) {
     const updateItemsMutation = useUpdateComboItems();
+    const [deleteItemKey, setDeleteItemKey] = useState<string | null>(null);
 
-    const handleUpdateQuantity = async (itemKey: string, newQty: number) => {
+    // Optimistic UI state
+    const [localItems, setLocalItems] = useState<ComboItem[]>(items);
+    const [lastPropsItems, setLastPropsItems] = useState<ComboItem[]>(items);
+
+    // Sync props to local state safely during render
+    if (items !== lastPropsItems) {
+        setLastPropsItems(items);
+        setLocalItems(items);
+    }
+
+    const handleUpdateQuantity = async (targetId: string, newQty: number) => {
         if (newQty < 1) return;
-        const [pId, vId] = itemKey.split('|');
-        const updatedItems = items.map(i => {
-            const matches = i.productId === pId && (i.variantId || 'default') === vId;
-            if (matches) return { ...i, quantity: newQty };
+        
+        // Optimistic Update
+        const optimistic = localItems.map(i => {
+            const id = i.variantId || i.productId;
+            if (id === targetId) return { ...i, quantity: newQty };
             return i;
         });
+        setLocalItems(optimistic);
 
-        const itemsUpdate = updatedItems.map(i => ({
+        const itemsUpdate = optimistic.map(i => ({
             productVariantId: i.variantId || i.productId,
             quantity: i.quantity
         }));
@@ -30,27 +46,41 @@ export default function LeafItemsView({
         try {
             await updateItemsMutation.mutateAsync({ id: comboId, items: itemsUpdate });
         } catch {
-            // Handled via toast in hook
+            // Revert on error
+            setLocalItems(items);
         }
     };
 
     const handleDeleteItem = async (itemKey: string) => {
-        if (!confirm('Remove this item from combo?')) return;
-        const [pId, vId] = itemKey.split('|');
-        const updatedItems = items.filter(i => {
-            const matches = i.productId === pId && (i.variantId || 'default') === vId;
-            return !matches;
-        });
+        setDeleteItemKey(itemKey);
+    };
 
-        const itemsUpdate = updatedItems.map(i => ({
-            productVariantId: i.variantId || i.productId,
-            quantity: i.quantity
+    const confirmDelete = async () => {
+        if (!deleteItemKey || !comboId) return;
+        
+        // Optimistic Deletion
+        const optimistic = localItems.filter(item => {
+            const id = String(item.variantId || item.productId);
+            return id !== String(deleteItemKey);
+        });
+        setLocalItems(optimistic);
+
+        const itemsUpdate = optimistic.map(item => ({
+            productVariantId: String(item.variantId || item.productId),
+            quantity: item.quantity
         }));
 
         try {
-            await updateItemsMutation.mutateAsync({ id: comboId, items: itemsUpdate });
-        } catch {
-            // Handled via toast in hook
+            await updateItemsMutation.mutateAsync({ 
+                id: comboId, 
+                items: itemsUpdate 
+            });
+            toast.success("Item removed from combo.");
+        } catch (error) {
+            console.error("Deletion failed:", error);
+            setLocalItems(items); // Revert
+        } finally {
+            setDeleteItemKey(null);
         }
     };
 
@@ -71,8 +101,8 @@ export default function LeafItemsView({
                 <div className="text-right">Actions</div>
             </div>
             <div className="divide-y divide-gray-50">
-                {items.map((item) => {
-                    const itemKey = `${item.productId}|${item.variantId ?? 'default'}`;
+                {localItems.map((item) => {
+                    const itemKey = item.variantId || item.productId || 'default';
                     return (
                         <ComboVariantRow
                             key={itemKey}
@@ -84,6 +114,17 @@ export default function LeafItemsView({
                     );
                 })}
             </div>
+
+            <ConfirmDialog
+                open={!!deleteItemKey}
+                onOpenChange={(open) => !open && setDeleteItemKey(null)}
+                title="Remove Item?"
+                description="Are you sure you want to remove this product from the combo? This will update the combo structure immediately."
+                onConfirm={confirmDelete}
+                confirmText="Remove Item"
+                variant="danger"
+                isLoading={updateItemsMutation.isPending}
+            />
         </div>
     );
 }

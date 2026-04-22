@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useEffect } from 'react';
 import { useForm, useWatch, type Resolver } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { toSlug } from '@/lib/utils';
 import type { VariantStatus, VariantAttributes, ExtendedProductVariant } from '../../types';
 import type { VariantSubmitData } from './VariantDialog';
 import { useRichAdminVariants } from '@/hooks/queries/useProduct';
@@ -10,6 +11,7 @@ import { variantSchema, type VariantFormValues } from './variantSchema';
 interface UseVariantFormProps {
     variant: ExtendedProductVariant | null;
     productId: string;
+    productName: string;
     productSlug: string;
     variantCount: number;
     onSubmit: (data: VariantSubmitData) => void;
@@ -19,6 +21,7 @@ interface UseVariantFormProps {
 export function useVariantForm({
     variant,
     productId,
+    productName,
     productSlug,
     variantCount,
     onSubmit,
@@ -71,9 +74,9 @@ export function useVariantForm({
         reValidateMode: 'onChange',
     });
 
-    const [isCustomizable, basePrice, salePrice, watchCustoms] = useWatch({ 
-        control: form.control, 
-        name: ['isCustomizable', 'basePrice', 'salePrice', 'pendingCustoms'] 
+    const [isCustomizable, basePrice, salePrice, watchCustoms] = useWatch({
+        control: form.control,
+        name: ['isCustomizable', 'basePrice', 'salePrice', 'pendingCustoms']
     });
     const pendingCustoms = useMemo(() => watchCustoms || [], [watchCustoms]);
 
@@ -81,7 +84,7 @@ export function useVariantForm({
     useEffect(() => {
         const bp = Number(basePrice) || 0;
         const sp = Number(salePrice) || 0;
-        
+
         // Convenience: If sale price is 0 or matches base price, sync them when base price changes
         // This helps user when they "don't want to discount"
         if (!isEdit && bp > 0 && (sp === 0 || sp === bp)) {
@@ -136,11 +139,6 @@ export function useVariantForm({
         };
     }, [pendingCustoms, getOptionType]);
 
-    // ── Senior Optimization: Targeted Watchers ──────────────────────
-    const [wVal, lVal, tVal, cVal] = useWatch({
-        control: form.control,
-        name: ['width', 'length', 'thickness', 'colorName']
-    });
 
     const { hasAttributeCollision, collidingSku } = useMemo(() => {
         if (!variantsData) return { hasAttributeCollision: false, collidingSku: undefined };
@@ -148,61 +146,47 @@ export function useVariantForm({
         const allVariants = variantsData?.colorGroups?.flatMap(g => g.variants) || [];
         const currentIsFullBespoke = isCustomColor && isCustomSize;
 
-        const cw = Number(wVal || 0);
-        const cl = Number(lVal || 0);
-        const ct = Number(tVal || 0);
-        const cc = String(cVal || '').trim().toLowerCase();
+        // 🔥 Senior Logic Update: Per user requirement, we ONLY block collisions for Full Bespoke variants.
+        // For standard or partial custom variants, we allow them to have overlapping attributes (uniqueness is handled by SKU).
+        if (!currentIsFullBespoke) return { hasAttributeCollision: false, collidingSku: undefined };
 
         const found = allVariants.find(v => {
             // Self-exclusion on edit
             if (isEdit && (v.id === variant?.id || v.sku === variant?.sku)) return false;
 
-            // Rule 1: Only ONE "Full: Color, Size" variant per product
-            if (currentIsFullBespoke && v.isFullBespoke) return true;
-
-            // If we are making a Full Bespoke, it doesn't collide on attributes with any other type.
-            if (currentIsFullBespoke) return false;
-
-            // Rule 2: Attribute Collision (Standard & Partial Custom)
-            // They must have the exact same customization strategy to collide
-            const vHasC = !!v.isVariantCustomizable && !v.isCustomSize && !v.isFullBespoke;
-            const vHasS = !!v.isCustomSize && !v.isFullBespoke;
-            const currentHasC = isCustomColor && !isCustomSize;
-            const currentHasS = isCustomSize && !isCustomColor;
-
-            if (vHasC !== currentHasC || vHasS !== currentHasS) return false;
-
-            const attr = v.attributes || {};
-            const w = Number(attr.width || 0);
-            const l = Number(attr.length || 0);
-            const t = Number(attr.thickness || 0);
-            const c = String(attr.color || '').trim().toLowerCase();
-
-            // Ignore 0/empty fields in comparison if they are the customized fields
-            const colorMatch = currentHasC || (c === cc);
-            const dimMatch = currentHasS || (w === cw && l === cl && t === ct);
-
-            // Block if both fixed dimensions match
-            return colorMatch && dimMatch;
+            // Rule: Only ONE "Full: Color, Size" (Bespoke) variant per product
+            return !!v.isFullBespoke;
         });
 
         return {
             hasAttributeCollision: !!found,
             collidingSku: found?.sku
         };
-    }, [isEdit, variant, wVal, lVal, tVal, cVal, isCustomColor, isCustomSize, variantsData]);
+    }, [isEdit, variant, isCustomColor, isCustomSize, variantsData]);
 
     const isColorWithoutSize = isCustomColor && !isCustomSize;
+
 
     // ── Methods ─────────────────────────────────────────────────────────
     const handleRegenerateSku = useCallback(() => {
         if (isEdit) return;
         const color = form.getValues('colorName');
-        const base = productSlug.trim().toUpperCase() || 'PRODUCT';
-        const colorPart = color ? `-${color.toUpperCase()}` : '';
+        // 🔥 Senior Fix: Use name-based slug to avoid redundant category prefixes often present in URL slugs
+        const nameSlug = toSlug(productName).toUpperCase();
+        const base = nameSlug || productSlug.trim().toUpperCase() || 'PRODUCT';
+        
+        let colorPart = '';
+        if (color) {
+            const slugColor = toSlug(color).toUpperCase();
+            // Only append color if it's not already part of the base name
+            if (!base.includes(slugColor)) {
+                colorPart = `-${slugColor}`;
+            }
+        }
+
         const count = String(variantCount + 1).padStart(2, '0');
         form.setValue('sku', `${base}${colorPart}-V${count}`, { shouldValidate: true });
-    }, [isEdit, productSlug, variantCount, form]);
+    }, [isEdit, productName, productSlug, variantCount, form]);
 
     const handleColorChange = useCallback((name: string, hex: string) => {
         form.setValue('colorName', name, { shouldValidate: true });
@@ -254,9 +238,9 @@ export function useVariantForm({
         }
     }, [isCustomSize, form]);
 
-    const [colorName, colorHex] = useWatch({ 
-        control: form.control, 
-        name: ['colorName', 'colorHex'] 
+    const [colorName, colorHex] = useWatch({
+        control: form.control,
+        name: ['colorName', 'colorHex']
     });
 
     const pendingCustomsMemo = useMemo(() => pendingCustoms || [], [pendingCustoms]);

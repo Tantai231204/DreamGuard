@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, Calculator, X } from 'lucide-react';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,7 +26,7 @@ interface RichComboItem extends ComboItem {
     salePrice?: number;
 }
 
-export default function ChildComboItems({
+function ChildComboItems({
     childId,
     childName,
     parentChildData,
@@ -35,40 +36,32 @@ export default function ChildComboItems({
     const updateComboMutation = useUpdateCombo();
     const updateComboItemsMutation = useUpdateComboItems();
 
-    // ── Local State For Batch Updates ──────────────────
+    // ── Local State ──────────────────────────────────
     const [draftItems, setDraftItems] = useState<Record<string, number>>({});
     const [draftSalePrice, setDraftSalePrice] = useState<number | null>(null);
-    const [initializedId, setInitializedId] = useState<string | null>(null);
-    const [hasFullDetail, setHasFullDetail] = useState(false);
+    const [deleteItemKey, setDeleteItemKey] = useState<string | null>(null);
+    const [lastSyncedId, setLastSyncedId] = useState<string | null>(null);
+    const [isFullySynced, setIsFullySynced] = useState(false);
 
-    // Sync state during render (React handles this safely if it's conditional)
-    // This avoids useEffect cascading renders and is the recommended way to sync props to state.
-    if (childId !== initializedId || (detail && !hasFullDetail)) {
-        const source = detail || parentChildData;
+    // ── State Synchronization ────────────────────────
+    const source = detail || parentChildData;
+
+    if (childId !== lastSyncedId || (detail && !isFullySynced)) {
         if (source) {
             const itemMap: Record<string, number> = {};
-            if (detail) {
-                detail.items?.forEach(i => {
-                    const key = i.variantId || i.productId || '';
-                    itemMap[key] = i.quantity;
-                });
-                setHasFullDetail(true);
-            } else if (parentChildData) {
-                parentChildData.items?.forEach(i => {
-                    const key = i.variantId || i.productId || '';
-                    itemMap[key] = i.quantity;
-                });
-                setHasFullDetail(false);
-            }
-
+            source.items?.forEach(i => {
+                const key = i.variantId || i.productId || '';
+                itemMap[key] = i.quantity;
+            });
             setDraftItems(itemMap);
             setDraftSalePrice(source.salePrice);
-            setInitializedId(childId);
+            setLastSyncedId(childId);
+            setIsFullySynced(!!detail);
         }
     }
 
     // ── Calculations ─────────────────────────────────
-    const items = useMemo(() => toComboItems(detail || parentChildData) as RichComboItem[], [detail, parentChildData]);
+    const items = useMemo(() => toComboItems(source) as RichComboItem[], [source]);
 
     const theoreticalValue = useMemo(() => {
         return items.reduce((sum, item) => {
@@ -79,38 +72,36 @@ export default function ChildComboItems({
         }, 0);
     }, [items, draftItems]);
 
-    // Senior UX: Sync draftSalePrice with theoretical sum during render (no useEffect needed)
-    const [prevTheoreticalValue, setPrevTheoreticalValue] = useState(theoreticalValue);
-    if (theoreticalValue !== prevTheoreticalValue) {
-        setPrevTheoreticalValue(theoreticalValue);
-        // Only auto-sync if it was already in a "matched" state (no discount)
-        if (draftSalePrice === prevTheoreticalValue || (draftSalePrice === null && detail?.salePrice === prevTheoreticalValue)) {
-            setDraftSalePrice(theoreticalValue);
-        }
-    }
-
+    // Reliable Change Detection
     const itemsChanged = useMemo(() => {
-        if (!detail) return false;
-        return detail.items?.some(i => {
-             const key = i.variantId || i.productId || '';
-             const currentQty = draftItems[key];
-             return currentQty !== undefined && currentQty !== i.quantity;
-        }) ?? false;
-    }, [detail, draftItems]);
+        if (!source?.items || Object.keys(draftItems).length === 0) return false;
+        
+        // Filter out items that are marked for deletion (quantity 0) from both sides if needed,
+        // but since we keep them in the array, direct comparison is fine.
+        return source.items.some(i => {
+            const key = i.variantId || i.productId || '';
+            const currentQty = draftItems[key];
+            // Only flag as changed if we have a valid draft value that differs from server
+            return currentQty !== undefined && currentQty !== i.quantity;
+        });
+    }, [source, draftItems]);
 
     const isDirty = useMemo(() => {
-        if (!detail) return false;
+        if (!source) return false;
         if (itemsChanged) return true;
-        if (draftSalePrice !== detail.salePrice) return true;
-        return false;
-    }, [detail, itemsChanged, draftSalePrice]);
+        return draftSalePrice !== null && draftSalePrice !== source.salePrice;
+    }, [source, itemsChanged, draftSalePrice]);
+
+    // User request: Show note whenever there is a mismatch, only allow apply when matched
+    const hasMismatch = Math.abs((draftSalePrice || 0) - theoreticalValue) > 0.01;
+    const canApply = isDirty && !hasMismatch;
 
     // ── Handlers ─────────────────────────────────────
-    const handleQuantityChange = (itemKey: string, newQty: number) => {
+    const handleQuantityChange = useCallback((itemKey: string, newQty: number) => {
         setDraftItems(prev => ({ ...prev, [itemKey]: Math.max(1, newQty) }));
-    };
+    }, []);
 
-    const handleReset = () => {
+    const handleReset = useCallback(() => {
         if (!detail) return;
         const itemMap: Record<string, number> = {};
         detail.items?.forEach(i => {
@@ -119,7 +110,7 @@ export default function ChildComboItems({
         });
         setDraftItems(itemMap);
         setDraftSalePrice(detail.salePrice);
-    };
+    }, [detail]);
 
     const handleSaveAll = async () => {
         if (!detail) return;
@@ -179,40 +170,37 @@ export default function ChildComboItems({
     };
 
     const handleDeleteItem = async (itemKey: string) => {
-        if (!detail || !confirm('Remove this item from combo?')) return;
-        const [pId] = itemKey.split('|');
+        setDeleteItemKey(itemKey);
+    };
 
-        const updatedItems = detail.items?.filter(i => {
-             const id = i.variantId || i.productId || '';
-             return id !== pId;
-        }) || [];
+    const confirmDelete = async () => {
+        if (!deleteItemKey || !childId) return;
+        
+        // Use filtering to remove the item and preserve draft quantities for remaining items
+        const itemsUpdate = items
+            .filter(item => {
+                const id = String(item.variantId || item.productId);
+                return id !== String(deleteItemKey);
+            })
+            .map(item => {
+                const id = String(item.variantId || item.productId);
+                return {
+                    productVariantId: id,
+                    quantity: draftItems[id] ?? item.quantity
+                };
+            });
 
-        const itemsUpdate = updatedItems.map(i => {
-            const id = i.variantId || i.productId || '';
-            return {
-                productVariantId: id,
-                quantity: draftItems[id] ?? i.quantity
-            };
-        });
-
-        await updateComboMutation.mutateAsync({
-            id: childId,
-            data: {
-                name: detail.name,
-                slug: detail.slug,
-                ageGroup: detail.ageGroup ?? 0,
-                color: detail.color,
-                size: detail.size,
-                basePrice: detail.basePrice,
-                description: detail.description,
-                imageUrl: detail.imageUrl,
-                imagePublicId: detail.imagePublicId,
-                status: detail.status,
-                comboParentId: detail.comboParentId ?? undefined,
-                salePrice: draftSalePrice ?? detail.salePrice,
-                items: itemsUpdate
-            }
-        });
+        try {
+            await updateComboItemsMutation.mutateAsync({ 
+                id: childId, 
+                items: itemsUpdate 
+            });
+            toast.success("Item removed from combo structure.");
+        } catch (error) {
+            console.error("Deletion failed:", error);
+        } finally {
+            setDeleteItemKey(null);
+        }
     };
 
     // ── Render Helpers ───────────────────────────────
@@ -251,13 +239,13 @@ export default function ChildComboItems({
                 </div>
                 <div className="divide-y divide-slate-50">
                     {items.map((item, i) => {
-                        const key = item.variantId || item.productId || '';
+                        const itemKey = item.variantId || item.productId || `fallback-${i}`;
                         return (
                             <ComboVariantRow
-                                key={`${item.productId}|${item.variantId ?? i}`}
+                                key={itemKey}
                                 item={{
                                     ...item,
-                                    quantity: draftItems[key] ?? item.quantity
+                                    quantity: draftItems[itemKey] ?? item.quantity
                                 }}
                                 onQuantityChange={handleQuantityChange}
                                 onDelete={handleDeleteItem}
@@ -269,8 +257,8 @@ export default function ChildComboItems({
                 </div>
             </div>
 
-            {/* Change Notice */}
-            {isDirty && (
+            {/* Change Notice - Always show if mismatched */}
+            {hasMismatch && (
                 <motion.div 
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -363,11 +351,11 @@ export default function ChildComboItems({
                             )}
                             <Button
                                 onClick={handleSaveAll}
-                                disabled={updateComboMutation.isPending || !isDirty}
+                                disabled={updateComboItemsMutation.isPending || !canApply}
                                 size="sm"
                                 className={cn(
                                     "h-9 px-5 rounded-lg font-bold uppercase text-[10px] tracking-wider transition-all",
-                                    isDirty
+                                    canApply
                                         ? "bg-primary-600 hover:bg-primary-700 text-white shadow-sm"
                                         : "bg-slate-100 text-slate-400"
                                 )}
@@ -378,29 +366,42 @@ export default function ChildComboItems({
                     </div>
                 </div>
 
-                {/* Dynamic Progress Bar (Only show when saving) */}
-                <AnimatePresence>
-                    {updateComboMutation.isPending && (
+            {/* Dynamic Progress Bar (Only show when saving) */}
+            <AnimatePresence>
+                {updateComboMutation.isPending && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 2, opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="w-full bg-slate-100 overflow-hidden relative"
+                    >
                         <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 2, opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            className="w-full bg-slate-100 overflow-hidden relative"
-                        >
-                            <motion.div
-                                initial={{ width: "0%" }}
-                                animate={{ width: "100%" }}
-                                transition={{
-                                    duration: 1.5,
-                                    ease: "easeInOut",
-                                }}
-                                className="h-full bg-primary-500"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-1/2 animate-[shimmer_1.5s_infinite] -translate-x-full" />
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                            initial={{ width: "0%" }}
+                            animate={{ width: "100%" }}
+                            transition={{
+                                duration: 1.5,
+                                ease: "easeInOut",
+                            }}
+                            className="h-full bg-primary-500"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-1/2 animate-[shimmer_1.5s_infinite] -translate-x-full" />
+                    </motion.div>
+                )}
+            </AnimatePresence>
             </div>
+
+            <ConfirmDialog
+                open={!!deleteItemKey}
+                onOpenChange={(open) => !open && setDeleteItemKey(null)}
+                title="Remove Component?"
+                description="Are you sure you want to remove this product from the combo variant structure? This will synchronize with the server immediately."
+                onConfirm={confirmDelete}
+                confirmText="Remove Component"
+                variant="danger"
+                isLoading={updateComboItemsMutation.isPending}
+            />
         </div>
     );
 }
+
+export default memo(ChildComboItems);

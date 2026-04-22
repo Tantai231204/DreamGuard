@@ -35,13 +35,13 @@ function App() {
     const refreshCart = () => {
       const state = useCartStore.getState();
       const { isAuthenticated: isAuth } = useAuthStore.getState();
-      
+
       console.log(`[App] refreshCart triggered. Auth: ${isAuth}, Has state: ${!!state}`);
       if (!isAuth) return;
 
       const hasGuestItems = state.cart.some(i => i.id.startsWith('l_') || i.id.startsWith('c_'));
       console.log(`[App] hasGuestItems: ${hasGuestItems}`);
-      
+
       if (hasGuestItems) {
         state.syncWithServer();
       } else {
@@ -49,12 +49,11 @@ function App() {
       }
     };
 
-    // 4. Auth Transition Sync
-    if (isAuthenticated !== prevAuth.current) {
-      console.log(`[App] Auth transition detected: ${prevAuth.current} -> ${isAuthenticated}`);
-      if (isAuthenticated) refreshCart();
-      prevAuth.current = isAuthenticated;
+    // 4. Initial Load & Auth Transition Sync
+    if (isAuthenticated) {
+      refreshCart();
     }
+    prevAuth.current = isAuthenticated;
   }, [isAuthenticated, shouldSkipCart]);
 
   return (

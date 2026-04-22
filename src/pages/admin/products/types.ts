@@ -220,6 +220,7 @@ export interface Product {
   minPrice?: number;
   variants?: ProductVariant[];
   assets?: { id: string; url: string; type: string }[];
+  imageUrls?: string[];
   feedbackCount?: number;
 }
 
@@ -463,6 +464,9 @@ export interface AdminProductState {
   productPageData: { totalPages: number; totalCount: number } | undefined;
   isLoadingProducts: boolean;
   refetchProducts: () => void;
+  templates: Product[];
+  isLoadingTemplates: boolean;
+  refetchTemplates: () => void;
   combos: Combo[];
   comboPageData: { totalPages: number; totalCount: number } | undefined;
   isLoadingCombos: boolean;
