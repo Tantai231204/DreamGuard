@@ -117,7 +117,12 @@ export default function Header() {
                                 <div className="flex items-center gap-4">
                                     <button className="text-[9px] font-black uppercase tracking-widest hover:opacity-80 transition-opacity">Eng</button>
                                     <div className="w-px h-3 bg-white/20" />
-                                    <button className="text-[9px] font-black uppercase tracking-widest hover:opacity-80 transition-opacity">Track Order</button>
+                                    <Link 
+                                        to={`${AppRoute.PROFILE}?tab=orders`}
+                                        className="text-[9px] font-black uppercase tracking-widest hover:opacity-80 transition-opacity"
+                                    >
+                                        Track Order
+                                    </Link>
                                 </div>
                             </div>
                         </div>

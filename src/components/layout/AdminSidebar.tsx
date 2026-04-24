@@ -4,12 +4,10 @@ import { useQuery } from '@tanstack/react-query';
 import {
   LayoutDashboard,
   ShoppingCart,
-  Settings,
   ChevronLeft,
   ChevronRight,
   Package,
   Users,
-  BarChart3,
   LogOut,
   Sparkles,
   FolderTree,
@@ -58,7 +56,6 @@ const navSections: NavSection[] = [
     label: 'Overview',
     items: [
       { title: 'Dashboard', href: '/admin', icon: LayoutDashboard, allowedRoles: ADMIN_MANAGER },
-      { title: 'Analytics', href: '/admin/analytics', icon: BarChart3, allowedRoles: ADMIN_MANAGER },
     ],
   },
   {
@@ -97,7 +94,6 @@ const navSections: NavSection[] = [
     items: [
       { title: 'Registry', href: '/admin/system-configs', icon: Activity, allowedRoles: ADMIN_MANAGER },
       { title: 'Audit Logs', href: '/admin/audit-logs', icon: HistoryIcon, allowedRoles: ADMIN_MANAGER },
-      { title: 'Settings', href: '/admin/settings', icon: Settings, allowedRoles: ADMIN_MANAGER },
     ],
   },
   {

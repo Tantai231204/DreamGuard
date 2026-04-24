@@ -27,7 +27,8 @@ export default function CombosPage() {
 
     const {
         combos,
-        comboResponse,
+        totalCount,
+        totalPages,
         isLoading,
         searchQuery,
         setSearchQuery,
@@ -46,7 +47,7 @@ export default function CombosPage() {
                     {/* Sidebar Area */}
                     <aside className="w-full lg:w-[320px] shrink-0">
                         <div className="sticky top-28 space-y-10">
-                            <ComboListHeader totalCount={comboResponse?.totalCount || 0} />
+                            <ComboListHeader totalCount={totalCount} />
                             <ComboFilterSidebar
                                 filters={filters}
                                 onFilterChange={handleFilterChange}
@@ -72,11 +73,11 @@ export default function CombosPage() {
                         />
 
                         {/* Pagination */}
-                        {!isLoading && comboResponse && comboResponse.totalPages > 1 && (
+                        {!isLoading && totalPages > 1 && (
                             <div className="pt-10">
                                 <Pagination
                                     currentPage={currentPage}
-                                    totalPages={comboResponse.totalPages}
+                                    totalPages={totalPages}
                                     onPageChange={handlePageChange}
                                 />
                             </div>

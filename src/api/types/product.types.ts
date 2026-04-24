@@ -58,6 +58,7 @@ export interface AdminProductParams {
 export interface ProductParams {
   cateId?: number;
   pageNumber?: number;
+  pageSize?: number;
   color?: string;
   maxPrice?: number;
   maxAgeGroup?: number;

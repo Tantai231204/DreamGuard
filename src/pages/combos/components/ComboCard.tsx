@@ -1,4 +1,4 @@
-import type { FC } from "react"
+import { memo, type FC } from "react"
 import { Link } from "react-router-dom"
 import { motion } from "framer-motion"
 import { Badge } from "@/components/ui/badge"
@@ -12,7 +12,7 @@ interface ComboCardProps {
     combo: Combo
 }
 
-export const ComboCard: FC<ComboCardProps> = ({ combo }) => {
+export const ComboCard: FC<ComboCardProps> = memo(({ combo }) => {
     const { data: favorites } = useFavoriteProducts()
     const addFavoriteCombo = useAddFavoriteCombo()
     const deleteFavoriteCombo = useDeleteFavoriteCombo()
@@ -140,4 +140,6 @@ export const ComboCard: FC<ComboCardProps> = ({ combo }) => {
             </Link>
         </motion.div>
     )
-}
+})
+
+ComboCard.displayName = "ComboCard"

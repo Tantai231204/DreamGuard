@@ -1,8 +1,8 @@
-import type { Product } from './productData'
+import type { ProductExtended } from '@/pages/products/utils'
 import ProductCard from './ProductCard'
 
 interface ProductGridProps {
-    products: Product[]
+    products: ProductExtended[]
 }
 
 export default function ProductGrid({ products }: ProductGridProps) {

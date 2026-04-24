@@ -1,4 +1,4 @@
-import type { FC } from "react"
+import { memo, type FC } from "react"
 import { Link } from "react-router-dom"
 import { motion } from "framer-motion"
 import { Badge } from "@/components/ui/badge"
@@ -15,7 +15,7 @@ interface ProductCardProps {
     product: Product
 }
 
-export const ProductCard: FC<ProductCardProps> = ({ product }) => {
+export const ProductCard: FC<ProductCardProps> = memo(({ product }) => {
     const { data: favorites } = useFavoriteProducts()
     const addFavorite = useAddFavorite()
     const deleteFavorite = useDeleteFavorite()
@@ -146,6 +146,6 @@ export const ProductCard: FC<ProductCardProps> = ({ product }) => {
             </Link>
         </motion.div>
     )
-}
+})
 
 ProductCard.displayName = "ProductCard"

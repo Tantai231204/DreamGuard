@@ -30,12 +30,13 @@ export const comboKeys = {
 // ========================
 
 /** Fetch public paginated combos list */
-export const usePublicCombos = (params: ComboParams = {}) => {
+export const usePublicCombos = (params: ComboParams = {}, enabled = true) => {
   return useQuery({
     queryKey: comboKeys.public(params),
     queryFn: () => comboService.getAllPublic(params),
     placeholderData: keepPreviousData,
     staleTime: 2 * 60 * 1000,
+    enabled,
   });
 };
 

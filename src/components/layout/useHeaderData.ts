@@ -112,7 +112,7 @@ export function useHeaderData() {
             href: AppRoute.COMBOS 
         });
         items.push({ label: "Services", href: "/services" });
-        items.push({ label: "About", href: "/about" });
+        items.push({ label: "About", href: AppRoute.ABOUT });
 
         return items;
     }, [categories]);

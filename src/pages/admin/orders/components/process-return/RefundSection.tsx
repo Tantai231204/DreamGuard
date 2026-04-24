@@ -3,7 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { RotateCcw, Percent, Calculator } from "lucide-react";
 import { formatPrice } from "@/pages/profile/utils";
-import { memo } from "react";
+import { memo, useEffect, useState } from "react";
 
 interface RefundSectionProps {
   hasDamages?: boolean;
@@ -28,6 +28,17 @@ export const RefundSection = memo(function RefundSection({
   paymentMethod,
   paymentStatus,
 }: RefundSectionProps) {
+  const [localPercentage, setLocalPercentage] = useState(percentage.toString());
+  const [localAmount, setLocalAmount] = useState(refundAmount.toLocaleString('vi-VN'));
+
+  useEffect(() => {
+    setLocalPercentage(percentage.toString());
+  }, [percentage]);
+
+  useEffect(() => {
+    setLocalAmount(refundAmount.toLocaleString('vi-VN'));
+  }, [refundAmount]);
+
   return (
     <div className={cn(
       "border-t border-slate-100 animate-in fade-in slide-in-from-top-2 duration-300",
@@ -38,14 +49,19 @@ export const RefundSection = memo(function RefundSection({
         <span className={cn("font-black text-slate-500 uppercase tracking-widest", compact ? "text-[8px]" : "text-[11px]")}>Settlement Setup</span>
       </div>
 
-      <div className={cn("grid grid-cols-2", compact ? "gap-3" : "gap-4")}>
+      <div className={cn("grid grid-cols-1 sm:grid-cols-2", compact ? "gap-3" : "gap-4")}>
         <div className="space-y-1.5">
           <Label className={cn("font-black text-slate-400 uppercase tracking-widest ml-1", compact ? "text-[8px]" : "text-[10px]")}>Percent (%)</Label>
           <div className="relative group">
             <Input
               type="number"
-              value={percentage}
-              onChange={(e) => setPercentage(Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)))}
+              value={localPercentage}
+              onChange={(e) => {
+                setLocalPercentage(e.target.value);
+                const val = Math.min(100, Math.max(0, parseFloat(e.target.value) || 0));
+                setPercentage(val);
+              }}
+              onBlur={() => setLocalPercentage(percentage.toString())}
               className={cn(
                 "rounded-xl border-slate-200 font-bold shadow-none pl-8 bg-white transition-all focus:ring-0",
                 compact ? "h-9 text-[11px]" : "h-10 text-sm",
@@ -60,13 +76,14 @@ export const RefundSection = memo(function RefundSection({
           <div className="relative group">
             <Input
               type="text"
-              value={refundAmount.toLocaleString('vi-VN')}
+              value={localAmount}
               onChange={(e) => {
                 const rawVal = e.target.value.replace(/\D/g, '');
+                setLocalAmount(e.target.value);
                 const val = Math.min(totalPrice, parseInt(rawVal) || 0);
                 setRefundAmount(val);
-                setPercentage(Math.round((val / totalPrice) * 100));
               }}
+              onBlur={() => setLocalAmount(refundAmount.toLocaleString('vi-VN'))}
               className={cn(
                 "rounded-xl border-slate-200 font-bold shadow-none pl-8 bg-white transition-all focus:ring-0",
                 compact ? "h-9 text-[11px]" : "h-10 text-sm",
@@ -81,8 +98,8 @@ export const RefundSection = memo(function RefundSection({
       <div className={cn(
         "rounded-xl border flex items-center justify-between transition-all duration-500",
         compact ? "p-2" : "p-3",
-        hasDamages 
-          ? "bg-rose-50/50 border-rose-100/50" 
+        hasDamages
+          ? "bg-rose-50/50 border-rose-100/50"
           : "bg-blue-50/50 border-blue-100/50"
       )}>
         <div className="flex flex-col">
@@ -91,14 +108,14 @@ export const RefundSection = memo(function RefundSection({
             compact ? "text-[8px]" : "text-[10px]",
             hasDamages ? "text-rose-400" : "text-blue-400"
           )}>Projected Settlement</span>
-          
+
           <div className="flex items-center gap-2 mt-0.5">
             <span className={cn(
               "font-medium leading-none",
               compact ? "text-[9px]" : "text-xs",
               hasDamages ? "text-rose-600/60" : "text-blue-600/60"
             )}>Legitimacy Verified</span>
-            
+
             {paymentMethod && (
               <span className={cn(
                 "font-black uppercase bg-white/60 px-1.5 py-0.5 rounded border border-slate-200/30",

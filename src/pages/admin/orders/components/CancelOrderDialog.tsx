@@ -60,11 +60,25 @@ export function CancelOrderDialog({
   const [percentage, setPercentage] = React.useState<number>(100);
   const [refundAmount, setRefundAmount] = React.useState<number>(totalPrice);
 
+  // Sync refund amount when total price changes (e.g. when dialog opens with new order)
   React.useEffect(() => {
-    if (totalPrice > 0) {
-      setRefundAmount((totalPrice * percentage) / 100);
+    if (open) {
+      setRefundAmount(totalPrice);
+      setPercentage(100);
     }
-  }, [percentage, totalPrice]);
+  }, [open, totalPrice]);
+
+  const handleSetPercentage = React.useCallback((val: number) => {
+    setPercentage(val);
+    setRefundAmount((totalPrice * val) / 100);
+  }, [totalPrice]);
+
+  const handleSetRefundAmount = React.useCallback((val: number) => {
+    setRefundAmount(val);
+    if (totalPrice > 0) {
+      setPercentage(Math.round((val / totalPrice) * 100));
+    }
+  }, [totalPrice]);
 
   const handleConfirm = () => {
     const finalReason = selectedReason === "Other" ? otherReason : selectedReason;
@@ -87,7 +101,7 @@ export function CancelOrderDialog({
     if (!isLoading) {
       onOpenChange(val);
       if (!val) {
-        setSelectedReason(isRefundOnly ? "Customer requested cancellation" : "");
+        setSelectedReason(isRefundOnly ? "Return" : "");
         setOtherReason("");
         setError("");
       }
@@ -179,7 +193,8 @@ export function CancelOrderDialog({
                     Details <span className="text-rose-500">*</span>
                   </label>
                   <Textarea
-                    placeholder="Specify relevant details..."
+                    autoFocus
+                    placeholder="Specify relevant details (minimum 10 characters)..."
                     className="min-h-[120px] rounded-xl border-slate-200 bg-white focus:ring-4 focus:ring-primary/5 focus:border-primary/20 transition-all resize-none text-xs font-medium p-4 shadow-sm"
                     value={otherReason}
                     onChange={(e) => setOtherReason(e.target.value)}
@@ -196,11 +211,8 @@ export function CancelOrderDialog({
                   percentage={percentage}
                   refundAmount={refundAmount}
                   totalPrice={totalPrice}
-                  setPercentage={setPercentage}
-                  setRefundAmount={(val: number) => {
-                    setRefundAmount(val);
-                    setPercentage(totalPrice > 0 ? Math.round((val / totalPrice) * 100) : 0);
-                  }}
+                  setPercentage={handleSetPercentage}
+                  setRefundAmount={handleSetRefundAmount}
                 />
               </div>
             )}
