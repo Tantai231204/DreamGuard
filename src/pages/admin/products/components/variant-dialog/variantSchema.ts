@@ -14,7 +14,8 @@ export const variantSchema = z.object({
         .min(0, "Weight cannot be negative"),
     stockQuantity: z.coerce.number()
         .int("Stock must be a whole number")
-        .min(0, "Stock cannot be negative"),
+        .min(0, "Stock cannot be negative")
+        .max(999, "Stock quantity cannot exceed 999"),
     status: z.string().min(1, "Status is required"),
     isNew: z.boolean().default(false),
     isCustomizable: z.boolean().default(false),

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { createColumnHelper } from '@tanstack/react-table';
-import { Eye, Trash2 } from 'lucide-react';
+import { Eye, Trash2, ShoppingBag, RotateCcw } from 'lucide-react';
 
 import { AdminStatusBadge, AdminRowActions } from '@/components/admin';
 import type { TradeInOrderListItem } from '@/api/types/tradeInOrder';
@@ -9,12 +9,14 @@ import { formatPrice } from '@/pages/profile/utils';
 import { formatDate, formatTime } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { SortableHeader } from '@/components/admin';
-import { tradeInStatusBadgeValue } from './tradeInStatus';
+import { tradeInStatusBadgeValue } from '../utils/tradeInStatus';
 import { isTradeInAdminCancelableStatus } from '@/utils/tradeInWorkflow';
 
 const columnHelper = createColumnHelper<TradeInOrderListItem>();
 
-export const useTradeInOrderColumns = (onCancel: (order: TradeInOrderListItem) => void) => {
+export const useTradeInOrderColumns = (
+  onCancel: (order: TradeInOrderListItem, isRefundOnly?: boolean) => void,
+) => {
   return useMemo(
     () => [
       columnHelper.display({
@@ -25,10 +27,21 @@ export const useTradeInOrderColumns = (onCancel: (order: TradeInOrderListItem) =
       }),
       columnHelper.accessor('orderCode', {
         enableSorting: true,
-        header: ({ column }) => <SortableHeader column={column} label="Order ID" />,
+        header: ({ column }) => <SortableHeader column={column} label="Trade-In ID" />,
         cell: ({ row }) => (
-          <div className="font-mono text-sm font-bold text-[#4988c4]">
-            #{row.original.orderCode}
+          <div className="flex flex-col gap-1">
+            <div className="font-mono text-sm font-bold text-[#4988c4]">
+              #{row.original.orderCode}
+            </div>
+            {row.original.orderId && (
+              <Link
+                to={`/admin/orders/${row.original.orderId}`}
+                className="text-[10px] font-bold text-gray-400 uppercase tracking-tight hover:text-primary hover:underline flex items-center gap-1"
+              >
+                <ShoppingBag className="w-2.5 h-2.5" />
+                Root: {row.original.orderId.substring(0, 8)}...
+              </Link>
+            )}
           </div>
         ),
       }),
@@ -112,15 +125,32 @@ export const useTradeInOrderColumns = (onCancel: (order: TradeInOrderListItem) =
           };
 
           const cancelAction = {
-            label: 'Cancel Order',
+            label: 'Terminate Request',
             icon: <Trash2 className="h-4 w-4 text-rose-500" />,
             variant: 'danger' as const,
-            onClick: () => onCancel(row.original),
+            onClick: () => onCancel(row.original, false),
           };
 
-          const actions = isTradeInAdminCancelableStatus(row.original.status)
-            ? [viewAction, cancelAction]
-            : [viewAction];
+          const isVNPayPaid = row.original.paymentMethod?.toLowerCase() === 'vnpay' &&
+            (row.original.paymentStatus?.toLowerCase() === 'paid' || row.original.paymentStatus?.toLowerCase() === 'codpaid');
+
+          const refundAction = {
+            label: 'Authorize Refund',
+            icon: <RotateCcw className="h-4 w-4 text-blue-500" />,
+            variant: 'default' as const,
+            onClick: () => onCancel(row.original, true),
+          };
+
+          const actions = [];
+          actions.push(viewAction);
+
+          if (isTradeInAdminCancelableStatus(row.original.status)) {
+            actions.push(cancelAction);
+          }
+
+          if (isVNPayPaid && row.original.amountToPay > 0) {
+            actions.push(refundAction);
+          }
 
           return (
             <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>

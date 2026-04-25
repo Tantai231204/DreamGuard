@@ -15,6 +15,7 @@ interface SizeSelectorProps {
   mode?: 'mock' | 'input';
   customDimensions?: { width: string; height: string };
   onDimensionsChange?: (dims: { width: string; height: string }) => void;
+  recommendedDims?: { width: number; height: number };
 }
 
 // Extract just the size name (first part before dash/space)
@@ -36,13 +37,25 @@ export const SizeSelector = memo(({
   onModeChange,
   mode = 'mock',
   customDimensions = { width: "", height: "" },
-  onDimensionsChange
+  onDimensionsChange,
+  recommendedDims
 }: SizeSelectorProps) => {
+  const isRecommended = recommendedDims && 
+    parseInt(customDimensions.width) === recommendedDims.width && 
+    parseInt(customDimensions.height) === recommendedDims.height;
+
   return (
     <div className="space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Dimensions</p>
+        <div className="flex items-center gap-2">
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Dimensions</p>
+          {isRecommended && mode === 'input' && (
+            <span className="text-[8px] font-black text-emerald-500 uppercase bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 animate-in fade-in slide-in-from-left-1">
+              ✨ Recommended
+            </span>
+          )}
+        </div>
         <div className="flex bg-slate-100 p-0.5 rounded-lg">
           <button
             onClick={() => onModeChange?.('mock')}

@@ -1,6 +1,5 @@
 import React, { useCallback, useMemo } from "react"
 import { useOrderDetail, useCancelOrder } from "@/hooks/queries/useOrder"
-import { usePaymentByOrderId } from "@/hooks/queries/usePayment"
 import {
     Dialog,
     DialogContent,
@@ -25,6 +24,7 @@ import {
     PaymentDetailsCard,
     ShipperInfoSection
 } from "./components"
+import { OrderDetailSkeleton } from "@/components/common/Skeletons"
 
 const MAX_VISIBLE = 3;
 
@@ -32,19 +32,40 @@ interface OrderDetailDialogProps {
     orderId: string
     orderCode: string
     trigger: React.ReactNode
+    open?: boolean
+    onOpenChange?: (open: boolean) => void
+    initialTab?: "details" | "review"
 }
 
-export function OrderDetailDialog({ orderId, orderCode, trigger }: OrderDetailDialogProps) {
+export function OrderDetailDialog({ 
+    orderId, 
+    orderCode, 
+    trigger, 
+    open, 
+    onOpenChange,
+    initialTab = "details" 
+}: OrderDetailDialogProps) {
     const [confirmOpen, setConfirmOpen] = React.useState(false)
     const [itemsExpanded, setItemsExpanded] = React.useState(false)
     const toast = useToast()
     const { data: order, isPending } = useOrderDetail(orderId)
-    const { data: payment } = usePaymentByOrderId(orderId)
     const { mutate: cancelOrder, isPending: isCancelling } = useCancelOrder({ meta: { hideToast: true } })
     const navigate = useNavigate()
 
+    // Scroll to items if initialTab is "review"
+    React.useEffect(() => {
+        if (open && initialTab === "review" && !isPending) {
+            setTimeout(() => {
+                const element = document.getElementById("order-items-section");
+                if (element) {
+                    element.scrollIntoView({ behavior: "smooth", block: "start" });
+                }
+            }, 300);
+        }
+    }, [open, initialTab, isPending]);
+
     const theme = useMemo(() => order ? getStatusTheme(order.status) : getStatusTheme("Pending"), [order])
-    const isCancelled = theme.label === "Cancelled"
+    const isCancelled = theme.label.toLowerCase().includes("cancel")
     const canCancel = theme.step === 0
 
     const allItems = useMemo(() => order?.items || [], [order?.items])
@@ -64,9 +85,10 @@ export function OrderDetailDialog({ orderId, orderCode, trigger }: OrderDetailDi
         navigate(`/cart?reorder=${orderId}`)
     }, [order?.items?.length, navigate, orderId])
 
-    const handleDialogChange = useCallback((open: boolean) => {
-        if (!open) setItemsExpanded(false)
-    }, [])
+    const handleDialogChange = useCallback((newOpen: boolean) => {
+        if (!newOpen) setItemsExpanded(false)
+        onOpenChange?.(newOpen)
+    }, [onOpenChange])
 
     const handleCancelConfirm = useCallback(() => {
         cancelOrder(orderId, {
@@ -85,7 +107,7 @@ export function OrderDetailDialog({ orderId, orderCode, trigger }: OrderDetailDi
 
     return (
         <>
-            <Dialog onOpenChange={handleDialogChange}>
+            <Dialog open={open} onOpenChange={handleDialogChange}>
                 <DialogTrigger asChild>{trigger}</DialogTrigger>
                 <DialogContent className="max-w-3xl max-h-[92vh] overflow-hidden flex flex-col p-0 rounded-xl border-none shadow-2xl bg-gray-50">
                     {/* Header */}
@@ -112,10 +134,7 @@ export function OrderDetailDialog({ orderId, orderCode, trigger }: OrderDetailDi
                     {/* Body */}
                     <div className="flex-1 overflow-y-auto no-scrollbar">
                         {isPending ? (
-                            <div className="flex flex-col items-center justify-center py-40 gap-4 bg-white">
-                                <div className="w-7 h-7 border-[3px] border-[#4988c4] border-t-transparent rounded-full animate-spin" />
-                                <p className="text-[12px] font-bold text-gray-400 tracking-wider uppercase">Loading secure details...</p>
-                            </div>
+                            <OrderDetailSkeleton />
                         ) : order ? (
                             <div className="space-y-3">
                                 <OrderStepFlow step={theme.step} color={theme.color} isCancelled={isCancelled} />
@@ -134,7 +153,7 @@ export function OrderDetailDialog({ orderId, orderCode, trigger }: OrderDetailDi
                                         <ChevronRight className="w-4 h-4 text-gray-300" />
                                     </div>
                                     <div className="divide-y divide-gray-50">
-                                        {visibleItems.map((item) => <OrderItemRow key={item.id} item={item} orderStatus={order.status} />)}
+                                        {visibleItems.map((item) => <OrderItemRow key={item.id} item={item} orderStatus={order.status} orderId={order.id} />)}
                                     </div>
                                     {needsCollapse && (
                                         <button
@@ -153,7 +172,7 @@ export function OrderDetailDialog({ orderId, orderCode, trigger }: OrderDetailDi
                                     <PricingSummary order={order} />
                                     <div className="mx-6 mt-5 pt-4 border-t border-slate-100/80">
                                         <PaymentDetailsCard
-                                            payments={payment ? [payment] : undefined}
+                                            orderCode={orderCode}
                                             fallbackPayment={{
                                                 id: order.orderCode,
                                                 orderCode: order.orderCode,

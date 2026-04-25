@@ -66,6 +66,8 @@ const STATUS_MAP: Record<string, StatusType> = {
   'deleted': 'danger',
   'hidden': 'info', // Screenshot has blue for Hidden (Sky/Info)
   'refund': 'rose',
+  'refunding': 'sky',
+  'refunded': 'emerald',
   'service': 'primary',
   'order': 'info',
   'purchase': 'emerald',
@@ -77,6 +79,10 @@ const STATUS_MAP: Record<string, StatusType> = {
   'checked_out': 'neutral',
   'inprogress': 'amber',
   'in_progress': 'amber',
+  'assigned': 'sky',
+  'reassigned': 'neutral',
+  'dispatched': 'info',
+  'rescheduled': 'amber',
 
   // Neutral for fallback
   'archived': 'neutral',
@@ -186,6 +192,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   '9': History,
   'cancelled': X,
   'error': X,
+  'failed': X,
   '6': X,
   'refunded_and_damaged': ShieldAlert,
   'refundedanddamaged': ShieldAlert,
@@ -228,6 +235,8 @@ const ICON_MAP: Record<string, React.ElementType> = {
   'purchase': CreditCard,
   'deposit': CreditCard,
   'refund': RotateCcw,
+  'refunding': RefreshCcw,
+  'refunded': ShieldCheck,
   'service': Sparkles,
   'order': Package,
   'tradein': RefreshCcw,
@@ -237,6 +246,10 @@ const ICON_MAP: Record<string, React.ElementType> = {
   'checked_out': MinusCircle,
   'inprogress': Clock4,
   'in_progress': Clock4,
+  'assigned': MinusCircle,
+  'reassigned': RotateCcw,
+  'dispatched': Truck,
+  'rescheduled': History,
 };
 
 const PAYMENT_CONFIG: Record<string, { container: string, textColor: string, iconBg: string, icon: string }> = {
@@ -258,7 +271,8 @@ const PAYMENT_STATUS_MAP: Record<string, { type: StatusType, label: string, icon
   'pending_payment': { type: 'warning', label: 'Pending Payment', icon: Clock4 },
   'paid': { type: 'success', label: 'Paid', icon: Check },
   'failed': { type: 'danger', label: 'Payment Failed', icon: X },
-  'refunded': { type: 'danger', label: 'Refunded', icon: RotateCcw }, // đổi type sang 'success' (emerald)
+  'refunding': { type: 'sky', label: 'Refunding', icon: RefreshCcw },
+  'refunded': { type: 'emerald', label: 'Refunded', icon: ShieldCheck },
 };
 
 const LABEL_MAP: Record<string, string> = {
@@ -294,7 +308,8 @@ const LABEL_MAP: Record<string, string> = {
   'waiting_for_staff': 'Waiting For Staff',
   'waitingforstaff': 'Waiting For Staff',
   'paid': 'Paid',
-  'failed': 'Payment Failed',
+  'failed': 'Failed',
+  'refunding': 'Refunding',
   'refunded': 'Refunded',
   'published': 'Published',
   'draft': 'Draft',
@@ -312,8 +327,11 @@ const LABEL_MAP: Record<string, string> = {
   'checked_in': 'Checked In',
   'checkedout': 'Checked Out',
   'checked_out': 'Checked Out',
-  'inprogress': 'In Progress',
   'in_progress': 'In Progress',
+  'assigned': 'Assigned',
+  'reassigned': 'Reassigned',
+  'dispatched': 'Dispatched',
+  'rescheduled': 'Rescheduled',
 };
 
 const formatLabelFallback = (label: string) => {

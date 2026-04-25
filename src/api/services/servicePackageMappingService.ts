@@ -1,4 +1,5 @@
 import apiClient from "../../lib/api";
+import type { ServicePackageMappingResponse } from "../../pages/admin/services/components/OrderDetail/types";
 
 export interface ServicePackageMapping {
     servicePackageMappingId?: string;
@@ -43,6 +44,9 @@ const servicePackageMappingService = {
 
     delete: (mappingId: string): Promise<void> =>
         apiClient.delete(`/ServicePackageMappings/${mappingId}`).then(res => res.data?.data ?? res.data),
+
+    getById: (mappingId: string): Promise<ServicePackageMappingResponse> =>
+        apiClient.get(`/ServicePackageMappings/${mappingId}`).then(res => res.data?.data ?? res.data),
 };
 
 export default servicePackageMappingService;

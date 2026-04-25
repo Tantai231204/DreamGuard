@@ -3,11 +3,12 @@ import { persist, createJSONStorage } from "zustand/middleware"
 import cartService, { type CartResponse, type CartItemResponse, type AddCartItemRequest } from "@/api/services/cartService"
 import { toast } from "sonner"
 import { useAuthStore } from "./authStore"
+import { ApiError } from "@/lib/api"
 import { isAnyStaff } from "@/lib/role"
 import * as CryptoJS from "crypto-js"
 import type { CartItem } from "./cartTypes"
 
-// ── Types & Interfaces ──
+// -- Types & Interfaces --
 
 interface CartState {
     cart: CartItem[]
@@ -22,7 +23,7 @@ interface CartState {
     totalTradeInDiscount: number
     finalTotal: number
 
-    fetchCart: () => Promise<void>
+    fetchCart: (force?: boolean) => Promise<void>
     setCartOpen: (open: boolean) => void
     addItem: (item: Omit<CartItem, 'quantity' | 'subtotal' | 'productVariantId' | 'comboId' | 'isAvailable' | 'availableStock' | 'sku'> & {
         quantity?: number;
@@ -33,6 +34,7 @@ interface CartState {
         sku?: string;
     }) => Promise<void>
     updateQuantity: (id: string, delta: number) => Promise<void>
+    setQuantity: (id: string, quantity: number) => Promise<void>
     removeItem: (id: string) => Promise<void>
     clearCart: () => Promise<void>
     resetLocalCart: () => void
@@ -41,13 +43,13 @@ interface CartState {
     batchAddItems: (items: Array<{ productVariantId: string | null; comboId: string | null; quantity: number; configHash?: string; _optimisticData?: CartItem }>) => Promise<void>
 }
 
-// ── Helpers (Private) ──
+// -- Helpers (Private) --
 
 const normalizeAttrKey = (name: string): string => {
     const n = name.toLowerCase().trim();
-    if (n === 'color' || n === 'màu sắc' || n === 'màu') return 'color';
-    if (n === 'size' || n === 'kích thước' || n === 'kích cỡ') return 'size';
-    if ((n.includes('wrap') && n.includes('image')) || n.includes('ảnh bọc')) return 'wrapImage';
+    if (n === 'color' || n === 'mau sac' || n === 'mau') return 'color';
+    if (n === 'size' || n === 'kich thuoc' || n === 'kich co') return 'size';
+    if ((n.includes('wrap') && n.includes('image')) || n.includes('anh boc')) return 'wrapImage';
     return n;
 };
 
@@ -59,25 +61,22 @@ export const generateConfigHash = (
         CustomizeContent?: string;
         customizeTypeId?: string;
         customizeTypeName?: string;
-        customizeContent?: string
+        customizeContent?: string;
     }>
 ) => {
     const base = comboId ? `combo:${comboId}` : `var:${productVariantId || 'base'}`;
     if (!customDetails || customDetails.length === 0) return CryptoJS.MD5(`${base}|std`).toString();
 
-    // Preserve casing for URLs/Content as Cloudinary is case-sensitive
-    // Include type IDs to avoid collisions between different customization types
+    // To bridge the gap between Guest (using IDs) and Server (using Names),
+    // we use the actual customization contents for identification, sorted to ensure stability.
+    // This is safe as mattress dimensions and hex colors have distinct patterns.
     const normalized = customDetails
-        .map(d => {
-            const typeId = (d.ProductCustomizeTypeId || d.customizeTypeId || "").toLowerCase().trim();
-            const content = (d.CustomizeContent || d.customizeContent || "").trim().replace(/\s+/g, '');
-            return `${typeId}:${content}`;
-        })
-        .filter(s => s.length > 1) // Ensure it's not just ":"
+        .map(d => (d.CustomizeContent || d.customizeContent || "").trim().replace(/\s+/g, ''))
+        .filter(s => s.length > 0)
         .sort((a, b) => a.localeCompare(b))
-        .join('&');
+        .join('|');
 
-    return CryptoJS.MD5(`${base}|${normalized}`).toString();
+    return CryptoJS.MD5(`${base}[${normalized}]`).toString();
 };
 
 const calculateTotals = (cart: CartItem[]) => {
@@ -95,8 +94,10 @@ const calculateTotals = (cart: CartItem[]) => {
 }
 
 const debounceTimers: Map<string, ReturnType<typeof setTimeout>> = new Map()
+let lastFetchedAt = 0;
+const FETCH_STALE_MS = 30000; // 30 seconds
 
-// ── Store Implementation ──
+// -- Store Implementation --
 
 export const useCartStore = create<CartState>()(
     persist(
@@ -130,6 +131,7 @@ export const useCartStore = create<CartState>()(
             setCartOpen: (open: boolean) => set({ isCartOpen: open }),
 
             updateStoreFromResponse: (response: unknown) => {
+                console.log("[Cart] updateStoreFromResponse called", response);
                 const responseData = (response as { data?: { items: CartItemResponse[] } })?.data ?? (response as { items: CartItemResponse[] });
                 if (!responseData || !Array.isArray(responseData.items)) return;
 
@@ -138,9 +140,20 @@ export const useCartStore = create<CartState>()(
 
                 for (const sItem of responseData.items) {
                     const apiCustoms = sItem.productCustomizeDetails || [];
-                    const hash = (sItem as CartItemResponse & { configHash?: string }).configHash ||
-                        generateConfigHash(sItem.productVariantId, sItem.comboId, apiCustoms);
-                    serverPool.set(hash, sItem);
+                    // Force re-calculation on client-side to ensure consistency with current logic
+                    const hash = generateConfigHash(sItem.productVariantId, sItem.comboId, apiCustoms);
+
+                    const existing = serverPool.get(hash);
+                    if (existing) {
+                        console.log(`[Cart] Aggregating server line item for hash ${hash}: ${existing.quantity} + ${sItem.quantity}`);
+                        existing.quantity += sItem.quantity;
+                        existing.subTotal = (existing.subTotal || 0) + (sItem.subTotal || 0);
+                        if (existing.id.startsWith('c_') || existing.id.startsWith('l_')) {
+                            existing.id = sItem.id;
+                        }
+                    } else {
+                        serverPool.set(hash, { ...sItem });
+                    }
                 }
 
                 const newCart: CartItem[] = [];
@@ -225,12 +238,21 @@ export const useCartStore = create<CartState>()(
                         if (isPending) {
                             for (const sItem of serverPool.values()) {
                                 // Match only if same variant AND it hasn't been claimed by another hash-match yet
-                                // AND it has a similar number of custom details (heuristic for being the "same" item)
                                 if (sItem.productVariantId === localItem.productVariantId && sItem.comboId === localItem.comboId) {
+                                    // Backup Content Check: If contents are identical, it's the same item even if hash failed
+                                    const sContents = (sItem.productCustomizeDetails || []).map(d => d.customizeContent.trim().toLowerCase()).sort().join('|');
+                                    const lContents = (localItem.ProductCustomizeDetailRequest || []).map(d => d.CustomizeContent.trim().toLowerCase()).sort().join('|');
+
+                                    if (sContents === lContents && sContents.length > 0) {
+                                        likelyMatchedOnServer = true;
+                                        break;
+                                    }
+
+                                    // Heuristic Check: Same number of details
                                     const sCustomLen = sItem.productCustomizeDetails?.length || 0;
                                     const lCustomLen = localItem.ProductCustomizeDetailRequest?.length || 0;
 
-                                    if (Math.abs(sCustomLen - lCustomLen) <= 1) { // Accept minor normalization differences
+                                    if (sCustomLen > 0 && sCustomLen === lCustomLen) {
                                         likelyMatchedOnServer = true;
                                         break;
                                     }
@@ -251,19 +273,19 @@ export const useCartStore = create<CartState>()(
                     // FUZZY RECOVERY: The ultimate matching strategy to bridge Guest -> User gap
                     const sNameRaw = sItem.itemName || "";
                     const sNameNorm = sNameRaw.toLowerCase().replace(/[^a-z0-9]/g, '');
-                    
+
                     const localMatch = currentCart.find(l => {
                         const lNameRaw = l.name || "";
                         const lNameNorm = lNameRaw.toLowerCase().replace(/[^a-z0-9]/g, '');
-                        
-                        const nameMatch = lNameNorm === sNameNorm || 
-                                        (lNameNorm.includes(sNameNorm) && sNameNorm.length > 5) ||
-                                        (sNameNorm.includes(lNameNorm) && lNameNorm.length > 5);
-                        
+
+                        const nameMatch = lNameNorm === sNameNorm ||
+                            (lNameNorm.includes(sNameNorm) && sNameNorm.length > 5) ||
+                            (sNameNorm.includes(lNameNorm) && lNameNorm.length > 5);
+
                         return (l.productVariantId === sItem.productVariantId && l.productVariantId !== null) ||
-                               (l.comboId === sItem.comboId && l.comboId !== null) ||
-                               (l.sku === sItem.sku && sItem.sku) ||
-                               nameMatch;
+                            (l.comboId === sItem.comboId && l.comboId !== null) ||
+                            (l.sku === sItem.sku && sItem.sku) ||
+                            nameMatch;
                     });
 
                     const unitPrice = (sItem.unitPrice || 0) + (sItem.totalAddOnPrice || 0);
@@ -321,8 +343,15 @@ export const useCartStore = create<CartState>()(
                 set({ cart: newCart, ...calculateTotals(newCart) });
             },
 
-            fetchCart: async () => {
+            fetchCart: async (force = false) => {
                 if (get().isFetching) return;
+
+                const now = Date.now();
+                if (!force && now - lastFetchedAt < FETCH_STALE_MS) {
+                    console.log(`[Cart] Skipping fetch - last fetched ${Math.round((now - lastFetchedAt) / 1000)}s ago`);
+                    return;
+                }
+
                 const { isAuthenticated, role } = useAuthStore.getState();
 
                 // Security Guard: Admins and Staff do not have a functional shopping cart via api/cart
@@ -333,6 +362,7 @@ export const useCartStore = create<CartState>()(
                 try {
                     const res = await cartService.getCart();
                     get().updateStoreFromResponse(res);
+                    lastFetchedAt = Date.now();
                 } catch {
                     console.error("[Cart] Fetch error");
                 } finally {
@@ -369,6 +399,13 @@ export const useCartStore = create<CartState>()(
                         if (updatedCart[i].configHash === configHash) {
                             const e = updatedCart[i];
                             const nextQty = e.quantity + qty;
+                            
+                            // Client-side stock guard
+                            if (e.availableStock !== undefined && nextQty > e.availableStock) {
+                                toast.warning(`Cannot add more ${e.name}. Only ${e.availableStock} units available.`);
+                                return;
+                            }
+                            
                             updatedCart[i] = { ...e, quantity: nextQty, subtotal: nextQty * e.price };
                             merged = true;
                             break;
@@ -379,6 +416,7 @@ export const useCartStore = create<CartState>()(
                 set({ cart: updatedCart, ...calculateTotals(updatedCart) });
 
                 if (isAuthenticated) {
+                    const previousCart = currentCart;
                     set(s => ({ loadingIds: [...s.loadingIds, localId] }));
                     try {
                         const res = await cartService.addItem({
@@ -393,11 +431,15 @@ export const useCartStore = create<CartState>()(
                             description: "Your selection has been synchronized.",
                             duration: 3000,
                         });
-                        // Auto-open drawer after animation
                         setTimeout(() => get().setCartOpen(true), 1000);
-                    } catch {
-                        toast.error("Sync failed, retrying...");
-                        await get().fetchCart();
+                    } catch (err: unknown) {
+                        const displayMessage = err instanceof ApiError ? err.message : "Failed to add item";
+                        toast.error("Cart update failed", {
+                            description: displayMessage
+                        });
+                        // Revert and force refresh
+                        set({ cart: previousCart, ...calculateTotals(previousCart) });
+                        await get().fetchCart(true);
                     } finally {
                         set(s => ({ loadingIds: s.loadingIds.filter(id => id !== localId) }));
                     }
@@ -411,18 +453,71 @@ export const useCartStore = create<CartState>()(
                 const newQty = Math.max(1, item.quantity + delta);
                 if (newQty === item.quantity) return;
 
+                // Client-side stock guard for incrementing
+                if (delta > 0 && item.availableStock !== undefined && newQty > item.availableStock) {
+                    toast.warning(`Cannot exceed available stock for ${item.name}. (Limit: ${item.availableStock})`);
+                    return;
+                }
+
                 const updatedCart = cart.map(i => i.id === id ? { ...i, quantity: newQty, subtotal: newQty * i.price } : i);
                 set({ cart: updatedCart, ...calculateTotals(updatedCart) });
 
                 const { isAuthenticated } = useAuthStore.getState();
                 if (isAuthenticated && !id.startsWith('c_') && !id.startsWith('l_')) {
+                    const previousCart = cart; // Snapshot before debiting
                     if (debounceTimers.has(id)) clearTimeout(debounceTimers.get(id));
                     set(s => ({ syncingIds: [...s.syncingIds, id] }));
                     const timer = setTimeout(async () => {
                         try {
-                            await cartService.updateItem(id, newQty);
-                        } catch {
-                            await get().fetchCart();
+                            const res = await cartService.updateItem(id, newQty);
+                            get().updateStoreFromResponse(res);
+                        } catch (err: unknown) {
+                            const displayMessage = err instanceof ApiError ? err.message : "Failed to update quantity";
+                            toast.error("Stock mismatch", {
+                                description: displayMessage
+                            });
+                            // Revert immediately on sync failure
+                            set({ cart: previousCart, ...calculateTotals(previousCart) });
+                            await get().fetchCart(true);
+                        } finally {
+                            set(s => ({ syncingIds: s.syncingIds.filter(sid => sid !== id) }));
+                        }
+                    }, 800);
+                    debounceTimers.set(id, timer);
+                }
+            },
+
+            setQuantity: async (id, quantity) => {
+                const { cart } = get();
+                const item = cart.find(i => i.id === id);
+                if (!item) return;
+
+                const targetQty = Math.max(1, quantity);
+                if (targetQty === item.quantity) return;
+
+                // Client-side stock guard
+                if (item.availableStock !== undefined && targetQty > item.availableStock) {
+                    toast.warning(`Cannot exceed available stock for ${item.name}. (Limit: ${item.availableStock})`);
+                    return;
+                }
+
+                const updatedCart = cart.map(i => i.id === id ? { ...i, quantity: targetQty, subtotal: targetQty * i.price } : i);
+                set({ cart: updatedCart, ...calculateTotals(updatedCart) });
+
+                const { isAuthenticated } = useAuthStore.getState();
+                if (isAuthenticated && !id.startsWith('c_') && !id.startsWith('l_')) {
+                    const previousCart = cart;
+                    if (debounceTimers.has(id)) clearTimeout(debounceTimers.get(id));
+                    set(s => ({ syncingIds: [...s.syncingIds, id] }));
+                    const timer = setTimeout(async () => {
+                        try {
+                            const res = await cartService.updateItem(id, targetQty);
+                            get().updateStoreFromResponse(res);
+                        } catch (err: unknown) {
+                            const displayMessage = err instanceof ApiError ? err.message : "Failed to update quantity";
+                            toast.error("Stock mismatch", { description: displayMessage });
+                            set({ cart: previousCart, ...calculateTotals(previousCart) });
+                            await get().fetchCart(true);
                         } finally {
                             set(s => ({ syncingIds: s.syncingIds.filter(sid => sid !== id) }));
                         }
@@ -459,14 +554,26 @@ export const useCartStore = create<CartState>()(
 
                 set({ isSyncing: true });
                 try {
-                    const payload: AddCartItemRequest[] = localItems.map(i => ({
-                        productVariantId: i.productVariantId ?? null,
-                        comboId: i.comboId ?? null,
-                        quantity: i.quantity,
-                        ProductCustomizeDetailRequest: i.ProductCustomizeDetailRequest,
-                        configHash: i.configHash
-                    }));
-                    await cartService.syncCart(payload);
+                    // Use addItem for each guest item instead of syncCart.
+                    // The /cart/items endpoint correctly increments quantity
+                    // for items that already exist in the user's cart,
+                    // whereas /cart/sync does not.
+                    console.log(`[Cart] Syncing ${localItems.length} guest items via addItem`);
+                    for (const item of localItems) {
+                        try {
+                            await cartService.addItem({
+                                productVariantId: item.productVariantId ?? null,
+                                comboId: item.comboId ?? null,
+                                quantity: item.quantity,
+                                ProductCustomizeDetailRequest: item.ProductCustomizeDetailRequest,
+                                configHash: item.configHash
+                            });
+                            console.log(`[Cart] Synced item: ${item.name} (qty: ${item.quantity})`);
+                        } catch (itemErr) {
+                            console.warn(`[Cart] Failed to sync item: ${item.name}`, itemErr);
+                        }
+                    }
+                    // Fetch the authoritative cart state after all items are added
                     await get().fetchCart();
                 } catch (e) {
                     console.error("[Cart] Sync error", e);
@@ -492,6 +599,13 @@ export const useCartStore = create<CartState>()(
         {
             name: "dreamguard-cart-storage",
             storage: createJSONStorage(() => localStorage),
+            partialize: (state) => ({
+                cart: state.cart,
+                totalItems: state.totalItems,
+                totalPrice: state.totalPrice,
+                totalTradeInDiscount: state.totalTradeInDiscount,
+                finalTotal: state.finalTotal,
+            }),
         }
     )
 )

@@ -22,10 +22,12 @@ import {
   CheckCircle2,
   Search,
   MapPin,
+  RotateCcw,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import type { ServiceBooking, ServiceStatus } from '../types';
+import { useServiceBookingCard } from '../hooks/useServiceBookingCard';
 
 interface ServiceCalendarProps {
   bookings: ServiceBooking[];
@@ -48,6 +50,7 @@ const STATUS_CONFIG: Record<
   rejected: { dot: 'bg-gray-400', stripe: 'bg-gray-400', badge: 'bg-gray-100 text-gray-700', label: 'Rejected' },
   refunded: { dot: 'bg-purple-500', stripe: 'bg-purple-500', badge: 'bg-purple-100 text-purple-800', label: 'Refunded' },
   forcedcancelled: { dot: 'bg-rose-700', stripe: 'bg-rose-700', badge: 'bg-rose-200 text-rose-900', label: 'Forced Cancel' },
+  rescheduled: { dot: 'bg-indigo-500', stripe: 'bg-indigo-500', badge: 'bg-indigo-100 text-indigo-800', label: 'Rescheduled' },
 };
 
 // ─── Booking Card ───────────────────────────────────────────────────────────
@@ -55,13 +58,29 @@ const BookingCard = React.forwardRef<
   HTMLDivElement,
   {
     booking: ServiceBooking;
-    onView: () => void;
-    onConfirm: () => void;
-    onCancel: () => void;
-    onAssign: () => void;
+    onView?: (id: string) => void;
+    onConfirm?: (id: string) => void;
+    onCancel?: (id: string, status: string) => void;
+    onAssign?: (id: string) => void;
   }
 >(({ booking, onView, onConfirm, onCancel, onAssign }, ref) => {
-  const cfg = STATUS_CONFIG[booking.status] ?? STATUS_CONFIG.pending;
+  const {
+    statusCfg,
+    handleView,
+    handleConfirm,
+    handleCancel,
+    handleAssign,
+    technician,
+    task,
+  } = useServiceBookingCard({
+    booking,
+    onView,
+    onConfirm,
+    onCancel,
+    onAssignTechnician: onAssign,
+  });
+
+  const cfg = (statusCfg as Partial<{ dot: string; stripe: string; badge: string; label: string }>) || (STATUS_CONFIG[booking.status] ?? STATUS_CONFIG.pending);
 
   return (
     <motion.div
@@ -70,18 +89,18 @@ const BookingCard = React.forwardRef<
       initial={{ opacity: 0, y: 5 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -5 }}
-      onClick={onView}
+      onClick={handleView}
       className="group relative bg-white rounded-xl border border-gray-100 hover:border-blue-200 hover:shadow-sm transition-all duration-200 cursor-pointer overflow-hidden mb-2"
     >
-      <div className={cn('absolute left-0 top-0 bottom-0 w-1', cfg.stripe)} />
+      <div className={cn('absolute left-0 top-0 bottom-0 w-1', cfg.stripe || STATUS_CONFIG[booking.status]?.stripe)} />
 
       <div className="pl-4 pr-3 py-3">
         <div className="flex items-center justify-between gap-2 mb-1.5">
           <p className="text-[13px] font-bold text-gray-900 truncate leading-tight group-hover:text-blue-600 transition-colors">
             {booking.customerName}
           </p>
-          <span className={cn('shrink-0 text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider', cfg.badge)}>
-            {cfg.label}
+          <span className={cn('shrink-0 text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider', cfg.badge || STATUS_CONFIG[booking.status]?.badge)}>
+            {cfg.label || STATUS_CONFIG[booking.status]?.label}
           </span>
         </div>
 
@@ -98,30 +117,37 @@ const BookingCard = React.forwardRef<
         <div className="flex items-center gap-2">
           {booking.status === 'pending' && (
             <button
-              onClick={(e) => { e.stopPropagation(); onConfirm(); }}
+              onClick={(e) => { e.stopPropagation(); handleConfirm(); }}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[10px] font-bold hover:bg-emerald-600 hover:text-white transition-all border border-emerald-100/50"
             >
               <CheckCircle2 className="w-3 h-3" />
               Confirm
             </button>
           )}
-          {(booking.status === 'confirmed' || booking.status === 'processing') && !booking.staff && !booking.technician && (
+          {(booking.status === 'confirmed' || booking.status === 'processing') && !technician && (
             <button
-              onClick={(e) => { e.stopPropagation(); onAssign(); }}
+              onClick={(e) => { e.stopPropagation(); handleAssign(); }}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 text-[10px] font-bold hover:bg-blue-600 hover:text-white transition-all border border-blue-100/50"
             >
               <User className="w-3 h-3" />
               Assign
             </button>
           )}
-          {(booking.staff || booking.technician) && (
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-50/50 border border-blue-100/30">
-               <span className="w-4 h-4 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[8px] font-black uppercase">
-                 {(booking.staff?.fullName || booking.technician?.fullName || 'T')[0]}
-               </span>
-               <span className="text-[10px] font-bold text-blue-800 tracking-tight truncate max-w-[80px]">
-                 {booking.staff?.fullName || booking.technician?.fullName}
-               </span>
+          {technician && (
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-blue-50/50 border border-blue-100/30">
+                 <span className="w-4 h-4 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-[8px] font-black uppercase">
+                   {(technician.name || 'T')[0]}
+                 </span>
+                 <span className="text-[10px] font-bold text-blue-800 tracking-tight truncate max-w-[80px]">
+                   {technician.name}
+                 </span>
+              </div>
+              {task?.status && (
+                <span className="shrink-0 text-[8px] font-black px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 uppercase tracking-wider border border-slate-200/50">
+                  {task.status}
+                </span>
+              )}
             </div>
           )}
           <div className="flex-1" />
@@ -129,7 +155,7 @@ const BookingCard = React.forwardRef<
             <button
               onClick={(e) => { 
                 e.stopPropagation(); 
-                onCancel(); 
+                handleCancel(); 
               }}
               className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-300 hover:bg-rose-50 hover:text-rose-600 transition-all"
             >
@@ -244,6 +270,7 @@ export const ServiceCalendar = ({
   const [selectedDay, setSelectedDay] = useState<Date>(new Date());
   const [searchQuery, setSearchQuery] = useState('');
   const [unassignedOnly, setUnassignedOnly] = useState(false);
+  const [needsRefundOnly, setNeedsRefundOnly] = useState(false);
 
   const monthStart = startOfMonth(currentDate);
   const startDate = startOfWeek(monthStart, { weekStartsOn: 1 });
@@ -258,18 +285,36 @@ export const ServiceCalendar = ({
   const isUnassigned = (b: ServiceBooking) => 
     b.status === 'confirmed' && !b.staff && !b.technician;
 
+  const isNeedsRefund = (b: ServiceBooking) => {
+    const terminalStates = ['cancelled', 'rejected', 'forcedcancelled', 'managercancel'];
+    const status = b.status?.toLowerCase();
+    const isTerminal = terminalStates.includes(status);
+    const pStatus = b.paymentStatus?.toLowerCase() || '';
+    const isVNPayPaid = b.paymentMethod?.toLowerCase() === 'vnpay' && 
+                        (pStatus === 'paid' || pStatus === 'codpaid');
+    
+    // If it's already 'refunded' status, it's finished. Check refunding too.
+    const isProcessingRefund = ['refunding', 'refunded'].includes(pStatus) || status === 'refunded';
+
+    return isTerminal && isVNPayPaid && !isProcessingRefund;
+  };
+
   const getDayBookings = useCallback(
     (day: Date) => {
-      const dayRaw = bookings.filter((b) => {
+      let dayRaw = bookings.filter((b) => {
         try {
           return isSameDay(parseISO(b.scheduledDate), day);
         } catch {
           return false;
         }
       });
-      return unassignedOnly ? dayRaw.filter(isUnassigned) : dayRaw;
+      
+      if (unassignedOnly) dayRaw = dayRaw.filter(isUnassigned);
+      if (needsRefundOnly) dayRaw = dayRaw.filter(isNeedsRefund);
+      
+      return dayRaw;
     },
-    [bookings, unassignedOnly]
+    [bookings, unassignedOnly, needsRefundOnly]
   );
 
   const selectedDayBookings = useMemo(() => {
@@ -321,6 +366,25 @@ export const ServiceCalendar = ({
                 <User className="w-2.5 h-2.5" />
               </div>
               Unassigned Only
+            </button>
+
+            {/* Refund Filter Toggle */}
+            <button
+              onClick={() => setNeedsRefundOnly(!needsRefundOnly)}
+              className={cn(
+                "flex items-center gap-3 px-5 h-11 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all active:scale-95",
+                needsRefundOnly 
+                  ? "bg-rose-500 text-white shadow-lg shadow-rose-200" 
+                  : "bg-gray-100/80 text-gray-400 hover:bg-gray-200/80"
+              )}
+            >
+              <div className={cn(
+                "w-4 h-4 rounded-full flex items-center justify-center transition-transform duration-300",
+                needsRefundOnly ? "bg-white text-rose-500 scale-110 shadow-sm" : "bg-gray-300 text-gray-500"
+              )}>
+                <RotateCcw className="w-2.5 h-2.5" />
+              </div>
+              Refund Action
             </button>
 
             <button
@@ -388,7 +452,8 @@ export const ServiceCalendar = ({
                   !inMonth && 'bg-gray-50/10 opacity-30',
                   inMonth && !selected && 'hover:bg-primary-50/20',
                   selected && 'bg-primary-50/40 ring-4 ring-inset ring-primary-500/10 z-10 shadow-[inset_0_0_40px_rgba(73,136,196,0.02)]',
-                  unassignedCount > 0 && inMonth && 'ring-2 ring-inset ring-amber-400/30'
+                  unassignedCount > 0 && inMonth && 'ring-2 ring-inset ring-amber-400/30',
+                  rawDayBookings.some(isNeedsRefund) && inMonth && 'ring-2 ring-inset ring-rose-400/30'
                 )}
               >
                 {/* Unassigned Warning Indicator */}
@@ -404,6 +469,23 @@ export const ServiceCalendar = ({
                       transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                     >
                       <User className="relative z-10 w-2 h-2 text-white -mt-3.5 -mr-[-14px]" />
+                    </motion.div>
+                  </motion.div>
+                )}
+
+                {/* Refund Warning Indicator */}
+                {rawDayBookings.some(isNeedsRefund) && inMonth && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="absolute top-0 left-0 w-8 h-8 flex items-center justify-center p-1 overflow-hidden"
+                  >
+                    <div className="absolute top-0 left-0 w-0 h-0 border-t-[32px] border-r-[32px] border-t-rose-500 border-r-transparent drop-shadow-sm" />
+                    <motion.div
+                      animate={{ opacity: [1, 0.5, 1] }}
+                      transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                      <RotateCcw className="relative z-10 w-2 h-2 text-white -mt-3.5 ml-[-14px]" />
                     </motion.div>
                   </motion.div>
                 )}
@@ -468,7 +550,7 @@ export const ServiceCalendar = ({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-[12px] font-black text-gray-300 uppercase tracking-[0.3em] mb-2">
-                {unassignedOnly ? 'NEEDS ASSIGNMENT' : format(selectedDay, 'EEEE')}
+                {needsRefundOnly ? 'NEEDS REFUND ACTION' : unassignedOnly ? 'NEEDS ASSIGNMENT' : format(selectedDay, 'EEEE')}
               </p>
               <h3 className="text-[28px] font-black text-gray-900 leading-none tracking-tighter">
                 {format(selectedDay, 'MMM dd, yyyy')}

@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, memo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import {
   AlertCircle,
   CheckCircle2,
   Loader2,
   Package,
+  RotateCcw,
   UploadCloud,
   X,
 } from "lucide-react";
@@ -22,6 +24,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useProcessReturnedTradeInShippingTask } from "@/hooks/queries/useShippingTask";
 import { useVariant } from "@/hooks/queries/useVariant";
+import { RefundSection } from "../../../orders/components/process-return/RefundSection";
+import { paymentService } from "@/api/services";
 import {
   Select,
   SelectContent,
@@ -29,15 +33,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getColorHex } from "@/utils/color-utils";
 import { uploadEvidenceItems } from "@/utils/evidenceUpload";
+import { TradeInAssetCard } from "./TradeInAssetCard";
+import { tradeInOrderKeys, paymentKeys } from "@/hooks/queries";
 
 const MAX_EVIDENCE_FILES = 5;
 const MAX_EVIDENCE_FILE_SIZE_MB = 10;
 
-import { 
-  RETURN_REASONS, 
-  OTHER_REASON_LABEL 
+import {
+  RETURN_REASONS,
+  OTHER_REASON_LABEL
 } from "@/constants/logistics";
 
 type EvidenceStatus = "pending" | "uploading" | "uploaded" | "failed";
@@ -58,6 +63,10 @@ interface TradeInProcessReturnDialogProps {
   tradeInOrderId: string;
   taskId: string;
   defaultProductVariantId?: string;
+  totalPrice?: number;
+  paymentMethod?: string;
+  paymentStatus?: string;
+  productImageUrl?: string;
 }
 
 const getFileKey = (file: File) => `${file.name}-${file.size}-${file.lastModified}`;
@@ -75,17 +84,24 @@ const getEvidenceStatusLabel = (status: EvidenceStatus) => {
   return "Ready";
 };
 
-export function TradeInProcessReturnDialog({
+export function TradeInProcessReturnDialogComponent({
   isOpen,
   onClose,
   tradeInOrderId,
   taskId,
   defaultProductVariantId,
+  totalPrice = 0,
+  paymentMethod,
+  paymentStatus,
+  productImageUrl,
 }: TradeInProcessReturnDialogProps) {
+  const queryClient = useQueryClient();
   const [damageNote, setDamageNote] = useState("");
   const [selectedReason, setSelectedReason] = useState("");
   const [isDamagedSelected, setIsDamagedSelected] = useState(false);
   const [evidenceItems, setEvidenceItems] = useState<EvidenceItem[]>([]);
+  const [refundAmount, setRefundAmount] = useState(totalPrice);
+  const [percentage, setPercentage] = useState(100);
   const [isUploadingEvidence, setIsUploadingEvidence] = useState(false);
   const evidenceItemsRef = useRef<EvidenceItem[]>([]);
   const resolvedProductVariantId = useMemo(
@@ -116,13 +132,15 @@ export function TradeInProcessReturnDialog({
       setIsDamagedSelected(false);
       setDamageNote("");
       setSelectedReason("");
+      setRefundAmount(totalPrice);
+      setPercentage(100);
       setEvidenceItems((prev) => {
         prev.forEach((item) => URL.revokeObjectURL(item.previewUrl));
         return [];
       });
       setIsUploadingEvidence(false);
     }
-  }, [isOpen]);
+  }, [isOpen, totalPrice]);
 
   const uploadedEvidenceCount = useMemo(
     () => evidenceItems.filter((item) => !!item.uploadedUrl).length,
@@ -133,6 +151,8 @@ export function TradeInProcessReturnDialog({
     setDamageNote("");
     setSelectedReason("");
     setIsDamagedSelected(false);
+    setRefundAmount(0);
+    setPercentage(100);
     setEvidenceItems((prev) => {
       prev.forEach((item) => URL.revokeObjectURL(item.previewUrl));
       return [];
@@ -229,20 +249,20 @@ export function TradeInProcessReturnDialog({
           maxHeight: 1800,
           quality: 0.82,
         },
-        onStart: (id) => {
+        onStart: (id: string) => {
           updateEvidenceItem(id, {
             status: "uploading",
             progress: 0,
             error: undefined,
           });
         },
-        onProgress: (id, progress) => {
+        onProgress: (id: string, progress: number) => {
           updateEvidenceItem(id, {
             status: "uploading",
             progress,
           });
         },
-        onSuccess: (id, uploadedUrl) => {
+        onSuccess: (id: string, uploadedUrl: string) => {
           updateEvidenceItem(id, {
             status: "uploaded",
             progress: 100,
@@ -250,7 +270,7 @@ export function TradeInProcessReturnDialog({
             error: undefined,
           });
         },
-        onError: (id, message) => {
+        onError: (id: string, message: string) => {
           updateEvidenceItem(id, {
             status: "failed",
             error: message,
@@ -275,6 +295,7 @@ export function TradeInProcessReturnDialog({
 
       const finalNote = selectedReason === OTHER_REASON_LABEL ? damageNote : selectedReason;
 
+      // 1. Logistics Update (Must happen first to transition order status for refund eligibility)
       await processReturned.mutateAsync({
         taskId,
         tradeInOrderId,
@@ -284,6 +305,26 @@ export function TradeInProcessReturnDialog({
           productVariantId: normalizedProductVariantId || undefined,
         },
       });
+
+      // 2. Financial Settlement (Administrative Refund)
+      let refundId: string | undefined;
+      if (typeof refundAmount === 'number' && refundAmount > 0) {
+        const refundObj = await paymentService.createAdminRefund({
+          tradeInOrderId,
+          amount: refundAmount,
+          reason: "Return",
+        });
+        refundId = refundObj?.id;
+      }
+
+      if (evidenceUrls.length > 0 && refundId) {
+        await paymentService.updateRefundStatus(refundId, "Refunding", undefined, evidenceUrls[0]);
+      }
+
+      // 4. Global Invalidation: Sync UI state across all related panels
+      void queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.detail(tradeInOrderId) });
+      void queryClient.invalidateQueries({ queryKey: paymentKeys.all });
+      void queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.lists() });
 
       toast.success(
         normalizedProductVariantId
@@ -304,15 +345,17 @@ export function TradeInProcessReturnDialog({
     isDamagedOutcome,
     evidenceItems,
     processReturned,
+    refundAmount,
     resetAndClose,
     resolvedProductVariantId,
     taskId,
     tradeInOrderId,
     uploadEvidenceUrls,
+    queryClient,
   ]);
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && resetAndClose()}>
+    <Dialog open={isOpen} onOpenChange={(open: boolean) => !open && resetAndClose()}>
       <DialogContent className="sm:max-w-[560px] p-0 overflow-hidden rounded-2xl border border-slate-200 shadow-xl gap-0">
         <DialogHeader className="px-6 pt-6 pb-4 border-b border-slate-100">
           <DialogTitle className="text-base font-bold text-slate-900">Process Trade-In Return</DialogTitle>
@@ -369,41 +412,20 @@ export function TradeInProcessReturnDialog({
               </button>
             </div>
 
-            <div className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2.5">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Trade-Up Variant</p>
-              {!resolvedProductVariantId ? (
-                <p className="text-[12px] text-slate-500 mt-1">No linked target variant ID for this order.</p>
-              ) : isLoadingTargetVariant ? (
-                <p className="text-[12px] text-slate-500 mt-1">Loading variant info...</p>
-              ) : (
-                <div className="mt-1.5 flex min-w-0 flex-col leading-tight">
-                  <span className="truncate text-sm font-semibold text-slate-800">
-                    {targetVariant?.sku || "Trade-up variant"}
-                  </span>
-                  <span className="truncate text-[11px] text-slate-500 inline-flex items-center gap-1.5 mt-0.5">
-                    {targetVariant?.size ? `Size ${targetVariant.size}` : ""}
-                    {targetVariantColor && (
-                      <>
-                        <span className="text-slate-300">•</span>
-                        <span className="inline-flex items-center gap-1">
-                          <span
-                            className="w-2 h-2 rounded-full ring-1 ring-black/10"
-                            style={{ backgroundColor: getColorHex(targetVariantColor) }}
-                          />
-                          {targetVariantColor}
-                        </span>
-                      </>
-                    )}
-                  </span>
-                  <span className="truncate text-[10px] text-slate-400 font-mono mt-0.5">
-                    {resolvedProductVariantId}
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
+          <TradeInAssetCard
+            sku={targetVariant?.sku}
+            size={targetVariant?.size}
+            color={targetVariantColor}
+            imageUrl={(() => {
+              const attrs = (targetVariant?.attributes || {}) as Record<string, unknown>;
+              return productImageUrl || (attrs.imageUrls as string[])?.[0] || (attrs.imageUrl as string) || "/images/placeholder-product.svg";
+            })()}
+            isLoading={isLoadingTargetVariant}
+            isDamaged={isDamagedOutcome}
+          />
+        </div>
 
-          {isDamagedOutcome && (
+        {isDamagedOutcome && (
             <>
               <div className="space-y-3">
                 <div className="space-y-1.5">
@@ -416,7 +438,7 @@ export function TradeInProcessReturnDialog({
                       <SelectValue placeholder="Select a reason..." />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-slate-200">
-                      {RETURN_REASONS.map((r) => (
+                      {RETURN_REASONS.map((r: string) => (
                         <SelectItem key={r} value={r} className="py-2 text-sm">{r}</SelectItem>
                       ))}
                     </SelectContent>
@@ -428,7 +450,7 @@ export function TradeInProcessReturnDialog({
                     <Label className="text-[13px] font-semibold text-slate-700">Detail Note</Label>
                     <Textarea
                       value={damageNote}
-                      onChange={(event) => setDamageNote(event.target.value)}
+                      onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => setDamageNote(event.target.value)}
                       placeholder="Enter damage or return note detail"
                       className="min-h-[86px] resize-none rounded-lg"
                     />
@@ -462,7 +484,7 @@ export function TradeInProcessReturnDialog({
 
                 {evidenceItems.length > 0 && (
                   <div className="space-y-2">
-                    {evidenceItems.map((item) => {
+                    {evidenceItems.map((item: EvidenceItem) => {
                       const progress = item.status === "uploaded"
                         ? 100
                         : Math.max(0, Math.min(100, Math.round(item.progress || 0)));
@@ -519,6 +541,33 @@ export function TradeInProcessReturnDialog({
               </div>
             </>
           )}
+
+          {totalPrice > 0 && (
+            <div className="space-y-3 pt-2 border-t border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center border border-blue-100/50">
+                  <RotateCcw className="w-4 h-4 text-blue-600" />
+                </div>
+                <div>
+                  <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-wider">Financial Settlement</h4>
+                  <p className="text-[10px] text-blue-600 font-bold uppercase tracking-tight opacity-70">Authorize refund for returning trade-in</p>
+                </div>
+              </div>
+
+              <div className="bg-slate-100/40 rounded-xl border border-slate-200 overflow-hidden">
+                <RefundSection
+                  totalPrice={totalPrice}
+                  refundAmount={refundAmount}
+                  setRefundAmount={setRefundAmount}
+                  percentage={percentage}
+                  setPercentage={setPercentage}
+                  paymentMethod={paymentMethod}
+                  paymentStatus={paymentStatus}
+                  hasDamages={isDamagedOutcome}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/70 flex items-center justify-end gap-2">
@@ -541,10 +590,10 @@ export function TradeInProcessReturnDialog({
               : processReturned.isPending
                 ? "Processing..."
                 : (
-              <span className="inline-flex items-center gap-2">
-                <Package className="w-4 h-4" />
-                {isDamagedOutcome ? "Record Damages" : "Confirm Restock"}
-              </span>
+                  <span className="inline-flex items-center gap-2">
+                    <Package className="w-4 h-4" />
+                    {isDamagedOutcome ? "Record Damages" : "Confirm Restock"}
+                  </span>
                 )}
           </Button>
         </div>
@@ -552,3 +601,5 @@ export function TradeInProcessReturnDialog({
     </Dialog>
   );
 }
+
+export const TradeInProcessReturnDialog = memo(TradeInProcessReturnDialogComponent);

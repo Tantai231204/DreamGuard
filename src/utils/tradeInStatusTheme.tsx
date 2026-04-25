@@ -11,7 +11,7 @@ import {
 
 import { getTradeInStatusMeta, type TradeInBadgeStatus } from "./tradeInWorkflow";
 
-export type TradeInThemeVariant = "default" | "secondary" | "success" | "warning" | "danger" | "outline";
+export type TradeInThemeVariant = "default" | "secondary" | "success" | "warning" | "danger" | "outline" | "amber";
 
 export interface TradeInStatusTheme {
   label: string;
@@ -28,8 +28,8 @@ const TRADE_IN_BADGE_THEME_MAP: Record<TradeInBadgeStatus, Pick<TradeInStatusThe
     color: "#f59e0b",
   },
   processing: {
-    variant: "default",
-    color: "#4988c4",
+    variant: "amber",
+    color: "#f97316", // Orange 500 (Admin Amber)
   },
   completed: {
     variant: "success",

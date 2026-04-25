@@ -361,6 +361,7 @@ const VariantDialogForm = memo(({
     } = useVariantForm({
         variant: variant || null,
         productId,
+        productName,
         productSlug,
         variantCount,
         onSubmit,
@@ -458,6 +459,7 @@ const VariantDialogForm = memo(({
                                                     </div>
                                                 </div>
                                             )}
+
 
                                             <Label className="text-[11px] font-black uppercase text-slate-400 tracking-widest px-1">Allowed Variation Types</Label>
                                             <Controller

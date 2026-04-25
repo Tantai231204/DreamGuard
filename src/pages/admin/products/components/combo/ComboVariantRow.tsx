@@ -88,7 +88,7 @@ export default function ComboVariantRow({
                     </div>
                 </div>
                 <div className="min-w-0">
-                    <div className="text-[13px] font-bold text-slate-700 truncate leading-tight group-hover:text-primary-700 transition-colors">
+                    <div className="text-[13px] font-bold text-slate-700 line-clamp-2 leading-tight group-hover:text-primary-700 transition-colors">
                         {item.productName}
                     </div>
                     <div className="flex items-center gap-2 mt-1.5 flex-wrap">

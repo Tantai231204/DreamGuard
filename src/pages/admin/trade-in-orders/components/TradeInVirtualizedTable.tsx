@@ -153,10 +153,6 @@ export function TradeInVirtualizedTable<T>({
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => {
-                        // Assuming you might want to reset filters in a perfect world, 
-                        // but here we just encourage the user since this component doesn't own filters.
-                    }}
                     className="h-8 text-[11px] font-bold uppercase tracking-wider text-slate-600 rounded-lg pointer-events-none"
                   >
                     Adjust your filters

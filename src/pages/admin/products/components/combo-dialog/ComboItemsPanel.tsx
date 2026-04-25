@@ -212,8 +212,8 @@ const ComboItemsPanel = memo(function ComboItemsPanel({
                                             </div>
 
                                             {/* Product info */}
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-semibold text-slate-900 truncate leading-snug">
+                                            <div className="flex-1 min-w-0 pr-4">
+                                                <p className="text-[13px] font-bold text-slate-900 line-clamp-2 leading-snug">
                                                     {item.productName}
                                                 </p>
                                                 <div className="flex items-center gap-1.5 mt-1 flex-wrap">

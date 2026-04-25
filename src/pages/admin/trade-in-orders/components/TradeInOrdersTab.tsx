@@ -9,9 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import {
   TRADE_IN_ORDERS_VIRTUALIZE_THRESHOLD,
   useTradeInOrdersTabViewModel,
-} from '../view-models';
+} from '../view-models/useTradeInOrdersTabViewModel';
 
-import { tradeInStatusLabel } from './tradeInStatus';
+import { tradeInStatusLabel } from '../utils/tradeInStatus';
 import { TradeInVirtualizedTable } from './TradeInVirtualizedTable';
 import { CancelTradeInOrderDialog } from './CancelTradeInOrderDialog';
 import { motion } from 'framer-motion';
@@ -87,6 +87,8 @@ export const TradeInOrdersTab = memo(function TradeInOrdersTab() {
         orderCode={viewModel.orderToCancel?.orderCode}
         onConfirm={viewModel.handleConfirmCancel}
         isLoading={viewModel.isCancelling}
+        isRefundOnly={viewModel.isRefundOnly}
+        totalPrice={viewModel.totalPriceToRefund}
       />
     </div>
   );

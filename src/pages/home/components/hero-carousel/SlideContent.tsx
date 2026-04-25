@@ -2,6 +2,8 @@ import { memo } from "react"
 import { motion, AnimatePresence, type Variants } from "framer-motion"
 import { Sparkles, ArrowRight } from "lucide-react"
 import { type SlideData, MOTION_CONFIG } from "./constants"
+import { Link } from "react-router-dom"
+import { AppRoute } from "@/lib/constants"
 
 const containerVariants: Variants = {
     enter: { opacity: 1 },
@@ -39,7 +41,6 @@ export const SlideContent = memo(({ slide, active }: { slide: SlideData, active:
                         <Sparkles className="w-3.5 h-3.5 text-white animate-pulse" />
                         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white">{slide.tag}</span>
                     </motion.div>
-
                     {/* Title - Superior Typography */}
                     <motion.h1
                         variants={itemVariants(0.08)}
@@ -75,17 +76,23 @@ export const SlideContent = memo(({ slide, active }: { slide: SlideData, active:
                         animate="visible"
                         className="pt-8 flex flex-wrap gap-5"
                     >
-                        <button className="group flex items-center gap-4 px-10 py-4 bg-white rounded-full transition-all duration-500 hover:scale-[1.05] hover:shadow-[0_20px_40px_rgba(255,255,255,0.25)] active:scale-95 shadow-2xl relative overflow-hidden">
+                        <Link 
+                            to={slide.href}
+                            className="group flex items-center gap-4 px-10 py-4 bg-white rounded-full transition-all duration-500 hover:scale-[1.05] hover:shadow-[0_20px_40px_rgba(255,255,255,0.25)] active:scale-95 shadow-2xl relative overflow-hidden"
+                        >
                             <span className="text-sm font-black text-[#1e3a5f] uppercase tracking-widest relative z-10">
                                 {slide.cta}
                             </span>
                             <ArrowRight className="w-5 h-5 text-[#1e3a5f] transition-transform duration-500 group-hover:translate-x-1.5 relative z-10" />
                             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000" />
-                        </button>
+                        </Link>
 
-                        <button className="px-10 py-4 text-sm font-black text-white uppercase tracking-widest border-2 border-white/30 rounded-full transition-all duration-500 hover:bg-white/10 hover:border-white/60 backdrop-blur-sm">
-                            View Pricing
-                        </button>
+                        <Link 
+                            to={slide.secondaryHref || AppRoute.PRODUCTS}
+                            className="px-10 py-4 text-sm font-black text-white uppercase tracking-widest border-2 border-white/30 rounded-full transition-all duration-500 hover:bg-white/10 hover:border-white/60 backdrop-blur-sm"
+                        >
+                            {slide.secondaryHref === AppRoute.COMBOS ? "View Combos" : "Learn More"}
+                        </Link>
                     </motion.div>
                 </motion.div>
             )}

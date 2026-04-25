@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogTitle, DialogFooter } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, Loader2, User } from "lucide-react";
+import { ShieldCheck, Loader2 } from "lucide-react";
 import { useUpdateStaffRole } from "@/hooks/queries/useStaff";
 import { useToast } from "@/hooks/useToast";
 
@@ -99,16 +99,7 @@ export function ChangeRoleDialog({ open, onOpenChange, staffId, currentRole }: C
                   </div>
                 </SelectItem>
 
-                <SelectItem value="DeliveryStaff" className="rounded-lg font-medium cursor-pointer py-2.5 focus:bg-slate-50 mb-1">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-blue-50 shadow-sm flex-shrink-0">
-                      <img src="/images/delivery.png" alt="Delivery" className="w-4 h-4 object-contain" />
-                    </div>
-                    <span className="font-bold text-slate-800 text-sm">Delivery Staff</span>
-                  </div>
-                </SelectItem>
-
-                <SelectItem value="CleaningStaff" className="rounded-lg font-medium cursor-pointer py-2.5 focus:bg-slate-50 mb-1">
+                <SelectItem value="CleaningStaff" className="rounded-lg font-medium cursor-pointer py-2.5 focus:bg-slate-50">
                   <div className="flex items-center gap-2.5">
                     <div className="w-8 h-8 rounded-full flex items-center justify-center bg-amber-50 shadow-sm flex-shrink-0">
                       <div className="w-4 h-4 bg-amber-500" style={{
@@ -119,15 +110,6 @@ export function ChangeRoleDialog({ open, onOpenChange, staffId, currentRole }: C
                       }} />
                     </div>
                     <span className="font-bold text-slate-800 text-sm">Cleaning Staff</span>
-                  </div>
-                </SelectItem>
-
-                <SelectItem value="User" className="rounded-lg font-medium cursor-pointer py-2.5 focus:bg-slate-50">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-slate-100 text-slate-600 shadow-sm flex-shrink-0">
-                      <User className="w-4 h-4" />
-                    </div>
-                    <span className="font-bold text-slate-800 text-sm">Standard User</span>
                   </div>
                 </SelectItem>
               </SelectContent>

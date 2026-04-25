@@ -6,7 +6,7 @@ import { formatDate, formatPrice } from "@/lib/utils";
 import type { Order } from "../../types";
 
 interface RecentOrdersProps {
-  orders: Order[];
+  orders: (Order & { type?: 'regular' | 'trade-in' })[];
   isLoading?: boolean;
 }
 
@@ -40,7 +40,7 @@ export default function RecentOrders({ orders, isLoading }: RecentOrdersProps) {
           transition={{ delay: 0.1 + index * 0.05 }}
         >
           <Link
-            to={`/admin/orders/${order.id}`}
+            to={order.type === 'trade-in' ? `/admin/trade-in-orders/${order.id}` : `/admin/orders/${order.id}`}
             className="flex items-center justify-between p-4 rounded-[1.5rem] border border-slate-50 hover:border-primary/20 hover:bg-slate-50/50 transition-all group"
           >
             <div className="flex items-center gap-4">

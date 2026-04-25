@@ -16,6 +16,7 @@ import { ChromaProfile } from "./components/ChromaProfile";
 import { TextureLab } from "./components/TextureLab";
 import { cn } from "@/lib/utils";
 import { ArtisticRefinement } from "./components/ArtisticRefinement";
+import { StudioAIAdvisor } from "./components/StudioAIAdvisor";
 import { uploadToCloudinary } from "@/lib/uploadCloudinary";
 
 import {
@@ -201,6 +202,7 @@ const CustomizeStudio = () => {
 
   const [sizeMode, setSizeMode] = useState<'mock' | 'input'>('mock');
   const [customDims, setCustomDims] = useState<{ width: string; height: string }>({ width: "", height: "" });
+  const [activeRecommendation, setActiveRecommendation] = useState<{ width: number; length: number; colorHex: string } | null>(null);
 
   const activeDesign = useMemo(() => {
     if (!selectedProduct) return { ...designState, size: "", material: "", imageMode: "wrap" } as DesignConfig;
@@ -277,6 +279,17 @@ const CustomizeStudio = () => {
       return newState;
     });
   }, []);
+
+  const handleApplyAIRecommendation = useCallback((rec: { width: number; length: number; colorHex: string }) => {
+    setSizeMode('input');
+    setCustomDims({ width: rec.width.toString(), height: rec.length.toString() });
+    updateDesign({ baseColor: rec.colorHex, size: 'custom' });
+    setActiveRecommendation(rec);
+    toast.success("Design Optimized", {
+      description: `Sanctuary parameters synchronized with baby biometric data.`,
+      icon: "✨"
+    });
+  }, [updateDesign]);
 
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
 
@@ -398,6 +411,7 @@ const CustomizeStudio = () => {
         thickness: 15,
       },
       configHash: configHash,
+      availableStock: customSchema.stockQuantity,
       isCustom: true,
     });
 
@@ -455,7 +469,12 @@ const CustomizeStudio = () => {
         <div className="h-full flex overflow-hidden">
           {/* LEFT SIDEBAR */}
           <aside className="w-[340px] bg-white border-r border-slate-100 flex flex-col h-full relative z-20">
-            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5 no-scrollbar scroll-smooth" style={{ WebkitOverflowScrolling: 'touch', willChange: 'scroll-position' }}>
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6 no-scrollbar scroll-smooth" style={{ WebkitOverflowScrolling: 'touch', willChange: 'scroll-position' }}>
+              
+              <StudioAIAdvisor 
+                onApplyRecommendation={handleApplyAIRecommendation} 
+                productType={selectedProduct?.type}
+              />
 
               {/* FOUNDATION — Product picker */}
               <div className="space-y-3">
@@ -510,6 +529,7 @@ const CustomizeStudio = () => {
                 customDimensions={customDims}
                 onDimensionsChange={setCustomDims}
                 onSelect={(id: string) => updateDesign({ size: id })}
+                recommendedDims={activeRecommendation ? { width: activeRecommendation.width, height: activeRecommendation.length } : undefined}
               />
 
               <ChromaProfile
@@ -517,6 +537,7 @@ const CustomizeStudio = () => {
                 selectedColor={activeDesign.baseColor}
                 addOnFee={colorAddOnFee}
                 onSelect={(hex) => updateDesign({ baseColor: hex })}
+                recommendedColor={activeRecommendation?.colorHex}
               />
 
               <TextureLab

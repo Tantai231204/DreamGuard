@@ -3,8 +3,11 @@ import type {
   ServiceBooking,
   ServiceStatus,
   PaymentStatus,
-  ServiceAddress
+  ServiceAddress,
+  ServiceTask
 } from '../types';
+import type { AdminSearchServiceTaskItem } from '@/api/services/serviceOrderService';
+import type { ServiceOrderResponse } from '@/api/types/serviceOrder';
 
 /**
  * Senior-level Mapper for Service Orders
@@ -40,7 +43,7 @@ export const mapStatus = (apiStatus: string | undefined): ServiceStatus => {
 
   const validStatus: ServiceStatus[] = [
     'pending', 'confirmed', 'processing', 'completed',
-    'cancelled', 'rejected', 'refunded', 'forcedcancelled'
+    'cancelled', 'rejected', 'refunded', 'forcedcancelled', 'rescheduled'
   ];
   return (validStatus.includes(mappedStatus as ServiceStatus) ? mappedStatus : 'pending') as ServiceStatus;
 };
@@ -49,7 +52,7 @@ export const mapPaymentStatus = (apiPaymentStatus: string | undefined): PaymentS
   if (!apiPaymentStatus) return 'unpaid';
   const norm = apiPaymentStatus.toLowerCase();
   // If payment status is literally "COD" (meaning unpaid COD) or "CODPaid"
-  if (norm === 'cod') return 'COD Unpaid';
+  if (norm === 'cod') return 'pending_payment';
   if (norm === 'codpaid') return 'COD Paid';
 
   return apiPaymentStatus;
@@ -73,8 +76,14 @@ export const mapApiItemToServiceOrder = (item: AdminSearchOrderServiceItem): Ser
     subTotalPrice: item.subTotalPrice,
     scheduledDate: date,
     scheduledTime: time,
+    appointmentDate: item.appointmentDate,
     address: parseAddress(item.address),
-    items: item.items || item.orderDetails || item.serviceOrderItems || [],
+    items: (item.serviceOrderItems || item.items || item.orderDetails || []).map(it => ({
+      ...it,
+      id: it.serviceOrderItemId || it.id,
+      name: it.name || (it.servicePackageName && it.productTypeName ? `${it.servicePackageName} - ${it.productTypeName}` : it.servicePackageName || it.productTypeName || "Service Item"),
+      totalPrice: it.totalPrice || (it.quantity && it.unitPrice ? it.quantity * it.unitPrice : 0)
+    })),
     staff: item.staff || null,
     technician: item.staff || null,
     serviceTask: item.serviceTask || item.task || item.orderTask || item.serviceOrderTask,
@@ -87,8 +96,38 @@ export const mapApiItemToServiceOrder = (item: AdminSearchOrderServiceItem): Ser
   };
 };
 
-export const mapApiDetailToOrder = (data: AdminSearchOrderServiceItem | { data: AdminSearchOrderServiceItem }): ServiceBooking => {
-  const item = 'data' in data ? data.data : data;
-  return mapApiItemToServiceOrder(item);
+export const mapApiDetailToOrder = (data: ServiceOrderResponse | AdminSearchOrderServiceItem | { data: ServiceOrderResponse | AdminSearchOrderServiceItem }): ServiceBooking => {
+  const item = (data && typeof data === 'object' && 'data' in data) ? data.data : data;
+  
+  // Bridge the gap between AdminSearchOrderServiceItem and ServiceOrderResponse
+  interface ItemWithIds { soId?: string; id?: string; [key: string]: unknown }
+  const itemWithIds = item as ItemWithIds;
+  
+  const normalizedItem = {
+    ...item,
+    soId: itemWithIds.soId || itemWithIds.id || '',
+  } as AdminSearchOrderServiceItem;
+
+  return mapApiItemToServiceOrder(normalizedItem);
+};
+
+/**
+ * Normalizes raw task data from multiple possible backend field variations
+ */
+export const mapApiTaskToServiceTask = (rawTask: AdminSearchServiceTaskItem | null | undefined): ServiceTask | null => {
+  if (!rawTask) return null;
+
+  // Use type casting safely here to account for dynamic fields
+  const t = rawTask as Record<string, unknown>;
+
+  return {
+    ...rawTask,
+    serviceTaskId: (t.serviceTaskId || t.taskId || t.id) as string,
+    status: (t.status || t.taskStatus) as string,
+    checkIn: (t.checkIn || t.checkin || t.checkInTime) as string | null,
+    checkOut: (t.checkOut || t.checkout || t.checkOutTime) as string | null,
+    checkInImage: (t.checkInImage || t.checkinImage || t.checkInUrl || t.checkinUrl) as string | null,
+    checkOutImage: (t.checkOutImage || t.checkoutImage || t.checkOutUrl || t.checkoutUrl) as string | null,
+  } as ServiceTask;
 };
 

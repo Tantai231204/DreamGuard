@@ -5,11 +5,13 @@ import { AppRoute } from "@/lib/constants"
 import { CheckCircle2, XCircle, Package, ArrowRight, Home, ShoppingBag } from "lucide-react"
 import { motion } from "framer-motion"
 import { useCart } from "@/store/useCart"
+import { useQueryClient } from "@tanstack/react-query"
 
 export default function CheckoutResult() {
     const [searchParams] = useSearchParams()
     const navigate = useNavigate()
     const { clearCart } = useCart()
+    const queryClient = useQueryClient()
     const responseCode = searchParams.get("vnp_ResponseCode")
     const transactionStatus = searchParams.get("vnp_TransactionStatus")
     const orderCode = searchParams.get("vnp_TxnRef") || searchParams.get("orderCode")
@@ -19,8 +21,12 @@ export default function CheckoutResult() {
     useEffect(() => {
         if (isSuccess) {
             clearCart()
+            queryClient.invalidateQueries({ queryKey: ['orders'] })
+            queryClient.invalidateQueries({ queryKey: ['service-orders'] })
+            queryClient.invalidateQueries({ queryKey: ['trade-in-orders'] })
+            queryClient.invalidateQueries({ queryKey: ['notifications'] })
         }
-    }, [isSuccess, clearCart])
+    }, [isSuccess, clearCart, queryClient])
 
     if (!responseCode && !transactionStatus && !orderCode) return null
 
@@ -120,7 +126,16 @@ export default function CheckoutResult() {
                     ) : (
                         <>
                             <Button
-                                onClick={() => navigate(AppRoute.CHECKOUT)}
+                                onClick={() => {
+                                    const lastType = sessionStorage.getItem('lastOrderType');
+                                    sessionStorage.removeItem('lastOrderType');
+                                    
+                                    if (lastType === 'trade-in') {
+                                        navigate(`${AppRoute.PROFILE}?tab=trade-in-orders`);
+                                    } else {
+                                        navigate(`${AppRoute.PROFILE}?tab=orders`);
+                                    }
+                                }}
                                 className="h-14 rounded-2xl bg-gradient-to-r from-primary-500 to-primary-600 text-white font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-primary-100 transition-all"
                             >
                                 Try Again

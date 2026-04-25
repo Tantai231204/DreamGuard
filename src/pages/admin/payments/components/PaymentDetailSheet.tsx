@@ -145,7 +145,7 @@ export function PaymentDetailSheet({ id, onClose }: PaymentDetailSheetProps) {
                                             />
                                             <InfoItem
                                                 label="Last Updated"
-                                                value={formatDateTime(payment.updatedAt)}
+                                                value={formatDateTime(payment.updatedAt || payment.createdAt)}
                                                 icon={Clock}
                                             />
                                         </InfoGroup>
@@ -153,10 +153,36 @@ export function PaymentDetailSheet({ id, onClose }: PaymentDetailSheetProps) {
                                         <Separator className="bg-slate-100" />
 
                                         <InfoGroup title="Transaction Notes">
-                                            <div className="mt-2 p-4 rounded-xl bg-slate-50 border border-slate-100 text-[13px] text-slate-600 leading-relaxed font-medium">
+                                            <div className="mt-2 p-4 rounded-xl bg-slate-50 border border-slate-100 text-[13px] text-slate-600 leading-relaxed font-medium overflow-hidden">
                                                 {payment.description || "System generated transaction log. No manual notes appended."}
                                             </div>
                                         </InfoGroup>
+
+                                        {payment.evidenceUrl && (
+                                            <>
+                                                <Separator className="bg-slate-100" />
+                                                <InfoGroup title="Payment Evidence">
+                                                    <div className="mt-2 space-y-3">
+                                                        <div className="relative aspect-video rounded-xl overflow-hidden border border-slate-200 bg-slate-50 group/evidence">
+                                                            <img
+                                                                src={payment.evidenceUrl}
+                                                                alt="Payment Evidence"
+                                                                className="w-full h-full object-cover transition-transform duration-500 group-hover/evidence:scale-105"
+                                                            />
+                                                            <a
+                                                                href={payment.evidenceUrl}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="absolute inset-0 bg-black/40 opacity-0 group-hover/evidence:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-black uppercase tracking-widest gap-2 backdrop-blur-[2px]"
+                                                            >
+                                                                <ArrowUpRight className="h-4 w-4" />
+                                                                View Original
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                </InfoGroup>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             </div>

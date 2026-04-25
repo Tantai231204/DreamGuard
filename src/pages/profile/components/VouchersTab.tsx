@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import {
     ChevronLeft,
     ChevronRight,
@@ -33,12 +33,13 @@ type VoucherTypeFilter = "all" | ProfileVoucher["voucherType"]
 type VoucherSortBy = "expiry-asc" | "expiry-desc" | "discount-asc" | "discount-desc"
 
 const getExpiryDate = (voucher: Pick<UserVoucherResponse, "endDate" | "expiredAt">): string | undefined => {
-    return voucher.endDate || voucher.expiredAt || undefined
+    return voucher.expiredAt || voucher.endDate || undefined
 }
 
 const toTimestamp = (value?: string): number => {
     if (!value) return 0
-    const time = new Date(value).getTime()
+    const date = new Date(value)
+    const time = date.getTime()
     return Number.isFinite(time) ? time : 0
 }
 
@@ -50,21 +51,20 @@ const formatExpiryDate = (value?: string): string => {
 }
 
 const deriveStatus = (voucher: UserVoucherResponse): VoucherStatus => {
-    if (voucher.isUsed || !!voucher.usedAt) {
+    if (voucher.isUsed === true || !!voucher.usedAt) {
         return "used"
     }
 
     const endTime = toTimestamp(getExpiryDate(voucher))
-    const isExpired = endTime > 0 && endTime < Date.now()
+    const now = Date.now()
+    const isExpired = endTime !== 0 && endTime < now
 
+    // If backend explicitly says inactive, or time is past expiry, it's expired
     if (voucher.isActive === false || isExpired) {
         return "expired"
     }
 
-    if (voucher.isClaimed === false && !voucher.claimedAt) {
-        return "claimable"
-    }
-
+    // Default to active if it's claimed and not used/expired
     return "active"
 }
 
@@ -171,21 +171,17 @@ export default function VouchersTab() {
 
     // Pagination logic
     const totalPages = Math.ceil(filteredVouchers.length / ITEMS_PER_PAGE)
-    const paginatedVouchers = useMemo<ProfileVoucher[]>(() => {
-        const start = (currentPage - 1) * ITEMS_PER_PAGE
-        return filteredVouchers.slice(start, start + ITEMS_PER_PAGE)
-    }, [filteredVouchers, currentPage])
 
-    useEffect(() => {
-        if (totalPages === 0 && currentPage !== 1) {
-            setCurrentPage(1)
-            return
-        }
-
-        if (totalPages > 0 && currentPage > totalPages) {
-            setCurrentPage(totalPages)
-        }
+    // Always work with a "safe" page number derived from state but capped by current totals
+    const safePage = useMemo(() => {
+        if (totalPages === 0) return 1
+        return Math.min(Math.max(1, currentPage), totalPages)
     }, [currentPage, totalPages])
+
+    const paginatedVouchers = useMemo<ProfileVoucher[]>(() => {
+        const start = (safePage - 1) * ITEMS_PER_PAGE
+        return filteredVouchers.slice(start, start + ITEMS_PER_PAGE)
+    }, [filteredVouchers, safePage])
 
     const handlePageChange = (page: number) => {
         setCurrentPage(page)
@@ -231,8 +227,8 @@ export default function VouchersTab() {
                     ? selectedVoucherDetail.requiredCoin
                     : selectedVoucherBase.requiredCoin,
             voucherType: selectedVoucherDetail.voucherType || selectedVoucherBase.voucherType,
-            startDate: selectedVoucherDetail.startDate || selectedVoucherBase.startDate,
-            endDate: selectedVoucherDetail.endDate || selectedVoucherBase.endDate,
+            startDate: selectedVoucherBase.startDate || selectedVoucherDetail.startDate,
+            endDate: selectedVoucherBase.endDate || selectedVoucherDetail.endDate,
             isActive:
                 typeof selectedVoucherDetail.isActive === "boolean"
                     ? selectedVoucherDetail.isActive
@@ -291,6 +287,11 @@ export default function VouchersTab() {
             return
         }
 
+        if (voucher.status !== "active") {
+            toast.warning("This voucher is no longer valid")
+            return
+        }
+
         navigate(AppRoute.CHECKOUT, {
             state: {
                 preselectedVoucherId: voucher.userVoucherId,
@@ -304,16 +305,16 @@ export default function VouchersTab() {
             return Array.from({ length: totalPages }, (_, index) => index + 1)
         }
 
-        if (currentPage <= 3) {
+        if (safePage <= 3) {
             return [1, 2, 3, 4, 5]
         }
 
-        if (currentPage >= totalPages - 2) {
+        if (safePage >= totalPages - 2) {
             return [totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages]
         }
 
-        return [currentPage - 2, currentPage - 1, currentPage, currentPage + 1, currentPage + 2]
-    }, [currentPage, totalPages])
+        return [safePage - 2, safePage - 1, safePage, safePage + 1, safePage + 2]
+    }, [safePage, totalPages])
 
     const tabStyles: Array<{
         id: VoucherFilterStatus
@@ -322,42 +323,42 @@ export default function VouchersTab() {
         activeClass: string
         badgeClass: string
     }> = [
-        {
-            id: "all",
-            label: "All",
-            count: voucherCounts.all,
-            activeClass: "data-[state=active]:bg-slate-900 data-[state=active]:text-white",
-            badgeClass: "group-data-[state=active]:bg-white/20 group-data-[state=active]:text-white",
-        },
-        {
-            id: "claimable",
-            label: "Claim",
-            count: voucherCounts.claimable,
-            activeClass: "data-[state=active]:bg-primary-500 data-[state=active]:text-white",
-            badgeClass: "group-data-[state=active]:bg-white/20 group-data-[state=active]:text-white",
-        },
-        {
-            id: "active",
-            label: "Ready",
-            count: voucherCounts.active,
-            activeClass: "data-[state=active]:bg-emerald-600 data-[state=active]:text-white",
-            badgeClass: "group-data-[state=active]:bg-white/20 group-data-[state=active]:text-white",
-        },
-        {
-            id: "used",
-            label: "Used",
-            count: voucherCounts.used,
-            activeClass: "data-[state=active]:bg-slate-600 data-[state=active]:text-white",
-            badgeClass: "group-data-[state=active]:bg-white/20 group-data-[state=active]:text-white",
-        },
-        {
-            id: "expired",
-            label: "Expired",
-            count: voucherCounts.expired,
-            activeClass: "data-[state=active]:bg-rose-600 data-[state=active]:text-white",
-            badgeClass: "group-data-[state=active]:bg-white/20 group-data-[state=active]:text-white",
-        },
-    ]
+            {
+                id: "all",
+                label: "All",
+                count: voucherCounts.all,
+                activeClass: "data-[state=active]:bg-slate-900 data-[state=active]:text-white",
+                badgeClass: "group-data-[state=active]:bg-white/20 group-data-[state=active]:text-white",
+            },
+            {
+                id: "claimable",
+                label: "Claim",
+                count: voucherCounts.claimable,
+                activeClass: "data-[state=active]:bg-primary-500 data-[state=active]:text-white",
+                badgeClass: "group-data-[state=active]:bg-white/20 group-data-[state=active]:text-white",
+            },
+            {
+                id: "active",
+                label: "Ready",
+                count: voucherCounts.active,
+                activeClass: "data-[state=active]:bg-emerald-600 data-[state=active]:text-white",
+                badgeClass: "group-data-[state=active]:bg-white/20 group-data-[state=active]:text-white",
+            },
+            {
+                id: "used",
+                label: "Used",
+                count: voucherCounts.used,
+                activeClass: "data-[state=active]:bg-slate-600 data-[state=active]:text-white",
+                badgeClass: "group-data-[state=active]:bg-white/20 group-data-[state=active]:text-white",
+            },
+            {
+                id: "expired",
+                label: "Expired",
+                count: voucherCounts.expired,
+                activeClass: "data-[state=active]:bg-rose-600 data-[state=active]:text-white",
+                badgeClass: "group-data-[state=active]:bg-white/20 group-data-[state=active]:text-white",
+            },
+        ]
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
@@ -467,262 +468,262 @@ export default function VouchersTab() {
             </div>
 
             <div ref={usableSectionRef}>
-            <Tabs
-                value={filterStatus}
-                onValueChange={(value) => {
-                    setFilterStatus(value as VoucherFilterStatus)
-                    setCurrentPage(1)
-                }}
-                className="w-full space-y-4"
-            >
-                <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
-                        <div className="relative group flex-1">
-                            <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary-500" />
-                            <Input
-                                value={searchQuery}
-                                onChange={(e) => {
-                                    setSearchQuery(e.target.value)
-                                    setCurrentPage(1)
-                                }}
-                                placeholder="Search voucher by code, name, description..."
-                                className="h-11 rounded-xl border-slate-200 bg-slate-50/60 pl-10 pr-10 text-sm font-medium focus:border-primary-300 focus:ring-primary-100"
-                            />
-                            {searchQuery && (
-                                <button
-                                    onClick={() => {
-                                        setSearchQuery("")
+                <Tabs
+                    value={filterStatus}
+                    onValueChange={(value) => {
+                        setFilterStatus(value as VoucherFilterStatus)
+                        setCurrentPage(1)
+                    }}
+                    className="w-full space-y-4"
+                >
+                    <div className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-center">
+                            <div className="relative group flex-1">
+                                <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-primary-500" />
+                                <Input
+                                    value={searchQuery}
+                                    onChange={(e) => {
+                                        setSearchQuery(e.target.value)
                                         setCurrentPage(1)
                                     }}
-                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-700"
+                                    placeholder="Search voucher by code, name, description..."
+                                    className="h-11 rounded-xl border-slate-200 bg-slate-50/60 pl-10 pr-10 text-sm font-medium focus:border-primary-300 focus:ring-primary-100"
+                                />
+                                {searchQuery && (
+                                    <button
+                                        onClick={() => {
+                                            setSearchQuery("")
+                                            setCurrentPage(1)
+                                        }}
+                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors hover:text-slate-700"
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                                <Select
+                                    value={voucherTypeFilter}
+                                    onValueChange={(v) => {
+                                        setVoucherTypeFilter(v as VoucherTypeFilter)
+                                        setCurrentPage(1)
+                                    }}
                                 >
-                                    <X className="h-4 w-4" />
-                                </button>
-                            )}
+                                    <SelectTrigger className="h-11 w-[164px] rounded-xl border-slate-200 bg-white font-bold text-[11px] uppercase tracking-wider hover:bg-slate-50">
+                                        <div className="flex items-center gap-2">
+                                            <Tag className="h-3.5 w-3.5 text-slate-400" />
+                                            <SelectValue placeholder="Type" />
+                                        </div>
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-xl border-slate-200 shadow-lg">
+                                        <SelectItem value="all">
+                                            <span className="font-bold text-[11px] uppercase tracking-wider">All Types</span>
+                                        </SelectItem>
+                                        {voucherTypes
+                                            .filter((type): type is ProfileVoucher["voucherType"] => type !== "all")
+                                            .map((type) => (
+                                                <SelectItem key={type} value={type}>
+                                                    <span className="font-bold text-[11px] uppercase tracking-wider">{type}</span>
+                                                </SelectItem>
+                                            ))}
+                                    </SelectContent>
+                                </Select>
+
+                                <Select
+                                    value={sortBy}
+                                    onValueChange={(v) => {
+                                        setSortBy(v as VoucherSortBy)
+                                        setCurrentPage(1)
+                                    }}
+                                >
+                                    <SelectTrigger className="h-11 w-[190px] rounded-xl border-slate-200 bg-white font-bold text-[11px] uppercase tracking-wider hover:bg-slate-50">
+                                        <div className="flex items-center gap-2">
+                                            <SortAsc className="h-3.5 w-3.5 text-slate-400" />
+                                            <SelectValue placeholder="Sort" />
+                                        </div>
+                                    </SelectTrigger>
+                                    <SelectContent className="rounded-xl border-slate-200 shadow-lg">
+                                        <SelectItem value="expiry-asc">
+                                            <span className="font-bold text-[11px] uppercase tracking-wider">Expiring Soon</span>
+                                        </SelectItem>
+                                        <SelectItem value="expiry-desc">
+                                            <span className="font-bold text-[11px] uppercase tracking-wider">Latest Added</span>
+                                        </SelectItem>
+                                        <SelectItem value="discount-desc">
+                                            <span className="font-bold text-[11px] uppercase tracking-wider">Highest Discount</span>
+                                        </SelectItem>
+                                        <SelectItem value="discount-asc">
+                                            <span className="font-bold text-[11px] uppercase tracking-wider">Lowest Discount</span>
+                                        </SelectItem>
+                                    </SelectContent>
+                                </Select>
+
+                                {(searchQuery || voucherTypeFilter !== "all" || sortBy !== "expiry-asc") && (
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            setSearchQuery("")
+                                            setVoucherTypeFilter("all")
+                                            setSortBy("expiry-asc")
+                                            setCurrentPage(1)
+                                        }}
+                                        className="h-11 rounded-xl border-primary-200 px-4 text-[11px] font-bold uppercase tracking-wider text-primary-700 hover:bg-primary-50"
+                                    >
+                                        Reset
+                                    </Button>
+                                )}
+                            </div>
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                            <Select
-                                value={voucherTypeFilter}
-                                onValueChange={(v) => {
-                                    setVoucherTypeFilter(v as VoucherTypeFilter)
-                                    setCurrentPage(1)
-                                }}
-                            >
-                                <SelectTrigger className="h-11 w-[164px] rounded-xl border-slate-200 bg-white font-bold text-[11px] uppercase tracking-wider hover:bg-slate-50">
-                                    <div className="flex items-center gap-2">
-                                        <Tag className="h-3.5 w-3.5 text-slate-400" />
-                                        <SelectValue placeholder="Type" />
+                        <TabsList className="mt-4 flex h-auto w-full overflow-x-auto rounded-2xl border border-slate-200 bg-slate-50 p-1.5 no-scrollbar">
+                            {tabStyles.map((tab) => (
+                                <TabsTrigger
+                                    key={tab.id}
+                                    value={tab.id}
+                                    className={cn(
+                                        "group min-w-[120px] flex-1 rounded-xl px-3 py-2.5 text-[11px] font-black uppercase tracking-wider transition-all data-[state=active]:shadow-sm",
+                                        tab.activeClass,
+                                    )}
+                                >
+                                    <div className="flex items-center justify-center gap-2">
+                                        <span>{tab.label}</span>
+                                        <Badge
+                                            className={cn(
+                                                "h-5 min-w-[22px] rounded-md border-none bg-slate-200 text-[9px] font-bold text-slate-600",
+                                                tab.badgeClass,
+                                            )}
+                                        >
+                                            {tab.count}
+                                        </Badge>
                                     </div>
-                                </SelectTrigger>
-                                <SelectContent className="rounded-xl border-slate-200 shadow-lg">
-                                    <SelectItem value="all">
-                                        <span className="font-bold text-[11px] uppercase tracking-wider">All Types</span>
-                                    </SelectItem>
-                                    {voucherTypes
-                                        .filter((type): type is ProfileVoucher["voucherType"] => type !== "all")
-                                        .map((type) => (
-                                            <SelectItem key={type} value={type}>
-                                                <span className="font-bold text-[11px] uppercase tracking-wider">{type}</span>
-                                            </SelectItem>
-                                        ))}
-                                </SelectContent>
-                            </Select>
+                                </TabsTrigger>
+                            ))}
+                        </TabsList>
 
-                            <Select
-                                value={sortBy}
-                                onValueChange={(v) => {
-                                    setSortBy(v as VoucherSortBy)
-                                    setCurrentPage(1)
-                                }}
-                            >
-                                <SelectTrigger className="h-11 w-[190px] rounded-xl border-slate-200 bg-white font-bold text-[11px] uppercase tracking-wider hover:bg-slate-50">
-                                    <div className="flex items-center gap-2">
-                                        <SortAsc className="h-3.5 w-3.5 text-slate-400" />
-                                        <SelectValue placeholder="Sort" />
-                                    </div>
-                                </SelectTrigger>
-                                <SelectContent className="rounded-xl border-slate-200 shadow-lg">
-                                    <SelectItem value="expiry-asc">
-                                        <span className="font-bold text-[11px] uppercase tracking-wider">Expiring Soon</span>
-                                    </SelectItem>
-                                    <SelectItem value="expiry-desc">
-                                        <span className="font-bold text-[11px] uppercase tracking-wider">Latest Added</span>
-                                    </SelectItem>
-                                    <SelectItem value="discount-desc">
-                                        <span className="font-bold text-[11px] uppercase tracking-wider">Highest Discount</span>
-                                    </SelectItem>
-                                    <SelectItem value="discount-asc">
-                                        <span className="font-bold text-[11px] uppercase tracking-wider">Lowest Discount</span>
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
-
-                            {(searchQuery || voucherTypeFilter !== "all" || sortBy !== "expiry-asc") && (
+                        {claimedFlowCode && (
+                            <div className="mt-4 flex flex-col gap-2 rounded-xl border border-primary-200 bg-primary-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                                <p className="text-xs font-semibold text-primary-700">
+                                    Voucher {claimedFlowCode} is now ready to use in the Ready tab.
+                                </p>
                                 <Button
+                                    type="button"
                                     variant="outline"
-                                    onClick={() => {
-                                        setSearchQuery("")
-                                        setVoucherTypeFilter("all")
-                                        setSortBy("expiry-asc")
-                                        setCurrentPage(1)
-                                    }}
-                                    className="h-11 rounded-xl border-primary-200 px-4 text-[11px] font-bold uppercase tracking-wider text-primary-700 hover:bg-primary-50"
+                                    onClick={scrollToUsableSection}
+                                    className="h-8 rounded-lg border-primary-300 bg-white px-3 text-[10px] font-bold uppercase tracking-widest text-primary-700 hover:bg-primary-100"
                                 >
-                                    Reset
+                                    View Ready Vouchers
                                 </Button>
-                            )}
-                        </div>
+                            </div>
+                        )}
                     </div>
 
-                    <TabsList className="mt-4 flex h-auto w-full overflow-x-auto rounded-2xl border border-slate-200 bg-slate-50 p-1.5 no-scrollbar">
-                        {tabStyles.map((tab) => (
-                            <TabsTrigger
-                                key={tab.id}
-                                value={tab.id}
-                                className={cn(
-                                    "group min-w-[120px] flex-1 rounded-xl px-3 py-2.5 text-[11px] font-black uppercase tracking-wider transition-all data-[state=active]:shadow-sm",
-                                    tab.activeClass,
-                                )}
-                            >
-                                <div className="flex items-center justify-center gap-2">
-                                    <span>{tab.label}</span>
-                                    <Badge
-                                        className={cn(
-                                            "h-5 min-w-[22px] rounded-md border-none bg-slate-200 text-[9px] font-bold text-slate-600",
-                                            tab.badgeClass,
-                                        )}
+                    <TabsContent value={filterStatus} className="mt-0 space-y-6 focus-visible:ring-0">
+                        {isLoading && (
+                            <Card className="rounded-2xl border border-slate-200 bg-white">
+                                <CardContent className="flex flex-col items-center justify-center py-16">
+                                    <div className="mb-4 h-10 w-10 animate-spin rounded-full border-2 border-primary-200 border-t-primary-500" />
+                                    <p className="text-sm font-semibold text-slate-500">Loading voucher wallet...</p>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {!isLoading && isError && (
+                            <Card className="rounded-2xl border border-rose-200 bg-rose-50/30">
+                                <CardContent className="flex flex-col items-center justify-center gap-3 py-16">
+                                    <h3 className="text-base font-bold text-rose-700">Unable to load vouchers</h3>
+                                    <p className="text-sm text-rose-600">Please try again in a moment.</p>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => refetch()}
+                                        className="rounded-xl border-rose-300 text-rose-700 hover:bg-rose-100"
                                     >
-                                        {tab.count}
-                                    </Badge>
-                                </div>
-                            </TabsTrigger>
-                        ))}
-                    </TabsList>
+                                        Retry
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        )}
 
-                    {claimedFlowCode && (
-                        <div className="mt-4 flex flex-col gap-2 rounded-xl border border-primary-200 bg-primary-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                            <p className="text-xs font-semibold text-primary-700">
-                                Voucher {claimedFlowCode} is now ready to use in the Ready tab.
-                            </p>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={scrollToUsableSection}
-                                className="h-8 rounded-lg border-primary-300 bg-white px-3 text-[10px] font-bold uppercase tracking-widest text-primary-700 hover:bg-primary-100"
-                            >
-                                View Ready Vouchers
-                            </Button>
-                        </div>
-                    )}
-                </div>
+                        {!isLoading && !isError && (
+                            <>
+                                {filteredVouchers.length === 0 ? (
+                                    <Card className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50">
+                                        <CardContent className="flex flex-col items-center justify-center py-20">
+                                            <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-xl bg-white shadow-sm">
+                                                <Ticket className="h-8 w-8 text-slate-300" />
+                                            </div>
+                                            <h3 className="text-lg font-bold text-slate-900">No vouchers found</h3>
+                                            <p className="mt-2 max-w-sm text-center text-sm font-medium text-slate-500">
+                                                {searchQuery || voucherTypeFilter !== "all"
+                                                    ? "Try adjusting your filters to find what you're looking for."
+                                                    : "Your voucher collection is currently empty."}
+                                            </p>
+                                        </CardContent>
+                                    </Card>
+                                ) : (
+                                    <div className="grid gap-4 lg:grid-cols-2">
+                                        {paginatedVouchers.map((voucher: ProfileVoucher) => (
+                                            <VoucherCard
+                                                key={voucher.userVoucherId}
+                                                voucher={voucher}
+                                                onClick={() => handleVoucherClick(voucher)}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
 
-                <TabsContent value={filterStatus} className="mt-0 space-y-6 focus-visible:ring-0">
-                    {isLoading && (
-                        <Card className="rounded-2xl border border-slate-200 bg-white">
-                            <CardContent className="flex flex-col items-center justify-center py-16">
-                                <div className="mb-4 h-10 w-10 animate-spin rounded-full border-2 border-primary-200 border-t-primary-500" />
-                                <p className="text-sm font-semibold text-slate-500">Loading voucher wallet...</p>
-                            </CardContent>
-                        </Card>
-                    )}
-
-                    {!isLoading && isError && (
-                        <Card className="rounded-2xl border border-rose-200 bg-rose-50/30">
-                            <CardContent className="flex flex-col items-center justify-center gap-3 py-16">
-                                <h3 className="text-base font-bold text-rose-700">Unable to load vouchers</h3>
-                                <p className="text-sm text-rose-600">Please try again in a moment.</p>
-                                <Button
-                                    variant="outline"
-                                    onClick={() => refetch()}
-                                    className="rounded-xl border-rose-300 text-rose-700 hover:bg-rose-100"
-                                >
-                                    Retry
-                                </Button>
-                            </CardContent>
-                        </Card>
-                    )}
-
-                    {!isLoading && !isError && (
-                        <>
-                            {filteredVouchers.length === 0 ? (
-                                <Card className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50">
-                                    <CardContent className="flex flex-col items-center justify-center py-20">
-                                        <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-xl bg-white shadow-sm">
-                                            <Ticket className="h-8 w-8 text-slate-300" />
-                                        </div>
-                                        <h3 className="text-lg font-bold text-slate-900">No vouchers found</h3>
-                                        <p className="mt-2 max-w-sm text-center text-sm font-medium text-slate-500">
-                                            {searchQuery || voucherTypeFilter !== "all"
-                                                ? "Try adjusting your filters to find what you're looking for."
-                                                : "Your voucher collection is currently empty."}
+                                {totalPages > 1 && (
+                                    <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                                        <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                                            Page {safePage} of {totalPages}
                                         </p>
-                                    </CardContent>
-                                </Card>
-                            ) : (
-                                <div className="grid gap-4 lg:grid-cols-2">
-                                    {paginatedVouchers.map((voucher: ProfileVoucher) => (
-                                        <VoucherCard
-                                            key={voucher.userVoucherId}
-                                            voucher={voucher}
-                                            onClick={() => handleVoucherClick(voucher)}
-                                        />
-                                    ))}
-                                </div>
-                            )}
 
-                            {totalPages > 1 && (
-                                <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
-                                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                                        Page {currentPage} of {totalPages}
-                                    </p>
-
-                                    <div className="flex items-center gap-1.5">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            disabled={currentPage === 1}
-                                            onClick={() => handlePageChange(currentPage - 1)}
-                                            className="h-9 rounded-lg border-slate-200 px-3 text-[11px] font-bold uppercase tracking-wider text-slate-600"
-                                        >
-                                            <ChevronLeft className="mr-1 h-4 w-4" />
-                                            Prev
-                                        </Button>
-
-                                        {pageNumbers.map((page) => (
+                                        <div className="flex items-center gap-1.5">
                                             <Button
-                                                key={page}
                                                 variant="outline"
                                                 size="sm"
-                                                onClick={() => handlePageChange(page)}
-                                                className={cn(
-                                                    "h-9 min-w-[38px] rounded-lg border-slate-200 px-3 text-[11px] font-bold",
-                                                    currentPage === page
-                                                        ? "border-primary-500 bg-primary-500 text-white hover:bg-primary-500"
-                                                        : "text-slate-600",
-                                                )}
+                                                disabled={safePage === 1}
+                                                onClick={() => handlePageChange(safePage - 1)}
+                                                className="h-9 rounded-lg border-slate-200 px-3 text-[11px] font-bold uppercase tracking-wider text-slate-600"
                                             >
-                                                {page}
+                                                <ChevronLeft className="mr-1 h-4 w-4" />
+                                                Prev
                                             </Button>
-                                        ))}
 
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            disabled={currentPage === totalPages}
-                                            onClick={() => handlePageChange(currentPage + 1)}
-                                            className="h-9 rounded-lg border-slate-200 px-3 text-[11px] font-bold uppercase tracking-wider text-slate-600"
-                                        >
-                                            Next
-                                            <ChevronRight className="ml-1 h-4 w-4" />
-                                        </Button>
+                                            {pageNumbers.map((page) => (
+                                                <Button
+                                                    key={page}
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => handlePageChange(page)}
+                                                    className={cn(
+                                                        "h-9 min-w-[38px] rounded-lg border-slate-200 px-3 text-[11px] font-bold",
+                                                        safePage === page
+                                                            ? "border-primary-500 bg-primary-500 text-white hover:bg-primary-500"
+                                                            : "text-slate-600",
+                                                    )}
+                                                >
+                                                    {page}
+                                                </Button>
+                                            ))}
+
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                disabled={safePage === totalPages}
+                                                onClick={() => handlePageChange(safePage + 1)}
+                                                className="h-9 rounded-lg border-slate-200 px-3 text-[11px] font-bold uppercase tracking-wider text-slate-600"
+                                            >
+                                                Next
+                                                <ChevronRight className="ml-1 h-4 w-4" />
+                                            </Button>
+                                        </div>
                                     </div>
-                                </div>
-                            )}
-                        </>
-                    )}
-                </TabsContent>
-            </Tabs>
+                                )}
+                            </>
+                        )}
+                    </TabsContent>
+                </Tabs>
             </div>
 
             <div className="grid gap-5 md:grid-cols-2">

@@ -1,5 +1,5 @@
 import { Calendar, Coins, Flame, Ticket } from 'lucide-react';
-import { cn, formatDate, formatPrice } from '@/lib/utils';
+import { cn, formatPrice } from '@/lib/utils';
 
 type VoucherVisualState = 'active' | 'used' | 'expired' | 'draft';
 
@@ -185,10 +185,10 @@ export default function VoucherVisualCard({
           </div>
           <div className="flex flex-col">
             <span className={cn('text-[10px] font-black uppercase tracking-[0.18em] leading-tight', theme.brand)}>
-              DreamGuard Mall
+              DreamGuard
             </span>
             <span className={cn('text-[8px] font-bold uppercase tracking-[0.16em] mt-0.5', theme.subBrand)}>
-              Flash Voucher
+              {voucherType === 'Both' ? 'Exclusive' : voucherType} Voucher
             </span>
           </div>
         </div>
@@ -196,10 +196,10 @@ export default function VoucherVisualCard({
         <div
           className={cn(
             'px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-[0.14em] border backdrop-blur-md',
-            theme.statusChip
+            isExpiredDate && state === 'active' ? STATE_THEME.expired.statusChip : theme.statusChip
           )}
         >
-          {statusLabel || state.toUpperCase()}
+          {isExpiredDate && state === 'active' ? 'EXPIRED' : (statusLabel || state.toUpperCase())}
         </div>
       </div>
 
@@ -251,7 +251,9 @@ export default function VoucherVisualCard({
             <span>EXPIRY</span>
           </div>
           <div className={cn('text-[9px] font-black tracking-[0.08em] leading-none tabular-nums uppercase', expiryColorClass)}>
-            {isValidExpiry && expiryDate ? formatDate(expiryDate.toISOString()).toUpperCase() : 'N/A'}
+            {isValidExpiry && expiryDate ? (
+              `${String(expiryDate.getUTCDate()).padStart(2, '0')}/${String(expiryDate.getUTCMonth() + 1).padStart(2, '0')}/${expiryDate.getUTCFullYear()}`
+            ) : 'N/A'}
           </div>
         </div>
       </div>

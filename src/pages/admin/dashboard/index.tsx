@@ -6,18 +6,35 @@ import { motion } from "framer-motion";
 import { UserRole } from "@/lib/constants";
 import AdminPageHeader from "@/components/layout/AdminPageHeader";
 import { useAuthStore } from "@/store/authStore";
-import { mockOrders } from "../data";
 import { quickActions, statsConfig } from "./data";
 import { QuickActions, RecentOrders, StatsGrid, ServiceOrderAnalytics, TradeInAnalytics, OrderAnalytics, BestSellingProducts } from "./components";
 import { cn } from "@/lib/utils";
 
+import { useDashboardOverview } from "@/hooks/queries/useDashboardOverview";
+import { useRecentDashboardActivities } from "@/hooks/queries/useRecentDashboardActivities";
+import { formatPrice } from "@/lib/utils";
+import { useMemo } from "react";
+
 export default function Dashboard() {
   const role = useAuthStore((state) => state.role);
-  const [isLoading] = useState(false);
+  const { data: overview, isLoading: isOverviewLoading } = useDashboardOverview();
+  const { data: recentActivities, isLoading: isActivitiesLoading } = useRecentDashboardActivities();
   const [activeTab, setActiveTab] = useState<'service' | 'tradein' | 'order'>('order');
 
   const tabOrder = ['order', 'service', 'tradein'] as const;
-  const recentOrders = mockOrders.slice(0, 5);
+  const recentOrders = useMemo(() => recentActivities || [], [recentActivities]);
+
+  const finalStats = useMemo(() => {
+    if (!overview) return statsConfig;
+    return statsConfig.map((stat) => {
+      let value = stat.value;
+      if (stat.label === "Total Revenue") value = formatPrice(overview.totalRevenue);
+      if (stat.label === "Total Orders") value = overview.totalOrders.toLocaleString();
+      if (stat.label === "Total Users") value = overview.totalUsers.toLocaleString();
+      if (stat.label === "Products") value = overview.totalProducts.toLocaleString();
+      return { ...stat, value };
+    });
+  }, [overview]);
 
   const filteredQuickActions = quickActions.filter(action => {
     if (action.to === "/admin/chat" && role !== UserRole.SELLER) return false;
@@ -47,8 +64,8 @@ export default function Dashboard() {
       </div>
 
       <div className="px-8 pb-12 space-y-8">
-        <StatsGrid stats={statsConfig} isLoading={isLoading} />
-        <QuickActions actions={filteredQuickActions} isLoading={isLoading} />
+        <StatsGrid stats={finalStats} isLoading={isOverviewLoading} />
+        <QuickActions actions={filteredQuickActions} isLoading={false} />
 
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
           <div className="xl:col-span-12 space-y-6">
@@ -112,12 +129,12 @@ export default function Dashboard() {
                   View All <ArrowRight className="h-3 w-3" />
                 </Link>
               </div>
-              <RecentOrders orders={recentOrders} isLoading={isLoading} />
+              <RecentOrders orders={recentOrders} isLoading={isActivitiesLoading} />
             </motion.div>
           </div>
 
           <div className="xl:col-span-6">
-             <BestSellingProducts />
+            <BestSellingProducts />
           </div>
         </div>
       </div>

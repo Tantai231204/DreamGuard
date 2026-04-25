@@ -32,6 +32,7 @@ export const AppRoute = {
   HELP_CENTER: "/help-center",
   FAQ: "/faq",
   TERMS_OF_SERVICE: "/terms-of-service",
+  ABOUT: "/about",
 
   // User Routes
   PROFILE: "/profile",

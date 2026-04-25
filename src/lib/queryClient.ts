@@ -1,5 +1,4 @@
 import { QueryClient, QueryCache, MutationCache } from "@tanstack/react-query";
-import axios from "axios";
 import { toast } from "sonner";
 import { ApiError, ERROR_TITLES } from "./api";
 import { ApiErrorCode } from "./constants";
@@ -11,18 +10,29 @@ let lastQueryToastMessage = "";
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000,
-      gcTime: 10 * 60 * 1000, // Reduced gcTime
+      // Senior Cache Strategy: Extended defaults for a smoother UX
+      staleTime: 2 * 60 * 1000, // 2 mins (Balanced for dynamic content)
+      gcTime: 15 * 60 * 1000,  // 15 mins (Keep more in memory)
       refetchOnWindowFocus: false,
       refetchOnReconnect: true,
 
       retry: (failureCount, error) => {
-        if (axios.isAxiosError(error)) {
-          const status = error.response?.status;
-          if (status === 401 || status === 403 || status === 400 || status === 404 || status === 409) {
-            return false;
-          }
+        const apiError = error as Partial<ApiError>;
+
+        // Critical Principle: Never retry terminal business errors
+        const terminalCodes: ApiErrorCode[] = [
+          ApiErrorCode.UNAUTHORIZED,
+          ApiErrorCode.FORBIDDEN,
+          ApiErrorCode.VALIDATION,
+          ApiErrorCode.NOT_FOUND,
+          ApiErrorCode.CONFLICT
+        ];
+
+        if (apiError.code && terminalCodes.includes(apiError.code)) {
+          return false;
         }
+
+        // Only retry network failures or unexpected server glitches
         return failureCount < 2;
       },
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -38,11 +48,11 @@ export const queryClient = new QueryClient({
 
       const apiError = error as ApiError;
       const title = ERROR_TITLES[apiError.code] || "Error";
-      
+
       // Implement Deduplication for GET queries (Parallel API floods)
       const now = Date.now();
       if (now - lastQueryToastTime < 1500 && lastQueryToastMessage === apiError.message) {
-        return; 
+        return;
       }
       lastQueryToastTime = now;
       lastQueryToastMessage = apiError.message;
@@ -50,7 +60,7 @@ export const queryClient = new QueryClient({
       // Special 401 handling
       if (apiError.code === ApiErrorCode.UNAUTHORIZED) {
         toast.error("Session Expired", {
-            description: "Please log in again to continue."
+          description: "Please log in again to continue."
         });
         return;
       }

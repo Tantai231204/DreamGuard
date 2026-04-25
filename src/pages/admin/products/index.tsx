@@ -31,8 +31,8 @@ export default function ProductsPage() {
   // 1. Unified State Management
   const state = useAdminProductState();
   const {
-    activeTab, setActiveTab, products, combos, certificates, productPageData, comboPageData, certPageData,
-    isLoadingProducts, isLoadingCombos, isLoadingCerts
+    activeTab, setActiveTab, products, templates, combos, certificates, productPageData, comboPageData, certPageData,
+    isLoadingProducts, isLoadingTemplates, isLoadingCombos, isLoadingCerts
   } = state;
   const effectiveActiveTab = !canManageCertificates && activeTab === 'certificate' ? 'single' : activeTab;
 
@@ -93,7 +93,7 @@ export default function ProductsPage() {
       state.setVariantCount(p.variantCount ?? p.variants?.length ?? 0);
       state.setVariantDialogOpen(true);
     }, [state]),
-                    onUpdateStatus: useCallback((id: string, s: string, name?: string, cur?: string) => {
+    onUpdateStatus: useCallback((id: string, s: string, name?: string, cur?: string) => {
       mutations.handleStatusChangeRequest({
         id,
         name: name || 'Product',
@@ -142,38 +142,31 @@ export default function ProductsPage() {
 
   // Calculate high-level stats based on ALL data available
   const stats = useMemo(() => {
-    // Basic counts
-    const singleTotal = pageData?.totalCount ?? products.length;
-    const comboTotal = comboPageData?.totalCount ?? combos.length;
-    const certTotal = certPageData?.totalCount ?? certificates.length;
-
     // Status counts from current page (best we have without specialized API)
     const published = products.filter(p => p.status === 'Published').length +
+      templates.filter(t => t.status === 'Published').length +
       combos.filter(c => c.status === 'Published').length;
     const outOfStock = products.filter(p => p.status === 'OutOfStock').length;
     const draft = products.filter(p => p.status === 'Draft').length +
+      templates.filter(t => t.status === 'Draft').length +
       combos.filter(c => c.status === 'Draft').length;
 
-    // Derived Lists
-    const regularProducts = products.filter(p => !p.fullyCustomizedProductType || p.fullyCustomizedProductType === 'None');
-    const customizableProducts = products.filter(p => p.fullyCustomizedProductType && p.fullyCustomizedProductType !== 'None');
-
     return {
-      total: singleTotal + comboTotal,
-      singleTotal: regularProducts.length, // Local count for regularity
-      customizeTotal: customizableProducts.length,
-      comboTotal,
-      certTotal,
+      total: (pageData?.totalCount ?? products.length) + (comboPageData?.totalCount ?? combos.length),
+      singleTotal: pageData?.totalCount ?? products.length,
+      customizeTotal: templates.length,
+      comboTotal: comboPageData?.totalCount ?? combos.length,
+      certTotal: certPageData?.totalCount ?? certificates.length,
       published,
       outOfStock,
       draft,
-      regularProducts,
-      customizableProducts
+      regularProducts: products,
+      customizableProducts: templates
     };
-  }, [pageData, comboPageData, certPageData, products, combos, certificates]);
+  }, [pageData, comboPageData, certPageData, products, templates, combos, certificates]);
 
   // Optimization: Keep header visible while loading table data
-  const isSyncing = isLoadingProducts || isLoadingCombos || isLoadingCerts;
+  const isSyncing = isLoadingProducts || isLoadingTemplates || isLoadingCombos || isLoadingCerts;
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -209,8 +202,8 @@ export default function ProductsPage() {
               actions={
                 <AdminActions
                   onAdd={handleAdd}
-                  addLabel={effectiveActiveTab === 'customize' && stats.customizableProducts.length >= 3 && ['Mattresses', 'Pillows', 'Cribs'].every(t => stats.customizableProducts.some(p => p.fullyCustomizedProductType === t)) 
-                    ? 'All Templates Created' 
+                  addLabel={effectiveActiveTab === 'customize' && stats.customizableProducts.length >= 3 && ['Mattresses', 'Pillows', 'Cribs'].every(t => stats.customizableProducts.some(p => p.fullyCustomizedProductType === t))
+                    ? 'All Templates Created'
                     : `Add ${effectiveActiveTab === 'single' ? 'Product' : effectiveActiveTab === 'customize' ? 'Template' : effectiveActiveTab === 'combo' ? 'Combo' : 'Certificate'}`}
                   addDisabled={effectiveActiveTab === 'customize' && ['Mattresses', 'Pillows', 'Cribs'].every(t => stats.customizableProducts.some(p => p.fullyCustomizedProductType === t))}
                   onExport={handleExport}

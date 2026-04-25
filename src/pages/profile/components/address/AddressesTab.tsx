@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { PlusIcon } from "@radix-ui/react-icons";
 import { MapPin } from "lucide-react";
 import { Button } from "../../../../components/ui/button";
@@ -7,6 +7,7 @@ import { useAddresses, useDeleteAddress } from "@/hooks/useAddress";
 import { AddressFormDialog } from "./AddressFormDialog";
 import { AddressDeleteDialog } from "./AddressDeleteDialog";
 import { AddressCard } from "./AddressCard";
+import { toast } from "sonner";
 
 export default function AddressesTab() {
   const { data: addresses = [], isPending } = useAddresses();
@@ -21,16 +22,37 @@ export default function AddressesTab() {
     () => localStorage.getItem("defaultAddressId")
   );
 
+  // Sync default address logic
+  useEffect(() => {
+    if (addresses.length > 0) {
+      const currentDefaultExists = addresses.some(a => a.addressId === defaultAddressId);
+      
+      if (!defaultAddressId || !currentDefaultExists) {
+        // Auto-pick the first one if no default exists or it was deleted
+        const firstId = addresses[0].addressId;
+        localStorage.setItem("defaultAddressId", firstId);
+        queueMicrotask(() => setDefaultAddressIdState(firstId));
+      }
+    } else if (defaultAddressId) {
+      // Clear if no addresses left
+      localStorage.removeItem("defaultAddressId");
+      queueMicrotask(() => setDefaultAddressIdState(null));
+    }
+  }, [addresses, defaultAddressId]);
+
   const handleSetDefault = (id: string) => {
     localStorage.setItem("defaultAddressId", id);
     setDefaultAddressIdState(id);
+    toast.success("Default address updated");
   };
 
-  const sortedAddresses = [...addresses].sort((a, b) => {
-    const aIsDefault = a.addressId === defaultAddressId;
-    const bIsDefault = b.addressId === defaultAddressId;
-    return (bIsDefault ? 1 : 0) - (aIsDefault ? 1 : 0);
-  });
+  const sortedAddresses = useMemo(() => {
+    return [...addresses].sort((a, b) => {
+      const aIsDefault = a.addressId === defaultAddressId;
+      const bIsDefault = b.addressId === defaultAddressId;
+      return (bIsDefault ? 1 : 0) - (aIsDefault ? 1 : 0);
+    });
+  }, [addresses, defaultAddressId]);
 
   const handleDelete = (id: string) => {
     setAddressToDelete(id);
@@ -43,7 +65,11 @@ export default function AddressesTab() {
         onSuccess: () => {
           setDeleteOpen(false);
           setAddressToDelete(null);
+          toast.success("Address deleted successfully");
         },
+        onError: () => {
+          toast.error("Failed to delete address");
+        }
       });
     }
   };
@@ -135,6 +161,8 @@ export default function AddressesTab() {
         open={showForm}
         onOpenChange={setShowForm}
         initialData={editingAddress}
+        isCurrentDefault={editingAddress?.addressId === defaultAddressId}
+        onSetDefault={handleSetDefault}
       />
 
       <AddressDeleteDialog

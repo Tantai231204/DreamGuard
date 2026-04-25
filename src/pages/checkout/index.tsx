@@ -24,7 +24,7 @@ interface CheckoutRouteState {
 
 export default function CheckoutPage() {
     const { setItems } = useBreadcrumb()
-    const { cart, totalPrice, totalTradeInDiscount, finalTotal } = useCart()
+    const { cart, totalPrice, totalTradeInDiscount, finalTotal, isSyncing, isFetching } = useCart()
     const navigate = useNavigate()
     const location = useLocation()
     const { isAuthenticated } = useAuthStore()
@@ -34,48 +34,49 @@ export default function CheckoutPage() {
     const preselectedVoucherId = navigationState?.preselectedVoucherId ?? null
     const preselectedVoucherCode = navigationState?.preselectedVoucherCode?.trim().toUpperCase() ?? null
 
+    // Production Sync Guard: Ensure we have a clean, synced cart before showing UI
+    const isCartReady = !isSyncing && !isFetching;
+
     const {
         data: voucherPage,
         isLoading: isVoucherLoading,
         isError: isVoucherError,
         refetch: refetchVouchers,
-    } = useUserVouchers(isAuthenticated)
+    } = useUserVouchers(isAuthenticated && isCartReady)
 
-    const allUserVouchers = voucherPage?.items ?? []
-    const orderVouchers = useMemo(
-        () => allUserVouchers.filter((voucher) => isUserVoucherUsable(voucher, "order")),
-        [allUserVouchers]
-    )
+    const orderVouchers = useMemo(() => {
+        const items = voucherPage?.items ?? [];
+        return items.filter((voucher) => isUserVoucherUsable(voucher, "order"));
+    }, [voucherPage?.items]);
 
     const selectedVoucher = useMemo(
         () => orderVouchers.find((voucher) => voucher.userVoucherId === selectedVoucherId) ?? null,
         [orderVouchers, selectedVoucherId]
-    )
+    );
 
     const voucherDiscount = useMemo(
         () => (selectedVoucher ? calculateVoucherDiscount(finalTotal, selectedVoucher) : 0),
         [finalTotal, selectedVoucher]
-    )
+    );
 
     const payableTotal = useMemo(
         () => Math.max(0, finalTotal - voucherDiscount),
         [finalTotal, voucherDiscount]
-    )
+    );
 
     const handleVoucherChange = useCallback((voucherId: string | null) => {
-        setSelectedVoucherId(voucherId)
-    }, [])
+        setSelectedVoucherId(voucherId);
+    }, []);
 
     const handleVoucherRetry = useCallback(() => {
-        void refetchVouchers()
-    }, [refetchVouchers])
+        void refetchVouchers();
+    }, [refetchVouchers]);
 
-    // Production UX: Estimated Delivery calculation (Moved up to follow Hook rules)
     const estimatedDate = useMemo(() => {
-        const date = new Date()
-        date.setDate(date.getDate() + 3) // 3 days shipping
-        return formatDate(date)
-    }, [])
+        const date = new Date();
+        date.setDate(date.getDate() + 3); // 3 days shipping
+        return formatDate(date);
+    }, []);
 
     useEffect(() => {
         setItems([
@@ -83,62 +84,62 @@ export default function CheckoutPage() {
             { label: "Cart", href: AppRoute.CART },
             { label: "Checkout", href: AppRoute.CHECKOUT },
         ])
+        return () => setItems([])
     }, [setItems])
 
-
     useEffect(() => {
-        // Redirect to cart if empty, but only after a short delay to allow sync to finish 
-        // when switching accounts
-        if (cart.length === 0) {
+        if (isCartReady && cart.length === 0) {
             const timer = setTimeout(() => {
-                if (useCartStore.getState().cart.length === 0) {
-                    navigate(AppRoute.CART)
+                const freshState = useCartStore.getState();
+                if (!freshState.isSyncing && !freshState.isFetching && freshState.cart.length === 0) {
+                    navigate(AppRoute.CART);
                 }
-            }, 1000)
-            return () => clearTimeout(timer)
+            }, 800);
+            return () => clearTimeout(timer);
         }
-    }, [cart.length, navigate])
+    }, [cart.length, navigate, isCartReady]);
 
     useEffect(() => {
-        if (!selectedVoucherId || isVoucherLoading || isVoucherError) return
+        if (!selectedVoucherId || isVoucherLoading || isVoucherError) return;
 
-        const stillExists = orderVouchers.some((voucher) => voucher.userVoucherId === selectedVoucherId)
+        const stillExists = orderVouchers.some((voucher) => voucher.userVoucherId === selectedVoucherId);
         if (!stillExists) {
-            setSelectedVoucherId(null)
+            // Defer update to avoid cascading render warning
+            queueMicrotask(() => setSelectedVoucherId(null));
         }
-    }, [isVoucherError, isVoucherLoading, orderVouchers, selectedVoucherId])
+    }, [isVoucherError, isVoucherLoading, orderVouchers, selectedVoucherId]);
 
     useEffect(() => {
         if (!isAuthenticated && selectedVoucherId) {
-            setSelectedVoucherId(null)
+            queueMicrotask(() => setSelectedVoucherId(null));
         }
-    }, [isAuthenticated, selectedVoucherId])
+    }, [isAuthenticated, selectedVoucherId]);
 
     useEffect(() => {
         if (!isAuthenticated || isVoucherLoading || isVoucherError || orderVouchers.length === 0) {
-            return
+            return;
         }
 
-        let nextVoucherId: string | null = null
+        let nextVoucherId: string | null = null;
 
         if (preselectedVoucherId) {
-            const matchedById = orderVouchers.find((voucher) => voucher.userVoucherId === preselectedVoucherId)
+            const matchedById = orderVouchers.find((voucher) => voucher.userVoucherId === preselectedVoucherId);
             if (matchedById) {
-                nextVoucherId = matchedById.userVoucherId
+                nextVoucherId = matchedById.userVoucherId;
             }
         }
 
         if (!nextVoucherId && preselectedVoucherCode) {
             const matchedByCode = orderVouchers.find(
                 (voucher) => voucher.code.trim().toUpperCase() === preselectedVoucherCode
-            )
+            );
             if (matchedByCode) {
-                nextVoucherId = matchedByCode.userVoucherId
+                nextVoucherId = matchedByCode.userVoucherId;
             }
         }
 
         if (nextVoucherId && selectedVoucherId !== nextVoucherId) {
-            setSelectedVoucherId(nextVoucherId)
+            queueMicrotask(() => setSelectedVoucherId(nextVoucherId));
         }
     }, [
         isAuthenticated,
@@ -148,14 +149,21 @@ export default function CheckoutPage() {
         preselectedVoucherCode,
         preselectedVoucherId,
         selectedVoucherId,
-    ])
+    ]);
 
-    if (cart.length === 0) {
+    // UI Loading State (Merged) - Placed after all hooks to follow React rules
+    if (!isCartReady) {
         return (
-            <div className="min-h-screen flex items-center justify-center">
-                <LoadingSpinner size="md" text="Syncing your secure session..." />
+            <div className="min-h-screen flex items-center justify-center bg-white">
+                <div className="flex flex-col items-center gap-6">
+                    <LoadingSpinner size="md" text="Synchronizing your secure session..." />
+                    <div className="flex items-center gap-3 px-4 py-2 bg-slate-50 rounded-2xl animate-pulse">
+                        <RefreshCcw className="w-4 h-4 text-primary-500 animate-spin" />
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Neutral Sync in progress</span>
+                    </div>
+                </div>
             </div>
-        )
+        );
     }
 
     return (

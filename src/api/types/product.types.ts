@@ -58,6 +58,7 @@ export interface AdminProductParams {
 export interface ProductParams {
   cateId?: number;
   pageNumber?: number;
+  pageSize?: number;
   color?: string;
   maxPrice?: number;
   maxAgeGroup?: number;
@@ -188,6 +189,7 @@ export interface CreateFullyCustomizedProductRequest {
   isTradeInEligible?: boolean;
   minTradeInPrice?: number;
   depositAmount?: number;
+  CertificateIds?: string[];
 }
 
 export interface UpdateFullyCustomizedProductRequest extends CreateFullyCustomizedProductRequest {

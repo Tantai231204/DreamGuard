@@ -97,6 +97,9 @@ export const useResetPassword = () => {
     ResetPasswordRequest
   >({
     mutationFn: authService.resetPassword,
+    onError: (error) => {
+      console.error("[useResetPassword] Error:", error);
+    }
   });
 };
 

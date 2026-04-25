@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Upload, Trash2, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { useUploadComboImage, useDeleteComboImage } from '@/hooks/queries/useCombo';
 import { ImageUploadDialog } from '../../dialogs';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { cn } from '@/lib/utils';
 import type { Path, PathValue } from 'react-hook-form';
 import type { ComboFormValues } from '../index';
@@ -16,18 +17,23 @@ interface MediaBlockProps {
 
 const MediaBlock = memo(function MediaBlock({ watchValues, comboId, setField }: MediaBlockProps) {
     const [showUploadDialog, setShowUploadDialog] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const uploadMutation = useUploadComboImage();
     const deleteMutation = useDeleteComboImage();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const isMediaLoading = uploadMutation.isPending || deleteMutation.isPending;
 
-    const handleDelete = useCallback(async () => {
+    const handleDelete = useCallback(() => {
         if (!watchValues.imagePublicId) return;
-        if (window.confirm('Delete this image?')) {
-            await deleteMutation.mutateAsync(watchValues.imagePublicId);
-            setField('imageUrl' as Path<ComboFormValues>, '' as PathValue<ComboFormValues, 'imageUrl'>);
-            setField('imagePublicId' as Path<ComboFormValues>, '' as PathValue<ComboFormValues, 'imagePublicId'>);
-        }
+        setShowDeleteConfirm(true);
+    }, [watchValues.imagePublicId]);
+
+    const confirmDelete = useCallback(async () => {
+        if (!watchValues.imagePublicId) return;
+        await deleteMutation.mutateAsync(watchValues.imagePublicId);
+        setField('imageUrl' as Path<ComboFormValues>, '' as PathValue<ComboFormValues, 'imageUrl'>);
+        setField('imagePublicId' as Path<ComboFormValues>, '' as PathValue<ComboFormValues, 'imagePublicId'>);
+        setShowDeleteConfirm(false);
     }, [watchValues.imagePublicId, deleteMutation, setField]);
 
     const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -170,6 +176,17 @@ const MediaBlock = memo(function MediaBlock({ watchValues, comboId, setField }: 
                     isUploading={uploadMutation.isPending}
                 />
             )}
+
+            <ConfirmDialog
+                open={showDeleteConfirm}
+                onOpenChange={setShowDeleteConfirm}
+                title="Delete Media Asset?"
+                description="Are you sure you want to permanently delete this combo image from the server? This action cannot be undone."
+                onConfirm={confirmDelete}
+                confirmText="Delete Image"
+                variant="danger"
+                isLoading={deleteMutation.isPending}
+            />
         </div>
     );
 });

@@ -21,8 +21,19 @@ export function VoucherDateRange({
     onEndDateChange,
     isLoading = false,
 }: VoucherDateRangeProps) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     const isDateRangeValid = startDate && endDate && new Date(startDate) <= new Date(endDate);
-    const fallbackDateRangeError = startDate && endDate && !isDateRangeValid ? 'End date must be on or after start date' : undefined;
+    const isEndDateInPast = endDate && new Date(endDate) < today;
+
+    let fallbackDateRangeError = undefined;
+    if (startDate && endDate && !isDateRangeValid) {
+        fallbackDateRangeError = 'End date must be on or after start date';
+    } else if (isEndDateInPast) {
+        fallbackDateRangeError = 'Expiration date cannot be in the past';
+    }
+
     const effectiveDateRangeError = dateRangeError || fallbackDateRangeError;
 
     return (
@@ -62,6 +73,7 @@ export function VoucherDateRange({
                             }
                         }}
                         disabled={isLoading}
+                        disabledDays={{ before: today }}
                         placeholder="Select start and end date"
                         className="w-full"
                     />

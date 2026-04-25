@@ -4,7 +4,11 @@ const addressSchema = z.object({
     firstName: z.string().min(2, "First name is too short"),
     lastName: z.string().min(2, "Last name is too short"),
     email: z.string().email("Invalid email format"),
-    phone: z.string().min(10, "Phone number must be at least 10 digits"),
+    phone: z
+        .string()
+        .min(10, "Phone number must be at least 10 digits")
+        .max(11, "Phone number is too long")
+        .regex(/^(0|84)(3|5|7|8|9|2)([0-9]{8,9})$/, "Invalid phone format"),
     addressId: z.string().nullable().optional(),
     userVoucherId: z.string().nullable().optional(),
     streetAddress: z.string().min(5, "Street address is too short"),

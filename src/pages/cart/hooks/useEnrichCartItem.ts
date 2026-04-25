@@ -21,19 +21,22 @@ interface EnrichedCartItem {
 export const useEnrichCartItem = (item: CartItem) => {
     const isCombo = !!item.comboId;
     const { data: variant, isLoading: isVarLoading } = useVariant(!isCombo ? (item.productVariantId || "") : "");
-    const vData = variant as VariantResponse;
-    const variantProductId = vData?.productId || "";
-    const { data: product } = useProductDetail(variantProductId, !!variantProductId);
     const { data: combo, isLoading: isComboLoading } = useComboDetail(item.comboId || "", isCombo);
 
     // Parent Recovery: If it's a child combo with no image, fetch the parent combo
-    const parentId = (combo as ComboResponse)?.comboParentId || "";
-    const { data: parentCombo } = useComboDetail(parentId, isCombo && !!parentId && !(combo as ComboResponse)?.imageUrl);
+    const comboData = combo as ComboResponse;
+    const parentId = comboData?.comboParentId || "";
+    const { data: parentCombo } = useComboDetail(parentId, isCombo && !!parentId && !comboData?.imageUrl);
 
-    // Deep fallback: If it's a combo but the response has no image, fetch the first sub-item's variant to get its image
-    const firstSubItemVariantId = (combo as ComboResponse)?.productItems?.[0]?.productVariantId ||
-        (combo as ComboResponse)?.items?.[0]?.variantId || "";
-    const { data: fallbackVariant } = useVariant(isCombo && !(combo as ComboResponse)?.imageUrl && !parentCombo?.imageUrl ? firstSubItemVariantId : "");
+    // Deep fallback: If it's a combo but the response has no image, fetch the first sub-item's variant
+    const firstSubItemVariantId = comboData?.productItems?.[0]?.productVariantId ||
+        comboData?.items?.[0]?.variantId || "";
+    const { data: fallbackVariant } = useVariant(isCombo && !comboData?.imageUrl && !parentCombo?.imageUrl ? firstSubItemVariantId : "");
+
+    // Final image source recovery: Resolve the root product for whichever variant we actually have
+    const activeVariant = !isCombo ? (variant as VariantResponse) : (fallbackVariant as VariantResponse);
+    const variantProductId = activeVariant?.productId || "";
+    const { data: product } = useProductDetail(variantProductId, !!variantProductId);
 
     const enriched = useMemo((): EnrichedCartItem => {
         // Base state from item
@@ -41,7 +44,11 @@ export const useEnrichCartItem = (item: CartItem) => {
             name: item.name,
             color: item.color,
             size: item.size,
-            image: (item.image && typeof item.image === 'string' && item.image.length > 2) ? item.image : undefined,
+            image: (item.image && typeof item.image === 'string' && item.image.length > 2) 
+                ? item.image 
+                : (typeof (item as unknown as Record<string, unknown>).imageUrl === 'string' && ((item as unknown as Record<string, unknown>).imageUrl as string).length > 2)
+                    ? ((item as unknown as Record<string, unknown>).imageUrl as string)
+                    : undefined,
             isCombo,
             sku: item.sku,
             price: item.price,
@@ -55,8 +62,7 @@ export const useEnrichCartItem = (item: CartItem) => {
                 : undefined
         };
 
-        if (isCombo && combo) {
-            const comboData = combo as ComboResponse;
+        if (isCombo && comboData) {
             const subItems = comboData.productItems?.map(p => ({
                 name: p.productName,
                 quantity: p.quantity,
@@ -67,19 +73,14 @@ export const useEnrichCartItem = (item: CartItem) => {
             // 4. Resolve the best possible image
             const firstSubItemImage = subItems.find(s => s.image)?.image;
             
-            // Deep recovery for child combos: get image from first constituent variant
+            // Deep recovery: get image from first constituent variant or the fallback product
             const fallbackVarData = fallbackVariant as VariantResponse;
             const fallbackVarImg = (fallbackVarData?.attributes as VariantAttributes)?.imageUrl as string;
             
-            // Final fallback: Use the product-level image if variant attributes are empty
+            // Root product image fallback
             const pData = product as { imageUrls?: string[]; imageUrl?: string } | undefined;
             const productImg = pData?.imageUrls?.[0] || pData?.imageUrl;
             
-            // If the current combo is empty, try: 
-            // 1. Parent Combo Image
-            // 2. First successful sub-item image from enriched list
-            // 3. The dedicated fallback variant fetch (deep fetch)
-            // 4. The root product image of that alternative variant
             const ultimateImg = (comboData?.imageUrl && comboData.imageUrl.length > 5)
                 ? comboData.imageUrl
                 : (comboData?.images?.[0] || parentCombo?.imageUrl || firstSubItemImage || fallbackVarImg || productImg || base.image);
@@ -101,21 +102,21 @@ export const useEnrichCartItem = (item: CartItem) => {
             
             const pData = product as { imageUrls?: string[]; imageUrl?: string } | undefined;
             const productImg = pData?.imageUrls?.[0] || pData?.imageUrl;
-            const variantImg = (variantData.attributes as VariantAttributes)?.imageUrl as string || productImg;
+            const variantImg = (variantData.attributes as VariantAttributes)?.imageUrl as string || productImg || base.image;
 
             return {
                 ...base,
                 name: variantData.sku || base.name,
                 color: item.color || (typeof attrColor === 'string' ? attrColor : undefined) || base.color,
                 size: item.size || variantData.size || (variantData.attributes?.size as string) || base.size,
-                image: variantImg || base.image,
+                image: variantImg,
                 sku: variantData.sku || base.sku,
                 price: variantData.salePrice || base.price
             };
         }
 
         return base;
-    }, [item, variant, combo, isCombo, parentCombo, fallbackVariant, product]);
+    }, [item, variant, comboData, isCombo, parentCombo, fallbackVariant, product]);
 
     return {
         ...enriched,

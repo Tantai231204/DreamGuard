@@ -100,7 +100,23 @@ export function useProductColumns({ onView, onEdit, onDelete, onAddVariant, onUp
           return (
             <div className="flex items-center gap-4 py-1 group/pcell">
               <div className="h-12 w-12 rounded-lg bg-slate-50 flex items-center justify-center overflow-hidden flex-shrink-0 border border-slate-200 transition-colors group-hover/pcell:border-blue-200">
-                <Package className="h-6 w-6 text-slate-400 group-hover/pcell:text-blue-500 transition-colors" />
+                {(() => {
+                  const displayImage = (product.imageUrls && product.imageUrls[0]) || (product.assets && product.assets[0]?.url);
+                  if (displayImage) {
+                    return (
+                      <img
+                        src={displayImage}
+                        alt={product.name}
+                        className="h-full w-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = ''; 
+                          (e.target as HTMLImageElement).style.display = 'none';
+                        }}
+                      />
+                    );
+                  }
+                  return <Package className="h-6 w-6 text-slate-400 group-hover/pcell:text-blue-500 transition-colors" />;
+                })()}
               </div>
               <div className="min-w-0 flex flex-col gap-1">
                 <div className="font-bold text-slate-900 truncate max-w-[280px] leading-tight group-hover:text-blue-700 transition-colors text-[14px]">

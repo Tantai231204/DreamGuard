@@ -183,6 +183,7 @@ export function useComboDetail() {
             color: activeCombo.color,
             size: activeCombo.size,
             sku: activeCombo.sku,
+            availableStock: activeCombo.stock ?? undefined,
             isCustom: false
         });
     }, [activeCombo, combo, quantity, addItem, displayImage]);

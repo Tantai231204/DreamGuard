@@ -278,6 +278,9 @@ export function useFloatingChat() {
       let imageUrl: string | undefined;
       let imageName: string | undefined;
 
+      // Ensure typing signal is true while we process everything
+      sendTypingSignal(true);
+
       try {
         if (imageFile) {
           setUploadProgress(0);
@@ -298,9 +301,10 @@ export function useFloatingChat() {
         });
       } finally {
         setUploadProgress(null);
+        sendTypingSignal(false);
       }
     },
-    [sendMutation, activeConversationId]
+    [sendMutation, activeConversationId, sendTypingSignal]
   );
 
   const retryFailedMessage = useCallback(
@@ -328,6 +332,8 @@ export function useFloatingChat() {
     [activeConversationId, queryClient, sendMutation],
   );
 
+  const isSending = sendMutation.isPending || uploadProgress !== null;
+
   return {
     isOpen,
     openChat,
@@ -335,11 +341,17 @@ export function useFloatingChat() {
     toggleChat,
     messages,
     isLoading: isFetchingMessages,
-    isSending: sendMutation.isPending,
+    isSending,
     uploadProgress,
     isTyping,
     sendTypingSignal,
-    sendMessage,
+    sendMessage: useCallback(
+      async (text: string, imageFile?: File | null) => {
+        if (isSending) return;
+        await sendMessage(text, imageFile);
+      },
+      [isSending, sendMessage],
+    ),
     retryFailedMessage,
     messagesEndRef,
   };

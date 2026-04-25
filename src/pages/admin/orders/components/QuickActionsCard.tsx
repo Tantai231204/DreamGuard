@@ -14,6 +14,7 @@ interface QuickActionsCardProps {
   onProcessExchange: () => void;
   canCancel: boolean;
   hasTask: boolean;
+  isPaid?: boolean;
   delay?: number;
 }
 
@@ -25,6 +26,7 @@ export function QuickActionsCard({
   onProcessExchange,
   canCancel,
   hasTask,
+  isPaid = false,
   delay = 0,
 }: QuickActionsCardProps) {
   const role = useAuthStore((s) => s.role);
@@ -103,7 +105,7 @@ export function QuickActionsCard({
           )}
 
           {/* ─── Step 4: Delivered → Manager finalizes ─── */}
-          {currentStatusEnum === OrderStatus.Delivered && (
+          {currentStatusEnum === OrderStatus.Delivered && !isPaid && (
             isAdminOrManager ? (
               <Button
                 onClick={() => onUpdateStatus('Completed')}

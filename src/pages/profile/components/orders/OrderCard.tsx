@@ -1,4 +1,4 @@
-import { memo, useCallback, useMemo, lazy, Suspense } from "react"
+import React, { memo, useCallback, useMemo, lazy, Suspense } from "react"
 import { Store, Package, Truck, ShieldCheck } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { formatPrice, formatDate } from "../../utils"
 import type { OrderResponse } from "@/api/types/order"
 import { getStatusTheme } from "../../constants"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, useSearchParams } from "react-router-dom"
 import { orderKeys } from "@/hooks/queries/useOrder"
 import { queryClient } from "@/lib/queryClient"
 import orderService from "@/api/services/orderService"
@@ -21,6 +21,39 @@ interface OrderCardProps {
 export const OrderCard = memo(({ order }: OrderCardProps) => {
     const theme = getStatusTheme(order.status)
     const navigate = useNavigate()
+    const [searchParams, setSearchParams] = useSearchParams()
+    const urlOrderId = searchParams.get("id")
+    const isProductTab = searchParams.get("tab") === "orders"
+    
+    // Manage open state for both deep-linked and manual clicks
+    const isInitiallyDeepLinked = isProductTab && urlOrderId === order.id
+    const [isOpen, setIsOpen] = React.useState(isInitiallyDeepLinked)
+    const [activeTab, setActiveTab] = React.useState<"details" | "review">(
+        isInitiallyDeepLinked && searchParams.get("id") === order.id ? "details" : "details"
+    )
+
+    // Sync state if URL changes
+    React.useEffect(() => {
+        if (isInitiallyDeepLinked) {
+            setIsOpen(true);
+            setActiveTab("details");
+        }
+    }, [isInitiallyDeepLinked]);
+
+    const handleOpenDetail = useCallback((tab: "details" | "review" = "details") => {
+        setActiveTab(tab);
+        setIsOpen(true);
+    }, []);
+
+    const handleOpenChange = useCallback((open: boolean) => {
+        setIsOpen(open);
+        if (!open && isInitiallyDeepLinked) {
+            const newParams = new URLSearchParams(searchParams)
+            newParams.delete("id")
+            setSearchParams(newParams, { replace: true })
+        }
+    }, [isInitiallyDeepLinked, searchParams, setSearchParams])
+
     const status = String(order.status)
 
     const isShipping = useMemo(() => ["Shipping", "3"].includes(status), [status])
@@ -108,21 +141,13 @@ export const OrderCard = memo(({ order }: OrderCardProps) => {
                     </button>
                 </div>
                 <div className="flex items-center gap-2">
-                    <Suspense fallback={
-                        <Button variant="outline" className="h-9 px-4 rounded-lg text-xs font-bold uppercase tracking-wider border-slate-200 opacity-70 animate-pulse" disabled>
-                            Details
-                        </Button>
-                    }>
-                        <OrderDetailDialog
-                            orderId={order.id}
-                            orderCode={order.orderCode}
-                            trigger={
-                                <Button variant="outline" className="h-9 px-4 rounded-lg text-xs font-bold uppercase tracking-wider border-slate-200 hover:bg-white transition-all">
-                                    Details
-                                </Button>
-                            }
-                        />
-                    </Suspense>
+                    <Button 
+                        variant="outline" 
+                        className="h-9 px-4 rounded-lg text-xs font-bold uppercase tracking-wider border-slate-200 hover:bg-white transition-all"
+                        onClick={() => handleOpenDetail("details")}
+                    >
+                        Details
+                    </Button>
 
                     {isShipping && (
                         <Button
@@ -136,17 +161,13 @@ export const OrderCard = memo(({ order }: OrderCardProps) => {
 
                     {isDelivered && (
                         <div className="flex items-center gap-2">
-                            <Suspense fallback={null}>
-                                <OrderDetailDialog
-                                    orderId={order.id}
-                                    orderCode={order.orderCode}
-                                    trigger={
-                                        <Button variant="ghost" className="h-9 px-4 rounded-lg text-[10px] font-black uppercase tracking-wider text-amber-600 hover:bg-amber-50">
-                                            Write Review
-                                        </Button>
-                                    }
-                                />
-                            </Suspense>
+                            <Button 
+                                variant="ghost" 
+                                className="h-9 px-4 rounded-lg text-[10px] font-black uppercase tracking-wider text-amber-600 hover:bg-amber-50"
+                                onClick={() => handleOpenDetail("review")}
+                            >
+                                Write Review
+                            </Button>
                             <BuyAgainButton onClick={handleReOrder} onMouseEnter={prefetch} />
                         </div>
                     )}
@@ -161,6 +182,23 @@ export const OrderCard = memo(({ order }: OrderCardProps) => {
                     )}
                 </div>
             </div>
+
+            {/* Clickable area for the whole card */}
+            <div 
+                className="absolute inset-x-0 top-0 h-[calc(100%-64px)] cursor-pointer z-0" 
+                onClick={() => handleOpenDetail("details")}
+            />
+
+            <Suspense fallback={null}>
+                <OrderDetailDialog
+                    orderId={order.id}
+                    orderCode={order.orderCode}
+                    open={isOpen}
+                    onOpenChange={handleOpenChange}
+                    initialTab={activeTab}
+                    trigger={<div className="hidden" />}
+                />
+            </Suspense>
         </Card>
     )
 })

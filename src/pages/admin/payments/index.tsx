@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import {
     useReactTable,
     getCoreRowModel,
@@ -24,8 +24,12 @@ export default function PaymentManagement() {
         pageSize: 10,
     })
 
+    const handleView = useCallback((id: string) => {
+        setSelectedPaymentId(id)
+    }, [])
+
     const columns = usePaymentColumns({
-        onView: (id) => setSelectedPaymentId(id)
+        onView: handleView
     })
 
     const { data: paymentData, isPending } = useAdminPayments({

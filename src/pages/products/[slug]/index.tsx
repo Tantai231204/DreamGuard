@@ -36,7 +36,8 @@ export default function ProductDetail() {
     certifications,
     productImageRef,
     isAuthenticated,
-    tradeInContact
+    tradeInContact,
+    tradeInAddresses
   } = useProductDetailViewModel();
 
   if (isLoading) return <ProductDetailSkeleton />;
@@ -139,6 +140,7 @@ export default function ProductDetail() {
                 onToggleProduct={handleToggleTradeIn}
                 tradeInPercentage={30}
                 product={product}
+                targetProductImage={state.productImages[state.selectedImage]}
                 minTradeInPrice={tradeInSummary.minTradeInPrice}
                 depositAmount={tradeInSummary.depositAmount}
                 currentProductPrice={tradeInSummary.currentProductPrice}
@@ -151,6 +153,7 @@ export default function ProductDetail() {
                 isLoadingItems={isTradeInItemsLoading}
                 isLoggedIn={isAuthenticated}
                 initialContact={tradeInContact}
+                addresses={tradeInAddresses}
               />
             </Suspense>
           </div>

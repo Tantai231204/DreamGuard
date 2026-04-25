@@ -148,6 +148,12 @@ export default function OrderSummaryItemList({ cart }: OrderSummaryItemListProps
                         </div>
 
                         <div className="flex flex-col">
+                            {item.availableStock !== undefined && item.quantity > item.availableStock && (
+                                <div className="flex items-center gap-1.5 mb-2 text-rose-500">
+                                    <Package className="w-3 h-3" />
+                                    <span className="text-[9px] font-black uppercase tracking-widest">Exceeds Stock (Max: {item.availableStock})</span>
+                                </div>
+                            )}
                             <span className="text-[8px] font-black text-slate-300 uppercase tracking-[0.1em] mb-0.5">Unit Price</span>
                             <span className="text-[11px] font-black text-slate-900 tracking-tight">{formatPrice(item.price)}</span>
                         </div>

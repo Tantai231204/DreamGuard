@@ -19,8 +19,24 @@ export const useAdminPayments = (params?: {
     return useQuery({
         queryKey: paymentKeys.list(params),
         queryFn: () => paymentService.getAdminPayments(params),
+        staleTime: 0,
+    });
+};
+
+export const usePayments = (params?: {
+    pageNumber?: number;
+    pageSize?: number;
+    status?: string;
+    method?: string;
+    orderCode?: string;
+    key?: string;
+}) => {
+    return useQuery({
+        queryKey: paymentKeys.list(params),
+        queryFn: () => paymentService.getPayments(params),
         placeholderData: keepPreviousData,
         staleTime: 0,
+        enabled: !!params?.orderCode,
     });
 };
 
@@ -44,10 +60,34 @@ export const useUpdatePaymentStatus = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ id, status }: { id: string; status: string }) =>
-            paymentService.updatePaymentStatus(id, status),
+        mutationFn: ({ id, status, evidenceUrl }: { id: string; status: string; evidenceUrl?: string }) =>
+            paymentService.updatePaymentStatus(id, status, evidenceUrl),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: paymentKeys.all });
         },
+    });
+};
+
+export const useAdminCreateRefund = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (payload: { soId?: string; orderId?: string; reason: string; amount: number }) =>
+            paymentService.createAdminRefund(payload),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: paymentKeys.all });
+        }
+    });
+};
+
+export const useUpdateRefundStatus = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: ({ id, status, evidence, evidenceUrl }: { id: string; status: string; evidence?: File; evidenceUrl?: string }) =>
+            paymentService.updateRefundStatus(id, status, evidence, evidenceUrl),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: paymentKeys.all });
+        }
     });
 };

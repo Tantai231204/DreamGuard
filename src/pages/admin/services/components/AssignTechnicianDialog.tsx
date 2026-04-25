@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, memo } from 'react';
 import { motion } from 'framer-motion';
 import {
   Dialog,
@@ -44,7 +44,7 @@ const formatLabel = (value?: string, fallback = 'Technician') => {
 
 const isActiveStatus = (status?: string) => (status || '').toLowerCase() === 'active';
 
-export function AssignTechnicianDialog({ orderId, isOpen, onClose }: AssignTechnicianDialogProps) {
+export const AssignTechnicianDialog = memo(function AssignTechnicianDialog({ orderId, isOpen, onClose }: AssignTechnicianDialogProps) {
   const {
     selectedStaffId,
     setSelectedStaffId,
@@ -207,4 +207,4 @@ export function AssignTechnicianDialog({ orderId, isOpen, onClose }: AssignTechn
       </DialogContent>
     </Dialog>
   );
-}
+});

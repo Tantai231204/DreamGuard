@@ -1,8 +1,10 @@
-import { useState } from "react";
-import { MapPin } from "lucide-react";
+import { useState, useEffect } from "react";
+import { MapPin, Star } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
 import { Label } from "../../../../components/ui/label";
+import { Checkbox } from "../../../../components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -21,15 +23,29 @@ import type { Address } from "../../../../api/types/address";
 import vnAddress from "@/shared/data/vnAddress.json";
 import { useCreateAddress, useUpdateAddress } from "@/hooks/useAddress";
 
-interface AddressFormDialogProps {
+export interface AddressFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialData: Address | null;
+  isCurrentDefault?: boolean;
+  onSetDefault?: (id: string) => void;
 }
 
-export function AddressFormDialog({ open, onOpenChange, initialData }: AddressFormDialogProps) {
+export function AddressFormDialog({ 
+  open, 
+  onOpenChange, 
+  initialData, 
+  isCurrentDefault = false,
+  onSetDefault 
+}: AddressFormDialogProps) {
   const createMutation = useCreateAddress();
   const updateMutation = useUpdateAddress();
+
+  const [isDefaultSelection, setIsDefaultSelection] = useState(isCurrentDefault);
+
+  useEffect(() => {
+    setIsDefaultSelection(isCurrentDefault);
+  }, [isCurrentDefault]);
 
   const [formData, setFormData] = useState(() => {
     if (!initialData) {
@@ -110,10 +126,32 @@ export function AddressFormDialog({ open, onOpenChange, initialData }: AddressFo
     if (initialData?.addressId) {
       updateMutation.mutate(
         { id: initialData.addressId, ...payload },
-        { onSuccess: () => onOpenChange(false) },
+        { 
+          onSuccess: () => {
+            if (isDefaultSelection && onSetDefault) {
+              onSetDefault(initialData.addressId);
+            }
+            onOpenChange(false);
+            toast.success("Address updated successfully");
+          },
+          onError: () => {
+             toast.error("Failed to update address");
+          }
+        },
       );
     } else {
-      createMutation.mutate(payload, { onSuccess: () => onOpenChange(false) });
+      createMutation.mutate(payload, { 
+        onSuccess: (newId) => {
+          if (isDefaultSelection && onSetDefault && newId) {
+            onSetDefault(newId);
+          }
+          onOpenChange(false);
+          toast.success("Address created successfully");
+        },
+        onError: () => {
+          toast.error("Failed to create address");
+        }
+      });
     }
   };
 
@@ -277,6 +315,31 @@ export function AddressFormDialog({ open, onOpenChange, initialData }: AddressFo
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+          </div>
+
+          {/* Default Address Checkbox */}
+          <div className="flex items-center space-x-3 p-4 rounded-2xl bg-slate-50 border border-slate-100 transition-colors hover:bg-slate-100/50">
+            <Checkbox 
+              id="isDefault" 
+              checked={isDefaultSelection}
+              onCheckedChange={(checked) => setIsDefaultSelection(checked === true)}
+              disabled={isCurrentDefault} // Cannot uncheck if it's already the default
+              className="w-5 h-5 rounded-md border-slate-300 data-[state=checked]:bg-[#4988c4] data-[state=checked]:border-[#4988c4]"
+            />
+            <div className="grid gap-1.5 leading-none">
+              <Label
+                htmlFor="isDefault"
+                className="text-sm font-bold text-slate-700 cursor-pointer flex items-center gap-2"
+              >
+                Set as default shipping address
+                {isCurrentDefault && <Star className="h-3 w-3 fill-amber-400 text-amber-400" />}
+              </Label>
+              <p className="text-[10px] text-slate-400 font-medium">
+                {isCurrentDefault 
+                  ? "This is currently your primary shipping destination." 
+                  : "Use this address as your primary destination for future orders."}
+              </p>
             </div>
           </div>
 

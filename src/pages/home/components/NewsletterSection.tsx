@@ -1,12 +1,29 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Mail } from 'lucide-react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { useToast } from '@/hooks/useToast'
 
 gsap.registerPlugin(ScrollTrigger)
 
 export default function NewsletterSection() {
     const sectionRef = useRef<HTMLElement>(null)
+    const { success } = useToast()
+    const [email, setEmail] = useState('')
+    const [isLoading, setIsLoading] = useState(false)
+
+    const handleSubscribe = (e: React.FormEvent) => {
+        e.preventDefault()
+        if (!email) return
+
+        setIsLoading(true)
+        // Simulate API call
+        setTimeout(() => {
+            success("Successfully Subscribed!", "You'll be the first to hear about our new collections and safety tips.")
+            setEmail('')
+            setIsLoading(false)
+        }, 1000)
+    }
 
     useEffect(() => {
         const ctx = gsap.context(() => {
@@ -61,21 +78,31 @@ export default function NewsletterSection() {
 
                         {/* ===== Minimalist Email Input ===== */}
                         <div className="relative w-full max-w-md">
-                            <div className="flex items-center w-full gap-2 px-3.5 py-2 rounded-2xl bg-white shadow-xl shadow-slate-200/40 border border-slate-100/80 focus-within:border-[#4988c4]/30 focus-within:ring-4 focus-within:ring-[#4988c4]/5 transition-all">
+                            <form 
+                                onSubmit={handleSubscribe}
+                                className="flex items-center w-full gap-2 px-3.5 py-2 rounded-2xl bg-white shadow-xl shadow-slate-200/40 border border-slate-100/80 focus-within:border-[#4988c4]/30 focus-within:ring-4 focus-within:ring-[#4988c4]/5 transition-all"
+                            >
                                 <div className="flex items-center justify-center h-9 w-9 bg-[#4988c4]/5 text-[#4988c4] rounded-xl shrink-0">
                                     <Mail className="w-4 h-4" />
                                 </div>
 
                                 <input
                                     type="email"
+                                    required
                                     placeholder="Enter your email address"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
                                     className="flex-1 bg-transparent outline-none border-none text-[13px] font-medium text-slate-700 placeholder:text-slate-300"
                                 />
 
-                                <button className="rounded-xl px-5 py-2.5 bg-[#4988c4] hover:bg-[#4988c4]/90 text-white font-black text-xs uppercase tracking-wider transition-all active:scale-95">
-                                    Subscribe
+                                <button 
+                                    type="submit"
+                                    disabled={isLoading}
+                                    className="rounded-xl px-5 py-2.5 bg-[#4988c4] hover:bg-[#4988c4]/90 text-white font-black text-xs uppercase tracking-wider transition-all active:scale-95 disabled:opacity-50"
+                                >
+                                    {isLoading ? '...' : 'Subscribe'}
                                 </button>
-                            </div>
+                            </form>
                         </div>
 
                         {/* ===== Micro Trust Badges ===== */}

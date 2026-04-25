@@ -52,14 +52,20 @@ export default function StockAdjustmentDialog({
     onSubmit,
 }: StockAdjustmentDialogProps) {
     const [reason, setReason] = useState<string>('restock');
-    const isAdd = stockDialog.type === 'add' || stockDialog.type === 'add-defect';
-    const isDefect = stockDialog.type.includes('defect');
-    const newStock = isAdd
+    const isStandardAdd = stockDialog.type === 'add';
+    const isStandardReduce = stockDialog.type === 'reduce';
+    const isDefectAdd = stockDialog.type === 'add-defect';
+    const isDefectReduce = stockDialog.type === 'reduce-defect';
+
+    const newStock = isStandardAdd
         ? stockDialog.currentStock + stockQuantity
         : Math.max(0, stockDialog.currentStock - stockQuantity);
 
-    const isInvalid = !isAdd && stockQuantity > stockDialog.currentStock;
+    const isInvalid = (isStandardReduce || isDefectAdd || isDefectReduce) && stockQuantity > stockDialog.currentStock;
     const canSubmit = !isSubmitting && !isInvalid && stockQuantity > 0 && !!reason;
+
+    const sourceLabel = isDefectReduce ? "Current Defects" : "Available";
+    const targetLabel = isDefectReduce ? "Projected Defects" : "Projected Available";
 
     return (
         <Dialog open={stockDialog.isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -69,9 +75,9 @@ export default function StockAdjustmentDialog({
                     <div className="flex items-start justify-between">
                         <div className="space-y-1">
                             <DialogTitle className="text-xl font-bold text-gray-900 tracking-tight leading-none">
-                                {isDefect
-                                    ? (isAdd ? 'Defect Addition' : 'Defect Removal')
-                                    : (isAdd ? 'Inventory Add' : 'Inventory Reduce')}
+                                {isDefectAdd ? 'Defect Addition' :
+                                    isDefectReduce ? 'Defect Removal' :
+                                        isStandardAdd ? 'Inventory Add' : 'Inventory Reduce'}
                             </DialogTitle>
                             <div className="flex items-center gap-2 mt-2">
                                 <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-gray-100 border border-gray-200 w-fit">
@@ -83,10 +89,10 @@ export default function StockAdjustmentDialog({
                         </div>
                         <div className={cn(
                             "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm",
-                            isAdd ? (isDefect ? "bg-rose-50 text-rose-600 border border-rose-100" : "bg-emerald-50 text-emerald-600 border border-emerald-100")
-                                : "bg-rose-50 text-rose-600 border border-rose-100"
+                            isStandardAdd ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                                : (isDefectReduce ? "bg-blue-50 text-blue-600 border border-blue-100" : "bg-rose-50 text-rose-600 border border-rose-100")
                         )}>
-                            {isDefect ? (isAdd ? 'Lost Found' : 'Defect Fix') : (isAdd ? 'Standard In' : 'Standard Out')}
+                            {isStandardAdd ? 'Standard In' : isStandardReduce ? 'Standard Out' : isDefectAdd ? 'Lost Found' : 'Defect Fix'}
                         </div>
                     </div>
                 </div>
@@ -97,7 +103,7 @@ export default function StockAdjustmentDialog({
                         <Package className="absolute -right-2 -bottom-2 h-20 w-20 text-gray-200/50 rotate-12" />
 
                         <div className="flex flex-col items-center gap-1 relative z-10">
-                            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">Available</span>
+                            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">{sourceLabel}</span>
                             <span className="text-2xl font-black text-slate-600 tabular-nums">{stockDialog.currentStock}</span>
                         </div>
 
@@ -106,10 +112,10 @@ export default function StockAdjustmentDialog({
                         </div>
 
                         <div className="flex flex-col items-center gap-1 relative z-10">
-                            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">Projected</span>
+                            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">{targetLabel}</span>
                             <span className={cn(
                                 "text-3xl font-black tabular-nums leading-none tracking-tight",
-                                isAdd ? (isDefect ? "text-rose-500" : "text-emerald-500") : "text-rose-500"
+                                isStandardAdd ? "text-emerald-500" : (isDefectReduce ? "text-blue-500" : "text-rose-500")
                             )}>
                                 {newStock}
                             </span>
@@ -147,7 +153,7 @@ export default function StockAdjustmentDialog({
                                 {isInvalid && (
                                     <span className="flex items-center gap-1 text-[9px] font-bold text-rose-500 bg-rose-50 px-2 py-0.5 rounded shadow-sm">
                                         <AlertCircle className="h-2.5 w-2.5" />
-                                        Insufficient Balance
+                                        {stockDialog.type === 'add-defect' ? "Insufficient available stock" : "Insufficient Balance"}
                                     </span>
                                 )}
                             </div>
@@ -167,7 +173,10 @@ export default function StockAdjustmentDialog({
                                     <Input
                                         type="number"
                                         value={stockQuantity}
-                                        onChange={(e) => onQuantityChange(parseInt(e.target.value) || 0)}
+                                        onChange={(e) => {
+                                            const val = parseInt(e.target.value) || 0;
+                                            onQuantityChange(Math.max(0, Math.min(999, val)));
+                                        }}
                                         className="h-16 w-full text-center text-2xl font-black rounded-2xl border-slate-900 border-2 focus-visible:ring-0 focus-visible:border-slate-900 transition-all bg-white font-mono shadow-inner"
                                     />
                                 </div>
@@ -175,8 +184,8 @@ export default function StockAdjustmentDialog({
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    onClick={() => onQuantityChange(stockQuantity + 1)}
-                                    disabled={isSubmitting}
+                                    onClick={() => onQuantityChange(Math.min(999, stockQuantity + 1))}
+                                    disabled={isSubmitting || stockQuantity >= 999}
                                     className="h-16 w-16 rounded-2xl border-gray-200 bg-white hover:bg-slate-900 hover:text-white transition-all shadow-sm shrink-0"
                                 >
                                     <Plus className="h-7 w-7 stroke-[3.5px]" />
@@ -220,15 +229,15 @@ export default function StockAdjustmentDialog({
                         disabled={!canSubmit}
                         className={cn(
                             "flex-[2] h-11 rounded-xl text-[10px] font-black uppercase shadow-lg transition-all active:scale-[0.98]",
-                            isAdd
+                            isStandardAdd
                                 ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-100"
-                                : "bg-rose-600 hover:bg-rose-700 text-white shadow-rose-100"
+                                : (isDefectReduce ? "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-100" : "bg-rose-600 hover:bg-rose-700 text-white shadow-rose-100")
                         )}
                     >
                         {isSubmitting ? (
                             <Loader2 className="h-5 w-5 animate-spin mx-auto" />
                         ) : (
-                            <span>{isDefect ? 'Update Defect Stock' : 'Confirm Updates'}</span>
+                            <span>{(isDefectAdd || isDefectReduce) ? 'Update Defect Stock' : 'Confirm Updates'}</span>
                         )}
                     </Button>
                 </div>

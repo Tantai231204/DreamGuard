@@ -86,6 +86,7 @@ export default function WishlistTab() {
                                 const hasDiscount = originalPrice > price && price > 0;
                                 const rating = item.averageRating || 5.0;
                                 const url = item.comboId ? getComboDetailRoute(item.slug) : getProductDetailRoute(item.slug);
+                                const isOutOfStock = item.status === 'OutOfStock' || item.status === 'Out of Stock';
 
                                 return (
                                     <motion.div
@@ -96,9 +97,17 @@ export default function WishlistTab() {
                                         exit={{ opacity: 0, x: 50, scale: 0.95 }}
                                         transition={{ duration: 0.25, ease: "easeInOut" }}
                                     >
-                                        <div className="flex relative items-center gap-4 p-3 bg-white rounded-3xl border border-slate-100/80 shadow-sm hover:shadow-md transition-all duration-300">
+                                        <div className={cn(
+                                            "flex relative items-center gap-4 p-3 bg-white rounded-3xl border border-slate-100/80 shadow-sm hover:shadow-md transition-all duration-300",
+                                            isOutOfStock && "opacity-80"
+                                        )}>
                                             <Link to={url} className="relative aspect-square w-20 sm:w-24 rounded-2xl overflow-hidden bg-slate-50 border border-slate-100/50 flex-shrink-0">
-                                                <img src={image} alt={name} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.src = "/images/placeholder-product.svg" }} />
+                                                <img src={image} alt={name} className={cn("w-full h-full object-cover", isOutOfStock && "grayscale")} onError={(e) => { e.currentTarget.src = "/images/placeholder-product.svg" }} />
+                                                {isOutOfStock && (
+                                                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                                                        <span className="bg-rose-500 text-white text-[8px] font-black uppercase px-2 py-1 rounded-md shadow-lg">Sold Out</span>
+                                                    </div>
+                                                )}
                                             </Link>
                                             <div className="flex flex-col flex-1 min-w-0">
                                                 <div className="flex items-center gap-1 mb-1">
@@ -116,7 +125,15 @@ export default function WishlistTab() {
                                             </div>
                                             <div className="flex items-center gap-1.5 ml-2">
                                                 <button onClick={(e) => handleRemove(e, item)} className="h-8 w-8 rounded-xl bg-slate-50 hover:bg-rose-50 border border-slate-100/50 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all duration-200 active:scale-90"><Trash2 className="w-3.5 h-3.5" /></button>
-                                                <Link to={url} className="h-8 w-8 rounded-xl bg-[#4988c4] flex items-center justify-center text-white shadow-sm hover:bg-[#366c9c] transition-all"><ShoppingBag className="w-3.5 h-3.5" /></Link>
+                                                {!isOutOfStock ? (
+                                                    <Link to={url} className="h-8 w-8 rounded-xl bg-[#4988c4] flex items-center justify-center text-white shadow-sm hover:bg-[#366c9c] transition-all">
+                                                        <ShoppingBag className="w-3.5 h-3.5" />
+                                                    </Link>
+                                                ) : (
+                                                    <div className="h-8 w-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-300 cursor-not-allowed">
+                                                        <ShoppingBag className="w-3.5 h-3.5" />
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </motion.div>
@@ -136,6 +153,7 @@ export default function WishlistTab() {
                                 const hasDiscount = originalPrice > price && price > 0;
                                 const rating = item.averageRating || 5.0;
                                 const url = item.comboId ? getComboDetailRoute(item.slug) : getProductDetailRoute(item.slug);
+                                const isOutOfStock = item.status === 'OutOfStock' || item.status === 'Out of Stock';
 
                                 return (
                                     <motion.div
@@ -144,17 +162,30 @@ export default function WishlistTab() {
                                         initial={{ opacity: 0, scale: 0.9 }}
                                         animate={{ opacity: 1, scale: 1 }}
                                         exit={{ opacity: 0, scale: 0.8, y: 20 }}
-                                        whileHover={{ y: -8 }}
+                                        whileHover={!isOutOfStock ? { y: -8 } : {}}
                                         transition={{ duration: 0.35, ease: "easeOut" }}
-                                        className="group relative aspect-[3/4] rounded-[2.5rem] overflow-hidden border border-slate-100 shadow-xl hover:shadow-2xl transition-all duration-500"
+                                        className={cn(
+                                            "group relative aspect-[3/4] rounded-[2.5rem] overflow-hidden border border-slate-100 shadow-xl hover:shadow-2xl transition-all duration-500",
+                                            isOutOfStock && "opacity-90"
+                                        )}
                                     >
                                         <img
                                             src={image}
                                             alt={name}
-                                            className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                            className={cn(
+                                                "absolute inset-0 h-full w-full object-cover transition-transform duration-700",
+                                                !isOutOfStock && "group-hover:scale-110",
+                                                isOutOfStock && "grayscale opacity-60"
+                                            )}
                                             onError={(e) => { e.currentTarget.src = "/images/placeholder-product.svg" }}
                                         />
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent transition-opacity duration-500 group-hover:opacity-60" />
+
+                                        {isOutOfStock && (
+                                            <div className="absolute top-4 left-4 z-10">
+                                                <span className="bg-rose-500/90 backdrop-blur-sm text-white text-[10px] font-black uppercase px-3 py-1.5 rounded-xl shadow-lg border border-white/20">Sold Out</span>
+                                            </div>
+                                        )}
 
                                         {/* Action Buttons Floating Top */}
                                         <button
@@ -192,12 +223,18 @@ export default function WishlistTab() {
                                                     </span>
                                                 </div>
 
-                                                <Link
-                                                    to={url}
-                                                    className="h-8 w-8 rounded-xl bg-[#4988c4] flex items-center justify-center text-white hover:bg-[#366c9c] transition-colors shadow-sm shadow-[#4988c4]/20 active:scale-95 transform"
-                                                >
-                                                    <ShoppingBag className="w-3.5 h-3.5" />
-                                                </Link>
+                                                {!isOutOfStock ? (
+                                                    <Link
+                                                        to={url}
+                                                        className="h-8 w-8 rounded-xl bg-[#4988c4] flex items-center justify-center text-white hover:bg-[#366c9c] transition-colors shadow-sm shadow-[#4988c4]/20 active:scale-95 transform"
+                                                    >
+                                                        <ShoppingBag className="w-3.5 h-3.5" />
+                                                    </Link>
+                                                ) : (
+                                                    <div className="h-8 w-8 rounded-xl bg-slate-100 flex items-center justify-center text-slate-300 cursor-not-allowed">
+                                                        <ShoppingBag className="w-3.5 h-3.5" />
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </motion.div>

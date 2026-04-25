@@ -1,6 +1,7 @@
 import type React from 'react';
 import type { TradeInProduct } from '../../utils/tradeIn';
 import type { ProductResponse } from '@/api';
+import type { Address } from '@/api/types/address';
 
 export interface CreateTradeInOrderPayload {
   pOrderItemId: string;
@@ -20,6 +21,7 @@ export interface TradeInSelectorProps {
   eligibleProducts: TradeInProduct[];
   selectedProducts: string[];
   product?: ProductResponse | null;
+  targetProductImage?: string;
   currentProductVariantId?: string;
   onToggleProduct: (productId: string) => void;
   tradeInPercentage?: number;
@@ -41,6 +43,7 @@ export interface TradeInSelectorProps {
     phoneNumber: string;
     address: string;
   };
+  addresses?: Address[];
 }
 
 export interface TradeInTriggerProps

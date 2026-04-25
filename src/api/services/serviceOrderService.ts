@@ -4,6 +4,8 @@ import type {
   ServiceOrderListResponse,
   ServiceOrderResponse,
   ServiceDashboardResponse,
+  RescheduleServiceOrderRequest,
+  ServiceEvidence,
 } from '../types/serviceOrder';
 
 function normalizeListPayload(payload: unknown): ServiceOrderListResponse {
@@ -22,6 +24,16 @@ function normalizeListPayload(payload: unknown): ServiceOrderListResponse {
     totalPages: data?.totalPages ?? 1,
     totalCount: data?.totalCount ?? (Array.isArray(data?.items) ? data.items.length : 0),
   };
+}
+
+export interface AdminSearchServiceTaskItem {
+  serviceTaskId: string;
+  [key: string]: unknown; // Strict senior-level typing
+}
+
+export interface AdminSearchServiceTaskResponse {
+  items: AdminSearchServiceTaskItem[];
+  totalCount: number;
 }
 
 const serviceOrderService = {
@@ -43,7 +55,10 @@ const serviceOrderService = {
     const result = await serviceOrderService.getServiceOrders({ ...params, customerId });
 
     // Keep fallback filtering in FE in case backend ignores the query param.
-    const items = (result.items || []).filter((item) => item.customerId === customerId);
+    const items = (result.items || []).filter((item) => {
+      if (!item.customerId) return true; // Allow if ID is missing, FE will double-check with phone number
+      return item.customerId.toLowerCase() === customerId.toLowerCase();
+    });
 
     return {
       ...result,
@@ -67,13 +82,54 @@ const serviceOrderService = {
     return (res.data?.data ?? res.data) as ReOrderFailedServiceOrderResponse;
   },
 
+  managerCancelServiceOrder: async (serviceOrderId: string): Promise<void> => {
+    await apiClient.patch(`/ServiceOrders/${serviceOrderId}/manager-cancel`);
+  },
+
   cancelServiceOrder: async (serviceOrderId: string): Promise<void> => {
     await apiClient.patch(`/ServiceOrders/${serviceOrderId}/cancel`);
+  },
+
+  rejectServiceOrder: async (serviceOrderId: string): Promise<void> => {
+    await apiClient.patch(`/ServiceOrders/${serviceOrderId}/reject`);
   },
 
   getServiceDashboard: async (params: { fromDate: string; toDate: string }): Promise<ServiceDashboardResponse> => {
     const res = await apiClient.get('/ServiceOrders/get-service-order-dash-board', { params });
     return (res.data?.data ?? res.data) as ServiceDashboardResponse;
+  },
+
+  rescheduleServiceOrder: async (data: RescheduleServiceOrderRequest): Promise<void> => {
+    await apiClient.post('/ServiceOrders/reschedule-service-order', data);
+  },
+
+  searchServiceTasks: async (params: {
+    soId?: string;
+    sold?: string;
+    staffId?: string;
+    pageNumber?: number;
+    pageSize?: number
+  }): Promise<AdminSearchServiceTaskResponse> => {
+    const res = await apiClient.get('/ServiceTasks/AdminSearchServiceTask', { params });
+    return res.data?.data ?? res.data;
+  },
+
+  getEvidences: async (params: { serviceTaskId?: string; soId?: string; pageSize?: number }): Promise<ServiceEvidence[]> => {
+    const res = await apiClient.get('/ServiceEvidences/AdminSearchSe', { params });
+    const data = res.data?.data ?? res.data;
+    return data?.items || data || [];
+  },
+
+  confirmServiceOrder: async (id: string): Promise<void> => {
+    await apiClient.patch(`/ServiceOrders/${id}/confirm`);
+  },
+
+  updateTaskCompletedStatus: async (taskId: string): Promise<void> => {
+    await apiClient.patch(`/ServiceTasks/${taskId}/updateCompletedStatus`);
+  },
+
+  completeServiceOrder: async (orderId: string): Promise<void> => {
+    await apiClient.patch(`/ServiceOrders/${orderId}/completed`);
   },
 };
 

@@ -6,7 +6,6 @@ import {
     MapPin,
     Mail,
     Phone,
-    ArrowRight,
 } from "lucide-react";
 import { AppRoute } from "../../lib/constants";
 
@@ -15,7 +14,7 @@ const FooterLink = ({ to, children }: { to: string; children: React.ReactNode })
     <li>
         <Link
             to={to}
-            className="text-sm text-muted-foreground transition-colors hover:text-primary"
+            className="text-[13px] font-medium text-slate-500 transition-all hover:text-[#4988c4] hover:translate-x-1 inline-block"
         >
             {children}
         </Link>
@@ -28,7 +27,7 @@ const SocialIcon = ({ href, children }: { href: string; children: React.ReactNod
         href={href}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition-all hover:border-primary hover:bg-primary hover:text-white"
+        className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-100 bg-white text-slate-400 transition-all hover:border-[#4988c4] hover:bg-[#4988c4] hover:text-white hover:-translate-y-1 shadow-sm"
     >
         {children}
     </a>
@@ -37,151 +36,111 @@ const SocialIcon = ({ href, children }: { href: string; children: React.ReactNod
 /* ================= Footer ================= */
 export default function Footer() {
     return (
-        <footer className="border-t bg-muted/30">
-            {/* Newsletter Section */}
-            <div className="border-b bg-primary/5">
-                <div className="container mx-auto max-w-7xl px-4 py-8 sm:py-10">
-                    <div className="flex flex-col items-center justify-between gap-6 lg:flex-row">
-                        <div className="text-center lg:text-left">
-                            <h3 className="text-lg font-semibold text-foreground">
-                                Subscribe to our Newsletter
-                            </h3>
-                            <p className="mt-1 text-sm text-muted-foreground">
-                                Get the latest updates on new products and upcoming sales
-                            </p>
-                        </div>
+        <footer className="bg-white border-t border-slate-100 pt-20 pb-10">
+            <div className="container mx-auto max-w-7xl px-8">
+                {/* Top Section: Brand & Navigation Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-16 lg:gap-12 pb-16 border-b border-slate-50">
 
-                        <div className="flex w-full max-w-md flex-col gap-3 sm:flex-row sm:gap-2">
-                            <input
-                                type="email"
-                                placeholder="Enter your email"
-                                className="flex-1 rounded-lg border border-border bg-background px-4 py-2.5 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-                            />
-                            <button className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-primary/90">
-                                Subscribe
-                                <ArrowRight className="h-4 w-4" />
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Main Footer */}
-            <div className="container mx-auto max-w-7xl px-4 py-10 sm:py-12">
-                <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:grid-cols-12 lg:gap-10">
-                    {/* Brand */}
-                    <div className="col-span-2 sm:col-span-3 lg:col-span-4">
-                        <Link to={AppRoute.HOME} className="inline-block">
+                    {/* Brand Column */}
+                    <div className="lg:col-span-4 space-y-8">
+                        <Link to={AppRoute.HOME} className="inline-block transition-transform hover:scale-105">
                             <img
                                 src="/images/logo_with_name.svg"
                                 alt="DreamGuard"
-                                className="h-12 w-auto sm:h-14"
+                                className="h-14 w-auto"
                             />
                         </Link>
-
-                        <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted-foreground">
-                            Premium quality mattresses and bedding products designed for your
-                            ultimate comfort and better sleep experience.
+                        <p className="text-[14px] leading-relaxed text-slate-500 font-medium max-w-sm">
+                            We don't just sell mattresses; we protect dreams. <br />
+                            DreamGuard is dedicated to providing premium, organic, and safety-certified sleep solutions for your little ones.
                         </p>
-
-                        {/* Social */}
-                        <div className="mt-6 flex items-center gap-3">
-                            <SocialIcon href="https://facebook.com">
-                                <Facebook className="h-4 w-4" />
-                            </SocialIcon>
-                            <SocialIcon href="https://instagram.com">
-                                <Instagram className="h-4 w-4" />
-                            </SocialIcon>
-                            <SocialIcon href="https://twitter.com">
-                                <Twitter className="h-4 w-4" />
-                            </SocialIcon>
+                        <div className="flex items-center gap-3">
+                            <SocialIcon href="#"><Facebook className="h-4 w-4" /></SocialIcon>
+                            <SocialIcon href="#"><Instagram className="h-4 w-4" /></SocialIcon>
+                            <SocialIcon href="#"><Twitter className="h-4 w-4" /></SocialIcon>
                         </div>
                     </div>
 
-                    {/* Products */}
-                    <div className="col-span-1 lg:col-span-2">
-                        <h4 className="mb-4 text-sm font-semibold text-foreground">
-                            Products
-                        </h4>
-                        <ul className="space-y-3">
-                            <FooterLink to="#">Mattresses</FooterLink>
-                            <FooterLink to="#">Pillows</FooterLink>
-                            <FooterLink to="#">Bedding Sets</FooterLink>
-                            <FooterLink to="#">Accessories</FooterLink>
-                        </ul>
+                    {/* Nav Columns Group */}
+                    <div className="lg:col-span-5 grid grid-cols-2 sm:grid-cols-3 gap-8">
+                        <div className="space-y-6">
+                            <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-900">
+                                Collections
+                            </h4>
+                            <ul className="space-y-4">
+                                <FooterLink to={AppRoute.PRODUCTS}>All Products</FooterLink>
+                                <FooterLink to={AppRoute.COMBOS}>Curated Combos</FooterLink>
+                            </ul>
+                        </div>
+
+                        <div className="space-y-6">
+                            <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-900">
+                                Explore
+                            </h4>
+                            <ul className="space-y-4">
+                                <FooterLink to={AppRoute.ABOUT}>Our Journey</FooterLink>
+                                <FooterLink to={AppRoute.SERVICES}>Our Services</FooterLink>
+                            </ul>
+                        </div>
+
+                        <div className="space-y-6">
+                            <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-900">
+                                Support
+                            </h4>
+                            <ul className="space-y-4">
+                                <FooterLink to={AppRoute.HELP_CENTER}>Help Center</FooterLink>
+                                <FooterLink to={AppRoute.FAQ}>FAQs</FooterLink>
+                                <FooterLink to={AppRoute.RETURN_POLICY}>Returns</FooterLink>
+                            </ul>
+                        </div>
                     </div>
 
-                    {/* Company */}
-                    <div className="col-span-1 lg:col-span-2">
-                        <h4 className="mb-4 text-sm font-semibold text-foreground">
-                            Company
+                    {/* Contact Column */}
+                    <div className="lg:col-span-3 space-y-6">
+                        <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-900">
+                            Get in Touch
                         </h4>
-                        <ul className="space-y-3">
-                            <FooterLink to="#">Our Story</FooterLink>
-                            <FooterLink to="#">Blog</FooterLink>
-                            <FooterLink to="#">Careers</FooterLink>
-                            <FooterLink to="#">Press</FooterLink>
-                        </ul>
-                    </div>
-
-                    {/* Support */}
-                    <div className="col-span-1 lg:col-span-2">
-                        <h4 className="mb-4 text-sm font-semibold text-foreground">
-                            Support
-                        </h4>
-                        <ul className="space-y-3">
-                            <FooterLink to={AppRoute.HELP_CENTER}>Help Center</FooterLink>
-                            <FooterLink to={AppRoute.RETURN_POLICY}>Returns</FooterLink>
-                            <FooterLink to={AppRoute.WARRANTY_POLICY}>Warranty</FooterLink>
-                            <FooterLink to={AppRoute.FAQ}>FAQ</FooterLink>
-                        </ul>
-                    </div>
-
-                    {/* Contact */}
-                    <div className="col-span-1 lg:col-span-2">
-                        <h4 className="mb-4 text-sm font-semibold text-foreground">
-                            Contact
-                        </h4>
-                        <ul className="space-y-3">
-                            <li className="flex items-start gap-2.5 text-sm text-muted-foreground">
-                                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                                <span>123 Sleep Street, NY 10001</span>
-                            </li>
-                            <li className="flex items-center gap-2.5 text-sm text-muted-foreground">
-                                <Phone className="h-4 w-4 shrink-0 text-primary" />
-                                <a href="tel:1800123456" className="hover:text-primary">
+                        <div className="space-y-5">
+                            <div className="flex items-start gap-4 group">
+                                <div className="p-2.5 rounded-lg bg-slate-50 text-[#4988c4] transition-colors group-hover:bg-[#4988c4] group-hover:text-white">
+                                    <MapPin className="h-4 w-4" />
+                                </div>
+                                <span className="text-[13px] font-medium text-slate-500 leading-snug">
+                                    123 Sleep Street, <br /> New York, NY 10001
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-4 group">
+                                <div className="p-2.5 rounded-lg bg-slate-50 text-[#4988c4] transition-colors group-hover:bg-[#4988c4] group-hover:text-white">
+                                    <Phone className="h-4 w-4" />
+                                </div>
+                                <a href="tel:1800123456" className="text-[13px] font-bold text-slate-900 hover:text-[#4988c4] transition-colors">
                                     1-800-DREAM-GD
                                 </a>
-                            </li>
-                            <li className="flex items-center gap-2.5 text-sm text-muted-foreground">
-                                <Mail className="h-4 w-4 shrink-0 text-primary" />
-                                <a href="mailto:hello@dreamguard.com" className="hover:text-primary">
+                            </div>
+                            <div className="flex items-center gap-4 group">
+                                <div className="p-2.5 rounded-lg bg-slate-50 text-[#4988c4] transition-colors group-hover:bg-[#4988c4] group-hover:text-white">
+                                    <Mail className="h-4 w-4" />
+                                </div>
+                                <a href="mailto:hello@dreamguard.com" className="text-[13px] font-medium text-slate-500 hover:text-[#4988c4] transition-colors">
                                     hello@dreamguard.com
                                 </a>
-                            </li>
-                        </ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Bottom Bar */}
-            <div className="border-t">
-                <div className="container mx-auto max-w-7xl px-4 py-5">
-                    <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-                        <p className="text-xs text-muted-foreground">
-                            © 2026 DreamGuard. All rights reserved.
-                        </p>
-
-                        <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs text-muted-foreground">
-                            <Link to={AppRoute.TERMS_OF_SERVICE} className="hover:text-primary">
-                                Terms of Service
-                            </Link>
-                            <Link to="#" className="hover:text-primary">
-                                Privacy Policy
-                            </Link>
-                            <Link to="#" className="hover:text-primary">
-                                Cookies
-                            </Link>
+                {/* Bottom Bar */}
+                <div className="pt-10 flex flex-col sm:flex-row items-center justify-between gap-6">
+                    <p className="text-[12px] font-medium text-slate-400">
+                        © 2026 DreamGuard. Crafted for peaceful nights.
+                    </p>
+                    <div className="flex items-center gap-8">
+                        <Link to={AppRoute.TERMS_OF_SERVICE} className="text-[11px] font-black uppercase tracking-[0.1em] text-slate-400 hover:text-slate-900 transition-colors">
+                            Terms of Service
+                        </Link>
+                        <div className="flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
+                            <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">System Online</span>
                         </div>
                     </div>
                 </div>

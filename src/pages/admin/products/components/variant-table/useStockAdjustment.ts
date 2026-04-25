@@ -49,6 +49,11 @@ export function useStockAdjustment() {
       return;
     }
 
+    if (stockQuantity > 999) {
+      toast.error('Limit Exceeded', 'Adjustment quantity cannot exceed 999 units.');
+      return;
+    }
+
     if (!reason) {
       toast.error('Accountability Error', 'Please select a valid reason for this adjustment.');
       return;

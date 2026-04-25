@@ -8,9 +8,10 @@ interface ChromaProfileProps {
   selectedColor: string;
   addOnFee?: number;
   onSelect: (hex: string) => void;
+  recommendedColor?: string;
 }
 
-const ColorChip = memo(({ active, hex, name, onClick }: { active: boolean; hex: string; name: string; onClick: () => void }) => (
+const ColorChip = memo(({ active, hex, name, isRecommended, onClick }: { active: boolean; hex: string; name: string; isRecommended?: boolean; onClick: () => void }) => (
   <button
     type="button"
     onClick={onClick}
@@ -20,7 +21,7 @@ const ColorChip = memo(({ active, hex, name, onClick }: { active: boolean; hex: 
         ? "border-[#4988c4] shadow-sm ring-2 ring-[#4988c4]/15"
         : "border-transparent hover:border-slate-200"
     )}
-    title={name}
+    title={name + (isRecommended ? " (Recommended)" : "")}
   >
     <div
       className="h-6 w-6 rounded-md border border-black/8 shadow-sm"
@@ -29,11 +30,18 @@ const ColorChip = memo(({ active, hex, name, onClick }: { active: boolean; hex: 
     {active && (
       <div className="absolute -top-0.5 -right-0.5 h-2 w-2 bg-[#4988c4] rounded-full border border-white" />
     )}
+    {isRecommended && !active && (
+      <div className="absolute -top-1 -right-1 h-3 w-3 bg-emerald-500 rounded-full border-2 border-white flex items-center justify-center">
+         <div className="w-1 h-1 bg-white rounded-full animate-pulse" />
+      </div>
+    )}
   </button>
 ));
 
-export const ChromaProfile = memo(({ variants, selectedColor, addOnFee = 0, onSelect }: ChromaProfileProps) => {
+export const ChromaProfile = memo(({ variants, selectedColor, addOnFee = 0, onSelect, recommendedColor }: ChromaProfileProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const isCustomRecommended = recommendedColor && selectedColor.toLowerCase() === recommendedColor.toLowerCase();
 
   const uniqueColors = Array.from(
     variants.reduce((map, v) => {
@@ -48,7 +56,14 @@ export const ChromaProfile = memo(({ variants, selectedColor, addOnFee = 0, onSe
     <div className="space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Color</p>
+        <div className="flex items-center gap-2">
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Color</p>
+          {isCustomRecommended && (
+             <span className="text-[8px] font-black text-emerald-500 uppercase bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 animate-in fade-in slide-in-from-left-1">
+               ✨ Recommended
+             </span>
+          )}
+        </div>
         {addOnFee > 0 && (
           <span className="text-[9px] font-bold text-[#4988c4] font-mono bg-[#4988c4]/8 px-2 py-0.5 rounded-md border border-[#4988c4]/20">
             +{new Intl.NumberFormat("vi-VN").format(addOnFee)}
@@ -63,6 +78,7 @@ export const ChromaProfile = memo(({ variants, selectedColor, addOnFee = 0, onSe
             <ColorChip
               key={c.hex}
               active={selectedColor.toLowerCase() === c.hex.toLowerCase()}
+              isRecommended={recommendedColor?.toLowerCase() === c.hex.toLowerCase()}
               hex={c.hex}
               name={c.name}
               onClick={() => onSelect(c.hex)}

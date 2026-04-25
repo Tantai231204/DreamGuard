@@ -192,7 +192,7 @@ export const ProductInfo = memo(({
                         isActuallyOutOfStock ? "bg-rose-500" : "bg-emerald-500 animate-pulse"
                     )} />
                     <span className="text-[10px] font-bold uppercase tracking-wider">
-                        {stockStatusLabel || (isActuallyOutOfStock ? "Out of stock" : "In Stock")}
+                        {stockStatusLabel || (isActuallyOutOfStock ? "Out of stock" : (stockLeft !== undefined ? `${stockLeft} in stock` : "In Stock"))}
                     </span>
                 </div>
             </div>

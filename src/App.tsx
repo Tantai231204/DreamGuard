@@ -35,10 +35,13 @@ function App() {
     const refreshCart = () => {
       const state = useCartStore.getState();
       const { isAuthenticated: isAuth } = useAuthStore.getState();
-      
+
+      console.log(`[App] refreshCart triggered. Auth: ${isAuth}, Has state: ${!!state}`);
       if (!isAuth) return;
 
       const hasGuestItems = state.cart.some(i => i.id.startsWith('l_') || i.id.startsWith('c_'));
+      console.log(`[App] hasGuestItems: ${hasGuestItems}`);
+
       if (hasGuestItems) {
         state.syncWithServer();
       } else {
@@ -46,24 +49,11 @@ function App() {
       }
     };
 
-    // 4. Auth Transition Sync
-    if (isAuthenticated !== prevAuth.current) {
-      if (isAuthenticated) refreshCart();
-      prevAuth.current = isAuthenticated;
-    }
-
-    // 5. Keep-Alive Sync (Focus/Visibility)
+    // 4. Initial Load & Auth Transition Sync
     if (isAuthenticated) {
-      const handleSync = () => {
-        if (document.visibilityState === 'visible') refreshCart();
-      };
-      window.addEventListener('focus', handleSync);
-      window.addEventListener('visibilitychange', handleSync);
-      return () => {
-        window.removeEventListener('focus', handleSync);
-        window.removeEventListener('visibilitychange', handleSync);
-      };
+      refreshCart();
     }
+    prevAuth.current = isAuthenticated;
   }, [isAuthenticated, shouldSkipCart]);
 
   return (

@@ -9,7 +9,7 @@ import {
 } from "@radix-ui/react-icons";
 import { Lock } from "lucide-react";
 import { toast } from "sonner";
-import { useChangePassword } from "../../../../hooks/useAuth";
+import { useChangePassword, useLogout } from "../../../../hooks/useAuth";
 import { Button } from "../../../../components/ui/button";
 import { Input } from "../../../../components/ui/input";
 import { Label } from "../../../../components/ui/label";
@@ -63,15 +63,20 @@ export default function ChangePasswordDialog({ open, onOpenChange }: ChangePassw
   });
 
   const { mutate: changePasswordMutation, isPending } = useChangePassword();
+  const { mutate: logout } = useLogout();
 
   const onSubmitChangePassword = (data: ChangePasswordFormValues) => {
     changePasswordMutation(
       { currentPassword: data.currentPassword, newPassword: data.newPassword },
       {
         onSuccess: () => {
-          toast.success("Password changed successfully.");
+          toast.success("Password changed successfully.", {
+            description: "Please log in again with your new password."
+          });
           onOpenChange(false);
           reset();
+          // Log out immediately to force re-authentication
+          logout();
         },
         onError: (err) => {
           toast.error("Failed to update password.", {

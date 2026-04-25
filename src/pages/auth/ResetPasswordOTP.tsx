@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { useResetPassword } from "../../hooks/useAuth";
+import { ApiError } from "@/lib/api";
 import { useForgotPasswordStore } from "../../store/forgotPasswordStore";
 import { AppRoute } from "@/lib/constants";
 import axios from "axios";
@@ -149,7 +150,9 @@ export default function ResetPasswordOTP() {
         onError: (err) => {
           let message = "Failed to reset password";
 
-          if (axios.isAxiosError<ApiErrorResponse>(err)) {
+          if (err instanceof ApiError) {
+            message = err.message;
+          } else if (axios.isAxiosError<ApiErrorResponse>(err)) {
             message =
               err.response?.data?.message?.[0] ?? "Failed to reset password";
           }

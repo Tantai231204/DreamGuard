@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { ChevronDown, Search, Sparkles } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
+import { useDebounce } from '@/hooks/useDebounce';
 
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -13,14 +14,16 @@ import {
 import { FilterSidebar } from './components/FilterSidebar';
 import { ProductGrid } from './components/ProductGrid';
 import { Pagination } from './components/Pagination';
-import type { FilterOptions, Product } from './types';
+import type { FilterOptions } from './types';
 import { sortOptions } from './data';
 import { useBreadcrumb } from '@/components/common/BreadcrumbNav';
-import { useProductsByFilter } from '@/hooks/queries/useProduct';
+import { useProductsByFilter, productKeys } from '@/hooks/queries/useProduct';
 import { useCategories } from '@/hooks/queries/useCategory';
 import type { ProductResponse } from '@/api/types/product.types';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import { useQueries } from '@tanstack/react-query';
+import { productService } from '@/api';
 
 const ITEMS_PER_PAGE = 9;
 
@@ -32,88 +35,48 @@ const defaultFilters: FilterOptions = {
     sortBy: 'default',
 };
 
-interface ProductExtended extends Product {
-    colors: string[];
-    sizes: string[];
-    createdAt: string;
-}
-
-function mapToProduct(p: ProductResponse): ProductExtended {
-    const variants = p.variants || [];
-    
-    // Sort variants by price to find the absolute minimum
-    const variantPrices = variants.map(v => v.salePrice || v.basePrice).filter(price => price > 0);
-    const price = variantPrices.length > 0 ? Math.min(...variantPrices) : (p.minPrice || 0);
-    
-    const firstVariant = variants[0];
-    const originalPrice = firstVariant?.basePrice || p.maxPrice || undefined;
-    const discount =
-        originalPrice && originalPrice > price
-            ? Math.round(((originalPrice - price) / originalPrice) * 100)
-            : undefined;
-
-    const firstImage = p.imageUrls?.[0] || p.assets?.[0]?.url;
-    const isOutOfStock = p.status === 'OutOfStock';
-    const isPublished = p.status === 'Published';
-
-    // Aggregate colors and sizes from all variants
-    const colors = Array.from(new Set(
-        variants
-            .map(v => (v.attributes?.color as string) || (v.attributes?.colorName as string))
-            .filter(Boolean)
-    ));
-    const sizes = Array.from(new Set(
-        variants
-            .map(v => v.size)
-            .filter(Boolean)
-    ));
-
-    // A product is "New" if ANY of its variants are marked as new
-    const isNew = variants.some(v => v.isNew);
-
-    return {
-        id: p.id,
-        name: p.name,
-        slug: p.slug,
-        summary: p.summary || '',
-        price,
-        originalPrice: discount ? originalPrice : undefined,
-        discount,
-        rating: p.averageRating ?? 0,
-        reviewCount: 0,
-        image: firstImage || '/images/placeholder-product.svg',
-        category: p.categoryName || '',
-        material: p.material || '',
-        ageRange: p.ageGroup?.toString() || '',
-        inStock: isPublished && !isOutOfStock,
-        isNew: isNew,
-        status: p.status,
-        colors,
-        sizes,
-        createdAt: p.createdAt || new Date().toISOString(),
-    };
-}
+import { mapToProduct, type ProductExtended } from './utils';
 
 export default function ProductsPage() {
     const [searchParams] = useSearchParams();
     const urlCateId = searchParams.get('cateId');
     const urlCategoryName = searchParams.get('categoryName');
     const urlMaterialName = searchParams.get('materialName');
+    const urlQuery = searchParams.get('q') || '';
 
     const [filters, setFilters] = useState<FilterOptions>(defaultFilters);
-    const [searchQuery, setSearchQuery] = useState('');
+    const [searchQuery, setSearchQuery] = useState(urlQuery);
     const [currentPage, setCurrentPage] = useState(1);
 
-    const apiParams = useMemo(() => {
-        const params: Record<string, unknown> = {};
-        if (urlCateId) params.cateId = Number(urlCateId);
-        params.pageNumber = 1;
-        params.pageSize = 1000; // Get all for client-side filtering as per existing logic
-        return params;
-    }, [urlCateId]);
-
-    const { data: apiProducts = [], isLoading } = useProductsByFilter(apiParams);
     const { data: categories = [] } = useCategories();
+
+    // Flatten all category IDs (including children) to ensure we fetch everything
+    const allCategoryIds = useMemo(() => {
+        const ids = new Set<number>();
+        categories.forEach(cat => {
+            ids.add(cat.cateId);
+            cat.childCategoryList?.forEach(child => ids.add(child.cateId));
+        });
+        return Array.from(ids);
+    }, [categories]);
+
+    // 1. Fetch products. If no cateId is provided, we fetch from all category IDs in parallel.
+    const allCategoryQueries = useQueries({
+        queries: allCategoryIds.map(id => ({
+            queryKey: productKeys.byFilter({ cateId: id, pageSize: 200 }),
+            queryFn: () => productService.getByFilter({ cateId: id, pageSize: 200 }),
+            staleTime: 5 * 60 * 1000,
+            enabled: !urlCateId && allCategoryIds.length > 0,
+        }))
+    });
+
+    // 2. Fetch specific category products if cateId is provided
+    const { data: specificCategoryProducts = [], isLoading: isLoadingSpecific } = useProductsByFilter(
+        { cateId: urlCateId ? Number(urlCateId) : undefined, pageSize: 1000 },
+        !!urlCateId
+    );
+
+    const isLoading = urlCateId ? isLoadingSpecific : (allCategoryQueries.some(q => q.isLoading) || categories.length === 0);
 
     const categoryName = useMemo(() => {
         if (!urlCateId) return null;
@@ -121,21 +84,53 @@ export default function ProductsPage() {
         return cat?.name || null;
     }, [urlCateId, categories]);
 
-    const products: ProductExtended[] = useMemo(
-        () => apiProducts.map(mapToProduct),
-        [apiProducts]
-    );
+    const products: ProductExtended[] = useMemo(() => {
+        let rawProducts: ProductResponse[] = [];
+        
+        if (urlCateId) {
+            // Robust check for specific category response
+            if (Array.isArray(specificCategoryProducts)) {
+                rawProducts = specificCategoryProducts;
+            } else {
+                const responseObj = specificCategoryProducts as unknown as { items?: ProductResponse[] };
+                rawProducts = responseObj?.items || [];
+            }
+        } else {
+            // Merge all products from all categories
+            const merged = allCategoryQueries.flatMap(q => {
+                const data = q.data;
+                if (!data) return [];
+                if (Array.isArray(data)) return data;
+                const responseObj = data as unknown as { items?: ProductResponse[] };
+                return responseObj?.items || [];
+            });
+            
+            // Deduplicate by ID
+            const seen = new Set<string>();
+            rawProducts = merged.filter(p => {
+                if (!p?.id || seen.has(p.id)) return false;
+                seen.add(p.id);
+                return true;
+            });
+        }
+        
+        return rawProducts.map(mapToProduct);
+    }, [urlCateId, specificCategoryProducts, allCategoryQueries]);
+
+    const debouncedSearchQuery = useDebounce(searchQuery, 400);
 
     const filteredProducts = useMemo(() => {
         let result = [...products];
 
-        if (searchQuery) {
-            const query = searchQuery.toLowerCase();
+        if (debouncedSearchQuery) {
+            const query = debouncedSearchQuery.toLowerCase();
             result = result.filter(
                 (product) =>
                     product.name.toLowerCase().includes(query) ||
                     product.category.toLowerCase().includes(query) ||
-                    (product.material?.toLowerCase().includes(query))
+                    product.material?.toLowerCase().includes(query) ||
+                    product.summary?.toLowerCase().includes(query) ||
+                    product.ageRange?.toLowerCase().includes(query)
             );
         }
 
@@ -188,7 +183,7 @@ export default function ProductsPage() {
         }
 
         return result;
-    }, [products, filters, searchQuery]);
+    }, [products, filters, debouncedSearchQuery]);
 
     const totalPages = Math.max(1, Math.ceil(filteredProducts.length / ITEMS_PER_PAGE));
     const effectivePage = Math.min(currentPage, totalPages);
@@ -204,15 +199,15 @@ export default function ProductsPage() {
         setCurrentPage(1);
     }, []);
 
-    const handleSearch = (e: React.FormEvent) => {
+    const handleSearch = useCallback((e: React.FormEvent) => {
         e.preventDefault();
         setCurrentPage(1);
-    };
+    }, []);
 
-    const handlePageChange = (page: number) => {
+    const handlePageChange = useCallback((page: number) => {
         setCurrentPage(page);
         window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
+    }, []);
 
     const handleResetFilters = useCallback(() => {
         setFilters(defaultFilters);

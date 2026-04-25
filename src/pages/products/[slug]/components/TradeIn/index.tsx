@@ -1,6 +1,7 @@
 import { memo, useCallback, useState } from 'react';
 import { X } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
+import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Dialog,
@@ -36,6 +37,7 @@ export const TradeInSelector = memo(function TradeInSelector({
   eligibleProducts,
   selectedProducts,
   product,
+  targetProductImage,
   currentProductVariantId,
   onToggleProduct,
   tradeInPercentage = 30,
@@ -53,6 +55,7 @@ export const TradeInSelector = memo(function TradeInSelector({
   isEstimatingPrice = false,
   onCreateTradeInOrder,
   initialContact,
+  addresses,
 }: TradeInSelectorProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -170,15 +173,15 @@ export const TradeInSelector = memo(function TradeInSelector({
         )}
       >
         <DialogHeader className="sr-only">
-            <DialogTitle>Dream-Renew Trade-In</DialogTitle>
-            <DialogDescription>A luxury trade-in flow to upgrade your sanctuary.</DialogDescription>
+          <DialogTitle>Dream-Renew Trade-In</DialogTitle>
+          <DialogDescription>A luxury trade-in flow to upgrade your sanctuary.</DialogDescription>
         </DialogHeader>
 
         {/* ── Left Sidebar (Brand & Progress) ── */}
-        <TradeInSidebar 
-          step={flow.step} 
-          selectedCount={flow.selectedCount} 
-          totalTradeInValue={displayTradeInValue} 
+        <TradeInSidebar
+          step={flow.step}
+          selectedCount={flow.selectedCount}
+          totalTradeInValue={displayTradeInValue}
           depositAmount={depositAmount}
           hasEstimatedValue={hasEstimatedTradeInValue}
           isEstimatingPrice={isEstimatingPrice}
@@ -186,22 +189,22 @@ export const TradeInSelector = memo(function TradeInSelector({
 
         {/* ── Right Content Area ── */}
         <div className="flex-1 flex flex-col h-full bg-[#FDFCFA] relative">
-          
+
           {/* Top progress bar (matching image style) */}
           <div className="h-16 px-10 flex items-center gap-6 border-b border-[#EDE8E1] bg-white flex-shrink-0">
             <div className="flex gap-1.5 w-32">
               {STEPS.map((s) => {
-                  const sIdx = STEPS.indexOf(s as typeof STEPS[number]);
-                  const currentIdx = STEPS.indexOf(flow.step as typeof STEPS[number]);
-                  return (
-                    <div
-                      key={s}
-                      className={cn(
-                        'h-[3px] flex-1 rounded-full transition-all duration-700',
-                        sIdx <= currentIdx ? 'bg-[#3D5140]' : 'bg-[#E8E2D9]'
-                      )}
-                    />
-                  );
+                const sIdx = STEPS.indexOf(s as typeof STEPS[number]);
+                const currentIdx = STEPS.indexOf(flow.step as typeof STEPS[number]);
+                return (
+                  <div
+                    key={s}
+                    className={cn(
+                      'h-[3px] flex-1 rounded-full transition-all duration-700',
+                      sIdx <= currentIdx ? 'bg-[#3D5140]' : 'bg-[#E8E2D9]'
+                    )}
+                  />
+                );
               })}
             </div>
             <div className="text-[11px] text-[#A89E94] font-bold tracking-[0.14em] uppercase flex-1">
@@ -240,17 +243,17 @@ export const TradeInSelector = memo(function TradeInSelector({
                 />
               )}
               {flow.step === 'audit' && (
-                <StepAudit 
-                  audit={flow.audit} 
-                  onToggle={(key) => flow.toggleAudit(key as keyof TradeInAudit)} 
+                <StepAudit
+                  audit={flow.audit}
+                  onToggle={(key) => flow.toggleAudit(key as keyof TradeInAudit)}
                   onDescriptionChange={flow.setAuditDescription}
                   onIsGoodChange={flow.setAuditIsGood}
                 />
               )}
               {flow.step === 'images' && (
                 <StepImages
-                   images={flow.images}
-                   onImagesChange={flow.setImages}
+                  images={flow.images}
+                  onImagesChange={flow.setImages}
                 />
               )}
               {flow.step === 'logistics' && (
@@ -259,6 +262,7 @@ export const TradeInSelector = memo(function TradeInSelector({
                   setCollectionType={flow.setCollectionType}
                   contact={flow.contact}
                   setContact={flow.setContact}
+                  addresses={addresses}
                 />
               )}
               {flow.step === 'summary' && (
@@ -267,6 +271,7 @@ export const TradeInSelector = memo(function TradeInSelector({
                   selectedProducts={selectedProducts}
                   onSelectTradeInProduct={handleSelectSourceItemInSummary}
                   targetProductName={product?.name}
+                  targetProductImage={targetProductImage}
                   totalTradeInValue={flow.totalTradeInValue}
                   sessionOrderId={flow.sessionOrderId}
                   depositAmount={depositAmount}
@@ -310,6 +315,21 @@ export const TradeInSelector = memo(function TradeInSelector({
           />
         </div>
       </DialogContent>
+
+      <AnimatePresence>
+        {flow.isSubmitting && (
+          <LoadingSpinner
+            fullScreen
+            size="lg"
+            text={[
+              'Registering your trade-in request...',
+              'Calculating valuation credits...',
+              'Synchronizing with logistics...',
+              'Finalizing your sanctuary upgrade...',
+            ]}
+          />
+        )}
+      </AnimatePresence>
     </Dialog>
   );
 });

@@ -17,6 +17,7 @@ import { Switch } from '@/components/ui/switch';
 import type { ProductType } from '@/api/services/productTypeService';
 import { Loader2, Power } from 'lucide-react';
 import { ProductAssetIcons } from '@/components/common/icons';
+import { cn } from '@/lib/utils';
 
 const productTypeSchema = z.object({
     productTypeName: z.string().min(1, 'Name is required').trim(),
@@ -50,7 +51,8 @@ export function ProductTypeDialog({
         },
     });
 
-    const isActive = watch('isActive');
+    const currentName = watch('productTypeName');
+    const currentStatus = watch('isActive');
 
     useEffect(() => {
         if (productType && open) {
@@ -65,6 +67,11 @@ export function ProductTypeDialog({
             });
         }
     }, [productType, open, reset]);
+
+    const hasChanged = isEdit ? (
+        currentName?.trim() !== productType?.productTypeName ||
+        currentStatus !== productType?.isActive
+    ) : true;
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -117,12 +124,12 @@ export function ProductTypeDialog({
                                         Status
                                     </Label>
                                     <p className="text-xs text-gray-500">
-                                        {isActive ? 'Visible in booking system' : 'Hidden from customers'}
+                                        {currentStatus ? 'Visible in booking system' : 'Hidden from customers'}
                                     </p>
                                 </div>
                                 <Switch
                                     id="isActive"
-                                    checked={isActive}
+                                    checked={currentStatus}
                                     onCheckedChange={(checked) => setValue('isActive', !!checked)}
                                     disabled={isLoading}
                                     className="data-[state=checked]:bg-green-600"
@@ -143,8 +150,13 @@ export function ProductTypeDialog({
                         </Button>
                         <Button
                             type="submit"
-                            disabled={isLoading}
-                            className="flex-1 h-10 bg-[#4988c4] hover:bg-[#3a6fa0] text-white shadow-sm font-medium transition-all"
+                            disabled={isLoading || (isEdit && !hasChanged)}
+                            className={cn(
+                                "flex-1 h-10 text-white shadow-sm font-medium transition-all",
+                                isEdit && !hasChanged 
+                                    ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                                    : "bg-[#4988c4] hover:bg-[#3a6fa0]"
+                            )}
                         >
                             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             {isEdit ? 'Update Details' : 'Create Entry'}
