@@ -76,7 +76,7 @@ function matchServiceStatusV2(status: unknown, tab: StatusTab) {
     const normalized = normalizeServiceStatus(status)
 
     if (tab === "processing") {
-        return ["pending", "confirmed", "processing", "inprogress", "inprocess", "assigned", "onroute", "shipping", "rescheduled"].includes(normalized)
+        return ["pending", "confirmed", "processing", "inprogress", "inprocess", "assigned", "onroute", "shipping", "rescheduled", "paymentpending", "waitingforpayment"].includes(normalized)
     }
 
     if (tab === "completed") {
@@ -138,15 +138,20 @@ export default function OrdersTab() {
             : (serviceFallbackData?.items ?? [])
 
         return serviceItems.filter((order) => {
-            const orderCustomerId = (order.customerId || "").trim()
+            const orderCustomerId = (order.customerId || "").trim().toLowerCase()
             const orderPhone = normalizePhone(order.phoneNumber)
+            const targetCustomerId = currentCustomerId.toLowerCase()
 
-            if (currentCustomerId) {
-                if (!orderCustomerId) return false
-                return orderCustomerId === currentCustomerId
+            // 1. Match by Customer ID (preferred)
+            if (targetCustomerId && orderCustomerId === targetCustomerId) {
+                return true
             }
 
-            if (currentPhone) return orderPhone === currentPhone
+            // 2. Match by Phone Number (fallback for cases where customerId might be missing in some states)
+            if (currentPhone && orderPhone === currentPhone) {
+                return true
+            }
+
             return false
         })
     }, [currentCustomerId, currentPhone, serviceByCustomerData?.items, serviceFallbackData?.items])

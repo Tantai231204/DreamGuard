@@ -111,6 +111,7 @@ export function CheckoutForm({ totalPrice, selectedVoucherId }: CheckoutFormProp
             })
 
             if (response.paymentUrl) {
+                sessionStorage.setItem('lastOrderType', 'order');
                 window.location.assign(response.paymentUrl)
             } else {
                 clearCart()

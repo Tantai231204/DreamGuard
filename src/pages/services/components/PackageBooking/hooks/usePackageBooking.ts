@@ -273,6 +273,7 @@ export function usePackageBooking(initialPackageId?: string) {
       setUploadedFiles([]);
 
       if (orderData?.paymentUrl) {
+        sessionStorage.setItem('lastOrderType', 'service');
         window.location.assign(orderData.paymentUrl);
         return;
       }

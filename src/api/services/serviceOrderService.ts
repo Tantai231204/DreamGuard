@@ -55,7 +55,10 @@ const serviceOrderService = {
     const result = await serviceOrderService.getServiceOrders({ ...params, customerId });
 
     // Keep fallback filtering in FE in case backend ignores the query param.
-    const items = (result.items || []).filter((item) => item.customerId === customerId);
+    const items = (result.items || []).filter((item) => {
+      if (!item.customerId) return true; // Allow if ID is missing, FE will double-check with phone number
+      return item.customerId.toLowerCase() === customerId.toLowerCase();
+    });
 
     return {
       ...result,

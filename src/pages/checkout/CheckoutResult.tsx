@@ -126,7 +126,16 @@ export default function CheckoutResult() {
                     ) : (
                         <>
                             <Button
-                                onClick={() => navigate(AppRoute.CHECKOUT)}
+                                onClick={() => {
+                                    const lastType = sessionStorage.getItem('lastOrderType');
+                                    sessionStorage.removeItem('lastOrderType');
+                                    
+                                    if (lastType === 'trade-in') {
+                                        navigate(`${AppRoute.PROFILE}?tab=trade-in-orders`);
+                                    } else {
+                                        navigate(`${AppRoute.PROFILE}?tab=orders`);
+                                    }
+                                }}
                                 className="h-14 rounded-2xl bg-gradient-to-r from-primary-500 to-primary-600 text-white font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-primary-100 transition-all"
                             >
                                 Try Again

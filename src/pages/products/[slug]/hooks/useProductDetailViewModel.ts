@@ -328,7 +328,10 @@ export function useProductDetailViewModel() {
       }
     }
 
-    if (shouldRedirectToPayment) { window.location.assign(paymentUrl); }
+    if (shouldRedirectToPayment) { 
+      sessionStorage.setItem('lastOrderType', 'trade-in');
+      window.location.assign(paymentUrl); 
+    }
   }, [createTradeInOrderMutation, tradeInContact]);
 
   const handleToggleTradeIn = useCallback((id: string) => {

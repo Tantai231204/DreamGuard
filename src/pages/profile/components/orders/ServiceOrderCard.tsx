@@ -16,9 +16,26 @@ interface ServiceOrderCardProps {
   order: ServiceOrderResponse;
 }
 
-function toThemeKey(status?: string) {
-  if (!status) return 'Pending';
-  const lower = status.toLowerCase();
+function toThemeKey(status: unknown) {
+  if (status === null || status === undefined) return 'Pending';
+  
+  const codeMap: Record<number, string> = {
+    0: 'Pending',
+    1: 'Confirmed',
+    2: 'Processing',
+    3: 'Assigned',
+    4: 'Completed',
+    5: 'Cancelled',
+    6: 'Cancelled', // forcedcancelled
+    7: 'Rescheduled',
+    8: 'Rejected',
+  };
+
+  if (typeof status === 'number') {
+    return codeMap[status] || 'Pending';
+  }
+
+  const lower = String(status).toLowerCase().trim().replace(/[\s_-]/g, '');
   if (lower === 'cancelled' || lower === 'canceled' || lower === 'forcedcancelled') return 'Cancelled';
   if (lower === 'completed') return 'Completed';
   if (lower === 'confirmed') return 'Confirmed';
