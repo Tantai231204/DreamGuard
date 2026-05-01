@@ -2,7 +2,6 @@ import { motion } from "framer-motion";
 import {
   CheckCircle2,
   Clock,
-  Package,
   RotateCcw,
   ShieldCheck,
   Truck,
@@ -84,20 +83,39 @@ export function TradeInDeliveryQuickActionsCard({
           )}
 
           {status === "RETURNING" && (
-            <div className="p-4 bg-amber-50/50 border border-amber-100 rounded-xl flex items-start gap-3">
-              <Package className="w-4 h-4 text-amber-500 shrink-0 mt-0.5 animate-pulse" />
-              <p className="text-[9px] font-bold text-amber-600 uppercase tracking-[0.15em] leading-relaxed">
-                Currently in Returning phase. Delivery staff is processing the return/exchange on mobile.
-              </p>
+            <div className="space-y-3">
+              <Button
+                onClick={() => (window as any).openTradeInExchangeDialog?.()}
+                className="w-full justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-12 text-[11px] font-black uppercase tracking-widest transition-all shadow-md shadow-blue-500/20 border-none group"
+              >
+                <ShieldCheck className="h-4 w-4 transition-transform group-hover:scale-110" />
+                Process Replacement / Exchange
+              </Button>
+              <Button
+                onClick={() => (window as any).openTradeInReturnDialog?.()}
+                className="w-full justify-center gap-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl h-12 text-[11px] font-black uppercase tracking-widest transition-all shadow-md shadow-rose-500/20 border-none group"
+              >
+                <RotateCcw className="h-4 w-4 transition-transform group-hover:rotate-180" />
+                Process Audit / Return
+              </Button>
             </div>
           )}
 
           {status === "EXCHANGE_REQUESTED" && (
-            <div className="p-4 bg-blue-50/70 border border-blue-100 rounded-xl flex items-start gap-3">
-              <RotateCcw className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-              <p className="text-[9px] font-bold text-blue-700 uppercase tracking-[0.15em] leading-relaxed">
-                Exchange request has been approved. Replacement dispatch is being prepared.
-              </p>
+            <div className="space-y-3">
+              <div className="p-4 bg-blue-50/70 border border-blue-100 rounded-xl flex items-start gap-3">
+                <RotateCcw className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+                <p className="text-[9px] font-bold text-blue-700 uppercase tracking-[0.15em] leading-relaxed">
+                  Exchange request has been approved. Replacement dispatch is being prepared.
+                </p>
+              </div>
+              <Button
+                onClick={() => (window as any).openTradeInExchangeDialog?.()}
+                className="w-full justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-11 text-[10px] font-black uppercase tracking-widest transition-all shadow-md shadow-blue-500/20 border-none group"
+              >
+                <ShieldCheck className="h-4 w-4 transition-transform group-hover:scale-110" />
+                Process Replacement / Exchange
+              </Button>
             </div>
           )}
 

@@ -20,4 +20,5 @@ export { OrderDetailSkeleton } from "./OrderDetailSkeleton";
 export { ShippingLogisticsEvidence } from "./ShippingLogisticsEvidence";
 export { PaymentInfoCard } from "./PaymentInfoCard";
 export { ConfirmStatusDialog } from "./ConfirmStatusDialog";
+export { ProcessExchangeDialog } from "./ProcessExchangeDialog";
 export { CancelTradeInOrderDialog } from "../../trade-in-orders/components/CancelTradeInOrderDialog";

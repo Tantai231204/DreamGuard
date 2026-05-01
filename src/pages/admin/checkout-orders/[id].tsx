@@ -19,17 +19,28 @@ function ChildOrderCard({ childOrderId, onAssign }: { childOrderId: string, onAs
     const { data: detail, isPending } = useOrderDetail(childOrderId);
     const navigate = useNavigate();
 
+    const currentStatusEnum = useMemo(() => detail ? ORDER_STATUS_MAP[detail.status.toString()] : null, [detail]);
+    const isCancelled = currentStatusEnum === OrderStatus.Cancelled;
+
+    const canAssign = useMemo(() => {
+        if (!detail || isCancelled) return false;
+        return (
+            currentStatusEnum !== OrderStatus.Pending &&
+            currentStatusEnum !== OrderStatus.Completed &&
+            currentStatusEnum !== OrderStatus.Returned &&
+            currentStatusEnum !== OrderStatus.RefundedAndRestocked &&
+            currentStatusEnum !== OrderStatus.RefundedAndDamaged
+        );
+    }, [detail, currentStatusEnum, isCancelled]);
+
     if (isPending) return <div className="h-24 bg-slate-50 animate-pulse rounded-2xl border border-slate-100" />;
     if (!detail) return null;
 
     const orderTypeLabel = getChildOrderLabel(detail.orderCode);
     const isCustom = orderTypeLabel === 'Custom Order';
-    
-    const currentStatusEnum = ORDER_STATUS_MAP[detail.status.toString()];
-    const isCancelled = currentStatusEnum === OrderStatus.Cancelled;
 
     return (
-        <div 
+        <div
             onClick={() => navigate(`/admin/orders/${detail.id}`)}
             className={cn(
                 "group relative flex items-center justify-between p-6 bg-white border border-slate-100 rounded-2xl shadow-sm hover:shadow-xl hover:border-blue-200 transition-all duration-300 cursor-pointer",
@@ -49,7 +60,7 @@ function ChildOrderCard({ childOrderId, onAssign }: { childOrderId: string, onAs
                 )}>
                     {detail.items?.length || 0}
                 </div>
-                
+
                 <div className="flex flex-col gap-1 min-w-0">
                     <div className="flex items-center gap-2">
                         <h4 className="font-black text-slate-800 text-base tracking-tight truncate">#{detail.orderCode}</h4>
@@ -94,10 +105,10 @@ function ChildOrderCard({ childOrderId, onAssign }: { childOrderId: string, onAs
                         )}
                     </div>
                 )}
-                
+
                 <div className="flex items-center gap-3">
-                    <Button 
-                        variant="ghost" 
+                    <Button
+                        variant="ghost"
                         size="sm"
                         className="text-[10px] font-black uppercase tracking-widest h-10 px-5 rounded-xl hover:bg-slate-100 text-slate-500 gap-2"
                         onClick={(e) => {
@@ -107,8 +118,8 @@ function ChildOrderCard({ childOrderId, onAssign }: { childOrderId: string, onAs
                     >
                         <Eye className="w-4 h-4" /> Deep Logistics
                     </Button>
-                    {!isCancelled && (
-                        <Button 
+                    {canAssign && (
+                        <Button
                             size="sm"
                             className="text-[10px] font-black uppercase tracking-widest h-10 px-5 rounded-xl bg-[#4988c4] text-white hover:bg-[#3b6da3] shadow-md shadow-blue-500/10 gap-2 border-0"
                             onClick={(e) => {
@@ -121,6 +132,21 @@ function ChildOrderCard({ childOrderId, onAssign }: { childOrderId: string, onAs
                     )}
                 </div>
             </div>
+
+            {/* Individual Shipment Progress Bar */}
+            {!isCancelled && (
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-slate-50 overflow-hidden rounded-b-2xl">
+                    <div
+                        className={cn(
+                            "h-full transition-all duration-1000 ease-out",
+                            currentStatusEnum === OrderStatus.Completed ? "bg-emerald-500" : "bg-blue-400"
+                        )}
+                        style={{
+                            width: `${Math.max(5, (Number(currentStatusEnum || 0) / 5) * 100)}%`
+                        }}
+                    />
+                </div>
+            )}
         </div>
     );
 }
@@ -128,7 +154,7 @@ function ChildOrderCard({ childOrderId, onAssign }: { childOrderId: string, onAs
 export default function AdminCheckoutOrderDetail() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    
+
     // Fallback: Fetch from list and filter because the direct detail API doesn't exist
     const { data: listData, isPending: isLoadingList, isError } = useAdminCheckoutOrders({ search: id });
     const order = useMemo(() => {
@@ -137,6 +163,26 @@ export default function AdminCheckoutOrderDetail() {
 
     const [selectedChildForAssign, setSelectedChildForAssign] = useState<string | null>(null);
     const [isBulkAssignOpen, setIsBulkAssignOpen] = useState(false);
+
+    const subOrdersTotal = useMemo(() => {
+        return order?.childOrders?.reduce((sum, child) => sum + child.totalAmount, 0) || 0;
+    }, [order?.childOrders]);
+
+    const shippingFee = (order?.totalAmount || 0) - subOrdersTotal;
+
+    const assignableChildOrderIds = useMemo(() => {
+        return order?.childOrders?.filter(child => {
+            const statusEnum = ORDER_STATUS_MAP[child.status.toString()];
+            return (
+                statusEnum !== OrderStatus.Pending &&
+                statusEnum !== OrderStatus.Completed &&
+                statusEnum !== OrderStatus.Cancelled &&
+                statusEnum !== OrderStatus.Returned &&
+                statusEnum !== OrderStatus.RefundedAndRestocked &&
+                statusEnum !== OrderStatus.RefundedAndDamaged
+            );
+        }).map(c => c.id) || [];
+    }, [order?.childOrders]);
 
     // Wait for at least one child order detail to render address/payment info
     const firstChildId = order?.childOrders?.[0]?.id;
@@ -164,11 +210,35 @@ export default function AdminCheckoutOrderDetail() {
                             Order Batch <span className="text-slate-400 font-medium">#{order.checkoutOrderCode}</span>
                         </h1>
                     </div>
-                    
+
                     <div className="flex items-center gap-8">
+                        {(order.refundedAmount > 0 || order.refundingAmount > 0) && (
+                            <div className="text-right px-6 border-r border-slate-100 flex flex-col justify-center">
+                                <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest mb-1.5">Refund Asset Breakdown</p>
+                                <div className="space-y-1">
+                                    {order.refundingAmount > 0 && (
+                                        <div className="flex flex-col items-end">
+                                            <span className="text-[9px] font-bold text-amber-600 leading-none">Refunding Products</span>
+                                            <span className="text-sm font-black text-amber-500">{formatPrice(order.refundingAmount)}</span>
+                                        </div>
+                                    )}
+                                    {order.refundedAmount > 0 && (
+                                        <div className="flex flex-col items-end">
+                                            <span className="text-[9px] font-bold text-emerald-600 leading-none">Settled Capital</span>
+                                            <span className="text-sm font-black text-emerald-500">{formatPrice(order.refundedAmount)}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                         <div className="text-right">
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Valuation</p>
                             <p className="text-xl font-black text-[#4988c4] tracking-tighter">{formatPrice(order.totalAmount)}</p>
+                            <div className="flex items-center justify-end gap-2 mt-1">
+                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Products: {formatPrice(subOrdersTotal)}</span>
+                                <span className="w-1 h-1 rounded-full bg-slate-200" />
+                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Logistics: {formatPrice(shippingFee)}</span>
+                            </div>
                         </div>
                         <div className="text-right">
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Timestamp</p>
@@ -187,9 +257,9 @@ export default function AdminCheckoutOrderDetail() {
                                 <CreditCard className="w-3.5 h-3.5 text-[#4988c4]" />
                                 Payment & Transaction
                             </h3>
-                            <PaymentInfoCard 
-                                orderCode={order.checkoutOrderCode} 
-                                paymentMethod={firstChildDetail?.paymentMethod || 'VnPay'} 
+                            <PaymentInfoCard
+                                orderCode={order.checkoutOrderCode}
+                                paymentMethod={firstChildDetail?.paymentMethod || 'VnPay'}
                             />
                         </div>
                         <div className="flex flex-col space-y-4">
@@ -198,13 +268,13 @@ export default function AdminCheckoutOrderDetail() {
                                 Master Deployment Site
                             </h3>
                             {firstChildDetail ? (
-                                <ShippingAddressCard 
-                                    fullName={firstChildDetail.receiverName} 
-                                    phone={firstChildDetail.phoneNumber} 
-                                    street={firstChildDetail.street} 
-                                    ward={firstChildDetail.ward} 
-                                    district={firstChildDetail.district} 
-                                    city={firstChildDetail.city} 
+                                <ShippingAddressCard
+                                    fullName={firstChildDetail.receiverName}
+                                    phone={firstChildDetail.phoneNumber}
+                                    street={firstChildDetail.street}
+                                    ward={firstChildDetail.ward}
+                                    district={firstChildDetail.district}
+                                    city={firstChildDetail.city}
                                 />
                             ) : (
                                 <div className="h-[140px] bg-slate-100 rounded-xl animate-pulse" />
@@ -219,23 +289,23 @@ export default function AdminCheckoutOrderDetail() {
                                 <Layers className="w-3.5 h-3.5 text-[#4988c4]" />
                                 Sub-Orders & Logistics ({order.childOrders.length})
                             </h3>
-                            <Button 
-                                size="sm" 
+                            <Button
+                                size="sm"
                                 variant="outline"
                                 className="h-8 text-[10px] font-bold uppercase tracking-widest text-[#4988c4] border-[#4988c4]/30 hover:bg-[#4988c4]/5"
                                 onClick={() => setIsBulkAssignOpen(true)}
-                                disabled={order.childOrders.length === 0}
+                                disabled={assignableChildOrderIds.length === 0}
                             >
                                 <UserPlus className="w-3.5 h-3.5 mr-1.5" /> Quick Bulk Assign
                             </Button>
                         </div>
-                        
-                        <div className="grid grid-cols-1 gap-3">
+
+                        <div className="grid grid-cols-1 gap-4">
                             {order.childOrders.map(child => (
-                                <ChildOrderCard 
-                                    key={child.id} 
-                                    childOrderId={child.id} 
-                                    onAssign={setSelectedChildForAssign} 
+                                <ChildOrderCard
+                                    key={child.id}
+                                    childOrderId={child.id}
+                                    onAssign={setSelectedChildForAssign}
                                 />
                             ))}
                         </div>
@@ -254,7 +324,7 @@ export default function AdminCheckoutOrderDetail() {
             <BulkAssignShippingStaffDialog
                 isOpen={isBulkAssignOpen}
                 onClose={() => setIsBulkAssignOpen(false)}
-                orderIds={order.childOrders.map(c => c.id)}
+                orderIds={assignableChildOrderIds}
             />
         </div>
     );

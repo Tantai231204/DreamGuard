@@ -24,7 +24,7 @@ interface CheckoutFormProps {
 export function CheckoutForm({ form, totalPrice, selectedVoucherId, shippingFee }: CheckoutFormProps) {
     const { cart, clearCart } = useCart()
     const navigate = useNavigate()
-    const { success, error: toastError } = useToast()
+    const { error: toastError } = useToast()
 
     const { mutateAsync: createOrder, isPending: isOrderSubmitting } = useCreateOrder()
     const { mutateAsync: createAddress, isPending: isAddressCreating } = useCreateAddress()
@@ -107,8 +107,8 @@ export function CheckoutForm({ form, totalPrice, selectedVoucherId, shippingFee 
                 window.location.assign(response.paymentUrl)
             } else {
                 clearCart()
-                success("Order Successful", `Your order ${response.orderCode} has been placed.`)
-                navigate(`${AppRoute.CHECKOUT_RESULT}?orderCode=${response.orderCode}`)
+                const code = response.checkoutOrderCode || response.orderCode;
+                navigate(`${AppRoute.CHECKOUT_RESULT}?orderCode=${code}`)
             }
         } catch (err: unknown) {
             console.error("Checkout process failed:", err)

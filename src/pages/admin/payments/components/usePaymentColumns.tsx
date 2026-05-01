@@ -24,11 +24,6 @@ import { formatPrice } from '@/pages/profile/utils';
 interface usePaymentColumnsProps {
     onView: (id: string) => void;
 }
-
-
-
-
-
 export const usePaymentColumns = ({ onView }: usePaymentColumnsProps) => {
     const queryClient = useQueryClient();
 

@@ -631,10 +631,40 @@ export function useAdminProductMutations({ state }: MutationProps) {
 
     try {
       if (statusChangeData.type === "product") {
-        await updateProductStatusMutation.mutateAsync({
-          productId: statusChangeData.id,
-          status: statusChangeData.newStatus,
-        });
+        // Detect if it's a template to synchronize variants (matching Template Management logic)
+        const isTemplate = state.templates?.some(t => t.id === statusChangeData.id);
+
+        if (isTemplate) {
+          // 1. Fetch real variants to avoid ID mismatches
+          const variants = await variantService.getByProductId(statusChangeData.id);
+
+          const tasks: Promise<unknown>[] = [
+            updateProductStatusMutation.mutateAsync({
+              productId: statusChangeData.id,
+              status: statusChangeData.newStatus,
+            })
+          ];
+
+          if (variants && variants.length > 0) {
+            variants.forEach(v => {
+              tasks.push(updateVariantStatusMutation.mutateAsync({
+                variantId: v.id,
+                status: statusChangeData.newStatus
+              }));
+            });
+          }
+
+          await Promise.all(tasks);
+          
+          // Force invalidate templates query since standard product invalidation might miss it
+          queryClient.invalidateQueries({ queryKey: ["products", "admin", "templates"] });
+        } else {
+          // Normal product status update
+          await updateProductStatusMutation.mutateAsync({
+            productId: statusChangeData.id,
+            status: statusChangeData.newStatus,
+          });
+        }
       } else if (statusChangeData.type === "combo") {
         await updateComboStatusMutation.mutateAsync({
           id: statusChangeData.id,
@@ -653,10 +683,13 @@ export function useAdminProductMutations({ state }: MutationProps) {
     }
   }, [
     statusChangeData,
+    state.templates,
     updateProductStatusMutation,
     updateComboStatusMutation,
     updateVariantStatusMutation,
     setStatusChangeData,
+    variantService,
+    queryClient
   ]);
 
   const handleConfirmDelete = useCallback(

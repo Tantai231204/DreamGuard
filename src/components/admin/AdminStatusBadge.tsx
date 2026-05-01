@@ -40,6 +40,8 @@ const STATUS_MAP: Record<string, StatusType> = {
   'refundedanddamaged': 'rose',
   'partialrefunded': 'info',
   'partial_refunded': 'info',
+  'partialrefunding': 'amber',
+  'partial_refunding': 'amber',
 
   'pending': 'warning',
   'waiting_for_staff': 'warning',
@@ -255,6 +257,8 @@ const ICON_MAP: Record<string, React.ElementType> = {
   'rescheduled': History,
   'partialrefunded': MinusCircle,
   'partial_refunded': MinusCircle,
+  'partialrefunding': MinusCircle,
+  'partial_refunding': MinusCircle,
 };
 
 const PAYMENT_CONFIG: Record<string, { container: string, textColor: string, iconBg: string, icon: string }> = {
@@ -339,6 +343,8 @@ const LABEL_MAP: Record<string, string> = {
   'rescheduled': 'Rescheduled',
   'partialrefunded': 'Partial Refunded',
   'partial_refunded': 'Partial Refunded',
+  'partialrefunding': 'Partial Refunding',
+  'partial_refunding': 'Partial Refunding',
 };
 
 const formatLabelFallback = (label: string) => {

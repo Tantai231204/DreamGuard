@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import aiService from '@/api/services/aiService';
 
 export type UserRole = 'user' | 'admin' | 'ai';
 export type ChatMessageStatus = 'sending' | 'sent' | 'failed';
@@ -9,7 +10,19 @@ export interface AIChatMessage {
     text: string;
     createdAt: string;
     status: ChatMessageStatus;
+    recommendedProducts?: import('@/api/services/aiService').AIProduct[];
 }
+
+const INITIAL_SUGGESTIONS = [
+    "Baby Products",
+    "Shipping & Delivery",
+    "Returns & Warranty",
+    "Payment Methods",
+    "Custom Products",
+    "Trade-in Program",
+    "Cleaning Services",
+    "Vouchers & Promotions"
+];
 
 export const useFloatingAIChat = () => {
     const [messages, setMessages] = useState<AIChatMessage[]>([
@@ -22,6 +35,7 @@ export const useFloatingAIChat = () => {
         }
     ]);
     const [isThinking, setIsThinking] = useState(false);
+    const [suggestions, setSuggestions] = useState<string[]>(INITIAL_SUGGESTIONS);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = useCallback(() => {
@@ -44,40 +58,49 @@ export const useFloatingAIChat = () => {
         };
 
         setMessages(prev => [...prev, userMsg]);
+        setSuggestions([]); // Clear old suggestions when user speaks
         setIsThinking(true);
 
-        // Simulate AI Response
-        await new Promise(resolve => setTimeout(resolve, 1200));
-        
-        const aiMsg: AIChatMessage = {
-            id: (Date.now() + 1).toString(),
-            role: 'ai',
-            text: getMockAIResponse(text),
-            createdAt: new Date().toISOString(),
-            status: 'sent'
-        };
-        setMessages(prev => [...prev, aiMsg]);
-        setIsThinking(false);
+        try {
+            const response = await aiService.askFAQ(text);
+            
+            const aiMsg: AIChatMessage = {
+                id: Date.now().toString() + "-ai",
+                role: 'ai',
+                text: response.answer,
+                createdAt: new Date().toISOString(),
+                status: 'sent',
+                recommendedProducts: response.recommended_products
+            };
+            setMessages(prev => [...prev, aiMsg]);
+            
+            // If the AI doesn't understand, provide the initial set of suggestions as "Fast Operations"
+            if (response.answer.includes("not understand") || response.answer.includes("chưa hiểu rõ") || !response.follow_up_suggestions?.length) {
+                setSuggestions(INITIAL_SUGGESTIONS);
+            } else {
+                setSuggestions(response.follow_up_suggestions);
+            }
+        } catch (error) {
+            console.error("[useFloatingAIChat] AI request failed:", error);
+            const errorMsg: AIChatMessage = {
+                id: Date.now().toString() + "-error",
+                role: 'ai',
+                text: "I'm sorry, I'm having trouble connecting to my knowledge base right now. Please try again in a moment.",
+                createdAt: new Date().toISOString(),
+                status: 'sent'
+            };
+            setMessages(prev => [...prev, errorMsg]);
+            setSuggestions(INITIAL_SUGGESTIONS);
+        } finally {
+            setIsThinking(false);
+        }
     }, []);
 
     return {
         messages,
         isThinking,
+        suggestions,
         sendMessage,
         messagesEndRef,
     };
 };
-
-function getMockAIResponse(input: string): string {
-    const lower = input.toLowerCase();
-    if (lower.includes('size') || lower.includes('dimension')) {
-        return "For newborns, we typically recommend a 20x30cm pillow. For cribs, a standard 60x120cm mattress provides the best support for safe sleep.";
-    }
-    if (lower.includes('color') || lower.includes('material')) {
-        return "Our most popular material is Organic Cotton for its extreme breathability. We recommend pastels or neutral tones like Breeze Blue to create a calming environment.";
-    }
-    if (lower.includes('price') || lower.includes('cost')) {
-        return "Customization prices vary based on dimensions and materials. You can see real-time price updates in our 3D Studio as you design!";
-    }
-    return "That's a great question about your baby's sanctuary! I recommend checking our 3D Studio for a personalized preview of your design.";
-}

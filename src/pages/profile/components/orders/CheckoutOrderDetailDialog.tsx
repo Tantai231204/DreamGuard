@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from "react"
-import { useCancelCheckoutOrder, useCheckoutOrders } from "@/hooks/queries/useCheckoutOrder"
+import { useCheckoutOrders, useCancelCheckoutOrder } from "@/hooks/queries/useCheckoutOrder"
 import { usePayments } from "@/hooks/queries/usePayment"
 import {
     Dialog,
@@ -71,45 +71,46 @@ export function CheckoutOrderDetailDialog({
     }, [paymentData])
 
     // ── Cancel Logic ──
-    const isPending = order.status === 'Pending'
-    const isPaid = ['Confirmed', 'Processing'].includes(order.status)
-    const hasMultipleChildren = order.childOrders.length > 1
     const isVnPay = paymentMethod?.toLowerCase() === 'vnpay'
-    const isCOD = paymentMethod?.toLowerCase() === 'cod'
     const isTerminalStatus = ['Completed', 'Cancelled', 'Refunded'].includes(order.status)
 
     // Can cancel entire order?
     const canCancelAll = useMemo(() => {
         if (isTerminalStatus) return false
-        // COD → always can cancel if not terminal
-        if (isCOD && isPending) return true
-        // VnPay unpaid (Pending) → cancel all
-        if (isVnPay && isPending) return true
-        return false
-    }, [isTerminalStatus, isCOD, isVnPay, isPending])
+        // Allow bulk cancel ONLY for COD orders in user history
+        // We wait for payment info to ensure we don't show it for VnPay orders briefly
+        if (!paymentMethod) return false 
+        if (isVnPay) return false
+        return ['Pending', 'Confirmed', 'Processing'].includes(order.status)
+    }, [isTerminalStatus, order.status, isVnPay, paymentMethod])
 
-    // Can cancel individual child orders? Only VnPay paid with multiple children
-    const canCancelIndividual = useMemo(() => {
-        if (isTerminalStatus) return false
-        return isVnPay && isPaid && hasMultipleChildren
-    }, [isTerminalStatus, isVnPay, isPaid, hasMultipleChildren])
+    // Can cancel individual child orders? 
+    // Disabled for users as per request "only cancel COD orders"
+    const canCancelIndividual = false;
 
-    const { mutate: cancelAll, isPending: isCancellingAll } = useCancelCheckoutOrder({ meta: { hideToast: true } })
+    const { mutateAsync: cancelAll } = useCancelCheckoutOrder({ meta: { hideToast: true } })
+    const [isBulkCancelling, setIsBulkCancelling] = React.useState(false)
+    const isCancellingAll = isBulkCancelling
 
-    const handleCancelAll = useCallback(() => {
-        cancelAll(order.id, {
-            onSuccess: () => {
-                toast.success("Order Cancelled", `Order #${order.checkoutOrderCode} has been cancelled.`)
-                setConfirmCancelAll(false)
-            },
-            onError: (error: unknown) => {
-                const message = isAxiosError(error)
-                    ? (error.response?.data?.message || error.message)
-                    : error instanceof Error ? error.message : "Error occurred"
-                toast.error("Cancellation Failed", message)
-            }
-        })
-    }, [cancelAll, order.id, order.checkoutOrderCode, toast])
+    const handleCancelAll = useCallback(async () => {
+        setIsBulkCancelling(true)
+        try {
+            // Switch target ID based on status: Pending orders require parent ID, Confirmed/Processing require child ID
+            const targetId = order.status === 'Pending' ? order.id : (order.childOrders[0]?.id || order.id)
+            await cancelAll(targetId)
+
+            toast.success("Order journey cancelled", `Order #${order.checkoutOrderCode} has been cancelled.`)
+            setConfirmCancelAll(false)
+            onOpenChange?.(false)
+        } catch (error: unknown) {
+            const message = isAxiosError(error)
+                ? (error.response?.data?.message || error.message)
+                : error instanceof Error ? error.message : "Error occurred during cancellation"
+            toast.error("Cancellation Failed", message)
+        } finally {
+            setIsBulkCancelling(false)
+        }
+    }, [order.id, order.checkoutOrderCode, toast, cancelAll, onOpenChange])
 
     return (
         <>

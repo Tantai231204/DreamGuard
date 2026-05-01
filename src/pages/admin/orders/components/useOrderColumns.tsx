@@ -73,6 +73,49 @@ export const useOrderColumns = (onCancelRequested: (order: CheckoutOrderResponse
                 ),
             },
             {
+                id: 'refunded',
+                header: () => <span className="font-semibold">Refunded</span>,
+                cell: ({ row }) => {
+                    const hasRefund = row.original.refundedAmount > 0 || row.original.refundingAmount > 0;
+                    if (!hasRefund) return <span className="text-gray-300">-</span>;
+                    return (
+                        <div className="flex flex-col gap-0.5">
+                            {row.original.refundedAmount > 0 && (
+                                <span className="text-[11px] font-black text-emerald-600">
+                                    {formatPrice(row.original.refundedAmount)}
+                                </span>
+                            )}
+                            {row.original.refundingAmount > 0 && (
+                                <span className="text-[9px] font-bold text-amber-500 uppercase tracking-tighter">
+                                    Refunding: {formatPrice(row.original.refundingAmount)}
+                                </span>
+                            )}
+                        </div>
+                    );
+                },
+                size: 120,
+            },
+            {
+                id: 'shipments',
+                header: () => <span className="font-semibold">Shipments</span>,
+                cell: ({ row }) => {
+                    const children = row.original.childOrders || [];
+                    if (children.length === 0) return <span className="text-gray-300">-</span>;
+                    
+                    const completed = children.filter(c => c.status === 'Completed' || c.status === 'Delivered').length;
+                    
+                    return (
+                        <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-black text-slate-900 bg-slate-100 px-2 py-0.5 rounded">
+                                {completed}/{children.length}
+                            </span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Complete</span>
+                        </div>
+                    );
+                },
+                size: 140,
+            },
+            {
                 accessorKey: 'status',
                 header: () => <span className="font-semibold">Status</span>,
                 cell: ({ row }) => <AdminStatusBadge status={row.original.status.toString()} />,

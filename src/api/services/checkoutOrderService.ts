@@ -25,7 +25,7 @@ const checkoutOrderService = {
      */
     cancelCheckoutOrder: async (id: string): Promise<void> => {
         const config: CustomAxiosRequestConfig = { _suppressToast: true };
-        await apiClient.put(`/checkout-product-order/${id}/cancel`, {}, config);
+        await apiClient.put(`/order/${id}/cancel`, {}, config);
     },
 
     /**

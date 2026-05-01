@@ -2,12 +2,12 @@ import { useParams } from 'react-router-dom';
 import { useMemo, useState } from 'react';
 import { Printer, Truck, History, ChevronDown, CreditCard, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useOrderDetail, useUpdateOrderStatus, useAdminCancelOrder, useAdminPayments, useUpdatePaymentStatus, useAdminCreateRefund, orderKeys } from '@/hooks/queries';
+import { useOrderDetail, useUpdateOrderStatus, useAdminCancelOrder, useAdminPayments, useUpdatePaymentStatus, useAdminCreateRefund, useUpdateRefundStatus, orderKeys } from '@/hooks/queries';
 import { useQueryClient } from '@tanstack/react-query';
 import { useShippingTasksByOrder } from '@/hooks/queries/useShippingTask';
 import { useAuthStore } from '@/store/authStore';
 import { formatPrice } from '@/pages/profile/utils';
-import { formatDate } from '@/lib/utils';
+import { cn, formatDate } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
   DropdownMenu,
@@ -28,8 +28,10 @@ import {
   AssignShippingStaffDialog,
   OrderDetailSkeleton,
   ShippingLogisticsEvidence,
-  ConfirmStatusDialog
+  ConfirmStatusDialog,
+  ProcessExchangeDialog
 } from './components';
+import { ProcessReturnDialog } from './components/process-return/ProcessReturnDialog';
 import { AdminStatusBadge } from '@/components/admin';
 import { OrderStatus, ORDER_STATUS_MAP, ADMIN_ALLOWED_TRANSITION_STATUSES, ADMIN_ORDER_STATUS_THEME } from './constants';
 
@@ -41,6 +43,7 @@ export default function OrderDetail() {
   const cancelOrder = useAdminCancelOrder();
   const updatePayment = useUpdatePaymentStatus();
   const createRefund = useAdminCreateRefund();
+  const updateRefundStatus = useUpdateRefundStatus();
   const queryClient = useQueryClient();
 
   const { role } = useAuthStore();
@@ -50,6 +53,8 @@ export default function OrderDetail() {
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [showConfirmStatusDialog, setShowConfirmStatusDialog] = useState(false);
   const [showRefundDialog, setShowRefundDialog] = useState(false);
+  const [showProcessReturnDialog, setShowProcessReturnDialog] = useState(false);
+  const [showProcessExchangeDialog, setShowProcessExchangeDialog] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
 
   const resolvedOrderId = order?.id || id || '';
@@ -62,6 +67,10 @@ export default function OrderDetail() {
       p.status?.toLowerCase() === 'codpaid' ||
       p.status?.toLowerCase() === 'completed'
     );
+  }, [paymentResponse]);
+
+  const refundingPayment = useMemo(() => {
+    return paymentResponse?.items?.find(p => p.status === 'Refunding' && p.paymentType === 'Refund');
   }, [paymentResponse]);
 
   const canCreateRefund = useMemo(() => {
@@ -114,6 +123,12 @@ export default function OrderDetail() {
 
   if (isError || !order) {
     return <OrderNotFound orderId={id} />;
+  }
+
+  // Bridging for QuickActionsCard buttons
+  if (typeof window !== 'undefined') {
+    (window as any).openReturnDialog = () => setShowProcessReturnDialog(true);
+    (window as any).openExchangeDialog = () => setShowProcessExchangeDialog(true);
   }
 
   const handlePrint = () => window.print();
@@ -392,6 +407,32 @@ export default function OrderDetail() {
                 {createRefund.isPending ? "Initializing..." : "Initialize Refund"}
               </Button>
             )}
+
+            {refundingPayment && (
+              <Button
+                onClick={() => {
+                  if (window.confirm("Confirm this refund has been processed?")) {
+                    updateRefundStatus.mutate({ 
+                      id: refundingPayment.id, 
+                      status: 'Refunded' 
+                    }, {
+                      onSuccess: () => {
+                        toast.success("Refund status updated to COMPLETED");
+                        queryClient.invalidateQueries({ queryKey: orderKeys.detail(id!) });
+                        queryClient.invalidateQueries({ queryKey: ['payments', 'list', { orderCode: order.orderCode }] });
+                      },
+                      onError: () => toast.error("Failed to update refund status")
+                    });
+                  }
+                }}
+                disabled={updateRefundStatus.isPending}
+                size="sm"
+                className="h-10 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-amber-500/10 px-5 gap-2 border-0"
+              >
+                <RotateCcw className={cn("h-4 w-4", updateRefundStatus.isPending && "animate-spin")} />
+                {updateRefundStatus.isPending ? "Processing..." : "Complete Refund"}
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -531,6 +572,25 @@ export default function OrderDetail() {
         description={`Are you sure you want to transition this order to ${pendingStatus}? This action will trigger associated workflow updates.`}
         variant={pendingStatus === 'Confirmed' ? 'success' : 'primary'}
         confirmText="Confirm Update"
+      />
+
+      <ProcessReturnDialog
+        isOpen={showProcessReturnDialog}
+        onClose={() => setShowProcessReturnDialog(false)}
+        orderId={order.id}
+        taskId={activeTask?.shippingTaskId || ''}
+        items={order.items}
+        totalPrice={order.totalAmount}
+        paymentMethod={order.paymentMethod}
+        paymentStatus={order.paymentStatus}
+      />
+
+      <ProcessExchangeDialog
+        isOpen={showProcessExchangeDialog}
+        onClose={() => setShowProcessExchangeDialog(false)}
+        orderId={order.id}
+        taskId={activeTask?.shippingTaskId || ''}
+        items={order.items}
       />
     </div>
   );

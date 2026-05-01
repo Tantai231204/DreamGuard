@@ -19,7 +19,10 @@ import {
 } from './TradeInStatusSections';
 import { TradeInDeliveryQuickActionsCard } from './TradeInDeliveryQuickActionsCard';
 import { TradeInShippingAssignmentCard } from './TradeInShippingAssignmentCard';
+import { TradeInProcessReturnDialog } from './TradeInProcessReturnDialog';
+import { TradeInProcessExchangeDialog } from './TradeInProcessExchangeDialog';
 import { useTradeInStaffManagement } from './useTradeInStaffManagement';
+import { useState } from 'react';
 
 interface TradeInStaffManagementProps {
   order: TradeInOrderDetailResponse;
@@ -81,6 +84,15 @@ export const TradeInStaffManagement = memo(function TradeInStaffManagement({ ord
     negotiationError,
     isNegotiationValid,
   } = useTradeInStaffManagement(order);
+
+  const [showProcessReturnDialog, setShowProcessReturnDialog] = useState(false);
+  const [showProcessExchangeDialog, setShowProcessExchangeDialog] = useState(false);
+
+  // Bridging for QuickActionsCard buttons
+  if (typeof window !== 'undefined') {
+    (window as any).openTradeInReturnDialog = () => setShowProcessReturnDialog(true);
+    (window as any).openTradeInExchangeDialog = () => setShowProcessExchangeDialog(true);
+  }
 
   const showDeliveryPanel = [
     'CONFIRMED',
@@ -334,6 +346,27 @@ export const TradeInStaffManagement = memo(function TradeInStaffManagement({ ord
         onConfirm={handleConfirmDealFinal}
         variant="success"
         isLoading={isConfirming}
+      />
+
+      <TradeInProcessReturnDialog
+        isOpen={showProcessReturnDialog}
+        onClose={() => setShowProcessReturnDialog(false)}
+        tradeInOrderId={order.tradeInOrderId}
+        taskId={activeShippingTaskId || ''}
+        totalPrice={(order.payments || []).reduce((sum, p) => (['paid', 'codpaid'].includes((p.status || '').toLowerCase()) ? sum + (p.amount || 0) : sum), 0) || order.depositAmount || 0}
+        paymentMethod={order.payments?.[0]?.paymentMethod}
+        paymentStatus={order.payments?.[0]?.status}
+        defaultProductVariantId={order.productVariantId}
+        productImageUrl={order.newProductVariantUrl}
+      />
+
+      <TradeInProcessExchangeDialog
+        isOpen={showProcessExchangeDialog}
+        onClose={() => setShowProcessExchangeDialog(false)}
+        tradeInOrderId={order.tradeInOrderId}
+        taskId={activeShippingTaskId || ''}
+        defaultProductVariantId={order.productVariantId}
+        productImageUrl={order.newProductVariantUrl}
       />
     </div>
   );
