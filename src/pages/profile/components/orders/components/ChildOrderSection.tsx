@@ -126,11 +126,11 @@ export const ChildOrderSection = memo(({
                         )}
                         <div className={cn(
                             "w-8 h-8 rounded-full flex items-center justify-center border border-gray-100 bg-white shadow-sm transition-all duration-300",
-                            expanded ? "rotate-180 border-[#4988c4]/30" : "hover:border-gray-300"
+                            expanded ? "rotate-180 border-primary/30" : "hover:border-gray-300"
                         )}>
                             <ChevronDown className={cn(
                                 "w-4 h-4 text-gray-400",
-                                expanded && "text-[#4988c4]"
+                                expanded && "text-primary"
                             )} />
                         </div>
                     </div>

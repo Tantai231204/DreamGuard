@@ -40,10 +40,10 @@ export function CheckoutOrderDetailDialog({
     const toast = useToast()
 
     // Live data — fetch from list and find because the direct detail API doesn't exist
-    const { data: listData, isPending: isLoadingDetail } = useCheckoutOrders({ 
-        search: initialOrder.id 
+    const { data: listData, isPending: isLoadingDetail } = useCheckoutOrders({
+        search: initialOrder.id
     });
-    
+
     const liveOrder = useMemo(() => {
         return listData?.items.find(item => item.id === initialOrder.id);
     }, [listData, initialOrder.id]);
@@ -52,6 +52,13 @@ export function CheckoutOrderDetailDialog({
 
     const theme = useMemo(() => getStatusTheme(order.status), [order.status])
     const hasRefund = order.refundingAmount > 0 || order.refundedAmount > 0
+
+    // Ensure tab is set if order changes or initial set fails
+    React.useEffect(() => {
+        if (!activeShipmentTab && order.childOrders.length > 0) {
+            setActiveShipmentTab(order.childOrders[0].id)
+        }
+    }, [order.childOrders, activeShipmentTab])
 
     // Fetch payment info by checkout order code
     const { data: paymentData } = usePayments({
@@ -107,7 +114,7 @@ export function CheckoutOrderDetailDialog({
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="max-w-3xl max-h-[92vh] overflow-hidden flex flex-col p-0 rounded-xl border-none shadow-2xl bg-gray-50">
+                <DialogContent className="max-w-3xl max-h-[92vh] overflow-hidden flex flex-col p-0 rounded-xl border-none shadow-2xl bg-slate-50/50">
                     {/* Header */}
                     <div className="bg-white border-b border-gray-100 pl-6 pr-12 py-4 flex items-center justify-between shrink-0 relative">
                         <DialogHeader className="flex flex-row items-center gap-4 space-y-0">
@@ -129,7 +136,9 @@ export function CheckoutOrderDetailDialog({
                         >
                             {theme.label}
                         </div>
-                                   {/* Body */}
+                    </div>
+
+                    {/* Body */}
                     <div className="flex-1 overflow-y-auto no-scrollbar bg-white">
                         {isLoadingDetail && !liveOrder ? (
                             <OrderDetailSkeleton />
@@ -160,25 +169,25 @@ export function CheckoutOrderDetailDialog({
                                                         className={cn(
                                                             "flex items-center gap-3 px-5 py-2.5 rounded-md transition-all duration-200 border-2 shrink-0",
                                                             isActive
-                                                                ? "bg-white border-slate-900 shadow-sm"
+                                                                ? "bg-white border-primary shadow-sm"
                                                                 : "bg-transparent border-transparent text-slate-400 hover:text-slate-600"
                                                         )}
                                                     >
                                                         <div className={cn(
                                                             "w-6 h-6 rounded flex items-center justify-center",
-                                                            isActive 
-                                                                ? (childType === 'customize' ? "bg-violet-100" : "bg-sky-100")
-                                                                : "bg-slate-100"
+                                                            isActive
+                                                                ? (childType === 'customize' ? "bg-violet-100/50" : "bg-primary-100/50")
+                                                                : "bg-slate-100/50"
                                                         )}>
-                                                            {childType === 'customize' 
-                                                                ? <Palette className={cn("w-3 h-3", isActive ? "text-violet-600" : "text-slate-400")} /> 
+                                                            {childType === 'customize'
+                                                                ? <Palette className={cn("w-3 h-3", isActive ? "text-violet-600" : "text-slate-400")} />
                                                                 : <Package className={cn("w-3 h-3", isActive ? "text-sky-600" : "text-slate-400")} />
                                                             }
                                                         </div>
                                                         <div className="text-left">
                                                             <span className={cn(
                                                                 "text-[11px] font-black uppercase tracking-tight block",
-                                                                isActive ? "text-slate-900" : "text-slate-400"
+                                                                isActive ? "text-primary" : "text-slate-400"
                                                             )}>
                                                                 {childType === 'customize' ? 'Custom' : 'Standard'}
                                                             </span>
@@ -218,7 +227,7 @@ export function CheckoutOrderDetailDialog({
                                         className="mx-0 shadow-none border border-slate-100 rounded-lg bg-slate-50/30"
                                     />
                                 </div>
-                                
+
                                 {/* Cancelled info */}
                                 {order.status === 'Cancelled' && (
                                     <div className="px-8 py-6 border-t border-rose-100 bg-rose-50/20 text-left">
@@ -238,7 +247,7 @@ export function CheckoutOrderDetailDialog({
                     {/* Footer */}
                     <div className="p-6 border-t border-gray-100 bg-white flex items-center justify-between shrink-0">
                         <div className="flex items-center gap-2">
-                            <ShieldCheck className="w-4 h-4 text-[#4988c4]" />
+                            <ShieldCheck className="w-4 h-4 text-primary" />
                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Secured Order Information</span>
                         </div>
                         <div className="flex items-center gap-3">
@@ -260,7 +269,7 @@ export function CheckoutOrderDetailDialog({
                                 Close Detail
                             </Button>
                         </div>
-                    </div>         </div>
+                    </div>
                 </DialogContent>
             </Dialog>
 
