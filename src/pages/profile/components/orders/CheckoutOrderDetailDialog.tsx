@@ -11,10 +11,12 @@ import {
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/hooks/useToast"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
-import { ChevronRight, AlertCircle, ShieldCheck, Layers } from "lucide-react"
+import { ChevronRight, AlertCircle, ShieldCheck, Palette, Package } from "lucide-react"
 import { getStatusTheme } from "../../constants"
 import { isAxiosError } from "axios"
+import { cn } from "@/lib/utils"
 import type { CheckoutOrderResponse } from "@/api/types/checkoutOrder"
+import { getChildOrderType } from "@/api/types/checkoutOrder"
 
 import { ChildOrderSection } from "./components/ChildOrderSection"
 import { RefundSummaryBanner } from "./components/RefundSummaryBanner"
@@ -34,6 +36,7 @@ export function CheckoutOrderDetailDialog({
     onOpenChange,
 }: CheckoutOrderDetailDialogProps) {
     const [confirmCancelAll, setConfirmCancelAll] = React.useState(false)
+    const [activeShipmentTab, setActiveShipmentTab] = React.useState(initialOrder.childOrders[0]?.id)
     const toast = useToast()
 
     // Live data — fetch from list and find because the direct detail API doesn't exist
@@ -126,17 +129,15 @@ export function CheckoutOrderDetailDialog({
                         >
                             {theme.label}
                         </div>
-                    </div>
-
-                    {/* Body */}
-                    <div className="flex-1 overflow-y-auto no-scrollbar">
+                                   {/* Body */}
+                    <div className="flex-1 overflow-y-auto no-scrollbar bg-white">
                         {isLoadingDetail && !liveOrder ? (
                             <OrderDetailSkeleton />
                         ) : (
-                            <div className="space-y-2">
+                            <div className="space-y-0">
                                 {/* Refund Banner */}
                                 {hasRefund && (
-                                    <div className="bg-white py-3">
+                                    <div className="border-b border-gray-100 bg-amber-50/30">
                                         <RefundSummaryBanner
                                             refundingAmount={order.refundingAmount}
                                             refundedAmount={order.refundedAmount}
@@ -144,45 +145,89 @@ export function CheckoutOrderDetailDialog({
                                     </div>
                                 )}
 
-                                {/* Child Orders */}
-                                <div className="bg-white">
-                                    <div className="px-6 py-3 border-b border-gray-50 flex items-center gap-2.5">
-                                        <Layers className="w-4 h-4 text-gray-400" />
-                                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                                            Orders ({order.childOrders.length})
-                                        </span>
+                                {/* Split Shipments Tabbed Interface */}
+                                <div className="border-b border-gray-100">
+                                    {/* Sub-order Selector Tabs */}
+                                    {order.childOrders.length > 1 && (
+                                        <div className="px-6 py-4 bg-gray-50 flex gap-2 border-b border-gray-100 overflow-x-auto no-scrollbar">
+                                            {order.childOrders.map((child) => {
+                                                const isActive = activeShipmentTab === child.id
+                                                const childType = getChildOrderType(child.orderCode)
+                                                return (
+                                                    <button
+                                                        key={child.id}
+                                                        onClick={() => setActiveShipmentTab(child.id)}
+                                                        className={cn(
+                                                            "flex items-center gap-3 px-5 py-2.5 rounded-md transition-all duration-200 border-2 shrink-0",
+                                                            isActive
+                                                                ? "bg-white border-slate-900 shadow-sm"
+                                                                : "bg-transparent border-transparent text-slate-400 hover:text-slate-600"
+                                                        )}
+                                                    >
+                                                        <div className={cn(
+                                                            "w-6 h-6 rounded flex items-center justify-center",
+                                                            isActive 
+                                                                ? (childType === 'customize' ? "bg-violet-100" : "bg-sky-100")
+                                                                : "bg-slate-100"
+                                                        )}>
+                                                            {childType === 'customize' 
+                                                                ? <Palette className={cn("w-3 h-3", isActive ? "text-violet-600" : "text-slate-400")} /> 
+                                                                : <Package className={cn("w-3 h-3", isActive ? "text-sky-600" : "text-slate-400")} />
+                                                            }
+                                                        </div>
+                                                        <div className="text-left">
+                                                            <span className={cn(
+                                                                "text-[11px] font-black uppercase tracking-tight block",
+                                                                isActive ? "text-slate-900" : "text-slate-400"
+                                                            )}>
+                                                                {childType === 'customize' ? 'Custom' : 'Standard'}
+                                                            </span>
+                                                        </div>
+                                                    </button>
+                                                )
+                                            })}
+                                        </div>
+                                    )}
+
+                                    <div className="animate-in fade-in duration-300">
+                                        {order.childOrders
+                                            .filter(child => !activeShipmentTab || child.id === activeShipmentTab)
+                                            .map((child) => (
+                                                <ChildOrderSection
+                                                    key={child.id}
+                                                    child={child}
+                                                    canCancelIndividual={canCancelIndividual}
+                                                />
+                                            ))}
                                     </div>
-                                    {order.childOrders.map((child) => (
-                                        <ChildOrderSection
-                                            key={child.id}
-                                            child={child}
-                                            canCancelIndividual={canCancelIndividual}
-                                        />
-                                    ))}
                                 </div>
 
                                 {/* Pricing Summary */}
-                                <CheckoutPricingSummary order={order} />
-
-                                {/* Payment Details */}
-                                <div className="bg-white pb-5 pt-2">
-                                    <div className="mx-6">
-                                        <PaymentDetailsCard
-                                            orderCode={order.checkoutOrderCode}
-                                            className="mx-0"
-                                        />
-                                    </div>
+                                <div className="border-b border-gray-100 bg-gray-50/30">
+                                    <CheckoutPricingSummary order={order} />
                                 </div>
 
+                                {/* Payment Details */}
+                                <div className="p-8 bg-white">
+                                    <div className="mb-6">
+                                        <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-[0.2em] mb-1">Transaction Identity</h3>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Gateway and Reference Info</p>
+                                    </div>
+                                    <PaymentDetailsCard
+                                        orderCode={order.checkoutOrderCode}
+                                        className="mx-0 shadow-none border border-slate-100 rounded-lg bg-slate-50/30"
+                                    />
+                                </div>
+                                
                                 {/* Cancelled info */}
                                 {order.status === 'Cancelled' && (
-                                    <div className="mx-6 mb-4 p-5 bg-rose-50/40 rounded-xl border border-rose-100 text-left">
+                                    <div className="px-8 py-6 border-t border-rose-100 bg-rose-50/20 text-left">
                                         <div className="flex items-center gap-2 mb-2 text-rose-600">
                                             <AlertCircle className="w-4 h-4" />
                                             <span className="text-[11px] font-black uppercase tracking-widest">Order Cancelled</span>
                                         </div>
-                                        <p className="text-[12px] text-rose-700/70 font-medium leading-relaxed">
-                                            This order has been fully cancelled. If payment was made, a refund will be processed within 3-5 business days.
+                                        <p className="text-[12px] text-rose-700/70 font-bold leading-relaxed">
+                                            This order has been fully cancelled. Refund processing is active.
                                         </p>
                                     </div>
                                 )}
@@ -191,37 +236,31 @@ export function CheckoutOrderDetailDialog({
                     </div>
 
                     {/* Footer */}
-                    <div className="p-5 border-t border-gray-100 bg-white flex flex-col sm:flex-row items-center justify-between gap-4 shrink-0">
-                        <div className="flex flex-col items-start gap-0.5">
-                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-tight">Need more help?</span>
-                            <button
-                                className="text-[10px] font-black text-[#4988c4] uppercase tracking-widest hover:underline flex items-center gap-1.5"
-                                onClick={() => window.alert("Connecting to support...")}
-                            >
-                                <ShieldCheck className="w-3.5 h-3.5" />
-                                Chat with Support
-                            </button>
+                    <div className="p-6 border-t border-gray-100 bg-white flex items-center justify-between shrink-0">
+                        <div className="flex items-center gap-2">
+                            <ShieldCheck className="w-4 h-4 text-[#4988c4]" />
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Secured Order Information</span>
                         </div>
-                        <div className="flex items-center gap-3 shrink-0 ml-auto">
+                        <div className="flex items-center gap-3">
                             {canCancelAll && (
                                 <Button
                                     variant="ghost"
-                                    className="h-11 px-6 text-[11px] font-bold text-rose-500 hover:text-rose-600 hover:bg-rose-50 uppercase tracking-widest transition-all"
+                                    className="h-10 px-6 text-[11px] font-bold text-rose-500 hover:text-rose-600 hover:bg-rose-50 uppercase tracking-widest transition-all rounded-md"
                                     onClick={() => setConfirmCancelAll(true)}
                                     disabled={isCancellingAll}
                                 >
-                                    {isCancellingAll ? "Cancelling..." : "Cancel Order"}
+                                    {isCancellingAll ? "Processing..." : "Cancel All"}
                                 </Button>
                             )}
                             <Button
                                 variant="outline"
-                                className="h-11 px-8 rounded text-[11px] font-black uppercase tracking-widest transition-all"
+                                className="h-10 px-8 rounded-md text-[11px] font-black uppercase tracking-widest transition-all border-slate-200"
                                 onClick={() => onOpenChange?.(false)}
                             >
-                                Close
+                                Close Detail
                             </Button>
                         </div>
-                    </div>
+                    </div>         </div>
                 </DialogContent>
             </Dialog>
 

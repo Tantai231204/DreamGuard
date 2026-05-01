@@ -21,6 +21,18 @@ export const useCheckoutOrders = (params?: import('@/api/types/checkoutOrder').C
 };
 
 /**
+ * Fetch paginated checkout orders for admin.
+ */
+export const useAdminCheckoutOrders = (params?: import('@/api/types/checkoutOrder').CheckoutOrderQueryParams) => {
+    return useQuery({
+        queryKey: [...checkoutOrderKeys.list(params as Record<string, unknown>), 'admin'],
+        queryFn: () => checkoutOrderService.getAdminCheckoutOrders(params),
+        staleTime: 30000,
+        gcTime: 60000,
+    });
+};
+
+/**
  * Cancel an entire checkout order (COD or VnPay unpaid).
  */
 export const useCancelCheckoutOrder = (options?: { meta?: Record<string, unknown> }) => {

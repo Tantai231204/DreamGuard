@@ -4,10 +4,17 @@ import type { PaginatedCheckoutOrders } from '../types/checkoutOrder';
 
 const checkoutOrderService = {
     /**
-     * Get paginated checkout orders.
-     * Used for both admin and customer order history views.
+     * Get paginated checkout orders for the current user.
      */
     getCheckoutOrders: async (params?: import('../types/checkoutOrder').CheckoutOrderQueryParams): Promise<PaginatedCheckoutOrders> => {
+        const res = await apiClient.get('/checkout-product-order', { params });
+        return res.data?.data ?? res.data;
+    },
+
+    /**
+     * Get paginated checkout orders for admin.
+     */
+    getAdminCheckoutOrders: async (params?: import('../types/checkoutOrder').CheckoutOrderQueryParams): Promise<PaginatedCheckoutOrders> => {
         const res = await apiClient.get('/checkout-product-order/admin', { params });
         return res.data?.data ?? res.data;
     },

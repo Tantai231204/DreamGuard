@@ -58,13 +58,14 @@ export function OrderSummary({
 }: OrderSummaryProps) {
     const { orderCompletionCoin } = useCoinRewardConfig();
     const shipping = shippingFee
-    const subtotalAfterTradeIn = finalTotal ?? totalPrice
+    const subtotalAfterTradeIn = finalTotal ?? (totalPrice - tradeInDiscount)
     const safeVoucherDiscount = Math.min(Math.max(voucherDiscount, 0), Math.max(subtotalAfterTradeIn, 0))
-    const totalAfterVoucher = typeof payableTotal === "number"
+    
+    // totalAfterVoucher already includes shipping if it comes from payableTotal in index.tsx
+    const tax = 0 
+    const total = typeof payableTotal === "number"
         ? Math.max(0, payableTotal)
-        : Math.max(0, subtotalAfterTradeIn - safeVoucherDiscount)
-    const tax = 0 // Resolved: UI matches API total directly, no manual tax injection
-    const total = totalAfterVoucher + shipping + tax
+        : Math.max(0, subtotalAfterTradeIn - safeVoucherDiscount + shipping)
 
     const itemCount = useMemo(
         () => cart.reduce((acc, item) => acc + item.quantity, 0),

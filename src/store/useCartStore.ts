@@ -81,7 +81,7 @@ export const generateConfigHash = (
 };
 
 const calculateTotals = (cart: CartItem[]) => {
-    let totalItems = 0, totalPrice = 0, totalTradeInDiscount = 0, finalTotal = 0, totalWeight = 0;
+    let totalItems = 0, totalPrice = 0, totalTradeInDiscount = 0, totalWeight = 0;
     for (const item of cart) {
         const qty = item.quantity || 0;
         const price = item.price || 0;
@@ -90,9 +90,9 @@ const calculateTotals = (cart: CartItem[]) => {
         totalItems += qty;
         totalPrice += qty * price;
         totalTradeInDiscount += discount;
-        finalTotal += Math.max(0, qty * price - discount);
         totalWeight += qty * weight;
     }
+    const finalTotal = Math.max(0, totalPrice - totalTradeInDiscount);
     return { totalItems, totalPrice, totalTradeInDiscount, finalTotal, totalWeight };
 }
 
@@ -216,13 +216,14 @@ export const useCartStore = create<CartState>()(
                             });
                         }
 
+                        const tradeInDiscount = localItem.tradeIn?.totalValue || 0;
                         newCart.push({
                             ...localItem,
                             id: serverMatch.id,
                             isCustom: isServerCustom || isLocalCustom,
                             quantity: serverMatch.quantity,
                             price: unitPrice,
-                            subtotal: unitPrice * serverMatch.quantity,
+                            subtotal: Math.max(0, unitPrice * serverMatch.quantity - tradeInDiscount),
                             sku: serverMatch.sku || localItem.sku,
                             image: finalImage,
                             name: cleanName,
@@ -331,7 +332,7 @@ export const useCartStore = create<CartState>()(
                         image: serverImg || fallbackImg,
                         price: unitPrice,
                         quantity: sItem.quantity,
-                        subtotal: unitPrice * sItem.quantity,
+                        subtotal: Math.max(0, unitPrice * sItem.quantity - (localMatch?.tradeIn?.totalValue || 0)),
                         productVariantId: sItem.productVariantId ?? null,
                         comboId: sItem.comboId ?? null,
                         color: inferredColor,
@@ -387,6 +388,10 @@ export const useCartStore = create<CartState>()(
                 const configHash = newItem.configHash || generateConfigHash(pVariantId, cId, newItem.ProductCustomizeDetailRequest);
 
                 const localId = (newItem.tradeIn || isCustom) ? `c_${baseId}_${configHash}` : `l_${baseId}`;
+                const price = newItem.price || 0;
+                const tradeInDiscount = newItem.tradeIn?.totalValue || 0;
+                const subtotal = Math.max(0, qty * price - tradeInDiscount);
+
                 const newItemEntry = {
                     ...newItem,
                     id: localId,
@@ -395,7 +400,7 @@ export const useCartStore = create<CartState>()(
                     isCustom,
                     configHash: configHash,
                     quantity: qty,
-                    subtotal: qty * (newItem.price || 0),
+                    subtotal: subtotal,
                     weight: newItem.weight || 1,
                 } as CartItem;
 
@@ -466,7 +471,14 @@ export const useCartStore = create<CartState>()(
                     return;
                 }
 
-                const updatedCart = cart.map(i => i.id === id ? { ...i, quantity: newQty, subtotal: newQty * i.price } : i);
+                const updatedCart = cart.map(i => {
+                    if (i.id === id) {
+                        const tradeInDiscount = i.tradeIn?.totalValue || 0;
+                        const subtotal = Math.max(0, newQty * i.price - tradeInDiscount);
+                        return { ...i, quantity: newQty, subtotal };
+                    }
+                    return i;
+                });
                 set({ cart: updatedCart, ...calculateTotals(updatedCart) });
 
                 const { isAuthenticated } = useAuthStore.getState();
@@ -508,7 +520,14 @@ export const useCartStore = create<CartState>()(
                     return;
                 }
 
-                const updatedCart = cart.map(i => i.id === id ? { ...i, quantity: targetQty, subtotal: targetQty * i.price } : i);
+                const updatedCart = cart.map(i => {
+                    if (i.id === id) {
+                        const tradeInDiscount = i.tradeIn?.totalValue || 0;
+                        const subtotal = Math.max(0, targetQty * i.price - tradeInDiscount);
+                        return { ...i, quantity: targetQty, subtotal };
+                    }
+                    return i;
+                });
                 set({ cart: updatedCart, ...calculateTotals(updatedCart) });
 
                 const { isAuthenticated } = useAuthStore.getState();

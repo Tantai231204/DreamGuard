@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 
 import type { CheckoutOrderResponse } from '@/api/types/checkoutOrder';
 import { useAdminTableSync } from '@/hooks/admin/useAdminTableSync';
-import { useCheckoutOrders, useCancelCheckoutOrder } from '@/hooks/queries/useCheckoutOrder';
+import { useAdminCheckoutOrders, useCancelCheckoutOrder } from '@/hooks/queries/useCheckoutOrder';
 import { downloadCSV } from '@/lib/export';
 
 import { useOrderColumns } from '../components/useOrderColumns';
@@ -71,7 +71,7 @@ export const useProductOrdersTabViewModel = () => {
     [debouncedFilter, pagination.pageIndex, pagination.pageSize, sorting, statusFilter],
   );
 
-  const { data: orderData, isPending } = useCheckoutOrders(queryParams as import('@/api/types/checkoutOrder').CheckoutOrderQueryParams);
+  const { data: orderData, isPending } = useAdminCheckoutOrders(queryParams as import('@/api/types/checkoutOrder').CheckoutOrderQueryParams);
 
   const rows = useMemo(() => orderData?.items ?? [], [orderData]);
   const pageCount = orderData?.totalPages ?? -1;

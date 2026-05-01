@@ -89,8 +89,8 @@ export default function CheckoutPage() {
     );
 
     const voucherDiscount = useMemo(
-        () => (selectedVoucher ? calculateVoucherDiscount(finalTotal, selectedVoucher) : 0),
-        [finalTotal, selectedVoucher]
+        () => (selectedVoucher ? calculateVoucherDiscount(totalPrice, selectedVoucher) : 0),
+        [totalPrice, selectedVoucher]
     );
 
     const payableTotal = useMemo(

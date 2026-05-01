@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useMemo, lazy, Suspense } from "react"
-import { Store, Package, Palette, ChevronRight, RotateCcw } from "lucide-react"
+import { Store, Package, Palette, ChevronRight, RotateCcw, Layers, ShieldCheck } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -53,15 +53,15 @@ export const CheckoutOrderCard = memo(({ order }: CheckoutOrderCardProps) => {
                 icon: type === 'customize' ? Palette : Package,
             }
         }
-        return { label: 'Mixed Order', icon: Package }
+        return { label: 'Combined Order', icon: Layers }
     }, [hasMultipleChildren, order.childOrders])
 
     return (
-        <Card className="group relative rounded-2xl border-slate-200/60 bg-white shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md will-change-transform">
+        <Card className="group relative rounded-xl border-slate-200 bg-white shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md">
             {/* Header */}
-            <div className="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-50 bg-slate-50/30">
+            <div className="px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 bg-slate-50/50">
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-white border border-slate-200 flex items-center justify-center shadow-sm">
+                    <div className="w-8 h-8 rounded bg-white border border-slate-200 flex items-center justify-center shadow-sm">
                         <Store className="w-4 h-4 text-slate-500" />
                     </div>
                     <div>
@@ -70,9 +70,9 @@ export const CheckoutOrderCard = memo(({ order }: CheckoutOrderCardProps) => {
                     </div>
                 </div>
                 <Badge
-                    variant="secondary"
-                    className="w-fit px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border-none shadow-sm"
-                    style={{ backgroundColor: `${theme.color}10`, color: theme.color }}
+                    variant="outline"
+                    className="w-fit px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border-slate-200 bg-white"
+                    style={{ color: theme.color, borderColor: `${theme.color}30` }}
                 >
                     <span className="w-1.5 h-1.5 rounded-full mr-1.5" style={{ backgroundColor: theme.color }} />
                     {theme.label}
@@ -81,74 +81,103 @@ export const CheckoutOrderCard = memo(({ order }: CheckoutOrderCardProps) => {
 
             {/* Body */}
             <div className="p-6">
-                <div className="flex flex-col md:flex-row gap-5">
+                <div className="flex flex-col md:flex-row gap-6">
                     {/* Left: Order identity */}
                     <div className="flex items-start gap-4 flex-1">
                         <div className="relative shrink-0">
                             <div className={cn(
-                                "w-14 h-14 rounded-xl border flex items-center justify-center",
+                                "w-12 h-12 rounded border flex items-center justify-center",
                                 hasMultipleChildren
-                                    ? "bg-gradient-to-br from-violet-50 to-sky-50 border-violet-100/50"
+                                    ? "bg-slate-900 border-slate-900 shadow-md"
                                     : "bg-slate-50 border-slate-100"
                             )}>
                                 <orderTypeInfo.icon className={cn(
-                                    "w-6 h-6",
-                                    hasMultipleChildren ? "text-violet-400" : "text-slate-300"
+                                    "w-5 h-5",
+                                    hasMultipleChildren ? "text-white" : "text-slate-400"
                                 )} />
                             </div>
                             {totalItems > 0 && (
-                                <Badge className="absolute -top-2 -right-2 h-5 min-w-[20px] rounded-md bg-slate-900 text-white border-2 border-white font-bold text-[9px] flex items-center justify-center shadow-sm">
+                                <Badge className="absolute -top-2 -right-2 h-5 min-w-[20px] rounded bg-slate-900 text-white border-2 border-white font-black text-[9px] flex items-center justify-center shadow-sm">
                                     {totalItems}
                                 </Badge>
                             )}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <h4 className="text-[15px] font-bold text-slate-900 tracking-tight">
+                            <h4 className="text-[14px] font-bold text-slate-900 tracking-tight">
                                 #{order.checkoutOrderCode}
                             </h4>
-                            <p className="text-[10px] font-bold text-slate-400 mt-0.5">
-                                {orderTypeInfo.label} · {order.childOrders.length} {order.childOrders.length === 1 ? 'order' : 'sub-orders'}
+                            <p className="text-[10px] font-bold text-slate-400 mt-0.5 uppercase tracking-wider">
+                                {orderTypeInfo.label} · {order.childOrders.length} Shipment{order.childOrders.length === 1 ? '' : 's'}
                             </p>
 
-                            {/* Child Orders Summary Pills */}
-                            <div className="flex flex-wrap gap-1.5 mt-3">
-                                {order.childOrders.map((child) => {
-                                    const childTheme = getStatusTheme(child.status)
-                                    const childType = getChildOrderType(child.orderCode)
-                                    return (
-                                        <div
-                                            key={child.id}
-                                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-slate-100 bg-slate-50/50 text-[9px] font-bold"
-                                        >
-                                            {childType === 'customize'
-                                                ? <Palette className="w-3 h-3 text-violet-400" />
-                                                : <Package className="w-3 h-3 text-sky-400" />
-                                            }
-                                            <span className="text-slate-500">
-                                                {childType === 'customize' ? 'Custom' : 'Standard'}
-                                            </span>
-                                            <span className="w-1 h-1 rounded-full" style={{ backgroundColor: childTheme.color }} />
-                                            <span style={{ color: childTheme.color }} className="uppercase tracking-wider">
-                                                {childTheme.label}
-                                            </span>
-                                        </div>
-                                    )
-                                })}
+                            {/* Split Shipment Tracking Grid */}
+                            <div className="mt-5 space-y-3">
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Shipment Progress</p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    {order.childOrders.map((child) => {
+                                        const childTheme = getStatusTheme(child.status)
+                                        const childType = getChildOrderType(child.orderCode)
+                                        const isCustom = childType === 'customize'
+                                        
+                                        return (
+                                            <div
+                                                key={child.id}
+                                                className={cn(
+                                                    "relative flex flex-col p-3 rounded-lg border transition-all duration-200",
+                                                    isCustom 
+                                                        ? "bg-violet-50/20 border-violet-100/50" 
+                                                        : "bg-sky-50/20 border-sky-100/50"
+                                                )}
+                                            >
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <div className="flex items-center gap-2">
+                                                        {isCustom ? <Palette className="w-3.5 h-3.5 text-violet-500" /> : <Package className="w-3.5 h-3.5 text-sky-500" />}
+                                                        <span className="text-[10px] font-bold text-slate-900 tracking-tight">
+                                                            {isCustom ? 'Custom' : 'Standard'}
+                                                        </span>
+                                                    </div>
+                                                    <span 
+                                                        className="text-[9px] font-black uppercase tracking-widest"
+                                                        style={{ color: childTheme.color }}
+                                                    >
+                                                        {childTheme.label}
+                                                    </span>
+                                                </div>
+                                                
+                                                {/* Flatter Progress Bar */}
+                                                <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden mb-2">
+                                                    <div 
+                                                        className="h-full transition-all duration-1000"
+                                                        style={{ 
+                                                            width: `${Math.max(10, (childTheme.step / 5) * 100)}%`,
+                                                            backgroundColor: childTheme.color 
+                                                        }}
+                                                    />
+                                                </div>
+                                                
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[10px] font-bold text-slate-900">{formatPrice(child.totalAmount)}</span>
+                                                    <span className="text-[8px] font-black text-slate-300 uppercase">ACTIVE Tracking</span>
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     {/* Right: Totals */}
-                    <div className="flex flex-col items-end justify-center gap-1 sm:text-right flex-shrink-0">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Amount</p>
+                    <div className="flex flex-col items-end justify-center gap-1 sm:text-right flex-shrink-0 pt-4 md:pt-0 border-t md:border-t-0 border-slate-50">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Order Value</p>
                         <p className="text-xl font-black text-slate-900 tracking-tight">{formatPrice(order.totalAmount)}</p>
                         {hasRefund && (
-                            <div className="flex items-center gap-1.5 mt-1">
+                            <div className="flex items-center gap-1.5 mt-1 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">
                                 <RotateCcw className="w-3 h-3 text-amber-500" />
-                                <span className="text-[10px] font-bold text-amber-600">
+                                <span className="text-[9px] font-bold text-amber-600 uppercase tracking-tight">
                                     {order.refundedAmount > 0 && `Refunded ${formatPrice(order.refundedAmount)}`}
                                     {order.refundingAmount > 0 && order.refundedAmount > 0 && ' · '}
-                                    {order.refundingAmount > 0 && `Processing ${formatPrice(order.refundingAmount)}`}
+                                    {order.refundingAmount > 0 && `Refunding ${formatPrice(order.refundingAmount)}`}
                                 </span>
                             </div>
                         )}
@@ -157,14 +186,18 @@ export const CheckoutOrderCard = memo(({ order }: CheckoutOrderCardProps) => {
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-3 bg-slate-50/30 border-t border-slate-100 flex items-center justify-end gap-2">
+            <div className="px-6 py-3 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#4988c4]" />
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Protected Checkout</span>
+                </div>
                 <Button
                     variant="outline"
-                    className="h-9 px-5 rounded-lg text-xs font-bold uppercase tracking-wider border-slate-200 hover:bg-white transition-all"
+                    className="h-9 px-6 rounded-md text-[10px] font-black uppercase tracking-widest border-slate-200 hover:bg-white hover:border-slate-900 hover:text-slate-900 transition-all"
                     onClick={handleOpenDetail}
                 >
-                    View Details
-                    <ChevronRight className="w-3.5 h-3.5 ml-1 text-slate-400" />
+                    View Order Details
+                    <ChevronRight className="w-3.5 h-3.5 ml-1.5 text-slate-400" />
                 </Button>
             </div>
 

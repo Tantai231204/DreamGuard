@@ -72,14 +72,17 @@ export const ChildOrderSection = memo(({
                 <button
                     type="button"
                     onClick={() => setExpanded(v => !v)}
-                    className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50/50 transition-colors"
+                    className={cn(
+                        "w-full px-6 py-4 flex items-center justify-between transition-all duration-200",
+                        expanded ? "bg-white" : "hover:bg-gray-50/50"
+                    )}
                 >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-4">
                         <div className={cn(
-                            "h-9 w-9 rounded-xl flex items-center justify-center flex-shrink-0",
+                            "h-9 w-9 rounded flex items-center justify-center flex-shrink-0 border transition-all duration-200",
                             isCustomize
-                                ? "bg-gradient-to-br from-violet-100 to-purple-50"
-                                : "bg-gradient-to-br from-sky-100 to-blue-50"
+                                ? "bg-violet-50 border-violet-100"
+                                : "bg-sky-50 border-sky-100"
                         )}>
                             {isCustomize
                                 ? <Palette className="w-4 h-4 text-violet-500" />
@@ -87,42 +90,49 @@ export const ChildOrderSection = memo(({
                             }
                         </div>
                         <div className="text-left">
-                            <div className="flex items-center gap-2">
-                                <span className="text-[13px] font-black text-gray-900 tracking-tight">
-                                    {isCustomize ? 'Custom Order' : 'Standard Order'}
+                            <div className="flex items-center gap-2 mb-0.5">
+                                <span className="text-[14px] font-bold text-slate-900 tracking-tight">
+                                    {isCustomize ? 'Custom Production' : 'Standard Delivery'}
                                 </span>
                                 <Badge
-                                    variant="secondary"
-                                    className="px-2 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider border-none shadow-none"
-                                    style={{ backgroundColor: `${theme.color}12`, color: theme.color }}
+                                    variant="outline"
+                                    className="px-2 py-0 h-4 rounded text-[8px] font-black uppercase tracking-widest border-slate-200 bg-white"
+                                    style={{ color: theme.color, borderColor: `${theme.color}30` }}
                                 >
                                     {theme.label}
                                 </Badge>
                             </div>
-                            <p className="text-[10px] font-bold text-gray-400 mt-0.5">
-                                #{child.orderCode} · {formatPrice(child.totalAmount)}
-                            </p>
+                            <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                <span>#{child.orderCode}</span>
+                                <span className="w-1 h-1 rounded-full bg-slate-200" />
+                                <span className="text-slate-600">{formatPrice(child.totalAmount)}</span>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                         {/* Cancel button for individual child */}
                         {canCancelIndividual && !isTerminal && (
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-7 px-2.5 text-[9px] font-black text-rose-500 hover:text-rose-600 hover:bg-rose-50 uppercase tracking-wider rounded-lg"
+                                className="h-8 px-3 text-[10px] font-bold text-rose-500 hover:text-rose-600 hover:bg-rose-50 uppercase tracking-widest rounded-md border border-transparent hover:border-rose-100 transition-all"
                                 onClick={(e) => { e.stopPropagation(); setConfirmOpen(true) }}
                                 disabled={isCancelling}
                             >
-                                <XCircle className="w-3 h-3 mr-1" />
+                                <XCircle className="w-3.5 h-3.5 mr-1.5" />
                                 Cancel
                             </Button>
                         )}
-                        <ChevronDown className={cn(
-                            "w-4 h-4 text-gray-400 transition-transform duration-200",
-                            expanded && "rotate-180"
-                        )} />
+                        <div className={cn(
+                            "w-8 h-8 rounded-full flex items-center justify-center border border-gray-100 bg-white shadow-sm transition-all duration-300",
+                            expanded ? "rotate-180 border-[#4988c4]/30" : "hover:border-gray-300"
+                        )}>
+                            <ChevronDown className={cn(
+                                "w-4 h-4 text-gray-400",
+                                expanded && "text-[#4988c4]"
+                            )} />
+                        </div>
                     </div>
                 </button>
 

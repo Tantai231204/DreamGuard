@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+import { useEffect, useMemo } from "react"
 import type { CheckoutFormData } from "../schema"
 import { Button } from "@/components/ui/button"
 import { DeliveryInfoSection } from "./DeliveryInfoSection"
@@ -53,14 +53,16 @@ export function CheckoutForm({ form, totalPrice, selectedVoucherId, shippingFee 
 
         form.setValue("userVoucherId", nextVoucherId)
     }, [form, selectedVoucherId])
+    
+    const hasCustomProduct = useMemo(() => cart.some(item => item.isCustom), [cart]);
+
+    useEffect(() => {
+        if (hasCustomProduct && form.getValues("paymentMethod") === "COD") {
+            form.setValue("paymentMethod", "VnPay");
+        }
+    }, [hasCustomProduct, form]);
 
     const onSubmit = async (data: CheckoutFormData) => {
-        const hasCustomProduct = cart.some(item => item.isCustom);
-        if (hasCustomProduct) {
-            toastError("Checkout Restriction", "Orders containing custom products must be processed via consultant inquiry. Please remove custom items or contact support.");
-            return;
-        }
-
         try {
             let addressId = data.addressId
 
@@ -127,7 +129,7 @@ export function CheckoutForm({ form, totalPrice, selectedVoucherId, shippingFee 
             <DeliveryInfoSection form={form} />
 
             {/* Payment Information */}
-            <PaymentSection form={form} />
+            <PaymentSection form={form} isCODRestricted={hasCustomProduct} />
 
             {/* Submit Button & Trust Area */}
             <div className="rounded-[2rem] border border-slate-100 bg-white p-7 shadow-xl shadow-slate-200/35">

@@ -6,12 +6,14 @@ import { Label } from "@/components/ui/label"
 import * as RadioGroup from "@radix-ui/react-radio-group"
 import { ShieldCheck, CheckCircle2 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
+import { cn } from "@/lib/utils"
 
 interface PaymentSectionProps {
     form: UseFormReturn<CheckoutFormData>
+    isCODRestricted?: boolean
 }
 
-function PaymentSectionInner({ form }: PaymentSectionProps) {
+function PaymentSectionInner({ form, isCODRestricted = false }: PaymentSectionProps) {
     const paymentMethod = useWatch({ control: form.control, name: "paymentMethod" }) ?? "VnPay"
 
     const handlePaymentMethodChange = useCallback((value: string) => {
@@ -78,10 +80,18 @@ function PaymentSectionInner({ form }: PaymentSectionProps) {
 
                 {/* COD Option */}
                 <div className="relative">
-                    <RadioGroup.Item value="COD" id="payment-cod" className="peer sr-only" />
+                    <RadioGroup.Item 
+                        value="COD" 
+                        id="payment-cod" 
+                        className="peer sr-only" 
+                        disabled={isCODRestricted}
+                    />
                     <Label
                         htmlFor="payment-cod"
-                        className="flex flex-col p-4 rounded-2xl border-2 cursor-pointer transition-all duration-300 hover:border-primary-500/40 hover:bg-slate-50/40 peer-data-[state=checked]:border-primary-500 peer-data-[state=checked]:bg-primary-500/5 peer-data-[state=checked]:shadow-lg peer-data-[state=checked]:shadow-primary-500/5 group/pay"
+                        className={cn(
+                            "flex flex-col p-4 rounded-2xl border-2 cursor-pointer transition-all duration-300 hover:border-primary-500/40 hover:bg-slate-50/40 peer-data-[state=checked]:border-primary-500 peer-data-[state=checked]:bg-primary-500/5 peer-data-[state=checked]:shadow-lg peer-data-[state=checked]:shadow-primary-500/5 group/pay",
+                            isCODRestricted && "opacity-50 cursor-not-allowed grayscale pointer-events-none border-slate-100 bg-slate-50/50"
+                        )}
                     >
                         <div className="flex items-center justify-between mb-4">
                             <div className="p-1.5 rounded-xl bg-white shadow-sm border border-slate-100">
@@ -91,13 +101,15 @@ function PaymentSectionInner({ form }: PaymentSectionProps) {
                                     className="h-6 w-16 object-contain p-0.5 group-hover/pay:scale-110 transition-transform"
                                 />
                             </div>
-                            {paymentMethod === "COD" && (
+                            {paymentMethod === "COD" && !isCODRestricted && (
                                 <CheckCircle2 className="w-5 h-5 text-primary-500" />
                             )}
                         </div>
                         <div className="space-y-0.5">
                             <span className="text-base font-black tracking-tight block">COD</span>
-                            <span className="text-[9px] font-bold uppercase tracking-widest text-primary-500 opacity-80">Cash on Delivery</span>
+                            <span className="text-[9px] font-bold uppercase tracking-widest text-primary-500 opacity-80">
+                                {isCODRestricted ? "Unavailable for custom items" : "Cash on Delivery"}
+                            </span>
                         </div>
                     </Label>
                 </div>

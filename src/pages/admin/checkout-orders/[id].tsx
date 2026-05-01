@@ -2,7 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useMemo } from 'react';
 import { Truck, ChevronLeft, CreditCard, Layers, Eye, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useCheckoutOrders } from '@/hooks/queries/useCheckoutOrder';
+import { useAdminCheckoutOrders } from '@/hooks/queries/useCheckoutOrder';
 import { useOrderDetail } from '@/hooks/queries/useOrder';
 import { formatPrice } from '@/pages/profile/utils';
 import { formatDate } from '@/lib/utils';
@@ -130,7 +130,7 @@ export default function AdminCheckoutOrderDetail() {
     const navigate = useNavigate();
     
     // Fallback: Fetch from list and filter because the direct detail API doesn't exist
-    const { data: listData, isPending: isLoadingList, isError } = useCheckoutOrders({ search: id });
+    const { data: listData, isPending: isLoadingList, isError } = useAdminCheckoutOrders({ search: id });
     const order = useMemo(() => {
         return listData?.items.find(item => item.id === id);
     }, [listData, id]);
