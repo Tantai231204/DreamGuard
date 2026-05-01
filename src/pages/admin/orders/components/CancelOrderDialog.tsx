@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AlertTriangle, ShieldAlert, XCircle, Loader2, RotateCcw } from "lucide-react";
-import { RefundSection } from "./process-return/RefundSection";
+import { RefundSection } from "./RefundSection";
 
 interface CancelOrderDialogProps {
   open: boolean;

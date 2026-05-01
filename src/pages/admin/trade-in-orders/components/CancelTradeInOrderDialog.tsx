@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { AlertTriangle, ShieldAlert, XCircle, Loader2, RotateCcw, Package } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { RefundSection } from "../../orders/components/process-return/RefundSection";
+import { RefundSection } from "../../orders/components/RefundSection";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
@@ -266,8 +266,6 @@ export function CancelTradeInOrderDialog({
                     totalPrice={totalPrice}
                     setPercentage={handlePercentageChange}
                     setRefundAmount={handleAmountChange}
-                    paymentMethod={paymentMethod}
-                    paymentStatus={paymentStatus}
                   />
                 </div>
               )}

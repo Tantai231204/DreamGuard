@@ -108,6 +108,7 @@ export interface Staff {
   status?: string;
   averageRating?: number;
   totalRating?: number;
+  taskCount?: number;
 }
 
 export interface ServiceTask {

@@ -17,10 +17,8 @@ interface OrderSidebarProps {
   permissions?: {
     canAssign: boolean;
     isAssigned: boolean;
-    canReschedule?: boolean;
   };
   onAssign?: () => void;
-  onReschedule?: () => void;
   currentTaskIndex?: number;
   onTaskIndexChange?: (index: number) => void;
 }
@@ -33,7 +31,6 @@ export const OrderSidebar = memo(function OrderSidebar({
   scheduledTime,
   permissions,
   onAssign,
-  onReschedule,
   currentTaskIndex = 0,
   onTaskIndexChange
 }: OrderSidebarProps) {
@@ -229,15 +226,6 @@ export const OrderSidebar = memo(function OrderSidebar({
                 </div>
               ) : null}
 
-              {permissions?.canReschedule && currentTaskIndex === 0 && (
-                <button
-                  onClick={onReschedule}
-                  className="w-full h-11 mt-2 bg-primary hover:bg-primary-hover text-white font-black rounded-xl text-[10px] uppercase tracking-widest transition-all shadow-md flex items-center justify-center gap-2 group active:scale-95 border-none"
-                >
-                  <Calendar className="h-4 w-4" />
-                  Reschedule Appointment
-                </button>
-              )}
             </div>
           ) : permissions?.canAssign ? (
             <button

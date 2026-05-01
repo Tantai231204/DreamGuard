@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Dialog,
@@ -14,24 +14,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import {
-  UserPlus,
-  Loader2,
-  AlertCircle,
-  Briefcase,
-  Truck,
-  RefreshCw,
-} from 'lucide-react';
+import { Loader2, AlertCircle, Briefcase, Truck, Layers } from 'lucide-react';
 import { useStaffs } from '@/hooks/queries/useStaff';
-import { useShippingTasksByOrder, useShippingTasksByTradeInOrder, useCreateShippingTask, useReassignShippingTask } from '@/hooks/queries/useShippingTask';
+import { useCreateShippingTask } from '@/hooks/queries/useShippingTask';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
 import { isAdminOrManager as checkIsAdminOrManager } from '@/lib/role';
+import { useQueryClient } from '@tanstack/react-query';
+import { shippingKeys } from '@/hooks/queries/useShippingTask';
 
-interface AssignShippingStaffDialogProps {
-  orderId?: string;
-  tradeInOrderId?: string;
+interface BulkAssignShippingStaffDialogProps {
+  orderIds: string[];
   isOpen: boolean;
   onClose: () => void;
 }
@@ -50,20 +44,13 @@ const formatLabel = (value?: string, fallback = 'Delivery Staff') => {
 
 const isActiveStatus = (status?: string) => (status || '').toLowerCase() === 'active';
 
-
-
-function AssignShippingStaffContent({ orderId, tradeInOrderId, onClose }: { orderId?: string; tradeInOrderId?: string; onClose: () => void }) {
+function BulkAssignShippingStaffContent({ orderIds, onClose }: { orderIds: string[]; onClose: () => void }) {
   const role = useAuthStore((s) => s.role);
   const isAdminOrManager = checkIsAdminOrManager(role);
-  // Only fetch all delivery staff if admin/manager
   const { data: staffData, isLoading: isLoadingStaff, isError: isStaffError } = useStaffs(
     isAdminOrManager ? { pageSize: 100, Role: 'DeliveryStaff' } : undefined,
     { enabled: isAdminOrManager }
   );
-  const { data: orderTasks } = useShippingTasksByOrder(orderId || '');
-  const { data: tradeInTasks } = useShippingTasksByTradeInOrder(tradeInOrderId || '');
-  const isTradeInMode = !orderId && !!tradeInOrderId;
-  const tasks = isTradeInMode ? tradeInTasks : orderTasks;
 
   type CustomStaffInfo = {
     staffId: string;
@@ -79,41 +66,12 @@ function AssignShippingStaffContent({ orderId, tradeInOrderId, onClose }: { orde
 
   const staffs = useMemo(() => {
     if (isAdminOrManager) return (staffData?.items || []) as CustomStaffInfo[];
-    // For sellers, collect unique staff from tasks (reconstruct minimal staff object)
-    const allTasks = tasks || [];
-    const uniqueStaff: Record<string, CustomStaffInfo> = {};
-    allTasks.forEach((t) => {
-      if (t.staffId) {
-        uniqueStaff[t.staffId] = {
-          staffId: t.staffId,
-          fullName: t.staffName,
-        };
-      }
-    });
-    return Object.values(uniqueStaff);
-  }, [isAdminOrManager, staffData, tasks]);
-  const activeTask = useMemo(() => {
-    const sortedTasks = [...(tasks || [])].sort((a, b) => {
-      const aTime = new Date(a.completionDate || a.shippingDate || 0).getTime();
-      const bTime = new Date(b.completionDate || b.shippingDate || 0).getTime();
-      return bTime - aTime;
-    });
-    return sortedTasks.find((t) => t.status !== 'Reassigned');
-  }, [tasks]);
-  const isReassign = !!activeTask;
+    return [];
+  }, [isAdminOrManager, staffData]);
 
-  const [selectedStaffId, setSelectedStaffId] = useState<string>(activeTask?.staffId || '');
-
-  // Only update selectedStaffId if it is empty and activeTask.staffId changes
-  useEffect(() => {
-    if (!selectedStaffId && activeTask?.staffId) {
-      setSelectedStaffId(activeTask.staffId);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTask?.staffId]);
+  const [selectedStaffId, setSelectedStaffId] = useState<string>('');
 
   const deliveryStaffs = useMemo(() => {
-    // For admin/manager, filter by role/position
     if (isAdminOrManager) {
       return staffs.filter((s) => {
         const role = (s.role || '').toLowerCase();
@@ -121,7 +79,6 @@ function AssignShippingStaffContent({ orderId, tradeInOrderId, onClose }: { orde
         return role === 'deliverystaff' || pos === 'deliverystaff';
       });
     }
-    // For sellers, staffs are already filtered
     return staffs;
   }, [staffs, isAdminOrManager]);
 
@@ -131,8 +88,8 @@ function AssignShippingStaffContent({ orderId, tradeInOrderId, onClose }: { orde
   );
 
   const createTask = useCreateShippingTask();
-  const reassignTask = useReassignShippingTask();
-  const isPending = createTask.isPending || reassignTask.isPending;
+  const [isBulkPending, setIsBulkPending] = useState(false);
+  const queryClient = useQueryClient();
 
   const handleAction = async () => {
     if (!selectedStaffId) {
@@ -140,30 +97,36 @@ function AssignShippingStaffContent({ orderId, tradeInOrderId, onClose }: { orde
       return;
     }
 
+    setIsBulkPending(true);
+    let successCount = 0;
     try {
-      if (activeTask && isReassign) {
-        if (activeTask.staffId === selectedStaffId) {
-          toast.error('Personnel already assigned.');
-          return;
-        }
-        await reassignTask.mutateAsync({
-          taskId: activeTask.shippingTaskId,
-          data: { newStaffId: selectedStaffId },
-          orderId,
-          tradeInOrderId,
-        });
-        toast.success('Shipping staff reassigned successfully');
-      } else {
-        await createTask.mutateAsync({
-          staffId: selectedStaffId,
-          orderId,
-          tradeInOrderId,
-        });
-        toast.success('Shipping staff assigned successfully');
+      // Execute tasks concurrently or sequentially. Sequentially is safer to avoid overwhelming the server.
+      for (const orderId of orderIds) {
+          try {
+              await createTask.mutateAsync({ staffId: selectedStaffId, orderId });
+              successCount++;
+          } catch (err) {
+              console.error(`Failed to assign order ${orderId}:`, err);
+          }
       }
+      
+      if (successCount === orderIds.length) {
+          toast.success(`Successfully assigned staff to all ${successCount} sub-orders.`);
+      } else if (successCount > 0) {
+          toast.warning(`Partial success: Assigned ${successCount}/${orderIds.length} sub-orders.`);
+      } else {
+          toast.error(`Failed to assign any sub-orders.`);
+      }
+      
+      // Invalidate everything to be safe
+      orderIds.forEach(id => {
+          queryClient.invalidateQueries({ queryKey: shippingKeys.byOrder(id) });
+      });
       onClose();
     } catch {
-      toast.error('Failed to update shipping assignment');
+      toast.error('Failed to process bulk assignment.');
+    } finally {
+      setIsBulkPending(false);
     }
   };
 
@@ -171,14 +134,14 @@ function AssignShippingStaffContent({ orderId, tradeInOrderId, onClose }: { orde
     <>
       <DialogHeader className="p-8 pb-6 bg-slate-50 text-slate-900 border-b border-slate-100 relative">
         <div className="relative z-10 space-y-2">
-          <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center mb-4 shadow-sm">
-            <UserPlus className="h-6 w-6 text-white" />
+          <div className="w-12 h-12 rounded-xl bg-[#4988c4] flex items-center justify-center mb-4 shadow-sm">
+            <Layers className="h-6 w-6 text-white" />
           </div>
           <DialogTitle className="text-2xl font-black tracking-tight">
-            {!isAdminOrManager ? 'Shipping Staff Details' : isReassign ? 'Reassign Shipping Staff' : 'Assign Shipping Staff'}
+            Bulk Assign Staff
           </DialogTitle>
           <DialogDescription className="text-slate-500 font-medium leading-relaxed">
-            {!isAdminOrManager ? 'View assigned delivery specialist taking care of this shipment.' : 'Select a delivery specialist to handle this shipment request.'}
+            Assign the same delivery specialist to {orderIds.length} sub-orders at once.
           </DialogDescription>
         </div>
       </DialogHeader>
@@ -196,8 +159,8 @@ function AssignShippingStaffContent({ orderId, tradeInOrderId, onClose }: { orde
               )}
             </div>
 
-            <Select value={selectedStaffId} onValueChange={setSelectedStaffId} disabled={isLoadingStaff || isPending}>
-              <SelectTrigger className="h-14 px-4 rounded-xl border-2 border-slate-100 bg-white hover:border-primary transition-all focus:ring-primary/10">
+            <Select value={selectedStaffId} onValueChange={setSelectedStaffId} disabled={isLoadingStaff || isBulkPending}>
+              <SelectTrigger className="h-14 px-4 rounded-xl border-2 border-slate-100 bg-white hover:border-[#4988c4] transition-all focus:ring-[#4988c4]/10">
                 <SelectValue placeholder={isLoadingStaff ? 'Syncing qualified staff...' : 'Browse shipping staff'} />
               </SelectTrigger>
               <SelectContent className="max-h-[300px] p-1.5 rounded-xl">
@@ -257,13 +220,7 @@ function AssignShippingStaffContent({ orderId, tradeInOrderId, onClose }: { orde
           </div>
         )}
 
-        {!isAdminOrManager && !selectedStaff ? (
-          <div className="p-8 text-center bg-slate-50 border border-slate-100 rounded-2xl border-dashed">
-            <Truck className="h-8 w-8 mx-auto mb-3 text-slate-300" />
-            <p className="text-sm font-bold text-slate-600">No Shipping Staff Assigned</p>
-            <p className="text-xs text-slate-400 mt-1">This order does not have a delivery staff assigned yet.</p>
-          </div>
-        ) : selectedStaff && (
+        {selectedStaff && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -271,38 +228,31 @@ function AssignShippingStaffContent({ orderId, tradeInOrderId, onClose }: { orde
           >
             <div className="flex items-center gap-4">
               <Avatar className="h-14 w-14 border-2 border-white shadow-sm ring-1 ring-slate-200">
-                {isAdminOrManager && (
-                  <AvatarImage src={selectedStaff.avatarUrl} />
-                )}
+                <AvatarImage src={selectedStaff.avatarUrl} />
                 <AvatarFallback className="bg-slate-300 text-white font-black">{selectedStaff.fullName.charAt(0)}</AvatarFallback>
               </Avatar>
               <div className="flex-1">
                 <div className="flex items-center justify-between">
                     <h4 className="font-black text-slate-800 truncate">{selectedStaff.fullName}</h4>
-                    {isAdminOrManager && typeof selectedStaff.taskCount === 'number' && (
+                    {typeof selectedStaff.taskCount === 'number' && (
                         <div className="flex flex-col items-end">
                             <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Active Workload</span>
-                            <span className="text-xs font-black text-primary">{selectedStaff.taskCount} Assigned Tasks</span>
+                            <span className="text-xs font-black text-[#4988c4]">{selectedStaff.taskCount} Assigned Tasks</span>
                         </div>
                     )}
                 </div>
-                {isAdminOrManager ? (
-                  <>
-                    <p className="text-xs text-slate-500 font-medium">
-                      {formatLabel(selectedStaff.position || selectedStaff.role, 'Delivery Staff')}
-                    </p>
-                    <p className="text-xs text-slate-500 font-medium truncate">{selectedStaff.address || 'Location Verified'}</p>
-                  </>
-                ) : null}
+                <p className="text-xs text-slate-500 font-medium">
+                  {formatLabel(selectedStaff.position || selectedStaff.role, 'Delivery Staff')}
+                </p>
               </div>
             </div>
             <Separator className="bg-slate-200" />
             <div className="flex justify-between items-center text-xs gap-3">
               <span className="text-slate-600 font-medium truncate">
-                {isAdminOrManager ? (selectedStaff.phoneNumber || 'Contact Private') : 'Contact Private'}
+                {selectedStaff.phoneNumber || 'Contact Private'}
               </span>
-              <Badge variant="outline" className="bg-white border-slate-200 text-slate-600 font-bold px-2 rounded-md">
-                {!isAdminOrManager ? 'Assigned' : isReassign ? 'Reassignment' : 'Ready to Assign'}
+              <Badge variant="outline" className="bg-white border-slate-200 text-[#4988c4] font-bold px-2 rounded-md">
+                Ready for {orderIds.length} orders
               </Badge>
             </div>
           </motion.div>
@@ -311,53 +261,40 @@ function AssignShippingStaffContent({ orderId, tradeInOrderId, onClose }: { orde
 
       <DialogFooter className="p-8 bg-slate-50 border-t border-slate-100 flex sm:justify-end items-center gap-4">
         <Button
-          variant={isAdminOrManager ? "ghost" : "default"}
+          variant="ghost"
           onClick={onClose}
-          disabled={isPending}
-          className={cn(
-            "font-black uppercase text-[10px] tracking-widest rounded-xl px-6 h-12",
-            isAdminOrManager ? "text-slate-400 hover:bg-slate-200 hover:text-slate-800" : "bg-primary hover:bg-primary-hover text-white shadow-md active:scale-95 border-0 w-full sm:w-auto"
-          )}
+          disabled={isBulkPending}
+          className="font-black uppercase text-[10px] tracking-widest rounded-xl px-6 h-12 text-slate-400 hover:bg-slate-200 hover:text-slate-800"
         >
-          {isAdminOrManager ? 'Cancel' : 'Close'}
+          Cancel
         </Button>
-        {isAdminOrManager && (
-          <Button
-            onClick={handleAction}
-            disabled={!selectedStaffId || isPending || (isReassign && selectedStaffId === activeTask?.staffId)}
-            className="flex-1 bg-primary hover:bg-primary-hover text-white font-black uppercase text-[10px] tracking-widest transition-all h-12 rounded-xl shadow-md active:scale-95 border-0"
-          >
-            {isPending ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" /> Synchronizing...
-              </span>
-            ) : isReassign ? (
-              <span className="flex items-center gap-2">
-                <RefreshCw className="h-4 w-4" /> Confirm Reassignment
-              </span>
-            ) : (
-              <span className="flex items-center gap-2">
-                <Truck className="h-4 w-4" /> Confirm Assignment
-              </span>
-            )}
-          </Button>
-        )}
+        <Button
+          onClick={handleAction}
+          disabled={!selectedStaffId || isBulkPending}
+          className="flex-1 bg-[#4988c4] hover:bg-[#3b6da3] text-white font-black uppercase text-[10px] tracking-widest transition-all h-12 rounded-xl shadow-md active:scale-95 border-0"
+        >
+          {isBulkPending ? (
+            <span className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" /> Assigning...
+            </span>
+          ) : (
+            <span className="flex items-center gap-2">
+              <Truck className="h-4 w-4" /> Assign All
+            </span>
+          )}
+        </Button>
       </DialogFooter>
     </>
   );
 }
 
-export function AssignShippingStaffDialog({ orderId, tradeInOrderId, isOpen, onClose }: AssignShippingStaffDialogProps) {
-  const entityId = orderId || tradeInOrderId || '';
-
+export function BulkAssignShippingStaffDialog({ orderIds, isOpen, onClose }: BulkAssignShippingStaffDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden border border-slate-200 shadow-2xl rounded-2xl gap-0">
         {isOpen && (
-          <AssignShippingStaffContent
-            key={`assign-${entityId}-${isOpen}`}
-            orderId={orderId}
-            tradeInOrderId={tradeInOrderId}
+          <BulkAssignShippingStaffContent
+            orderIds={orderIds}
             onClose={onClose}
           />
         )}

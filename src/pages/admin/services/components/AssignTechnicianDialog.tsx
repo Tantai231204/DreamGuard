@@ -122,6 +122,8 @@ export const AssignTechnicianDialog = memo(function AssignTechnicianDialog({ ord
                               <span className="truncate max-w-[120px]">{staff.phoneNumber || 'No phone'}</span>
                               <span className="text-slate-300">|</span>
                               <span className="truncate">{formatLabel(staff.position || staff.role, 'Technician')}</span>
+                              <span className="text-slate-300">|</span>
+                              <span className="font-bold text-primary">{staff.taskCount || 0} tasks</span>
                             </div>
                           </div>
                         </div>

@@ -101,28 +101,12 @@ export const useServiceActions = () => {
         },
     });
 
-    const completeMutation = useMutation({
-        mutationFn: async ({ taskId, orderId }: { taskId: string; orderId: string }) => {
-            await serviceOrderService.updateTaskCompletedStatus(taskId);
-            await serviceOrderService.completeServiceOrder(orderId);
-        },
-        onSuccess: (_, { orderId }) => {
-            toast.success(`Service task and order completed successfully`);
-            queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
-            queryClient.invalidateQueries({ queryKey: ['serviceOrder', 'detail', orderId] });
-            queryClient.invalidateQueries({ queryKey: ['serviceTask', 'detail', orderId] });
-            queryClient.invalidateQueries({ queryKey: ['serviceTasks', 'list', orderId] });
-            queryClient.invalidateQueries({ queryKey: ['serviceEvidences', orderId] });
-        },
-    });
-
+  
     return useMemo(() => ({
         confirmBooking: confirmMutation.mutate,
         isConfirming: confirmMutation.isPending,
         cancelBooking: cancelMutation.mutate,
         isCancelling: cancelMutation.isPending,
-        completeBooking: completeMutation.mutate,
-        isCompleting: completeMutation.isPending,
         rescheduleBooking: rescheduleMutation.mutate,
         isRescheduling: rescheduleMutation.isPending,
         createRefund: createRefundMutation.mutate,
@@ -136,8 +120,6 @@ export const useServiceActions = () => {
         confirmMutation.isPending,
         cancelMutation.mutate,
         cancelMutation.isPending,
-        completeMutation.mutate,
-        completeMutation.isPending,
         rescheduleMutation.mutate,
         rescheduleMutation.isPending,
         createRefundMutation.mutate,

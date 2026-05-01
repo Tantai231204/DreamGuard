@@ -28,7 +28,7 @@ import { useServiceActions } from '@/pages/admin/services/hooks/useServiceAction
 import { toast } from 'sonner';
 import { uploadEvidenceItems } from '@/utils/evidenceUpload';
 import type { PaymentResponse } from '@/api/types/payment';
-import type { EvidenceItem, EvidenceStatus } from './process-return/useProcessReturn';
+import type { EvidenceItem, EvidenceStatus } from './payment-types';
 import { formatPrice } from '@/pages/profile/utils';
 
 interface UpdatePaymentDialogProps {
@@ -111,6 +111,16 @@ export const UpdatePaymentDialog = React.memo(({
 
   const handleUpdate = useCallback(async () => {
     if (!payment?.id) return;
+
+    // Validation: COD payment requires evidence URL if marked as Paid/CODPaid
+    const isCOD = payment.paymentMethod?.toLowerCase() === 'cod' || payment.paymentMethod?.toLowerCase() === 'cash';
+    const isMarkingAsPaid = status === 'Paid' || status === 'CODPaid';
+    const hasNoEvidence = evidenceItems.length === 0;
+
+    if (isCOD && isMarkingAsPaid && hasNoEvidence) {
+      toast.error("Evidence image is required for COD payment finalization.");
+      return;
+    }
 
     setIsUploading(true);
     let uploadedUrl = payment.evidenceUrl || '';

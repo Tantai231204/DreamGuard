@@ -10,6 +10,7 @@ import { useFavoriteProducts, useAddFavorite, useDeleteFavorite } from "@/hooks/
 import { useAuthStore } from "@/store/authStore";
 import { useProductCertificates } from "@/hooks/queries/useCertificate";
 import { useProductFeedbacks } from "@/hooks/queries/useProductFeedback";
+import { isAdminOrManager } from "@/lib/role";
 
 import variantService, { type VariantResponse } from "@/api/services/variantService";
 import userService from "@/api/services/userService";
@@ -34,7 +35,8 @@ export function useProductDetailViewModel() {
   const { slug } = useParams<{ slug: string }>();
   const productImageRef = useRef<HTMLDivElement | null>(null);
   const { setItems: setBreadcrumb } = useBreadcrumb();
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const { isAuthenticated, role } = useAuthStore();
+  const isStaff = isAdminOrManager(role);
 
   const {
     data: product,
@@ -171,7 +173,7 @@ export function useProductDetailViewModel() {
       oldProductVariantId: selectedTradeInItem!.productVariantId!,
       productVariantId: state.currentVariant!.id,
     }),
-    enabled: state.isTradeInOpen && isAuthenticated && !!selectedTradeInItem?.productVariantId && !!state.currentVariant?.id,
+    enabled: state.isTradeInOpen && isAuthenticated && !isStaff && !!selectedTradeInItem?.productVariantId && !!state.currentVariant?.id,
     staleTime: 30 * 1000,
   });
 

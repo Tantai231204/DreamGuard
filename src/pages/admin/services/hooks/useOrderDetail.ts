@@ -19,7 +19,6 @@ export function useOrderDetail() {
 
   const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-  const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
   const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
 
   // 1. Core Order Data Fetching
@@ -175,25 +174,7 @@ export function useOrderDetail() {
     return (status === 'confirmed' || status === 'processing') && !isAssigned;
   }, [mergedOrder, isAssigned]);
 
-  const canComplete = useMemo(() => {
-    if (!mergedOrder) return false;
-    const orderStatus = mergedOrder.status?.toLowerCase();
-    const taskStatus = mergedOrder.serviceTask?.status?.toLowerCase();
-    return (orderStatus === 'processing' || orderStatus === 'rescheduled') &&
-      (taskStatus === 'completed' || !!mergedOrder.serviceTask?.checkOut);
-  }, [mergedOrder]);
 
-  const canReschedule = useMemo(() => {
-    if (!mergedOrder) return false;
-    const orderStatus = mergedOrder.status?.toLowerCase();
-    const taskStatus = (mergedOrder.serviceTask?.status || '').toLowerCase();
-    // Backend strictly enforces "Only processing order can be rescheduled"
-    // We allow 'rescheduled' too in the frontend to permit multiple re-plannings
-    const isOrderReady = orderStatus === 'processing' || orderStatus === 'rescheduled';
-    const isTaskReady = taskStatus === 'processing' || taskStatus === 'pending' || taskStatus === 'confirmed';
-
-    return isOrderReady && isTaskReady;
-  }, [mergedOrder]);
 
 
 
@@ -208,16 +189,6 @@ export function useOrderDetail() {
     setIsAssignOpen(false);
   }, []);
 
-  const handleRescheduleOpen = useCallback(() => {
-    if (mergedOrder) {
-      setSelectedOrderId(mergedOrder.soId || mergedOrder.id);
-      setIsRescheduleOpen(true);
-    }
-  }, [mergedOrder, setIsRescheduleOpen]);
-
-  const handleRescheduleClose = useCallback(() => {
-    setIsRescheduleOpen(false);
-  }, [setIsRescheduleOpen]);
 
   const handleBack = useCallback(() => {
     navigate('/admin/services');
@@ -250,20 +221,16 @@ export function useOrderDetail() {
     canConfirm,
     canAssign,
     canCancel,
-    canComplete,
-    canReschedule,
     canCreateRefund,
     isAssigned
-  }), [canConfirm, canAssign, canCancel, canComplete, canReschedule, canCreateRefund, isAssigned]);
+  }), [canConfirm, canAssign, canCancel, canCreateRefund, isAssigned]);
 
   const memoizedActions = useMemo(() => ({
     handleAssignOpen,
     handleAssignClose,
-    handleRescheduleOpen,
-    handleRescheduleClose,
     handleBack,
     setCurrentTaskIndex
-  }), [handleAssignOpen, handleAssignClose, handleRescheduleOpen, handleRescheduleClose, handleBack, setCurrentTaskIndex]);
+  }), [handleAssignOpen, handleAssignClose, handleBack, setCurrentTaskIndex]);
 
   return useMemo(() => ({
     order: mergedOrder,
@@ -272,7 +239,6 @@ export function useOrderDetail() {
     mappingQueries,
     statusCfg,
     isAssignOpen,
-    isRescheduleOpen,
     currentTaskIndex,
     selectedOrderId,
     permissions,
@@ -286,7 +252,6 @@ export function useOrderDetail() {
     mappingQueries,
     statusCfg,
     isAssignOpen,
-    isRescheduleOpen,
     currentTaskIndex,
     selectedOrderId,
     permissions,

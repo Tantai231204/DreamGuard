@@ -12,6 +12,11 @@ import { useCartStore } from "@/store/useCartStore"
 import { formatDate } from "@/lib/utils"
 import { useUserVouchers } from "@/hooks/queries"
 import { calculateVoucherDiscount, isUserVoucherUsable } from "@/utils/user-voucher"
+import { calculateShippingFeeByCode } from "@/utils/shipping"
+import { useForm, useWatch } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { checkoutSchema, type CheckoutFormData } from "./schema"
+
 
 const LazyOrderSummary = lazy(() =>
     import("./components/OrderSummary").then((module) => ({ default: module.OrderSummary }))
@@ -29,6 +34,35 @@ export default function CheckoutPage() {
     const location = useLocation()
     const { isAuthenticated } = useAuthStore()
     const [selectedVoucherId, setSelectedVoucherId] = useState<string | null>(null)
+
+    const form = useForm<CheckoutFormData>({
+        resolver: zodResolver(checkoutSchema),
+        defaultValues: {
+            firstName: "",
+            lastName: "",
+            email: "",
+            phone: "",
+            addressId: null,
+            userVoucherId: null,
+            streetAddress: "",
+            city: "",
+            district: "",
+            ward: "",
+            orderNotes: "",
+            paymentMethod: "VnPay",
+        },
+    })
+
+    const selectedCityCode = useWatch({
+        control: form.control,
+        name: "city"
+    })
+
+    const shippingFee = useMemo(() => {
+        if (!selectedCityCode) return 0;
+        const totalWeight = cart.reduce((sum, item) => sum + (item.weight || 1) * item.quantity, 0);
+        return calculateShippingFeeByCode(selectedCityCode, totalWeight);
+    }, [selectedCityCode, cart]);
 
     const navigationState = location.state as CheckoutRouteState | null
     const preselectedVoucherId = navigationState?.preselectedVoucherId ?? null
@@ -60,8 +94,8 @@ export default function CheckoutPage() {
     );
 
     const payableTotal = useMemo(
-        () => Math.max(0, finalTotal - voucherDiscount),
-        [finalTotal, voucherDiscount]
+        () => Math.max(0, finalTotal - voucherDiscount + shippingFee),
+        [finalTotal, voucherDiscount, shippingFee]
     );
 
     const handleVoucherChange = useCallback((voucherId: string | null) => {
@@ -226,8 +260,10 @@ export default function CheckoutPage() {
 
                         <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-150">
                             <CheckoutForm
+                                form={form}
                                 totalPrice={payableTotal}
                                 selectedVoucherId={selectedVoucherId}
+                                shippingFee={shippingFee}
                             />
                         </div>
                     </div>
@@ -261,6 +297,7 @@ export default function CheckoutPage() {
                                     isVoucherError={isVoucherError}
                                     onVoucherRetry={handleVoucherRetry}
                                     estimatedDeliveryDate={estimatedDate}
+                                    shippingFee={shippingFee}
                                 />
                             </Suspense>
                         </div>

@@ -70,13 +70,13 @@ export default function TradeInOrderDetail() {
       timestamp: string;
       icon: string;
     }> = [
-      {
-        title: 'Trade-In Created',
-        description: 'Trade-in request has been registered in the system.',
-        timestamp: orderCreatedAt,
-        icon: 'check',
-      },
-    ];
+        {
+          title: 'Trade-In Created',
+          description: 'Trade-in request has been registered in the system.',
+          timestamp: orderCreatedAt,
+          icon: 'check',
+        },
+      ];
 
     if (shippingTasks && shippingTasks.length > 0) {
       const timelineTasks = [...shippingTasks].sort(
@@ -288,9 +288,19 @@ export default function TradeInOrderDetail() {
                         </p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-[9px] font-black uppercase text-slate-400 tracking-[0.2em]">Original Value</p>
-                      <p className="text-sm font-black text-slate-600 mt-0.5 line-through decoration-slate-300 opacity-80">{order.orderItem?.unitPrice ? formatPrice(order.orderItem.unitPrice) : '--'}</p>
+                    <div className="text-right flex flex-col items-end">
+                      <p className="text-[9px] font-black uppercase text-slate-400 tracking-[0.2em]">Source Valuation</p>
+                      <p className="text-[11px] font-bold text-slate-400 mt-0.5 line-through decoration-slate-300 opacity-60">
+                        {order.orderItem?.unitPrice ? formatPrice(order.orderItem.unitPrice) : '--'}
+                      </p>
+                      <p className="text-sm font-black text-emerald-600 mt-0.5">
+                        {formatPrice(order.tradeInPrice)}
+                      </p>
+                      {(order.minTradeInPrice !== undefined || order.maxTradeInPrice !== undefined) && (
+                        <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter mt-1 opacity-70">
+                          Range: {formatPrice(order.minTradeInPrice || 0)} - {formatPrice(order.maxTradeInPrice || 0)}
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -458,7 +468,14 @@ export default function TradeInOrderDetail() {
                 <div className="bg-white rounded-2xl border border-slate-200/60 p-6 shadow-sm">
                   <div className="space-y-4">
                     <div className="flex items-center justify-between pb-3 border-b border-dashed border-slate-200">
-                      <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Valuation Credit</span>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Valuation Credit</span>
+                        {(order.minTradeInPrice !== undefined || order.maxTradeInPrice !== undefined) && (
+                          <span className="text-[9px] font-medium text-slate-400 uppercase tracking-widest">
+                            Allowed Range: {formatPrice(order.minTradeInPrice || 0)} - {formatPrice(order.maxTradeInPrice || 0)}
+                          </span>
+                        )}
+                      </div>
                       <span className="text-sm font-black text-emerald-600">-{formatPrice(order.tradeInPrice)}</span>
                     </div>
                     <div className="flex items-center justify-between pb-3 border-b border-dashed border-slate-200">

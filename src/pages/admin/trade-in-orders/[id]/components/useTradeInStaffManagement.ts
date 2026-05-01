@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState, type ChangeEvent } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast";
 
@@ -92,12 +92,9 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
   const { isAdmin, isManager, isSeller } = usePermission();
 
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
-  const [isCompleteConfirmDialogOpen, setIsCompleteConfirmDialogOpen] = useState(false);
   const [isAcceptConfirmDialogOpen, setIsAcceptConfirmDialogOpen] = useState(false);
   const [isDealConfirmDialogOpen, setIsDealConfirmDialogOpen] = useState(false);
   const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false);
-  const [isProcessReturnDialogOpen, setIsProcessReturnDialogOpen] = useState(false);
-  const [isProcessExchangeDialogOpen, setIsProcessExchangeDialogOpen] = useState(false);
   const [negotiatedPrice, setNegotiatedPrice] = useState<number>(
     order.tradeInPrice || 0,
   );
@@ -130,14 +127,6 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
     return sortedTradeInTasks.find((task) => task.status !== "Reassigned");
   }, [sortedTradeInTasks]);
 
-  const returningShippingTask = useMemo(() => {
-    return sortedTradeInTasks.find(
-      (task) =>
-        task.status !== "Reassigned" &&
-        normalizeTradeInStatus(task.status) === "RETURNING"
-    );
-  }, [sortedTradeInTasks]);
-
   const deliveryOwnerStaffId = canResolveDeliveryStaff
     ? activeShippingTask?.staffId
     : undefined;
@@ -159,6 +148,37 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
       enabled: shouldFetchDeliveryOwner,
     });
   const { data: currentStaffProfile } = useStaffProfile({ enabled: isSeller });
+
+  // Calculation logic for Negotiation constraints
+  const { data: priceCalculation } = useQuery({
+    queryKey: ['trade-in', 'calculate-price', order.tradeInOrderId],
+    queryFn: () => tradeInOrderService.calculateTradeInOrderPrice({
+      oldProductVariantId: order.orderItem?.productVariantId || "",
+      productVariantId: order.productVariantId,
+    }),
+    enabled: !!order.tradeInOrderId && status === 'NEGOTIATING' && !!order.orderItem?.productVariantId && isSeller,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const minTradeInPrice = order.minTradeInPrice ?? priceCalculation?.minTradeInPrice ?? 0;
+  const unitPrice = order.orderItem?.unitPrice ?? 0;
+  const salePrice = order.productVariant?.salePrice ?? 0;
+  const deposit = order.depositAmount ?? 0;
+  const maxTradeInPrice = order.maxTradeInPrice ?? Math.max(0, unitPrice - deposit);
+
+  const isNegotiationValid = useMemo(() => {
+    if (status !== 'NEGOTIATING') return true;
+    if (unitPrice > salePrice) return false;
+    return negotiatedPrice >= minTradeInPrice && negotiatedPrice <= maxTradeInPrice;
+  }, [status, unitPrice, salePrice, negotiatedPrice, minTradeInPrice, maxTradeInPrice]);
+
+  const negotiationError = useMemo(() => {
+    if (status !== 'NEGOTIATING') return null;
+    if (unitPrice > salePrice) return "Legacy Unit Price exceeds Target Sale Price. This trade-in may result in negative settlement.";
+    if (negotiatedPrice < minTradeInPrice) return `Negotiated price is below minimum threshold (${minTradeInPrice.toLocaleString()} VND).`;
+    if (negotiatedPrice > maxTradeInPrice) return `Negotiated price exceeds maximum limit (Unit Price - Deposit = ${maxTradeInPrice.toLocaleString()} VND).`;
+    return null;
+  }, [status, unitPrice, salePrice, negotiatedPrice, minTradeInPrice, maxTradeInPrice]);
 
   const chatOwnerLabel =
     chatOwnerStaff?.fullName ||
@@ -325,21 +345,15 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
   const isFinalizedStatus =
     isTradeInFinalStatus(status) || FINALIZED_STATUS_SET.has(status);
   const isAdminOrManager = isAdmin || isManager;
-  const canFinalizeTradeIn = isAdminOrManager && status === "DELIVERED";
+  const canFinalizeTradeIn = false; // Staff handles on mobile
   const canHandleUnhappyCase =
     isAdminOrManager && (isTradeInAdminCancelableStatus(status) || isTradeInFinalStatus(status));
-  const canProcessReturningUnhappy =
-    isAdminOrManager && status === "RETURNING" && !!returningShippingTask?.shippingTaskId;
+  const canProcessReturningUnhappy = false; // Staff handles on mobile
   const canAssignDeliveryTask =
     isAdminOrManager &&
     isTradeInActiveProgressStatus(status) &&
     status !== "NEGOTIATING";
   const activeShippingTaskId = activeShippingTask?.shippingTaskId || "";
-  const returningShippingTaskId = returningShippingTask?.shippingTaskId || "";
-  const defaultProductVariantId =
-    (typeof order.productVariant?.id === "string" && order.productVariant.id) ||
-    order.productVariantId ||
-    "";
 
   const handleAcceptTask = useCallback(() => {
     setIsAcceptConfirmDialogOpen(true);
@@ -357,6 +371,11 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
   const handleConfirmDealFinal = useCallback(() => {
     if (isConfirming) return;
 
+    if (negotiationError) {
+      toast.error(negotiationError);
+      return;
+    }
+
     confirmDeal(
       { fromStatus: status, tradeInPrice: negotiatedPrice },
       {
@@ -370,7 +389,7 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
         },
       },
     );
-  }, [confirmDeal, isConfirming, negotiatedPrice, status]);
+  }, [confirmDeal, isConfirming, negotiatedPrice, status, negotiationError]);
 
   const handleNegotiatedPriceChange = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
@@ -389,77 +408,20 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
     setIsCancelDialogOpen(true);
   }, [canHandleUnhappyCase]);
 
-  const { mutate: finalizeTradeInOrder, isPending: isTransitioning } = useMutation({
-    mutationFn: () => tradeInOrderService.completed(order.tradeInOrderId),
-    onSuccess: () => {
-      setIsCompleteConfirmDialogOpen(false);
-      invalidateTradeInDetail();
-      toast.success("Trade-in completed successfully.");
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || "Failed to complete trade-in.");
-    },
-  });
-
-  const handleFinalizeTradeIn = useCallback(() => {
-    if (isTransitioning) return;
-    setIsCompleteConfirmDialogOpen(true);
-  }, [isTransitioning]);
-
-  const handleConfirmFinalizeTradeIn = useCallback(() => {
-    if (isTransitioning) return;
-    finalizeTradeInOrder();
-  }, [isTransitioning, finalizeTradeInOrder]);
-
-  const handleCloseCompleteConfirmDialog = useCallback(() => {
-    if (isTransitioning) return;
-    setIsCompleteConfirmDialogOpen(false);
-  }, [isTransitioning]);
-
   const handleOpenAssignDialog = useCallback(() => {
     setIsAssignDialogOpen(true);
   }, []);
-
-  const handleOpenProcessReturnDialog = useCallback(() => {
-    if (!canProcessReturningUnhappy) return;
-    if (!returningShippingTaskId) {
-      toast.error("No RETURNING shipping task found for this order.");
-      return;
-    }
-    setIsProcessReturnDialogOpen(true);
-  }, [canProcessReturningUnhappy, returningShippingTaskId]);
-
-  const handleOpenProcessExchangeDialog = useCallback(() => {
-    if (!canProcessReturningUnhappy) return;
-    if (!returningShippingTaskId) {
-      toast.error("No RETURNING shipping task found for this order.");
-      return;
-    }
-    setIsProcessExchangeDialogOpen(true);
-  }, [canProcessReturningUnhappy, returningShippingTaskId]);
 
   const handleCloseAssignDialog = useCallback(() => {
     setIsAssignDialogOpen(false);
     invalidateTradeInDetail();
   }, [invalidateTradeInDetail]);
 
-  const handleCloseProcessReturnDialog = useCallback(() => {
-    setIsProcessReturnDialogOpen(false);
-  }, []);
-
-  const handleCloseProcessExchangeDialog = useCallback(() => {
-    setIsProcessExchangeDialogOpen(false);
-  }, []);
-
   return {
     status,
     isCancelDialogOpen,
     setIsCancelDialogOpen,
-    isCompleteConfirmDialogOpen,
-    setIsCompleteConfirmDialogOpen,
     isAssignDialogOpen,
-    isProcessReturnDialogOpen,
-    isProcessExchangeDialogOpen,
     isSeller,
     canAccessTradeInChat,
     shouldShowAssignedStaff,
@@ -481,7 +443,7 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
     isAccepting,
     isConfirming,
     isCancelling,
-    isTransitioning,
+    isTransitioning: false,
     previewAmountToPay,
     formattedNegotiatedPrice,
     isActiveProgressStatus,
@@ -491,8 +453,6 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
     canProcessReturningUnhappy,
     canAssignDeliveryTask,
     activeShippingTaskId,
-    returningShippingTaskId,
-    defaultProductVariantId,
     handleAcceptTask,
     handleConfirmDeal,
     handleNegotiatedPriceChange,
@@ -504,16 +464,15 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
     isDealConfirmDialogOpen,
     setIsDealConfirmDialogOpen,
     handleConfirmDealFinal,
-    handleFinalizeTradeIn,
-    handleConfirmFinalizeTradeIn,
-    handleCloseCompleteConfirmDialog,
     handleOpenAssignDialog,
-    handleOpenProcessReturnDialog,
-    handleOpenProcessExchangeDialog,
     handleCloseAssignDialog,
-    handleCloseProcessReturnDialog,
-    handleCloseProcessExchangeDialog,
     adminCancel: handleAdminCancel,
     hasRefundPayment,
+    minTradeInPrice,
+    maxTradeInPrice,
+    unitPrice,
+    salePrice,
+    negotiationError,
+    isNegotiationValid,
   };
 }

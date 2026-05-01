@@ -20,8 +20,8 @@ export const OrderStatus = {
 
 export type OrderStatus = typeof OrderStatus[keyof typeof OrderStatus];
 
-// Map string state from API to the Enum
-export const ORDER_STATUS_MAP: Record<string, OrderStatus> = {
+// Map string state from API to the Enum or a specific display label
+export const ORDER_STATUS_MAP: Record<string, OrderStatus | string> = {
   'Pending': OrderStatus.Pending,
   'Confirmed': OrderStatus.Confirmed,
   'Processing': OrderStatus.Processing,
@@ -52,6 +52,8 @@ export const ORDER_STATUS_MAP: Record<string, OrderStatus> = {
   '10': OrderStatus.RefundedAndDamaged,
   '11': OrderStatus.ExchangeRequested,
   '12': OrderStatus.ShippingReplacement,
+  'PartialRefunded': 'Partial Refunded',
+  'Rejected': 'Rejected',
 };
 
 // Admin allowed manual transitions
@@ -89,5 +91,7 @@ export const ADMIN_ORDER_STATUS_THEME: Record<string, { label: string }> = {
   'RefundedAndDamaged': { label: 'Refunded (Damaged)' },
   'ExchangeRequested': { label: 'Exchange Requested' },
   'Shipping_Replacement': { label: 'Shipping Replacement' },
-  'ShippingReplacement': { label: 'Shipping Replacement' }
+  'ShippingReplacement': { label: 'Shipping Replacement' },
+  'PartialRefunded': { label: 'Partial Refunded' },
+  'Rejected': { label: 'Rejected' },
 };

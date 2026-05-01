@@ -2,6 +2,7 @@ export interface CreateOrderRequest {
     addressId: string;
     userVoucherId?: string | null;
     note?: string;
+    shippingFee: string | number;
     paymentMethod: "VnPay" | "COD";
 }
 

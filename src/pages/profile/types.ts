@@ -5,7 +5,6 @@ export type TabId =
     | "wishlist"
     | "vouchers"
     | "addresses"
-    | "notifications"
     | "security"
     | "trade-in-orders"
 

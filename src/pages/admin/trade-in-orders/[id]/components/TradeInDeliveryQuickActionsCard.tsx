@@ -3,7 +3,6 @@ import {
   CheckCircle2,
   Clock,
   Package,
-  RefreshCw,
   RotateCcw,
   ShieldCheck,
   Truck,
@@ -17,12 +16,7 @@ import { Card } from "@/components/ui/card";
 interface TradeInDeliveryQuickActionsCardProps {
   status: string;
   hasTask: boolean;
-  canFinalizeTradeIn: boolean;
   canHandleUnhappyCase: boolean;
-  canProcessReturningUnhappy: boolean;
-  onFinalizeTradeIn: () => void;
-  onProcessReturn: () => void;
-  onProcessExchange: () => void;
   onOpenCancelDialog: () => void;
   delay?: number;
 }
@@ -38,12 +32,7 @@ const CLOSED_STATUSES = new Set([
 export function TradeInDeliveryQuickActionsCard({
   status,
   hasTask,
-  canFinalizeTradeIn,
   canHandleUnhappyCase,
-  canProcessReturningUnhappy,
-  onFinalizeTradeIn,
-  onProcessReturn,
-  onProcessExchange,
   onOpenCancelDialog,
   delay = 0,
 }: TradeInDeliveryQuickActionsCardProps) {
@@ -85,32 +74,21 @@ export function TradeInDeliveryQuickActionsCard({
             </div>
           )}
 
-          {status === "DELIVERED" && canFinalizeTradeIn && (
-            <Button
-              onClick={onFinalizeTradeIn}
-              className="w-full justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl h-12 text-[10px] font-black uppercase tracking-widest transition-all shadow-md shadow-emerald-500/20 border-none group"
-            >
-              <CheckCircle2 className="h-4 w-4 transition-transform group-hover:scale-110" />
-              Finalize Trade-In
-            </Button>
+          {status === "DELIVERED" && (
+            <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl flex items-start gap-3">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+              <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-[0.15em] leading-relaxed">
+                Delivered successfully. Awaiting staff to finalize on mobile.
+              </p>
+            </div>
           )}
 
-          {status === "RETURNING" && canProcessReturningUnhappy && (
-            <div className="grid grid-cols-1 gap-3">
-              <Button
-                onClick={onProcessExchange}
-                className="w-full justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-12 text-[10px] font-black uppercase tracking-widest transition-all shadow-md shadow-blue-500/20 border-none group"
-              >
-                <RefreshCw className="h-4 w-4 transition-transform group-hover:scale-110" />
-                Process Exchange
-              </Button>
-              <Button
-                onClick={onProcessReturn}
-                className="w-full justify-center gap-2 bg-rose-500 hover:bg-rose-600 text-white rounded-xl h-11 text-[9px] font-black uppercase tracking-widest transition-all shadow-md shadow-rose-500/20 border-none group"
-              >
-                <Package className="h-4 w-4 transition-transform group-hover:scale-110" />
-                Process Return
-              </Button>
+          {status === "RETURNING" && (
+            <div className="p-4 bg-amber-50/50 border border-amber-100 rounded-xl flex items-start gap-3">
+              <Package className="w-4 h-4 text-amber-500 shrink-0 mt-0.5 animate-pulse" />
+              <p className="text-[9px] font-bold text-amber-600 uppercase tracking-[0.15em] leading-relaxed">
+                Currently in Returning phase. Delivery staff is processing the return/exchange on mobile.
+              </p>
             </div>
           )}
 

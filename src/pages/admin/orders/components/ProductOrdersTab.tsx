@@ -27,7 +27,7 @@ export const ProductOrdersTab = memo(function ProductOrdersTab() {
           table={viewModel.table}
           emptyMessage="No results match your current inquiry."
           isLoading={viewModel.isPending}
-          onRowClick={(row) => navigate(`/admin/orders/${row.id}`)}
+          onRowClick={(row) => navigate(`/admin/checkout-orders/${row.id}`)}
         />
       </div>
 
@@ -42,7 +42,7 @@ export const ProductOrdersTab = memo(function ProductOrdersTab() {
       <CancelOrderDialog
         open={viewModel.isCancelOpen}
         onOpenChange={viewModel.setIsCancelOpen}
-        orderCode={viewModel.orderToCancel?.orderCode || ''}
+        orderCode={viewModel.orderToCancel?.checkoutOrderCode || ''}
         onConfirm={viewModel.handleConfirmCancel}
         isLoading={viewModel.isCancelling}
       />

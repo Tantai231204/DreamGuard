@@ -10,13 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { cn } from "@/lib/utils"
 import { format, isWithinInterval, startOfDay, endOfDay } from "date-fns"
 import type { DateRange } from "react-day-picker"
-import { useOrders, useProfile, useServiceOrders, useServiceOrdersByCustomer } from "@/hooks/queries"
-import type { OrderResponse } from "@/api/types/order"
+import { useCheckoutOrders } from "@/hooks/queries/useCheckoutOrder"
+import { useProfile, useServiceOrders, useServiceOrdersByCustomer } from "@/hooks/queries"
+import type { CheckoutOrderResponse } from "@/api/types/checkoutOrder"
 import type { ServiceOrderResponse } from "@/api/types/serviceOrder"
 import { OrderSkeleton } from "./orders"
 
 // Lazy load order lists to optimize initial bundle size
-const OrderList = lazy(() => import("./orders").then(m => ({ default: m.OrderList })));
+const CheckoutOrderList = lazy(() => import("./orders/CheckoutOrderList").then(m => ({ default: m.CheckoutOrderList })));
 const ServiceOrderList = lazy(() => import("./orders").then(m => ({ default: m.ServiceOrderList })));
 
 const ITEMS_PER_PAGE = 4
@@ -40,12 +41,14 @@ const SERVICE_TABS: { id: StatusTab; label: string }[] = [
     { id: "cancelled", label: "Cancelled" }
 ]
 
-function matchProductStatus(status: unknown, tab: StatusTab) {
+function matchCheckoutStatus(status: string, tab: StatusTab) {
     if (tab === "all") return true
-    if (tab === "processing") return ["Pending", "Confirmed", "Processing", 0, 1, 2].includes(status as never)
-    if (tab === "shipping") return ["Shipping", 3].includes(status as never)
-    if (tab === "completed") return ["Delivered", "Completed", 4, 5].includes(status as never)
-    return ["Cancelled", 6].includes(status as never)
+    const s = status.toLowerCase()
+    if (tab === "processing") return ["pending", "confirmed", "processing"].includes(s)
+    if (tab === "shipping") return ["shipping"].includes(s)
+    if (tab === "completed") return ["completed"].includes(s)
+    // Cancelled tab includes all cancel/refund variants
+    return ["cancelled", "partialrefunded", "refunding", "refunded"].includes(s)
 }
 
 function normalizeServiceStatus(status: unknown) {
@@ -86,7 +89,7 @@ function matchServiceStatusV2(status: unknown, tab: StatusTab) {
     return ["cancelled", "canceled", "forcedcancelled", "managercancel", "managerforcecancel", "rejected", "refund", "refunded"].includes(normalized)
 }
 
-function getOrderTimestamp(order: OrderResponse | ServiceOrderResponse, type: OrderType) {
+function getOrderTimestamp(order: CheckoutOrderResponse | ServiceOrderResponse, type: OrderType) {
     if (type === "service") {
         const serviceOrder = order as ServiceOrderResponse
         const source = serviceOrder.createdAt || serviceOrder.appointmentDate || serviceOrder.updatedAt
@@ -94,9 +97,8 @@ function getOrderTimestamp(order: OrderResponse | ServiceOrderResponse, type: Or
         return Number.isFinite(value) ? value : 0
     }
 
-    const productOrder = order as OrderResponse
-    const source = productOrder.createdAt || productOrder.updatedAt
-    const value = source ? new Date(source).getTime() : 0
+    const checkoutOrder = order as CheckoutOrderResponse
+    const value = checkoutOrder.createdAt ? new Date(checkoutOrder.createdAt).getTime() : 0
     return Number.isFinite(value) ? value : 0
 }
 
@@ -116,7 +118,10 @@ export default function OrdersTab() {
     ).trim()
     const currentPhone = normalizePhone(String(rawProfile?.phoneNumber || ""))
 
-    const { data: productData, isPending: isProductPending } = useOrders()
+    // ── Product Orders: Now using CheckoutOrders ──
+    const { data: checkoutData, isPending: isCheckoutPending } = useCheckoutOrders({ pageSize: 50 })
+
+    // ── Service Orders ──
     const { data: serviceByCustomerData, isPending: isServiceByCustomerPending } = useServiceOrdersByCustomer(
         currentCustomerId,
         { pageNumber: 1, pageSize: 50 },
@@ -142,16 +147,8 @@ export default function OrdersTab() {
             const orderPhone = normalizePhone(order.phoneNumber)
             const targetCustomerId = currentCustomerId.toLowerCase()
 
-            // 1. Match by Customer ID (preferred)
-            if (targetCustomerId && orderCustomerId === targetCustomerId) {
-                return true
-            }
-
-            // 2. Match by Phone Number (fallback for cases where customerId might be missing in some states)
-            if (currentPhone && orderPhone === currentPhone) {
-                return true
-            }
-
+            if (targetCustomerId && orderCustomerId === targetCustomerId) return true
+            if (currentPhone && orderPhone === currentPhone) return true
             return false
         })
     }, [currentCustomerId, currentPhone, serviceByCustomerData?.items, serviceFallbackData?.items])
@@ -160,8 +157,25 @@ export default function OrdersTab() {
     const urlOrderId = searchParams.get("id")
 
     const filteredOrders = useMemo(() => {
-        const orders = orderType === "product" ? (productData?.items ?? []) : ownedServiceOrders
-        return orders.filter(order => {
+        if (orderType === "product") {
+            const orders = checkoutData?.items ?? []
+            return orders.filter(order => {
+                const orderCode = (order.checkoutOrderCode || "").toLowerCase()
+                const orderId = (order.id || "").toLowerCase()
+                const matchesSearch = orderCode.includes(deferredSearch.toLowerCase()) || orderId.includes(deferredSearch.toLowerCase())
+                let matchesDate = true
+                if (date?.from) {
+                    const orderDate = new Date(order.createdAt || 0)
+                    const start = startOfDay(date.from)
+                    const end = date.to ? endOfDay(date.to) : endOfDay(date.from)
+                    matchesDate = isWithinInterval(orderDate, { start, end })
+                }
+                return matchesSearch && matchesDate
+            })
+        }
+
+        // Service orders
+        return ownedServiceOrders.filter(order => {
             const orderCode = (order.orderCode || "").toLowerCase()
             const orderId = (order.id || "").toLowerCase()
             const matchesSearch = orderCode.includes(deferredSearch.toLowerCase()) || orderId.includes(deferredSearch.toLowerCase())
@@ -174,11 +188,13 @@ export default function OrdersTab() {
             }
             return matchesSearch && matchesDate
         })
-    }, [orderType, productData?.items, ownedServiceOrders, deferredSearch, date])
+    }, [orderType, checkoutData?.items, ownedServiceOrders, deferredSearch, date])
 
     const statusFilteredOrders = useMemo(() => {
         if (orderType === "product") {
-            return (filteredOrders as OrderResponse[]).filter(order => matchProductStatus(order.status, activeStatusTab))
+            return (filteredOrders as CheckoutOrderResponse[]).filter(order =>
+                matchCheckoutStatus(order.status, activeStatusTab)
+            )
         }
 
         return (filteredOrders as ServiceOrderResponse[]).filter(order => {
@@ -188,16 +204,13 @@ export default function OrdersTab() {
     }, [filteredOrders, orderType, activeStatusTab])
 
     const sortedOrders = useMemo(() => {
-        if (orderType !== "service") return statusFilteredOrders
-
-        const serviceOrders = [...(statusFilteredOrders as ServiceOrderResponse[])]
-        serviceOrders.sort((a, b) => {
-            const aTime = getOrderTimestamp(a, "service")
-            const bTime = getOrderTimestamp(b, "service")
-            return serviceSort === "newest" ? bTime - aTime : aTime - bTime
+        const orders = [...statusFilteredOrders]
+        orders.sort((a, b) => {
+            const aTime = getOrderTimestamp(a as CheckoutOrderResponse | ServiceOrderResponse, orderType)
+            const bTime = getOrderTimestamp(b as CheckoutOrderResponse | ServiceOrderResponse, orderType)
+            return serviceSort === "newest" || orderType === "product" ? bTime - aTime : aTime - bTime
         })
-
-        return serviceOrders
+        return orders
     }, [statusFilteredOrders, orderType, serviceSort])
 
     const totalPages = Math.max(1, Math.ceil(sortedOrders.length / ITEMS_PER_PAGE))
@@ -207,57 +220,33 @@ export default function OrdersTab() {
     }, [sortedOrders, currentPage])
 
     const isPending = orderType === "product"
-        ? isProductPending
+        ? isCheckoutPending
         : (currentCustomerId ? isServiceByCustomerPending : isServiceFallbackPending)
     const tabs = orderType === "product" ? PRODUCT_TABS : SERVICE_TABS
 
-    // Deep Link Logic: Auto-find and switch to the correct view to reveal the linked order
+    // Deep Link Logic: Auto-find and switch to the correct view
     useEffect(() => {
         if (!urlOrderId || isPending) return
 
-        // 1. Determine if the order exists in product list
-        const productIndex = (productData?.items || []).findIndex(o => o.id === urlOrderId)
-        if (productIndex !== -1) {
-            const order = productData!.items[productIndex]
-            
-            // Sync view state asynchronously to avoid render cascades
+        // Check if the order exists in checkout orders
+        const checkoutIndex = (checkoutData?.items || []).findIndex(o => o.id === urlOrderId)
+        if (checkoutIndex !== -1) {
             setTimeout(() => {
-                // Sync order type
                 if (orderType !== "product") setOrderType("product")
-                
-                // 2. Find correct status tab for this order
-                const status = order.status
-                let targetTab: StatusTab = "all"
-                if (["Pending", "Confirmed", "Processing", 0, 1, 2].includes(status as string | number)) targetTab = "processing"
-                else if (["Shipping", 3].includes(status as string | number)) targetTab = "shipping"
-                else if (["Delivered", "Completed", 4, 5].includes(status as string | number)) targetTab = "completed"
-                else if (["Cancelled", 6].includes(status as string | number)) targetTab = "cancelled"
-                
-                if (activeStatusTab !== targetTab && activeStatusTab !== "all") {
-                    setActiveStatusTab("all") 
-                }
-                
-                // 3. Jump to the correct page
-                const idxInFiltered = statusFilteredOrders.findIndex(o => (o as OrderResponse).id === urlOrderId)
-                if (idxInFiltered !== -1) {
-                    const expectedPage = Math.ceil((idxInFiltered + 1) / ITEMS_PER_PAGE)
-                    if (currentPage !== expectedPage) {
-                        setCurrentPage(expectedPage)
-                    }
-                }
-            }, 0);
+                if (activeStatusTab !== "all") setActiveStatusTab("all")
+            }, 0)
             return
         }
 
-        // 2. Check service orders if not found in products
-        const serviceIndex = (ownedServiceOrders).findIndex(o => o.id === urlOrderId)
+        // Check service orders
+        const serviceIndex = ownedServiceOrders.findIndex(o => o.id === urlOrderId)
         if (serviceIndex !== -1) {
             setTimeout(() => {
                 if (orderType !== "service") setOrderType("service")
                 if (activeStatusTab !== "all") setActiveStatusTab("all")
-            }, 0);
+            }, 0)
         }
-    }, [urlOrderId, isPending, productData, ownedServiceOrders, activeStatusTab, currentPage, orderType, statusFilteredOrders])
+    }, [urlOrderId, isPending, checkoutData, ownedServiceOrders, activeStatusTab, orderType])
 
     const handlePageChange = (page: number) => {
         setCurrentPage(page)
@@ -396,7 +385,7 @@ export default function OrdersTab() {
                                 </div>
                             }>
                                 {orderType === "product" ? (
-                                    <OrderList orders={paginatedOrders as OrderResponse[]} isFilterActive={!!(deferredSearch || date)} />
+                                    <CheckoutOrderList orders={paginatedOrders as CheckoutOrderResponse[]} isFilterActive={!!(deferredSearch || date)} />
                                 ) : (
                                     <ServiceOrderList orders={paginatedOrders as ServiceOrderResponse[]} isFilterActive={!!(deferredSearch || date)} />
                                 )}

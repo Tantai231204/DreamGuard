@@ -1,8 +1,5 @@
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
 import { useEffect } from "react"
 import type { CheckoutFormData } from "../schema"
-import { checkoutSchema } from "../schema"
 import { Button } from "@/components/ui/button"
 import { DeliveryInfoSection } from "./DeliveryInfoSection"
 import { PaymentSection } from "./PaymentSection"
@@ -15,14 +12,17 @@ import vnAddress from "@/shared/data/vnAddress.json"
 import type { CreateAddressPayload } from "@/api/types/address"
 import { useCreateOrder, useCreateAddress } from "@/hooks/queries"
 import { formatPrice } from "@/lib/utils"
+import type { UseFormReturn } from "react-hook-form"
 
 interface CheckoutFormProps {
+    form: UseFormReturn<CheckoutFormData>
     totalPrice: number
     selectedVoucherId: string | null
+    shippingFee: number
 }
 
-export function CheckoutForm({ totalPrice, selectedVoucherId }: CheckoutFormProps) {
-    const { clearCart } = useCart()
+export function CheckoutForm({ form, totalPrice, selectedVoucherId, shippingFee }: CheckoutFormProps) {
+    const { cart, clearCart } = useCart()
     const navigate = useNavigate()
     const { success, error: toastError } = useToast()
 
@@ -31,23 +31,6 @@ export function CheckoutForm({ totalPrice, selectedVoucherId }: CheckoutFormProp
 
     const isSubmitting = isOrderSubmitting || isAddressCreating;
 
-    const form = useForm<CheckoutFormData>({
-        resolver: zodResolver(checkoutSchema),
-        defaultValues: {
-            firstName: "",
-            lastName: "",
-            email: "",
-            phone: "",
-            addressId: null,
-            userVoucherId: null,
-            streetAddress: "",
-            city: "",
-            district: "",
-            ward: "",
-            orderNotes: "",
-            paymentMethod: "VnPay",
-        },
-    })
 
     const { formState: { errors, isSubmitted } } = form
 
@@ -72,6 +55,12 @@ export function CheckoutForm({ totalPrice, selectedVoucherId }: CheckoutFormProp
     }, [form, selectedVoucherId])
 
     const onSubmit = async (data: CheckoutFormData) => {
+        const hasCustomProduct = cart.some(item => item.isCustom);
+        if (hasCustomProduct) {
+            toastError("Checkout Restriction", "Orders containing custom products must be processed via consultant inquiry. Please remove custom items or contact support.");
+            return;
+        }
+
         try {
             let addressId = data.addressId
 
@@ -107,6 +96,7 @@ export function CheckoutForm({ totalPrice, selectedVoucherId }: CheckoutFormProp
                 addressId: addressId!,
                 userVoucherId: data.userVoucherId,
                 note: data.orderNotes || "",
+                shippingFee: shippingFee,
                 paymentMethod: data.paymentMethod
             })
 

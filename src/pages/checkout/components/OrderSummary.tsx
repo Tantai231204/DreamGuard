@@ -35,6 +35,7 @@ interface OrderSummaryProps {
     isVoucherError?: boolean
     onVoucherRetry?: () => void
     estimatedDeliveryDate?: string
+    shippingFee?: number
 }
 
 export function OrderSummary({
@@ -52,10 +53,11 @@ export function OrderSummary({
     isVoucherLoading = false,
     isVoucherError = false,
     onVoucherRetry,
-    estimatedDeliveryDate
+    estimatedDeliveryDate,
+    shippingFee = 0
 }: OrderSummaryProps) {
     const { orderCompletionCoin } = useCoinRewardConfig();
-    const shipping = 0
+    const shipping = shippingFee
     const subtotalAfterTradeIn = finalTotal ?? totalPrice
     const safeVoucherDiscount = Math.min(Math.max(voucherDiscount, 0), Math.max(subtotalAfterTradeIn, 0))
     const totalAfterVoucher = typeof payableTotal === "number"
@@ -187,6 +189,21 @@ export function OrderSummary({
                     )}
                 </div>
 
+                {/* Order Splitting Notice for Custom Items */}
+                {cart.some(item => item.isCustom) && (
+                    <div className="mx-2 mb-6 p-4 rounded-2xl bg-amber-50/70 border border-amber-100 flex gap-3 animate-in fade-in slide-in-from-top-2 duration-500">
+                        <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                            <RefreshCcw className="w-4 h-4 text-amber-600" />
+                        </div>
+                        <div className="space-y-1">
+                            <p className="text-[10px] font-black text-amber-900 uppercase tracking-widest">Order Splitting</p>
+                            <p className="text-[10px] font-bold text-amber-700 leading-relaxed uppercase tracking-tight">
+                                Orders containing custom items will be split and delivered separately at different times.
+                            </p>
+                        </div>
+                    </div>
+                )}
+
                 {/* Totals Section */}
                 <div className="space-y-4 pt-6 border-t border-slate-50">
                     <div className="flex justify-between items-center px-2">
@@ -224,7 +241,21 @@ export function OrderSummary({
                             <span className="px-1.5 py-0.5 rounded bg-blue-50 text-[9px] font-black text-primary-500 uppercase tracking-tighter">Premium</span>
                         </div>
                         <div className="text-right">
-                            <span className="text-xs font-black text-emerald-500 uppercase tracking-widest block">Free Arrival</span>
+                            {shipping === 0 ? (
+                                <span className="text-xs font-black text-emerald-500 uppercase tracking-widest block">Free Arrival</span>
+                            ) : (
+                                <div className="space-y-0.5">
+                                    <span className="text-sm font-black text-slate-900 block">{formatPrice(shipping)}</span>
+                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                                        {(() => {
+                                            const standardItems = cart.filter(item => !item.isCustom);
+                                            const customItems = cart.filter(item => item.isCustom);
+                                            const count = (standardItems.length > 0 ? 1 : 0) + customItems.length;
+                                            return `${count} Shipment${count > 1 ? 's' : ''}`;
+                                        })()}
+                                    </span>
+                                </div>
+                            )}
                             {estimatedDeliveryDate && (
                                 <span className="text-[9px] font-bold text-slate-300 uppercase tracking-tighter">By {estimatedDeliveryDate}</span>
                             )}

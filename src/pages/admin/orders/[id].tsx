@@ -26,8 +26,6 @@ import {
   ShippingAssignmentCard,
   PaymentInfoCard,
   AssignShippingStaffDialog,
-  ProcessReturnDialog,
-  ProcessExchangeDialog,
   OrderDetailSkeleton,
   ShippingLogisticsEvidence,
   ConfirmStatusDialog
@@ -50,8 +48,6 @@ export default function OrderDetail() {
 
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showAssignDialog, setShowAssignDialog] = useState(false);
-  const [showProcessReturnDialog, setShowProcessReturnDialog] = useState(false);
-  const [showProcessExchangeDialog, setShowProcessExchangeDialog] = useState(false);
   const [showConfirmStatusDialog, setShowConfirmStatusDialog] = useState(false);
   const [showRefundDialog, setShowRefundDialog] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
@@ -146,34 +142,6 @@ export default function OrderDetail() {
       });
       setShowConfirmStatusDialog(false);
       setPendingStatus(null);
-      return;
-    }
-
-    if (newStatus === 'Completed') {
-      const orderMethod = order?.paymentMethod?.toLowerCase();
-      const hasVNPay = paymentResponse?.items?.some(p => p.paymentMethod?.toLowerCase() === 'vnpay');
-      const isCOD = orderMethod === 'cod' || (!hasVNPay && paymentResponse?.items?.some(p => p.paymentMethod?.toLowerCase() === 'cod')) || (!orderMethod && !hasVNPay);
-
-      if (isCOD) {
-        const codPayment = paymentResponse?.items?.find(p => p.paymentMethod?.toLowerCase() === 'cod') || paymentResponse?.items?.[0];
-
-        if (codPayment) {
-          updatePayment.mutate({ id: codPayment.id, status: 'CODPaid' }, {
-            onSuccess: () => {
-              queryClient.invalidateQueries({ queryKey: orderKeys.detail(order!.id) });
-              setShowConfirmStatusDialog(false);
-              setPendingStatus(null);
-            },
-            onError: () => {
-              setShowConfirmStatusDialog(false);
-              setPendingStatus(null);
-            }
-          });
-        }
-      } else {
-        setShowConfirmStatusDialog(false);
-        setPendingStatus(null);
-      }
       return;
     }
 
@@ -445,7 +413,7 @@ export default function OrderDetail() {
                   </div>
                   <div className="flex-1">
                     <PaymentInfoCard
-                      orderCode={order.orderCode}
+                      orderCode={order.orderCode.replace(/-[NC]$/, '')}
                       paymentMethod={order.paymentMethod}
                       delay={0.15}
                     />
@@ -474,11 +442,8 @@ export default function OrderDetail() {
                 currentStatusEnum={currentStatusEnum}
                 onUpdateStatus={handleUpdateStatus}
                 onCancelOrder={() => setShowCancelDialog(true)}
-                onProcessReturn={() => setShowProcessReturnDialog(true)}
-                onProcessExchange={() => setShowProcessExchangeDialog(true)}
                 canCancel={canCancel && isAdmin}
                 hasTask={!!activeTask}
-                isPaid={isPaid}
               />
 
               {currentStatusEnum !== OrderStatus.Cancelled && (
@@ -557,25 +522,6 @@ export default function OrderDetail() {
         orderId={order.id}
       />
 
-      <ProcessReturnDialog
-        isOpen={showProcessReturnDialog}
-        onClose={() => setShowProcessReturnDialog(false)}
-        orderId={order!.id}
-        taskId={activeTask?.shippingTaskId || ''}
-        items={order!.items || []}
-        totalPrice={order!.totalAmount}
-        paymentMethod={order!.paymentMethod}
-        paymentStatus={order!.paymentStatus}
-      />
-
-      <ProcessExchangeDialog
-        isOpen={showProcessExchangeDialog}
-        onClose={() => setShowProcessExchangeDialog(false)}
-        orderId={order.id}
-        taskId={activeTask?.shippingTaskId || ''}
-        items={order.items || []}
-      />
-
       <ConfirmStatusDialog
         open={showConfirmStatusDialog}
         onOpenChange={setShowConfirmStatusDialog}
@@ -583,8 +529,8 @@ export default function OrderDetail() {
         isLoading={updateStatus.isPending || updatePayment.isPending}
         title={`Confirm ${pendingStatus || 'Update'}`}
         description={`Are you sure you want to transition this order to ${pendingStatus}? This action will trigger associated workflow updates.`}
-        variant={pendingStatus === 'Completed' || pendingStatus === 'Confirmed' ? 'success' : 'primary'}
-        confirmText={pendingStatus === 'Completed' ? 'Finalize Order' : 'Confirm Update'}
+        variant={pendingStatus === 'Confirmed' ? 'success' : 'primary'}
+        confirmText="Confirm Update"
       />
     </div>
   );

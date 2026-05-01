@@ -60,6 +60,7 @@ const ServicesCustomize = lazy(() => import("../pages/services/customize"));
 const AdminDashboard = lazy(() => import("../pages/admin/dashboard"));
 const OrderManagement = lazy(() => import("../pages/admin/orders"));
 const OrderDetail = lazy(() => import("../pages/admin/orders/[id]"));
+const AdminCheckoutOrderDetail = lazy(() => import("../pages/admin/checkout-orders/[id]"));
 const ServiceManagement = lazy(() => import("../pages/admin/services"));
 const ServiceDetail = lazy(() => import("../pages/admin/services/[id].tsx"));
 const ServicePackagesPage = lazy(() => import("../pages/admin/service-packages"));
@@ -150,6 +151,7 @@ export default function AppRouter() {
                         } />
 
                         <Route path="/admin/orders" element={<OrderManagement />} />
+                        <Route path="/admin/checkout-orders/:id" element={<AdminCheckoutOrderDetail />} />
                         <Route path="/admin/orders/:id" element={<OrderDetail />} />
                         <Route path="/admin/trade-in-orders/:id" element={<TradeInOrderDetail />} />
                         <Route path="/admin/audit-logs" element={<GlobalAuditLogs />} />

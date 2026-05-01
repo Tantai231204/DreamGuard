@@ -1,4 +1,4 @@
-import { ArrowLeft, CheckCircle, XCircle, UserPlus, FileEdit, CalendarClock, RotateCcw } from 'lucide-react';
+import { ArrowLeft, CheckCircle, XCircle, UserPlus, FileEdit, RotateCcw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { formatPrice } from '@/lib/utils';
@@ -6,7 +6,6 @@ import type { DetailOrder, StatusConfigItem } from './types';
 import { useServiceActions } from '../../hooks/useServiceActions';
 import { CancelBookingDialog } from '../CancelBookingDialog';
 import { ConfirmServiceDialog } from '../ConfirmServiceDialog';
-import { CompleteServiceDialog } from '../CompleteServiceDialog';
 import { toast } from 'sonner';
 import { AdminStatusBadge } from '@/components/admin';
 import { memo, useState } from 'react';
@@ -15,14 +14,11 @@ interface OrderHeaderProps {
   order: DetailOrder;
   statusCfg?: StatusConfigItem;
   onAssign?: () => void;
-  onReschedule?: () => void;
   onBack?: () => void;
   permissions: {
     canConfirm: boolean;
     canAssign: boolean;
     canCancel: boolean;
-    canComplete?: boolean;
-    canReschedule?: boolean;
     canCreateRefund?: boolean;
     isAssigned: boolean;
   };
@@ -32,24 +28,20 @@ export const OrderHeader = memo(function OrderHeader({
   order,
   statusCfg,
   onAssign,
-  onReschedule,
   onBack,
   permissions
 }: OrderHeaderProps) {
   const [isCancelOpen, setIsCancelOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [isCompleteOpen, setIsCompleteOpen] = useState(false);
   const [isRefundOpen, setIsRefundOpen] = useState(false);
 
   const StatusIcon = statusCfg?.icon;
   const { 
     confirmBooking, 
     cancelBooking, 
-    completeBooking, 
     createRefund,
     isConfirming, 
     isCancelling, 
-    isCompleting,
     isCreatingRefund
   } = useServiceActions();
 
@@ -61,25 +53,6 @@ export const OrderHeader = memo(function OrderHeader({
     });
   };
 
-  const handleCompleteAction = () => {
-    setIsCompleteOpen(true);
-  };
-
-  const handleConfirmComplete = () => {
-    const taskId = order.serviceTask?.serviceTaskId || order.serviceTask?.taskId;
-    const orderId = order.soId || order.id || "";
-
-    if (!taskId) {
-      toast.error("No active task found to complete");
-      return;
-    }
-
-    completeBooking({ taskId, orderId }, {
-      onSuccess: () => {
-        setIsCompleteOpen(false);
-      }
-    });
-  };
 
   const handleCancelConfirm = (reason: string, refundAmount?: number) => {
     cancelBooking({
@@ -165,16 +138,6 @@ export const OrderHeader = memo(function OrderHeader({
               </Button>
             )}
 
-            {permissions.canComplete && (
-              <Button
-                size="sm"
-                onClick={handleCompleteAction}
-                disabled={isCompleting}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] uppercase tracking-widest rounded-xl gap-2 shadow-xl shadow-emerald-500/10 transition-all hover:scale-105 active:scale-95 h-12 px-6 border-0"
-              >
-                <CheckCircle className="h-4 w-4" /> {isCompleting ? "Executing..." : "Mark as Completed"}
-              </Button>
-            )}
 
             {permissions.canAssign && (
               <Button
@@ -187,16 +150,6 @@ export const OrderHeader = memo(function OrderHeader({
               </Button>
             )}
 
-            {permissions.canReschedule && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onReschedule}
-                className="bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary-hover font-black text-[10px] uppercase tracking-widest rounded-xl gap-2 h-12 px-6 transition-all border-0"
-              >
-                <CalendarClock className="h-4 w-4" /> Reschedule
-              </Button>
-            )}
 
             {permissions.canCancel && (
               <Button
@@ -268,13 +221,6 @@ export const OrderHeader = memo(function OrderHeader({
         isRefundOnly={true}
       />
 
-      <CompleteServiceDialog
-        isOpen={isCompleteOpen}
-        onClose={() => setIsCompleteOpen(false)}
-        onConfirm={handleConfirmComplete}
-        isLoading={isCompleting}
-        orderCode={order.orderCode || ''}
-      />
     </div>
   );
 });

@@ -117,6 +117,22 @@ const THEME_MAP: Record<string, StatusThemeItem> = {
         color: "#e11d48", // Rose 600
         step: -1,
         description: "This order was rejected"
+    },
+    PartialRefunded: {
+        label: "Partial Refunded",
+        variant: "amber",
+        icon: <RotateCcw className="h-4 w-4" />,
+        color: "#f59e0b", // Amber 500
+        step: 5,
+        description: "Some items have been refunded"
+    },
+    Refunding: {
+        label: "Refunding",
+        variant: "amber",
+        icon: <RotateCcw className="h-4 w-4" />,
+        color: "#f97316", // Orange 500
+        step: 5,
+        description: "Refund in progress"
     }
 }
 
@@ -161,6 +177,9 @@ export const STATUS_THEME: Record<string | number, StatusThemeItem> = {
     "RefundedDamaged": THEME_MAP.Refunded,
     "Rescheduled": THEME_MAP.Rescheduled,
     "Rejected": THEME_MAP.Rejected,
+    "PartialRefunded": THEME_MAP.PartialRefunded,
+    "Partial Refunded": THEME_MAP.PartialRefunded,
+    "Refunding": THEME_MAP.Refunding,
 }
 
 // Robust status theme resolver — handles all API response formats

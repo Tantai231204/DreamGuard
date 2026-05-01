@@ -160,28 +160,35 @@ export function CancelBookingDialog({
               )}
 
               {showRefundSection && (
-                <div className="space-y-4 pt-4 border-t border-slate-100">
-                  <div className="flex items-center gap-2">
-                    <RotateCcw className="h-3.5 w-3.5 text-slate-400" />
-                    <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Refund Amount Setup</span>
+                <div className="space-y-4 pt-5 border-t border-slate-100 animate-in fade-in slide-in-from-top-2 duration-500">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center">
+                        <RotateCcw className="h-3.5 w-3.5 text-blue-500" />
+                      </div>
+                      <span className="text-[11px] font-black text-slate-900 uppercase tracking-widest">Refund Calculation</span>
+                    </div>
+                    <div className="px-2 py-1 rounded-md bg-slate-100 text-[10px] font-bold text-slate-500 uppercase tracking-tight">
+                      Prepaid Order
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Percent (%)</Label>
-                      <div className="relative">
+                      <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Percentage (%)</Label>
+                      <div className="relative group">
                         <Input
                           type="number"
                           value={percentage}
                           onChange={(e) => setPercentage(Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)))}
-                          className="h-10 rounded-xl border-slate-200 font-bold shadow-none pl-8"
+                          className="h-11 rounded-xl border-slate-200 bg-white font-black text-slate-900 shadow-none pl-10 focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all"
                         />
-                        <Percent className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-300" />
+                        <Percent className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-blue-400 transition-colors" />
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Amount (VNĐ)</Label>
-                      <div className="relative">
+                      <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Manual Amount</Label>
+                      <div className="relative group">
                         <Input
                           type="number"
                           value={refundAmount}
@@ -190,16 +197,22 @@ export function CancelBookingDialog({
                             setRefundAmount(val);
                             setPercentage(Math.round((val / totalPrice) * 100));
                           }}
-                          className="h-10 rounded-xl border-slate-200 font-bold shadow-none pl-8"
+                          className="h-11 rounded-xl border-slate-200 bg-white font-black text-slate-900 shadow-none pl-10 focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all"
                         />
-                        <Calculator className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-300" />
+                        <Calculator className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-blue-400 transition-colors" />
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-slate-50 rounded-xl p-3 border border-slate-100 flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-600">Total Refund:</span>
-                    <span className="text-sm font-bold text-slate-900">{formatPrice(refundAmount)}</span>
+                  <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-4 shadow-lg shadow-slate-200 flex items-center justify-between group overflow-hidden relative">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl" />
+                    <div className="relative z-10">
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-1">Settlement Total</span>
+                      <span className="text-xl font-black text-white tracking-tight tabular-nums">{formatPrice(refundAmount)}</span>
+                    </div>
+                    <div className="relative z-10 w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center border border-white/10 backdrop-blur-sm">
+                      <RotateCcw className="h-5 w-5 text-blue-300" />
+                    </div>
                   </div>
                 </div>
               )}

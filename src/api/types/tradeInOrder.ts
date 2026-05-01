@@ -71,6 +71,8 @@ export interface TradeInOrderDetailResponse {
   tradeInPrice: number;
   amountToPay: number;
   depositAmount: number;
+  minTradeInPrice?: number;
+  maxTradeInPrice?: number;
   payments: TradeInPayment[];
   tradeInImages: TradeInImage[];
   orderItem?: {
@@ -136,6 +138,8 @@ export interface TradeInOrderListItem {
   tradeInPrice: number;
   amountToPay: number;
   depositAmount: number;
+  minTradeInPrice?: number;
+  maxTradeInPrice?: number;
   paymentStatus?: string;
   paymentMethod?: string;
 }

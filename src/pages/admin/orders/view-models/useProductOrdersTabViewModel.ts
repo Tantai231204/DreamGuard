@@ -9,10 +9,9 @@ import {
 } from '@tanstack/react-table';
 import { toast } from 'sonner';
 
-import type { OrderResponse } from '@/api/types/order';
+import type { CheckoutOrderResponse } from '@/api/types/checkoutOrder';
 import { useAdminTableSync } from '@/hooks/admin/useAdminTableSync';
-import { useAdminCancelOrder, useAdminOrders } from '@/hooks/queries';
-import type { AdminOrdersQueryParams } from '@/hooks/queries';
+import { useCheckoutOrders, useCancelCheckoutOrder } from '@/hooks/queries/useCheckoutOrder';
 import { downloadCSV } from '@/lib/export';
 
 import { useOrderColumns } from '../components/useOrderColumns';
@@ -33,8 +32,8 @@ export const useProductOrdersTabViewModel = () => {
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
   const [isCancelOpen, setIsCancelOpen] = useState(false);
-  const [orderToCancel, setOrderToCancel] = useState<OrderResponse | null>(null);
-  const cancelOrderMutation = useAdminCancelOrder();
+  const [orderToCancel, setOrderToCancel] = useState<CheckoutOrderResponse | null>(null);
+  const cancelOrderMutation = useCancelCheckoutOrder();
 
   const statusFilter = useMemo(() => {
     const filter = columnFilters.find((item) => item.id === 'status');
@@ -53,14 +52,14 @@ export const useProductOrdersTabViewModel = () => {
     return undefined;
   }, [columnFilters]);
 
-  const onCancelRequested = useCallback((order: OrderResponse) => {
+  const onCancelRequested = useCallback((order: CheckoutOrderResponse) => {
     setOrderToCancel(order);
     setIsCancelOpen(true);
   }, []);
 
   const columns = useOrderColumns(onCancelRequested);
 
-  const queryParams = useMemo<AdminOrdersQueryParams>(
+  const queryParams = useMemo(
     () => ({
       pageNumber: pagination.pageIndex + 1,
       pageSize: pagination.pageSize,
@@ -72,14 +71,14 @@ export const useProductOrdersTabViewModel = () => {
     [debouncedFilter, pagination.pageIndex, pagination.pageSize, sorting, statusFilter],
   );
 
-  const { data: orderData, isPending } = useAdminOrders(queryParams);
+  const { data: orderData, isPending } = useCheckoutOrders(queryParams as import('@/api/types/checkoutOrder').CheckoutOrderQueryParams);
 
   const rows = useMemo(() => orderData?.items ?? [], [orderData]);
   const pageCount = orderData?.totalPages ?? -1;
 
   const handleExport = useCallback(() => {
     const exportData = rows.map((order) => ({
-      Code: order.orderCode,
+      Code: order.checkoutOrderCode,
       Total: order.totalAmount,
       Status: order.status,
       Date: order.createdAt,
@@ -104,14 +103,14 @@ export const useProductOrdersTabViewModel = () => {
   });
 
   const handleConfirmCancel = useCallback(
-    async (reason: string) => {
+    async () => {
       if (!orderToCancel) {
         return;
       }
 
       try {
-        await cancelOrderMutation.mutateAsync({ id: orderToCancel.id, reason });
-        toast.success(`Order ${orderToCancel.orderCode} cancelled successfully`);
+        await cancelOrderMutation.mutateAsync(orderToCancel.id);
+        toast.success(`Order ${orderToCancel.checkoutOrderCode} cancelled successfully`);
         setIsCancelOpen(false);
         setOrderToCancel(null);
       } catch {

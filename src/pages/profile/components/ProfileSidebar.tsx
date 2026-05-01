@@ -58,11 +58,6 @@ const TABS: Tab[] = [
     icon: <MapPin className="h-4.5 w-4.5" />,
   },
   {
-    id: "notifications",
-    label: "Notifications",
-    icon: <Bell className="h-4.5 w-4.5" />,
-  },
-  {
     id: "security",
     label: "Account Security",
     icon: <Lock className="h-4.5 w-4.5" />,

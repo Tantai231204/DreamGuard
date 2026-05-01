@@ -22,6 +22,7 @@ interface CartState {
     totalPrice: number
     totalTradeInDiscount: number
     finalTotal: number
+    totalWeight: number
 
     fetchCart: (force?: boolean) => Promise<void>
     setCartOpen: (open: boolean) => void
@@ -80,17 +81,19 @@ export const generateConfigHash = (
 };
 
 const calculateTotals = (cart: CartItem[]) => {
-    let totalItems = 0, totalPrice = 0, totalTradeInDiscount = 0, finalTotal = 0;
+    let totalItems = 0, totalPrice = 0, totalTradeInDiscount = 0, finalTotal = 0, totalWeight = 0;
     for (const item of cart) {
         const qty = item.quantity || 0;
         const price = item.price || 0;
         const discount = item.tradeIn?.totalValue || 0;
+        const weight = item.weight || 0;
         totalItems += qty;
         totalPrice += qty * price;
         totalTradeInDiscount += discount;
         finalTotal += Math.max(0, qty * price - discount);
+        totalWeight += qty * weight;
     }
-    return { totalItems, totalPrice, totalTradeInDiscount, finalTotal };
+    return { totalItems, totalPrice, totalTradeInDiscount, finalTotal, totalWeight };
 }
 
 const debounceTimers: Map<string, ReturnType<typeof setTimeout>> = new Map()
@@ -112,6 +115,7 @@ export const useCartStore = create<CartState>()(
             totalPrice: 0,
             totalTradeInDiscount: 0,
             finalTotal: 0,
+            totalWeight: 0,
 
             resetLocalCart: () => {
                 set({
@@ -120,6 +124,7 @@ export const useCartStore = create<CartState>()(
                     totalPrice: 0,
                     totalTradeInDiscount: 0,
                     finalTotal: 0,
+                    totalWeight: 0,
                     syncingIds: [],
                     loadingIds: [],
                     isSyncing: false,
@@ -336,7 +341,8 @@ export const useCartStore = create<CartState>()(
                         sku: sItem.sku,
                         availableStock: sItem.availableStock,
                         isAvailable: sItem.isAvailable,
-                        isCustom: localMatch?.isCustom || (sItem.productCustomizeDetails && sItem.productCustomizeDetails.length > 0)
+                        isCustom: localMatch?.isCustom || (sItem.productCustomizeDetails && sItem.productCustomizeDetails.length > 0),
+                        weight: localMatch?.weight || 1, // Fallback for demo
                     } as CartItem);
                 }
 
@@ -390,6 +396,7 @@ export const useCartStore = create<CartState>()(
                     configHash: configHash,
                     quantity: qty,
                     subtotal: qty * (newItem.price || 0),
+                    weight: newItem.weight || 1,
                 } as CartItem;
 
                 const updatedCart = [...currentCart];
@@ -605,6 +612,7 @@ export const useCartStore = create<CartState>()(
                 totalPrice: state.totalPrice,
                 totalTradeInDiscount: state.totalTradeInDiscount,
                 finalTotal: state.finalTotal,
+                totalWeight: state.totalWeight,
             }),
         }
     )
