@@ -27,6 +27,7 @@ export const OrderStatusValue = {
 export interface OrderResponse {
     id: string;
     orderCode: string;
+    checkoutOrderId?: string;
     checkoutOrderCode?: string;
     status: OrderStatus | string;
     itemCount?: number;
@@ -37,6 +38,7 @@ export interface OrderResponse {
     paymentUrl?: string;
     createdAt: string;
     updatedAt?: string;
+    shippingFee?: number;
 }
 
 export interface ProductCustomizeDetail {

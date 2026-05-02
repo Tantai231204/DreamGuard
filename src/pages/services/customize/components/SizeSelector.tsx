@@ -40,8 +40,8 @@ export const SizeSelector = memo(({
   onDimensionsChange,
   recommendedDims
 }: SizeSelectorProps) => {
-  const isRecommended = recommendedDims && 
-    parseInt(customDimensions.width) === recommendedDims.width && 
+  const isRecommended = recommendedDims &&
+    parseInt(customDimensions.width) === recommendedDims.width &&
     parseInt(customDimensions.height) === recommendedDims.height;
 
   return (
@@ -51,8 +51,8 @@ export const SizeSelector = memo(({
         <div className="flex items-center gap-2">
           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Dimensions</p>
           {isRecommended && mode === 'input' && (
-            <span className="text-[8px] font-black text-emerald-500 uppercase bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 animate-in fade-in slide-in-from-left-1">
-              ✨ Recommended
+            <span className="text-[8px] font-bold text-[#4988c4] uppercase bg-[#4988c4]/8 px-1.5 py-0.5 rounded border border-[#4988c4]/15 animate-in fade-in slide-in-from-left-1">
+              AI Recommended
             </span>
           )}
         </div>
@@ -102,12 +102,19 @@ export const SizeSelector = memo(({
                 )}
               >
                 <div className="flex items-center justify-between mb-1">
-                  <span className={cn(
-                    "text-[10px] font-bold uppercase tracking-wide",
-                    active ? "text-slate-900" : "text-slate-500"
-                  )}>
-                    {name}
-                  </span>
+                  <div className="flex flex-col gap-1">
+                    <span className={cn(
+                      "text-[10px] font-bold uppercase tracking-wide",
+                      active ? "text-slate-900" : "text-slate-500"
+                    )}>
+                      {name}
+                    </span>
+                    {recommendedDims && s.label.includes(`${recommendedDims.width}`) && s.label.includes(`${recommendedDims.height}`) && (
+                      <span className="text-[7px] font-bold text-[#4988c4] uppercase bg-[#4988c4]/8 px-1 py-px rounded border border-[#4988c4]/15 w-fit">
+                        AI Pick
+                      </span>
+                    )}
+                  </div>
                   {active && <div className="h-1.5 w-1.5 rounded-full bg-[#4988c4]" />}
                 </div>
 

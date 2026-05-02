@@ -41,7 +41,7 @@ export const ProcessReturnDialog = memo(function ProcessReturnDialog({
   paymentStatus
 }: ProcessReturnDialogProps) {
   
-  const isVNPayPaid = paymentMethod?.toLowerCase() === 'vnpay' &&
+  const isRefundableMethod = (paymentMethod?.toLowerCase() === 'vnpay' || paymentMethod?.toLowerCase() === 'other') &&
     (paymentStatus?.toLowerCase() === 'paid' || paymentStatus?.toLowerCase() === 'codpaid');
   const showRefundSection = totalPrice > 0;
 
@@ -51,7 +51,7 @@ export const ProcessReturnDialog = memo(function ProcessReturnDialog({
     totalPrice,
     onClose,
     showRefundSection,
-    isVNPayPaid
+    isRefundableMethod
   });
 
   const {

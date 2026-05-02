@@ -10,6 +10,7 @@ import type {
 } from "@/api/types/shipping";
 import { orderKeys } from "./useOrder";
 import { tradeInOrderKeys } from "./useTradeInOrder";
+import { checkoutOrderKeys } from "./useCheckoutOrder";
 
 export const shippingKeys = {
     all: ["shippingTasks"] as const,
@@ -49,9 +50,12 @@ export const useCreateShippingTask = () => {
         onSuccess: (_, payload) => {
             if (payload.orderId) {
                 queryClient.invalidateQueries({ queryKey: shippingKeys.byOrder(payload.orderId) });
+                queryClient.invalidateQueries({ queryKey: orderKeys.detail(payload.orderId) });
+                queryClient.invalidateQueries({ queryKey: checkoutOrderKeys.all });
             }
             if (payload.tradeInOrderId) {
                 queryClient.invalidateQueries({ queryKey: shippingKeys.byTradeInOrder(payload.tradeInOrderId) });
+                queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.detail(payload.tradeInOrderId) });
             }
         },
     });
@@ -66,9 +70,12 @@ export const useReassignShippingTask = () => {
         onSuccess: (_, payload) => {
             if (payload.orderId) {
                 queryClient.invalidateQueries({ queryKey: shippingKeys.byOrder(payload.orderId) });
+                queryClient.invalidateQueries({ queryKey: orderKeys.detail(payload.orderId) });
+                queryClient.invalidateQueries({ queryKey: checkoutOrderKeys.all });
             }
             if (payload.tradeInOrderId) {
                 queryClient.invalidateQueries({ queryKey: shippingKeys.byTradeInOrder(payload.tradeInOrderId) });
+                queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.detail(payload.tradeInOrderId) });
             }
         },
     });

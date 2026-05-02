@@ -198,11 +198,11 @@ export function useOrderDetail() {
     if (!mergedOrder) return false;
     const orderStatus = mergedOrder.status?.toLowerCase();
     
-    // Core Requirement: Only for VNPay orders that have been paid
-    const isVNPayPaid = mergedOrder.paymentMethod?.toLowerCase() === 'vnpay' && 
+    // Core Requirement: Only for VNPay or Other orders that have been paid
+    const isRefundableMethod = (mergedOrder.paymentMethod?.toLowerCase() === 'vnpay' || mergedOrder.paymentMethod?.toLowerCase() === 'other') && 
                         (mergedOrder.paymentStatus?.toLowerCase() === 'paid' || mergedOrder.paymentStatus?.toLowerCase() === 'codpaid');
     
-    if (!isVNPayPaid) return false;
+    if (!isRefundableMethod) return false;
 
     // Check if there's already a refund process active in the payments history
     // We prevent duplicate refund creations

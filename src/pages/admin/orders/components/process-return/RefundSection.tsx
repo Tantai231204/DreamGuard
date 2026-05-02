@@ -125,7 +125,7 @@ export const RefundSection = memo(function RefundSection({
                 )}>
                   {paymentMethod} • {paymentStatus || "UNPAID"}
                 </span>
-                {paymentMethod.toLowerCase() === 'vnpay' && (
+                {(paymentMethod.toLowerCase() === 'vnpay' || paymentMethod.toLowerCase() === 'other') && (
                   <span className="text-[7px] font-black uppercase text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100">
                     Evidence Required
                   </span>

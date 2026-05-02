@@ -131,7 +131,7 @@ export const useTradeInOrderColumns = (
             onClick: () => onCancel(row.original, false),
           };
 
-          const isVNPayPaid = row.original.paymentMethod?.toLowerCase() === 'vnpay' &&
+          const isRefundableMethod = (row.original.paymentMethod?.toLowerCase() === 'vnpay' || row.original.paymentMethod?.toLowerCase() === 'other') &&
             (row.original.paymentStatus?.toLowerCase() === 'paid' || row.original.paymentStatus?.toLowerCase() === 'codpaid');
 
           const refundAction = {
@@ -148,7 +148,7 @@ export const useTradeInOrderColumns = (
             actions.push(cancelAction);
           }
 
-          if (isVNPayPaid && row.original.amountToPay > 0) {
+          if (isRefundableMethod && row.original.amountToPay > 0) {
             actions.push(refundAction);
           }
 

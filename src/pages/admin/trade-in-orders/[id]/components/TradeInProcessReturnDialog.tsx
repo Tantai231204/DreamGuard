@@ -117,7 +117,7 @@ export function TradeInProcessReturnDialogComponent({
   const targetVariantAttributes = (targetVariant?.attributes || {}) as Record<string, unknown>;
   const targetVariantColor = typeof targetVariantAttributes.color === "string" ? targetVariantAttributes.color : "";
 
-  const isVNPayPaid = paymentMethod?.toLowerCase() === 'vnpay' &&
+  const isRefundableMethod = (paymentMethod?.toLowerCase() === 'vnpay' || paymentMethod?.toLowerCase() === 'other') &&
     (paymentStatus?.toLowerCase() === 'paid' || paymentStatus?.toLowerCase() === 'codpaid');
 
   useEffect(() => {
@@ -290,15 +290,15 @@ export function TradeInProcessReturnDialogComponent({
     }
 
     try {
-      if (isVNPayPaid && refundAmount > 0 && evidenceItems.length === 0) {
-        toast.error("Evidence is required for VNPay electronic refunds.");
+      if (isRefundableMethod && refundAmount > 0 && evidenceItems.length === 0) {
+        toast.error("Evidence is required for refund processing.");
         return;
       }
 
-      if ((isDamagedOutcome || isVNPayPaid) && evidenceItems.length > 0) {
+      if ((isDamagedOutcome || isRefundableMethod) && evidenceItems.length > 0) {
         setIsUploadingEvidence(true);
       }
-      const evidenceUrls = (isDamagedOutcome || isVNPayPaid) ? await uploadEvidenceUrls() : [];
+      const evidenceUrls = (isDamagedOutcome || isRefundableMethod) ? await uploadEvidenceUrls() : [];
       const normalizedProductVariantId = isDamagedOutcome ? resolvedProductVariantId : "";
 
       const finalNote = selectedReason === OTHER_REASON_LABEL ? damageNote : selectedReason;
@@ -327,7 +327,7 @@ export function TradeInProcessReturnDialogComponent({
 
       if (refundId) {
         const evidenceUrl = evidenceUrls.length > 0 ? evidenceUrls[0] : undefined;
-        if (isVNPayPaid) {
+        if (isRefundableMethod) {
           await paymentService.updateRefundStatus(refundId, "Refunding", undefined, evidenceUrl);
         } else if (evidenceUrl) {
           await paymentService.updateRefundStatus(refundId, "Refunding", undefined, evidenceUrl);
@@ -365,6 +365,7 @@ export function TradeInProcessReturnDialogComponent({
     tradeInOrderId,
     uploadEvidenceUrls,
     queryClient,
+    isRefundableMethod,
   ]);
 
   return (
@@ -475,7 +476,7 @@ export function TradeInProcessReturnDialogComponent({
                 <div className="flex items-center justify-between gap-3">
                   <Label className="text-[13px] font-semibold text-slate-700 flex items-center gap-2">
                     Evidence Upload
-                    {isVNPayPaid && <span className="text-[10px] font-bold text-rose-500 uppercase tracking-tight bg-rose-50 px-2 py-0.5 rounded border border-rose-100">Electronic Refund Requirement</span>}
+                    {isRefundableMethod && <span className="text-[10px] font-bold text-rose-500 uppercase tracking-tight bg-rose-50 px-2 py-0.5 rounded border border-rose-100">Electronic Refund Requirement</span>}
                   </Label>
                   <span className="rounded-md bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-500 border border-slate-200">
                     {uploadedEvidenceCount}/{evidenceItems.length} uploaded

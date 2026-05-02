@@ -1,13 +1,13 @@
 import { useParams } from 'react-router-dom';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Printer, Truck, History, ChevronDown, CreditCard, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useOrderDetail, useUpdateOrderStatus, useAdminCancelOrder, useAdminPayments, useUpdatePaymentStatus, useAdminCreateRefund, useUpdateRefundStatus, orderKeys } from '@/hooks/queries';
+import { useOrderDetail, useUpdateOrderStatus, useAdminCancelOrder, useAdminPayments, useUpdatePaymentStatus, useAdminCreateRefund, orderKeys } from '@/hooks/queries';
 import { useQueryClient } from '@tanstack/react-query';
 import { useShippingTasksByOrder } from '@/hooks/queries/useShippingTask';
 import { useAuthStore } from '@/store/authStore';
 import { formatPrice } from '@/pages/profile/utils';
-import { cn, formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/utils';
 import { toast } from 'sonner';
 import {
   DropdownMenu,
@@ -43,7 +43,6 @@ export default function OrderDetail() {
   const cancelOrder = useAdminCancelOrder();
   const updatePayment = useUpdatePaymentStatus();
   const createRefund = useAdminCreateRefund();
-  const updateRefundStatus = useUpdateRefundStatus();
   const queryClient = useQueryClient();
 
   const { role } = useAuthStore();
@@ -58,6 +57,10 @@ export default function OrderDetail() {
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
 
   const resolvedOrderId = order?.id || id || '';
+  const currentStatusEnum = useMemo(() => 
+    order ? (ORDER_STATUS_MAP[order.status.toString()] ?? OrderStatus.Pending) : OrderStatus.Pending
+  , [order]);
+
   const { data: shippingTasks, isLoading: isTasksLoading } = useShippingTasksByOrder(resolvedOrderId);
   const { data: paymentResponse } = useAdminPayments({ orderCode: order?.orderCode });
 
@@ -69,28 +72,24 @@ export default function OrderDetail() {
     );
   }, [paymentResponse]);
 
-  const refundingPayment = useMemo(() => {
-    return paymentResponse?.items?.find(p => p.status === 'Refunding' && p.paymentType === 'Refund');
-  }, [paymentResponse]);
+
 
   const canCreateRefund = useMemo(() => {
     if (!order) return false;
-    const currentStatus = order.status.toString();
-    const statusEnum = ORDER_STATUS_MAP[currentStatus];
 
-    const isVNPayPaid = order.paymentMethod?.toLowerCase() === 'vnpay' && isPaid;
-    if (!isVNPayPaid) return false;
+    const isRefundableMethod = (order.paymentMethod?.toLowerCase() === 'vnpay' || order.paymentMethod?.toLowerCase() === 'other') && isPaid;
+    if (!isRefundableMethod) return false;
 
     // Prevent duplicate refunds
     const hasRefundProcess = paymentResponse?.items?.some(p =>
       ['refunding', 'refunded'].includes(p.status?.toLowerCase())
     ) || ['refunding', 'refunded', 'refundedandrestocked', 'refundedanddamaged'].includes(order.paymentStatus?.toLowerCase() || '');
 
-    const isRefundableState = statusEnum === OrderStatus.Cancelled ||
-      statusEnum === OrderStatus.Returned;
+    const isRefundableState = currentStatusEnum === OrderStatus.Cancelled ||
+      currentStatusEnum === OrderStatus.Returned;
 
     return isRefundableState && !hasRefundProcess;
-  }, [order, isPaid, paymentResponse]);
+  }, [order, isPaid, paymentResponse, currentStatusEnum]);
 
   const sortedShippingTasks = useMemo(() => {
     const tasks = [...(shippingTasks || [])];
@@ -117,18 +116,34 @@ export default function OrderDetail() {
     [sortedShippingTasks, activeTask]
   );
 
+  // Bridging for QuickActionsCard buttons
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const win = window as Window & { 
+        openReturnDialog?: () => void; 
+        openExchangeDialog?: () => void; 
+      };
+      win.openReturnDialog = () => setShowProcessReturnDialog(true);
+      win.openExchangeDialog = () => setShowProcessExchangeDialog(true);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        const win = window as Window & { 
+          openReturnDialog?: () => void; 
+          openExchangeDialog?: () => void; 
+        };
+        delete win.openReturnDialog;
+        delete win.openExchangeDialog;
+      }
+    };
+  }, []);
+
   if (isLoading || isTasksLoading) {
     return <OrderDetailSkeleton />;
   }
 
   if (isError || !order) {
     return <OrderNotFound orderId={id} />;
-  }
-
-  // Bridging for QuickActionsCard buttons
-  if (typeof window !== 'undefined') {
-    (window as any).openReturnDialog = () => setShowProcessReturnDialog(true);
-    (window as any).openExchangeDialog = () => setShowProcessExchangeDialog(true);
   }
 
   const handlePrint = () => window.print();
@@ -183,9 +198,12 @@ export default function OrderDetail() {
           }, {
             onSuccess: () => {
               queryClient.invalidateQueries({ queryKey: orderKeys.detail(order!.id) });
-              queryClient.invalidateQueries({ queryKey: ['payments', 'list', { orderCode: order!.orderCode }] });
+              queryClient.invalidateQueries({ queryKey: ['payments'] });
             }
           });
+        } else {
+          queryClient.invalidateQueries({ queryKey: orderKeys.detail(order!.id) });
+          queryClient.invalidateQueries({ queryKey: ['payments'] });
         }
         setShowCancelDialog(false);
       }
@@ -205,8 +223,6 @@ export default function OrderDetail() {
       }
     });
   };
-
-  const currentStatusEnum = ORDER_STATUS_MAP[order!.status.toString()];
 
   const canCancel = currentStatusEnum === OrderStatus.Pending || currentStatusEnum === OrderStatus.Confirmed;
 
@@ -347,7 +363,7 @@ export default function OrderDetail() {
 
                         const targetStatusEnum = ORDER_STATUS_MAP[status];
                         // Business Rule 1: Cannot move status backward
-                        if (targetStatusEnum <= currentStatusEnum) return false;
+                        if (typeof targetStatusEnum === 'number' && typeof currentStatusEnum === 'number' && targetStatusEnum <= currentStatusEnum) return false;
 
                         // Business Rule 2: Cannot cancel if past Confirmed
                         if (targetStatusEnum === OrderStatus.Cancelled) {
@@ -408,31 +424,7 @@ export default function OrderDetail() {
               </Button>
             )}
 
-            {refundingPayment && (
-              <Button
-                onClick={() => {
-                  if (window.confirm("Confirm this refund has been processed?")) {
-                    updateRefundStatus.mutate({ 
-                      id: refundingPayment.id, 
-                      status: 'Refunded' 
-                    }, {
-                      onSuccess: () => {
-                        toast.success("Refund status updated to COMPLETED");
-                        queryClient.invalidateQueries({ queryKey: orderKeys.detail(id!) });
-                        queryClient.invalidateQueries({ queryKey: ['payments', 'list', { orderCode: order.orderCode }] });
-                      },
-                      onError: () => toast.error("Failed to update refund status")
-                    });
-                  }
-                }}
-                disabled={updateRefundStatus.isPending}
-                size="sm"
-                className="h-10 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black text-[10px] uppercase tracking-widest transition-all shadow-xl shadow-amber-500/10 px-5 gap-2 border-0"
-              >
-                <RotateCcw className={cn("h-4 w-4", updateRefundStatus.isPending && "animate-spin")} />
-                {updateRefundStatus.isPending ? "Processing..." : "Complete Refund"}
-              </Button>
-            )}
+
           </div>
         </div>
       </div>
@@ -454,7 +446,7 @@ export default function OrderDetail() {
                   </div>
                   <div className="flex-1">
                     <PaymentInfoCard
-                      orderCode={order.orderCode.replace(/-[NC]$/, '')}
+                      orderCode={order.orderCode}
                       paymentMethod={order.paymentMethod}
                       delay={0.15}
                     />
@@ -475,7 +467,7 @@ export default function OrderDetail() {
                 </div>
               </div>
 
-              <OrderSummary subTotal={order.subTotal} discountAmount={order.discountAmount} totalAmount={order.totalAmount} />
+              <OrderSummary subTotal={order.subTotal} discountAmount={order.discountAmount} shippingFee={order.shippingFee} totalAmount={order.totalAmount} />
             </div>
 
             <div className="col-span-12 lg:col-span-4 space-y-8">

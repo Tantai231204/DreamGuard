@@ -27,14 +27,8 @@ import {
   customizableProducts
 } from "./data";
 
-import type {
-  DesignConfig,
-  MaterialOption,
-  CustomizableProduct,
-  ProductVariant
-} from "./types";
-
-import type { CustomizeOptionGroupResponse, CustomizeOptionResponse } from "@/api/types/product.types";
+import type { DesignConfig, MaterialOption, CustomizableProduct, ProductVariant } from "./types";
+import type { CustomizationRecommendation, CustomizeOptionGroupResponse, CustomizeOptionResponse, ProductRecommendationResponse } from "@/api/types/product.types";
 
 const CustomizeStudio = () => {
   const navigate = useNavigate();
@@ -202,7 +196,24 @@ const CustomizeStudio = () => {
 
   const [sizeMode, setSizeMode] = useState<'mock' | 'input'>('mock');
   const [customDims, setCustomDims] = useState<{ width: string; height: string }>({ width: "", height: "" });
-  const [activeRecommendation, setActiveRecommendation] = useState<{ width: number; length: number; colorHex: string } | null>(null);
+  const [activeRecommendation, setActiveRecommendation] = useState<ProductRecommendationResponse | null>(null);
+
+  const updateDesign = useCallback((updates: Partial<DesignConfig>) => {
+    setDesignState(prev => {
+      const newState = { ...prev, ...updates };
+
+      // Mutual Exclusivity: Color vs Custom Image (UX Fix)
+      if (updates.customImage) {
+        // If image uploaded, use neutral white as foundation to avoid tinting
+        newState.baseColor = "#FFFFFF";
+      } else if (updates.baseColor && updates.baseColor !== prev.baseColor) {
+        // If color specifically changed, clear the custom image bọc
+        newState.customImage = undefined;
+      }
+
+      return newState;
+    });
+  }, []);
 
   const activeDesign = useMemo(() => {
     if (!selectedProduct) return { ...designState, size: "", material: "", imageMode: "wrap" } as DesignConfig;
@@ -217,6 +228,38 @@ const CustomizeStudio = () => {
 
   const currentMaterial = useMemo(() => derivedMaterials.find(m => m.id === activeDesign.material) || derivedMaterials[0], [activeDesign.material, derivedMaterials]);
   const currentSize = useMemo(() => availableSizes.find((s: { id: string }) => s.id === activeDesign.size), [availableSizes, activeDesign.size]);
+
+  // Helper to extract numbers from "Newborn - 60 × 36 cm"
+  const parseDims = useCallback((val: string) => {
+    const match = val.match(/(\d+)\s*[×x]\s*(\d+)/);
+    if (match) return { width: parseInt(match[1]), height: parseInt(match[2]) };
+    return null;
+  }, []);
+
+  const handleApplyAIRecommendation = useCallback((data: ProductRecommendationResponse) => {
+    const sizeRec = data.CustomizationRecommendations.find((r: CustomizationRecommendation) => r.Category === 'Size');
+    const colorRec = data.CustomizationRecommendations.find((r: CustomizationRecommendation) => r.Category === 'Color');
+
+    if (sizeRec) {
+      const dims = parseDims(sizeRec.RecommendedValue);
+      if (dims) {
+        setCustomDims({ width: dims.width.toString(), height: dims.height.toString() });
+        setSizeMode('input');
+      }
+    }
+
+    updateDesign({
+      baseColor: colorRec?.RecommendedValue || designState.baseColor,
+      size: sizeRec ? 'custom' : designState.size
+    });
+
+    setActiveRecommendation(data);
+
+    toast.success("Design Optimized", {
+      description: `Sanctuary parameters synchronized with baby biometric data.`,
+      icon: "✨"
+    });
+  }, [updateDesign, designState.baseColor, designState.size, parseDims]);
 
   // 🔥 Visual Scaling Logic
   const sizeDims = useMemo(() => {
@@ -262,34 +305,6 @@ const CustomizeStudio = () => {
   const wrapAddOnFee = embroideryImageFee;
 
   const totalPrice = pricingResults.current;
-
-  const updateDesign = useCallback((updates: Partial<DesignConfig>) => {
-    setDesignState(prev => {
-      const newState = { ...prev, ...updates };
-
-      // Mutual Exclusivity: Color vs Custom Image (UX Fix)
-      if (updates.customImage) {
-        // If image uploaded, use neutral white as foundation to avoid tinting
-        newState.baseColor = "#FFFFFF";
-      } else if (updates.baseColor && updates.baseColor !== prev.baseColor) {
-        // If color specifically changed, clear the custom image bọc
-        newState.customImage = undefined;
-      }
-
-      return newState;
-    });
-  }, []);
-
-  const handleApplyAIRecommendation = useCallback((rec: { width: number; length: number; colorHex: string }) => {
-    setSizeMode('input');
-    setCustomDims({ width: rec.width.toString(), height: rec.length.toString() });
-    updateDesign({ baseColor: rec.colorHex, size: 'custom' });
-    setActiveRecommendation(rec);
-    toast.success("Design Optimized", {
-      description: `Sanctuary parameters synchronized with baby biometric data.`,
-      icon: "✨"
-    });
-  }, [updateDesign]);
 
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
 
@@ -425,6 +440,15 @@ const CustomizeStudio = () => {
     }, 150);
   };
 
+  const recSize = useMemo(() => {
+    const val = activeRecommendation?.CustomizationRecommendations.find((r: CustomizationRecommendation) => r.Category === 'Size')?.RecommendedValue;
+    return val ? parseDims(val) : undefined;
+  }, [activeRecommendation, parseDims]);
+
+  const recColor = useMemo(() => {
+    return activeRecommendation?.CustomizationRecommendations.find((r: CustomizationRecommendation) => r.Category === 'Color')?.RecommendedValue;
+  }, [activeRecommendation]);
+
   if (productsLoading) {
     return <PageLoader />;
   }
@@ -470,10 +494,10 @@ const CustomizeStudio = () => {
           {/* LEFT SIDEBAR */}
           <aside className="w-[340px] bg-white border-r border-slate-100 flex flex-col h-full relative z-20">
             <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6 no-scrollbar scroll-smooth" style={{ WebkitOverflowScrolling: 'touch', willChange: 'scroll-position' }}>
-              
-              <StudioAIAdvisor 
-                onApplyRecommendation={handleApplyAIRecommendation} 
-                productType={selectedProduct?.type}
+
+              <StudioAIAdvisor
+                onApplyRecommendation={handleApplyAIRecommendation}
+                productId={selectedProduct?.id || ""}
               />
 
               {/* FOUNDATION — Product picker */}
@@ -529,7 +553,7 @@ const CustomizeStudio = () => {
                 customDimensions={customDims}
                 onDimensionsChange={setCustomDims}
                 onSelect={(id: string) => updateDesign({ size: id })}
-                recommendedDims={activeRecommendation ? { width: activeRecommendation.width, height: activeRecommendation.length } : undefined}
+                recommendedDims={recSize || undefined}
               />
 
               <ChromaProfile
@@ -537,7 +561,7 @@ const CustomizeStudio = () => {
                 selectedColor={activeDesign.baseColor}
                 addOnFee={colorAddOnFee}
                 onSelect={(hex) => updateDesign({ baseColor: hex })}
-                recommendedColor={activeRecommendation?.colorHex}
+                recommendedColor={recColor}
               />
 
               <TextureLab

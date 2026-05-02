@@ -25,7 +25,7 @@ const checkoutOrderService = {
      */
     cancelCheckoutOrder: async (id: string): Promise<void> => {
         const config: CustomAxiosRequestConfig = { _suppressToast: true };
-        await apiClient.put(`/order/${id}/cancel`, {}, config);
+        await apiClient.patch(`/checkout-product-order/${id}/cancelled`, {}, config);
     },
 
     /**
@@ -37,6 +37,15 @@ const checkoutOrderService = {
     cancelChildOrder: async (childOrderId: string): Promise<void> => {
         const config: CustomAxiosRequestConfig = { _suppressToast: true };
         await apiClient.put(`/order/${childOrderId}/cancel`, {}, config);
+    },
+
+    /**
+     * Confirm an entire checkout order.
+     * Use for: Admin confirming a COD order or manual payment order.
+     */
+    confirmCheckoutOrder: async (checkoutOrderId: string): Promise<void> => {
+        const config: CustomAxiosRequestConfig = { _suppressToast: true };
+        await apiClient.patch(`/checkout-product-order/admin/${checkoutOrderId}/confirmed`, {}, config);
     },
 };
 

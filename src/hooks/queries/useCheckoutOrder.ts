@@ -63,3 +63,19 @@ export const useCancelChildOrder = (options?: { meta?: Record<string, unknown> }
         },
     });
 };
+
+/**
+ * Confirm an entire checkout order.
+ */
+export const useConfirmCheckoutOrder = (options?: { meta?: Record<string, unknown> }) => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (id: string) => checkoutOrderService.confirmCheckoutOrder(id),
+        meta: options?.meta,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: checkoutOrderKeys.all });
+            queryClient.invalidateQueries({ queryKey: orderKeys.all });
+        },
+    });
+};

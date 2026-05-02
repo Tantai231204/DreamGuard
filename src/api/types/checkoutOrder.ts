@@ -18,6 +18,7 @@ export interface ChildOrderSummary {
   status: string;
   itemCount: number;
   totalAmount: number;
+  shippingFee?: number;
   createdAt: string;
   receiverName?: string;
   fullName?: string;

@@ -31,7 +31,7 @@ const ColorChip = memo(({ active, hex, name, isRecommended, onClick }: { active:
       <div className="absolute -top-0.5 -right-0.5 h-2 w-2 bg-[#4988c4] rounded-full border border-white" />
     )}
     {isRecommended && !active && (
-      <div className="absolute -top-1 -right-1 h-3 w-3 bg-emerald-500 rounded-full border-2 border-white flex items-center justify-center">
+      <div className="absolute -top-1 -right-1 h-3 w-3 bg-[#4988c4] rounded-full border-2 border-white flex items-center justify-center">
          <div className="w-1 h-1 bg-white rounded-full animate-pulse" />
       </div>
     )}
@@ -59,8 +59,8 @@ export const ChromaProfile = memo(({ variants, selectedColor, addOnFee = 0, onSe
         <div className="flex items-center gap-2">
           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Color</p>
           {isCustomRecommended && (
-             <span className="text-[8px] font-black text-emerald-500 uppercase bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 animate-in fade-in slide-in-from-left-1">
-               ✨ Recommended
+             <span className="text-[8px] font-bold text-[#4988c4] uppercase bg-[#4988c4]/8 px-1.5 py-0.5 rounded border border-[#4988c4]/15 animate-in fade-in slide-in-from-left-1">
+               ✨ AI Recommended
              </span>
           )}
         </div>

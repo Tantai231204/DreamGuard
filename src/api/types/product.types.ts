@@ -195,3 +195,45 @@ export interface CreateFullyCustomizedProductRequest {
 export interface UpdateFullyCustomizedProductRequest extends CreateFullyCustomizedProductRequest {
   id: string;
 }
+
+// ── AI Recommendations ──────────────────────────────────────────────
+
+export interface CustomizationRecommendation {
+  CustomizeTypeName: string;
+  Category: string;
+  RecommendedValue: string;
+  Reason: string;
+  AddOnPrice: number;
+  CalculationMode: string;
+}
+
+export interface ProductRecommendationResponse {
+  BabyId: string;
+  CustomerId: string;
+  ProductId: string;
+  ProductName: string;
+  IsCustomizable: boolean;
+  FullyCustomizedProductType: string;
+  BabyProfile: {
+    BabyId: string;
+    Name: string;
+    Gender: string;
+    DateOfBirth: string;
+    AgeMonths: number;
+    Weight: number;
+    Height: number;
+    Note: string;
+  };
+  RecommendedVariant: {
+    VariantId: string;
+    Sku: string;
+    Size: string;
+    BasePrice: number;
+    SalePrice: number;
+    Color: string | null;
+    IsCustomizable: boolean;
+    MatchReasons: string[];
+  };
+  CustomizationRecommendations: CustomizationRecommendation[];
+}
+

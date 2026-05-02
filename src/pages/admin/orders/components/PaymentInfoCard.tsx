@@ -18,8 +18,24 @@ interface PaymentInfoCardProps {
 }
 
 export const PaymentInfoCard = React.memo(({ orderCode, paymentMethod = 'COD', delay = 0 }: PaymentInfoCardProps) => {
-  const { data: paymentResponse, isPending: isLoading } = useAdminPayments({ orderCode });
-  const payments = paymentResponse?.items || [];
+  const isBatchView = React.useMemo(() => !/-[NC]$/.test(orderCode), [orderCode]);
+  const parentOrderCode = React.useMemo(() => orderCode.replace(/-[NC]$/, ''), [orderCode]);
+  const { data: paymentResponse, isPending: isLoading } = useAdminPayments({ orderCode: parentOrderCode });
+  
+  const payments = React.useMemo(() => {
+    const allItems = paymentResponse?.items || [];
+    
+    // If we are in the Parent/Batch view, we show EVERYTHING in the ledger
+    if (isBatchView) return allItems;
+
+    return allItems.filter(p => {
+      // 1. Purchase/Paid records are shared across the batch
+      if (p.paymentType === 'Purchase') return true;
+      
+      // 2. Refund records must match the specific child order code
+      return p.orderCode === orderCode;
+    });
+  }, [paymentResponse, orderCode, isBatchView]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showUpdateDialog, setShowUpdateDialog] = useState(false);
 

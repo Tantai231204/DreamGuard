@@ -7,10 +7,11 @@ interface OrderSummaryProps {
   subTotal?: number;
   discountAmount?: number;
   totalAddonPrice?: number;
+  shippingFee?: number;
   totalAmount: number;
 }
 
-export function OrderSummary({ subTotal, discountAmount, totalAddonPrice, totalAmount }: OrderSummaryProps) {
+export function OrderSummary({ subTotal, discountAmount, totalAddonPrice, shippingFee, totalAmount }: OrderSummaryProps) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.98 }}
@@ -68,7 +69,7 @@ export function OrderSummary({ subTotal, discountAmount, totalAddonPrice, totalA
             
             <div className="flex justify-between items-center group/line pt-1">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest group-hover/line:text-slate-600 transition-colors">Shipping Fee</span>
-              <span className="text-xs font-bold text-slate-400 font-mono tracking-tighter">{formatPrice(0)}</span>
+              <span className="text-xs font-black text-slate-700 font-mono tracking-tighter">+{formatPrice(shippingFee || 0)}</span>
             </div>
           </div>
 

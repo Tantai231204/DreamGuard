@@ -29,10 +29,10 @@ interface UseProcessReturnProps {
   totalPrice: number;
   onClose: () => void;
   showRefundSection: boolean;
-  isVNPayPaid?: boolean;
+  isRefundableMethod?: boolean;
 }
 
-export function useProcessReturn({ orderId, taskId, totalPrice, onClose, showRefundSection, isVNPayPaid }: UseProcessReturnProps) {
+export function useProcessReturn({ orderId, taskId, totalPrice, onClose, showRefundSection, isRefundableMethod }: UseProcessReturnProps) {
   const queryClient = useQueryClient();
   const processReturned = useProcessReturnedShippingTask();
   const createRefund = useAdminCreateRefund();
@@ -146,13 +146,13 @@ export function useProcessReturn({ orderId, taskId, totalPrice, onClose, showRef
       return;
     }
 
-    if (isVNPayPaid && refundAmount > 0 && evidenceItems.length === 0) {
-      toast.error("Evidence is required for VNPay electronic refunds.");
+    if (isRefundableMethod && refundAmount > 0 && evidenceItems.length === 0) {
+      toast.error("Evidence is required for refund processing.");
       return;
     }
 
     let uploadedUrls: string[] = [];
-    if ((hasDamages || (isVNPayPaid && refundAmount > 0)) && evidenceItems.length > 0) {
+    if ((hasDamages || (isRefundableMethod && refundAmount > 0)) && evidenceItems.length > 0) {
       setIsUploadingEvidence(true);
       try {
         uploadedUrls = await uploadEvidenceItems(
@@ -208,7 +208,7 @@ export function useProcessReturn({ orderId, taskId, totalPrice, onClose, showRef
     } catch {
       toast.error("Return processing failed.");
     }
-  }, [taskId, hasDamages, damageNote, selectedReason, evidenceItems, damagedQty, processReturned, orderId, showRefundSection, refundAmount, createRefund, queryClient, resetAndClose, updateEvidenceItem]);
+  }, [taskId, hasDamages, damageNote, selectedReason, evidenceItems, damagedQty, processReturned, orderId, showRefundSection, refundAmount, createRefund, queryClient, resetAndClose, updateEvidenceItem, isRefundableMethod]);
 
   // --- Derived ---
   const totalDamaged = useMemo(() => Object.values(damagedQty).reduce((s, q) => s + q, 0), [damagedQty]);

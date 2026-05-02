@@ -164,11 +164,13 @@ export default function AdminCheckoutOrderDetail() {
     const [selectedChildForAssign, setSelectedChildForAssign] = useState<string | null>(null);
     const [isBulkAssignOpen, setIsBulkAssignOpen] = useState(false);
 
-    const subOrdersTotal = useMemo(() => {
-        return order?.childOrders?.reduce((sum, child) => sum + child.totalAmount, 0) || 0;
+    const totalShippingFee = useMemo(() => {
+        return order?.childOrders?.reduce((sum, child) => sum + (child.shippingFee || 0), 0) || 0;
     }, [order?.childOrders]);
 
-    const shippingFee = (order?.totalAmount || 0) - subOrdersTotal;
+    const totalProductPrice = useMemo(() => {
+        return order?.childOrders?.reduce((sum, child) => sum + (child.totalAmount - (child.shippingFee || 0)), 0) || 0;
+    }, [order?.childOrders]);
 
     const assignableChildOrderIds = useMemo(() => {
         return order?.childOrders?.filter(child => {
@@ -211,7 +213,8 @@ export default function AdminCheckoutOrderDetail() {
                         </h1>
                     </div>
 
-                    <div className="flex items-center gap-8">
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-8 border-l border-slate-100 pl-8 ml-4">
                         {(order.refundedAmount > 0 || order.refundingAmount > 0) && (
                             <div className="text-right px-6 border-r border-slate-100 flex flex-col justify-center">
                                 <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest mb-1.5">Refund Asset Breakdown</p>
@@ -235,14 +238,15 @@ export default function AdminCheckoutOrderDetail() {
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Valuation</p>
                             <p className="text-xl font-black text-[#4988c4] tracking-tighter">{formatPrice(order.totalAmount)}</p>
                             <div className="flex items-center justify-end gap-2 mt-1">
-                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Products: {formatPrice(subOrdersTotal)}</span>
+                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Products: {formatPrice(totalProductPrice)}</span>
                                 <span className="w-1 h-1 rounded-full bg-slate-200" />
-                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Logistics: {formatPrice(shippingFee)}</span>
+                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Logistics: {formatPrice(totalShippingFee)}</span>
                             </div>
                         </div>
                         <div className="text-right">
                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Timestamp</p>
                             <p className="text-sm font-bold text-slate-700">{formatDate(order.createdAt)}</p>
+                        </div>
                         </div>
                     </div>
                 </div>
@@ -326,6 +330,7 @@ export default function AdminCheckoutOrderDetail() {
                 onClose={() => setIsBulkAssignOpen(false)}
                 orderIds={assignableChildOrderIds}
             />
+
         </div>
     );
 }

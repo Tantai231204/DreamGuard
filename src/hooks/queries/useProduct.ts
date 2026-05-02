@@ -402,6 +402,14 @@ export const useDeleteFullyCustomize = () => {
   });
 };
 
+/** Get AI customization recommendations based on baby profile */
+export const useCustomizationRecommendation = () => {
+  return useMutation({
+    mutationFn: ({ babyId, productId }: { babyId: string; productId: string }) =>
+      productService.getCustomizationRecommendation(babyId, productId),
+  });
+};
+
 // ========================
 // Variant Mutations
 // ========================

@@ -108,9 +108,9 @@ export function CancelOrderDialog({
     }
   };
 
-  const isVNPayPaid = paymentMethod?.toLowerCase() === 'vnpay' &&
+  const isRefundableMethod = (paymentMethod?.toLowerCase() === 'vnpay' || paymentMethod?.toLowerCase() === 'other') &&
     (paymentStatus?.toLowerCase() === 'paid' || paymentStatus?.toLowerCase() === 'codpaid');
-  const showRefundSection = isRefundOnly || (isVNPayPaid && totalPrice > 0);
+  const showRefundSection = isRefundOnly || (isRefundableMethod && totalPrice > 0);
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>

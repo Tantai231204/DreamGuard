@@ -93,9 +93,9 @@ export function CancelBookingDialog({
   const isForcedCancel = (mergedOrderTaskStatus || '').toLowerCase() === 'forcedcancelled';
   const isReject = (normalizedStatus === 'pending' || normalizedStatus === 'rescheduled' || normalizedStatus === 'waiting' || normalizedStatus === 'unconfirmed') && !isForcedCancel;
 
-  const isVNPayPaid = paymentMethod?.toLowerCase() === 'vnpay' &&
+  const isRefundableMethod = (paymentMethod?.toLowerCase() === 'vnpay' || paymentMethod?.toLowerCase() === 'other') &&
     (paymentStatus?.toLowerCase() === 'paid' || paymentStatus?.toLowerCase() === 'codpaid');
-  const showRefundSection = isRefundOnly || (isVNPayPaid && totalPrice > 0);
+  const showRefundSection = isRefundOnly || (isRefundableMethod && totalPrice > 0);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
