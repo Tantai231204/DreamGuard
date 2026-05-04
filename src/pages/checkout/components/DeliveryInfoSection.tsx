@@ -17,21 +17,27 @@ import { useAuthStore } from "@/store/authStore"
 import { useAddresses } from "@/hooks/useAddress"
 import { useProfile } from "@/hooks/queries/useUser"
 import { Skeleton } from "@/components/ui/skeleton"
-import { MapPin, CheckCircle2, ShoppingBag, User, Phone, Mail, Navigation2, Plus } from "lucide-react"
+import { useWatch } from "react-hook-form"
+import { MapPin, ShoppingBag, User, Phone, Mail, Navigation2, Plus, Loader2 } from "lucide-react"
 import type { Address } from "@/api/types/address"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
+import { useToast } from "@/hooks/useToast"
+import * as addressService from "@/api/services/address.service"
+import type { CreateAddressPayload } from "@/api/types/address"
+import { queryClient as libQueryClient } from "@/lib/queryClient"
 
 interface DeliveryInfoSectionProps {
     form: UseFormReturn<CheckoutFormData>
 }
 
 function DeliveryInfoSectionInner({ form }: DeliveryInfoSectionProps) {
-    const { register, setValue, watch, formState: { errors } } = form
-    const selectedCityCode = watch("city")
-    const selectedDistrictCode = watch("district")
-    const firstNameValue = watch("firstName")
-    const lastNameValue = watch("lastName")
+    const { register, setValue, control, formState: { errors } } = form
+    
+    const selectedCityCode = useWatch({ control, name: "city" })
+    const selectedDistrictCode = useWatch({ control, name: "district" })
+    const firstNameValue = useWatch({ control, name: "firstName" })
+    const lastNameValue = useWatch({ control, name: "lastName" })
 
     const { isAuthenticated } = useAuthStore()
     const { data: addresses, isLoading: isLoadingAddresses } = useAddresses()
@@ -39,6 +45,8 @@ function DeliveryInfoSectionInner({ form }: DeliveryInfoSectionProps) {
 
     const [isManualEntry, setIsManualEntry] = useState(false)
     const [selectedId, setSelectedId] = useState<string | null>(null)
+    const [isSaving, setIsSaving] = useState(false)
+    const { success, error: toastError } = useToast()
 
     const handleSelectAddress = useCallback((addr: Address) => {
         setSelectedId(addr.addressId)
@@ -48,7 +56,7 @@ function DeliveryInfoSectionInner({ form }: DeliveryInfoSectionProps) {
         const firstName = names[0] || ""
         const lastName = names.length > 1 ? names.slice(1).join(" ") : names[0]
 
-        setValue("addressId", addr.addressId)
+        setValue("addressId", addr.addressId, { shouldValidate: true })
         setValue("firstName", firstName, { shouldValidate: true })
         setValue("lastName", lastName, { shouldValidate: true })
         setValue("phone", addr.phoneNumber, { shouldValidate: true })
@@ -58,13 +66,21 @@ function DeliveryInfoSectionInner({ form }: DeliveryInfoSectionProps) {
             setValue("email", profile.email, { shouldValidate: true })
         }
 
-        const province = vnAddress.find(p => p.name.toLowerCase().includes(addr.province.toLowerCase()))
+        const normalize = (s: string) => {
+            if (!s) return "";
+            return s.toLowerCase()
+                .replace(/^(tp\.|thành phố|tỉnh|quận|huyện|thị xã|phường|xã)\s+/, "")
+                .trim();
+        };
+        
+        const province = vnAddress.find(p => normalize(p.name).includes(normalize(addr.province)) || normalize(addr.province).includes(normalize(p.name)));
+        
         if (province) {
             setValue("city", province.code, { shouldValidate: true })
-            const district = province.districts.find(d => d.name.toLowerCase().includes(addr.district.toLowerCase()))
+            const district = province.districts.find(d => normalize(d.name).includes(normalize(addr.district)) || normalize(addr.district).includes(normalize(d.name)));
             if (district) {
                 setValue("district", district.code, { shouldValidate: true })
-                const ward = district.wards.find(w => w.name.toLowerCase().includes(addr.ward.toLowerCase()))
+                const ward = district.wards.find(w => normalize(w.name).includes(normalize(addr.ward)) || normalize(addr.ward).includes(normalize(w.name)));
                 if (ward) {
                     setValue("ward", ward.code, { shouldValidate: true })
                 }
@@ -72,10 +88,66 @@ function DeliveryInfoSectionInner({ form }: DeliveryInfoSectionProps) {
         }
     }, [profile, setValue])
 
+    const handleSaveAndUseAddress = async () => {
+        const values = form.getValues()
+        
+        // Basic validation
+        if (!values.firstName || !values.lastName || !values.phone || !values.city || !values.district || !values.ward || !values.streetAddress) {
+            toastError("Missing Information", "Please fill in all address fields before confirming.")
+            return
+        }
+
+        setIsSaving(true)
+        try {
+            const cityObj = vnAddress.find(p => p.code === values.city)
+            const districtObj = cityObj?.districts.find(d => d.code === values.district)
+            const wardObj = districtObj?.wards.find(w => w.code === values.ward)
+
+            if (!cityObj || !districtObj || !wardObj) {
+                throw new Error("Invalid location selection.")
+            }
+
+            const payload: CreateAddressPayload = {
+                receiverName: `${values.firstName} ${values.lastName}`,
+                phoneNumber: values.phone,
+                street: values.streetAddress,
+                province: cityObj.name,
+                city: cityObj.name,
+                district: districtObj.name,
+                ward: wardObj.name
+            }
+
+            const createdId = await addressService.createAddress(payload)
+            
+            if (createdId) {
+                success(
+                    "Address Confirmed",
+                    "Your address has been saved and selected for this order.",
+                )
+                
+                // Invalidate addresses query to show the new one in the list
+                libQueryClient.invalidateQueries({ queryKey: ["addresses"] })
+                
+                // Set the ID in form
+                setValue("addressId", createdId, { shouldValidate: true })
+                
+                // Switch back to "Saved" view to show it's selected
+                setSelectedId(createdId)
+                setIsManualEntry(false)
+            }
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "Failed to save address."
+            toastError("Address Error", message)
+        } finally {
+            setIsSaving(false)
+        }
+    }
+
     const handleAddCustomAddress = useCallback(() => {
         setIsManualEntry(true)
         setSelectedId(null)
-    }, [])
+        setValue("addressId", null, { shouldValidate: true })
+    }, [setValue])
 
     // Initial load: Set default address or switch to manual if guest
     useEffect(() => {
@@ -103,17 +175,6 @@ function DeliveryInfoSectionInner({ form }: DeliveryInfoSectionProps) {
     const wards = useMemo(() => {
         return districts.find(d => d.code === selectedDistrictCode)?.wards || []
     }, [selectedDistrictCode, districts])
-
-    // Reset dependents when parents change
-    useEffect(() => {
-        if (selectedCityCode) {
-            const isValid = provinces.some(p => p.code === selectedCityCode)
-            if (!isValid) {
-                setValue("district", "")
-                setValue("ward", "")
-            }
-        }
-    }, [selectedCityCode, provinces, setValue])
 
     if (isLoadingAddresses) {
         return (
@@ -143,7 +204,6 @@ function DeliveryInfoSectionInner({ form }: DeliveryInfoSectionProps) {
 
     return (
         <div className="group rounded-[2rem] border border-slate-100 bg-white p-6 shadow-xl shadow-slate-200/30 hover:shadow-2xl hover:shadow-slate-300/20 transition-all duration-500">
-            {/* Section Header */}
             <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-6 gap-4">
                 <div className="space-y-2">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-500/10 text-primary-500 border border-primary-500/20">
@@ -161,14 +221,14 @@ function DeliveryInfoSectionInner({ form }: DeliveryInfoSectionProps) {
                         type="button"
                         variant="ghost"
                         onClick={() => {
-                            setIsManualEntry(!isManualEntry)
-                            if (!isManualEntry) {
+                            const nextManualState = !isManualEntry
+                            setIsManualEntry(nextManualState)
+                            if (nextManualState) {
                                 setSelectedId(null)
-                                setValue("addressId", null)
+                                setValue("addressId", null, { shouldValidate: true })
                             }
                         }}
                         className="h-9 px-3.5 rounded-xl bg-slate-50 text-slate-600 hover:bg-primary-500 hover:text-white transition-all duration-300 group/btn"
-                        aria-label={isManualEntry ? "Switch to saved addresses" : "Switch to custom address"}
                     >
                         <div className="flex items-center gap-3">
                             {isManualEntry ? <MapPin className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
@@ -189,50 +249,33 @@ function DeliveryInfoSectionInner({ form }: DeliveryInfoSectionProps) {
                         exit={{ opacity: 0, y: -20 }}
                         className="space-y-6"
                     >
-                        {/* Identity Grid */}
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                             <div className="space-y-2">
                                 <Label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1 flex items-center gap-2">
                                     <User className="w-3 h-3 text-primary-500" /> First Name
                                 </Label>
-                                <div className="relative">
-                                    <Input
-                                        id="firstName"
-                                        {...register("firstName")}
-                                        placeholder="Enter your first name"
-                                        className={cn(
-                                            "h-12 rounded-2xl border-slate-100 bg-slate-50/50 border-2 focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/5 transition-all duration-300 font-bold placeholder:text-slate-300",
-                                            firstNameValue && !errors.firstName && "border-emerald-100 bg-emerald-50/10"
-                                        )}
-                                    />
-                                    {firstNameValue && !errors.firstName && (
-                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-500 animate-in zoom-in">
-                                            <CheckCircle2 className="w-4 h-4" />
-                                        </div>
+                                <Input
+                                    {...register("firstName")}
+                                    placeholder="Enter your first name"
+                                    className={cn(
+                                        "h-12 rounded-2xl border-slate-100 bg-slate-50/50 border-2 focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/5 transition-all duration-300 font-bold placeholder:text-slate-300",
+                                        firstNameValue && !errors.firstName && "border-emerald-100 bg-emerald-50/10"
                                     )}
-                                </div>
+                                />
                                 {errors.firstName && <p className="text-[10px] text-rose-500 font-black ml-1 uppercase tracking-wider">{errors.firstName.message}</p>}
                             </div>
                             <div className="space-y-2">
                                 <Label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1 flex items-center gap-2">
                                     <User className="w-3 h-3 text-primary-500" /> Last Name
                                 </Label>
-                                <div className="relative">
-                                    <Input
-                                        id="lastName"
-                                        {...register("lastName")}
-                                        placeholder="Enter your last name"
-                                        className={cn(
-                                            "h-12 rounded-2xl border-slate-100 bg-slate-50/50 border-2 focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/5 transition-all duration-300 font-bold placeholder:text-slate-300",
-                                            lastNameValue && !errors.lastName && "border-emerald-100 bg-emerald-50/10"
-                                        )}
-                                    />
-                                    {lastNameValue && !errors.lastName && (
-                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-500 animate-in zoom-in">
-                                            <CheckCircle2 className="w-4 h-4" />
-                                        </div>
+                                <Input
+                                    {...register("lastName")}
+                                    placeholder="Enter your last name"
+                                    className={cn(
+                                        "h-12 rounded-2xl border-slate-100 bg-slate-50/50 border-2 focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-500/5 transition-all duration-300 font-bold placeholder:text-slate-300",
+                                        lastNameValue && !errors.lastName && "border-emerald-100 bg-emerald-50/10"
                                     )}
-                                </div>
+                                />
                                 {errors.lastName && <p className="text-[10px] text-rose-500 font-black ml-1 uppercase tracking-wider">{errors.lastName.message}</p>}
                             </div>
                             <div className="space-y-2">
@@ -248,7 +291,6 @@ function DeliveryInfoSectionInner({ form }: DeliveryInfoSectionProps) {
                             </div>
                         </div>
 
-                        {/* Location Detail */}
                         <div className="space-y-6">
                             <div className="space-y-2">
                                 <Label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1 flex items-center gap-2">
@@ -273,7 +315,6 @@ function DeliveryInfoSectionInner({ form }: DeliveryInfoSectionProps) {
                                 {errors.streetAddress && <p className="text-[10px] text-rose-500 font-black ml-1 uppercase tracking-wider">{errors.streetAddress.message}</p>}
                             </div>
 
-                            {/* Geographical Selects */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="space-y-2">
                                     <Label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Province / City</Label>
@@ -292,9 +333,9 @@ function DeliveryInfoSectionInner({ form }: DeliveryInfoSectionProps) {
                                                 <SelectTrigger className="h-12 rounded-2xl border-2 border-slate-100 bg-slate-50/50 focus:ring-4 focus:ring-primary-500/5 transition-all font-bold">
                                                     <SelectValue placeholder="Select City" />
                                                 </SelectTrigger>
-                                                <SelectContent className="rounded-2xl border-slate-100 animate-in fade-in-0 zoom-in-95">
+                                                <SelectContent className="rounded-2xl border-slate-100">
                                                     {provinces.map(p => (
-                                                        <SelectItem key={p.code} value={p.code} className="rounded-xl my-1 focus:bg-primary-500 focus:text-white transition-colors">
+                                                        <SelectItem key={p.code} value={p.code} className="rounded-xl my-1">
                                                             {p.name}
                                                         </SelectItem>
                                                     ))}
@@ -357,14 +398,34 @@ function DeliveryInfoSectionInner({ form }: DeliveryInfoSectionProps) {
                                     />
                                 </div>
                             </div>
+
+                            <div className="flex justify-start pt-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleSaveAndUseAddress}
+                                    disabled={isSaving}
+                                    className="rounded-xl h-10 px-6 font-bold text-[11px] uppercase tracking-wider border-slate-200 text-slate-500 hover:bg-primary-500 hover:border-primary-500 hover:text-white transition-all duration-300"
+                                >
+                                    {isSaving ? (
+                                        <>
+                                            <Loader2 className="w-3 h-3 mr-2 animate-spin" />
+                                            Saving...
+                                        </>
+                                    ) : (
+                                        "Save & Use This Address"
+                                    )}
+                                </Button>
+                            </div>
                         </div>
                     </motion.div>
                 ) : (
                     <motion.div
                         key="address-grid"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
                         className="grid grid-cols-1 md:grid-cols-2 gap-5"
                     >
                         <AddressCardList
@@ -377,7 +438,6 @@ function DeliveryInfoSectionInner({ form }: DeliveryInfoSectionProps) {
                 )}
             </AnimatePresence>
 
-            {/* Delivery Instructions */}
             <div className="mt-10 pt-8 border-t border-slate-50">
                 <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">

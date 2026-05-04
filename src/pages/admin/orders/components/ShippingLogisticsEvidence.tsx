@@ -9,6 +9,7 @@ interface ShippingLogisticsEvidenceProps {
     taskId: string;
     taskLabel?: string;
     delay?: number;
+    orderItems?: Array<{ id: string; itemName: string }>;
 }
 
 const MANAGER_NOTE_SPLITTER = /\s\|\sManager Note(?:\s*\(([^)]+)\))?:\s*/i;
@@ -55,7 +56,7 @@ const parseTaskNotes = (rawNote?: string | null) => {
     };
 };
 
-export const ShippingLogisticsEvidence = memo(function ShippingLogisticsEvidence({ taskId, taskLabel, delay = 0 }: ShippingLogisticsEvidenceProps) {
+export const ShippingLogisticsEvidence = memo(function ShippingLogisticsEvidence({ taskId, taskLabel, delay = 0, orderItems }: ShippingLogisticsEvidenceProps) {
     const { data: task, isLoading } = useShippingTaskDetail(taskId);
 
     if (isLoading) {
@@ -118,6 +119,30 @@ export const ShippingLogisticsEvidence = memo(function ShippingLogisticsEvidence
                                 )}
                             </div>
                             <p className="text-sm text-slate-700 leading-relaxed">{parsedNotes.managerNote}</p>
+                        </div>
+                    )}
+
+                    {task?.damagedItems && task.damagedItems.length > 0 && (
+                        <div className="mt-4 pt-4 border-t border-slate-200">
+                            <div className="flex items-center gap-2 mb-2.5">
+                                <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                                <p className="text-[10px] font-black uppercase tracking-[0.14em] text-rose-500">Damage Assessment</p>
+                            </div>
+                            <div className="space-y-1.5">
+                                {task.damagedItems.map((item, idx) => {
+                                    const productName = orderItems?.find(oi => oi.id === item.orderItemId)?.itemName || `Item #${item.orderItemId.substring(0, 8)}`;
+                                    return (
+                                        <div key={idx} className="flex items-center justify-between bg-white/50 px-3 py-2 rounded-lg border border-rose-100/50">
+                                            <span className="text-[11px] font-bold text-slate-700 truncate mr-2">{productName}</span>
+                                            <div className="flex items-center gap-1.5 shrink-0">
+                                                <span className="text-[9px] font-black text-rose-600 uppercase tracking-widest bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100">
+                                                    Qty: {item.damagedQuantity}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
                     )}
                 </Card>

@@ -83,7 +83,7 @@ export default function OrderDetail() {
     // Prevent duplicate refunds
     const hasRefundProcess = paymentResponse?.items?.some(p =>
       ['refunding', 'refunded'].includes(p.status?.toLowerCase())
-    ) || ['refunding', 'refunded', 'refundedandrestocked', 'refundedanddamaged'].includes(order.paymentStatus?.toLowerCase() || '');
+    ) || ['refunding', 'refunded', 'returnedandrefunding', 'returnedandrefunded'].includes(order.paymentStatus?.toLowerCase() || '');
 
     const isRefundableState = currentStatusEnum === OrderStatus.Cancelled ||
       currentStatusEnum === OrderStatus.Returned;
@@ -273,7 +273,7 @@ export default function OrderDetail() {
             timestamp: task.completionDate,
             icon: 'check',
           });
-        } else if ((task.status === "RefundedAndRestocked" || task.status === "RefundedAndDamaged" || task.status === "Returning") && task.completionDate) {
+        } else if ((task.status === "ReturnedAndRefunding" || task.status === "ReturnedAndRefunded" || task.status === "Returning") && task.completionDate) {
           items.push({
             title: 'Returning',
             description: `Return procedure initiated. ${task.staffNote ? `(${task.staffNote})` : ''}`,
@@ -384,6 +384,14 @@ export default function OrderDetail() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
+              {order.items?.some(item => (item.exchangeRequestedQuantity || 0) > 0) && (
+                <div className="flex items-center gap-2 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-md shadow-sm animate-pulse">
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                  <span className="text-[9px] font-black text-amber-600 uppercase tracking-widest">
+                    {order.items.reduce((acc, item) => acc + (item.exchangeRequestedQuantity || 0), 0)} Items Reshipping
+                  </span>
+                </div>
+              )}
             </div>
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">
               Logistic Intelligence <span className="text-slate-400 font-medium">#{order.id.substring(0, 8).toUpperCase()}</span>
@@ -488,8 +496,8 @@ export default function OrderDetail() {
                     currentStatusEnum !== OrderStatus.Pending &&
                     currentStatusEnum !== OrderStatus.Completed &&
                     currentStatusEnum !== OrderStatus.Returned &&
-                    currentStatusEnum !== OrderStatus.RefundedAndRestocked &&
-                    currentStatusEnum !== OrderStatus.RefundedAndDamaged
+                    currentStatusEnum !== OrderStatus.ReturnedAndRefunding &&
+                    currentStatusEnum !== OrderStatus.ReturnedAndRefunded
                   }
                 />
               )}
@@ -498,6 +506,7 @@ export default function OrderDetail() {
                 <ShippingLogisticsEvidence
                   taskId={activeTask.shippingTaskId}
                   taskLabel="Current Task"
+                  orderItems={order.items}
                   delay={0.15}
                 />
               )}
@@ -507,6 +516,7 @@ export default function OrderDetail() {
                   key={task.shippingTaskId}
                   taskId={task.shippingTaskId}
                   taskLabel={`Previous Task ${index + 1}`}
+                  orderItems={order.items}
                   delay={0.18 + (index * 0.03)}
                 />
               ))}

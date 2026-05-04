@@ -65,7 +65,8 @@ export const ProcessReturnDialog = memo(function ProcessReturnDialog({
     percentage,
     refundAmount,
     isSubmitting,
-    uploadedCount
+    uploadedCount,
+    isRefund
   } = state;
 
   const {
@@ -78,7 +79,8 @@ export const ProcessReturnDialog = memo(function ProcessReturnDialog({
     resetAndClose,
     addEvidenceFiles,
     removeEvidenceFile,
-    handleConfirm
+    handleConfirm,
+    setIsRefund
   } = actions;
 
   const totalUnits = items.reduce((s, i) => s + i.quantity, 0);
@@ -213,6 +215,8 @@ export const ProcessReturnDialog = memo(function ProcessReturnDialog({
                   setRefundAmount={setRefundAmount}
                   paymentMethod={paymentMethod}
                   paymentStatus={paymentStatus}
+                  isRefund={isRefund}
+                  setIsRefund={setIsRefund}
                 />
               </motion.div>
             )}

@@ -174,21 +174,41 @@ export function OrderItemRow({ item, orderStatus, orderId }: OrderItemRowProps) 
                     )}
 
                     <div className="flex items-center justify-between mt-4">
-                        <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2">
-                                <span className="text-[11px] font-black text-gray-300 uppercase tracking-widest">Qty</span>
-                                <span className="text-[13px] font-black text-gray-900">x{item.quantity}</span>
-                            </div>
+                        <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-[11px] font-black text-gray-300 uppercase tracking-widest">Qty</span>
+                                    <span className="text-[13px] font-black text-gray-900">x{item.quantity}</span>
+                                </div>
 
-                            {/* Rating Section */}
-                            {(orderStatus === 5 || orderStatus === "Completed") && (
-                                <div className="pl-4 border-l border-gray-100">
-                                    <FeedbackDialog
-                                        orderItemId={item.id}
-                                        itemName={item.itemName}
-                                        itemImage={displayImage}
-                                        existingFeedback={feedback}
-                                    />
+                                {/* Rating Section */}
+                                {(orderStatus === 5 || orderStatus === "Completed") && (
+                                    <div className="pl-4 border-l border-gray-100">
+                                        <FeedbackDialog
+                                            orderItemId={item.id}
+                                            itemName={item.itemName}
+                                            itemImage={displayImage}
+                                            existingFeedback={feedback}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                            
+                            {item.exchangeRequestedQuantity && item.exchangeRequestedQuantity > 0 && (
+                                <div className="flex items-center gap-3 bg-blue-50/50 border border-blue-100/50 px-3 py-1.5 rounded-lg w-fit">
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="w-1 h-1 rounded-full bg-emerald-500" />
+                                        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">
+                                            {item.quantity - item.exchangeRequestedQuantity} Delivered
+                                        </span>
+                                    </div>
+                                    <div className="w-px h-2 bg-blue-200" />
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="w-1 h-1 rounded-full bg-amber-500 animate-pulse" />
+                                        <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest">
+                                            {item.exchangeRequestedQuantity} Reshipping
+                                        </span>
+                                    </div>
                                 </div>
                             )}
                         </div>

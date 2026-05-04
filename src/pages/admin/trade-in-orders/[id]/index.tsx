@@ -32,8 +32,8 @@ export default function TradeInOrderDetail() {
     'EXCHANGE_REQUESTED',
     'SHIPPING_REPLACEMENT',
     'FORCED_CANCELLED',
-    'REFUNDED_AND_RESTOCKED',
-    'REFUNDED_AND_DAMAGED',
+    'RETURNED_AND_REFUNDING',
+    'RETURNED_AND_REFUNDED',
     'COMPLETED',
   ].includes(normalizedStatus);
   const { data: shippingTasks } = useShippingTasksByTradeInOrder(
@@ -110,8 +110,8 @@ export default function TradeInOrderDetail() {
             icon: 'check',
           });
         } else if (
-          (task.status === 'RefundedAndRestocked' ||
-            task.status === 'RefundedAndDamaged' ||
+          (task.status === 'ReturnedAndRefunding' ||
+            task.status === 'ReturnedAndRefunded' ||
             task.status === 'Returning') &&
           task.completionDate
         ) {
@@ -499,6 +499,7 @@ export default function TradeInOrderDetail() {
                 <ShippingLogisticsEvidence
                   taskId={activeTask.shippingTaskId}
                   taskLabel="Current Task"
+                  orderItems={order.orderItem ? [order.orderItem] : []}
                   delay={0.15}
                 />
               )}
@@ -508,6 +509,7 @@ export default function TradeInOrderDetail() {
                   key={task.shippingTaskId}
                   taskId={task.shippingTaskId}
                   taskLabel={`Previous Task ${index + 1}`}
+                  orderItems={order.orderItem ? [order.orderItem] : []}
                   delay={0.18 + (index * 0.03)}
                 />
               ))}

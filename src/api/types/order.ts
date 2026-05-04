@@ -18,8 +18,8 @@ export const OrderStatusValue = {
     Cancelled: 6,
     Returned: 7,
     Returning: 8,
-    RefundedAndRestocked: 9,
-    RefundedAndDamaged: 10,
+    ReturnedAndRefunding: 9,
+    ReturnedAndRefunded: 10,
     ExchangeRequested: 11,
     Shipping_Replacement: 12
 } as const;
@@ -58,6 +58,8 @@ export interface OrderItem {
     image?: string;
     productCustomizeDetails?: ProductCustomizeDetail[];
     customizeHash?: string;
+    exchangeRequestedQuantity?: number;
+    tradeInUsedAmount?: number;
 }
 
 export interface TradeInEligibleOrderItem extends OrderItem {

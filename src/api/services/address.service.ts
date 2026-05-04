@@ -35,8 +35,38 @@ export const createAddress = async (
   payload: CreateAddressPayload,
 ): Promise<string> => {
   const res = await api.post("/Addresses", payload)
-  const data = res.data?.data ?? res.data
-  return data?.addressId ?? data?.id ?? (typeof data === 'string' ? data : null)
+  const body = res.data
+  
+  // Extract ID with extreme prejudice across all common backend patterns
+  let rawId = 
+    body?.data?.addressId ?? 
+    body?.data?.id ?? 
+    body?.addressId ?? 
+    body?.id ?? 
+    body?.data?.AddressId ?? 
+    body?.data?.Id ?? 
+    body?.AddressId ?? 
+    body?.Id ?? 
+    body?.data?.address_id ??
+    body?.address_id ??
+    (typeof body?.data === 'string' ? body.data : null) ??
+    (typeof body === 'string' ? body : null);
+
+  // Ultimate Fallback: Regex search through the entire body string for a GUID
+  if (!rawId && body) {
+    const bodyString = JSON.stringify(body);
+    const guidMatch = bodyString.match(/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i);
+    if (guidMatch) {
+      rawId = guidMatch[0];
+    }
+  }
+
+  if (!rawId) {
+    console.error("Address creation response missing ID:", body);
+    throw new Error("Address created but no ID was returned by the server. Please try again.");
+  }
+
+  return String(rawId).trim().replace(/^["']+|["']+$/g, '');
 }
 
 /* 

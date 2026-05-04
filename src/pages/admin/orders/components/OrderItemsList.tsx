@@ -228,8 +228,24 @@ function OrderItemRow({ item, index }: OrderItemRowProps) {
         </div>
 
         <div className="col-span-2 text-center hidden md:block">
-          <div className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-50 text-[10px] font-black text-slate-900 border border-slate-100">
-            {item.quantity}
+          <div className="flex flex-col items-center gap-1">
+            <div className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-50 text-[10px] font-black text-slate-900 border border-slate-100">
+              {item.quantity}
+            </div>
+            {item.exchangeRequestedQuantity && item.exchangeRequestedQuantity > 0 ? (
+              <div className="flex flex-col items-center gap-0.5">
+                <span className="text-[8px] font-black text-emerald-600 uppercase tracking-tighter">
+                  {item.quantity - item.exchangeRequestedQuantity} Delivered
+                </span>
+                <span className="text-[8px] font-black text-amber-600 uppercase tracking-tighter">
+                  {item.exchangeRequestedQuantity} Reship
+                </span>
+              </div>
+            ) : (
+              <span className="text-[8px] font-black text-slate-400 uppercase tracking-tighter">
+                Full Shipment
+              </span>
+            )}
           </div>
         </div>
 
@@ -242,20 +258,32 @@ function OrderItemRow({ item, index }: OrderItemRowProps) {
           </span>
         </div>
 
-        <div className="flex md:hidden items-center justify-between mt-4 pt-4 border-t border-slate-50">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Qty:</span>
-            <span className="text-xs font-black text-slate-900">{item.quantity}</span>
+        <div className="flex md:hidden flex-col gap-3 mt-4 pt-4 border-t border-slate-50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Qty:</span>
+              <span className="text-xs font-black text-slate-900">{item.quantity}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Total:</span>
+              <span className="text-sm font-black text-primary tracking-tighter">
+                {formatPrice(
+                  (item.unitPrice * item.quantity) +
+                  (item.productCustomizeDetails?.reduce((acc, curr) => acc + curr.addOnPrice, 0) || 0)
+                )}
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Total:</span>
-            <span className="text-sm font-black text-primary tracking-tighter">
-              {formatPrice(
-                (item.unitPrice * item.quantity) +
-                (item.productCustomizeDetails?.reduce((acc, curr) => acc + curr.addOnPrice, 0) || 0)
-              )}
-            </span>
-          </div>
+          {item.exchangeRequestedQuantity && item.exchangeRequestedQuantity > 0 && (
+            <div className="flex items-center justify-between bg-slate-50 p-2 rounded-lg border border-slate-100">
+              <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">
+                {item.quantity - item.exchangeRequestedQuantity} Delivered Successfully
+              </span>
+              <span className="text-[8px] font-black text-amber-600 uppercase tracking-widest">
+                {item.exchangeRequestedQuantity} Needs Reshipment
+              </span>
+            </div>
+          )}
         </div>
       </div>
 

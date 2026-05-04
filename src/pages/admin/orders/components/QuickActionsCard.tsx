@@ -13,6 +13,13 @@ interface QuickActionsCardProps {
   delay?: number;
 }
 
+declare global {
+  interface Window {
+    openExchangeDialog?: () => void;
+    openReturnDialog?: () => void;
+  }
+}
+
 export function QuickActionsCard({
   currentStatusEnum,
   onUpdateStatus,
@@ -118,14 +125,14 @@ export function QuickActionsCard({
           {currentStatusEnum === OrderStatus.Returning && (
             <div className="space-y-3">
               <Button
-                onClick={() => (window as any).openExchangeDialog?.()}
+                onClick={() => window.openExchangeDialog?.()}
                 className="w-full justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-12 text-[11px] font-black uppercase tracking-widest transition-all shadow-md shadow-blue-500/20 border-none group"
               >
                 <RefreshCw className="h-4 w-4 transition-transform group-hover:scale-110" />
                 Process Replacement / Exchange
               </Button>
               <Button
-                onClick={() => (window as any).openReturnDialog?.()}
+                onClick={() => window.openReturnDialog?.()}
                 className="w-full justify-center gap-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl h-12 text-[11px] font-black uppercase tracking-widest transition-all shadow-md shadow-rose-500/20 border-none group"
               >
                 <RotateCcw className="h-4 w-4 transition-transform group-hover:rotate-180" />
@@ -143,7 +150,7 @@ export function QuickActionsCard({
                 </p>
               </div>
               <Button
-                onClick={() => (window as any).openExchangeDialog?.()}
+                onClick={() => window.openExchangeDialog?.()}
                 className="w-full justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-11 text-[10px] font-black uppercase tracking-widest transition-all shadow-md shadow-blue-500/20 border-none group"
               >
                 <RefreshCw className="h-4 w-4 transition-transform group-hover:scale-110" />
@@ -171,7 +178,7 @@ export function QuickActionsCard({
                 </p>
               </div>
               <Button
-                onClick={() => (window as any).openReturnDialog?.()}
+                onClick={() => window.openReturnDialog?.()}
                 className="w-full justify-center gap-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl h-11 text-[10px] font-black uppercase tracking-widest transition-all shadow-md shadow-rose-500/20 border-none group"
               >
                 <ShieldCheck className="h-4 w-4 transition-transform group-hover:scale-110" />
@@ -181,11 +188,20 @@ export function QuickActionsCard({
           )}
 
           {/* ─── Terminal States ─── */}
-          {(currentStatusEnum === OrderStatus.RefundedAndRestocked || currentStatusEnum === OrderStatus.RefundedAndDamaged) && (
+          {(currentStatusEnum === OrderStatus.ReturnedAndRefunding || currentStatusEnum === OrderStatus.ReturnedAndRefunded) && (
             <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3">
               <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
               <p className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.15em] leading-relaxed">
                 Case Closed. Funds have been balanced and inventory processed.
+              </p>
+            </div>
+          )}
+
+          {(currentStatusEnum === 'PartialCompleted' || currentStatusEnum === 'Partial_Completed') && (
+            <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3">
+              <ShieldCheck className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.15em] leading-relaxed">
+                Batch Settlement Active. Some components of this order have reached terminal status.
               </p>
             </div>
           )}

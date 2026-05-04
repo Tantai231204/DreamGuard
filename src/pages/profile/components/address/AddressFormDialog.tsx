@@ -47,42 +47,69 @@ export function AddressFormDialog({
     setIsDefaultSelection(isCurrentDefault);
   }, [isCurrentDefault]);
 
-  const [formData, setFormData] = useState(() => {
-    if (!initialData) {
-      return {
-        receiverName: "",
-        phoneNumber: "",
-        street: "",
-        province: "",
-        district: "",
-        ward: "",
-      };
-    }
+  const [formData, setFormData] = useState({
+    receiverName: "",
+    phoneNumber: "",
+    street: "",
+    province: "",
+    district: "",
+    ward: "",
+  });
 
-    const province = vnAddress.find((p) => p.name === initialData.province)?.code || "";
-    let district = "";
-    let ward = "";
+  useEffect(() => {
+    if (open) {
+      if (!initialData) {
+        setFormData({
+          receiverName: "",
+          phoneNumber: "",
+          street: "",
+          province: "",
+          district: "",
+          ward: "",
+        });
+      } else {
+        // Robust mapping from name to code
+        const normalize = (s: string) => {
+          if (!s) return "";
+          return s.toLowerCase()
+            .replace(/^(tp\.|thành phố|tỉnh|quận|huyện|thị xã|phường|xã)\s+/, "")
+            .trim();
+        };
+        
+        const province = vnAddress.find((p) => 
+          normalize(p.name) === normalize(initialData.province)
+        )?.code || "";
 
-    if (province) {
-      const provinceData = vnAddress.find((p) => p.code === province);
-      if (provinceData) {
-        district = provinceData.districts.find((d) => d.name === initialData.district)?.code || "";
-        if (district) {
-          const districtData = provinceData.districts.find((d) => d.code === district);
-          ward = districtData?.wards.find((w) => w.name === initialData.ward)?.code || "";
+        let district = "";
+        let ward = "";
+
+        if (province) {
+          const provinceData = vnAddress.find((p) => p.code === province);
+          if (provinceData) {
+            district = provinceData.districts.find((d) => 
+              normalize(d.name) === normalize(initialData.district)
+            )?.code || "";
+            
+            if (district) {
+              const districtData = provinceData.districts.find((d) => d.code === district);
+              ward = districtData?.wards.find((w) => 
+                normalize(w.name) === normalize(initialData.ward)
+              )?.code || "";
+            }
+          }
         }
+
+        setFormData({
+          receiverName: initialData.receiverName,
+          phoneNumber: initialData.phoneNumber,
+          street: initialData.street,
+          province,
+          district,
+          ward,
+        });
       }
     }
-
-    return {
-      receiverName: initialData.receiverName,
-      phoneNumber: initialData.phoneNumber,
-      street: initialData.street,
-      province,
-      district,
-      ward,
-    };
-  });
+  }, [open, initialData]);
 
   const selectedProv = vnAddress.find((p) => p.code === formData.province);
   const districts = selectedProv?.districts ?? [];
@@ -110,8 +137,10 @@ export function AddressFormDialog({
       !formData.province ||
       !formData.district ||
       !formData.ward
-    )
+    ) {
+      toast.error("Please fill in all required fields");
       return;
+    }
 
     const payload = {
       receiverName: formData.receiverName,

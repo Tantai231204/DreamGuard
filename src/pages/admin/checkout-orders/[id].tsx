@@ -28,8 +28,8 @@ function ChildOrderCard({ childOrderId, onAssign }: { childOrderId: string, onAs
             currentStatusEnum !== OrderStatus.Pending &&
             currentStatusEnum !== OrderStatus.Completed &&
             currentStatusEnum !== OrderStatus.Returned &&
-            currentStatusEnum !== OrderStatus.RefundedAndRestocked &&
-            currentStatusEnum !== OrderStatus.RefundedAndDamaged
+            currentStatusEnum !== OrderStatus.ReturnedAndRefunding &&
+            currentStatusEnum !== OrderStatus.ReturnedAndRefunded
         );
     }, [detail, currentStatusEnum, isCancelled]);
 
@@ -180,8 +180,8 @@ export default function AdminCheckoutOrderDetail() {
                 statusEnum !== OrderStatus.Completed &&
                 statusEnum !== OrderStatus.Cancelled &&
                 statusEnum !== OrderStatus.Returned &&
-                statusEnum !== OrderStatus.RefundedAndRestocked &&
-                statusEnum !== OrderStatus.RefundedAndDamaged
+                statusEnum !== OrderStatus.ReturnedAndRefunding &&
+                statusEnum !== OrderStatus.ReturnedAndRefunded
             );
         }).map(c => c.id) || [];
     }, [order?.childOrders]);

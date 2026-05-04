@@ -123,11 +123,21 @@ export function OrderDetailDialog({
                                 </DialogDescription>
                             </div>
                         </DialogHeader>
-                        <div
-                            className="px-4 py-1.5 rounded-full text-[11px] font-bold text-white uppercase tracking-widest shadow-sm"
-                            style={{ backgroundColor: theme.color }}
-                        >
-                            {theme.label}
+                        <div className="flex items-center gap-3">
+                            {order?.items?.some(item => (item.exchangeRequestedQuantity || 0) > 0) && (
+                                <div className="hidden md:flex items-center gap-2 bg-amber-50 border border-amber-100 px-3 py-1 rounded-full shadow-sm">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                                    <span className="text-[9px] font-black text-amber-600 uppercase tracking-widest">
+                                        {order.items.reduce((acc, item) => acc + (item.exchangeRequestedQuantity || 0), 0)} Items Reshipping
+                                    </span>
+                                </div>
+                            )}
+                            <div
+                                className="px-4 py-1.5 rounded-full text-[11px] font-bold text-white uppercase tracking-widest shadow-sm"
+                                style={{ backgroundColor: theme.color }}
+                            >
+                                {theme.label}
+                            </div>
                         </div>
                     </div>
 

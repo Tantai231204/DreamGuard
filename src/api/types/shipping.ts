@@ -16,6 +16,7 @@ export interface ShippingTask {
     shippingDate: string;
     completionDate?: string;
     staffNote?: string;
+    damagedItems?: ProcessReturnedDamagedItem[];
     evidences?: ShippingEvidence[];
 }
 
@@ -38,6 +39,7 @@ export interface ProcessReturnedRequest {
     damageNote?: string;
     evidenceUrls?: string[];
     damagedItems: ProcessReturnedDamagedItem[];
+    isRefund?: boolean;
 }
 
 export interface ProcessExchangeRequest {
@@ -45,12 +47,14 @@ export interface ProcessExchangeRequest {
     exchangeNote?: string;
     evidenceUrls?: string[];
     damagedItems: ProcessReturnedDamagedItem[];
+    isRefund?: boolean;
 }
 
 export interface ProcessReturnedForTradeInRequest {
     damageNote?: string;
     evidenceUrls?: string[];
     productVariantId?: string;
+    isRefund?: boolean;
 }
 
 export interface ProcessExchangeForTradeInRequest {
@@ -58,4 +62,5 @@ export interface ProcessExchangeForTradeInRequest {
     exchangeNote?: string;
     evidenceUrls?: string[];
     productVariantId?: string;
+    isRefund?: boolean;
 }

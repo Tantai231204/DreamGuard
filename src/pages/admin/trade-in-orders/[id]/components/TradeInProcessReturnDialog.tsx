@@ -102,6 +102,7 @@ export function TradeInProcessReturnDialogComponent({
   const [evidenceItems, setEvidenceItems] = useState<EvidenceItem[]>([]);
   const [refundAmount, setRefundAmount] = useState(totalPrice);
   const [percentage, setPercentage] = useState(100);
+  const [isRefund, setIsRefund] = useState(true);
   const [isUploadingEvidence, setIsUploadingEvidence] = useState(false);
   const evidenceItemsRef = useRef<EvidenceItem[]>([]);
   const resolvedProductVariantId = useMemo(
@@ -160,6 +161,7 @@ export function TradeInProcessReturnDialogComponent({
       prev.forEach((item) => URL.revokeObjectURL(item.previewUrl));
       return [];
     });
+    setIsRefund(true);
     setIsUploadingEvidence(false);
     onClose();
   }, [onClose]);
@@ -311,12 +313,14 @@ export function TradeInProcessReturnDialogComponent({
           damageNote: isDamagedOutcome ? finalNote.trim() || undefined : undefined,
           evidenceUrls: isDamagedOutcome && evidenceUrls.length > 0 ? evidenceUrls : undefined,
           productVariantId: normalizedProductVariantId || undefined,
+          isRefund: isRefund,
         },
       });
 
       // 2. Financial Settlement (Administrative Refund)
+      // Only manually create refund if isRefund is false
       let refundId: string | undefined;
-      if (typeof refundAmount === 'number' && refundAmount > 0) {
+      if (!isRefund && typeof refundAmount === 'number' && refundAmount > 0) {
         const refundObj = await paymentService.createAdminRefund({
           tradeInOrderId,
           amount: refundAmount,
@@ -341,8 +345,8 @@ export function TradeInProcessReturnDialogComponent({
 
       toast.success(
         normalizedProductVariantId
-          ? "Processed as RefundedAndDamaged."
-          : "Processed as RefundedAndRestocked.",
+          ? "Processed as ReturnedAndRefunded."
+          : "Processed as ReturnedAndRefunding.",
       );
 
       resetAndClose();
@@ -357,6 +361,7 @@ export function TradeInProcessReturnDialogComponent({
     selectedReason,
     isDamagedOutcome,
     evidenceItems,
+    isRefund,
     processReturned,
     refundAmount,
     resetAndClose,
@@ -388,8 +393,8 @@ export function TradeInProcessReturnDialogComponent({
             )}
           >
             {isDamagedOutcome
-              ? "Damaged outcome selected. Return will be processed as RefundedAndDamaged."
-              : "Restock outcome selected. Return will be processed as RefundedAndRestocked."}
+              ? "Damaged outcome selected. Return will be processed as ReturnedAndRefunded."
+              : "Restock outcome selected. Return will be processed as ReturnedAndRefunding."}
           </div>
 
           <div className="space-y-2">
@@ -406,7 +411,7 @@ export function TradeInProcessReturnDialogComponent({
                     : "border-slate-200 bg-white hover:border-blue-200",
                 )}
               >
-                <p className="text-[12px] font-semibold text-slate-800">RefundedAndRestocked</p>
+                <p className="text-[12px] font-semibold text-slate-800">ReturnedAndRefunding</p>
                 <p className="text-[11px] text-slate-500 mt-0.5">No damage recorded</p>
               </button>
 
@@ -421,7 +426,7 @@ export function TradeInProcessReturnDialogComponent({
                     : "border-slate-200 bg-white hover:border-rose-200",
                 )}
               >
-                <p className="text-[12px] font-semibold text-slate-800">RefundedAndDamaged</p>
+                <p className="text-[12px] font-semibold text-slate-800">ReturnedAndRefunded</p>
                 <p className="text-[11px] text-slate-500 mt-0.5">Record damaged variant info</p>
               </button>
             </div>
@@ -581,6 +586,8 @@ export function TradeInProcessReturnDialogComponent({
                   paymentMethod={paymentMethod}
                   paymentStatus={paymentStatus}
                   hasDamages={isDamagedOutcome}
+                  isRefund={isRefund}
+                  setIsRefund={setIsRefund}
                 />
               </div>
             </div>

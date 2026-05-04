@@ -44,6 +44,7 @@ export function useProcessReturn({ orderId, taskId, totalPrice, onClose, showRef
   const [isUploadingEvidence, setIsUploadingEvidence] = useState(false);
   const [damagedQty, setDamagedQty] = useState<Record<string, number>>({});
   const [expanded, setExpanded] = useState(false);
+  const [isRefund, setIsRefund] = useState(true);
 
   const [percentage, setPercentage] = useState<number>(100);
   const [refundAmount, setRefundAmount] = useState<number>(totalPrice);
@@ -174,16 +175,17 @@ export function useProcessReturn({ orderId, taskId, totalPrice, onClose, showRef
     }
 
     const finalNote = selectedReason === OTHER_REASON_LABEL ? damageNote : selectedReason;
-    const requestData: Partial<ProcessReturnedRequest> = hasDamages ? {
-      damageNote: finalNote,
+    const requestData: Partial<ProcessReturnedRequest> = {
+      damageNote: hasDamages ? finalNote : undefined,
       evidenceUrls: uploadedUrls.length > 0 ? uploadedUrls : undefined,
-      damagedItems: Object.entries(damagedQty).map(([id, qty]) => ({ orderItemId: id, damagedQuantity: qty }))
-    } : {};
+      damagedItems: hasDamages ? Object.entries(damagedQty).map(([id, qty]) => ({ orderItemId: id, damagedQuantity: qty })) : [],
+      isRefund: isRefund
+    };
 
     try {
-      await processReturned.mutateAsync({ taskId, orderId, data: requestData });
+      await processReturned.mutateAsync({ taskId, orderId, data: requestData as ProcessReturnedRequest });
 
-      if (showRefundSection && refundAmount > 0) {
+      if (!isRefund && showRefundSection && refundAmount > 0) {
         try {
           const refundObj = await createRefund.mutateAsync({ 
             orderId, 
@@ -199,7 +201,7 @@ export function useProcessReturn({ orderId, taskId, totalPrice, onClose, showRef
           queryClient.invalidateQueries({ queryKey: ['payments'] });
         } catch (error) {
           console.error("[Refund Error]:", error);
-          toast.error("Logistics processed, but refund settlement failed.");
+          toast.error("Logistics processed, but manual refund settlement failed.");
         }
       }
 
@@ -208,7 +210,7 @@ export function useProcessReturn({ orderId, taskId, totalPrice, onClose, showRef
     } catch {
       toast.error("Return processing failed.");
     }
-  }, [taskId, hasDamages, damageNote, selectedReason, evidenceItems, damagedQty, processReturned, orderId, showRefundSection, refundAmount, createRefund, queryClient, resetAndClose, updateEvidenceItem, isRefundableMethod]);
+  }, [taskId, hasDamages, damageNote, selectedReason, evidenceItems, damagedQty, isRefund, processReturned, orderId, showRefundSection, refundAmount, createRefund, queryClient, resetAndClose, updateEvidenceItem, isRefundableMethod]);
 
   // --- Derived ---
   const totalDamaged = useMemo(() => Object.values(damagedQty).reduce((s, q) => s + q, 0), [damagedQty]);
@@ -228,7 +230,8 @@ export function useProcessReturn({ orderId, taskId, totalPrice, onClose, showRef
       percentage,
       refundAmount,
       isSubmitting,
-      uploadedCount
+      uploadedCount,
+      isRefund
     },
     actions: {
       setDamageNote,
@@ -236,6 +239,7 @@ export function useProcessReturn({ orderId, taskId, totalPrice, onClose, showRef
       setExpanded,
       setPercentage,
       setRefundAmount,
+      setIsRefund,
       handleQtyChange,
       resetAndClose,
       addEvidenceFiles,

@@ -15,6 +15,8 @@ interface RefundSectionProps {
   compact?: boolean;
   paymentMethod?: string;
   paymentStatus?: string;
+  isRefund: boolean;
+  setIsRefund: (val: boolean) => void;
 }
 
 export const RefundSection = memo(function RefundSection({
@@ -27,6 +29,8 @@ export const RefundSection = memo(function RefundSection({
   compact = false,
   paymentMethod,
   paymentStatus,
+  isRefund,
+  setIsRefund,
 }: RefundSectionProps) {
   const [localPercentage, setLocalPercentage] = useState(percentage.toString());
   const [localAmount, setLocalAmount] = useState(refundAmount.toLocaleString('vi-VN'));
@@ -44,9 +48,25 @@ export const RefundSection = memo(function RefundSection({
       "border-t border-slate-100 animate-in fade-in slide-in-from-top-2 duration-300",
       compact ? "pt-3 space-y-2.5" : "pt-5 space-y-4"
     )}>
-      <div className="flex items-center gap-2 px-1">
-        <RotateCcw className={cn(compact ? "h-3 w-3" : "h-4 w-4", hasDamages ? "text-rose-500" : "text-blue-500")} />
-        <span className={cn("font-black text-slate-500 uppercase tracking-widest", compact ? "text-[8px]" : "text-[11px]")}>Settlement Setup</span>
+      <div className="flex items-center justify-between px-1">
+        <div className="flex items-center gap-2">
+          <RotateCcw className={cn(compact ? "h-3 w-3" : "h-4 w-4", hasDamages ? "text-rose-500" : "text-blue-500")} />
+          <span className={cn("font-black text-slate-500 uppercase tracking-widest", compact ? "text-[8px]" : "text-[11px]")}>Settlement Setup</span>
+        </div>
+        
+        <div className="flex items-center gap-2 group cursor-pointer" onClick={() => setIsRefund(!isRefund)}>
+          <div className={cn(
+            "w-4 h-4 rounded border flex items-center justify-center transition-all duration-200",
+            isRefund 
+              ? "bg-blue-600 border-blue-600 text-white" 
+              : "bg-white border-slate-300 text-transparent"
+          )}>
+            <svg className="w-2.5 h-2.5 stroke-[4]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <span className={cn("font-bold text-slate-600 select-none", compact ? "text-[9px]" : "text-[11px]")}>Auto Refund</span>
+        </div>
       </div>
 
       <div className={cn("grid grid-cols-1 sm:grid-cols-2", compact ? "gap-3" : "gap-4")}>

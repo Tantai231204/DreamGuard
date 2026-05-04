@@ -8,6 +8,7 @@ export type CheckoutOrderStatus =
   | 'Shipping'
   | 'Completed'
   | 'Cancelled'
+  | 'PartialCompleted'
   | 'PartialRefunded'
   | 'Refunding'
   | 'Refunded';

@@ -77,10 +77,16 @@ export function CheckoutOrderDetailDialog({
     // Can cancel entire order?
     const canCancelAll = useMemo(() => {
         if (isTerminalStatus) return false
-        // Allow bulk cancel ONLY for COD orders in user history
-        // We wait for payment info to ensure we don't show it for VnPay orders briefly
+        
+        // We wait for payment info to ensure we don't show it prematurely
         if (!paymentMethod) return false 
-        if (isVnPay) return false
+
+        // If it's VnPay, allow cancellation ONLY if it's still Pending
+        if (isVnPay) {
+            return order.status === 'Pending'
+        }
+        
+        // For COD/Other, allow bulk cancel for these statuses
         return ['Pending', 'Confirmed', 'Processing'].includes(order.status)
     }, [isTerminalStatus, order.status, isVnPay, paymentMethod])
 
@@ -95,7 +101,11 @@ export function CheckoutOrderDetailDialog({
     const handleCancelAll = useCallback(async () => {
         setIsBulkCancelling(true)
         try {
-            // Switch target ID based on status: Pending orders require parent ID, Confirmed/Processing require child ID
+            // Switch target ID based on status: 
+            // - Pending orders (COD or VnPay unpaid) require the Checkout Order (Parent) ID
+            // - Confirmed/Processing orders (COD) might require a child ID or parent ID depending on backend implementation
+            // Given the current hook usage, we keep the logic as is for non-pending, 
+            // but ensure Pending always uses parent ID.
             const targetId = order.status === 'Pending' ? order.id : (order.childOrders[0]?.id || order.id)
             await cancelAll(targetId)
 
@@ -110,7 +120,7 @@ export function CheckoutOrderDetailDialog({
         } finally {
             setIsBulkCancelling(false)
         }
-    }, [order.id, order.checkoutOrderCode, toast, cancelAll, onOpenChange])
+    }, [order.id, order.status, order.childOrders, order.checkoutOrderCode, toast, cancelAll, onOpenChange])
 
     return (
         <>

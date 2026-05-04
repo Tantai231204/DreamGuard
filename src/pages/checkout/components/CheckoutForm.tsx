@@ -8,8 +8,6 @@ import { useNavigate } from "react-router-dom"
 import { AppRoute } from "@/lib/constants"
 import { useToast } from "@/hooks/useToast"
 import { useCart } from "@/store/useCart"
-import vnAddress from "@/shared/data/vnAddress.json"
-import type { CreateAddressPayload } from "@/api/types/address"
 import { useCreateOrder, useCreateAddress } from "@/hooks/queries"
 import { formatPrice } from "@/lib/utils"
 import type { UseFormReturn } from "react-hook-form"
@@ -27,7 +25,7 @@ export function CheckoutForm({ form, totalPrice, selectedVoucherId, shippingFee 
     const { error: toastError } = useToast()
 
     const { mutateAsync: createOrder, isPending: isOrderSubmitting } = useCreateOrder()
-    const { mutateAsync: createAddress, isPending: isAddressCreating } = useCreateAddress()
+    const { isPending: isAddressCreating } = useCreateAddress()
 
     const isSubmitting = isOrderSubmitting || isAddressCreating;
 
@@ -53,7 +51,7 @@ export function CheckoutForm({ form, totalPrice, selectedVoucherId, shippingFee 
 
         form.setValue("userVoucherId", nextVoucherId)
     }, [form, selectedVoucherId])
-    
+
     const hasCustomProduct = useMemo(() => cart.some(item => item.isCustom), [cart]);
 
     useEffect(() => {
@@ -64,39 +62,19 @@ export function CheckoutForm({ form, totalPrice, selectedVoucherId, shippingFee 
 
     const onSubmit = async (data: CheckoutFormData) => {
         try {
-            let addressId = data.addressId
+            const addressId = data.addressId
 
-            // If manual entry (no addressId), create address first
-            if (!addressId) {
-                const cityObj = vnAddress.find(p => p.code === data.city)
-                const districtObj = cityObj?.districts.find(d => d.code === data.district)
-                const wardObj = districtObj?.wards.find(w => w.code === data.ward)
+            // Extra safety: Clean the ID of any quotes or whitespace
+            const finalAddressId = addressId ? String(addressId).replace(/^["']+|["']+$/g, '').trim() : null
 
-                if (!cityObj || !districtObj || !wardObj) {
-                    toastError("Invalid Address", "Please select a valid city, district, and ward.")
-                    return
-                }
-
-                const addressPayload: CreateAddressPayload = {
-                    receiverName: `${data.firstName} ${data.lastName}`,
-                    phoneNumber: data.phone,
-                    street: data.streetAddress,
-                    province: cityObj.name,
-                    city: cityObj.name,
-                    district: districtObj.name,
-                    ward: wardObj.name
-                }
-
-                addressId = await createAddress(addressPayload)
-
-                if (!addressId) {
-                    throw new Error("Failed to populate addressId after creation.")
-                }
+            if (!finalAddressId || finalAddressId === "null" || finalAddressId.length < 32) {
+                toastError("Address Required", "Please select or confirm your shipping address before placing an order.")
+                return
             }
 
             const response = await createOrder({
-                addressId: addressId!,
-                userVoucherId: data.userVoucherId,
+                addressId: finalAddressId,
+                userVoucherId: data.userVoucherId || null,
                 note: data.orderNotes || "",
                 shippingFee: shippingFee,
                 paymentMethod: data.paymentMethod
