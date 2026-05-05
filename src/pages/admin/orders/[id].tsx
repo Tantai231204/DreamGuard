@@ -47,7 +47,7 @@ export default function OrderDetail() {
   const queryClient = useQueryClient();
 
   const { role } = useAuthStore();
-  const isAdmin = ['Admin', 'Staff'].includes(role || '');
+  const hasPrivilege = ['Admin', 'Staff', 'Manager', 'Seller'].includes(role || '');
 
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showAssignDialog, setShowAssignDialog] = useState(false);
@@ -380,15 +380,17 @@ export default function OrderDetail() {
                     </div>
                     {Object.entries(ADMIN_ORDER_STATUS_THEME)
                       .filter(([status]) => {
-                        if (!ADMIN_ALLOWED_TRANSITION_STATUSES.includes(status)) return false;
+                        // Business Rule: Ensure both string keys and numeric keys are handled for visibility
+                        const statusLabel = ADMIN_ORDER_STATUS_THEME[status]?.label || status;
+                        if (!ADMIN_ALLOWED_TRANSITION_STATUSES.includes(statusLabel) && !ADMIN_ALLOWED_TRANSITION_STATUSES.includes(status)) return false;
 
                         const targetStatusEnum = ORDER_STATUS_MAP[status];
 
                         // Terminal state check: Returned (7) is final
                         if (currentStatusEnum === OrderStatus.Returned) return false;
 
-                        // Business Rule 1: Cannot move status backward
-                        if (typeof targetStatusEnum === 'number' && typeof currentStatusEnum === 'number' && targetStatusEnum <= currentStatusEnum) return false;
+                        // Business Rule 1: Cannot move status backward (except to Cancelled)
+                        if (targetStatusEnum !== OrderStatus.Cancelled && typeof targetStatusEnum === 'number' && typeof currentStatusEnum === 'number' && targetStatusEnum <= currentStatusEnum) return false;
 
                         // Business Rule 2: Cannot cancel if past Confirmed
                         if (targetStatusEnum === OrderStatus.Cancelled) {
@@ -397,15 +399,18 @@ export default function OrderDetail() {
 
                         return true;
                       })
-                      .map(([status]) => (
-                        <DropdownMenuItem
-                          key={status}
-                          onClick={() => status === 'Cancelled' ? setShowCancelDialog(true) : handleUpdateStatus(status)}
-                          className="rounded-lg cursor-pointer py-1.5 px-2 hover:bg-slate-50 transition-colors"
-                        >
-                          <AdminStatusBadge status={status} className="w-full justify-start" />
-                        </DropdownMenuItem>
-                      ))}
+                      .map(([status]) => {
+                        const statusLabel = ADMIN_ORDER_STATUS_THEME[status]?.label || status;
+                        return (
+                          <DropdownMenuItem
+                            key={status}
+                            onClick={() => statusLabel === 'Cancelled' ? setShowCancelDialog(true) : handleUpdateStatus(statusLabel)}
+                            className="rounded-lg cursor-pointer py-1.5 px-2 hover:bg-slate-50 transition-colors"
+                          >
+                            <AdminStatusBadge status={statusLabel} className="w-full justify-start" />
+                          </DropdownMenuItem>
+                        );
+                      })}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -508,7 +513,7 @@ export default function OrderDetail() {
                 currentStatusEnum={currentStatusEnum}
                 onUpdateStatus={handleUpdateStatus}
                 onCancelOrder={() => setShowCancelDialog(true)}
-                canCancel={canCancel && isAdmin}
+                canCancel={canCancel && hasPrivilege}
                 hasTask={!!activeTask}
               />
 

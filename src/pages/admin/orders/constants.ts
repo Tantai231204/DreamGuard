@@ -60,8 +60,9 @@ export const ORDER_STATUS_MAP: Record<string, OrderStatus | string> = {
   'Rejected': 'Rejected',
 };
 
-// Admin allowed manual transitions
+// Admin allowed manual transitions from the header dropdown
 export const ADMIN_ALLOWED_TRANSITION_STATUSES = [
+  'Confirmed',
   'Processing',
   'Cancelled'
 ];
