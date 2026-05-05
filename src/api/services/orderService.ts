@@ -118,6 +118,13 @@ const orderService = {
             params: { fromDate, toDate }
         });
         return res.data?.data ?? res.data;
+    },
+    
+    getTopSellerProducts: async (limit: number = 5): Promise<import('../types/order').TopSellerProduct[]> => {
+        const res = await apiClient.get('/Order/get-top-seller-products', {
+            params: { limit }
+        });
+        return res.data?.data ?? res.data;
     }
 };
 

@@ -77,15 +77,15 @@ export function CheckoutOrderDetailDialog({
     // Can cancel entire order?
     const canCancelAll = useMemo(() => {
         if (isTerminalStatus) return false
-        
+
         // We wait for payment info to ensure we don't show it prematurely
-        if (!paymentMethod) return false 
+        if (!paymentMethod) return false
 
         // If it's VnPay, allow cancellation ONLY if it's still Pending
         if (isVnPay) {
             return order.status === 'Pending'
         }
-        
+
         // For COD/Other, allow bulk cancel for these statuses
         return ['Pending', 'Confirmed', 'Processing'].includes(order.status)
     }, [isTerminalStatus, order.status, isVnPay, paymentMethod])
@@ -127,22 +127,31 @@ export function CheckoutOrderDetailDialog({
             <Dialog open={open} onOpenChange={onOpenChange}>
                 <DialogContent className="max-w-3xl max-h-[92vh] overflow-hidden flex flex-col p-0 rounded-xl border-none shadow-2xl bg-slate-50/50">
                     {/* Header */}
-                    <div className="bg-white border-b border-gray-100 pl-6 pr-12 py-4 flex items-center justify-between shrink-0 relative">
-                        <DialogHeader className="flex flex-row items-center gap-4 space-y-0">
-                            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-gray-100">
-                                <ChevronRight className="w-5 h-5 rotate-180 text-gray-500" />
+                    <div className="bg-white border-b border-gray-100 pl-6 pr-12 py-5 flex items-center justify-between shrink-0 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 blur-3xl opacity-50" />
+                        <DialogHeader className="flex flex-row items-center gap-4 space-y-0 relative z-10">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-9 w-9 rounded-full hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-all group"
+                                onClick={() => onOpenChange?.(false)}
+                            >
+                                <ChevronRight className="w-5 h-5 rotate-180 text-slate-400 group-hover:text-primary transition-colors" />
                             </Button>
                             <div className="text-left">
-                                <DialogTitle className="text-[16px] font-black text-gray-900 uppercase tracking-tight">
+                                <DialogTitle className="text-[18px] font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
                                     Order Journey
+                                    <span className="w-1.5 h-1.5 rounded-full bg-primary/20" />
                                 </DialogTitle>
-                                <DialogDescription className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mt-0.5">
-                                    #{order.checkoutOrderCode} · {order.childOrders.length} {order.childOrders.length === 1 ? 'order' : 'sub-orders'}
+                                <DialogDescription className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] mt-0.5 flex items-center gap-2">
+                                    #{order.checkoutOrderCode}
+                                    <span className="w-1 h-1 rounded-full bg-slate-200" />
+                                    {order.childOrders.length} {order.childOrders.length === 1 ? 'consignment' : 'consignments'}
                                 </DialogDescription>
                             </div>
                         </DialogHeader>
                         <div
-                            className="px-4 py-1.5 rounded-full text-[11px] font-bold text-white uppercase tracking-widest shadow-sm"
+                            className="px-4 py-2 rounded-xl text-[10px] font-black text-white uppercase tracking-[0.2em] shadow-lg shadow-primary/10 relative z-10 border border-white/20"
                             style={{ backgroundColor: theme.color }}
                         >
                             {theme.label}
@@ -178,29 +187,35 @@ export function CheckoutOrderDetailDialog({
                                                         key={child.id}
                                                         onClick={() => setActiveShipmentTab(child.id)}
                                                         className={cn(
-                                                            "flex items-center gap-3 px-5 py-2.5 rounded-md transition-all duration-200 border-2 shrink-0",
+                                                            "flex items-center gap-3 px-5 py-3 rounded-xl transition-all duration-300 border-2 shrink-0 group/tab",
                                                             isActive
-                                                                ? "bg-white border-primary shadow-sm"
-                                                                : "bg-transparent border-transparent text-slate-400 hover:text-slate-600"
+                                                                ? "bg-white border-primary shadow-[0_10px_20px_-10px_rgba(73,136,196,0.2)] ring-4 ring-primary/5"
+                                                                : "bg-gray-100/40 border-transparent text-slate-400 hover:bg-gray-100 hover:text-slate-500"
                                                         )}
                                                     >
                                                         <div className={cn(
-                                                            "w-6 h-6 rounded flex items-center justify-center",
+                                                            "w-7 h-7 rounded-lg flex items-center justify-center transition-all duration-300",
                                                             isActive
-                                                                ? (childType === 'customize' ? "bg-violet-100/50" : "bg-primary-100/50")
-                                                                : "bg-slate-100/50"
+                                                                ? (childType === 'customize' ? "bg-violet-100 text-violet-600 shadow-sm" : "bg-sky-100 text-sky-600 shadow-sm")
+                                                                : "bg-white text-slate-300 border border-slate-100"
                                                         )}>
                                                             {childType === 'customize'
-                                                                ? <Palette className={cn("w-3 h-3", isActive ? "text-violet-600" : "text-slate-400")} />
-                                                                : <Package className={cn("w-3 h-3", isActive ? "text-sky-600" : "text-slate-400")} />
+                                                                ? <Palette className="w-3.5 h-3.5" />
+                                                                : <Package className="w-3.5 h-3.5" />
                                                             }
                                                         </div>
                                                         <div className="text-left">
                                                             <span className={cn(
-                                                                "text-[11px] font-black uppercase tracking-tight block",
+                                                                "text-[10px] font-black uppercase tracking-[0.1em] block mb-0.5",
                                                                 isActive ? "text-primary" : "text-slate-400"
                                                             )}>
-                                                                {childType === 'customize' ? 'Custom' : 'Standard'}
+                                                                {childType === 'customize' ? 'Bespoke' : 'Standard'}
+                                                            </span>
+                                                            <span className={cn(
+                                                                "text-[9px] font-bold block",
+                                                                isActive ? "text-slate-600" : "text-slate-300"
+                                                            )}>
+                                                                Batch #{child.orderCode.split('-').pop()}
                                                             </span>
                                                         </div>
                                                     </button>
@@ -241,14 +256,19 @@ export function CheckoutOrderDetailDialog({
 
                                 {/* Cancelled info */}
                                 {order.status === 'Cancelled' && (
-                                    <div className="px-8 py-6 border-t border-rose-100 bg-rose-50/20 text-left">
-                                        <div className="flex items-center gap-2 mb-2 text-rose-600">
-                                            <AlertCircle className="w-4 h-4" />
-                                            <span className="text-[11px] font-black uppercase tracking-widest">Order Cancelled</span>
+                                    <div className="px-8 py-6 border-t border-rose-100 bg-rose-50/30 text-left relative overflow-hidden">
+                                        <div className="absolute top-0 right-0 w-24 h-24 bg-rose-500/5 rounded-full -mr-12 -mt-12 blur-2xl" />
+                                        <div className="flex items-center gap-3 mb-2 text-rose-600 relative z-10">
+                                            <div className="w-8 h-8 rounded-lg bg-rose-100 flex items-center justify-center shrink-0">
+                                                <AlertCircle className="w-4 h-4" />
+                                            </div>
+                                            <div>
+                                                <span className="text-[11px] font-black uppercase tracking-[0.2em] block">Engagement Terminated</span>
+                                                <p className="text-[12px] text-rose-700/70 font-bold leading-relaxed mt-0.5">
+                                                    This order journey has been cancelled. Automated refund workflows are currently active for this transaction.
+                                                </p>
+                                            </div>
                                         </div>
-                                        <p className="text-[12px] text-rose-700/70 font-bold leading-relaxed">
-                                            This order has been fully cancelled. Refund processing is active.
-                                        </p>
                                     </div>
                                 )}
                             </div>

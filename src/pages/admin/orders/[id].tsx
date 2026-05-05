@@ -1,6 +1,6 @@
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useMemo, useState, useEffect } from 'react';
-import { Printer, Truck, History, ChevronDown, CreditCard, RotateCcw } from 'lucide-react';
+import { Printer, Truck, History, ChevronDown, CreditCard, RotateCcw, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useOrderDetail, useUpdateOrderStatus, useAdminCancelOrder, useAdminPayments, useUpdatePaymentStatus, useAdminCreateRefund, orderKeys } from '@/hooks/queries';
 import { useQueryClient } from '@tanstack/react-query';
@@ -37,6 +37,7 @@ import { OrderStatus, ORDER_STATUS_MAP, ADMIN_ALLOWED_TRANSITION_STATUSES, ADMIN
 
 export default function OrderDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
 
   const { data: order, isLoading, isError } = useOrderDetail(id!);
   const updateStatus = useUpdateOrderStatus();
@@ -57,9 +58,9 @@ export default function OrderDetail() {
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
 
   const resolvedOrderId = order?.id || id || '';
-  const currentStatusEnum = useMemo(() => 
+  const currentStatusEnum = useMemo(() =>
     order ? (ORDER_STATUS_MAP[order.status.toString()] ?? OrderStatus.Pending) : OrderStatus.Pending
-  , [order]);
+    , [order]);
 
   const { data: shippingTasks, isLoading: isTasksLoading } = useShippingTasksByOrder(resolvedOrderId);
   const { data: paymentResponse } = useAdminPayments({ orderCode: order?.orderCode });
@@ -85,8 +86,7 @@ export default function OrderDetail() {
       ['refunding', 'refunded'].includes(p.status?.toLowerCase())
     ) || ['refunding', 'refunded', 'returnedandrefunding', 'returnedandrefunded'].includes(order.paymentStatus?.toLowerCase() || '');
 
-    const isRefundableState = currentStatusEnum === OrderStatus.Cancelled ||
-      currentStatusEnum === OrderStatus.Returned;
+    const isRefundableState = currentStatusEnum === OrderStatus.Cancelled;
 
     return isRefundableState && !hasRefundProcess;
   }, [order, isPaid, paymentResponse, currentStatusEnum]);
@@ -119,18 +119,18 @@ export default function OrderDetail() {
   // Bridging for QuickActionsCard buttons
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const win = window as Window & { 
-        openReturnDialog?: () => void; 
-        openExchangeDialog?: () => void; 
+      const win = window as Window & {
+        openReturnDialog?: () => void;
+        openExchangeDialog?: () => void;
       };
       win.openReturnDialog = () => setShowProcessReturnDialog(true);
       win.openExchangeDialog = () => setShowProcessExchangeDialog(true);
     }
     return () => {
       if (typeof window !== 'undefined') {
-        const win = window as Window & { 
-          openReturnDialog?: () => void; 
-          openExchangeDialog?: () => void; 
+        const win = window as Window & {
+          openReturnDialog?: () => void;
+          openExchangeDialog?: () => void;
         };
         delete win.openReturnDialog;
         delete win.openExchangeDialog;
@@ -340,6 +340,27 @@ export default function OrderDetail() {
 
         <div className="max-w-[1600px] mx-auto flex items-center justify-between relative z-10">
           <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-2 mb-2">
+              {order.checkoutOrderId ? (
+                <Button
+                  variant="ghost"
+                  className="w-fit p-0 h-auto hover:bg-transparent text-slate-400 hover:text-primary transition-all flex items-center gap-1 group/back"
+                  onClick={() => navigate(`/admin/checkout-orders/${order.checkoutOrderId}`)}
+                >
+                  <ChevronLeft className="w-4 h-4 group-hover/back:-translate-x-0.5 transition-transform" />
+                  <span className="text-[11px] font-black uppercase tracking-widest">Return to Batch Detail</span>
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  className="w-fit p-0 h-auto hover:bg-transparent text-slate-400 hover:text-slate-600 transition-all flex items-center gap-1 group/back"
+                  onClick={() => navigate('/admin/orders')}
+                >
+                  <ChevronLeft className="w-4 h-4 group-hover/back:-translate-x-0.5 transition-transform" />
+                  <span className="text-[11px] font-black uppercase tracking-widest">Back to Manifest List</span>
+                </Button>
+              )}
+            </div>
             <div className="flex items-center gap-3">
               <div className="bg-primary/10 text-primary px-2.5 py-0.5 rounded-md text-[10px] font-black tracking-widest uppercase border border-primary/20">
                 {order.orderCode}
@@ -362,6 +383,10 @@ export default function OrderDetail() {
                         if (!ADMIN_ALLOWED_TRANSITION_STATUSES.includes(status)) return false;
 
                         const targetStatusEnum = ORDER_STATUS_MAP[status];
+
+                        // Terminal state check: Returned (7) is final
+                        if (currentStatusEnum === OrderStatus.Returned) return false;
+
                         // Business Rule 1: Cannot move status backward
                         if (typeof targetStatusEnum === 'number' && typeof currentStatusEnum === 'number' && targetStatusEnum <= currentStatusEnum) return false;
 
@@ -441,7 +466,7 @@ export default function OrderDetail() {
         <div className="max-w-[1600px] mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             <div className="col-span-12 lg:col-span-8 space-y-8">
-              <OrderItemsList items={order.items} />
+              <OrderItemsList items={order.items} orderStatus={order.status} />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="flex flex-col space-y-4 h-full">
@@ -582,9 +607,8 @@ export default function OrderDetail() {
         orderId={order.id}
         taskId={activeTask?.shippingTaskId || ''}
         items={order.items}
-        totalPrice={order.totalAmount}
-        paymentMethod={order.paymentMethod}
-        paymentStatus={order.paymentStatus}
+        paymentMethod={paymentResponse?.items?.[0]?.paymentMethod || order.paymentMethod}
+        paymentStatus={paymentResponse?.items?.[0]?.status || order.paymentStatus}
       />
 
       <ProcessExchangeDialog

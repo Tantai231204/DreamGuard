@@ -27,6 +27,7 @@ import { cn } from '@/lib/utils';
 interface AssignTechnicianDialogProps {
   orderId: string | null;
   isOpen: boolean;
+  isRescheduled?: boolean;
   onClose: () => void;
 }
 
@@ -44,7 +45,7 @@ const formatLabel = (value?: string, fallback = 'Technician') => {
 
 const isActiveStatus = (status?: string) => (status || '').toLowerCase() === 'active';
 
-export const AssignTechnicianDialog = memo(function AssignTechnicianDialog({ orderId, isOpen, onClose }: AssignTechnicianDialogProps) {
+export const AssignTechnicianDialog = memo(function AssignTechnicianDialog({ orderId, isOpen, isRescheduled, onClose }: AssignTechnicianDialogProps) {
   const {
     selectedStaffId,
     setSelectedStaffId,
@@ -52,7 +53,7 @@ export const AssignTechnicianDialog = memo(function AssignTechnicianDialog({ ord
     isLoadingStaff,
     handleAssign,
     assignMutation,
-  } = useAssignTechnicianDialog({ orderId, onClose });
+  } = useAssignTechnicianDialog({ orderId, isRescheduled, onClose });
 
   const staffs = rawStaffs as unknown as Staff[];
 
@@ -80,9 +81,9 @@ export const AssignTechnicianDialog = memo(function AssignTechnicianDialog({ ord
             <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center mb-4 shadow-sm">
               <UserPlus className="h-6 w-6 text-white" />
             </div>
-            <DialogTitle className="text-2xl font-black tracking-tight">Assign Technician</DialogTitle>
+            <DialogTitle className="text-2xl font-black tracking-tight">Dispatch New Task</DialogTitle>
             <DialogDescription className="text-slate-500 font-medium leading-relaxed">
-              Select an expert technician to handle this service request professionally.
+              Initialize a fresh execution record and assign personnel to begin service.
             </DialogDescription>
           </div>
         </DialogHeader>

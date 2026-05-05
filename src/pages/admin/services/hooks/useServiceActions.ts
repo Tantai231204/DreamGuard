@@ -19,19 +19,20 @@ export const useServiceActions = () => {
     });
 
     const cancelMutation = useMutation({
-        mutationFn: async ({ id, status, reason, refundAmount }: {
+        mutationFn: async ({ id, status, reason, refundAmount, isForceCancel }: {
             id: string;
             status: string;
             reason: string;
             refundAmount?: number;
+            isForceCancel?: boolean;
         }) => {
             const normalizedStatus = status.toLowerCase();
 
             // 1. Perform cancellation/rejection
-            // Branch strictly follows: Pending uses standard cancel to ensure refunding status.
-            // Statuses like Confirmed (with tasks) must use manager-cancel.
-            if (normalizedStatus === 'pending') {
-                await serviceOrderService.cancelServiceOrder(id);
+            if (isForceCancel) {
+                await serviceOrderService.managerForceCancelServiceOrder(id);
+            } else if (normalizedStatus === 'pending') {
+                await serviceOrderService.rejectServiceOrder(id);
             } else {
                 await serviceOrderService.managerCancelServiceOrder(id);
             }
@@ -73,6 +74,8 @@ export const useServiceActions = () => {
             queryClient.invalidateQueries({ queryKey: ['payments'] });
             queryClient.invalidateQueries({ queryKey: ['serviceOrder', 'detail'] });
             queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
+            queryClient.invalidateQueries({ queryKey: ['orders'] });
+            queryClient.invalidateQueries({ queryKey: ['checkoutOrders'] });
         }
     });
 
@@ -85,6 +88,8 @@ export const useServiceActions = () => {
             queryClient.invalidateQueries({ queryKey: ['payments'] });
             queryClient.invalidateQueries({ queryKey: ['serviceOrder', 'detail'] });
             queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
+            queryClient.invalidateQueries({ queryKey: ['orders'] });
+            queryClient.invalidateQueries({ queryKey: ['checkoutOrders'] });
         }
     });
 

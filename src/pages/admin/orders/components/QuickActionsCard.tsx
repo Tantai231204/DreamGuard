@@ -142,20 +142,11 @@ export function QuickActionsCard({
           )}
 
           {currentStatusEnum === OrderStatus.ExchangeRequested && (
-            <div className="space-y-3">
-              <div className="p-4 bg-blue-50/70 border border-blue-100 rounded-xl flex items-start gap-3">
-                <RotateCcw className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-                <p className="text-[9px] font-bold text-blue-700 uppercase tracking-[0.15em] leading-relaxed">
-                  Exchange request has been approved and is being handled by staff.
-                </p>
-              </div>
-              <Button
-                onClick={() => window.openExchangeDialog?.()}
-                className="w-full justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl h-11 text-[10px] font-black uppercase tracking-widest transition-all shadow-md shadow-blue-500/20 border-none group"
-              >
-                <RefreshCw className="h-4 w-4 transition-transform group-hover:scale-110" />
-                Process Replacement / Exchange
-              </Button>
+            <div className="p-4 bg-blue-50/70 border border-blue-100 rounded-xl flex items-start gap-3">
+              <RotateCcw className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+              <p className="text-[9px] font-bold text-blue-700 uppercase tracking-[0.15em] leading-relaxed">
+                Exchange request has been approved and is being handled by staff.
+              </p>
             </div>
           )}
 
@@ -170,20 +161,11 @@ export function QuickActionsCard({
 
           {/* ─── Step 7: Returned → Terminal state ─── */}
           {currentStatusEnum === OrderStatus.Returned && (
-            <div className="space-y-3">
-              <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-xl flex items-start gap-3">
-                <ShieldCheck className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
-                <p className="text-[9px] font-bold text-blue-600 uppercase tracking-[0.15em] leading-relaxed">
-                  Items returned and processed by staff. Awaiting final system archival.
-                </p>
-              </div>
-              <Button
-                onClick={() => window.openReturnDialog?.()}
-                className="w-full justify-center gap-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl h-11 text-[10px] font-black uppercase tracking-widest transition-all shadow-md shadow-rose-500/20 border-none group"
-              >
-                <ShieldCheck className="h-4 w-4 transition-transform group-hover:scale-110" />
-                Finalize Audit / Restock
-              </Button>
+            <div className="p-4 bg-emerald-50 border border-emerald-100 rounded-xl flex items-start gap-3">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+              <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-[0.15em] leading-relaxed">
+                Items returned and processed. This engagement has reached terminal archival status.
+              </p>
             </div>
           )}
 

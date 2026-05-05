@@ -110,6 +110,7 @@ export default function ServiceDetail() {
         isOpen={isAssignOpen}
         onClose={actions.handleAssignClose}
         orderId={selectedOrderId || ""}
+        isRescheduled={permissions.isRescheduled}
       />
 
     </div>

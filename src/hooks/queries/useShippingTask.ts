@@ -91,6 +91,8 @@ export const useProcessReturnedShippingTask = () => {
             queryClient.invalidateQueries({ queryKey: shippingKeys.byOrder(orderId) });
             queryClient.invalidateQueries({ queryKey: orderKeys.detail(orderId) });
             queryClient.invalidateQueries({ queryKey: orderKeys.all });
+            queryClient.invalidateQueries({ queryKey: ["payments"] });
+            queryClient.invalidateQueries({ queryKey: ["checkoutOrders"] });
         },
     });
 };
@@ -105,6 +107,8 @@ export const useProcessExchangeShippingTask = () => {
             queryClient.invalidateQueries({ queryKey: shippingKeys.byOrder(orderId) });
             queryClient.invalidateQueries({ queryKey: orderKeys.detail(orderId) });
             queryClient.invalidateQueries({ queryKey: orderKeys.all });
+            queryClient.invalidateQueries({ queryKey: ["payments"] });
+            queryClient.invalidateQueries({ queryKey: ["checkoutOrders"] });
         },
     });
 };

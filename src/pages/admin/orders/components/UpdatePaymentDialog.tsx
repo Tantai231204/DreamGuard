@@ -65,12 +65,19 @@ export const UpdatePaymentDialog = React.memo(({
   const [isUploading, setIsUploading] = useState(false);
   const [prevId, setPrevId] = useState<string | null>(null);
 
-  const { updatePaymentStatus, isUpdatingPaymentStatus } = useServiceActions();
+  const { updatePaymentStatus, isUpdatingPaymentStatus, isUpdatingRefund } = useServiceActions();
 
   // Optimized sync logic - only triggers when specific identity or visibility changes
   if (open && payment?.id !== prevId) {
     setPrevId(payment?.id || null);
-    setStatus(isRefund ? 'Refunded' : (payment?.status || ''));
+
+    // User wants: "khi tạo thì ra refunding" (default when starting/no evidence)
+    // "khi upload evidence thì status phải là refunded"
+    const defaultStatus = isRefund
+      ? (payment?.evidenceUrl ? 'Refunded' : 'Refunding')
+      : (payment?.status || '');
+
+    setStatus(defaultStatus);
 
     if (payment?.evidenceUrl) {
       setEvidenceItems([{
@@ -95,8 +102,13 @@ export const UpdatePaymentDialog = React.memo(({
         progress: 0
       };
       setEvidenceItems([newItem]);
+
+      // Auto-set status to Refunded if evidence is being added for a refund
+      if (isRefund) {
+        setStatus('Refunded');
+      }
     }
-  }, []);
+  }, [isRefund]);
 
   const clearFile = useCallback(() => {
     setEvidenceItems(prev => {
@@ -107,7 +119,12 @@ export const UpdatePaymentDialog = React.memo(({
       });
       return [];
     });
-  }, []);
+
+    // Revert to Refunding if evidence is removed for a refund
+    if (isRefund) {
+      setStatus('Refunding');
+    }
+  }, [isRefund]);
 
   const handleUpdate = useCallback(async () => {
     if (!payment?.id) return;
@@ -150,6 +167,7 @@ export const UpdatePaymentDialog = React.memo(({
         }
       }
 
+      // Use the payment status update API as confirmed by Hoppscotch screenshot
       updatePaymentStatus({ id: payment.id, status, evidenceUrl: uploadedUrl }, {
         onSuccess: () => {
           onOpenChange(false);
@@ -166,7 +184,14 @@ export const UpdatePaymentDialog = React.memo(({
 
   const currentStatuses = useMemo(() => isRefund ? REFUND_STATUSES : PAYMENT_STATUSES, [isRefund]);
   const previewItem = evidenceItems[0];
-  const isBusy = isUploading || isUpdatingPaymentStatus;
+  const isBusy = isUploading || isUpdatingPaymentStatus || isUpdatingRefund;
+
+  // Prevent redundant transitions that trigger 400 errors
+  const hasChanges = useMemo(() => {
+    const statusChanged = status !== payment?.status;
+    const newFileUploaded = evidenceItems.some(i => !!i.file);
+    return statusChanged || newFileUploaded;
+  }, [status, payment?.status, evidenceItems]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -275,9 +300,10 @@ export const UpdatePaymentDialog = React.memo(({
           </Button>
           <Button
             onClick={handleUpdate}
-            disabled={isBusy || !status}
-            className="flex-1 h-10 font-bold text-[11px] uppercase tracking-widest text-white transition-all border-none relative overflow-hidden active:scale-95 shadow-lg bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100"
+            disabled={isBusy || !status || !hasChanges}
+            className="flex-1 h-10 font-bold text-[11px] uppercase tracking-widest text-white transition-all border-none relative overflow-hidden active:scale-95 shadow-lg bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100 disabled:opacity-50 disabled:grayscale"
           >
+
             {isBusy ? (
               <span className="flex items-center gap-2">
                 <Loader2 className="h-3 w-3 animate-spin" /> Finalizing

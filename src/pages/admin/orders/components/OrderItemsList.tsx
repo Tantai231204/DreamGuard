@@ -7,21 +7,23 @@ import { formatPrice } from '@/pages/profile/utils';
 import { getColorHex } from '@/utils/color-utils';
 import { useVariant } from '@/hooks/queries/useVariant';
 import { useComboDetail } from '@/hooks/queries/useCombo';
-import { ShoppingBag, Box, Layers, ListTree, ChevronDown } from 'lucide-react';
+import { ShoppingBag, Box, Layers, ListTree, ChevronDown, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useProductDetail } from '@/hooks/queries';
 
 const MAX_VISIBLE = 3;
 
 interface OrderItemsListProps {
   items: OrderItem[];
+  orderStatus?: string | number;
 }
 
 interface OrderItemRowProps {
   item: OrderItem;
   index: number;
+  orderStatus?: string | number;
 }
 
-export function OrderItemsList({ items }: OrderItemsListProps) {
+export function OrderItemsList({ items, orderStatus }: OrderItemsListProps) {
   const [expanded, setExpanded] = useState(false);
   const needsCollapse = items.length > MAX_VISIBLE;
   const visibleItems = needsCollapse && !expanded ? items.slice(0, MAX_VISIBLE) : items;
@@ -48,18 +50,19 @@ export function OrderItemsList({ items }: OrderItemsListProps) {
 
       {/* Table Header */}
       <div className="hidden md:grid grid-cols-12 gap-4 px-8 py-3 bg-slate-50/40 border-b border-slate-50 text-[9px] font-black text-slate-400 uppercase tracking-[0.15em]">
-        <div className="col-span-6 flex items-center gap-2">
+        <div className="col-span-5 flex items-center gap-2">
           <Box className="w-3 h-3" />
           Product / Bundle Manifest
         </div>
         <div className="col-span-2 text-center">Unit Price</div>
-        <div className="col-span-2 text-center">Qty</div>
+        <div className="col-span-1 text-center">Qty</div>
+        <div className="col-span-2 text-center">Process Exchange</div>
         <div className="col-span-2 text-right">Total</div>
       </div>
 
       <div className="divide-y divide-slate-50">
         {visibleItems.map((item, index) => (
-          <OrderItemRow key={item.id} item={item} index={index} />
+          <OrderItemRow key={item.id} item={item} index={index} orderStatus={orderStatus} />
         ))}
       </div>
 
@@ -77,7 +80,7 @@ export function OrderItemsList({ items }: OrderItemsListProps) {
   );
 }
 
-function OrderItemRow({ item, index }: OrderItemRowProps) {
+function OrderItemRow({ item, index, orderStatus }: OrderItemRowProps) {
   const isCombo = !!item.comboId;
   const { data: variant } = useVariant(isCombo ? "" : (item.productVariantId || ""));
   const { data: comboDetail } = useComboDetail(item.comboId || "", isCombo);
@@ -127,7 +130,7 @@ function OrderItemRow({ item, index }: OrderItemRowProps) {
       className="hover:bg-blue-50/5 transition-colors group cursor-default"
     >
       <div className="md:grid md:grid-cols-12 md:items-center gap-4 p-5 md:px-8">
-        <div className="col-span-6 flex items-center gap-5">
+        <div className="col-span-5 flex items-center gap-5">
           <div className="relative">
             <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-50 border border-slate-100 shadow-sm shrink-0">
               <img
@@ -227,26 +230,45 @@ function OrderItemRow({ item, index }: OrderItemRowProps) {
           <span className="text-xs font-bold text-slate-600 font-mono">{formatPrice(item.unitPrice)}</span>
         </div>
 
-        <div className="col-span-2 text-center hidden md:block">
-          <div className="flex flex-col items-center gap-1">
+        <div className="col-span-1 text-center hidden md:block">
             <div className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-50 text-[10px] font-black text-slate-900 border border-slate-100">
               {item.quantity}
             </div>
+        </div>
+
+        <div className="col-span-2 text-center hidden md:block">
             {item.exchangeRequestedQuantity && item.exchangeRequestedQuantity > 0 ? (
-              <div className="flex flex-col items-center gap-0.5">
-                <span className="text-[8px] font-black text-emerald-600 uppercase tracking-tighter">
-                  {item.quantity - item.exchangeRequestedQuantity} Delivered
-                </span>
-                <span className="text-[8px] font-black text-amber-600 uppercase tracking-tighter">
-                  {item.exchangeRequestedQuantity} Reship
-                </span>
+              <div className="flex flex-col items-center gap-1.5">
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-600 shadow-sm">
+                   <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+                   <span className="text-[7.5px] font-black uppercase tracking-widest leading-none">
+                     {item.quantity - item.exchangeRequestedQuantity} Done
+                   </span>
+                </div>
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-50 border border-amber-100 text-amber-600 shadow-sm">
+                   <RefreshCw className="w-2.5 h-2.5" />
+                   <span className="text-[7.5px] font-black uppercase tracking-widest leading-none">
+                     {item.exchangeRequestedQuantity} Exchange
+                   </span>
+                </div>
               </div>
             ) : (
-              <span className="text-[8px] font-black text-slate-400 uppercase tracking-tighter">
-                Full Shipment
-              </span>
+              (orderStatus === 4 || orderStatus === 5 || orderStatus === 'Delivered' || orderStatus === 'Completed') ? (
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 shadow-sm">
+                  <ShieldCheck className="w-3 h-3 text-emerald-500" />
+                  <span className="text-[8px] font-black uppercase tracking-widest">
+                    Shipped Successfully
+                  </span>
+                </div>
+              ) : (
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-xl bg-slate-50 border border-slate-100 text-slate-400 opacity-40 grayscale group-hover:opacity-80 group-hover:grayscale-0 transition-all">
+                  <Box className="w-3 h-3 text-slate-300" />
+                  <span className="text-[8px] font-black uppercase tracking-widest">
+                    Full Manifest
+                  </span>
+                </div>
+              )
             )}
-          </div>
         </div>
 
         <div className="col-span-2 text-right hidden md:block">
@@ -274,7 +296,7 @@ function OrderItemRow({ item, index }: OrderItemRowProps) {
               </span>
             </div>
           </div>
-          {item.exchangeRequestedQuantity && item.exchangeRequestedQuantity > 0 && (
+          {item.exchangeRequestedQuantity && item.exchangeRequestedQuantity > 0 ? (
             <div className="flex items-center justify-between bg-slate-50 p-2 rounded-lg border border-slate-100">
               <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">
                 {item.quantity - item.exchangeRequestedQuantity} Delivered Successfully
@@ -283,6 +305,15 @@ function OrderItemRow({ item, index }: OrderItemRowProps) {
                 {item.exchangeRequestedQuantity} Needs Reshipment
               </span>
             </div>
+          ) : (
+            (orderStatus === 4 || orderStatus === 5 || orderStatus === 'Delivered' || orderStatus === 'Completed') && (
+              <div className="flex items-center justify-center gap-2 bg-emerald-50 p-2 rounded-lg border border-emerald-100">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">
+                  Successfully Delivered
+                </span>
+              </div>
+            )
           )}
         </div>
       </div>

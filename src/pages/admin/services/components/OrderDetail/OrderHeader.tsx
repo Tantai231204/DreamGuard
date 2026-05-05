@@ -54,12 +54,13 @@ export const OrderHeader = memo(function OrderHeader({
   };
 
 
-  const handleCancelConfirm = (reason: string, refundAmount?: number) => {
+  const handleCancelConfirm = (reason: string, refundAmount?: number, isForceCancel?: boolean) => {
     cancelBooking({
       id: order.soId || order.id || "",
       status: order.status || "",
       reason,
-      refundAmount
+      refundAmount,
+      isForceCancel
     }, {
       onSuccess: () => {
         setIsCancelOpen(false);
@@ -146,7 +147,7 @@ export const OrderHeader = memo(function OrderHeader({
                 onClick={onAssign}
                 className="bg-[#4988c4]/10 text-[#4988c4] hover:bg-[#4988c4]/20 font-black text-[10px] uppercase tracking-widest rounded-xl gap-2 h-12 px-6 transition-all border-0"
               >
-                <UserPlus className="h-4 w-4" /> Personnel Dispatch
+                <UserPlus className="h-4 w-4" /> {permissions.isAssigned ? 'Dispatch New Task' : 'Personnel Dispatch'}
               </Button>
             )}
 

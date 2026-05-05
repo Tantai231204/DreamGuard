@@ -122,6 +122,20 @@ export const OrderSidebar = memo(function OrderSidebar({
         <div className="space-y-5">
           {((displayTasks.length > 0) || technician || permissions?.isAssigned) ? (
             <div className="space-y-4">
+              {permissions?.canAssign && (technician || permissions?.isAssigned) && (
+                <button
+                  onClick={onAssign}
+                  className="w-full py-5 rounded-[2rem] border-2 border-dashed border-blue-200 bg-blue-50/50 flex flex-col items-center justify-center gap-2.5 hover:bg-blue-100 hover:border-blue-400 transition-all group mb-4 ring-2 ring-white"
+                >
+                  <div className="h-11 w-11 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all duration-500 shadow-sm">
+                    <UserPlus className="h-5 w-5" />
+                  </div>
+                  <div className="text-center">
+                    <span className="block text-[11px] font-black text-blue-700 uppercase tracking-[0.2em]">Assign New Task</span>
+                    <span className="block text-[9px] font-bold text-blue-400 mt-0.5">Initialize a fresh execution record</span>
+                  </div>
+                </button>
+              )}
               {hasMultipleTasks && (
                 <div className="flex items-center justify-between px-1 mb-2">
                   <div className="flex flex-col">

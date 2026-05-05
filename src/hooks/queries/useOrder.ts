@@ -117,3 +117,12 @@ export const useUserOrderItemsForTradeIn = (id: string, options?: { enabled?: bo
         staleTime: 60000,
     });
 };
+
+export const useTopSellerProducts = (limit: number = 5) => {
+    return useQuery({
+        queryKey: [...orderKeys.all, 'top-sellers', limit],
+        queryFn: () => orderService.getTopSellerProducts(limit),
+        staleTime: 300000, // 5 minutes
+    });
+};
+

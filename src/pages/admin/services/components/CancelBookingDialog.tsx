@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, formatNumber, unformatNumber } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -24,7 +24,7 @@ import { AlertTriangle, Percent, Calculator, RotateCcw } from "lucide-react";
 interface CancelBookingDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (reason: string, refundAmount?: number) => void;
+  onConfirm: (reason: string, refundAmount?: number, isForceCancel?: boolean) => void;
   isLoading?: boolean;
   orderCode?: string;
   status: string;
@@ -86,7 +86,7 @@ export function CancelBookingDialog({
     }
 
     setError("");
-    onConfirm(finalReason, showRefundSection ? refundAmount : undefined);
+    onConfirm(finalReason, showRefundSection ? refundAmount : undefined, isForcedCancel);
   };
 
   const normalizedStatus = status.toLowerCase();
@@ -190,12 +190,12 @@ export function CancelBookingDialog({
                       <Label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Manual Amount</Label>
                       <div className="relative group">
                         <Input
-                          type="number"
-                          value={refundAmount}
+                          type="text"
+                          value={formatNumber(refundAmount)}
                           onChange={(e) => {
-                            const val = parseFloat(e.target.value) || 0;
+                            const val = unformatNumber(e.target.value);
                             setRefundAmount(val);
-                            setPercentage(Math.round((val / totalPrice) * 100));
+                            setPercentage(totalPrice > 0 ? Math.round((val / totalPrice) * 100) : 0);
                           }}
                           className="h-11 rounded-xl border-slate-200 bg-white font-black text-slate-900 shadow-none pl-10 focus:border-blue-400 focus:ring-4 focus:ring-blue-50 transition-all"
                         />

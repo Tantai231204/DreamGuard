@@ -1,14 +1,43 @@
 import { defineConfig } from 'vite'
-// import react from '@vitejs/plugin-react'
+import react from '@vitejs/plugin-react'
 import path from 'path'
 
-// https://vite.dev/config/
-// export default defineConfig({
-//   plugins: [react()],
-// })
+// Optimization: Pre-compute vendor chunks mapping for O(1) lookups
+const VENDOR_MAP: Record<string, string> = {
+  'react-markdown': 'markdown-vendor',
+  'remark-': 'markdown-vendor',
+  'rehype-': 'markdown-vendor',
+  'micromark': 'markdown-vendor',
+  'lucide-react': 'icons-vendor',
+  '@microsoft/signalr': 'signalr-vendor',
+  'three': 'three-vendor',
+  '@react-three': 'three-vendor',
+  '@pmndrs': 'three-vendor',
+  'zod': 'schema-vendor',
+  'date-fns': 'date-picker-vendor',
+  'react-day-picker': 'date-picker-vendor',
+  'framer-motion': 'motion-vendor',
+  'axios': 'utils-vendor',
+  'clsx': 'utils-vendor',
+  'tailwind-merge': 'utils-vendor',
+};
 
-// để tạm để test
+const RADIX_PACKAGES = [
+  '@radix-ui/react-select',
+  '@radix-ui/react-tooltip',
+  '@radix-ui/react-popper',
+  '@radix-ui/react-portal',
+  '@radix-ui/react-dismissable-layer',
+  '@radix-ui/react-focus-scope',
+  '@radix-ui/react-focus-guards',
+  '@radix-ui/react-roving-focus',
+  '@radix-ui/react-collection',
+  '@radix-ui/react-presence',
+  '@floating-ui/'
+];
+
 export default defineConfig({
+  plugins: [react()],
   server: {
     proxy: {
       "/api": {
@@ -31,84 +60,29 @@ export default defineConfig({
   },
   build: {
     target: 'esnext',
-    chunkSizeWarningLimit: 1200,
+    minify: 'esbuild',
+    cssMinify: true,
+    chunkSizeWarningLimit: 1500,
+    reportCompressedSize: false, // Performance: Skip Gzip/Brotli size reporting for faster builds
     rollupOptions: {
       onwarn(warning, warn) {
-        const message = typeof warning === 'string' ? warning : (warning.message || '')
-
-        const isUseClientDirective =
-          (typeof warning !== 'string' && warning.code === 'MODULE_LEVEL_DIRECTIVE' && /use client/i.test(message)) ||
-          /Module level directives cause errors when bundled,\s*"use client"/i.test(message)
-
-        const isSourcemapNoise =
-          (typeof warning !== 'string' && warning.code === 'SOURCEMAP_ERROR' && /Can't resolve original location of error/i.test(message)) ||
-          /Can't resolve original location of error/i.test(message)
-
-        const isInvalidPureAnnotation =
-          (typeof warning !== 'string' && warning.code === 'INVALID_ANNOTATION') ||
-          /annotation that Rollup cannot interpret/i.test(message)
-
-        if (isUseClientDirective || isSourcemapNoise || isInvalidPureAnnotation) {
-          return
+        if (warning.code === 'MODULE_LEVEL_DIRECTIVE' || warning.code === 'SOURCEMAP_ERROR' || warning.code === 'INVALID_ANNOTATION') {
+          return;
         }
-
-        warn(warning)
+        warn(warning);
       },
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return;
 
-          if (id.includes('react-markdown') || id.includes('remark-') || id.includes('rehype-') || id.includes('micromark') || id.includes('decode-named-character-reference')) {
-            return 'markdown-vendor';
+          // Faster lookup for pre-defined vendors
+          for (const [key, chunk] of Object.entries(VENDOR_MAP)) {
+            if (id.includes(key)) return chunk;
           }
 
-          if (id.includes('lucide-react')) {
-            return 'icons-vendor';
-          }
-
-          if (id.includes('@microsoft/signalr')) {
-            return 'signalr-vendor';
-          }
-
-          if (id.includes('three') || id.includes('@react-three') || id.includes('@pmndrs')) {
-            return 'three-vendor';
-          }
-
-          if (id.includes('zod')) {
-            return 'schema-vendor';
-          }
-
-          if (id.includes('date-fns') || id.includes('react-day-picker')) {
-            return 'date-picker-vendor';
-          }
-
-          if (id.includes('framer-motion')) {
-            return 'motion-vendor';
-          }
-
-          const isRadixSelectOrTooltip =
-            id.includes('@radix-ui/react-select') ||
-            id.includes('@radix-ui/react-tooltip');
-
-          const isRadixSharedRuntime =
-            id.includes('@radix-ui/react-popper') ||
-            id.includes('@radix-ui/react-portal') ||
-            id.includes('@radix-ui/react-dismissable-layer') ||
-            id.includes('@radix-ui/react-focus-scope') ||
-            id.includes('@radix-ui/react-focus-guards') ||
-            id.includes('@radix-ui/react-roving-focus') ||
-            id.includes('@radix-ui/react-collection') ||
-            id.includes('@radix-ui/react-presence') ||
-            id.includes('@floating-ui/');
-
-          if (isRadixSelectOrTooltip || isRadixSharedRuntime) {
+          if (RADIX_PACKAGES.some(pkg => id.includes(pkg))) {
             return 'radix-ui-vendor';
           }
-
-          if (id.includes('axios') || id.includes('clsx') || id.includes('tailwind-merge')) {
-            return 'utils-vendor';
-          }
-
         },
       },
     },

@@ -54,15 +54,22 @@ export function useOrderDetail() {
         .map(mapApiTaskToServiceTask)
         .filter((t): t is ServiceTask => !!t)
         .sort((a, b) => {
-          // 1. Status Priority: Active tasks (pending, processing, confirmed) come FIRST
-          const activeStatuses = ['pending', 'processing', 'confirmed'];
-          const aActive = activeStatuses.includes(a.status?.toLowerCase());
-          const bActive = activeStatuses.includes(b.status?.toLowerCase());
+          const aStatus = (a.status || '').toLowerCase();
+          const bStatus = (b.status || '').toLowerCase();
+          
+          const activeStatuses = ['pending', 'processing', 'confirmed', 'waiting', 'arriving', 'inprogress', 'started'];
+          const aActive = activeStatuses.includes(aStatus);
+          const bActive = activeStatuses.includes(bStatus);
 
+          // 1. Active tasks always come first
           if (aActive && !bActive) return -1;
           if (!aActive && bActive) return 1;
 
-          // 2. ID Heuristic: Sort by UUID/ID descending (Assuming newest ID has higher value)
+          // 2. 'Rescheduled' tasks go to the very bottom (less priority than terminal states like Completed)
+          if (aStatus === 'rescheduled' && bStatus !== 'rescheduled') return 1;
+          if (bStatus === 'rescheduled' && aStatus !== 'rescheduled') return -1;
+
+          // 3. Chronological Heuristic: Sort by ID descending (Assuming newest ID is the most relevant)
           return (b.serviceTaskId || '').localeCompare(a.serviceTaskId || '');
         });
     },
@@ -168,11 +175,36 @@ export function useOrderDetail() {
     return false;
   }, [mergedOrder, isAssigned]);
 
+  const hasActiveTask = useMemo(() => {
+    const activeStatuses = ['pending', 'processing', 'confirmed', 'waiting', 'arriving', 'inprogress', 'started'];
+    return tasks.some(t => activeStatuses.includes((t.status || '').toLowerCase()));
+  }, [tasks]);
+
   const canAssign = useMemo(() => {
     if (!mergedOrder) return false;
     const status = mergedOrder.status?.toLowerCase();
-    return (status === 'confirmed' || status === 'processing') && !isAssigned;
-  }, [mergedOrder, isAssigned]);
+    
+    // Core terminal states – no further assignment possible
+    if (['cancelled', 'completed', 'refunded', 'forcedcancelled', 'rejected'].includes(status || '')) return false;
+
+    // IF there is already an active/ongoing task, we do NOT allow another assignment
+    if (hasActiveTask) return false;
+
+    // 1. Standard assignment: Confirmed and not assigned yet
+    if (status === 'confirmed' && !isAssigned) return true;
+
+    // 2. Rescheduled ALWAYS allows new assignment to move forward (if no active task)
+    if (status === 'rescheduled' || status === 'reschedule') return true;
+
+    // 3. Processing could allow assignment if latest task was lost or rescheduled
+    if (status === 'processing' || status === 'inprogress') {
+      const latestTask = tasks[0];
+      const latestTaskStatus = (latestTask?.status || '').toLowerCase();
+      return latestTaskStatus === 'rescheduled' || !isAssigned;
+    }
+
+    return false;
+  }, [mergedOrder, isAssigned, hasActiveTask, tasks]);
 
 
 
@@ -217,13 +249,21 @@ export function useOrderDetail() {
     return isRefundableState && !hasRefundProcess;
   }, [mergedOrder, paymentsQuery.data]);
 
+  const isRescheduled = useMemo(() => {
+    if (!mergedOrder) return false;
+    const orderStatus = (mergedOrder.status || '').toLowerCase();
+    const taskStatus = (mergedOrder.serviceTask?.status || '').toLowerCase();
+    return orderStatus === 'rescheduled' || taskStatus === 'rescheduled';
+  }, [mergedOrder]);
+
   const permissions = useMemo(() => ({
     canConfirm,
     canAssign,
     canCancel,
     canCreateRefund,
-    isAssigned
-  }), [canConfirm, canAssign, canCancel, canCreateRefund, isAssigned]);
+    isAssigned,
+    isRescheduled
+  }), [canConfirm, canAssign, canCancel, canCreateRefund, isAssigned, isRescheduled]);
 
   const memoizedActions = useMemo(() => ({
     handleAssignOpen,

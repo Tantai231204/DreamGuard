@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useMemo } from "react";
 import { Minus, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { OrderItem } from "@/api/types/order";
@@ -17,6 +17,7 @@ export const ReturnItemRow = memo(function ReturnItemRow({ item, damaged, onQtyC
   const isCombo = !!item.comboId;
   const { data: variant } = useVariant(isCombo ? "" : (item.productVariantId || ""));
   const { data: comboDetail } = useComboDetail(item.comboId || "", isCombo);
+  const { data: parentCombo } = useComboDetail(comboDetail?.comboParentId || "", !!comboDetail?.comboParentId && isCombo);
 
   // 🔥 Sync logic with OrderItemsList.tsx for perfect visual parity
   const variantAttrs = (variant?.attributes || {}) as Record<string, unknown>;
@@ -29,7 +30,34 @@ export const ReturnItemRow = memo(function ReturnItemRow({ item, damaged, onQtyC
     product?.imageUrls?.[0] ||
     product?.assets?.[0]?.url;
 
-  const resolvedImage = item.image || variantImage || comboDetail?.imageUrl || "/images/placeholder-product.svg";
+  const resolvedImage = useMemo(() => {
+    // 1. Check for custom wrap/bespoke images first
+    const wrapDetail = item.productCustomizeDetails?.find(d =>
+      d.customizeTypeName.toLowerCase().includes('wrap') ||
+      d.customizeTypeName.toLowerCase().includes('ảnh bọc')
+    );
+    if (wrapDetail?.customizeContent && wrapDetail.customizeContent.includes('http')) {
+      return wrapDetail.customizeContent;
+    }
+
+    if (isCombo) {
+      if (comboDetail?.imageUrl && comboDetail.imageUrl.length > 5) return comboDetail.imageUrl;
+      if (parentCombo?.imageUrl && parentCombo.imageUrl.length > 5) return parentCombo.imageUrl;
+
+      // Fallback to order item snapshot image if available
+      if (item.image && item.image.length > 5 && !item.image.includes('placeholder')) return item.image;
+
+      // Deep fallback to first item in bundle
+      const firstItemImg = comboDetail?.productItems?.[0]?.imageUrl || parentCombo?.productItems?.[0]?.imageUrl;
+      if (firstItemImg && firstItemImg.length > 5) return firstItemImg;
+    } else {
+      if (item.image && item.image.length > 5 && !item.image.includes('placeholder')) return item.image;
+      if (variantImage) return variantImage;
+    }
+
+    const isBespoke = !!(item.productCustomizeDetails && item.productCustomizeDetails.length > 0);
+    return isBespoke ? '/images/logo_no_name.svg' : '/images/placeholder-product.svg';
+  }, [isCombo, comboDetail, parentCombo, item.image, variantImage, item.productCustomizeDetails]);
 
   return (
     <div className={cn(

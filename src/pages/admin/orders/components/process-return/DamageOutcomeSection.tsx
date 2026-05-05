@@ -18,7 +18,7 @@ export const DamageOutcomeSection = memo(function DamageOutcomeSection({
   setDamageNote,
 }: DamageOutcomeSectionProps) {
   return (
-    <div className="space-y-3 animate-in fade-in slide-in-from-top-1 duration-200">
+    <div className="space-y-4 p-4 rounded-xl border border-slate-200 bg-slate-50/70 animate-in fade-in duration-300">
       <div className="space-y-1.5">
         <Label className="text-[13px] font-semibold text-slate-700">
           Outcome Reason

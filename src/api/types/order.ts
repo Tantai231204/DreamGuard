@@ -105,3 +105,13 @@ export interface OrderDashboardResponse {
     fromDate: string;
     toDate: string;
 }
+
+export interface TopSellerProduct {
+    product: import('./product.types').ProductResponse & {
+        basePrice: number;
+        salePrice: number;
+    };
+    totalQuantity: number;
+}
+
+

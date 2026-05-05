@@ -25,7 +25,6 @@ import { cn } from "@/lib/utils";
 import { useProcessReturnedTradeInShippingTask } from "@/hooks/queries/useShippingTask";
 import { useVariant } from "@/hooks/queries/useVariant";
 import { RefundSection } from "../../../orders/components/process-return/RefundSection";
-import { paymentService } from "@/api/services";
 import {
   Select,
   SelectContent,
@@ -100,8 +99,6 @@ export function TradeInProcessReturnDialogComponent({
   const [selectedReason, setSelectedReason] = useState("");
   const [isDamagedSelected, setIsDamagedSelected] = useState(false);
   const [evidenceItems, setEvidenceItems] = useState<EvidenceItem[]>([]);
-  const [refundAmount, setRefundAmount] = useState(totalPrice);
-  const [percentage, setPercentage] = useState(100);
   const [isRefund, setIsRefund] = useState(true);
   const [isUploadingEvidence, setIsUploadingEvidence] = useState(false);
   const evidenceItemsRef = useRef<EvidenceItem[]>([]);
@@ -136,8 +133,6 @@ export function TradeInProcessReturnDialogComponent({
       setIsDamagedSelected(false);
       setDamageNote("");
       setSelectedReason("");
-      setRefundAmount(totalPrice);
-      setPercentage(100);
       setEvidenceItems((prev) => {
         prev.forEach((item) => URL.revokeObjectURL(item.previewUrl));
         return [];
@@ -155,8 +150,6 @@ export function TradeInProcessReturnDialogComponent({
     setDamageNote("");
     setSelectedReason("");
     setIsDamagedSelected(false);
-    setRefundAmount(0);
-    setPercentage(100);
     setEvidenceItems((prev) => {
       prev.forEach((item) => URL.revokeObjectURL(item.previewUrl));
       return [];
@@ -292,7 +285,7 @@ export function TradeInProcessReturnDialogComponent({
     }
 
     try {
-      if (isRefundableMethod && refundAmount > 0 && evidenceItems.length === 0) {
+      if (isRefundableMethod && isRefund && evidenceItems.length === 0) {
         toast.error("Evidence is required for refund processing.");
         return;
       }
@@ -317,26 +310,8 @@ export function TradeInProcessReturnDialogComponent({
         },
       });
 
-      // 2. Financial Settlement (Administrative Refund)
-      // Only manually create refund if isRefund is false
-      let refundId: string | undefined;
-      if (!isRefund && typeof refundAmount === 'number' && refundAmount > 0) {
-        const refundObj = await paymentService.createAdminRefund({
-          tradeInOrderId,
-          amount: refundAmount,
-          reason: "Return",
-        });
-        refundId = refundObj?.id;
-      }
-
-      if (refundId) {
-        const evidenceUrl = evidenceUrls.length > 0 ? evidenceUrls[0] : undefined;
-        if (isRefundableMethod) {
-          await paymentService.updateRefundStatus(refundId, "Refunding", undefined, evidenceUrl);
-        } else if (evidenceUrl) {
-          await paymentService.updateRefundStatus(refundId, "Refunding", undefined, evidenceUrl);
-        }
-      }
+      // 2. Financial Settlement is now handled automatically by the backend via the isRefund flag
+      // No manual refund creation needed here anymore.
 
       // 4. Global Invalidation: Sync UI state across all related panels
       void queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.detail(tradeInOrderId) });
@@ -363,7 +338,6 @@ export function TradeInProcessReturnDialogComponent({
     evidenceItems,
     isRefund,
     processReturned,
-    refundAmount,
     resetAndClose,
     resolvedProductVariantId,
     taskId,
@@ -431,20 +405,20 @@ export function TradeInProcessReturnDialogComponent({
               </button>
             </div>
 
-          <TradeInAssetCard
-            sku={targetVariant?.sku}
-            size={targetVariant?.size}
-            color={targetVariantColor}
-            imageUrl={(() => {
-              const attrs = (targetVariant?.attributes || {}) as Record<string, unknown>;
-              return productImageUrl || (attrs.imageUrls as string[])?.[0] || (attrs.imageUrl as string) || "/images/placeholder-product.svg";
-            })()}
-            isLoading={isLoadingTargetVariant}
-            isDamaged={isDamagedOutcome}
-          />
-        </div>
+            <TradeInAssetCard
+              sku={targetVariant?.sku}
+              size={targetVariant?.size}
+              color={targetVariantColor}
+              imageUrl={(() => {
+                const attrs = (targetVariant?.attributes || {}) as Record<string, unknown>;
+                return productImageUrl || (attrs.imageUrls as string[])?.[0] || (attrs.imageUrl as string) || "/images/placeholder-product.svg";
+              })()}
+              isLoading={isLoadingTargetVariant}
+              isDamaged={isDamagedOutcome}
+            />
+          </div>
 
-        {isDamagedOutcome && (
+          {isDamagedOutcome && (
             <>
               <div className="space-y-3">
                 <div className="space-y-1.5">
@@ -576,20 +550,10 @@ export function TradeInProcessReturnDialogComponent({
                 </div>
               </div>
 
-              <div className="bg-slate-100/40 rounded-xl border border-slate-200 overflow-hidden">
-                <RefundSection
-                  totalPrice={totalPrice}
-                  refundAmount={refundAmount}
-                  setRefundAmount={setRefundAmount}
-                  percentage={percentage}
-                  setPercentage={setPercentage}
-                  paymentMethod={paymentMethod}
-                  paymentStatus={paymentStatus}
-                  hasDamages={isDamagedOutcome}
-                  isRefund={isRefund}
-                  setIsRefund={setIsRefund}
-                />
-              </div>
+              <RefundSection
+                isRefund={isRefund}
+                setIsRefund={setIsRefund}
+              />
             </div>
           )}
         </div>

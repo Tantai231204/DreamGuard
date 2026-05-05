@@ -4,6 +4,7 @@ import { Truck, ChevronLeft, CreditCard, Layers, Eye, UserPlus } from 'lucide-re
 import { Button } from '@/components/ui/button';
 import { useAdminCheckoutOrders } from '@/hooks/queries/useCheckoutOrder';
 import { useOrderDetail } from '@/hooks/queries/useOrder';
+import { useShippingTasksByOrder } from '@/hooks/queries/useShippingTask';
 import { formatPrice } from '@/pages/profile/utils';
 import { formatDate } from '@/lib/utils';
 import { AdminStatusBadge } from '@/components/admin';
@@ -16,14 +17,24 @@ import { cn } from '@/lib/utils';
 import { OrderStatus, ORDER_STATUS_MAP } from '../orders/constants';
 
 function ChildOrderCard({ childOrderId, onAssign }: { childOrderId: string, onAssign: (id: string) => void }) {
-    const { data: detail, isPending } = useOrderDetail(childOrderId);
     const navigate = useNavigate();
+    const { data: detail, isPending } = useOrderDetail(childOrderId);
+    const { data: tasks } = useShippingTasksByOrder(childOrderId);
+    
+    const activeTask = tasks?.find(t => t.status !== "Reassigned");
+    const taskStatus = activeTask?.status?.toLowerCase();
+    const isTaskPending = !activeTask || 
+                         taskStatus === "pending" || 
+                         taskStatus === "waiting_for_staff" || 
+                         taskStatus === "waitingforstaff" || 
+                         taskStatus === "0";
 
     const currentStatusEnum = useMemo(() => detail ? ORDER_STATUS_MAP[detail.status.toString()] : null, [detail]);
     const isCancelled = currentStatusEnum === OrderStatus.Cancelled;
 
     const canAssign = useMemo(() => {
-        if (!detail || isCancelled) return false;
+        if (!detail || isCancelled || !isTaskPending) return false;
+        
         return (
             currentStatusEnum !== OrderStatus.Pending &&
             currentStatusEnum !== OrderStatus.Completed &&
@@ -31,7 +42,7 @@ function ChildOrderCard({ childOrderId, onAssign }: { childOrderId: string, onAs
             currentStatusEnum !== OrderStatus.ReturnedAndRefunding &&
             currentStatusEnum !== OrderStatus.ReturnedAndRefunded
         );
-    }, [detail, currentStatusEnum, isCancelled]);
+    }, [detail, currentStatusEnum, isCancelled, isTaskPending]);
 
     if (isPending) return <div className="h-24 bg-slate-50 animate-pulse rounded-2xl border border-slate-100" />;
     if (!detail) return null;
@@ -127,7 +138,7 @@ function ChildOrderCard({ childOrderId, onAssign }: { childOrderId: string, onAs
                                 onAssign(detail.id);
                             }}
                         >
-                            <Truck className="w-4 h-4" /> {detail.shippingStaffName ? 'Reassign' : 'Assign Staff'}
+                            <Truck className="w-4 h-4" /> {detail.shippingStaffName ? 'Reassign' : 'Assign'}
                         </Button>
                     )}
                 </div>
