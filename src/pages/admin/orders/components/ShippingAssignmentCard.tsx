@@ -10,13 +10,14 @@ interface ShippingAssignmentCardProps {
     orderId: string;
     onOpenAssign: () => void;
     canAssign: boolean;
+    currentStatusEnum: number | string;
     delay?: number;
 }
 
 import { useAuthStore } from '@/store/authStore';
 import { isAdminOrManager as checkIsAdminOrManager } from '@/lib/role';
 
-export function ShippingAssignmentCard({ orderId, onOpenAssign, canAssign, delay = 0 }: ShippingAssignmentCardProps) {
+export function ShippingAssignmentCard({ orderId, onOpenAssign, canAssign, currentStatusEnum, delay = 0 }: ShippingAssignmentCardProps) {
         const role = useAuthStore((s) => s.role);
         const isAdminOrManager = checkIsAdminOrManager(role);
         const { data: staffsResponse } = useStaffs(
@@ -115,13 +116,13 @@ export function ShippingAssignmentCard({ orderId, onOpenAssign, canAssign, delay
                             : "bg-slate-50/30 border-slate-100 cursor-default"
                             }`}
                         onClick={canAssign && isAdminOrManager && isTaskPending ? onOpenAssign : undefined}
-                        title={!isAdminOrManager ? "Awaiting staff assignment" : !canAssign ? "Order must be Confirmed to assign delivery personnel." : isTaskPending ? "Assign Delivery Personnel" : `Task is ${activeTask?.status} and cannot be modified`}
+                        title={!isAdminOrManager ? "Awaiting staff assignment" : !canAssign ? (currentStatusEnum === 1 ? "Move order to Processing to assign delivery personnel." : "Awaiting Confirmation") : isTaskPending ? "Assign Delivery Personnel" : `Task is ${activeTask?.status} and cannot be modified`}
                     >
                         <div className={`h-10 w-10 rounded-full flex items-center justify-center mb-3 transition-colors ${canAssign && isAdminOrManager ? "bg-slate-100 group-hover:bg-slate-200/50" : "bg-slate-100"}`}>
                             <User className={`h-4 w-4 transition-colors ${canAssign && isAdminOrManager ? "text-slate-400 group-hover:text-slate-500" : "text-slate-300"}`} />
                         </div>
                         <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${canAssign && isAdminOrManager ? "text-slate-400 group-hover:text-slate-500" : "text-slate-300"}`}>
-                            {!isAdminOrManager ? "Unassigned" : canAssign ? "Assign Technician" : "Awaiting Confirmation"}
+                            {!isAdminOrManager ? "Unassigned" : canAssign ? "Assign Technician" : (currentStatusEnum === 1 ? "Awaiting Processing" : "Awaiting Confirmation")}
                         </span>
                     </div>
                 )}

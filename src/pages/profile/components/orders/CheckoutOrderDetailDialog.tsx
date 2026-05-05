@@ -21,7 +21,7 @@ import { getChildOrderType } from "@/api/types/checkoutOrder"
 import { ChildOrderSection } from "./components/ChildOrderSection"
 import { RefundSummaryBanner } from "./components/RefundSummaryBanner"
 import { PaymentDetailsCard } from "./components/PaymentDetailsCard"
-import { CheckoutPricingSummary } from "./components/CheckoutPricingSummary"
+
 import { OrderDetailSkeleton } from "@/components/common/Skeletons"
 
 interface CheckoutOrderDetailDialogProps {
@@ -237,10 +237,6 @@ export function CheckoutOrderDetailDialog({
                                     </div>
                                 </div>
 
-                                {/* Pricing Summary */}
-                                <div className="border-b border-gray-100 bg-gray-50/30">
-                                    <CheckoutPricingSummary order={order} />
-                                </div>
 
                                 {/* Payment Details */}
                                 <div className="p-8 bg-white">

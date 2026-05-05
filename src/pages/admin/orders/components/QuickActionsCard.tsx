@@ -64,21 +64,17 @@ export function QuickActionsCard({
               <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-xl flex items-start gap-3">
                 <Truck className="w-4 h-4 text-blue-500 shrink-0 mt-0.5 animate-pulse" />
                 <p className="text-[9px] font-bold text-blue-600 uppercase tracking-[0.15em] leading-relaxed">
-                  {hasTask
-                    ? "Technical personnel deployed. You may now move to processing."
-                    : "Awaiting logistics assignment to begin engagement workflow."}
+                  Engagement confirmed. You may now move to processing to prepare items for dispatch.
                 </p>
               </div>
 
-              {hasTask && (
-                <Button
-                  onClick={() => onUpdateStatus('Processing')}
-                  className="w-full justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-12 text-[10px] font-black uppercase tracking-widest transition-all shadow-md shadow-emerald-500/20 border-none group"
-                >
-                  <RefreshCw className="h-4 w-4 transition-transform group-active:rotate-180" />
-                  Move to Processing
-                </Button>
-              )}
+              <Button
+                onClick={() => onUpdateStatus('Processing')}
+                className="w-full justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl h-12 text-[10px] font-black uppercase tracking-widest transition-all shadow-md shadow-emerald-500/20 border-none group"
+              >
+                <RefreshCw className="h-4 w-4 transition-transform group-active:rotate-180" />
+                Move to Processing
+              </Button>
             </div>
           )}
 
@@ -86,7 +82,9 @@ export function QuickActionsCard({
             <div className="p-4 bg-amber-50/50 border border-amber-100 rounded-xl flex items-start gap-3">
               <Package className="w-4 h-4 text-amber-500 shrink-0 mt-0.5 animate-pulse" />
               <p className="text-[9px] font-bold text-amber-600 uppercase tracking-[0.15em] leading-relaxed">
-                Order being prepared in warehouse. Awaiting courier pick-up to begin transit.
+                {hasTask 
+                  ? "Shipping task created. Order being prepared in warehouse. Awaiting courier pick-up."
+                  : "Items are being prepared. Awaiting logistics assignment to begin dispatch workflow."}
               </p>
             </div>
           )}

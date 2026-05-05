@@ -40,6 +40,7 @@ export interface ProcessReturnedRequest {
     evidenceUrls?: string[];
     damagedItems: ProcessReturnedDamagedItem[];
     isRefund?: boolean;
+    refundAmount?: number;
 }
 
 export interface ProcessExchangeRequest {

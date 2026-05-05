@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { useStaffs } from '@/hooks/queries/useStaff';
+import { useCleaningStaffsForAssignment } from '@/hooks/queries/useStaff';
 import api from '@/lib/api';
 import serviceOrderService from '@/api/services/serviceOrderService';
 
@@ -15,11 +15,8 @@ export const useAssignTechnicianDialog = ({ orderId, isRescheduled, onClose }: U
   const [selectedStaffId, setSelectedStaffId] = useState<string>('');
   const queryClient = useQueryClient();
 
-  const { data: staffData, isLoading: isLoadingStaff } = useStaffs({ 
-    pageSize: 100, 
-    Role: "CleaningStaff" 
-  });
-  const staffs = staffData?.items || [];
+  const { data: staffData, isLoading: isLoadingStaff } = useCleaningStaffsForAssignment();
+  const staffs = staffData || [];
 
   const assignMutation = useMutation({
     mutationFn: async () => {

@@ -22,7 +22,7 @@ import {
   Truck,
   RefreshCw,
 } from 'lucide-react';
-import { useStaffs } from '@/hooks/queries/useStaff';
+import { useDeliveryStaffsForAssignment } from '@/hooks/queries/useStaff';
 import { useShippingTasksByOrder, useShippingTasksByTradeInOrder, useCreateShippingTask, useReassignShippingTask } from '@/hooks/queries/useShippingTask';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -56,8 +56,8 @@ function AssignShippingStaffContent({ orderId, tradeInOrderId, onClose }: { orde
   const role = useAuthStore((s) => s.role);
   const isAdminOrManager = checkIsAdminOrManager(role);
   // Only fetch all delivery staff if admin/manager
-  const { data: staffData, isLoading: isLoadingStaff, isError: isStaffError } = useStaffs(
-    isAdminOrManager ? { pageSize: 100, Role: 'DeliveryStaff' } : undefined,
+  // Use dedicated assignment API
+  const { data: staffData, isLoading: isLoadingStaff, isError: isStaffError } = useDeliveryStaffsForAssignment(
     { enabled: isAdminOrManager }
   );
   const { data: orderTasks } = useShippingTasksByOrder(orderId || '');
@@ -78,7 +78,7 @@ function AssignShippingStaffContent({ orderId, tradeInOrderId, onClose }: { orde
   };
 
   const staffs = useMemo(() => {
-    if (isAdminOrManager) return (staffData?.items || []) as CustomStaffInfo[];
+    if (isAdminOrManager) return (staffData || []) as CustomStaffInfo[];
     // For sellers, collect unique staff from tasks (reconstruct minimal staff object)
     const allTasks = tasks || [];
     const uniqueStaff: Record<string, CustomStaffInfo> = {};
@@ -113,17 +113,9 @@ function AssignShippingStaffContent({ orderId, tradeInOrderId, onClose }: { orde
   }, [activeTask?.staffId]);
 
   const deliveryStaffs = useMemo(() => {
-    // For admin/manager, filter by role/position
-    if (isAdminOrManager) {
-      return staffs.filter((s) => {
-        const role = (s.role || '').toLowerCase();
-        const pos = (s.position || '').toLowerCase();
-        return role === 'deliverystaff' || pos === 'deliverystaff';
-      });
-    }
-    // For sellers, staffs are already filtered
+    // Staffs are already filtered by the API
     return staffs;
-  }, [staffs, isAdminOrManager]);
+  }, [staffs]);
 
   const selectedStaff = useMemo(() =>
     deliveryStaffs.find((s) => s.staffId === selectedStaffId),

@@ -39,6 +39,18 @@ const staffService = {
     const response = await apiClient.put(`/staffs/${id}/UpdateAccount`, data);
     return response.data;
   },
+
+  getCleaningStaffsForAssignment: async (): Promise<StaffResponse[]> => {
+    const response = await apiClient.get('/staffs/GetCleaningStaffsForAssignment');
+    const data = response.data?.data ?? response.data;
+    return Array.isArray(data) ? data : (data?.items || []);
+  },
+
+  getDeliveryStaffsForAssignment: async (): Promise<StaffResponse[]> => {
+    const response = await apiClient.get('/staffs/GetDeliveryStaffsForAssignment');
+    const data = response.data?.data ?? response.data;
+    return Array.isArray(data) ? data : (data?.items || []);
+  },
 };
 
 export default staffService;

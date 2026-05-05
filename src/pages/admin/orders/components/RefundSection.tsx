@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
-import { formatPrice } from '@/pages/profile/utils';
+import { formatNumber, unformatNumber } from '@/lib/utils';
 import { AlertCircle, History, Info } from 'lucide-react';
 
 interface RefundSectionProps {
@@ -27,12 +27,12 @@ export function RefundSection({
     <div className="space-y-4">
       <div className="flex items-center justify-between px-1">
         <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
-          <History className="w-3.5 h-3.5 text-blue-500" />
+          <History className="w-3.5 h-3.5 text-slate-900" />
           Refund Settlement
         </h3>
-        <div className="flex items-center gap-1.5 bg-blue-50/50 px-2.5 py-1 rounded-full border border-blue-100/50">
-          <Info className="w-3 h-3 text-blue-500" />
-          <span className="text-[9px] font-bold text-blue-600 uppercase tracking-wider">
+        <div className="flex items-center gap-1.5 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">
+          <Info className="w-3 h-3 text-slate-600" />
+          <span className="text-[9px] font-bold text-slate-900 uppercase tracking-wider">
             {hasDamages ? 'Partial Refund (Damages)' : 'Full Settlement'}
           </span>
         </div>
@@ -49,8 +49,8 @@ export function RefundSection({
               className={cn(
                 "h-10 rounded-xl text-[11px] font-black transition-all duration-200 border-2",
                 percentage === val
-                  ? "bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-500/20"
-                  : "bg-white border-slate-100 text-slate-400 hover:border-blue-200 hover:text-blue-500"
+                  ? "bg-slate-900 border-slate-900 text-white shadow-md"
+                  : "bg-white border-slate-100 text-slate-400 hover:border-slate-300 hover:text-slate-600"
               )}
             >
               {val}%
@@ -68,7 +68,7 @@ export function RefundSection({
                 max={100}
                 value={percentage}
                 onChange={(e) => setPercentage(Number(e.target.value))}
-                className="h-11 rounded-xl border-slate-200 bg-white pr-8 text-xs font-bold focus:ring-4 focus:ring-blue-500/5 transition-all shadow-sm"
+                className="h-11 rounded-xl border-slate-200 bg-white pr-8 text-xs font-bold focus:ring-4 focus:ring-slate-900/5 focus:border-slate-400 transition-all shadow-sm"
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-300">%</span>
             </div>
@@ -78,10 +78,10 @@ export function RefundSection({
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Settlement Amount</label>
             <div className="relative">
               <Input
-                type="number"
-                value={refundAmount}
-                onChange={(e) => setRefundAmount(Number(e.target.value))}
-                className="h-11 rounded-xl border-slate-200 bg-white pl-3 text-xs font-bold focus:ring-4 focus:ring-blue-500/5 transition-all shadow-sm pr-12"
+                type="text"
+                value={formatNumber(refundAmount)}
+                onChange={(e) => setRefundAmount(unformatNumber(e.target.value))}
+                className="h-11 rounded-xl border-slate-200 bg-white pl-3 text-xs font-bold focus:ring-4 focus:ring-slate-900/5 focus:border-slate-400 transition-all shadow-sm pr-12"
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded-md bg-slate-100 text-[9px] font-black text-slate-400 uppercase tracking-tighter">
                 VND
@@ -96,15 +96,18 @@ export function RefundSection({
             layout
             className="bg-white border border-slate-200 rounded-xl p-4 flex items-center justify-between shadow-sm relative overflow-hidden"
           >
-            <div className="absolute top-0 left-0 w-1 h-full bg-blue-500" />
+            <div className="absolute top-0 left-0 w-1 h-full bg-slate-900" />
             <div className="space-y-0.5">
               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Net Audit Value</p>
-              <p className="text-xs font-bold text-slate-500">Calculated based on {percentage}% of {formatPrice(totalPrice)}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-xl font-black text-slate-900 tabular-nums leading-none">
-                {formatPrice(refundAmount)}
+              <p className="text-xs font-bold text-slate-400">
+                Calculated: {percentage}% of {formatNumber(totalPrice)}
               </p>
+            </div>
+            <div className="text-right flex items-center gap-1.5">
+              <p className="text-xl font-black text-slate-900 tabular-nums leading-none">
+                {formatNumber(refundAmount)}
+              </p>
+              <span className="text-[10px] font-black text-slate-400 uppercase">VND</span>
             </div>
           </motion.div>
         </div>

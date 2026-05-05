@@ -110,3 +110,19 @@ export const useUpdateStaffAccount = () => {
         },
     });
 };
+
+export const useCleaningStaffsForAssignment = (options?: { enabled?: boolean }) => {
+    return useQuery({
+        queryKey: [...staffKeys.all, "cleaning-assignment"],
+        queryFn: () => staffService.getCleaningStaffsForAssignment(),
+        enabled: options?.enabled,
+    });
+};
+
+export const useDeliveryStaffsForAssignment = (options?: { enabled?: boolean }) => {
+    return useQuery({
+        queryKey: [...staffKeys.all, "delivery-assignment"],
+        queryFn: () => staffService.getDeliveryStaffsForAssignment(),
+        enabled: options?.enabled,
+    });
+};

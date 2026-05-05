@@ -50,6 +50,8 @@ function ChildOrderCard({ childOrderId, onAssign }: { childOrderId: string, onAs
     const orderTypeLabel = getChildOrderLabel(detail.orderCode);
     const isCustom = orderTypeLabel === 'Custom Order';
 
+    const hasStaff = detail.shippingStaffName && detail.shippingStaffName !== 'N/A' && detail.shippingStaffName !== 'null';
+
     return (
         <div
             onClick={() => navigate(`/admin/orders/${detail.id}`)}
@@ -95,7 +97,7 @@ function ChildOrderCard({ childOrderId, onAssign }: { childOrderId: string, onAs
                 {!isCancelled && (
                     <div className="hidden md:flex flex-col items-end gap-2 pr-8 border-r border-slate-100">
                         <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Assigned Personnel</span>
-                        {detail.shippingStaffName ? (
+                        {hasStaff ? (
                             <div className="flex items-center gap-2.5">
                                 <div className="text-right">
                                     <p className="text-xs font-bold text-slate-700 leading-none">{detail.shippingStaffName}</p>
@@ -104,7 +106,7 @@ function ChildOrderCard({ childOrderId, onAssign }: { childOrderId: string, onAs
                                 <Avatar className="h-8 w-8 border border-white shadow-sm ring-1 ring-slate-100">
                                     <AvatarImage src={detail.shippingStaffAvatarUrl} />
                                     <AvatarFallback className="bg-slate-100 text-slate-400 text-[10px] font-black uppercase">
-                                        {detail.shippingStaffName.charAt(0)}
+                                        {detail.shippingStaffName?.charAt(0)}
                                     </AvatarFallback>
                                 </Avatar>
                             </div>
@@ -138,7 +140,7 @@ function ChildOrderCard({ childOrderId, onAssign }: { childOrderId: string, onAs
                                 onAssign(detail.id);
                             }}
                         >
-                            <Truck className="w-4 h-4" /> {detail.shippingStaffName ? 'Reassign' : 'Assign'}
+                            <Truck className="w-4 h-4" /> {hasStaff ? 'Reassign' : 'Assign'}
                         </Button>
                     )}
                 </div>
@@ -175,13 +177,14 @@ export default function AdminCheckoutOrderDetail() {
     const [selectedChildForAssign, setSelectedChildForAssign] = useState<string | null>(null);
     const [isBulkAssignOpen, setIsBulkAssignOpen] = useState(false);
 
-    const totalShippingFee = useMemo(() => {
-        return order?.childOrders?.reduce((sum, child) => sum + (child.shippingFee || 0), 0) || 0;
+    const totalProductPrice = useMemo(() => {
+        return order?.childOrders?.reduce((sum, child) => sum + (child.totalAmount || 0), 0) || 0;
     }, [order?.childOrders]);
 
-    const totalProductPrice = useMemo(() => {
-        return order?.childOrders?.reduce((sum, child) => sum + (child.totalAmount - (child.shippingFee || 0)), 0) || 0;
-    }, [order?.childOrders]);
+    const totalShippingFee = useMemo(() => {
+        if (!order) return 0;
+        return Math.max(0, order.totalAmount - totalProductPrice);
+    }, [order, totalProductPrice]);
 
     const assignableChildOrderIds = useMemo(() => {
         return order?.childOrders?.filter(child => {

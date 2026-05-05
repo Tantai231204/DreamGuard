@@ -1,4 +1,4 @@
-import { useMemo, memo } from 'react';
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 import {
   Dialog,
@@ -56,21 +56,7 @@ export const AssignTechnicianDialog = memo(function AssignTechnicianDialog({ ord
   } = useAssignTechnicianDialog({ orderId, isRescheduled, onClose });
 
   const staffs = rawStaffs as unknown as Staff[];
-
-  const cleaningStaffs = useMemo(() => {
-    return staffs.filter((s) => {
-      const role = (s.role || '').toLowerCase();
-      const pos = (s.position || '').toLowerCase();
-      // Only include cleaning staff, technician roles
-      return (role === 'cleaningstaff' ||
-        pos === 'cleaningstaff' ||
-        role.includes('clean') ||
-        pos.includes('clean') ||
-        role.includes('technician')) &&
-        !role.includes('delivery');
-    });
-  }, [staffs]);
-
+  const cleaningStaffs = staffs;
   const selectedStaff = cleaningStaffs.find(s => s.staffId === selectedStaffId);
 
   return (

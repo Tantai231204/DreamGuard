@@ -151,17 +151,29 @@ const BookingCard = React.forwardRef<
             </div>
           )}
           <div className="flex-1" />
-          {!['cancelled', 'rejected', 'completed', 'refunded', 'forcedcancelled'].includes(booking.status) && (
-            <button
-              onClick={(e) => { 
-                e.stopPropagation(); 
-                handleCancel(); 
-              }}
-              className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-300 hover:bg-rose-50 hover:text-rose-600 transition-all"
-            >
-              <XCircle className="w-3.5 h-3.5" />
-            </button>
-          )}
+          {(() => {
+            const status = booking.status.toLowerCase();
+            const isTerminal = ['cancelled', 'rejected', 'completed', 'refunded', 'forcedcancelled'].includes(status);
+            if (isTerminal) return null;
+
+            // Administrative Safety: Confirmed/Processing orders MUST have an assigned task to be cancelled via manager-cancel
+            const needsTask = ['confirmed', 'processing'].includes(status);
+            const canCancel = needsTask ? (!!technician || !!task) : true;
+
+            if (!canCancel) return null;
+
+            return (
+              <button
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  handleCancel(); 
+                }}
+                className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-300 hover:bg-rose-50 hover:text-rose-600 transition-all"
+              >
+                <XCircle className="w-3.5 h-3.5" />
+              </button>
+            );
+          })()}
         </div>
       </div>
     </motion.div>

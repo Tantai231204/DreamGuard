@@ -27,6 +27,7 @@ interface ProcessReturnDialogProps {
   items: OrderItem[];
   paymentMethod?: string;
   paymentStatus?: string;
+  totalAmount?: number;
 }
 
 export const ProcessReturnDialog = memo(function ProcessReturnDialog({
@@ -36,7 +37,8 @@ export const ProcessReturnDialog = memo(function ProcessReturnDialog({
   taskId,
   items,
   paymentMethod,
-  paymentStatus
+  paymentStatus,
+  totalAmount
 }: ProcessReturnDialogProps) {
   
   const isRefundableMethod = (paymentMethod?.toLowerCase() === 'vnpay' || paymentMethod?.toLowerCase() === 'other') &&
@@ -46,7 +48,8 @@ export const ProcessReturnDialog = memo(function ProcessReturnDialog({
     orderId,
     taskId,
     onClose,
-    isRefundableMethod
+    isRefundableMethod,
+    totalAmount
   });
 
   const {
@@ -59,7 +62,9 @@ export const ProcessReturnDialog = memo(function ProcessReturnDialog({
     expanded,
     isSubmitting,
     uploadedCount,
-    isRefund
+    isRefund,
+    refundAmount,
+    percentage
   } = state;
 
   const {
@@ -71,7 +76,9 @@ export const ProcessReturnDialog = memo(function ProcessReturnDialog({
     addEvidenceFiles,
     removeEvidenceFile,
     handleConfirm,
-    setIsRefund
+    setIsRefund,
+    setRefundAmount,
+    setPercentage
   } = actions;
 
   const totalUnits = items.reduce((s, i) => s + i.quantity, 0);
@@ -204,6 +211,11 @@ export const ProcessReturnDialog = memo(function ProcessReturnDialog({
                 <RefundSection
                   isRefund={isRefund}
                   setIsRefund={setIsRefund}
+                  refundAmount={refundAmount}
+                  setRefundAmount={setRefundAmount}
+                  percentage={percentage}
+                  setPercentage={setPercentage}
+                  totalAmount={totalAmount || 0}
                   compact={true}
                 />
               </div>

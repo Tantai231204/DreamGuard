@@ -95,12 +95,12 @@ export const useAdminCancelOrder = () => {
     const { role } = useAuthStore.getState();
 
     return useMutation({
-        mutationFn: async ({ id, reason }: { id: string, reason: string }) => {
+        mutationFn: async ({ id, reason, amount }: { id: string, reason: string, amount?: number }) => {
             const hasPrivilege = ['Admin', 'Staff', 'Manager', 'Seller'].includes(role || '');
             if (!hasPrivilege) {
                 throw new Error('Forbidden: Insufficient privileges to cancel orders.');
             }
-            return orderService.adminCancelOrder(id, reason);
+            return orderService.adminCancelOrder(id, reason, amount);
         },
         onSuccess: (_, { id }) => {
             queryClient.invalidateQueries({ queryKey: orderKeys.all });

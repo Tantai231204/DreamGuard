@@ -166,9 +166,9 @@ export default function OrderDetail() {
       return;
     }
 
-    if ((newStatus === 'Processing' || newStatus === 'Delivering') && !hasActiveTask) {
+    if (newStatus === 'Delivering' && !hasActiveTask) {
       toast.error('Logistics Constraint', {
-        description: 'You must assign a technical agent before transitioning to this state.'
+        description: 'You must assign a technical agent before transitioning to the delivery phase.'
       });
       setShowConfirmStatusDialog(false);
       setPendingStatus(null);
@@ -188,23 +188,10 @@ export default function OrderDetail() {
   };
 
   const handleCancelOrder = (reason: string, refundAmount?: number) => {
-    cancelOrder.mutate({ id: order!.id, reason }, {
+    cancelOrder.mutate({ id: order!.id, reason, amount: refundAmount }, {
       onSuccess: () => {
-        if (refundAmount && refundAmount > 0) {
-          createRefund.mutate({
-            orderId: order!.id,
-            reason: "Return",
-            amount: refundAmount
-          }, {
-            onSuccess: () => {
-              queryClient.invalidateQueries({ queryKey: orderKeys.detail(order!.id) });
-              queryClient.invalidateQueries({ queryKey: ['payments'] });
-            }
-          });
-        } else {
-          queryClient.invalidateQueries({ queryKey: orderKeys.detail(order!.id) });
-          queryClient.invalidateQueries({ queryKey: ['payments'] });
-        }
+        queryClient.invalidateQueries({ queryKey: orderKeys.detail(order!.id) });
+        queryClient.invalidateQueries({ queryKey: ['payments'] });
         setShowCancelDialog(false);
       }
     });
@@ -378,39 +365,45 @@ export default function OrderDetail() {
                     <div className="px-3 py-2 border-b border-slate-50 mb-1">
                       <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Transition Override</span>
                     </div>
-                    {Object.entries(ADMIN_ORDER_STATUS_THEME)
-                      .filter(([status]) => {
-                        // Business Rule: Ensure both string keys and numeric keys are handled for visibility
-                        const statusLabel = ADMIN_ORDER_STATUS_THEME[status]?.label || status;
-                        if (!ADMIN_ALLOWED_TRANSITION_STATUSES.includes(statusLabel) && !ADMIN_ALLOWED_TRANSITION_STATUSES.includes(status)) return false;
+                    {(() => {
+                      const seen = new Set();
+                      return Object.entries(ADMIN_ORDER_STATUS_THEME)
+                        .filter(([status]) => {
+                          const statusLabel = ADMIN_ORDER_STATUS_THEME[status]?.label || status;
+                          if (!ADMIN_ALLOWED_TRANSITION_STATUSES.includes(statusLabel) && !ADMIN_ALLOWED_TRANSITION_STATUSES.includes(status)) return false;
 
-                        const targetStatusEnum = ORDER_STATUS_MAP[status];
+                          const targetStatusEnum = ORDER_STATUS_MAP[status];
 
-                        // Terminal state check: Returned (7) is final
-                        if (currentStatusEnum === OrderStatus.Returned) return false;
+                          // Terminal state check: Returned (7) is final
+                          if (currentStatusEnum === OrderStatus.Returned) return false;
 
-                        // Business Rule 1: Cannot move status backward (except to Cancelled)
-                        if (targetStatusEnum !== OrderStatus.Cancelled && typeof targetStatusEnum === 'number' && typeof currentStatusEnum === 'number' && targetStatusEnum <= currentStatusEnum) return false;
+                          // Business Rule 1: Cannot move status backward (except to Cancelled)
+                          if (targetStatusEnum !== OrderStatus.Cancelled && typeof targetStatusEnum === 'number' && typeof currentStatusEnum === 'number' && targetStatusEnum <= currentStatusEnum) return false;
 
-                        // Business Rule 2: Cannot cancel if past Confirmed
-                        if (targetStatusEnum === OrderStatus.Cancelled) {
-                          return currentStatusEnum === OrderStatus.Pending || currentStatusEnum === OrderStatus.Confirmed;
-                        }
+                          // Business Rule 2: Cannot cancel if past Confirmed
+                          if (targetStatusEnum === OrderStatus.Cancelled) {
+                            return currentStatusEnum === OrderStatus.Pending || currentStatusEnum === OrderStatus.Confirmed;
+                          }
 
-                        return true;
-                      })
-                      .map(([status]) => {
-                        const statusLabel = ADMIN_ORDER_STATUS_THEME[status]?.label || status;
-                        return (
-                          <DropdownMenuItem
-                            key={status}
-                            onClick={() => statusLabel === 'Cancelled' ? setShowCancelDialog(true) : handleUpdateStatus(statusLabel)}
-                            className="rounded-lg cursor-pointer py-1.5 px-2 hover:bg-slate-50 transition-colors"
-                          >
-                            <AdminStatusBadge status={statusLabel} className="w-full justify-start" />
-                          </DropdownMenuItem>
-                        );
-                      })}
+                          // Unique by label
+                          if (seen.has(statusLabel)) return false;
+                          seen.add(statusLabel);
+
+                          return true;
+                        })
+                        .map(([status]) => {
+                          const statusLabel = ADMIN_ORDER_STATUS_THEME[status]?.label || status;
+                          return (
+                            <DropdownMenuItem
+                              key={status}
+                              onClick={() => statusLabel === 'Cancelled' ? setShowCancelDialog(true) : handleUpdateStatus(statusLabel)}
+                              className="rounded-lg cursor-pointer py-1.5 px-2 hover:bg-slate-50 transition-colors"
+                            >
+                              <AdminStatusBadge status={statusLabel} className="w-full justify-start" />
+                            </DropdownMenuItem>
+                          );
+                        });
+                    })()}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
@@ -520,14 +513,12 @@ export default function OrderDetail() {
               {currentStatusEnum !== OrderStatus.Cancelled && (
                 <ShippingAssignmentCard
                   orderId={order.id}
+                  currentStatusEnum={currentStatusEnum}
                   onOpenAssign={() => setShowAssignDialog(true)}
                   delay={0.1}
                   canAssign={
-                    currentStatusEnum !== OrderStatus.Pending &&
-                    currentStatusEnum !== OrderStatus.Completed &&
-                    currentStatusEnum !== OrderStatus.Returned &&
-                    currentStatusEnum !== OrderStatus.ReturnedAndRefunding &&
-                    currentStatusEnum !== OrderStatus.ReturnedAndRefunded
+                    currentStatusEnum === OrderStatus.Processing || 
+                    currentStatusEnum === OrderStatus.ShippingReplacement
                   }
                 />
               )}
@@ -612,6 +603,7 @@ export default function OrderDetail() {
         orderId={order.id}
         taskId={activeTask?.shippingTaskId || ''}
         items={order.items}
+        totalAmount={order.totalAmount}
         paymentMethod={paymentResponse?.items?.[0]?.paymentMethod || order.paymentMethod}
         paymentStatus={paymentResponse?.items?.[0]?.status || order.paymentStatus}
       />

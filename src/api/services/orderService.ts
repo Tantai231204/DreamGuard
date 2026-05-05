@@ -65,10 +65,14 @@ const orderService = {
      * 🔥 Admin-specific cancellation via Status Update
      * Standard: Admin uses the general status update endpoint with 'Cancelled'
      */
-    adminCancelOrder: async (id: string, reason?: string): Promise<void> => {
-        // According to user requirement: Admin uses /status with 'Cancelled'
-        await apiClient.put(`/order/${id}/status`, { cancelReason: reason }, {
-            params: { status: 'Cancelled' }
+    adminCancelOrder: async (id: string, reason?: string, refundAmount?: number): Promise<void> => {
+        // Aligned with Hoppscotch: PUT method with query parameters
+        await apiClient.put('/order/admin/cancel', undefined, {
+            params: {
+                orderId: id,
+                refundAmount: refundAmount,
+                cancelReason: reason // Adding reason as param as well
+            }
         });
     },
 
@@ -119,7 +123,7 @@ const orderService = {
         });
         return res.data?.data ?? res.data;
     },
-    
+
     getTopSellerProducts: async (limit: number = 5): Promise<import('../types/order').TopSellerProduct[]> => {
         const res = await apiClient.get('/Order/get-top-seller-products', {
             params: { limit }

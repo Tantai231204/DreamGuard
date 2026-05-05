@@ -15,7 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, AlertCircle, Briefcase, Truck, Layers } from 'lucide-react';
-import { useStaffs } from '@/hooks/queries/useStaff';
+import { useDeliveryStaffsForAssignment } from '@/hooks/queries/useStaff';
 import { useCreateShippingTask } from '@/hooks/queries/useShippingTask';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -47,8 +47,7 @@ const isActiveStatus = (status?: string) => (status || '').toLowerCase() === 'ac
 function BulkAssignShippingStaffContent({ orderIds, onClose }: { orderIds: string[]; onClose: () => void }) {
   const role = useAuthStore((s) => s.role);
   const isAdminOrManager = checkIsAdminOrManager(role);
-  const { data: staffData, isLoading: isLoadingStaff, isError: isStaffError } = useStaffs(
-    isAdminOrManager ? { pageSize: 100, Role: 'DeliveryStaff' } : undefined,
+  const { data: staffData, isLoading: isLoadingStaff, isError: isStaffError } = useDeliveryStaffsForAssignment(
     { enabled: isAdminOrManager }
   );
 
@@ -65,22 +64,16 @@ function BulkAssignShippingStaffContent({ orderIds, onClose }: { orderIds: strin
   };
 
   const staffs = useMemo(() => {
-    if (isAdminOrManager) return (staffData?.items || []) as CustomStaffInfo[];
+    if (isAdminOrManager) return (staffData || []) as CustomStaffInfo[];
     return [];
   }, [isAdminOrManager, staffData]);
 
   const [selectedStaffId, setSelectedStaffId] = useState<string>('');
 
   const deliveryStaffs = useMemo(() => {
-    if (isAdminOrManager) {
-      return staffs.filter((s) => {
-        const role = (s.role || '').toLowerCase();
-        const pos = (s.position || '').toLowerCase();
-        return role === 'deliverystaff' || pos === 'deliverystaff';
-      });
-    }
+    // Staffs are already filtered by the API
     return staffs;
-  }, [staffs, isAdminOrManager]);
+  }, [staffs]);
 
   const selectedStaff = useMemo(() =>
     deliveryStaffs.find((s) => s.staffId === selectedStaffId),

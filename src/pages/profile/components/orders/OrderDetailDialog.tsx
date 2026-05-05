@@ -20,7 +20,6 @@ import {
     OrderItemRow,
     OrderStepFlow,
     AddressSection,
-    PricingSummary,
     PaymentDetailsCard,
     ShipperInfoSection
 } from "./components"
@@ -179,7 +178,7 @@ export function OrderDetailDialog({
 
                                 {/* Pricing & Notes */}
                                 <div className="bg-white pb-7 pt-4">
-                                    <PricingSummary order={order} />
+
                                     <div className="mx-6 mt-5 pt-4 border-t border-slate-100/80">
                                         <PaymentDetailsCard
                                             orderCode={orderCode}
