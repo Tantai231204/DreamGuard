@@ -6,6 +6,8 @@ import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
+  appType: 'spa',
+  base: '/',
   server: {
     proxy: {
       "/api": {
@@ -47,6 +49,7 @@ export default defineConfig({
     minify: 'esbuild',
     cssMinify: true,
     cssCodeSplit: true,
+    emptyOutDir: true,
     chunkSizeWarningLimit: 2000,
     reportCompressedSize: false,
     sourcemap: false,
@@ -62,8 +65,13 @@ export default defineConfig({
         manualChunks(id) {
           if (!id.includes('node_modules')) return;
 
-          // Core React and framework libraries - MUST be handled first to avoid being caught by other vendors
-          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/scheduler/')) {
+          // Core React and framework libraries - MUST be handled first
+          if (
+            id.includes('node_modules/react/') || 
+            id.includes('node_modules/react-dom/') || 
+            id.includes('node_modules/scheduler/') ||
+            id.includes('node_modules/prop-types/')
+          ) {
             return 'vendor-react';
           }
 
