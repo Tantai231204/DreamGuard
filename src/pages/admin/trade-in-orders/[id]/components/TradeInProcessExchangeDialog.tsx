@@ -413,11 +413,24 @@ export function TradeInProcessExchangeDialogComponent({
               <SelectContent>
                 {deliveryStaffs.map((staff) => (
                   <SelectItem key={staff.staffId} value={staff.staffId}>
-                    <div className="flex min-w-0 flex-col leading-tight">
-                      <span className="font-semibold text-sm text-slate-800 truncate">{staff.fullName}</span>
-                      <span className="text-[11px] text-slate-500 truncate">
-                        {staff.phoneNumber || "No phone"} • {formatStaffRole(staff.role || staff.position)}
-                      </span>
+                    <div className="flex items-center justify-between gap-3 w-full min-w-[280px]">
+                      <div className="flex min-w-0 flex-col leading-tight">
+                        <span className="font-semibold text-sm text-slate-800 truncate">{staff.fullName}</span>
+                        <span className="text-[11px] text-slate-500 truncate">
+                          {staff.phoneNumber || "No phone"} • {formatStaffRole(staff.role || staff.position)}
+                        </span>
+                      </div>
+                      {typeof staff.taskCount === 'number' && (
+                        <div className="shrink-0 flex flex-col items-end">
+                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-tighter leading-none mb-0.5">WORKLOAD</span>
+                            <span className={cn(
+                                "text-[10px] font-black px-1.5 py-0.5 rounded-md",
+                                staff.taskCount > 5 ? "bg-amber-50 text-amber-600" : "bg-blue-50 text-blue-600"
+                            )}>
+                                {staff.taskCount} TASKS
+                            </span>
+                        </div>
+                      )}
                     </div>
                   </SelectItem>
                 ))}

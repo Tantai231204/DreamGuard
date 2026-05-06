@@ -1,12 +1,12 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useAdminTradeInOrderDetail } from '@/hooks/queries';
 import { useShippingTasksByTradeInOrder } from '@/hooks/queries/useShippingTask';
 import { formatPrice, formatDate } from '@/lib/utils';
 import { AdminStatusBadge } from '@/components/admin';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, CreditCard, Image as ImageIcon, AlertCircle, ShoppingBag, MapPin, Truck, ArrowDown, History, RefreshCcw } from 'lucide-react';
+import { ArrowLeft, CreditCard, Image as ImageIcon, AlertCircle, ShoppingBag, MapPin, Truck, ArrowDown, History, RefreshCcw, Wallet } from 'lucide-react';
 import { PaymentInfoCard } from '@/pages/admin/orders/components/PaymentInfoCard';
 import { ShippingLogisticsEvidence } from '@/pages/admin/orders/components/ShippingLogisticsEvidence';
 import { OrderTimeline } from '@/pages/admin/orders/components/OrderTimeline';
@@ -14,12 +14,14 @@ import { AppRoute } from '@/lib/constants';
 import { tradeInStatusBadgeValue } from '../utils/tradeInStatus';
 import { TradeInStaffManagement } from './components/TradeInStaffManagement';
 import { TradeInAuditLogs } from './components/TradeInAuditLogs';
+import { TradeInRefundDialog } from './components/TradeInRefundDialog';
 
 export default function TradeInOrderDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
   const { data: order, isLoading, isError } = useAdminTradeInOrderDetail(id!);
+  const [isRefundDialogOpen, setIsRefundDialogOpen] = useState(false);
   const orderCreatedAt = order?.createdAt || new Date(0).toISOString();
   const normalizedStatus = String(order?.status || '').toUpperCase();
   const canShowShippingTasks = [
@@ -78,6 +80,28 @@ export default function TradeInOrderDetail() {
         },
       ];
 
+    // Basic Workflow Steps (Non-Shipping)
+    if (normalizedStatus !== 'PENDING' && normalizedStatus !== 'WAITING_FOR_STAFF') {
+      items.push({
+        title: 'Reviewing',
+        description: 'Staff is reviewing the request and assessing valuation.',
+        timestamp: orderCreatedAt,
+        icon: 'package',
+      });
+    }
+
+    if ([
+      'CONFIRMED', 'PROCESSING', 'DELIVERING', 'ARRIVED', 'DELIVERED', 
+      'COMPLETED', 'RETURNING', 'REFUNDED_AND_RESTOCKED', 'REFUNDED_AND_DAMAGED'
+    ].includes(normalizedStatus)) {
+      items.push({
+        title: 'Valuation Confirmed',
+        description: `Trade-in price finalized at ${formatPrice(order?.tradeInPrice || 0)}.`,
+        timestamp: orderCreatedAt,
+        icon: 'check',
+      });
+    }
+
     if (shippingTasks && shippingTasks.length > 0) {
       const timelineTasks = [...shippingTasks].sort(
         (a, b) =>
@@ -89,91 +113,88 @@ export default function TradeInOrderDetail() {
         if (task.shippingDate) {
           items.push({
             title: 'Dispatched',
-            description: 'Handed over to delivery personnel.',
+            description: `Handed over to staff: ${task.staffName || 'Logistics Team'}.`,
             timestamp: task.shippingDate,
             icon: 'package',
           });
         }
 
-        if (task.status === 'Arrived' && task.completionDate) {
+        const taskStatus = String(task.status || '').toUpperCase();
+
+        if (taskStatus === 'ARRIVED' && task.completionDate) {
           items.push({
             title: 'Arrived',
-            description: 'Delivery staff has reached the destination.',
+            description: 'Staff has arrived at the inspection location.',
             timestamp: task.completionDate,
             icon: 'check',
           });
-        } else if (task.status === 'Delivered' && task.completionDate) {
+        } else if (taskStatus === 'DELIVERED' && task.completionDate) {
           items.push({
             title: 'Delivered',
-            description: 'Trade-in package has been delivered successfully.',
+            description: 'Asset collection and upgrade delivery successful.',
             timestamp: task.completionDate,
             icon: 'check',
           });
         } else if (
-          (task.status === 'ReturnedAndRefunding' ||
-            task.status === 'ReturnedAndRefunded' ||
-            task.status === 'Returning') &&
+          (taskStatus === 'RETURNED_AND_REFUNDING' ||
+            taskStatus === 'RETURNED_AND_REFUNDED' ||
+            taskStatus === 'RETURNING') &&
           task.completionDate
         ) {
           items.push({
-            title: 'Returning',
-            description: `Return workflow initiated. ${task.staffNote ? `(${task.staffNote})` : ''}`,
+            title: 'Return Processed',
+            description: `Return workflow handled. ${task.staffNote ? `(${task.staffNote})` : ''}`,
             timestamp: task.completionDate,
             icon: 'package',
-          });
-        } else if (task.status === 'ExchangeRequested' && task.completionDate) {
-          items.push({
-            title: 'Exchange Requested',
-            description: `Replacement request created. ${task.staffNote ? `(${task.staffNote})` : ''}`,
-            timestamp: task.completionDate,
-            icon: 'package',
-          });
-        } else if (
-          (task.status === 'Shipping_Replacement' || task.status === 'ShippingReplacement') &&
-          task.completionDate
-        ) {
-          items.push({
-            title: 'Shipping Replacement',
-            description: `Replacement shipment is in transit. ${task.staffNote ? `(${task.staffNote})` : ''}`,
-            timestamp: task.completionDate,
-            icon: 'package',
-          });
-        } else if (task.status === 'Cancelled' && task.completionDate) {
-          items.push({
-            title: 'Cancelled',
-            description: `Workflow terminated. ${task.staffNote ? `(${task.staffNote})` : ''}`,
-            timestamp: task.completionDate,
-            icon: 'check',
           });
         }
       });
-    } else {
-      if (normalizedStatus === 'CANCELLED' || normalizedStatus === 'FORCED_CANCELLED') {
-        items.push({
-          title: 'Cancelled',
-          description: 'Trade-in workflow has been terminated by administration.',
-          timestamp: orderCreatedAt,
-          icon: 'check',
-        });
-      } else if (normalizedStatus === 'EXCHANGE_REQUESTED') {
-        items.push({
-          title: 'Exchange Requested',
-          description: 'Replacement request has been created by admin.',
-          timestamp: orderCreatedAt,
-          icon: 'package',
-        });
-      } else if (normalizedStatus === 'SHIPPING_REPLACEMENT') {
-        items.push({
-          title: 'Shipping Replacement',
-          description: 'Replacement shipment is being delivered.',
-          timestamp: orderCreatedAt,
-          icon: 'package',
-        });
-      }
     }
 
-    return items.reverse();
-  }, [normalizedStatus, orderCreatedAt, shippingTasks]);
+    // Final Outcomes
+    if (normalizedStatus === 'COMPLETED') {
+      items.push({
+        title: 'Workflow Completed',
+        description: 'All steps finalized and ledger updated.',
+        timestamp: orderCreatedAt,
+        icon: 'check',
+      });
+    } else if (normalizedStatus === 'REFUNDED_AND_RESTOCKED' || normalizedStatus === 'RETURNED_AND_REFUNDING') {
+      items.push({
+        title: 'Returned & Restocked',
+        description: 'Asset returned to inventory in good condition.',
+        timestamp: orderCreatedAt,
+        icon: 'check',
+      });
+    } else if (normalizedStatus === 'REFUNDED_AND_DAMAGED' || normalizedStatus === 'RETURNED_AND_REFUNDED') {
+      items.push({
+        title: 'Returned (Damaged)',
+        description: 'Asset recorded as damaged and stored for review.',
+        timestamp: orderCreatedAt,
+        icon: 'package',
+      });
+    } else if (normalizedStatus.includes('CANCEL')) {
+      items.push({
+        title: 'Terminated',
+        description: 'Trade-in workflow has been closed by administration.',
+        timestamp: orderCreatedAt,
+        icon: 'check',
+      });
+    }
+
+    // De-duplicate by title (rough heuristic) to keep timeline clean
+    const uniqueItems: typeof items = [];
+    const seenTitles = new Set();
+    [...items].forEach(item => {
+      const key = `${item.title}`;
+      if (!seenTitles.has(key)) {
+        uniqueItems.push(item);
+        seenTitles.add(key);
+      }
+    });
+
+    return uniqueItems.reverse();
+  }, [normalizedStatus, orderCreatedAt, shippingTasks, order?.tradeInPrice]);
 
   if (isLoading) {
     return (
@@ -219,7 +240,24 @@ export default function TradeInOrderDetail() {
           </div>
 
           <div className="flex items-center gap-8">
-            <div className="flex items-center gap-6 border-r border-slate-100 pr-8">
+            <div className="flex items-center gap-4 border-r border-slate-100 pr-8">
+              {normalizedStatus.includes('CANCEL') && 
+               order.depositAmount > 0 && 
+               !normalizedStatus.includes('REFUND') && 
+               !order.payments?.some(p => 
+                 p.paymentType?.toUpperCase().includes('REFUND') || 
+                 p.status?.toUpperCase().includes('REFUND')
+               ) && (
+                <Button
+                  variant="outline"
+                  onClick={() => setIsRefundDialogOpen(true)}
+                  size="sm"
+                  className="h-10 rounded-xl border-emerald-100 bg-emerald-50/30 text-emerald-600 font-black text-[10px] uppercase tracking-widest hover:bg-emerald-50 hover:border-emerald-200 transition-all shadow-sm px-5 gap-2"
+                >
+                  <Wallet className="h-4 w-4" />
+                  Refund Asset
+                </Button>
+              )}
               <div className="text-right">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Valuation</p>
                 <p className="text-xl font-black text-primary tracking-tighter">{formatPrice(order.tradeInPrice)}</p>
@@ -535,6 +573,16 @@ export default function TradeInOrderDetail() {
           </div>
         </div>
       </div>
+
+      {order && (
+        <TradeInRefundDialog
+          open={isRefundDialogOpen}
+          onOpenChange={setIsRefundDialogOpen}
+          tradeInOrderId={id!}
+          orderCode={order.orderCode}
+          depositAmount={order.depositAmount}
+        />
+      )}
     </div>
   );
 }

@@ -212,9 +212,20 @@ function AssignShippingStaffContent({ orderId, tradeInOrderId, onClose }: { orde
                             <div className="flex items-center gap-2">
                                 <p className="font-bold text-slate-800 text-sm truncate">{staff.fullName}</p>
                                 {typeof staff.taskCount === 'number' && (
-                                    <Badge variant="secondary" className="bg-blue-50 text-blue-600 border-blue-100 text-[9px] font-black h-4 px-1.5 rounded-md">
-                                        {staff.taskCount} TASKS
-                                    </Badge>
+                                    <div className="shrink-0 flex flex-col items-end">
+                                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-tighter leading-none mb-0.5">WORKLOAD</span>
+                                        <div className={cn(
+                                            "flex items-center gap-1 px-2 py-0.5 rounded-md border shadow-sm",
+                                            staff.taskCount > 5 
+                                                ? "bg-rose-50 border-rose-100 text-rose-600" 
+                                                : staff.taskCount > 2 
+                                                    ? "bg-amber-50 border-amber-100 text-amber-600"
+                                                    : "bg-emerald-50 border-emerald-100 text-emerald-600"
+                                        )}>
+                                            <Briefcase className="h-2.5 w-2.5" />
+                                            <span className="text-[10px] font-black">{staff.taskCount} ACTIVE</span>
+                                        </div>
+                                    </div>
                                 )}
                             </div>
                             <div className="flex items-center gap-2 text-[11px] text-slate-500 min-w-0">

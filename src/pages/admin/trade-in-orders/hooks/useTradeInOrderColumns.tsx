@@ -19,12 +19,6 @@ export const useTradeInOrderColumns = (
 ) => {
   return useMemo(
     () => [
-      columnHelper.display({
-        id: 'type',
-        header: () => <span className="font-semibold">Type</span>,
-        cell: () => <AdminStatusBadge status="tradein" />,
-        size: 120,
-      }),
       columnHelper.accessor('orderCode', {
         enableSorting: true,
         header: ({ column }) => <SortableHeader column={column} label="Trade-In ID" />,
@@ -89,7 +83,7 @@ export const useTradeInOrderColumns = (
         header: () => <span className="font-semibold">Condition</span>,
         cell: ({ row }) => (
           <AdminStatusBadge
-            status={row.original.isGood ? 'good' : 'failed'}
+            status={row.original.isGood ? 'Good Condition' : 'Damaged'}
             type={row.original.isGood ? 'success' : 'rose'}
           />
         ),

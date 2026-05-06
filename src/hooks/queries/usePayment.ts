@@ -72,7 +72,7 @@ export const useAdminCreateRefund = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (payload: { soId?: string; orderId?: string; reason: string; amount: number }) =>
+        mutationFn: (payload: { soId?: string; orderId?: string; tradeInOrderId?: string; reason: string; amount: number }) =>
             paymentService.createAdminRefund(payload),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: paymentKeys.all });

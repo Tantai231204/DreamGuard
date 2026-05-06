@@ -121,7 +121,7 @@ export const OrderAnalytics = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 items-center">
-            <div className="lg:col-span-7 h-[300px] relative">
+            <div className="lg:col-span-7 h-[300px] relative min-w-0">
                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                   <span className="text-4xl font-black text-slate-900">{successRate}%</span>
                   <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Efficiency</span>
@@ -177,7 +177,7 @@ export const OrderAnalytics = () => {
             <Wallet className="h-5 w-5 text-indigo-500" />
           </div>
 
-          <div className="h-[240px]">
+          <div className="h-[240px] min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -194,7 +194,10 @@ export const OrderAnalytics = () => {
                   ))}
                 </Pie>
                 <Tooltip 
-                   formatter={(value: number | string | undefined) => value ? formatPrice(value) : "0 ₫"}
+                   formatter={(value: string | number | readonly (string | number)[] | undefined) => {
+                     const resolvedValue = Array.isArray(value) ? value[0] : value;
+                     return formatPrice(resolvedValue as string | number | undefined);
+                   }}
                    contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }}
                 />
               </PieChart>

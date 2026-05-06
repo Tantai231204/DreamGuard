@@ -100,6 +100,8 @@ export function TradeInProcessReturnDialogComponent({
   const [isDamagedSelected, setIsDamagedSelected] = useState(false);
   const [evidenceItems, setEvidenceItems] = useState<EvidenceItem[]>([]);
   const [isRefund, setIsRefund] = useState(true);
+  const [refundAmount, setRefundAmount] = useState(totalPrice);
+  const [percentage, setPercentage] = useState(100);
   const [isUploadingEvidence, setIsUploadingEvidence] = useState(false);
   const evidenceItemsRef = useRef<EvidenceItem[]>([]);
   const resolvedProductVariantId = useMemo(
@@ -138,8 +140,25 @@ export function TradeInProcessReturnDialogComponent({
         return [];
       });
       setIsUploadingEvidence(false);
+      setPercentage(100);
+      setRefundAmount(totalPrice);
     }
   }, [isOpen, totalPrice]);
+
+  // Sync percentage -> amount
+  useEffect(() => {
+    const calculated = Math.round((totalPrice * percentage) / 100);
+    setRefundAmount((prev) => (calculated !== prev ? calculated : prev));
+  }, [percentage, totalPrice]);
+
+  // Sync amount -> percentage
+  const handleAmountChange = useCallback((newAmount: number) => {
+    setRefundAmount(newAmount);
+    if (totalPrice > 0) {
+      const newPercentage = Math.round((newAmount / totalPrice) * 100);
+      setPercentage(Math.min(100, Math.max(0, newPercentage)));
+    }
+  }, [totalPrice]);
 
   const uploadedEvidenceCount = useMemo(
     () => evidenceItems.filter((item) => !!item.uploadedUrl).length,
@@ -155,9 +174,11 @@ export function TradeInProcessReturnDialogComponent({
       return [];
     });
     setIsRefund(true);
+    setPercentage(100);
+    setRefundAmount(totalPrice);
     setIsUploadingEvidence(false);
     onClose();
-  }, [onClose]);
+  }, [onClose, totalPrice]);
 
   const handleOutcomeSelect = useCallback(
     (damaged: boolean) => {
@@ -367,8 +388,8 @@ export function TradeInProcessReturnDialogComponent({
             )}
           >
             {isDamagedOutcome
-              ? "Damaged outcome selected. Return will be processed as ReturnedAndRefunded."
-              : "Restock outcome selected. Return will be processed as ReturnedAndRefunding."}
+              ? "Damaged item detected. Asset will be recorded as damaged and non-restockable."
+              : "Item in good condition. Asset will be restocked to inventory for re-sale."}
           </div>
 
           <div className="space-y-2">
@@ -385,8 +406,8 @@ export function TradeInProcessReturnDialogComponent({
                     : "border-slate-200 bg-white hover:border-blue-200",
                 )}
               >
-                <p className="text-[12px] font-semibold text-slate-800">ReturnedAndRefunding</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">No damage recorded</p>
+                <p className="text-[12px] font-semibold text-slate-800">Restock Item</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">No damage recorded, perfect condition</p>
               </button>
 
               <button
@@ -400,8 +421,8 @@ export function TradeInProcessReturnDialogComponent({
                     : "border-slate-200 bg-white hover:border-rose-200",
                 )}
               >
-                <p className="text-[12px] font-semibold text-slate-800">ReturnedAndRefunded</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">Record damaged variant info</p>
+                <p className="text-[12px] font-semibold text-slate-800">Damaged Item</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">Record damaged variant info & evidence</p>
               </button>
             </div>
 
@@ -553,6 +574,11 @@ export function TradeInProcessReturnDialogComponent({
               <RefundSection
                 isRefund={isRefund}
                 setIsRefund={setIsRefund}
+                refundAmount={refundAmount}
+                setRefundAmount={handleAmountChange}
+                percentage={percentage}
+                setPercentage={setPercentage}
+                totalAmount={totalPrice}
               />
             </div>
           )}

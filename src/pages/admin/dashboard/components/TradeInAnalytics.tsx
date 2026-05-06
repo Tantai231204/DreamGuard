@@ -114,7 +114,7 @@ export const TradeInAnalytics: React.FC = () => {
             <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest">Order Completion Ratios</p>
           </div>
 
-          <div className="h-[300px] w-full relative">
+          <div className="h-[300px] w-full relative min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -166,7 +166,7 @@ export const TradeInAnalytics: React.FC = () => {
             </div>
           </div>
 
-          <div className="h-[300px] w-full z-20 relative">
+          <div className="h-[300px] w-full z-20 relative min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={amountData} layout="vertical" margin={{ top: 0, left: 10, right: 30, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="4 4" horizontal={false} stroke="#f1f5f9" />

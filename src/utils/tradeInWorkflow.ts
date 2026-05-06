@@ -109,16 +109,16 @@ const TRADE_IN_STATUS_DEFINITION_MAP: Record<
     description: "Replacement shipment is in transit",
   },
   REFUNDED_AND_RESTOCKED: {
-    label: "Refunded (Restocked)",
+    label: "Returned & Restocked",
     badgeStatus: "completed",
     step: 9,
-    description: "Refund settled and stock returned to inventory",
+    description: "Refund settled and item restocked successfully",
   },
   REFUNDED_AND_DAMAGED: {
-    label: "Refunded (Damaged)",
+    label: "Returned (Damaged)",
     badgeStatus: "cancelled",
     step: 10,
-    description: "Refund settled and item marked as damaged",
+    description: "Refund settled and item recorded as damaged",
   },
   COMPLETED: {
     label: "Completed",
@@ -148,22 +148,11 @@ const TRADE_IN_STATUS_DEFINITION_MAP: Record<
 
 export const TRADE_IN_FILTER_BASE_STATUSES: TradeInStatus[] = [
   TRADE_IN_STATUS.PENDING,
-  TRADE_IN_STATUS.WAITING_FOR_STAFF,
-  TRADE_IN_STATUS.NEGOTIATING,
-  TRADE_IN_STATUS.CONFIRMED,
   TRADE_IN_STATUS.PROCESSING,
   TRADE_IN_STATUS.DELIVERING,
-  TRADE_IN_STATUS.ARRIVED,
-  TRADE_IN_STATUS.DELIVERED,
   TRADE_IN_STATUS.RETURNING,
-  TRADE_IN_STATUS.EXCHANGE_REQUESTED,
-  TRADE_IN_STATUS.SHIPPING_REPLACEMENT,
-  TRADE_IN_STATUS.REFUNDED_AND_RESTOCKED,
-  TRADE_IN_STATUS.REFUNDED_AND_DAMAGED,
   TRADE_IN_STATUS.COMPLETED,
   TRADE_IN_STATUS.CANCELLED,
-  TRADE_IN_STATUS.FORCED_CANCELLED,
-  TRADE_IN_STATUS.ADMIN_CANCELLED,
 ];
 
 const TRADE_IN_STATUS_SET = new Set<TradeInStatus>(

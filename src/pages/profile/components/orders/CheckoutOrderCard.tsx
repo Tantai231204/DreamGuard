@@ -118,14 +118,14 @@ export const CheckoutOrderCard = memo(({ order }: CheckoutOrderCardProps) => {
                                         const childTheme = getStatusTheme(child.status)
                                         const childType = getChildOrderType(child.orderCode)
                                         const isCustom = childType === 'customize'
-                                        
+
                                         return (
                                             <div
                                                 key={child.id}
                                                 className={cn(
                                                     "relative flex flex-col p-3 rounded-lg border transition-all duration-200",
-                                                    isCustom 
-                                                        ? "bg-violet-50/20 border-violet-100/50" 
+                                                    isCustom
+                                                        ? "bg-violet-50/20 border-violet-100/50"
                                                         : "bg-sky-50/20 border-sky-100/50"
                                                 )}
                                             >
@@ -136,25 +136,25 @@ export const CheckoutOrderCard = memo(({ order }: CheckoutOrderCardProps) => {
                                                             {isCustom ? 'Custom' : 'Standard'}
                                                         </span>
                                                     </div>
-                                                    <span 
+                                                    <span
                                                         className="text-[9px] font-black uppercase tracking-widest"
                                                         style={{ color: childTheme.color }}
                                                     >
                                                         {childTheme.label}
                                                     </span>
                                                 </div>
-                                                
+
                                                 {/* Flatter Progress Bar */}
                                                 <div className="h-1 w-full bg-slate-100 rounded-full overflow-hidden mb-2">
-                                                    <div 
+                                                    <div
                                                         className="h-full transition-all duration-1000"
-                                                        style={{ 
+                                                        style={{
                                                             width: `${Math.max(10, (childTheme.step / 5) * 100)}%`,
-                                                            backgroundColor: childTheme.color 
+                                                            backgroundColor: childTheme.color
                                                         }}
                                                     />
                                                 </div>
-                                                
+
                                                 <div className="flex items-center justify-between">
                                                     <span className="text-[10px] font-bold text-slate-900">{formatPrice(child.totalAmount)}</span>
                                                     <span className="text-[8px] font-black text-slate-300 uppercase">ACTIVE Tracking</span>

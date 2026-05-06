@@ -84,6 +84,11 @@ export function TradeInShippingAssignmentCard({
                   <p className="text-xs font-bold text-slate-400 flex items-center gap-1">
                     <Phone className="h-3 w-3" /> {currentStaff.phoneNumber || "N/A"}
                   </p>
+                  {typeof currentStaff.taskCount === 'number' && (
+                    <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-500">
+                        <span className="text-[9px] font-black">{currentStaff.taskCount} ACTIVE TASKS</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-blue-100 bg-blue-50/60 px-2 py-1">

@@ -210,5 +210,13 @@ export const useTradeInOrdersTabViewModel = () => {
     totalPriceToRefund: orderToCancel?.depositAmount || orderToCancel?.amountToPay || 0,
     paymentMethod: orderToCancel?.paymentMethod,
     paymentStatus: orderToCancel?.paymentStatus,
+    pendingRefundCount: adminQuery.data?.items?.filter(r => {
+      const s = r.status.toUpperCase();
+      const ps = r.paymentStatus?.toUpperCase() || '';
+      return s === 'CANCELLED' && 
+             r.depositAmount > 0 &&
+             !ps.includes('REFUND') &&
+             !s.includes('REFUND');
+    }).length || 0,
   };
 };
