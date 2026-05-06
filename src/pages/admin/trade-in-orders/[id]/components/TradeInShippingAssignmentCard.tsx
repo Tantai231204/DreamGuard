@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Clock3, Phone, ShieldCheck, Truck, User } from "lucide-react";
 
-import { useStaffs } from "@/hooks/queries/useStaff";
+import { useDeliveryStaffsForAssignment } from "@/hooks/queries/useStaff";
 import { useShippingTaskDetail, useShippingTasksByTradeInOrder } from "@/hooks/queries/useShippingTask";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -26,10 +26,7 @@ export function TradeInShippingAssignmentCard({
 }: TradeInShippingAssignmentCardProps) {
   const { isAdmin, isManager } = usePermission();
   const canViewStaffs = isAdmin || isManager;
-  const { data: staffsResponse } = useStaffs(
-    canViewStaffs ? { pageSize: 100, Role: "DeliveryStaff" } : undefined,
-    { enabled: canViewStaffs }
-  );
+  const { data: staffs } = useDeliveryStaffsForAssignment({ enabled: canViewStaffs });
   const { data: tasks } = useShippingTasksByTradeInOrder(tradeInOrderId);
 
   const sortedTasks = [...(tasks || [])].sort((a, b) => {
@@ -42,7 +39,7 @@ export function TradeInShippingAssignmentCard({
   const activeTaskId = activeTask?.shippingTaskId || "";
   const { data: activeTaskDetail } = useShippingTaskDetail(activeTaskId);
   const appointmentTime = activeTaskDetail?.shippingDate || activeTask?.shippingDate || "";
-  const currentStaff = staffsResponse?.items.find((staff) => staff.staffId === activeTask?.staffId);
+  const currentStaff = staffs?.find((staff) => staff.staffId === activeTask?.staffId);
 
   return (
     <motion.div
@@ -59,12 +56,12 @@ export function TradeInShippingAssignmentCard({
         {currentStaff ? (
           <div className="space-y-4">
             <div
-              className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${canAssign
+              className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${canAssign && (!activeTask || activeTask.status?.toLowerCase() === 'pending')
                 ? "bg-slate-50 border-slate-100/80 cursor-pointer hover:bg-slate-100/60"
-                : "bg-slate-50 border-slate-100/40 cursor-default"
+                : "bg-slate-50 border-slate-100/40 cursor-default opacity-80"
                 }`}
-              onClick={canAssign ? onOpenAssign : undefined}
-              title={canAssign ? "Click to Reassign" : "View assigned personnel details"}
+              onClick={(canAssign && (!activeTask || activeTask.status?.toLowerCase() === 'pending')) ? onOpenAssign : undefined}
+              title={canAssign ? (activeTask && activeTask.status?.toLowerCase() !== 'pending' ? "Reassignment unavailable for non-pending tasks" : "Click to Reassign") : "View assigned personnel details"}
             >
               <Avatar className="h-12 w-12 border-2 border-white shadow-sm ring-1 ring-slate-100">
                 <AvatarImage src={currentStaff.avatarUrl} />

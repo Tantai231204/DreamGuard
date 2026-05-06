@@ -90,8 +90,9 @@ export const TradeInStaffManagement = memo(function TradeInStaffManagement({ ord
 
   // Bridging for QuickActionsCard buttons
   if (typeof window !== 'undefined') {
-    (window as any).openTradeInReturnDialog = () => setShowProcessReturnDialog(true);
-    (window as any).openTradeInExchangeDialog = () => setShowProcessExchangeDialog(true);
+    const win = window as Window & { openTradeInReturnDialog?: () => void; openTradeInExchangeDialog?: () => void };
+    win.openTradeInReturnDialog = () => setShowProcessReturnDialog(true);
+    win.openTradeInExchangeDialog = () => setShowProcessExchangeDialog(true);
   }
 
   const showDeliveryPanel = [

@@ -96,46 +96,44 @@ const PolicyStatusSection = memo(function PolicyStatusSection({
                     />
                 </div>
 
-                {isTradeInEligible && (
-                    <div className="grid grid-cols-2 gap-5 pt-2 animate-in slide-in-from-top-2 fade-in duration-300">
-                        <div className="space-y-2">
-                            <Label htmlFor="minTradeInPrice" className="text-[11px] uppercase tracking-widest font-bold text-gray-400 ml-1">
-                                Min Trade-In Price
-                            </Label>
-                            <div className="relative group">
-                                <Input
-                                    id="minTradeInPrice"
-                                    type="text"
-                                    inputMode="numeric"
-                                    placeholder="0"
-                                    value={minTradeInPrice ? new Intl.NumberFormat('vi-VN').format(Number(minTradeInPrice)) : ''}
-                                    onChange={handlePriceChange(onMinTradeInPriceChange)}
-                                    disabled={isLoading}
-                                    className={cn(INPUT_CLS, 'pr-16 h-11 font-semibold')}
-                                />
-                                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-gray-300 uppercase tracking-widest group-focus-within:text-primary-400 transition-colors pointer-events-none">VND</span>
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="depositAmount" className="text-[11px] uppercase tracking-widest font-bold text-gray-400 ml-1">
-                                Deposit Amount
-                            </Label>
-                            <div className="relative group">
-                                <Input
-                                    id="depositAmount"
-                                    type="text"
-                                    inputMode="numeric"
-                                    placeholder="0"
-                                    value={depositAmount ? new Intl.NumberFormat('vi-VN').format(Number(depositAmount)) : ''}
-                                    onChange={handlePriceChange(onDepositAmountChange)}
-                                    disabled={isLoading}
-                                    className={cn(INPUT_CLS, 'pr-16 h-11 font-semibold')}
-                                />
-                                <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-gray-300 uppercase tracking-widest group-focus-within:text-primary-400 transition-colors pointer-events-none">VND</span>
-                            </div>
+                <div className="grid grid-cols-2 gap-5 pt-2 animate-in slide-in-from-top-2 fade-in duration-300">
+                    <div className="space-y-2">
+                        <Label htmlFor="minTradeInPrice" className="text-[11px] uppercase tracking-widest font-bold text-gray-400 ml-1">
+                            Min Trade-In Price
+                        </Label>
+                        <div className="relative group">
+                            <Input
+                                id="minTradeInPrice"
+                                type="text"
+                                inputMode="numeric"
+                                placeholder="0"
+                                value={minTradeInPrice ? new Intl.NumberFormat('vi-VN').format(Number(minTradeInPrice)) : ''}
+                                onChange={handlePriceChange(onMinTradeInPriceChange)}
+                                disabled={isLoading}
+                                className={cn(INPUT_CLS, 'pr-16 h-11 font-semibold')}
+                            />
+                            <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-gray-300 uppercase tracking-widest group-focus-within:text-primary-400 transition-colors pointer-events-none">VND</span>
                         </div>
                     </div>
-                )}
+                    <div className="space-y-2">
+                        <Label htmlFor="depositAmount" className="text-[11px] uppercase tracking-widest font-bold text-gray-400 ml-1">
+                            Deposit Amount
+                        </Label>
+                        <div className="relative group">
+                            <Input
+                                id="depositAmount"
+                                type="text"
+                                inputMode="numeric"
+                                placeholder="0"
+                                value={depositAmount ? new Intl.NumberFormat('vi-VN').format(Number(depositAmount)) : ''}
+                                onChange={handlePriceChange(onDepositAmountChange)}
+                                disabled={isLoading}
+                                className={cn(INPUT_CLS, 'pr-16 h-11 font-semibold')}
+                            />
+                            <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-gray-300 uppercase tracking-widest group-focus-within:text-primary-400 transition-colors pointer-events-none">VND</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
     );
