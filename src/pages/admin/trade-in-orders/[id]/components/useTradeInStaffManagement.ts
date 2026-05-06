@@ -86,6 +86,11 @@ const resolveChatOwnerStaffId = (
   return undefined;
 };
 
+const normalizeGuid = (id?: string | null): string | undefined => {
+  if (!id || id === "00000000-0000-0000-0000-000000000000") return undefined;
+  return id.trim() || undefined;
+};
+
 export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -104,7 +109,7 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
     [order.status],
   );
   const chatOwnerStaffId = useMemo(
-    () => resolveChatOwnerStaffId(order),
+    () => normalizeGuid(order.sellerId) || normalizeGuid(resolveChatOwnerStaffId(order)),
     [order],
   );
   const canResolveDeliveryStaff = DELIVERY_WORKFLOW_STATUS_SET.has(status);
@@ -128,7 +133,7 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
   }, [sortedTradeInTasks]);
 
   const deliveryOwnerStaffId = canResolveDeliveryStaff
-    ? activeShippingTask?.staffId
+    ? normalizeGuid(order.deliveryStaffId) || normalizeGuid(activeShippingTask?.staffId)
     : undefined;
 
   const canAccessTradeInChat = isSeller;
@@ -181,11 +186,13 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
   }, [status, unitPrice, salePrice, negotiatedPrice, minTradeInPrice, maxTradeInPrice]);
 
   const chatOwnerLabel =
+    order.sellerName ||
     chatOwnerStaff?.fullName ||
     chatOwnerStaff?.email ||
     chatOwnerStaffId ||
     "Unassigned";
   const assignedStaffHint =
+    order.sellerName ||
     chatOwnerStaff?.fullName ||
     (chatOwnerStaffId ? chatOwnerStaffId.slice(0, 8) : "Unassigned");
   const chatOwnerEmail = chatOwnerStaff?.email || "";
@@ -196,6 +203,7 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
   );
 
   const deliveryOwnerLabel =
+    order.deliveryStaffName ||
     deliveryOwnerStaff?.fullName ||
     deliveryOwnerStaff?.email ||
     deliveryOwnerStaffId ||

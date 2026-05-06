@@ -24,7 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useProcessReturnedTradeInShippingTask } from "@/hooks/queries/useShippingTask";
 import { useVariant } from "@/hooks/queries/useVariant";
-import { RefundSection } from "../../../orders/components/process-return/RefundSection";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -62,7 +62,6 @@ interface TradeInProcessReturnDialogProps {
   tradeInOrderId: string;
   taskId: string;
   defaultProductVariantId?: string;
-  totalPrice?: number;
   paymentMethod?: string;
   paymentStatus?: string;
   productImageUrl?: string;
@@ -89,7 +88,6 @@ export function TradeInProcessReturnDialogComponent({
   tradeInOrderId,
   taskId,
   defaultProductVariantId,
-  totalPrice = 0,
   paymentMethod,
   paymentStatus,
   productImageUrl,
@@ -100,8 +98,6 @@ export function TradeInProcessReturnDialogComponent({
   const [isDamagedSelected, setIsDamagedSelected] = useState(false);
   const [evidenceItems, setEvidenceItems] = useState<EvidenceItem[]>([]);
   const [isRefund, setIsRefund] = useState(true);
-  const [refundAmount, setRefundAmount] = useState(totalPrice);
-  const [percentage, setPercentage] = useState(100);
   const [isUploadingEvidence, setIsUploadingEvidence] = useState(false);
   const evidenceItemsRef = useRef<EvidenceItem[]>([]);
   const resolvedProductVariantId = useMemo(
@@ -140,25 +136,11 @@ export function TradeInProcessReturnDialogComponent({
         return [];
       });
       setIsUploadingEvidence(false);
-      setPercentage(100);
-      setRefundAmount(totalPrice);
+      setIsRefund(false);
     }
-  }, [isOpen, totalPrice]);
+  }, [isOpen]);
 
-  // Sync percentage -> amount
-  useEffect(() => {
-    const calculated = Math.round((totalPrice * percentage) / 100);
-    setRefundAmount((prev) => (calculated !== prev ? calculated : prev));
-  }, [percentage, totalPrice]);
 
-  // Sync amount -> percentage
-  const handleAmountChange = useCallback((newAmount: number) => {
-    setRefundAmount(newAmount);
-    if (totalPrice > 0) {
-      const newPercentage = Math.round((newAmount / totalPrice) * 100);
-      setPercentage(Math.min(100, Math.max(0, newPercentage)));
-    }
-  }, [totalPrice]);
 
   const uploadedEvidenceCount = useMemo(
     () => evidenceItems.filter((item) => !!item.uploadedUrl).length,
@@ -173,12 +155,10 @@ export function TradeInProcessReturnDialogComponent({
       prev.forEach((item) => URL.revokeObjectURL(item.previewUrl));
       return [];
     });
-    setIsRefund(true);
-    setPercentage(100);
-    setRefundAmount(totalPrice);
+    setIsRefund(false);
     setIsUploadingEvidence(false);
     onClose();
-  }, [onClose, totalPrice]);
+  }, [onClose]);
 
   const handleOutcomeSelect = useCallback(
     (damaged: boolean) => {
@@ -187,10 +167,13 @@ export function TradeInProcessReturnDialogComponent({
       if (!damaged) {
         setDamageNote("");
         setSelectedReason("");
+        setIsRefund(false);
         setEvidenceItems((prev) => {
           prev.forEach((item) => URL.revokeObjectURL(item.previewUrl));
           return [];
         });
+      } else {
+        setIsRefund(true);
       }
     },
     [canMarkDamaged],
@@ -559,27 +542,32 @@ export function TradeInProcessReturnDialogComponent({
             </>
           )}
 
-          {totalPrice > 0 && (
-            <div className="space-y-3 pt-2 border-t border-slate-100">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center border border-blue-100/50">
-                  <RotateCcw className="w-4 h-4 text-blue-600" />
+          {isRefundableMethod && (
+            <div className="space-y-3 pt-4 border-t border-slate-100">
+              <div className="flex items-center justify-between gap-4 p-4 rounded-xl border border-slate-200 bg-slate-50/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center border border-blue-100/50">
+                    <RotateCcw className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h4 className="text-[13px] font-bold text-slate-900">Authorize Refund</h4>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Automatically process a full refund to the customer's original payment method.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-wider">Financial Settlement</h4>
-                  <p className="text-[10px] text-blue-600 font-bold uppercase tracking-tight opacity-70">Authorize refund for returning trade-in</p>
-                </div>
+                <Switch
+                  checked={isRefund}
+                  onCheckedChange={(checked) => {
+                    if (checked && !isDamagedSelected) {
+                      toast.error("Refunds can only be processed when the item is recorded as damaged.");
+                      return;
+                    }
+                    setIsRefund(checked);
+                  }}
+                  disabled={isSubmitting || !isDamagedSelected}
+                />
               </div>
-
-              <RefundSection
-                isRefund={isRefund}
-                setIsRefund={setIsRefund}
-                refundAmount={refundAmount}
-                setRefundAmount={handleAmountChange}
-                percentage={percentage}
-                setPercentage={setPercentage}
-                totalAmount={totalPrice}
-              />
             </div>
           )}
         </div>

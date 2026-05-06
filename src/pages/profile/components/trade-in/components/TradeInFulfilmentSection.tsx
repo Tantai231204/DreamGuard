@@ -1,13 +1,11 @@
 import { MapPin, User } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import type { TradeInOrderDetailResponse } from "@/api/types/tradeInOrder";
 
 interface TradeInFulfilmentSectionProps {
     order: TradeInOrderDetailResponse;
-    activeStaff: string | null;
 }
 
-export const TradeInFulfilmentSection = ({ order, activeStaff }: TradeInFulfilmentSectionProps) => {
+export const TradeInFulfilmentSection = ({ order }: TradeInFulfilmentSectionProps) => {
     return (
         <div className="bg-white p-6">
             <div className="flex items-center gap-2.5 mb-5">
@@ -28,12 +26,6 @@ export const TradeInFulfilmentSection = ({ order, activeStaff }: TradeInFulfilme
                     <p className="text-[12px] font-semibold text-gray-600 leading-relaxed break-words mb-2">
                         {order.address}
                     </p>
-                    {activeStaff && (
-                        <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-50">
-                            <Badge className="bg-emerald-50 text-emerald-600 border-none text-[9px] font-black px-1.5 h-4">ASSIGNED</Badge>
-                            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-tight truncate">Staff: {activeStaff}</span>
-                        </div>
-                    )}
                 </div>
             </div>
         </div>

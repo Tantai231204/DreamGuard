@@ -77,13 +77,16 @@ export interface TradeInOrderDetailResponse {
   tradeInImages: TradeInImage[];
   orderItem?: {
     id: string;
+    orderId: string;
     productVariantId: string;
     comboId: string | null;
+    productVariantImageUrl: string;
     itemName: string;
     quantity: number;
     unitPrice: number;
     totalPrice: number;
     tradeInUsedAmount: number;
+    exchangeRequestedQuantity: number;
     productCustomizeDetails: unknown[];
     customizeHash: string;
     image?: string;
@@ -103,6 +106,11 @@ export interface TradeInOrderDetailResponse {
     productId: string;
   };
   conversation?: TradeInConversationInfo | null;
+  sellerName?: string;
+  sellerId?: string;
+  deliveryStaffId?: string;
+  deliveryStaffName?: string;
+  shippingTaskStatus?: string;
 }
 
 export interface TradeInOrderResponse {

@@ -353,7 +353,6 @@ export const TradeInStaffManagement = memo(function TradeInStaffManagement({ ord
         onClose={() => setShowProcessReturnDialog(false)}
         tradeInOrderId={order.tradeInOrderId}
         taskId={activeShippingTaskId || ''}
-        totalPrice={(order.payments || []).reduce((sum, p) => (['paid', 'codpaid'].includes((p.status || '').toLowerCase()) ? sum + (p.amount || 0) : sum), 0) || order.depositAmount || 0}
         paymentMethod={order.payments?.[0]?.paymentMethod}
         paymentStatus={order.payments?.[0]?.status}
         defaultProductVariantId={order.productVariantId}

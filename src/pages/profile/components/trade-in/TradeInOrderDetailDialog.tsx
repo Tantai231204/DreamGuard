@@ -4,7 +4,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Button } from "@/components/ui/button";
 import { ChevronRight, ShieldCheck, XCircle, Package } from "lucide-react";
 import { useCustomerTradeInOrderDetail } from "@/hooks/queries/useTradeInOrder";
-import { useShippingTasksByTradeInOrder } from "@/hooks/queries/useShippingTask";
 import tradeInOrderService from "@/api/services/tradeInOrderService";
 import { normalizeTradeInStatus } from "@/utils/tradeInWorkflow";
 import { toast } from "sonner";
@@ -19,6 +18,7 @@ import { TradeInStepProgress } from "./components/TradeInStepProgress";
 import { TradeInExchangeSection } from "./components/TradeInExchangeSection";
 import { TradeInAssessmentSection } from "./components/TradeInAssessmentSection";
 import { TradeInFulfilmentSection } from "./components/TradeInFulfilmentSection";
+import { TradeInPersonnelSection } from "./components/TradeInPersonnelSection";
 import { TradeInSettlementManifest } from "./components/TradeInSettlementManifest";
 import { TradeInImmersiveGallery } from "./components/TradeInImmersiveGallery";
 
@@ -122,7 +122,6 @@ export const TradeInOrderDetailDialog = ({ tradeInOrderId, orderCode, trigger }:
 
     // Data Fetching
     const { data: order, isLoading } = useCustomerTradeInOrderDetail(tradeInOrderId, { enabled: open });
-    const { data: shippingTasks } = useShippingTasksByTradeInOrder(open ? tradeInOrderId : "");
 
     // State
     const [previewIndex, setPreviewIndex] = React.useState<number | null>(null);
@@ -142,13 +141,7 @@ export const TradeInOrderDetailDialog = ({ tradeInOrderId, orderCode, trigger }:
         [latestPaymentStatus, order],
     );
 
-    const activeStaff = React.useMemo(() => {
-        if (!shippingTasks || shippingTasks.length === 0) return null;
-        const activeTask = [...shippingTasks]
-            .sort((a, b) => new Date(b.shippingDate || 0).getTime() - new Date(a.shippingDate || 0).getTime())
-            .find(t => t.status !== "Reassigned");
-        return activeTask?.staffName || null;
-    }, [shippingTasks]);
+
 
     const allImages = React.useMemo(() => {
         if (!order) return [];
@@ -220,8 +213,10 @@ export const TradeInOrderDetailDialog = ({ tradeInOrderId, orderCode, trigger }:
                                 </div>
                             </DialogHeader>
                             {order && statusTheme && (
-                                <div className="px-4 py-1.5 rounded-full text-[11px] font-bold text-white uppercase tracking-widest shadow-sm" style={{ backgroundColor: statusTheme.color }}>
-                                    {statusTheme.label}
+                                <div className="flex items-center gap-2">
+                                    <div className="px-4 py-1.5 rounded-full text-[11px] font-bold text-white uppercase tracking-widest shadow-sm" style={{ backgroundColor: statusTheme.color }}>
+                                        {statusTheme.label}
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -234,7 +229,8 @@ export const TradeInOrderDetailDialog = ({ tradeInOrderId, orderCode, trigger }:
                                     <TradeInStepProgress status={order.status} />
                                     <TradeInExchangeSection order={order} onPreview={setPreviewIndex} onTraceLink={handleTraceLink} />
                                     <TradeInAssessmentSection order={order} />
-                                    <TradeInFulfilmentSection order={order} activeStaff={activeStaff} />
+                                    <TradeInPersonnelSection order={order} />
+                                    <TradeInFulfilmentSection order={order} />
                                     <TradeInSettlementManifest
                                         order={order}
                                         orderCode={orderCode}
@@ -256,7 +252,7 @@ export const TradeInOrderDetailDialog = ({ tradeInOrderId, orderCode, trigger }:
                                 <span className="text-[9px] font-black text-gray-400 uppercase tracking-tight">Need assistance?</span>
                                 <button className="text-[10px] font-black text-[#4988c4] uppercase tracking-widest hover:underline flex items-center gap-1.5" onClick={() => window.alert("Connecting to support...")}>
                                     <ShieldCheck className="w-3.5 h-3.5" />
-                                    {activeStaff ? `Chat with ${activeStaff.split(' ')[0]}` : "Chat with Expert Staff"}
+                                    Live Chat Support
                                 </button>
                             </div>
                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest hidden sm:block">Verified by DreamGuard Logistics</p>

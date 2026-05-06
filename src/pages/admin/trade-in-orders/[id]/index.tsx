@@ -12,6 +12,7 @@ import { ShippingLogisticsEvidence } from '@/pages/admin/orders/components/Shipp
 import { OrderTimeline } from '@/pages/admin/orders/components/OrderTimeline';
 import { AppRoute } from '@/lib/constants';
 import { tradeInStatusBadgeValue } from '../utils/tradeInStatus';
+import { normalizeTradeInStatus } from '@/utils/tradeInWorkflow';
 import { TradeInStaffManagement } from './components/TradeInStaffManagement';
 import { TradeInAuditLogs } from './components/TradeInAuditLogs';
 import { TradeInRefundDialog } from './components/TradeInRefundDialog';
@@ -23,7 +24,7 @@ export default function TradeInOrderDetail() {
   const { data: order, isLoading, isError } = useAdminTradeInOrderDetail(id!);
   const [isRefundDialogOpen, setIsRefundDialogOpen] = useState(false);
   const orderCreatedAt = order?.createdAt || new Date(0).toISOString();
-  const normalizedStatus = String(order?.status || '').toUpperCase();
+  const normalizedStatus = normalizeTradeInStatus(order?.status);
   const canShowShippingTasks = [
     'CONFIRMED',
     'PROCESSING',
@@ -34,6 +35,8 @@ export default function TradeInOrderDetail() {
     'EXCHANGE_REQUESTED',
     'SHIPPING_REPLACEMENT',
     'FORCED_CANCELLED',
+    'REFUNDED_AND_RESTOCKED',
+    'REFUNDED_AND_DAMAGED',
     'RETURNED_AND_REFUNDING',
     'RETURNED_AND_REFUNDED',
     'COMPLETED',
@@ -136,8 +139,8 @@ export default function TradeInOrderDetail() {
             icon: 'check',
           });
         } else if (
-          (taskStatus === 'RETURNED_AND_REFUNDING' ||
-            taskStatus === 'RETURNED_AND_REFUNDED' ||
+          (taskStatus === 'REFUNDED_AND_RESTOCKED' ||
+            taskStatus === 'REFUNDED_AND_DAMAGED' ||
             taskStatus === 'RETURNING') &&
           task.completionDate
         ) {
@@ -159,17 +162,24 @@ export default function TradeInOrderDetail() {
         timestamp: orderCreatedAt,
         icon: 'check',
       });
-    } else if (normalizedStatus === 'REFUNDED_AND_RESTOCKED' || normalizedStatus === 'RETURNED_AND_REFUNDING') {
+    } else if (normalizedStatus === 'REFUNDED_AND_RESTOCKED') {
       items.push({
         title: 'Returned & Restocked',
         description: 'Asset returned to inventory in good condition.',
         timestamp: orderCreatedAt,
         icon: 'check',
       });
-    } else if (normalizedStatus === 'REFUNDED_AND_DAMAGED' || normalizedStatus === 'RETURNED_AND_REFUNDED') {
+    } else if (normalizedStatus === 'REFUNDED_AND_DAMAGED') {
       items.push({
         title: 'Returned (Damaged)',
         description: 'Asset recorded as damaged and stored for review.',
+        timestamp: orderCreatedAt,
+        icon: 'package',
+      });
+    } else if (normalizedStatus === 'RETURNED') {
+      items.push({
+        title: 'Returned to Hub',
+        description: 'Asset collection successful. Awaiting inspection and processing.',
         timestamp: orderCreatedAt,
         icon: 'package',
       });
@@ -231,6 +241,12 @@ export default function TradeInOrderDetail() {
                 {order.orderCode}
               </div>
               <AdminStatusBadge status={tradeInStatusBadgeValue(order.status)} className="scale-90" />
+              {order.shippingTaskStatus && (
+                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-blue-50 border border-blue-100 rounded-md shadow-sm">
+                  <Truck className="w-3 h-3 text-blue-600" />
+                  <span className="text-[9px] font-black text-blue-700 uppercase tracking-widest">Ship: {order.shippingTaskStatus}</span>
+                </div>
+              )}
             </div>
 
             <h1 className="text-2xl font-black text-slate-900 tracking-tight flex items-baseline gap-3">
@@ -324,6 +340,11 @@ export default function TradeInOrderDetail() {
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                           O-Item ID: <span className="font-mono text-slate-500">{order.pOrderItemId?.substring(0, 8) || 'N/A'}</span>
                         </p>
+                        {order.orderItem && order.orderItem.exchangeRequestedQuantity > 0 && (
+                          <span className="px-2 py-0.5 bg-amber-50 text-amber-600 rounded text-[9px] font-black uppercase tracking-widest border border-amber-100">
+                            Exchange: {order.orderItem.exchangeRequestedQuantity} qty
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div className="text-right flex flex-col items-end">
@@ -362,7 +383,9 @@ export default function TradeInOrderDetail() {
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-[9px] font-black uppercase text-primary tracking-widest bg-blue-50 px-2 py-0.5 rounded-sm border border-blue-100/50">Target Upgrade</span>
                       </div>
-                      <p className="text-sm font-bold text-slate-900 leading-tight">Product Variant Upgrade</p>
+                      <p className="text-sm font-bold text-slate-900 leading-tight">
+                        Target Variant Upgrade
+                      </p>
                       <div className="flex flex-wrap items-center gap-2 mt-1.5">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 border-r border-slate-200 pr-2">
                           SKU: <span className="font-mono text-slate-700">{order.productVariant?.sku || 'UNKNOWN'}</span>

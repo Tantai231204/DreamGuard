@@ -8,11 +8,15 @@ import {
   ExternalLink,
   UserRound,
   AlertCircle,
+  Archive,
+  RefreshCcw,
+  ShieldX,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { formatPrice, cn } from '@/lib/utils';
+import { getTradeInStatusMeta } from '@/utils/tradeInWorkflow';
 
 interface WaitingForStaffSectionProps {
   canAccessTradeInChat: boolean;
@@ -267,33 +271,51 @@ export const FinalizedSection = memo(function FinalizedSection({
   hasRefundPayment,
   onOpenCancelDialog 
 }: FinalizedSectionProps) {
+  const meta = getTradeInStatusMeta(status);
+  const isCancelled = status === 'CANCELLED' || status === 'FORCED_CANCELLED' || status === 'ADMIN_CANCELLED';
+  const isDamaged = status === 'REFUNDED_AND_DAMAGED';
+  const isRestocked = status === 'REFUNDED_AND_RESTOCKED';
+  const isCompleted = status === 'COMPLETED';
+
   return (
     <div className="flex flex-col bg-slate-50/30">
       <div className="p-4 flex items-center gap-3">
         <div className={cn(
           'w-8 h-8 rounded-lg flex items-center justify-center border',
-          status === 'CANCELLED' || status === 'FORCED_CANCELLED' || status === 'ADMIN_CANCELLED' 
-            ? 'bg-rose-50 border-rose-100 text-rose-500' 
-            : 'bg-emerald-50 border-emerald-100 text-emerald-500',
+          isCancelled ? 'bg-rose-50 border-rose-100 text-rose-500' :
+          isDamaged ? 'bg-amber-50 border-amber-100 text-amber-500' :
+          isRestocked ? 'bg-blue-50 border-blue-100 text-blue-500' :
+          'bg-emerald-50 border-emerald-100 text-emerald-500',
         )}>
-          {status === 'CANCELLED' || status === 'FORCED_CANCELLED' || status === 'ADMIN_CANCELLED' 
-            ? <XCircle className="w-4 h-4" /> 
-            : <CheckCircle2 className="w-4 h-4" />}
+          {isCancelled ? <XCircle className="w-4 h-4" /> :
+           isDamaged ? <ShieldX className="w-4 h-4" /> :
+           isRestocked ? <RefreshCcw className="w-4 h-4" /> :
+           isCompleted ? <CheckCircle2 className="w-4 h-4" /> :
+           <Archive className="w-4 h-4" />}
         </div>
-        <div>
-          <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest leading-none">Archived</h4>
+        <div className="flex-1 min-w-0">
+          <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest leading-none">
+            {isCancelled ? 'Termination Archive' : 'Fulfillment Archive'}
+          </h4>
           <p className={cn(
-            'text-[9px] font-black uppercase tracking-tight mt-1',
-            status === 'CANCELLED' || status === 'FORCED_CANCELLED' || status === 'ADMIN_CANCELLED' 
-              ? 'text-rose-400' 
-              : 'text-emerald-500',
+            'text-[9px] font-black uppercase tracking-tight mt-1 truncate',
+            isCancelled ? 'text-rose-400' :
+            isDamaged ? 'text-amber-500' :
+            isRestocked ? 'text-blue-500' :
+            'text-emerald-500',
           )}>
-            Status: {status}
+            {meta.label}
           </p>
         </div>
       </div>
 
-      {canHandleUnhappyCase && !hasRefundPayment && (
+      <div className="px-4 pb-4">
+        <p className="text-[9px] font-bold text-slate-400 leading-relaxed italic">
+          {meta.description}
+        </p>
+      </div>
+
+      {canHandleUnhappyCase && !hasRefundPayment && isCompleted && (
         <div className="px-4 pb-4">
           <Button
             variant="ghost"

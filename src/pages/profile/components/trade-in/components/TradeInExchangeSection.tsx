@@ -63,6 +63,12 @@ export const TradeInExchangeSection = ({ order, onPreview, onTraceLink }: TradeI
                                     </div>
                                     <p className="text-[13px] font-bold text-slate-900 leading-tight break-words line-clamp-2">{order.orderItem?.itemName}</p>
                                     
+                                    {order.orderItem && order.orderItem.exchangeRequestedQuantity > 0 && (
+                                        <div className="flex items-center gap-1.5 mt-1">
+                                            <span className="text-[8px] font-black text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100 uppercase tracking-widest">Exchange: {order.orderItem.exchangeRequestedQuantity} qty</span>
+                                        </div>
+                                    )}
+
                                     {order.orderId && (
                                         <div className="flex flex-col gap-1.5 pt-0.5">
                                             <button 

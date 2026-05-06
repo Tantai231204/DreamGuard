@@ -7,6 +7,7 @@ import {
   Truck,
   XCircle,
   Zap,
+  AlertCircle,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -82,6 +83,15 @@ export function TradeInDeliveryQuickActionsCard({
             </div>
           )}
 
+          {status === "RETURNED" && (
+            <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl flex items-start gap-3">
+              <RotateCcw className="w-4 h-4 text-amber-500 shrink-0 mt-0.5 animate-pulse" />
+              <p className="text-[9px] font-bold text-amber-600 uppercase tracking-[0.15em] leading-relaxed">
+                Asset returned to hub. Awaiting administrative processing (Audit / Exchange / Refund).
+              </p>
+            </div>
+          )}
+
           {status === "RETURNING" && (
             <div className="space-y-3">
               <Button
@@ -137,11 +147,20 @@ export function TradeInDeliveryQuickActionsCard({
             </div>
           )}
 
-          {(status === "REFUNDED_AND_RESTOCKED" || status === "REFUNDED_AND_DAMAGED") && (
-            <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl flex items-start gap-3">
-              <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.15em] leading-relaxed">
-                Case closed. Refund processed and inventory handling completed.
+          {status === "REFUNDED_AND_RESTOCKED" && (
+            <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl flex items-start gap-3">
+              <RotateCcw className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+              <p className="text-[9px] font-bold text-blue-600 uppercase tracking-[0.15em] leading-relaxed">
+                Case closed. Item has been returned to inventory and the refund was processed successfully.
+              </p>
+            </div>
+          )}
+
+          {status === "REFUNDED_AND_DAMAGED" && (
+            <div className="p-4 bg-amber-50 border border-amber-100 rounded-xl flex items-start gap-3">
+              <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+              <p className="text-[9px] font-bold text-amber-600 uppercase tracking-[0.15em] leading-relaxed">
+                Case closed. Item recorded as damaged and the refund has been authorized.
               </p>
             </div>
           )}
