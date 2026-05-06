@@ -1,15 +1,7 @@
 {
   "rewrites": [
     {
-      "source": "/api/:path*",
-      "destination": "https://cohabit.vn/api/:path*"
-    },
-    {
-      "source": "/chathub/:path*",
-      "destination": "https://cohabit.vn/chathub/:path*"
-    },
-    {
-      "source": "/((?!assets/|.*\\.).*)",
+      "source": "/((?!assets/).*)",
       "destination": "/index.html"
     }
   ]
