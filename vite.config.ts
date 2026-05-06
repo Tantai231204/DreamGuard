@@ -25,6 +25,7 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+    dedupe: ['react', 'react-dom', 'three', '@react-three/fiber', '@react-three/drei'],
   },
   // Dev Optimization: Pre-bundle heavy dependencies
   optimizeDeps: {
@@ -60,14 +61,24 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return;
-          if (id.includes('@radix-ui') || id.includes('@floating-ui')) return 'radix-ui-vendor';
-          if (id.includes('lucide-react')) return 'icons-vendor';
-          if (id.includes('three') || id.includes('@react-three')) return 'three-vendor';
-          if (id.includes('react-markdown') || id.includes('remark-') || id.includes('rehype-')) return 'markdown-vendor';
-          if (id.includes('recharts')) return 'charts-vendor';
-          if (id.includes('@tanstack')) return 'query-table-vendor';
-          if (id.includes('framer-motion') || id.includes('gsap')) return 'animation-vendor';
-          if (id.includes('axios') || id.includes('zustand') || id.includes('date-fns')) return 'core-vendor';
+
+          // Core React and framework libraries - MUST be handled first to avoid being caught by other vendors
+          if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/scheduler/')) {
+            return 'vendor-react';
+          }
+
+          if (id.includes('@radix-ui') || id.includes('@floating-ui')) return 'vendor-radix';
+          if (id.includes('lucide-react')) return 'vendor-icons';
+          
+          // Group three and react-three together
+          if (id.includes('three') || id.includes('@react-three')) return 'vendor-three';
+          
+          if (id.includes('react-markdown') || id.includes('remark-') || id.includes('rehype-')) return 'vendor-markdown';
+          if (id.includes('recharts')) return 'vendor-charts';
+          if (id.includes('@tanstack')) return 'vendor-tanstack';
+          if (id.includes('framer-motion') || id.includes('gsap')) return 'vendor-animation';
+          if (id.includes('axios') || id.includes('zustand') || id.includes('date-fns')) return 'vendor-core';
+          
           return 'vendor';
         },
       },
