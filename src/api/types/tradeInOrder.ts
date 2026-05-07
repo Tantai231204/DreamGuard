@@ -150,6 +150,7 @@ export interface TradeInOrderListItem {
   maxTradeInPrice?: number;
   paymentStatus?: string;
   paymentMethod?: string;
+  shippingTaskStatus?: string;
 }
 
 export interface AdminTradeInOrderSearchParams {

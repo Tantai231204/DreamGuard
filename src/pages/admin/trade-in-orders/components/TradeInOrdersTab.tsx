@@ -90,6 +90,8 @@ export const TradeInOrdersTab = memo(function TradeInOrdersTab() {
         isLoading={viewModel.isCancelling}
         isRefundOnly={viewModel.isRefundOnly}
         totalPrice={viewModel.totalPriceToRefund}
+        status={viewModel.orderToCancel?.status}
+        shippingTaskStatus={viewModel.orderToCancel?.shippingTaskStatus}
       />
     </div>
   );

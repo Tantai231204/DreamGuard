@@ -109,7 +109,7 @@ export const adminTradeInOrdersQueryOptions = (params?: AdminTradeInOrderSearchP
   staleTime: 30000,
 });
 
-export const waitingTradeInOrdersQueryOptions = (params?: { pageNumber?: number; pageSize?: number }) => ({
+export const waitingTradeInOrdersQueryOptions = (params?: { pageNumber?: number; pageSize?: number; key?: string }) => ({
   queryKey: tradeInOrderKeys.waitingList(params),
   queryFn: () => tradeInOrderService.getWaitingOrders(params),
   placeholderData: keepPreviousData,
@@ -264,7 +264,7 @@ export const useCustomerTradeInOrders = (params?: { pageNumber?: number; pageSiz
   });
 };
 
-export const useWaitingTradeInOrders = (params?: { pageNumber?: number; pageSize?: number }, options?: { enabled?: boolean }) => {
+export const useWaitingTradeInOrders = (params?: { pageNumber?: number; pageSize?: number; key?: string }, options?: { enabled?: boolean }) => {
   return useQuery({
     ...waitingTradeInOrdersQueryOptions(params),
     enabled: options?.enabled ?? true,

@@ -12,6 +12,7 @@ import { useFloatingAIChat } from './useFloatingAIChat';
 import type { AIChatMessage } from './useFloatingAIChat';
 import { formatAppointmentTimeLabel } from '@/utils/chatPayload';
 import { cn } from '@/lib/utils';
+import { useChatStore } from '@/store/useChatStore';
 
 const timeFormatter = new Intl.DateTimeFormat('en-US', {
     hour: '2-digit',
@@ -92,8 +93,8 @@ function formatAIText(text: string): React.ReactNode {
         const processText = (str: string) => formatStrikethrough(formatInline(str));
 
         // Bullet points: • or - at start
-        if (/^[•\-]\s/.test(trimmed)) {
-            const content = trimmed.replace(/^[•\-]\s*/, '');
+        if (/^[•-]\s/.test(trimmed)) {
+            const content = trimmed.replace(/^[•-]\s*/, '');
             elements.push(
                 <div key={key++} className="flex items-start gap-2 pl-1 py-0.5">
                     <span className="text-primary mt-0.5 text-[10px]">●</span>
@@ -120,7 +121,7 @@ function formatAIText(text: string): React.ReactNode {
         }
 
         // Indented detail lines (start with spaces + emoji like 📝💰👶📂)
-        if (/^\s{2,}/.test(line) && /^[\s]*[📝💰👶📂🌟✅❌⚡🎯🔥💡]/.test(trimmed)) {
+        if (/^\s{2,}/.test(line) && /^[\s]*[📝💰👶📂🌟✅❌⚡🎯🔥💡]/u.test(trimmed)) {
             elements.push(
                 <div key={key++} className="pl-8 py-0.5 text-slate-600">
                     {processText(trimmed)}
@@ -275,6 +276,7 @@ const MessageBubble = memo(({
 });
 
 export default function UnifiedFloatingChat() {
+    const { isLocked } = useChatStore();
     const [mode, setMode] = useState<'support' | 'ai'>('support');
 
     // --- MODE: SUPPORT ---
@@ -539,8 +541,12 @@ export default function UnifiedFloatingChat() {
                                 {mode === 'support' && (
                                     <button
                                         type="button"
-                                        onClick={() => fileInputRef.current?.click()}
-                                        className="h-11 w-11 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-slate-100 transition-colors mb-0.5"
+                                        onClick={() => !isLocked && fileInputRef.current?.click()}
+                                        disabled={isLocked}
+                                        className={cn(
+                                            "h-11 w-11 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-slate-100 transition-colors mb-0.5",
+                                            isLocked && "opacity-40 cursor-not-allowed hover:bg-slate-50"
+                                        )}
                                     >
                                         <ImageIcon size={20} />
                                         <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={(e) => {
@@ -553,8 +559,12 @@ export default function UnifiedFloatingChat() {
                                     <input
                                         value={mode === 'support' ? supportInput : aiInput}
                                         onChange={(e) => mode === 'support' ? handleSupportInputChange(e.target.value) : setAiInput(e.target.value)}
-                                        placeholder={mode === 'ai' ? "Ask the advisor..." : "Type your message..."}
-                                        className="w-full bg-transparent border-none outline-none text-[13.5px] font-medium text-slate-700 placeholder:text-slate-400"
+                                        placeholder={mode === 'ai' ? "Ask the advisor..." : (isLocked ? "Chat Locked (Non-negotiating state)" : "Type your message...")}
+                                        disabled={mode === 'support' && isLocked}
+                                        className={cn(
+                                            "w-full bg-transparent border-none outline-none text-[13.5px] font-medium text-slate-700 placeholder:text-slate-400",
+                                            mode === 'support' && isLocked && "cursor-not-allowed opacity-50"
+                                        )}
                                     />
                                 </div>
 
@@ -567,10 +577,10 @@ export default function UnifiedFloatingChat() {
                                             animate={{ scale: 1, opacity: 1 }}
                                             exit={{ scale: 0.6, opacity: 0 }}
                                             transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-                                            disabled={(mode === 'support' ? support.isSending : ai.isThinking)}
+                                            disabled={(mode === 'support' ? (support.isSending || isLocked) : ai.isThinking)}
                                             className={cn(
                                                 "h-11 w-11 rounded-xl flex items-center justify-center shadow-lg transition-shadow disabled:opacity-60",
-                                                "bg-gradient-to-br from-[#4988c4] to-[#3a73a8] text-white"
+                                                (mode === 'support' && isLocked) ? "bg-slate-200 text-slate-400 shadow-none" : "bg-gradient-to-br from-[#4988c4] to-[#3a73a8] text-white"
                                             )}
                                         >
                                             {(mode === 'support' ? support.isSending : ai.isThinking) ? (

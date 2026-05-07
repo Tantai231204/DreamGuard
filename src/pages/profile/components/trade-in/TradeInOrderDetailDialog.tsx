@@ -29,6 +29,7 @@ import {
     PaymentDetailsCard,
     ShipperInfoSection
 } from "../orders/components";
+import { useChatStore } from "@/store/useChatStore";
 
 interface TradeInOrderDetailDialogProps {
     tradeInOrderId: string;
@@ -129,6 +130,8 @@ export const TradeInOrderDetailDialog = ({ tradeInOrderId, orderCode, trigger }:
     const [isRetryPaymentConfirmOpen, setIsRetryPaymentConfirmOpen] = React.useState(false);
     const [isSourceOrderOpen, setIsSourceOrderOpen] = React.useState(false);
     const [targetSourceOrderId, setTargetSourceOrderId] = React.useState<string | null>(null);
+    const { openChat } = useChatStore();
+    const [isJoiningChat, setIsJoiningChat] = React.useState(false);
 
     // Derived State
     const statusTheme = React.useMemo(() => (order ? getTradeInStatusTheme(order.status) : null), [order]);
@@ -140,6 +143,26 @@ export const TradeInOrderDetailDialog = ({ tradeInOrderId, orderCode, trigger }:
         () => Boolean(order && normalizeTradeInStatus(order.status) === "PENDING" && latestPaymentStatus === "failed"),
         [latestPaymentStatus, order],
     );
+
+    const [isCancelling, setIsCancelling] = React.useState(false);
+    const [isCancelConfirmOpen, setIsCancelConfirmOpen] = React.useState(false);
+
+    const canCancel = React.useMemo(() => {
+        if (!order) return false;
+        const normalizedStatus = normalizeTradeInStatus(order.status);
+        
+        // Base cancelable statuses (Waiting, Pending, Negotiating)
+        const isBaseCancelable = ["WAITING_FOR_STAFF", "PENDING", "NEGOTIATING"].includes(normalizedStatus);
+        if (isBaseCancelable) return true;
+        
+        // Special case for CONFIRMED: Only if task is not yet assigned or in pending state
+        if (normalizedStatus === 'CONFIRMED') {
+            const taskStatus = order.shippingTaskStatus?.toUpperCase();
+            return !taskStatus || taskStatus === 'PENDING';
+        }
+        
+        return false;
+    }, [order]);
 
 
 
@@ -171,7 +194,7 @@ export const TradeInOrderDetailDialog = ({ tradeInOrderId, orderCode, trigger }:
         } finally {
             setIsRetryingPayment(false);
         }
-    }, [isRetryingPayment, order?.tradeInOrderId]);
+    }, [isRetryingPayment, order]);
 
     const handleConfirmRetryPayment = React.useCallback(() => {
         setIsRetryPaymentConfirmOpen(false);
@@ -186,6 +209,45 @@ export const TradeInOrderDetailDialog = ({ tradeInOrderId, orderCode, trigger }:
     const handleCloseSourceOrder = React.useCallback(() => {
         setIsSourceOrderOpen(false);
     }, []);
+
+    const handleChatClick = React.useCallback(async () => {
+        if (!order?.tradeInOrderId || isJoiningChat) return;
+        try {
+            setIsJoiningChat(true);
+            const conversationId = await tradeInOrderService.getTradeInConversationId(order.tradeInOrderId);
+            if (conversationId) {
+                const isLocked = normalizeTradeInStatus(order.status) !== "NEGOTIATING";
+                openChat(conversationId, isLocked);
+                toast.success("Connected to trade-in support.");
+            } else {
+                toast.info("Support chat is not active yet.");
+            }
+        } catch {
+            toast.error("Could not connect to support.");
+        } finally {
+            setIsJoiningChat(false);
+        }
+    }, [order, openChat, isJoiningChat]);
+
+    const handleCancelDeal = React.useCallback(async () => {
+        if (!order?.tradeInOrderId || isCancelling) return;
+        try {
+            setIsCancelling(true);
+            const res = await tradeInOrderService.cancelDeal(order.tradeInOrderId, "Cancelled by user");
+            if (res.success) {
+                toast.success("Trade-in request cancelled successfully.");
+                setOpen(false);
+                // Optionally refresh queries here, but setOpen(false) is fine for now
+            } else {
+                toast.error(res.message || "Failed to cancel request.");
+            }
+        } catch {
+            toast.error("An error occurred while cancelling.");
+        } finally {
+            setIsCancelling(false);
+            setIsCancelConfirmOpen(false);
+        }
+    }, [isCancelling, order]);
 
     return (
         <>
@@ -249,13 +311,36 @@ export const TradeInOrderDetailDialog = ({ tradeInOrderId, orderCode, trigger }:
 
                         <div className="p-5 border-t border-gray-100 bg-white flex flex-col sm:flex-row items-center justify-between gap-4 shrink-0">
                             <div className="flex flex-col items-start gap-0.5">
-                                <span className="text-[9px] font-black text-gray-400 uppercase tracking-tight">Need assistance?</span>
-                                <button className="text-[10px] font-black text-[#4988c4] uppercase tracking-widest hover:underline flex items-center gap-1.5" onClick={() => window.alert("Connecting to support...")}>
-                                    <ShieldCheck className="w-3.5 h-3.5" />
-                                    Live Chat Support
+                                <span className="text-[9px] font-black text-gray-400 uppercase tracking-tight">
+                                    {normalizeTradeInStatus(order?.status) === "CONFIRMED" ? "Logistics verified" : "Need assistance?"}
+                                </span>
+                                <button 
+                                    className={cn(
+                                        "text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 transition-all",
+                                        isJoiningChat ? "opacity-50 cursor-wait" : "text-[#4988c4] hover:underline"
+                                    )} 
+                                    disabled={isJoiningChat}
+                                    onClick={handleChatClick}
+                                >
+                                    <ShieldCheck className={cn("w-3.5 h-3.5", "text-[#4988c4]")} />
+                                    {normalizeTradeInStatus(order?.status) === "NEGOTIATING" ? "Live Chat Support" : "View Chat History"}
                                 </button>
                             </div>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest hidden sm:block">Verified by DreamGuard Logistics</p>
+
+                            {canCancel && (
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="rounded-xl border-rose-100 bg-rose-50/30 text-rose-600 font-black text-[10px] uppercase tracking-widest hover:bg-rose-50 hover:border-rose-200 transition-all shadow-sm px-6 h-9"
+                                    onClick={() => setIsCancelConfirmOpen(true)}
+                                    disabled={isCancelling}
+                                >
+                                    Cancel Request
+                                </Button>
+                            )}
+                            {!canCancel && (
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest hidden sm:block text-right">Verified by DreamGuard Logistics</p>
+                            )}
                         </div>
                     </div>
 
@@ -280,6 +365,18 @@ export const TradeInOrderDetailDialog = ({ tradeInOrderId, orderCode, trigger }:
                 onConfirm={handleConfirmRetryPayment}
                 variant="primary"
                 isLoading={isRetryingPayment}
+            />
+
+            <ConfirmDialog
+                open={isCancelConfirmOpen}
+                onOpenChange={setIsCancelConfirmOpen}
+                title="Cancel Trade-In Request?"
+                description="Are you sure you want to terminate this trade-in request? This action cannot be undone."
+                confirmText="Yes, Cancel Request"
+                cancelText="No, Keep It"
+                onConfirm={handleCancelDeal}
+                variant="danger"
+                isLoading={isCancelling}
             />
 
             <TradeInImmersiveGallery

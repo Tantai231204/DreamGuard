@@ -302,7 +302,7 @@ const tradeInOrderService = {
   },
 
   getWaitingOrders: async (
-    params?: { pageNumber?: number; pageSize?: number }
+    params?: { pageNumber?: number; pageSize?: number; key?: string }
   ): Promise<AdminTradeInOrderListResponse> => {
     const res = await apiClient.get("/TradeInOrders/waiting-orders", { params });
     return res.data?.data ?? res.data;
@@ -408,7 +408,7 @@ const tradeInOrderService = {
   /** User specific cancel */
   cancelDeal: async (tradeInOrderId: string, reason?: string): Promise<TradeInActionResponse> => {
     const res = await apiClient.patch(`/TradeInOrders/${tradeInOrderId}/cancel`, { reason });
-    return res.data;
+    return res.data?.data ?? res.data;
   },
 
   /** Retry payment for a failed pending trade-in order */
@@ -424,7 +424,7 @@ const tradeInOrderService = {
   /** Admin specific cancel */
   adminCancel: async (tradeInOrderId: string, reason?: string): Promise<TradeInActionResponse> => {
     const res = await apiClient.patch(`/TradeInOrders/${tradeInOrderId}/admin-cancel`, { reason });
-    return res.data;
+    return res.data?.data ?? res.data;
   },
 
   /** POST /TradeInOrders/:orderId/CreateConversation */

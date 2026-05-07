@@ -154,7 +154,9 @@ const TRADE_IN_STATUS_DEFINITION_MAP: Record<
 };
 
 export const TRADE_IN_FILTER_BASE_STATUSES: TradeInStatus[] = [
-  TRADE_IN_STATUS.PENDING,
+  TRADE_IN_STATUS.WAITING_FOR_STAFF,
+  TRADE_IN_STATUS.NEGOTIATING,
+  TRADE_IN_STATUS.CONFIRMED,
   TRADE_IN_STATUS.PROCESSING,
   TRADE_IN_STATUS.DELIVERING,
   TRADE_IN_STATUS.RETURNING,
@@ -368,4 +370,16 @@ export const getTradeInStatusBadgeStatus = (
   status: string | null | undefined,
 ): TradeInBadgeStatus => {
   return getTradeInStatusMeta(status).badgeStatus;
+};
+
+/**
+ * Maps a frontend status constant back to its API-friendly representation (e.g., numeric string).
+ */
+export const toApiStatus = (status: string): string => {
+  const normalized = normalizeTradeInStatus(status);
+  // Find the numeric key in the alias map if it exists
+  const entry = Object.entries(TRADE_IN_STATUS_ALIAS_MAP).find(([key, value]) => 
+    value === normalized && !isNaN(Number(key))
+  );
+  return entry ? entry[0] : normalized;
 };

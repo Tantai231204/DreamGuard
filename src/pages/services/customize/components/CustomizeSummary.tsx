@@ -1,6 +1,6 @@
 import { Sparkles, Heart } from "lucide-react";
 import type { CustomizableProduct, DesignConfig } from "../types";
-import { patternOptions, materialOptions, calculateCustomPrice } from "../data";
+import { materialOptions, calculateCustomPrice } from "../data";
 import ProductPreview from "./ProductPreview";
 
 interface CustomizeSummaryProps {
@@ -14,7 +14,6 @@ function formatPrice(value: number) {
 
 export default function CustomizeSummary({ product, design }: CustomizeSummaryProps) {
   const currentSize = product.availableSizes.find((s) => s.id === design.size);
-  const currentPattern = patternOptions.find((p) => p.id === design.pattern);
   const currentMaterial = materialOptions.find((m) => m.id === design.material);
   const hasEmbroidery = design.embroideryText.trim().length > 0;
   const totalPrice = calculateCustomPrice(
@@ -48,7 +47,6 @@ export default function CustomizeSummary({ product, design }: CustomizeSummaryPr
                 { label: "Product", value: product.name },
                 { label: "Size", value: currentSize?.label || "–" },
                 { label: "Color", value: design.baseColor, swatch: design.baseColor },
-                { label: "Pattern", value: `${currentPattern?.emoji} ${currentPattern?.name}` },
                 { label: "Material", value: currentMaterial?.name || "–", badge: currentMaterial?.badge },
                 ...(hasEmbroidery ? [{ label: "Embroidery", value: `"${design.embroideryText}"` }] : []),
               ].map((item) => (

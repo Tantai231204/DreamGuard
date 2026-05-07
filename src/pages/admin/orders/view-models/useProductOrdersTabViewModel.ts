@@ -25,6 +25,8 @@ export const useProductOrdersTabViewModel = () => {
     globalFilter,
     setGlobalFilter,
     debouncedFilter,
+    setFieldFilter,
+    getFieldFilter,
   } = useAdminTableSync(PRODUCT_ORDERS_DEFAULT_PAGE_SIZE);
 
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -35,22 +37,7 @@ export const useProductOrdersTabViewModel = () => {
   const [orderToCancel, setOrderToCancel] = useState<CheckoutOrderResponse | null>(null);
   const cancelOrderMutation = useCancelCheckoutOrder();
 
-  const statusFilter = useMemo(() => {
-    const filter = columnFilters.find((item) => item.id === 'status');
-    if (!filter) {
-      return undefined;
-    }
-
-    if (Array.isArray(filter.value)) {
-      return filter.value as string[];
-    }
-
-    if (typeof filter.value === 'string' && filter.value.trim()) {
-      return [filter.value];
-    }
-
-    return undefined;
-  }, [columnFilters]);
+  const statusFilter = getFieldFilter('status', 'all');
 
   const onCancelRequested = useCallback((order: CheckoutOrderResponse) => {
     setOrderToCancel(order);
@@ -64,7 +51,7 @@ export const useProductOrdersTabViewModel = () => {
       pageNumber: pagination.pageIndex + 1,
       pageSize: pagination.pageSize,
       search: debouncedFilter || undefined,
-      status: statusFilter,
+      status: statusFilter !== 'all' ? [statusFilter] : undefined,
       sortBy: sorting[0]?.id,
       sortOrder: sorting[0] ? (sorting[0].desc ? 'desc' : 'asc') : undefined,
     }),
@@ -76,6 +63,15 @@ export const useProductOrdersTabViewModel = () => {
   const rows = useMemo(() => orderData?.items ?? [], [orderData]);
   const pageCount = orderData?.totalPages ?? -1;
 
+  // Identify orders needing attention (Cancelled but not fully refunded)
+  const pendingRefundCount = useMemo(() => {
+    if (!orderData?.items) return 0;
+    return orderData.items.filter(order => 
+      order.status === 'Cancelled' && 
+      order.refundingAmount > 0
+    ).length;
+  }, [orderData?.items]);
+
   const handleExport = useCallback(() => {
     const exportData = rows.map((order) => ({
       Code: order.checkoutOrderCode,
@@ -85,6 +81,10 @@ export const useProductOrdersTabViewModel = () => {
     }));
     downloadCSV(exportData, 'Orders_Export');
   }, [rows]);
+
+  const handleStatusChange = useCallback((status: string) => {
+    setFieldFilter('status', status);
+  }, [setFieldFilter]);
 
   const table = useReactTable({
     data: rows,
@@ -96,6 +96,7 @@ export const useProductOrdersTabViewModel = () => {
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
     manualPagination: true,
+    manualFiltering: true,
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
     getCoreRowModel: getCoreRowModel(),
@@ -124,8 +125,11 @@ export const useProductOrdersTabViewModel = () => {
     table,
     globalFilter,
     setGlobalFilter,
+    statusFilter,
+    handleStatusChange,
     isPending,
     resultCount: orderData?.totalCount ?? 0,
+    pendingRefundCount,
     handleExport,
     isCancelOpen,
     setIsCancelOpen,

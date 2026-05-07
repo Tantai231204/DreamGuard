@@ -161,7 +161,7 @@ export const TradeInOrderCard = memo(({
                         onClick={handleChat}
                     >
                         <ShieldCheck className="w-3 h-3" />
-                        Expert Advice
+                        {isNegotiating ? "Expert Advice" : "View Chat History"}
                     </button>
                 </div>
                 <div className="flex items-center gap-2">

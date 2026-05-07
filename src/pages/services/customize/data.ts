@@ -1,4 +1,4 @@
-import type { CustomizableProduct, MaterialOption, PatternOption } from "./types";
+import type { CustomizableProduct, MaterialOption } from "./types";
 
 /* ===== Customizable Products ===== */
 export const customizableProducts: CustomizableProduct[] = [
@@ -87,14 +87,6 @@ export const materialOptions: MaterialOption[] = [
   },
 ];
 
-/* ===== Patterns ===== */
-export const patternOptions: PatternOption[] = [
-  { id: "solid", name: "Solid", emoji: "⬜", cssPattern: "" },
-  { id: "stars", name: "Stars", emoji: "⭐", cssPattern: "radial-gradient(circle, currentColor 1px, transparent 1px)" },
-  { id: "stripes", name: "Stripes", emoji: "📏", cssPattern: "repeating-linear-gradient(45deg, transparent, transparent 8px, currentColor 8px, currentColor 10px)" },
-  { id: "clouds", name: "Clouds", emoji: "☁️", cssPattern: "radial-gradient(ellipse 30px 20px, currentColor 0%, transparent 70%)" },
-  { id: "dots", name: "Polka Dots", emoji: "🔵", cssPattern: "radial-gradient(circle 4px, currentColor 100%, transparent 100%)" },
-];
 
 /* ===== Helper: calculate total price ===== */
 export function calculateCustomPrice(

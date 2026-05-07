@@ -191,7 +191,7 @@ const CustomizeStudio = () => {
 
 
   const [designState, setDesignState] = useState<Partial<DesignConfig>>({
-    baseColor: "#B0D4F1", pattern: "solid", embroideryText: "", embroideryPosition: "center", size: ""
+    baseColor: "#B0D4F1", embroideryText: "", embroideryPosition: "center", size: ""
   });
 
   const [sizeMode, setSizeMode] = useState<'mock' | 'input'>('mock');
@@ -565,12 +565,10 @@ const CustomizeStudio = () => {
               />
 
               <TextureLab
-                selectedPattern={activeDesign.pattern}
                 selectedMaterial={activeDesign.material}
                 materials={derivedMaterials}
                 basePrice={(selectedProduct?.salePrice || selectedProduct?.basePrice || 0) + (activeDesign.size === "custom" ? 50000 : (currentSize?.priceAdd || 0))}
                 addOnFee={wrapAddOnFee}
-                onPatternSelect={(p) => updateDesign({ pattern: p })}
                 onMaterialSelect={(m) => updateDesign({ material: m })}
                 onImageUpload={handleImageUpload}
               />
