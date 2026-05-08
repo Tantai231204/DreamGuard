@@ -100,10 +100,15 @@ export function useTradeInFlow({
   }, [selectedTradeInItems]);
 
   const handleNext = useCallback(() => {
-    if (step === 'selection' && selectedCount === 1) setStep('audit');
-    else if (step === 'audit') setStep('images');
-    else if (step === 'images' && images.length >= 5) setStep('logistics');
-    else if (step === 'logistics' && !isManualEntry) setStep('summary');
+    if (step === 'selection') {
+      if (selectedCount === 1) setStep('audit');
+    } else if (step === 'audit') {
+      setStep('images');
+    } else if (step === 'images') {
+      if (images.length >= 5) setStep('logistics');
+    } else if (step === 'logistics') {
+      if (!isManualEntry) setStep('summary');
+    }
   }, [step, selectedCount, images.length, isManualEntry]);
 
   const handleBack = useCallback(() => {

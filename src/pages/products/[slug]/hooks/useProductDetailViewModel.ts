@@ -11,6 +11,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useProductCertificates } from "@/hooks/queries/useCertificate";
 import { useProductFeedbacks } from "@/hooks/queries/useProductFeedback";
 import { isAdminOrManager } from "@/lib/role";
+import { addressKeys } from "@/hooks/useAddress";
 
 import variantService, { type VariantResponse } from "@/api/services/variantService";
 import userService from "@/api/services/userService";
@@ -56,7 +57,7 @@ export function useProductDetailViewModel() {
   );
 
   const { data: tradeInAddresses = [] } = useQuery<Address[]>({
-    queryKey: ["trade-in", "addresses"],
+    queryKey: addressKeys.all,
     queryFn: getAddresses,
     enabled: isAuthenticated && state.isTradeInOpen,
     staleTime: 5 * 60 * 1000,
@@ -229,7 +230,7 @@ export function useProductDetailViewModel() {
       .map((f: ProductFeedbackResponse) => ({
         id: f.id,
         name: f.customerName || "Anonymous",
-        avatar: f.customerAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(f.customerName || "A")}&background=random`,
+        avatar: f.customerAvatar || "/images/logo_no_name.svg",
         rating: f.score,
         date: f.createdAt,
         comment: f.comment,
@@ -295,44 +296,82 @@ export function useProductDetailViewModel() {
       throw new Error("Missing trade-in contact information.");
     }
 
-    const normalizedDescription = payload.description?.trim() || "Drop-off at hub";
-    const createdTradeInOrder = await createTradeInOrderMutation.mutateAsync({
-      address: tradeInContact.address,
-      description: normalizedDescription,
-      phoneNumber: tradeInContact.phoneNumber,
-      receiverName: tradeInContact.receiverName,
-      pOrderItemId: payload.pOrderItemId,
-      productVariantId: payload.productVariantId,
-      isGood: payload.isGood,
-    });
+    const uploadToastId = `trade-in-process-${Date.now()}`;
+    sonnerToast.loading("Initializing trade-in request...", { id: uploadToastId });
 
-    const paymentUrl = typeof createdTradeInOrder.paymentUrl === "string" ? createdTradeInOrder.paymentUrl.trim() : "";
-    const shouldRedirectToPayment = paymentUrl.length > 0;
+    try {
+      const normalizedDescription = payload.description?.trim() || "Drop-off at hub";
+      
+      // STEP 1: Run Order Creation and Image Optimization (Compression) in Parallel
+      // This saves significant time as compression is CPU intensive and Order Creation is a Network call.
+      const [createdTradeInOrder, optimizedImages] = await Promise.all([
+        createTradeInOrderMutation.mutateAsync({
+          address: tradeInContact.address,
+          description: normalizedDescription,
+          phoneNumber: tradeInContact.phoneNumber,
+          receiverName: tradeInContact.receiverName,
+          pOrderItemId: payload.pOrderItemId,
+          productVariantId: payload.productVariantId,
+          isGood: payload.isGood,
+        }),
+        payload.images.length > 0 
+          ? tradeInOrderService.prepareUploadFiles(payload.images, {
+              compress: true,
+              onProgress: (progress: number) => {
+                sonnerToast.loading(`Optimizing photos: ${progress}%`, { id: uploadToastId });
+              }
+            })
+          : Promise.resolve([])
+      ]);
 
-    if (payload.images.length > 0) {
       const tradeInOrderId = createdTradeInOrder.tradeInOrderId || createdTradeInOrder.id || createdTradeInOrder.orderId;
-      if (tradeInOrderId) {
-        const uploadToastId = `trade-in-upload-${String(tradeInOrderId)}-${Date.now()}`;
-        const uploadTask = tradeInOrderService.uploadImages(String(tradeInOrderId), payload.images, {
-          compress: true,
-          onProgress: (progress, stage) => {
-            const label = stage === "compressing" ? "Optimizing photos" : "Uploading photos";
-            sonnerToast.loading(`${label}: ${progress}%`, { id: uploadToastId });
+      const paymentUrl = typeof createdTradeInOrder.paymentUrl === "string" ? createdTradeInOrder.paymentUrl.trim() : "";
+      const shouldRedirectToPayment = paymentUrl.length > 0;
+
+      // STEP 2: Start Uploading the optimized images (Network intensive)
+      let uploadPromise: Promise<unknown> = Promise.resolve();
+      if (optimizedImages.length > 0 && tradeInOrderId) {
+        // We use the already optimized images to speed up the final upload call
+        uploadPromise = tradeInOrderService.uploadImages(String(tradeInOrderId), optimizedImages, {
+          compress: false, // Already compressed above
+          onProgress: (progress: number) => {
+            sonnerToast.loading(`Uploading photos: ${progress}%`, { id: uploadToastId });
           },
         });
+      }
 
-        if (shouldRedirectToPayment) {
-          try { await uploadTask; sonnerToast.success("Trade-in images uploaded successfully.", { id: uploadToastId }); }
-          catch { sonnerToast.warning("Image upload failed before payment redirect.", { id: uploadToastId }); }
+      // STEP 3: Handle the "Parallel" Redirect
+      // If we have a payment URL, we can choose to open it in a new tab immediately
+      // OR wait for the upload and then redirect. 
+      // To truly run "parallel" as requested, we open VNPay in a new tab.
+      if (shouldRedirectToPayment) {
+        sessionStorage.setItem('lastOrderType', 'trade-in');
+        console.log("[TradeInParallel] Opening payment in new tab...");
+        
+        // Strategy: Open VNPay in new tab so user can pay while upload continues in background
+        const paymentWindow = window.open(paymentUrl, '_blank');
+        
+        if (paymentWindow) {
+          sonnerToast.success("Payment opened in a new tab. Please complete payment there.", { id: uploadToastId });
         } else {
-          void uploadTask.then(() => sonnerToast.success("Uploaded successfully.", { id: uploadToastId })).catch(() => sonnerToast.warning("Upload failed.", { id: uploadToastId }));
+          // Fallback: If popup blocked, we must wait for upload and then redirect in same tab
+          sonnerToast.loading("Finalizing upload before redirect...", { id: uploadToastId });
+          await uploadPromise;
+          sonnerToast.success("Trade-in submitted! Redirecting to payment...", { id: uploadToastId });
+          window.location.assign(paymentUrl);
+          return;
         }
       }
-    }
 
-    if (shouldRedirectToPayment) { 
-      sessionStorage.setItem('lastOrderType', 'trade-in');
-      window.location.assign(paymentUrl); 
+      // Finalize the upload in the current tab
+      await uploadPromise;
+      if (!shouldRedirectToPayment) {
+        sonnerToast.success("Trade-in order created successfully!", { id: uploadToastId });
+      }
+
+    } catch (error) {
+      console.error("[TradeInFlow] Error:", error);
+      sonnerToast.error("An error occurred during trade-in submission. Please try again.", { id: uploadToastId });
     }
   }, [createTradeInOrderMutation, tradeInContact]);
 

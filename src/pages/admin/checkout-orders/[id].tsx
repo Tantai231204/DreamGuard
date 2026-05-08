@@ -35,13 +35,7 @@ function ChildOrderCard({ childOrderId, onAssign }: { childOrderId: string, onAs
     const canAssign = useMemo(() => {
         if (!detail || isCancelled || !isTaskPending) return false;
         
-        return (
-            currentStatusEnum !== OrderStatus.Pending &&
-            currentStatusEnum !== OrderStatus.Completed &&
-            currentStatusEnum !== OrderStatus.Returned &&
-            currentStatusEnum !== OrderStatus.ReturnedAndRefunding &&
-            currentStatusEnum !== OrderStatus.ReturnedAndRefunded
-        );
+        return currentStatusEnum === OrderStatus.Processing || currentStatusEnum === OrderStatus.ShippingReplacement;
     }, [detail, currentStatusEnum, isCancelled, isTaskPending]);
 
     if (isPending) return <div className="h-24 bg-slate-50 animate-pulse rounded-2xl border border-slate-100" />;
@@ -105,9 +99,7 @@ function ChildOrderCard({ childOrderId, onAssign }: { childOrderId: string, onAs
                                 </div>
                                 <Avatar className="h-8 w-8 border border-white shadow-sm ring-1 ring-slate-100">
                                     <AvatarImage src={detail.shippingStaffAvatarUrl} />
-                                    <AvatarFallback className="bg-slate-100 text-slate-400 text-[10px] font-black uppercase">
-                                        {detail.shippingStaffName?.charAt(0)}
-                                    </AvatarFallback>
+                                    <AvatarFallback className="bg-slate-200" />
                                 </Avatar>
                             </div>
                         ) : (
@@ -189,14 +181,7 @@ export default function AdminCheckoutOrderDetail() {
     const assignableChildOrderIds = useMemo(() => {
         return order?.childOrders?.filter(child => {
             const statusEnum = ORDER_STATUS_MAP[child.status.toString()];
-            return (
-                statusEnum !== OrderStatus.Pending &&
-                statusEnum !== OrderStatus.Completed &&
-                statusEnum !== OrderStatus.Cancelled &&
-                statusEnum !== OrderStatus.Returned &&
-                statusEnum !== OrderStatus.ReturnedAndRefunding &&
-                statusEnum !== OrderStatus.ReturnedAndRefunded
-            );
+            return statusEnum === OrderStatus.Processing || statusEnum === OrderStatus.ShippingReplacement;
         }).map(c => c.id) || [];
     }, [order?.childOrders]);
 

@@ -14,7 +14,7 @@ import {
 } from '@/hooks/queries';
 import { useAdminTableSync } from '@/hooks/admin/useAdminTableSync';
 import { usePermission } from '@/hooks/usePermission';
-import { toApiStatus, isTradeInAdminCancelableStatus, isTradeInFinalStatus } from '@/utils/tradeInWorkflow';
+import { isTradeInAdminCancelableStatus, isTradeInFinalStatus, toTradeInStatus } from '@/utils/tradeInWorkflow';
 
 import { tradeInOrderService, paymentService } from '@/api/services';
 import { toast } from 'sonner';
@@ -49,15 +49,54 @@ export const useTradeInOrdersTabViewModel = () => {
   const [orderToCancel, setOrderToCancel] = useState<TradeInOrderListItem | null>(null);
 
   const queryParams = useMemo(
-    () => ({
-      pageNumber: pagination.pageIndex + 1,
-      pageSize: pagination.pageSize,
-      key: debouncedFilter || undefined,
-      search: debouncedFilter || undefined,
-      status: statusFilter === 'CANCELLED' 
-        ? '7,14,15' // Merge Cancelled (7), Admin Cancel (14), and Forced Cancel (15)
-        : statusFilter !== 'all' ? toApiStatus(statusFilter) : undefined,
-    }),
+    () => {
+      let apiStatus: string | string[] | undefined = undefined;
+
+      if (statusFilter !== 'all') {
+        switch (statusFilter) {
+          case 'CANCELLED':
+            apiStatus = 'CANCELLED';
+            break;
+          case 'ADMIN_CANCELLED':
+            apiStatus = 'ADMINCANCELLED';
+            break;
+          case 'FORCED_CANCELLED':
+            apiStatus = 'FORCED_CANCELLED';
+            break;
+          case 'COMPLETED':
+            apiStatus = ['COMPLETED', 'RefundedAndRestocked', 'RefundedAndDamaged'];
+            break;
+          case 'EXCHANGE_REQUESTED':
+            apiStatus = ['EXCHANGE_REQUESTED', 'Shipping_Replacement'];
+            break;
+          case 'DELIVERING':
+            apiStatus = ['DELIVERING', 'ARRIVED', 'DELIVERED'];
+            break;
+          case 'RETURNING':
+            apiStatus = 'RETURNING';
+            break;
+          case 'WAITING_FOR_STAFF':
+            apiStatus = ['WAITING_FOR_STAFF', 'Pending'];
+            break;
+          case 'CONFIRMED':
+            apiStatus = 'CONFIRMED';
+            break;
+          case 'PROCESSING':
+            apiStatus = 'PROCESSING';
+            break;
+          default:
+            apiStatus = statusFilter;
+        }
+      }
+
+      return {
+        pageNumber: pagination.pageIndex + 1,
+        pageSize: pagination.pageSize,
+        key: debouncedFilter || undefined,
+        search: debouncedFilter || undefined,
+        status: apiStatus,
+      };
+    },
     [debouncedFilter, pagination.pageIndex, pagination.pageSize, statusFilter],
   );
 
@@ -80,7 +119,26 @@ export const useTradeInOrdersTabViewModel = () => {
     refetch,
   } = activeQuery;
 
-  const rows = useMemo(() => data?.items ?? [], [data]);
+  const rows = useMemo(() => {
+    const items = data?.items ?? [];
+    if (statusFilter === 'all') return items;
+
+    return items.filter((item) => {
+      const s = toTradeInStatus(item.status);
+      const target = toTradeInStatus(statusFilter);
+      
+      switch (statusFilter) {
+        case 'COMPLETED':
+          return s === 'COMPLETED' || s === 'REFUNDED_AND_RESTOCKED' || s === 'REFUNDED_AND_DAMAGED';
+        case 'EXCHANGE_REQUESTED':
+          return s === 'EXCHANGE_REQUESTED' || s === 'SHIPPING_REPLACEMENT';
+        case 'DELIVERING':
+          return s === 'DELIVERING' || s === 'ARRIVED' || s === 'DELIVERED';
+        default:
+          return s === target;
+      }
+    });
+  }, [data, statusFilter]);
   const pageCount = data?.totalPages ?? -1;
   const statusOptions = useMemo(() => buildTradeInStatusOptions(rows), [rows]);
 

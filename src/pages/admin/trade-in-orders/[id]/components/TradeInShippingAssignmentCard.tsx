@@ -65,9 +65,7 @@ export function TradeInShippingAssignmentCard({
             >
               <Avatar className="h-12 w-12 border-2 border-white shadow-sm ring-1 ring-slate-100">
                 <AvatarImage src={currentStaff.avatarUrl} />
-                <AvatarFallback className="bg-blue-600 text-white font-black text-base">
-                  {currentStaff.fullName.charAt(0)}
-                </AvatarFallback>
+                <AvatarFallback className="bg-slate-200" />
               </Avatar>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2">

@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from "@/hooks/useToast";
 import * as addressService from "@/api/services/address.service";
 import { queryClient } from "@/lib/queryClient";
+import { addressKeys } from "@/hooks/useAddress";
 import { useQuery } from "@tanstack/react-query";
 import {
   Dialog,
@@ -147,7 +148,10 @@ export const StepLogistics = memo(function StepLogistics({
       
       if (createdId) {
         success("Address Confirmed", "Your address has been saved and selected.");
-        queryClient.invalidateQueries({ queryKey: ["addresses"] });
+        queryClient.invalidateQueries({ queryKey: addressKeys.all });
+        
+        // Also invalidate paginated list if it exists
+        queryClient.invalidateQueries({ queryKey: ["addresses", "paginated"] });
         
         // Use the new address
         const fullAddress = [street, wardObj.name, districtObj.name, cityObj.name].filter(Boolean).join(", ");

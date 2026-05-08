@@ -80,11 +80,13 @@ export function CheckoutForm({ form, totalPrice, selectedVoucherId, shippingFee 
                 paymentMethod: data.paymentMethod
             })
 
+            // Clear cart immediately after successful order creation on backend
+            await clearCart()
+
             if (response.paymentUrl) {
                 sessionStorage.setItem('lastOrderType', 'order');
                 window.location.assign(response.paymentUrl)
             } else {
-                clearCart()
                 const code = response.checkoutOrderCode || response.orderCode;
                 navigate(`${AppRoute.CHECKOUT_RESULT}?orderCode=${code}`)
             }

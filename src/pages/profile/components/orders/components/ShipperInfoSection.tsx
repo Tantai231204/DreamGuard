@@ -65,9 +65,7 @@ export function ShipperInfoSection({ staffName, shippingStatus, avatarUrl }: Shi
             <div className="flex items-center gap-4 bg-slate-50/40 p-4 rounded-xl border border-slate-100/50 group hover:border-[#4988c4]/20 transition-all duration-500">
                 <Avatar className="h-14 w-14 border-2 border-white shadow-md ring-1 ring-slate-100 shrink-0">
                     <AvatarImage src={avatarUrl} alt={staffName} className="object-cover" />
-                    <AvatarFallback className="bg-slate-100 text-slate-400 font-black text-lg">
-                        {staffName?.charAt(0) || <User className="w-6 h-6" />}
-                    </AvatarFallback>
+                    <AvatarFallback className="bg-slate-50" />
                 </Avatar>
 
                 <div className="flex-1 min-w-0">

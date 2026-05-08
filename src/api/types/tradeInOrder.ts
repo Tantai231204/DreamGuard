@@ -158,7 +158,7 @@ export interface TradeInOrderListItem {
 export interface AdminTradeInOrderSearchParams {
   customerId?: string;
   productVariantId?: string;
-  status?: string;
+  status?: string | string[];
   isGood?: boolean;
   tradeInPrice?: number;
   amountToPay?: number;

@@ -21,6 +21,7 @@ import { uploadToCloudinary } from "@/lib/uploadCloudinary";
 import { toast } from "sonner";
 import { useState } from "react";
 import { Camera, Loader2 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "../../../components/ui/avatar";
 
 const MotionButton = motion.create(Button);
 
@@ -150,17 +151,16 @@ const ProfileSidebar = ({ activeTab, onTabChange }: ProfileSidebarProps) => {
             />
             <div className="w-24 h-24 rounded-[2rem] bg-gradient-to-br from-white to-slate-100 p-1 ring-1 ring-slate-200 shadow-xl transition-all duration-500 group/avatar overflow-hidden">
               <div className="w-full h-full rounded-[1.75rem] overflow-hidden bg-white flex items-center justify-center relative">
-                {profile?.avatarUrl ? (
-                  <img
-                    src={profile.avatarUrl}
+                <Avatar className="w-full h-full rounded-[1.75rem]">
+                  <AvatarImage
+                    src={profile?.avatarUrl}
                     alt="Avatar"
                     className={cn("w-full h-full object-cover transition-opacity", isUploading && "opacity-30")}
                   />
-                ) : (
-                  <div className="bg-primary/10 w-full h-full flex items-center justify-center">
-                    <User className="w-10 h-10 text-primary" />
-                  </div>
-                )}
+                  <AvatarFallback className="bg-slate-50 flex items-center justify-center">
+                    <img src="/images/logo_no_name.svg" alt="DG" className="w-12 h-12 opacity-40 grayscale" />
+                  </AvatarFallback>
+                </Avatar>
 
                 {/* Hover Overlay / Loading */}
                 <button

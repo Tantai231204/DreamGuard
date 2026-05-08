@@ -176,9 +176,7 @@ export const OrderSidebar = memo(function OrderSidebar({
                   )}>
                     <Avatar className="h-12 w-12 border-2 border-white shadow-sm ring-1 ring-slate-100 bg-slate-50">
                       <AvatarImage src={(currentTask?.staff?.avatarUrl || technician?.avatarUrl) || undefined} className="object-cover" />
-                      <AvatarFallback className="bg-slate-200 text-slate-500 font-black text-sm">
-                        {(currentTask?.staff?.fullName || technician?.fullName)?.charAt(0) || 'T'}
-                      </AvatarFallback>
+                      <AvatarFallback className="bg-slate-200" />
                     </Avatar>
                     <div className="min-w-0 flex-1">
                       <p className="font-bold text-slate-900 text-sm truncate tracking-tight">
