@@ -365,8 +365,11 @@ export function useProductDetailViewModel() {
 
       // Finalize the upload in the current tab
       await uploadPromise;
-      if (!shouldRedirectToPayment) {
-        sonnerToast.success("Trade-in order created successfully!", { id: uploadToastId });
+      
+      if (shouldRedirectToPayment) {
+        sonnerToast.success("Trade-in request created & photos uploaded. Please check the payment tab.", { id: uploadToastId });
+      } else {
+        sonnerToast.success("Trade-in order created and photos uploaded successfully!", { id: uploadToastId });
       }
 
     } catch (error) {
