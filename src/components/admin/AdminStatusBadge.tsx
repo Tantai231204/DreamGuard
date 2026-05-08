@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Check, Clock4, X, Package, Minus, RotateCcw, Truck, MapPin, History, ShieldAlert, FileEdit, PackageX, EyeOff, ShieldCheck, PackageCheck, CheckCircle2, MinusCircle, CreditCard, Sparkles, RefreshCcw, ArrowLeftRight } from "lucide-react";
+import { Check, Clock4, X, Package, Minus, RotateCcw, Truck, MapPin, History, ShieldAlert, FileEdit, PackageX, EyeOff, ShieldCheck, PackageCheck, CheckCircle2, MinusCircle, CreditCard, Sparkles, RefreshCcw, ArrowLeftRight, AlertCircle } from "lucide-react";
 import React from "react";
 
 export type StatusType = 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'sky' | 'primary' | 'amber' | 'rose' | 'emerald';
@@ -94,6 +94,11 @@ const STATUS_MAP: Record<string, StatusType> = {
   'reassigned': 'neutral',
   'dispatched': 'info',
   'rescheduled': 'amber',
+
+  // Assessment keywords
+  'good': 'success',
+  'premium': 'success',
+  'fair': 'amber',
 
   // Neutral for fallback
   'archived': 'neutral',
@@ -271,6 +276,9 @@ const ICON_MAP: Record<string, React.ElementType> = {
   'returnedandrefunded': RotateCcw,
   'returned&refunding': RotateCcw,
   'returned&refunded': RotateCcw,
+  'good': ShieldCheck,
+  'premium': Sparkles,
+  'fair': AlertCircle,
 };
 
 const PAYMENT_CONFIG: Record<string, { container: string, textColor: string, iconBg: string, icon: string }> = {
@@ -363,6 +371,9 @@ const LABEL_MAP: Record<string, string> = {
   'returnedandrefunded': 'Returned & Refunded',
   'returned&refunding': 'Returned & Refunding',
   'returned&refunded': 'Returned & Refunded',
+  'good': 'Premium Condition',
+  'premium': 'Premium Condition',
+  'fair': 'Fair Condition',
 };
 
 const formatLabelFallback = (label: string) => {

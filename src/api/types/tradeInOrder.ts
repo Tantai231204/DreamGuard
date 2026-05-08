@@ -34,6 +34,8 @@ export interface TradeInPayment {
   amount: number;
   paymentMethod: string;
   createdAt: string;
+  updatedAt?: string;
+  evidenceUrl?: string | null;
 }
 
 export interface TradeInImage {

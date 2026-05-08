@@ -48,11 +48,28 @@ const CATEGORY_CRITERIA = {
       desc: 'Thoroughly cleaned with no residual household biological stains.',
       Icon: Droplets
     },
+  ],
+  pillow: [
+    { 
+      label: 'Structural Loft', 
+      desc: 'Filling maintains adequate height and support without permanent flat spots.',
+      Icon: Sparkles
+    },
+    { 
+      label: 'Hygiene Integrity', 
+      desc: 'Free from persistent sweat stains, biological odours, or moisture damage.',
+      Icon: Droplets
+    },
+    { 
+      label: 'Cover Condition', 
+      desc: 'Protective casing is free from tears, fraying, or significant fabric thinning.',
+      Icon: ShieldCheck
+    },
   ]
 };
 
 export const StepAudit = memo(function StepAudit({ audit, onDescriptionChange, onIsGoodChange }: StepAuditProps) {
-  const [activeTab, setActiveTab] = useState<'mattress' | 'bedding'>('mattress');
+  const [activeTab, setActiveTab] = useState<'mattress' | 'bedding' | 'pillow'>('mattress');
   const [isAcknowledged, setIsAcknowledged] = useState(false);
 
   return (
@@ -70,7 +87,7 @@ export const StepAudit = memo(function StepAudit({ audit, onDescriptionChange, o
         {/* Tab Switcher */}
         <Tabs 
           value={activeTab} 
-          onValueChange={(val) => setActiveTab(val as 'mattress' | 'bedding')}
+          onValueChange={(val) => setActiveTab(val as 'mattress' | 'bedding' | 'pillow')}
           className="w-full sm:w-auto"
         >
           <TabsList className="h-10 w-full sm:w-auto p-1 bg-[#FDFCFA] border border-[#EDE8E1] rounded-2xl">
@@ -85,6 +102,12 @@ export const StepAudit = memo(function StepAudit({ audit, onDescriptionChange, o
               className="rounded-xl px-4 py-1.5 text-[11px] font-black uppercase tracking-widest transition-all data-[state=active]:bg-[#3D5140] data-[state=active]:text-white"
             >
               Bedding
+            </TabsTrigger>
+            <TabsTrigger 
+              value="pillow"
+              className="rounded-xl px-4 py-1.5 text-[11px] font-black uppercase tracking-widest transition-all data-[state=active]:bg-[#3D5140] data-[state=active]:text-white"
+            >
+              Pillow
             </TabsTrigger>
           </TabsList>
         </Tabs>

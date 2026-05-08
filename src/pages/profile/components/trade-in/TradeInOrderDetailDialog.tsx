@@ -371,7 +371,11 @@ export const TradeInOrderDetailDialog = ({ tradeInOrderId, orderCode, trigger }:
                 open={isCancelConfirmOpen}
                 onOpenChange={setIsCancelConfirmOpen}
                 title="Cancel Trade-In Request?"
-                description="Are you sure you want to terminate this trade-in request? This action cannot be undone."
+                description={
+                    normalizeTradeInStatus(order?.status) === 'CONFIRMED'
+                        ? "Note: This order has been confirmed. If you cancel now, any payments made will NOT be refunded. Are you sure you want to proceed?"
+                        : "Are you sure you want to terminate this trade-in request? This action cannot be undone."
+                }
                 confirmText="Yes, Cancel Request"
                 cancelText="No, Keep It"
                 onConfirm={handleCancelDeal}

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
     MessageCircle, Sparkles, X, Send,
     CalendarClock, MapPin, Pin, Package,
-    Image as ImageIcon
+    Image as ImageIcon, DollarSign, Wallet, ArrowRight
 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useFloatingChat } from './useFloatingChat';
@@ -11,7 +11,7 @@ import type { ChatMessage } from './useFloatingChat';
 import { useFloatingAIChat } from './useFloatingAIChat';
 import type { AIChatMessage } from './useFloatingAIChat';
 import { formatAppointmentTimeLabel } from '@/utils/chatPayload';
-import { cn } from '@/lib/utils';
+import { cn, formatPrice } from '@/lib/utils';
 import { useChatStore } from '@/store/useChatStore';
 
 const timeFormatter = new Intl.DateTimeFormat('en-US', {
@@ -209,15 +209,46 @@ const MessageBubble = memo(({
 
                     {appointment && (
                         <div className={cn(
-                            "mt-1 w-full rounded-2xl border px-3 py-2.5 text-[11px] shadow-sm",
+                            "mt-1 w-full rounded-2xl border px-3 py-3 text-[11px] shadow-sm",
                             isIncoming ? "bg-emerald-50 text-emerald-800 border-emerald-100" : "bg-emerald-600 text-white border-none"
                         )}>
-                            <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider mb-2">
+                            <div className="flex items-center gap-1.5 font-black uppercase tracking-wider mb-2.5">
                                 <Pin className="h-3 w-3" /> Appointment Secured
                             </div>
-                            <div className="space-y-1 opacity-90">
-                                <div className="flex items-center gap-1.5"><CalendarClock className="h-3 w-3" /> {formatAppointmentTimeLabel(appointment.scheduledAt)}</div>
-                                {appointment.location && <div className="flex items-center gap-1.5"><MapPin className="h-3 w-3" /> {appointment.location}</div>}
+                            <div className="space-y-2 opacity-90">
+                                {appointment.scheduledAt && (
+                                    <div className="flex items-center gap-2">
+                                        <CalendarClock className="h-3.5 w-3.5 shrink-0" /> 
+                                        <span>{formatAppointmentTimeLabel(appointment.scheduledAt)}</span>
+                                    </div>
+                                )}
+                                {appointment.location && (
+                                    <div className="flex items-center gap-2">
+                                        <MapPin className="h-3.5 w-3.5 shrink-0" /> 
+                                        <span>{appointment.location}</span>
+                                    </div>
+                                )}
+                                
+                                {(appointment.tradeInPrice !== undefined || appointment.amountToPay !== undefined) && (
+                                    <div className="pt-2 mt-2 border-t border-black/5 space-y-1.5">
+                                        {appointment.tradeInPrice !== undefined && (
+                                            <div className="flex justify-between items-center">
+                                                <span className="flex items-center gap-1.5 font-bold uppercase tracking-tighter opacity-70">
+                                                    <DollarSign className="h-3 w-3" /> Valuation
+                                                </span>
+                                                <span className="font-black">{formatPrice(appointment.tradeInPrice)}</span>
+                                            </div>
+                                        )}
+                                        {appointment.amountToPay !== undefined && (
+                                            <div className="flex justify-between items-center">
+                                                <span className="flex items-center gap-1.5 font-bold uppercase tracking-tighter opacity-70">
+                                                    <Wallet className="h-3 w-3" /> Net Balance
+                                                </span>
+                                                <span className="font-black text-[13px]">{formatPrice(appointment.amountToPay)}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -278,6 +309,7 @@ const MessageBubble = memo(({
 export default function UnifiedFloatingChat() {
     const { isLocked } = useChatStore();
     const [mode, setMode] = useState<'support' | 'ai'>('support');
+    const navigate = useNavigate();
 
     // --- MODE: SUPPORT ---
     const support = useFloatingChat();
@@ -454,21 +486,40 @@ export default function UnifiedFloatingChat() {
                                 >
                                     {/* PINNED APPOINTMENT */}
                                     {pinnedAppointmentMessage?.appointment && (
-                                        <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-3.5 py-3 shadow-sm text-emerald-800">
-                                            <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-emerald-700">
+                                        <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3.5 shadow-sm text-emerald-800">
+                                            <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-emerald-700 mb-3">
                                                 <Pin className="h-3 w-3" />
                                                 Pinned Appointment
                                             </div>
-                                            <div className="mt-2 space-y-1 text-[12px]">
-                                                <p className="flex items-center gap-1.5">
-                                                    <CalendarClock className="h-3.5 w-3.5" />
-                                                    {formatAppointmentTimeLabel(pinnedAppointmentMessage.appointment.scheduledAt)}
-                                                </p>
+                                            <div className="space-y-2.5">
+                                                {pinnedAppointmentMessage.appointment.scheduledAt && (
+                                                    <p className="flex items-center gap-2 text-[12px] font-medium">
+                                                        <CalendarClock className="h-4 w-4 text-emerald-600/50" />
+                                                        {formatAppointmentTimeLabel(pinnedAppointmentMessage.appointment.scheduledAt)}
+                                                    </p>
+                                                )}
                                                 {pinnedAppointmentMessage.appointment.location && (
-                                                    <p className="flex items-center gap-1.5">
-                                                        <MapPin className="h-3.5 w-3.5" />
+                                                    <p className="flex items-center gap-2 text-[12px] font-medium leading-tight">
+                                                        <MapPin className="h-4 w-4 text-emerald-600/50" />
                                                         {pinnedAppointmentMessage.appointment.location}
                                                     </p>
+                                                )}
+
+                                                {(pinnedAppointmentMessage.appointment.tradeInPrice !== undefined || pinnedAppointmentMessage.appointment.amountToPay !== undefined) && (
+                                                    <div className="pt-2.5 mt-2 border-t border-emerald-200/50 space-y-1.5">
+                                                        {pinnedAppointmentMessage.appointment.tradeInPrice !== undefined && (
+                                                            <div className="flex justify-between items-center text-[11px]">
+                                                                <span className="font-bold uppercase tracking-widest opacity-60">Valuation</span>
+                                                                <span className="font-black text-emerald-700">{formatPrice(pinnedAppointmentMessage.appointment.tradeInPrice)}</span>
+                                                            </div>
+                                                        )}
+                                                        {pinnedAppointmentMessage.appointment.amountToPay !== undefined && (
+                                                            <div className="flex justify-between items-center text-[11px]">
+                                                                <span className="font-bold uppercase tracking-widest opacity-60">Net Balance</span>
+                                                                <span className="font-black text-blue-700 text-xs">{formatPrice(pinnedAppointmentMessage.appointment.amountToPay)}</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>
@@ -537,77 +588,90 @@ export default function UnifiedFloatingChat() {
                                 </div>
                             )}
 
-                            <form onSubmit={handleSend} className="flex gap-2 items-end">
-                                {mode === 'support' && (
-                                    <button
-                                        type="button"
-                                        onClick={() => !isLocked && fileInputRef.current?.click()}
-                                        disabled={isLocked}
-                                        className={cn(
-                                            "h-11 w-11 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-slate-100 transition-colors mb-0.5",
-                                            isLocked && "opacity-40 cursor-not-allowed hover:bg-slate-50"
-                                        )}
+                            {mode === 'support' && isLocked ? (
+                                <div className="p-1 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                    <button 
+                                        onClick={() => {
+                                            support.closeChat();
+                                            navigate('/profile/orders');
+                                        }}
+                                        className="w-full h-11 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-between px-4 group hover:bg-white hover:border-primary/30 transition-all shadow-sm"
                                     >
-                                        <ImageIcon size={20} />
-                                        <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={(e) => {
-                                            const f = e.target.files?.[0];
-                                            if (f) handleImageSelect(f);
-                                        }} />
+                                        <span className="text-[11px] font-bold text-slate-500 group-hover:text-primary transition-colors">
+                                            Xem chi tiết đơn hàng để kết nối...
+                                        </span>
+                                        <ArrowRight size={14} className="text-slate-300 group-hover:text-primary group-hover:translate-x-1 transition-all" />
                                     </button>
-                                )}
-                                <div className="flex-1 min-h-[44px] bg-slate-100 border border-transparent rounded-xl flex items-center px-4 focus-within:bg-white focus-within:border-slate-200 transition-all">
-                                    <input
-                                        value={mode === 'support' ? supportInput : aiInput}
-                                        onChange={(e) => mode === 'support' ? handleSupportInputChange(e.target.value) : setAiInput(e.target.value)}
-                                        placeholder={mode === 'ai' ? "Ask the advisor..." : (isLocked ? "Chat Locked (Non-negotiating state)" : "Type your message...")}
-                                        disabled={mode === 'support' && isLocked}
-                                        className={cn(
-                                            "w-full bg-transparent border-none outline-none text-[13.5px] font-medium text-slate-700 placeholder:text-slate-400",
-                                            mode === 'support' && isLocked && "cursor-not-allowed opacity-50"
-                                        )}
-                                    />
                                 </div>
-
-                                <AnimatePresence mode="wait">
-                                    {(mode === 'support' ? (supportInput.trim() || selectedFile) : aiInput.trim()) ? (
-                                        <motion.button
-                                            key="active"
-                                            type="submit"
-                                            initial={{ scale: 0.6, opacity: 0 }}
-                                            animate={{ scale: 1, opacity: 1 }}
-                                            exit={{ scale: 0.6, opacity: 0 }}
-                                            transition={{ type: 'spring', stiffness: 500, damping: 25 }}
-                                            disabled={(mode === 'support' ? (support.isSending || isLocked) : ai.isThinking)}
+                            ) : (
+                                <form onSubmit={handleSend} className="flex gap-2 items-end">
+                                    {mode === 'support' && (
+                                        <button
+                                            type="button"
+                                            onClick={() => !isLocked && fileInputRef.current?.click()}
+                                            disabled={isLocked}
                                             className={cn(
-                                                "h-11 w-11 rounded-xl flex items-center justify-center shadow-lg transition-shadow disabled:opacity-60",
-                                                (mode === 'support' && isLocked) ? "bg-slate-200 text-slate-400 shadow-none" : "bg-gradient-to-br from-[#4988c4] to-[#3a73a8] text-white"
+                                                "h-11 w-11 rounded-xl bg-slate-50 text-slate-400 flex items-center justify-center hover:bg-slate-100 transition-colors mb-0.5",
+                                                isLocked && "opacity-40 cursor-not-allowed hover:bg-slate-50"
                                             )}
                                         >
-                                            {(mode === 'support' ? support.isSending : ai.isThinking) ? (
-                                                <div className="flex gap-0.5">
-                                                    {[0, 1, 2].map((i) => (
-                                                        <div
-                                                            key={i}
-                                                            className="w-1 h-1 bg-white rounded-full animate-bounce"
-                                                            style={{ animationDelay: `${i * 0.15}s` }}
-                                                        />
-                                                    ))}
-                                                </div>
-                                            ) : <Send size={18} />}
-                                        </motion.button>
-                                    ) : (
-                                        <motion.div
-                                            key="inactive"
-                                            initial={{ scale: 0.6, opacity: 0 }}
-                                            animate={{ scale: 1, opacity: 0.4 }}
-                                            exit={{ scale: 0.6, opacity: 0 }}
-                                            className="h-11 w-11 rounded-xl flex items-center justify-center text-slate-400"
-                                        >
-                                            <Send size={18} />
-                                        </motion.div>
+                                            <ImageIcon size={20} />
+                                            <input ref={fileInputRef} type="file" className="hidden" accept="image/*" onChange={(e) => {
+                                                const f = e.target.files?.[0];
+                                                if (f) handleImageSelect(f);
+                                            }} />
+                                        </button>
                                     )}
-                                </AnimatePresence>
-                            </form>
+                                    <div className="flex-1 min-h-[44px] bg-slate-100 border border-transparent rounded-xl flex items-center px-4 focus-within:bg-white focus-within:border-slate-200 transition-all">
+                                        <input
+                                            value={mode === 'support' ? supportInput : aiInput}
+                                            onChange={(e) => mode === 'support' ? handleSupportInputChange(e.target.value) : setAiInput(e.target.value)}
+                                            placeholder={mode === 'ai' ? "Ask the advisor..." : "Type your message..."}
+                                            className="w-full bg-transparent border-none outline-none text-[13.5px] font-medium text-slate-700 placeholder:text-slate-400"
+                                        />
+                                    </div>
+
+                                    <AnimatePresence mode="wait">
+                                        {(mode === 'support' ? (supportInput.trim() || selectedFile) : aiInput.trim()) ? (
+                                            <motion.button
+                                                key="active"
+                                                type="submit"
+                                                initial={{ scale: 0.6, opacity: 0 }}
+                                                animate={{ scale: 1, opacity: 1 }}
+                                                exit={{ scale: 0.6, opacity: 0 }}
+                                                transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                                                disabled={(mode === 'support' ? (support.isSending || isLocked) : ai.isThinking)}
+                                                className={cn(
+                                                    "h-11 w-11 rounded-xl flex items-center justify-center shadow-lg transition-shadow disabled:opacity-60",
+                                                    (mode === 'support' && isLocked) ? "bg-slate-200 text-slate-400 shadow-none" : "bg-gradient-to-br from-[#4988c4] to-[#3a73a8] text-white"
+                                                )}
+                                            >
+                                                {(mode === 'support' ? support.isSending : ai.isThinking) ? (
+                                                    <div className="flex gap-0.5">
+                                                        {[0, 1, 2].map((i) => (
+                                                            <div
+                                                                key={i}
+                                                                className="w-1 h-1 bg-white rounded-full animate-bounce"
+                                                                style={{ animationDelay: `${i * 0.15}s` }}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                ) : <Send size={18} />}
+                                            </motion.button>
+                                        ) : (
+                                            <motion.div
+                                                key="inactive"
+                                                initial={{ scale: 0.6, opacity: 0 }}
+                                                animate={{ scale: 1, opacity: 0.4 }}
+                                                exit={{ scale: 0.6, opacity: 0 }}
+                                                className="h-11 w-11 rounded-xl flex items-center justify-center text-slate-400"
+                                            >
+                                                <Send size={18} />
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </form>
+                            )}
                         </div>
                     </motion.div>
                 )}

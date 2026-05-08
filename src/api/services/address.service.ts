@@ -3,6 +3,7 @@ import type {
   Address,
   CreateAddressPayload,
   UpdateAddressPayload,
+  PaginatedAddresses,
 } from "@/api/types/address"
 
 /* 
@@ -11,7 +12,7 @@ import type {
 export const getAddresses = async (): Promise<Address[]> => {
   try {
     const res = await api.get("/Addresses", {
-      params: { pageNumber: 1 },
+      params: { pageNumber: 1, pageSize: 999 },
       _suppressToast: true,
     } as CustomAxiosRequestConfig)
     const data = res.data?.data ?? res.data
@@ -24,6 +25,14 @@ export const getAddresses = async (): Promise<Address[]> => {
     }
     throw error
   }
+}
+
+export const getPaginatedAddresses = async (pageNumber: number = 1, pageSize: number = 4): Promise<PaginatedAddresses> => {
+  const res = await api.get("/Addresses", {
+    params: { pageNumber, pageSize },
+    _suppressToast: true,
+  } as CustomAxiosRequestConfig)
+  return res.data?.data ?? res.data
 }
 
 export const getAddressById = async (id: string): Promise<Address> => {

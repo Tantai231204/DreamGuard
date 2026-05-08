@@ -5,6 +5,7 @@ import { useShippingTasksByOrder } from "@/hooks/queries/useShippingTask";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { AdminStatusBadge } from "@/components/admin";
+import { cn } from "@/lib/utils";
 
 interface ShippingAssignmentCardProps {
     orderId: string;
@@ -64,8 +65,11 @@ export function ShippingAssignmentCard({ orderId, onOpenAssign, canAssign, curre
                             onClick={canAssign && isAdminOrManager && isTaskPending ? onOpenAssign : undefined}
                             title={canAssign && isAdminOrManager ? (isTaskPending ? "Click to Reassign" : `Task is ${activeTask?.status} and cannot be reassigned`) : "Assigned personnel"}
                         >
-                            <Avatar className="h-12 w-12 border-2 border-white shadow-sm ring-1 ring-slate-100">
-                                <AvatarImage src={currentStaff.avatarUrl} />
+                            <Avatar className="h-12 w-12 border-2 border-white shadow-sm ring-1 ring-slate-100 overflow-hidden bg-white">
+                                <AvatarImage 
+                                  src={currentStaff.avatarUrl || '/images/logo_no_name.svg'} 
+                                  className={cn("object-cover", !currentStaff.avatarUrl && "scale-75")}
+                                />
                                 <AvatarFallback className="bg-blue-600 text-white font-black text-base">
                                     {currentStaff.fullName.charAt(0)}
                                 </AvatarFallback>

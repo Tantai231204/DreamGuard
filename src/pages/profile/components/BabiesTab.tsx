@@ -8,52 +8,6 @@ import { useProducts } from "@/hooks/queries/useProduct";
 import BabyFormDialog, { type BabyFormDialogProps } from "./baby/BabyFormDialog";
 import BabyCard from "./baby/BabyCard";
 
-const fallbackRecommendations = [
-  {
-    id: "1",
-    name: "Nệm cao su non cho bé 6-12 tháng",
-    price: 1290000,
-    image:
-      "https://i.pinimg.com/1200x/78/47/1d/78471d920e63312ee215e0f328a67b37.jpg",
-    forAge: "6-12 tháng",
-  },
-  {
-    id: "2",
-    name: "Chăn cotton organic mềm mại",
-    price: 590000,
-    image:
-      "https://i.pinimg.com/1200x/78/47/1d/78471d920e63312ee215e0f328a67b37.jpg",
-    forAge: "0-3 tuổi",
-  },
-  {
-    id: "3",
-    name: "Gối chống trào ngược cho bé sơ sinh",
-    price: 450000,
-    image:
-      "https://i.pinimg.com/1200x/78/47/1d/78471d920e63312ee215e0f328a67b37.jpg",
-    forAge: "0-6 tháng",
-  },
-];
-
-const fallbackRecommendationImage =
-  "https://i.pinimg.com/1200x/78/47/1d/78471d920e63312ee215e0f328a67b37.jpg";
-
-function resolveProductPrice(product: {
-  variants?: Array<{ salePrice: number; basePrice: number }>;
-  minPrice?: number;
-  maxPrice?: number;
-}) {
-  const variantPrices = (product.variants ?? [])
-    .map((variant) => variant.salePrice || variant.basePrice)
-    .filter((price) => Number.isFinite(price) && price > 0);
-
-  if (variantPrices.length > 0) {
-    return Math.min(...variantPrices);
-  }
-
-  return product.minPrice || product.maxPrice || 0;
-}
-
 export default function BabiesTab() {
   const { data: babies = [], isLoading } = useBabyProfiles();
   const { data: apiProducts = [] } = useProducts();
@@ -62,18 +16,23 @@ export default function BabiesTab() {
   const [editingBaby, setEditingBaby] = useState<BabyFormDialogProps["initialData"]>(null);
 
   const recommendations = useMemo(() => {
-    const mappedProducts = apiProducts
+    return apiProducts
       .filter((product) => String(product.status).toLowerCase() !== "outofstock")
       .slice(0, 3)
-      .map((product) => ({
-        id: product.id,
-        name: product.name,
-        price: resolveProductPrice(product),
-        image: product.imageUrls?.[0] || product.assets?.[0]?.url || fallbackRecommendationImage,
-        forAge: product.ageGroup ? `${product.ageGroup}` : "Mọi độ tuổi",
-      }));
-
-    return mappedProducts.length > 0 ? mappedProducts : fallbackRecommendations;
+      .map((product) => {
+        const variants = product.variants ?? [];
+        const price = variants.length > 0
+          ? Math.min(...variants.map(v => v.salePrice || v.basePrice))
+          : product.minPrice || product.maxPrice || 0;
+          
+        return {
+          id: product.id,
+          name: product.name,
+          price,
+          image: product.imageUrls?.[0] || product.assets?.[0]?.url || "",
+          forAge: product.ageGroup ? `${product.ageGroup}` : "Mọi độ tuổi",
+        };
+      });
   }, [apiProducts]);
 
   if (isLoading) {
@@ -124,9 +83,6 @@ export default function BabiesTab() {
                 name: b.name,
                 gender: b.gender,
                 dateOfBirth: b.dateOfBirth ? new Date(b.dateOfBirth) : undefined,
-                height: b.height,
-                weight: b.weight,
-                note: b.note || ""
               });
               setShowForm(true);
             }}
@@ -159,44 +115,51 @@ export default function BabiesTab() {
       )}
 
       {/* Product Recommendations */}
-      <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/30">
-          <div className="flex items-center gap-3">
-            <Sparkles className="h-5 w-5 text-amber-400" />
-            <h3 className="text-sm font-bold text-slate-800">Recommended for your babies</h3>
-          </div>
-        </div>
-        <div className="p-6">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {recommendations.map((product) => (
-              <div
-                key={product.id}
-                className="group flex items-center gap-4 p-3 rounded-xl border border-slate-100 hover:border-[#4988c4]/30 hover:bg-slate-50 transition-all cursor-pointer"
-              >
-                <div className="w-16 h-16 rounded-lg overflow-hidden bg-slate-100 shrink-0">
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-bold text-slate-800 text-sm truncate group-hover:text-[#4988c4] transition-colors">
-                    {product.name}
-                  </h4>
-                  <p className="text-sm font-bold text-[#4988c4] mt-1">
-                    {formatPrice(product.price)}
-                  </p>
-                  <span className="inline-block mt-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                    {product.forAge}
-                  </span>
-                </div>
-                <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-[#4988c4] transition-all transform group-hover:translate-x-1" />
+      {recommendations.length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden animate-in fade-in duration-700 delay-200">
+          <div className="px-6 py-4 border-b border-slate-100 bg-slate-50/30">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
+                <Sparkles className="h-4 w-4 text-amber-500" />
               </div>
-            ))}
+              <div>
+                <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight">Recommended for your babies</h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Based on growth stages</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-6">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {recommendations.map((product) => (
+                <div
+                  key={product.id}
+                  className="group flex items-center gap-4 p-3 rounded-xl border border-slate-100 hover:border-[#4988c4]/30 hover:bg-slate-50 transition-all cursor-pointer"
+                >
+                  <div className="w-16 h-16 rounded-lg overflow-hidden bg-slate-100 shrink-0">
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-bold text-slate-800 text-xs truncate group-hover:text-[#4988c4] transition-colors">
+                      {product.name}
+                    </h4>
+                    <p className="text-xs font-black text-[#4988c4] mt-1">
+                      {formatPrice(product.price)}
+                    </p>
+                    <span className="inline-block mt-2 text-[9px] font-black text-slate-300 uppercase tracking-widest">
+                      {product.forAge}
+                    </span>
+                  </div>
+                  <ChevronRight className="h-3.5 w-3.5 text-slate-300 group-hover:text-[#4988c4] transition-all transform group-hover:translate-x-1" />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <BabyFormDialog
         key={showForm ? (editingBaby?.babyId || "new") : "closed"}
@@ -207,4 +170,3 @@ export default function BabiesTab() {
     </div>
   );
 }
-

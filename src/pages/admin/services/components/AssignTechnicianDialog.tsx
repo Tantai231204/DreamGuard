@@ -95,35 +95,45 @@ export const AssignTechnicianDialog = memo(function AssignTechnicianDialog({ ord
                       value={staff.staffId}
                       className="rounded-lg mb-1 last:mb-0 focus:bg-slate-50 cursor-pointer py-3"
                     >
-                      <div className="flex items-center justify-between gap-3 w-full">
+                      <div className="flex items-center justify-between gap-4 w-full">
                         <div className="flex items-center gap-3 min-w-0">
-                          <Avatar className="h-8 w-8 border border-slate-100 shadow-sm shrink-0">
-                            <AvatarImage src={staff.avatarUrl} />
+                          <Avatar className="h-9 w-9 border border-slate-200 shadow-sm shrink-0 bg-white overflow-hidden">
+                            <AvatarImage 
+                              src={staff.avatarUrl || '/images/logo_no_name.svg'} 
+                              className={cn("object-cover", !staff.avatarUrl && "scale-75")}
+                            />
                             <AvatarFallback className="bg-slate-200 text-slate-500 text-[10px] font-black uppercase">
                               {staff.fullName ? staff.fullName.charAt(0) : 'T'}
                             </AvatarFallback>
                           </Avatar>
-                          <div className="min-w-0">
-                            <p className="font-bold text-slate-800 text-sm truncate">{staff.fullName}</p>
-                            <div className="flex items-center gap-2 text-[11px] text-slate-500 min-w-0">
-                              <span className="truncate max-w-[120px]">{staff.phoneNumber || 'No phone'}</span>
-                              <span className="text-slate-300">|</span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-bold text-slate-900 text-sm truncate">{staff.fullName}</p>
+                              {isActiveStatus(staff.status) && (
+                                <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-0.5">
                               <span className="truncate">{formatLabel(staff.position || staff.role, 'Technician')}</span>
-                              <span className="text-slate-300">|</span>
-                              <span className="font-bold text-primary">{staff.taskCount || 0} tasks</span>
+                              {typeof staff.taskCount === 'number' && (
+                                <>
+                                  <span className="text-slate-300">•</span>
+                                  <span className="font-bold text-primary">{staff.taskCount} tasks</span>
+                                </>
+                              )}
                             </div>
                           </div>
                         </div>
                         <Badge
                           variant="outline"
                           className={cn(
-                            'font-bold px-2 rounded-md text-[10px]',
-                            isActiveStatus(staff.status)
-                              ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                              : 'bg-white border-slate-200 text-slate-500'
+                            "font-bold px-2 py-0.5 rounded-md text-[9px] shrink-0 border-0 uppercase tracking-wider shadow-sm",
+                            isActiveStatus(staff.status) 
+                              ? "bg-emerald-50 text-emerald-600" 
+                              : "bg-slate-100 text-slate-500"
                           )}
                         >
-                          {isActiveStatus(staff.status) ? 'Active' : (staff.status || 'Unknown')}
+                          {isActiveStatus(staff.status) ? 'Active' : (staff.status || 'Offline')}
                         </Badge>
                       </div>
                     </SelectItem>
@@ -145,8 +155,11 @@ export const AssignTechnicianDialog = memo(function AssignTechnicianDialog({ ord
               className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-4 shadow-sm"
             >
               <div className="flex items-center gap-4">
-                <Avatar className="h-14 w-14 border-2 border-white shadow-sm ring-1 ring-slate-200">
-                  <AvatarImage src={selectedStaff.avatarUrl} />
+                <Avatar className="h-14 w-14 border-2 border-white shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
+                  <AvatarImage 
+                    src={selectedStaff.avatarUrl || '/images/logo_no_name.svg'} 
+                    className={cn("object-cover", !selectedStaff.avatarUrl && "scale-75")}
+                  />
                   <AvatarFallback className="bg-slate-300 text-white font-black">{selectedStaff.fullName.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">

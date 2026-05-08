@@ -36,7 +36,7 @@ export const ProductOrdersTab = memo(function ProductOrdersTab() {
           <FilterChip
             key={status}
             label={status}
-            isActive={viewModel.statusFilter === status}
+            isActive={viewModel.statusFilter?.toLowerCase() === status.toLowerCase()}
             onClick={() => viewModel.handleStatusChange(status)}
             attentionCount={status === 'Cancelled' ? viewModel.pendingRefundCount : 0}
           />

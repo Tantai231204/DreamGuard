@@ -86,7 +86,7 @@ export default function ProductsPage() {
 
     const products: ProductExtended[] = useMemo(() => {
         let rawProducts: ProductResponse[] = [];
-        
+
         if (urlCateId) {
             // Robust check for specific category response
             if (Array.isArray(specificCategoryProducts)) {
@@ -104,7 +104,7 @@ export default function ProductsPage() {
                 const responseObj = data as unknown as { items?: ProductResponse[] };
                 return responseObj?.items || [];
             });
-            
+
             // Deduplicate by ID
             const seen = new Set<string>();
             rawProducts = merged.filter(p => {
@@ -113,7 +113,7 @@ export default function ProductsPage() {
                 return true;
             });
         }
-        
+
         return rawProducts.map(mapToProduct);
     }, [urlCateId, specificCategoryProducts, allCategoryQueries]);
 
@@ -228,7 +228,15 @@ export default function ProductsPage() {
 
     const pageTitle = useMemo(() => {
         const displayCategory = urlCategoryName || categoryName;
-        if (urlMaterialName && displayCategory) return `${urlMaterialName} ${displayCategory}`;
+
+        if (urlMaterialName && displayCategory) {
+            // Avoid "Latex Mattress Mattress" by checking if material already includes category
+            if (urlMaterialName.toLowerCase().includes(displayCategory.toLowerCase())) {
+                return urlMaterialName;
+            }
+            return `${urlMaterialName} ${displayCategory}`;
+        }
+
         if (urlMaterialName) return urlMaterialName;
         if (displayCategory) return displayCategory;
         return 'Our Collection';

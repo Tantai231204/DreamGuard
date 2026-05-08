@@ -1,4 +1,5 @@
 import { memo, useCallback } from 'react';
+import { cn } from '@/lib/utils';
 import { Search, X, MessageSquareDot, Loader2, AlertCircle } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -16,6 +17,7 @@ interface ConversationListProps {
   isLoading: boolean;
   error: string | null;
   formatTime: (iso: string) => string;
+  className?: string;
 }
 
 function ConversationListInner({
@@ -28,11 +30,12 @@ function ConversationListInner({
   isLoading,
   error,
   formatTime,
+  className,
 }: ConversationListProps) {
   const handleClearSearch = useCallback(() => onSearchChange(''), [onSearchChange]);
 
   return (
-    <div className="col-span-12 lg:col-span-4 h-full flex flex-col overflow-hidden bg-white rounded-xl shadow-lg border border-gray-200/80">
+    <div className={cn("h-full flex flex-col overflow-hidden bg-white rounded-xl shadow-lg border border-gray-200/80", className)}>
       {/* ---- Header ---- */}
       <div className="flex-shrink-0 px-4 pt-4 pb-3 border-b border-gray-100 space-y-3">
         {/* Title row */}

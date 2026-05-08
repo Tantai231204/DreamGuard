@@ -72,19 +72,25 @@ export const useTradeInOrderColumns = (
       }),
       columnHelper.accessor('status', {
         header: () => <span className="font-semibold">Status</span>,
-        cell: ({ row }) => (
-          <AdminStatusBadge
-            status={tradeInStatusBadgeValue(row.original.status)}
-          />
-        ),
+        cell: ({ row }) => {
+          const rawStatus = row.original.status || '';
+
+          return (
+            <div className="flex flex-col gap-1.5">
+              <AdminStatusBadge
+                status={tradeInStatusBadgeValue(rawStatus)}
+                className="w-fit"
+              />
+            </div>
+          );
+        },
       }),
       columnHelper.display({
         id: 'condition',
         header: () => <span className="font-semibold">Condition</span>,
         cell: ({ row }) => (
           <AdminStatusBadge
-            status={row.original.isGood ? 'Good Condition' : 'Damaged'}
-            type={row.original.isGood ? 'success' : 'rose'}
+            status={row.original.isGood ? 'good' : 'fair'}
           />
         ),
       }),

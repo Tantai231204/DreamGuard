@@ -37,7 +37,12 @@ export const useProductOrdersTabViewModel = () => {
   const [orderToCancel, setOrderToCancel] = useState<CheckoutOrderResponse | null>(null);
   const cancelOrderMutation = useCancelCheckoutOrder();
 
-  const statusFilter = getFieldFilter('status', 'all');
+  const rawStatus = getFieldFilter('status', 'all');
+  const statusFilter = useMemo(() => {
+    if (!rawStatus || rawStatus === 'all') return 'all';
+    // Normalize to Title Case to match UI tab options
+    return rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1).toLowerCase();
+  }, [rawStatus]);
 
   const onCancelRequested = useCallback((order: CheckoutOrderResponse) => {
     setOrderToCancel(order);
@@ -51,23 +56,40 @@ export const useProductOrdersTabViewModel = () => {
       pageNumber: pagination.pageIndex + 1,
       pageSize: pagination.pageSize,
       search: debouncedFilter || undefined,
-      status: statusFilter !== 'all' ? [statusFilter] : undefined,
       sortBy: sorting[0]?.id,
       sortOrder: sorting[0] ? (sorting[0].desc ? 'desc' : 'asc') : undefined,
     }),
-    [debouncedFilter, pagination.pageIndex, pagination.pageSize, sorting, statusFilter],
+    [debouncedFilter, pagination.pageIndex, pagination.pageSize, sorting],
   );
 
   const { data: orderData, isPending } = useAdminCheckoutOrders(queryParams as import('@/api/types/checkoutOrder').CheckoutOrderQueryParams);
 
-  const rows = useMemo(() => orderData?.items ?? [], [orderData]);
-  const pageCount = orderData?.totalPages ?? -1;
+  const rows = useMemo(() => {
+    const rawItems = orderData?.items ?? [];
+    if (statusFilter === 'all') return rawItems;
+
+    // Perform client-side filtering since BE doesn't support it
+    return rawItems.filter(order => {
+      const status = order.status?.toString().toLowerCase();
+      return status === statusFilter.toLowerCase();
+    });
+  }, [orderData, statusFilter]);
+
+  const resultCount = useMemo(() => {
+    if (statusFilter === 'all') return orderData?.totalCount ?? 0;
+    return rows.length;
+  }, [rows.length, statusFilter, orderData?.totalCount]);
+
+  const pageCount = useMemo(() => {
+    if (statusFilter === 'all') return orderData?.totalPages ?? -1;
+    return Math.ceil(rows.length / pagination.pageSize);
+  }, [rows.length, statusFilter, orderData?.totalPages, pagination.pageSize]);
 
   // Identify orders needing attention (Cancelled but not fully refunded)
   const pendingRefundCount = useMemo(() => {
     if (!orderData?.items) return 0;
-    return orderData.items.filter(order => 
-      order.status === 'Cancelled' && 
+    return orderData.items.filter(order =>
+      order.status === 'Cancelled' &&
       order.refundingAmount > 0
     ).length;
   }, [orderData?.items]);
@@ -128,7 +150,7 @@ export const useProductOrdersTabViewModel = () => {
     statusFilter,
     handleStatusChange,
     isPending,
-    resultCount: orderData?.totalCount ?? 0,
+    resultCount,
     pendingRefundCount,
     handleExport,
     isCancelOpen,

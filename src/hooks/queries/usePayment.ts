@@ -64,6 +64,7 @@ export const useUpdatePaymentStatus = () => {
             paymentService.updatePaymentStatus(id, status, evidenceUrl),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: paymentKeys.all });
+            queryClient.invalidateQueries({ queryKey: ['trade-in-orders'] });
         },
     });
 };
@@ -76,6 +77,7 @@ export const useAdminCreateRefund = () => {
             paymentService.createAdminRefund(payload),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: paymentKeys.all });
+            queryClient.invalidateQueries({ queryKey: ['trade-in-orders'] });
         }
     });
 };
@@ -88,6 +90,7 @@ export const useUpdateRefundStatus = () => {
             paymentService.updateRefundStatus(id, status, evidence, evidenceUrl),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: paymentKeys.all });
+            queryClient.invalidateQueries({ queryKey: ['trade-in-orders'] });
         }
     });
 };

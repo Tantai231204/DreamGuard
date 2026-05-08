@@ -182,6 +182,7 @@ export const useTransitionTradeInStatus = (orderId: string) => {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.all });
       queryClient.invalidateQueries({ queryKey: paymentKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'conversations'] });
     }
   });
 };
@@ -239,6 +240,7 @@ export const useConfirmTradeInDeal = (orderId: string) => {
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.all });
       queryClient.invalidateQueries({ queryKey: paymentKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'conversations'] });
     }
   });
 };
@@ -250,6 +252,7 @@ export const useAdminCancelTradeInOrder = () => {
       tradeInOrderService.adminCancel(id, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.all });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'conversations'] });
       toast.success('Order cancelled');
     },
   });

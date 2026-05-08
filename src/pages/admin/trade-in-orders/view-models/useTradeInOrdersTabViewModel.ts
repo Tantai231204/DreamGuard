@@ -54,7 +54,9 @@ export const useTradeInOrdersTabViewModel = () => {
       pageSize: pagination.pageSize,
       key: debouncedFilter || undefined,
       search: debouncedFilter || undefined,
-      status: statusFilter !== 'all' ? toApiStatus(statusFilter) : undefined,
+      status: statusFilter === 'CANCELLED' 
+        ? '7,14,15' // Merge Cancelled (7), Admin Cancel (14), and Forced Cancel (15)
+        : statusFilter !== 'all' ? toApiStatus(statusFilter) : undefined,
     }),
     [debouncedFilter, pagination.pageIndex, pagination.pageSize, statusFilter],
   );
@@ -88,12 +90,12 @@ export const useTradeInOrdersTabViewModel = () => {
     return adminQuery.data.items.filter(r => {
       const s = r.status.toUpperCase();
       const ps = r.paymentStatus?.toUpperCase() || '';
-      
+
       // Match any termination state that involves a paid deposit not yet settled
       const isTerminated = s.includes('CANCEL') || s.includes('REJECTED');
       const hasValueToReturn = (r.depositAmount || 0) > 0;
       const isSettled = ps.includes('REFUND') || s.includes('REFUND');
-      
+
       return isTerminated && hasValueToReturn && !isSettled;
     }).length;
   }, [adminQuery.data?.items]);

@@ -41,13 +41,13 @@ const staffService = {
   },
 
   getCleaningStaffsForAssignment: async (): Promise<StaffResponse[]> => {
-    const response = await apiClient.get('/staffs/GetCleaningStaffsForAssignment');
+    const response = await apiClient.get('/staffs/GetCleaningStaffsForAssignment', { params: { pageSize: 999 } });
     const data = response.data?.data ?? response.data;
     return Array.isArray(data) ? data : (data?.items || []);
   },
 
   getDeliveryStaffsForAssignment: async (): Promise<StaffResponse[]> => {
-    const response = await apiClient.get('/staffs/GetDeliveryStaffsForAssignment');
+    const response = await apiClient.get('/staffs/GetDeliveryStaffsForAssignment', { params: { pageSize: 999 } });
     const data = response.data?.data ?? response.data;
     return Array.isArray(data) ? data : (data?.items || []);
   },
