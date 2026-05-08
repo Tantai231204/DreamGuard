@@ -1,5 +1,5 @@
 import React, { memo, useState, useCallback, useMemo, useEffect } from 'react';
-import { Truck, MapPin, Plus, MapPin as MapPinIcon, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Truck, Plus, MapPin as MapPinIcon, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CollectionType } from '../types';
 import type { Address, CreateAddressPayload } from '@/api/types/address';
@@ -54,13 +54,6 @@ const LOGISTICS_OPTIONS: Array<{
       desc: 'Our team collects when your new order is delivered. No extra cost.',
       badge: 'Free',
       Icon: Truck,
-    },
-    {
-      type: 'dropoff',
-      title: 'Drop-off at Hub',
-      desc: 'Bring to the nearest authorised collection point.',
-      badge: null,
-      Icon: MapPin,
     },
   ];
 
@@ -243,7 +236,7 @@ export const StepLogistics = memo(function StepLogistics({
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4">
           {LOGISTICS_OPTIONS.map(({ type, title, desc, Icon, badge }) => {
             const selected = collectionType === type;
             return (

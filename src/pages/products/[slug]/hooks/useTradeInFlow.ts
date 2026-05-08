@@ -11,7 +11,7 @@ export interface TradeInAudit {
   isGood: boolean;
 }
 
-export type CollectionType = 'pickup' | 'dropoff';
+export type CollectionType = 'pickup';
 
 export interface UseTradeInFlowProps {
   eligibleProducts: TradeInProduct[];
@@ -46,7 +46,6 @@ const DEFAULT_AUDIT: TradeInAudit = {
 
 const FALLBACK_DESCRIPTION_BY_COLLECTION: Record<CollectionType, string> = {
   pickup: 'Home pickup at delivery',
-  dropoff: 'Drop-off at hub',
 };
 
 /**

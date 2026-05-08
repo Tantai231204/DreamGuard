@@ -359,7 +359,8 @@ export function useTradeInStaffManagement(order: TradeInOrderDetailResponse) {
   const canProcessReturningUnhappy = false; // Staff handles on mobile
   const canAssignDeliveryTask =
     isAdminOrManager &&
-    (status === "PROCESSING" ||
+    (status === "CONFIRMED" ||
+      status === "PROCESSING" ||
       status === "RETURNING" ||
       status === "EXCHANGE_REQUESTED" ||
       status === "SHIPPING_REPLACEMENT");

@@ -300,7 +300,7 @@ export function useProductDetailViewModel() {
     sonnerToast.loading("Initializing trade-in request...", { id: uploadToastId });
 
     try {
-      const normalizedDescription = payload.description?.trim() || "Drop-off at hub";
+      const normalizedDescription = payload.description?.trim() || "Home pickup at delivery";
       
       // STEP 1: Run Order Creation and Image Optimization (Compression) in Parallel
       // This saves significant time as compression is CPU intensive and Order Creation is a Network call.
