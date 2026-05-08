@@ -43,6 +43,7 @@ export default function StepSchedule({ form }: StepScheduleProps) {
 
   const currentHour = new Date().getHours();
   const allSlotsPastToday = timeSlots.every(ts => parseInt(ts.split(":")[0], 10) <= currentHour);
+  const isTomorrow = scheduledDate === format(new Date(new Date().setDate(new Date().getDate() + 1)), "yyyy-MM-dd");
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -163,17 +164,33 @@ export default function StepSchedule({ form }: StepScheduleProps) {
               }}
               className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2"
             >
+              {currentHour >= 20 && isTomorrow && (
+                <div className="col-span-full mb-2 p-3 bg-blue-50 border border-blue-100 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+                  <Clock className="h-4 w-4 text-blue-500 shrink-0" />
+                  <p className="text-[10px] font-bold text-blue-700 leading-tight">
+                    LATE BOOKING NOTICE: Morning slots are locked to ensure our admin team can process your request effectively for tomorrow.
+                  </p>
+                </div>
+              )}
               {timeSlots.map((ts) => {
                 const isSelected = scheduledTime === ts;
                 const isToday = scheduledDate === format(new Date(), "yyyy-MM-dd");
                 const slotHour = parseInt(ts.split(":")[0], 10);
+
+                // 1. Past slots if today
                 const isPast = isToday && slotHour <= currentHour;
-                
+
+                // 2. Late Night Restriction (UX): If booking at 8 PM+ (20h) for tomorrow, 
+                // disable morning slots (up to 11:00) to allow admin processing.
+                const isLateNightLock = currentHour >= 20 && isTomorrow && slotHour <= 11;
+
+                const isDisabled = isPast || isLateNightLock || !scheduledDate;
+
                 return (
                   <motion.button
                     key={ts}
                     type="button"
-                    disabled={isPast || !scheduledDate}
+                    disabled={isDisabled}
                     variants={{
                       hidden: { opacity: 0, y: 8 },
                       visible: { opacity: 1, y: 0 }
@@ -182,13 +199,11 @@ export default function StepSchedule({ form }: StepScheduleProps) {
                     whileTap={(!isPast && scheduledDate) ? { scale: 0.98 } : {}}
                     onClick={() => { setValue("scheduledTime", ts, { shouldValidate: true }); trigger("scheduledTime"); }}
                     className={`relative py-3 px-3 rounded-xl border text-center transition-all duration-300
-                      ${!scheduledDate 
-                        ? "border-slate-100 bg-slate-50 text-slate-300 opacity-50 cursor-not-allowed"
-                        : isPast 
-                          ? "border-slate-100 bg-slate-50 text-slate-300 opacity-50 cursor-not-allowed" 
-                          : isSelected
-                            ? "border-[#4988c4] bg-[#4988c4]/[0.04] shadow-md shadow-[#4988c4]/5 text-[#4988c4] font-black"
-                            : "border-slate-100 bg-white hover:border-[#4988c4]/40 hover:bg-[#4988c4]/5 text-slate-600 font-bold"
+                      ${isDisabled
+                        ? "border-slate-100 bg-slate-50 text-slate-300 opacity-50 cursor-not-allowed pointer-events-none"
+                        : isSelected
+                          ? "border-[#4988c4] bg-[#4988c4]/[0.04] shadow-md shadow-[#4988c4]/5 text-[#4988c4] font-black"
+                          : "border-slate-100 bg-white hover:border-[#4988c4]/40 hover:bg-[#4988c4]/5 text-slate-600 font-bold"
                       }
                     `}
                   >

@@ -24,8 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useProcessReturnedTradeInShippingTask } from "@/hooks/queries/useShippingTask";
 import { useVariant } from "@/hooks/queries/useVariant";
-import { RefundSection } from "../../../orders/components/process-return/RefundSection";
-import { paymentService } from "@/api/services";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -63,7 +62,6 @@ interface TradeInProcessReturnDialogProps {
   tradeInOrderId: string;
   taskId: string;
   defaultProductVariantId?: string;
-  totalPrice?: number;
   paymentMethod?: string;
   paymentStatus?: string;
   productImageUrl?: string;
@@ -90,7 +88,6 @@ export function TradeInProcessReturnDialogComponent({
   tradeInOrderId,
   taskId,
   defaultProductVariantId,
-  totalPrice = 0,
   paymentMethod,
   paymentStatus,
   productImageUrl,
@@ -100,8 +97,7 @@ export function TradeInProcessReturnDialogComponent({
   const [selectedReason, setSelectedReason] = useState("");
   const [isDamagedSelected, setIsDamagedSelected] = useState(false);
   const [evidenceItems, setEvidenceItems] = useState<EvidenceItem[]>([]);
-  const [refundAmount, setRefundAmount] = useState(totalPrice);
-  const [percentage, setPercentage] = useState(100);
+  const [isRefund, setIsRefund] = useState(true);
   const [isUploadingEvidence, setIsUploadingEvidence] = useState(false);
   const evidenceItemsRef = useRef<EvidenceItem[]>([]);
   const resolvedProductVariantId = useMemo(
@@ -116,6 +112,9 @@ export function TradeInProcessReturnDialogComponent({
   const isDamagedOutcome = isDamagedSelected && canMarkDamaged;
   const targetVariantAttributes = (targetVariant?.attributes || {}) as Record<string, unknown>;
   const targetVariantColor = typeof targetVariantAttributes.color === "string" ? targetVariantAttributes.color : "";
+
+  const isRefundableMethod = (paymentMethod?.toLowerCase() === 'vnpay' || paymentMethod?.toLowerCase() === 'other') &&
+    (paymentStatus?.toLowerCase() === 'paid' || paymentStatus?.toLowerCase() === 'codpaid');
 
   useEffect(() => {
     evidenceItemsRef.current = evidenceItems;
@@ -132,15 +131,16 @@ export function TradeInProcessReturnDialogComponent({
       setIsDamagedSelected(false);
       setDamageNote("");
       setSelectedReason("");
-      setRefundAmount(totalPrice);
-      setPercentage(100);
       setEvidenceItems((prev) => {
         prev.forEach((item) => URL.revokeObjectURL(item.previewUrl));
         return [];
       });
       setIsUploadingEvidence(false);
+      setIsRefund(false);
     }
-  }, [isOpen, totalPrice]);
+  }, [isOpen]);
+
+
 
   const uploadedEvidenceCount = useMemo(
     () => evidenceItems.filter((item) => !!item.uploadedUrl).length,
@@ -151,12 +151,11 @@ export function TradeInProcessReturnDialogComponent({
     setDamageNote("");
     setSelectedReason("");
     setIsDamagedSelected(false);
-    setRefundAmount(0);
-    setPercentage(100);
     setEvidenceItems((prev) => {
       prev.forEach((item) => URL.revokeObjectURL(item.previewUrl));
       return [];
     });
+    setIsRefund(false);
     setIsUploadingEvidence(false);
     onClose();
   }, [onClose]);
@@ -168,10 +167,13 @@ export function TradeInProcessReturnDialogComponent({
       if (!damaged) {
         setDamageNote("");
         setSelectedReason("");
+        setIsRefund(false);
         setEvidenceItems((prev) => {
           prev.forEach((item) => URL.revokeObjectURL(item.previewUrl));
           return [];
         });
+      } else {
+        setIsRefund(true);
       }
     },
     [canMarkDamaged],
@@ -287,10 +289,15 @@ export function TradeInProcessReturnDialogComponent({
     }
 
     try {
-      if (isDamagedOutcome && evidenceItems.length > 0) {
+      if (isRefundableMethod && isRefund && evidenceItems.length === 0) {
+        toast.error("Evidence is required for refund processing.");
+        return;
+      }
+
+      if ((isDamagedOutcome || isRefundableMethod) && evidenceItems.length > 0) {
         setIsUploadingEvidence(true);
       }
-      const evidenceUrls = isDamagedOutcome ? await uploadEvidenceUrls() : [];
+      const evidenceUrls = (isDamagedOutcome || isRefundableMethod) ? await uploadEvidenceUrls() : [];
       const normalizedProductVariantId = isDamagedOutcome ? resolvedProductVariantId : "";
 
       const finalNote = selectedReason === OTHER_REASON_LABEL ? damageNote : selectedReason;
@@ -303,23 +310,12 @@ export function TradeInProcessReturnDialogComponent({
           damageNote: isDamagedOutcome ? finalNote.trim() || undefined : undefined,
           evidenceUrls: isDamagedOutcome && evidenceUrls.length > 0 ? evidenceUrls : undefined,
           productVariantId: normalizedProductVariantId || undefined,
+          isRefund: isRefund,
         },
       });
 
-      // 2. Financial Settlement (Administrative Refund)
-      let refundId: string | undefined;
-      if (typeof refundAmount === 'number' && refundAmount > 0) {
-        const refundObj = await paymentService.createAdminRefund({
-          tradeInOrderId,
-          amount: refundAmount,
-          reason: "Return",
-        });
-        refundId = refundObj?.id;
-      }
-
-      if (evidenceUrls.length > 0 && refundId) {
-        await paymentService.updateRefundStatus(refundId, "Refunding", undefined, evidenceUrls[0]);
-      }
+      // 2. Financial Settlement is now handled automatically by the backend via the isRefund flag
+      // No manual refund creation needed here anymore.
 
       // 4. Global Invalidation: Sync UI state across all related panels
       void queryClient.invalidateQueries({ queryKey: tradeInOrderKeys.detail(tradeInOrderId) });
@@ -328,8 +324,8 @@ export function TradeInProcessReturnDialogComponent({
 
       toast.success(
         normalizedProductVariantId
-          ? "Processed as RefundedAndDamaged."
-          : "Processed as RefundedAndRestocked.",
+          ? "Processed as ReturnedAndRefunded."
+          : "Processed as ReturnedAndRefunding.",
       );
 
       resetAndClose();
@@ -344,14 +340,15 @@ export function TradeInProcessReturnDialogComponent({
     selectedReason,
     isDamagedOutcome,
     evidenceItems,
+    isRefund,
     processReturned,
-    refundAmount,
     resetAndClose,
     resolvedProductVariantId,
     taskId,
     tradeInOrderId,
     uploadEvidenceUrls,
     queryClient,
+    isRefundableMethod,
   ]);
 
   return (
@@ -374,8 +371,8 @@ export function TradeInProcessReturnDialogComponent({
             )}
           >
             {isDamagedOutcome
-              ? "Damaged outcome selected. Return will be processed as RefundedAndDamaged."
-              : "Restock outcome selected. Return will be processed as RefundedAndRestocked."}
+              ? "Damaged item detected. Asset will be recorded as damaged and non-restockable."
+              : "Item in good condition. Asset will be restocked to inventory for re-sale."}
           </div>
 
           <div className="space-y-2">
@@ -392,8 +389,8 @@ export function TradeInProcessReturnDialogComponent({
                     : "border-slate-200 bg-white hover:border-blue-200",
                 )}
               >
-                <p className="text-[12px] font-semibold text-slate-800">RefundedAndRestocked</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">No damage recorded</p>
+                <p className="text-[12px] font-semibold text-slate-800">Restock Item</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">No damage recorded, perfect condition</p>
               </button>
 
               <button
@@ -407,25 +404,25 @@ export function TradeInProcessReturnDialogComponent({
                     : "border-slate-200 bg-white hover:border-rose-200",
                 )}
               >
-                <p className="text-[12px] font-semibold text-slate-800">RefundedAndDamaged</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">Record damaged variant info</p>
+                <p className="text-[12px] font-semibold text-slate-800">Damaged Item</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">Record damaged variant info & evidence</p>
               </button>
             </div>
 
-          <TradeInAssetCard
-            sku={targetVariant?.sku}
-            size={targetVariant?.size}
-            color={targetVariantColor}
-            imageUrl={(() => {
-              const attrs = (targetVariant?.attributes || {}) as Record<string, unknown>;
-              return productImageUrl || (attrs.imageUrls as string[])?.[0] || (attrs.imageUrl as string) || "/images/placeholder-product.svg";
-            })()}
-            isLoading={isLoadingTargetVariant}
-            isDamaged={isDamagedOutcome}
-          />
-        </div>
+            <TradeInAssetCard
+              sku={targetVariant?.sku}
+              size={targetVariant?.size}
+              color={targetVariantColor}
+              imageUrl={(() => {
+                const attrs = (targetVariant?.attributes || {}) as Record<string, unknown>;
+                return productImageUrl || (attrs.imageUrls as string[])?.[0] || (attrs.imageUrl as string) || "/images/placeholder-product.svg";
+              })()}
+              isLoading={isLoadingTargetVariant}
+              isDamaged={isDamagedOutcome}
+            />
+          </div>
 
-        {isDamagedOutcome && (
+          {isDamagedOutcome && (
             <>
               <div className="space-y-3">
                 <div className="space-y-1.5">
@@ -460,7 +457,10 @@ export function TradeInProcessReturnDialogComponent({
 
               <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3.5">
                 <div className="flex items-center justify-between gap-3">
-                  <Label className="text-[13px] font-semibold text-slate-700">Evidence Upload</Label>
+                  <Label className="text-[13px] font-semibold text-slate-700 flex items-center gap-2">
+                    Evidence Upload
+                    {isRefundableMethod && <span className="text-[10px] font-bold text-rose-500 uppercase tracking-tight bg-rose-50 px-2 py-0.5 rounded border border-rose-100">Electronic Refund Requirement</span>}
+                  </Label>
                   <span className="rounded-md bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-500 border border-slate-200">
                     {uploadedEvidenceCount}/{evidenceItems.length} uploaded
                   </span>
@@ -542,28 +542,30 @@ export function TradeInProcessReturnDialogComponent({
             </>
           )}
 
-          {totalPrice > 0 && (
-            <div className="space-y-3 pt-2 border-t border-slate-100">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center border border-blue-100/50">
-                  <RotateCcw className="w-4 h-4 text-blue-600" />
+          {isRefundableMethod && (
+            <div className="space-y-3 pt-4 border-t border-slate-100">
+              <div className="flex items-center justify-between gap-4 p-4 rounded-xl border border-slate-200 bg-slate-50/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center border border-blue-100/50">
+                    <RotateCcw className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h4 className="text-[13px] font-bold text-slate-900">Authorize Refund</h4>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Automatically process a full refund to the customer's original payment method.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-wider">Financial Settlement</h4>
-                  <p className="text-[10px] text-blue-600 font-bold uppercase tracking-tight opacity-70">Authorize refund for returning trade-in</p>
-                </div>
-              </div>
-
-              <div className="bg-slate-100/40 rounded-xl border border-slate-200 overflow-hidden">
-                <RefundSection
-                  totalPrice={totalPrice}
-                  refundAmount={refundAmount}
-                  setRefundAmount={setRefundAmount}
-                  percentage={percentage}
-                  setPercentage={setPercentage}
-                  paymentMethod={paymentMethod}
-                  paymentStatus={paymentStatus}
-                  hasDamages={isDamagedOutcome}
+                <Switch
+                  checked={isRefund}
+                  onCheckedChange={(checked) => {
+                    if (checked && !isDamagedSelected) {
+                      toast.error("Refunds can only be processed when the item is recorded as damaged.");
+                      return;
+                    }
+                    setIsRefund(checked);
+                  }}
+                  disabled={isSubmitting || !isDamagedSelected}
                 />
               </div>
             </div>

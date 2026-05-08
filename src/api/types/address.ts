@@ -22,3 +22,13 @@ export interface CreateAddressPayload {
 export interface UpdateAddressPayload extends CreateAddressPayload {
   id: string
 }
+
+export interface PaginatedAddresses {
+  items: Address[];
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  totalCount: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+}

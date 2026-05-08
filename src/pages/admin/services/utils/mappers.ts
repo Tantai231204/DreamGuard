@@ -8,6 +8,7 @@ import type {
 } from '../types';
 import type { AdminSearchServiceTaskItem } from '@/api/services/serviceOrderService';
 import type { ServiceOrderResponse } from '@/api/types/serviceOrder';
+import vnAddress from '@/shared/data/vnAddress.json';
 
 /**
  * Senior-level Mapper for Service Orders
@@ -19,17 +20,30 @@ export const parseAddress = (rawAddress: string | undefined): ServiceAddress => 
     return { street: '', ward: '', district: '', city: '' };
   }
 
-  // Example: "276/31/5 Thống Nhất Phường 16 Quận Gò Vấp, 76001, 760, 79"
-  // Format is usually [Street], [Ward], [District], [City]
-  // Junior way: split(',')
-  // Senior way: RegEx or smarter split for Vietnam addresses
-  const fullAddress = rawAddress.split(',')[0] || '';
+  // Expected format: "[Street], [WardCode/Name], [DistrictCode/Name], [CityCode/Name]"
+  const parts = rawAddress.split(',').map(p => p.trim());
+  
+  if (parts.length < 4) {
+    return {
+      street: parts[0] || '',
+      ward: parts[1] || '',
+      district: parts[2] || '',
+      city: parts[3] || ''
+    };
+  }
+
+  const [street, wardCode, districtCode, provinceCode] = parts;
+
+  // Resolve names from codes if possible
+  const province = vnAddress.find(p => p.code === provinceCode);
+  const district = province?.districts.find(d => d.code === districtCode);
+  const ward = district?.wards.find(w => w.code === wardCode);
 
   return {
-    street: fullAddress,
-    ward: '',
-    district: '',
-    city: ''
+    street,
+    ward: ward?.name || wardCode,
+    district: district?.name || districtCode,
+    city: province?.name || provinceCode
   };
 };
 

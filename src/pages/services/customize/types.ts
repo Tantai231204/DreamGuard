@@ -12,7 +12,6 @@ export interface DesignConfig {
   size: string;
   customSizeLabel?: string;
   baseColor: string;
-  pattern: string;
   embroideryText: string;
   embroideryPosition: EmbroideryPosition;
   material: string;
@@ -41,12 +40,6 @@ export interface MaterialOption {
   badge?: string;
 }
 
-export interface PatternOption {
-  id: string;
-  name: string;
-  emoji: string;
-  cssPattern: string;
-}
 
 export interface CustomizationState {
   product: CustomizableProduct | null;

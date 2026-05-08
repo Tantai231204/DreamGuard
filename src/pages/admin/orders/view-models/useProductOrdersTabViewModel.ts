@@ -9,10 +9,9 @@ import {
 } from '@tanstack/react-table';
 import { toast } from 'sonner';
 
-import type { OrderResponse } from '@/api/types/order';
+import type { CheckoutOrderResponse } from '@/api/types/checkoutOrder';
 import { useAdminTableSync } from '@/hooks/admin/useAdminTableSync';
-import { useAdminCancelOrder, useAdminOrders } from '@/hooks/queries';
-import type { AdminOrdersQueryParams } from '@/hooks/queries';
+import { useAdminCheckoutOrders, useCancelCheckoutOrder } from '@/hooks/queries/useCheckoutOrder';
 import { downloadCSV } from '@/lib/export';
 
 import { useOrderColumns } from '../components/useOrderColumns';
@@ -26,6 +25,8 @@ export const useProductOrdersTabViewModel = () => {
     globalFilter,
     setGlobalFilter,
     debouncedFilter,
+    setFieldFilter,
+    getFieldFilter,
   } = useAdminTableSync(PRODUCT_ORDERS_DEFAULT_PAGE_SIZE);
 
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -33,59 +34,79 @@ export const useProductOrdersTabViewModel = () => {
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
 
   const [isCancelOpen, setIsCancelOpen] = useState(false);
-  const [orderToCancel, setOrderToCancel] = useState<OrderResponse | null>(null);
-  const cancelOrderMutation = useAdminCancelOrder();
+  const [orderToCancel, setOrderToCancel] = useState<CheckoutOrderResponse | null>(null);
+  const cancelOrderMutation = useCancelCheckoutOrder();
 
+  const rawStatus = getFieldFilter('status', 'all');
   const statusFilter = useMemo(() => {
-    const filter = columnFilters.find((item) => item.id === 'status');
-    if (!filter) {
-      return undefined;
-    }
+    if (!rawStatus || rawStatus === 'all') return 'all';
+    // Normalize to Title Case to match UI tab options
+    return rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1).toLowerCase();
+  }, [rawStatus]);
 
-    if (Array.isArray(filter.value)) {
-      return filter.value as string[];
-    }
-
-    if (typeof filter.value === 'string' && filter.value.trim()) {
-      return [filter.value];
-    }
-
-    return undefined;
-  }, [columnFilters]);
-
-  const onCancelRequested = useCallback((order: OrderResponse) => {
+  const onCancelRequested = useCallback((order: CheckoutOrderResponse) => {
     setOrderToCancel(order);
     setIsCancelOpen(true);
   }, []);
 
   const columns = useOrderColumns(onCancelRequested);
 
-  const queryParams = useMemo<AdminOrdersQueryParams>(
+  const queryParams = useMemo(
     () => ({
       pageNumber: pagination.pageIndex + 1,
       pageSize: pagination.pageSize,
       search: debouncedFilter || undefined,
-      status: statusFilter,
       sortBy: sorting[0]?.id,
       sortOrder: sorting[0] ? (sorting[0].desc ? 'desc' : 'asc') : undefined,
     }),
-    [debouncedFilter, pagination.pageIndex, pagination.pageSize, sorting, statusFilter],
+    [debouncedFilter, pagination.pageIndex, pagination.pageSize, sorting],
   );
 
-  const { data: orderData, isPending } = useAdminOrders(queryParams);
+  const { data: orderData, isPending } = useAdminCheckoutOrders(queryParams as import('@/api/types/checkoutOrder').CheckoutOrderQueryParams);
 
-  const rows = useMemo(() => orderData?.items ?? [], [orderData]);
-  const pageCount = orderData?.totalPages ?? -1;
+  const rows = useMemo(() => {
+    const rawItems = orderData?.items ?? [];
+    if (statusFilter === 'all') return rawItems;
+
+    // Perform client-side filtering since BE doesn't support it
+    return rawItems.filter(order => {
+      const status = order.status?.toString().toLowerCase();
+      return status === statusFilter.toLowerCase();
+    });
+  }, [orderData, statusFilter]);
+
+  const resultCount = useMemo(() => {
+    if (statusFilter === 'all') return orderData?.totalCount ?? 0;
+    return rows.length;
+  }, [rows.length, statusFilter, orderData?.totalCount]);
+
+  const pageCount = useMemo(() => {
+    if (statusFilter === 'all') return orderData?.totalPages ?? -1;
+    return Math.ceil(rows.length / pagination.pageSize);
+  }, [rows.length, statusFilter, orderData?.totalPages, pagination.pageSize]);
+
+  // Identify orders needing attention (Cancelled but not fully refunded)
+  const pendingRefundCount = useMemo(() => {
+    if (!orderData?.items) return 0;
+    return orderData.items.filter(order =>
+      order.status === 'Cancelled' &&
+      order.refundingAmount > 0
+    ).length;
+  }, [orderData?.items]);
 
   const handleExport = useCallback(() => {
     const exportData = rows.map((order) => ({
-      Code: order.orderCode,
+      Code: order.checkoutOrderCode,
       Total: order.totalAmount,
       Status: order.status,
       Date: order.createdAt,
     }));
     downloadCSV(exportData, 'Orders_Export');
   }, [rows]);
+
+  const handleStatusChange = useCallback((status: string) => {
+    setFieldFilter('status', status);
+  }, [setFieldFilter]);
 
   const table = useReactTable({
     data: rows,
@@ -97,6 +118,7 @@ export const useProductOrdersTabViewModel = () => {
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
     manualPagination: true,
+    manualFiltering: true,
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
     getCoreRowModel: getCoreRowModel(),
@@ -104,14 +126,14 @@ export const useProductOrdersTabViewModel = () => {
   });
 
   const handleConfirmCancel = useCallback(
-    async (reason: string) => {
+    async () => {
       if (!orderToCancel) {
         return;
       }
 
       try {
-        await cancelOrderMutation.mutateAsync({ id: orderToCancel.id, reason });
-        toast.success(`Order ${orderToCancel.orderCode} cancelled successfully`);
+        await cancelOrderMutation.mutateAsync(orderToCancel.id);
+        toast.success(`Order ${orderToCancel.checkoutOrderCode} cancelled successfully`);
         setIsCancelOpen(false);
         setOrderToCancel(null);
       } catch {
@@ -125,8 +147,11 @@ export const useProductOrdersTabViewModel = () => {
     table,
     globalFilter,
     setGlobalFilter,
+    statusFilter,
+    handleStatusChange,
     isPending,
-    resultCount: orderData?.totalCount ?? 0,
+    resultCount,
+    pendingRefundCount,
     handleExport,
     isCancelOpen,
     setIsCancelOpen,

@@ -17,10 +17,8 @@ interface OrderSidebarProps {
   permissions?: {
     canAssign: boolean;
     isAssigned: boolean;
-    canReschedule?: boolean;
   };
   onAssign?: () => void;
-  onReschedule?: () => void;
   currentTaskIndex?: number;
   onTaskIndexChange?: (index: number) => void;
 }
@@ -33,7 +31,6 @@ export const OrderSidebar = memo(function OrderSidebar({
   scheduledTime,
   permissions,
   onAssign,
-  onReschedule,
   currentTaskIndex = 0,
   onTaskIndexChange
 }: OrderSidebarProps) {
@@ -125,6 +122,20 @@ export const OrderSidebar = memo(function OrderSidebar({
         <div className="space-y-5">
           {((displayTasks.length > 0) || technician || permissions?.isAssigned) ? (
             <div className="space-y-4">
+              {permissions?.canAssign && (technician || permissions?.isAssigned) && (
+                <button
+                  onClick={onAssign}
+                  className="w-full py-5 rounded-[2rem] border-2 border-dashed border-blue-200 bg-blue-50/50 flex flex-col items-center justify-center gap-2.5 hover:bg-blue-100 hover:border-blue-400 transition-all group mb-4 ring-2 ring-white"
+                >
+                  <div className="h-11 w-11 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all duration-500 shadow-sm">
+                    <UserPlus className="h-5 w-5" />
+                  </div>
+                  <div className="text-center">
+                    <span className="block text-[11px] font-black text-blue-700 uppercase tracking-[0.2em]">Assign New Task</span>
+                    <span className="block text-[9px] font-bold text-blue-400 mt-0.5">Initialize a fresh execution record</span>
+                  </div>
+                </button>
+              )}
               {hasMultipleTasks && (
                 <div className="flex items-center justify-between px-1 mb-2">
                   <div className="flex flex-col">
@@ -165,9 +176,7 @@ export const OrderSidebar = memo(function OrderSidebar({
                   )}>
                     <Avatar className="h-12 w-12 border-2 border-white shadow-sm ring-1 ring-slate-100 bg-slate-50">
                       <AvatarImage src={(currentTask?.staff?.avatarUrl || technician?.avatarUrl) || undefined} className="object-cover" />
-                      <AvatarFallback className="bg-slate-200 text-slate-500 font-black text-sm">
-                        {(currentTask?.staff?.fullName || technician?.fullName)?.charAt(0) || 'T'}
-                      </AvatarFallback>
+                      <AvatarFallback className="bg-slate-200" />
                     </Avatar>
                     <div className="min-w-0 flex-1">
                       <p className="font-bold text-slate-900 text-sm truncate tracking-tight">
@@ -229,15 +238,6 @@ export const OrderSidebar = memo(function OrderSidebar({
                 </div>
               ) : null}
 
-              {permissions?.canReschedule && currentTaskIndex === 0 && (
-                <button
-                  onClick={onReschedule}
-                  className="w-full h-11 mt-2 bg-primary hover:bg-primary-hover text-white font-black rounded-xl text-[10px] uppercase tracking-widest transition-all shadow-md flex items-center justify-center gap-2 group active:scale-95 border-none"
-                >
-                  <Calendar className="h-4 w-4" />
-                  Reschedule Appointment
-                </button>
-              )}
             </div>
           ) : permissions?.canAssign ? (
             <button

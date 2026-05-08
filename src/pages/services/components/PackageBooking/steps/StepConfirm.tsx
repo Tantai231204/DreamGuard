@@ -9,6 +9,7 @@ import { useBookingData, type ProductType, type ServiceTier } from "../useBookin
 import { ProductAssetIcons, type ProductAssetIconKey } from "@/components/common/icons";
 import { useWatch, type UseFormReturn } from "react-hook-form";
 import type { BookingVoucher } from "../types";
+import vnAddress from "@/shared/data/vnAddress.json";
 
 interface StepConfirmProps {
     form: UseFormReturn<BookingFormValues>;
@@ -50,6 +51,18 @@ export default function StepConfirm({
     const notes = useWatch({ control: form.control, name: "notes" });
     const { productTypes, getProductTierPrice } = useBookingData();
     const [modalOpen, setModalOpen] = useState(false);
+
+    // Resolve address names from codes
+    const province = vnAddress.find(p => p.code === address?.city);
+    const district = province?.districts.find(d => d.code === address?.district);
+    const ward = district?.wards.find(w => w.code === address?.ward);
+
+    const addressDisplay = [
+        address?.street,
+        ward?.name || address?.ward,
+        district?.name || address?.district,
+        province?.name || address?.city
+    ].filter(Boolean).join(", ");
 
     const totalBeforeVoucher = items.reduce((sum, it) => {
         const type = it.itemType || "";
@@ -315,9 +328,7 @@ export default function StepConfirm({
                         )}
                     </div>
                     <p className="text-base font-black text-slate-900 tracking-tight">
-                        {[address.street, address.ward, address.district, address.city]
-                            .filter(Boolean)
-                            .join(", ")}
+                        {addressDisplay}
                     </p>
                     {notes && (
                         <div className="mt-4 pt-4 border-t border-slate-100 border-dashed">

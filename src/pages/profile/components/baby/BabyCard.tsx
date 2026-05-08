@@ -1,3 +1,4 @@
+
 import { Baby, Heart, Moon } from "lucide-react";
 import { Pencil1Icon, TrashIcon } from "@radix-ui/react-icons";
 import { Badge } from "../../../../components/ui/badge";
@@ -93,10 +94,10 @@ export default function BabyCard({ baby, onEdit, onDelete, isDeleting }: BabyCar
             {[
               { label: "Height", value: baby.height, unit: "cm" },
               { label: "Weight", value: baby.weight, unit: "kg" },
-              { 
-                label: "Birth", 
-                value: new Date(baby.dateOfBirth).toLocaleDateString("en-US", { day: "2-digit", month: "2-digit" }), 
-                unit: "" 
+              {
+                label: "Birth",
+                value: new Date(baby.dateOfBirth).toLocaleDateString("en-US", { day: "2-digit", month: "2-digit" }),
+                unit: ""
               },
             ].map((stat) => (
               <div

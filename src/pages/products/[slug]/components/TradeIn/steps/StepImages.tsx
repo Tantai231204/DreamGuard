@@ -38,13 +38,16 @@ export const StepImages = memo(function StepImages({ images, onImagesChange }: S
       return;
     }
 
-    const remainingSlots = Math.max(0, MAX_UPLOAD_IMAGES - images.length);
-    if (remainingSlots <= 0) {
-      e.target.value = '';
-      return;
+    const validFiles = files.filter(f => f.type.startsWith('image/'));
+    const invalidFiles = files.filter(f => !f.type.startsWith('image/'));
+
+    if (invalidFiles.length > 0) {
+      import('sonner').then(({ toast }) => {
+        toast.error(`${invalidFiles.length} file(s) rejected. Only image files are allowed.`);
+      });
     }
 
-    const validFiles = files.filter(f => f.type.startsWith('image/'));
+    const remainingSlots = Math.max(0, MAX_UPLOAD_IMAGES - images.length);
     const acceptedFiles = validFiles.slice(0, remainingSlots);
 
     if (acceptedFiles.length > 0) {

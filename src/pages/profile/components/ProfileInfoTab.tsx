@@ -171,16 +171,6 @@ export default function ProfileInfoTab() {
     phoneNumber: profile?.phoneNumber || "",
   }), [isEditing, watchedFullName, profile, watchedDob, watchedGender]);
 
-  const initials = useMemo(() => {
-    if (!displayData.fullName) return "U";
-    return displayData.fullName
-      .split(" ")
-      .filter(Boolean)
-      .map((n: string) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  }, [displayData.fullName]);
 
   if (isLoading) {
     return <div className="p-8">Loading...</div>;
@@ -210,9 +200,7 @@ export default function ProfileInfoTab() {
                       className={cn("object-cover transition-opacity", isUploading && "opacity-30")}
                     />
                   )}
-                  <AvatarFallback className="bg-primary text-white text-2xl font-bold">
-                    {initials}
-                  </AvatarFallback>
+                  <AvatarFallback className="bg-primary" />
                 </Avatar>
 
                 <button

@@ -4,17 +4,18 @@
    ============================================================ */
 
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import AdminPageHeader  from '@/components/layout/AdminPageHeader';
+import { cn } from '@/lib/utils';
+import AdminPageHeader from '@/components/layout/AdminPageHeader';
 import ConversationList from './components/ConversationList';
-import ChatHeader       from './components/ChatHeader';
-import MessageList      from './components/MessageList';
-import MessageInput     from './components/MessageInput';
-import EmptyState       from './components/EmptyState';
+import ChatHeader from './components/ChatHeader';
+import MessageList from './components/MessageList';
+import MessageInput from './components/MessageInput';
+import EmptyState from './components/EmptyState';
+import TradeInNegotiationSidebar from './components/TradeInNegotiationSidebar';
 import { useConversations } from './hooks/useConversations';
-import { useChat }          from './hooks/useChat';
-import { useSignalR }       from './hooks/useSignalR';
-import { chatService }      from '@/api/services';
-import { toast }            from 'sonner';
+import { useChat } from './hooks/useChat';
+import { useSignalR } from './hooks/useSignalR';
+import { toast } from 'sonner';
 import { uploadToCloudinary } from '@/lib/uploadCloudinary';
 import { serializeChatPayload } from '@/utils/chatPayload';
 import type { ChatPayloadAppointment } from '@/utils/chatPayload';
@@ -27,12 +28,12 @@ const formatTime = (iso: string): string =>
   timeFormatter.format(new Date(iso));
 
 const formatDate = (iso: string): string => {
-  const d         = new Date(iso);
-  const today     = new Date();
+  const d = new Date(iso);
+  const today = new Date();
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
 
-  if (d.toDateString() === today.toDateString())     return 'Today';
+  if (d.toDateString() === today.toDateString()) return 'Today';
   if (d.toDateString() === yesterday.toDateString()) return 'Yesterday';
   return d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
 };
@@ -42,7 +43,6 @@ const PRESENCE_ACTIVITY_TIMEOUT_MS = 60_000;
 /* ------------------------------------------------------------ */
 export default function ChatAdmin() {
   const [typingByConversation, setTypingByConversation] = useState<Record<string, boolean>>({});
-  const [isResolvingConversation, setIsResolvingConversation] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const typingTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -53,18 +53,18 @@ export default function ChatAdmin() {
 
   // Refs for SignalR callbacks (prevents connection restarts on prop changes)
   // Must be declared before useSignalR
-  const _appendFnRef = useRef<(msg: import('./types').Message) => void>(() => {});
-  const _updateFnRef = useRef<(conv: import('./types').Conversation) => void>(() => {});
-  const _presenceTouchFnRef = useRef<(conversationId: string) => void>(() => {});
-  const _onlineFnRef = useRef<(userId: string) => void>(() => {});
-  const _offlineFnRef = useRef<(id: string) => void>(() => {});
-  const _messageStatusFnRef = useRef<(messageId: string, status: 'delivered' | 'read') => void>(() => {});
+  const _appendFnRef = useRef<(msg: import('./types').Message) => void>(() => { });
+  const _updateFnRef = useRef<(conv: import('./types').Conversation) => void>(() => { });
+  const _presenceTouchFnRef = useRef<(conversationId: string) => void>(() => { });
+  const _onlineFnRef = useRef<(userId: string) => void>(() => { });
+  const _offlineFnRef = useRef<(id: string) => void>(() => { });
+  const _messageStatusFnRef = useRef<(messageId: string, status: 'delivered' | 'read') => void>(() => { });
 
   /* ---- Conversations ------------------------------------- */
   const {
     conversations,
     isLoading: convsLoading,
-    error:     convsError,
+    error: convsError,
     searchQuery,
     setSearchQuery,
     selectedId,
@@ -109,7 +109,7 @@ export default function ChatAdmin() {
         if (isCurrent) {
           _appendFnRef.current?.(msg);
         }
-        
+
         // 2. ALWAYS update the conversation list (Sidebar) real-time
         const existing = conversationsRef.current.find(c => c.id === msg.conversationId);
         if (existing) {
@@ -122,7 +122,7 @@ export default function ChatAdmin() {
             hasUnread: !isCurrent
           });
         }
-        
+
         if (msg.senderRole === 'customer' && msg.conversationId) {
           _presenceTouchFnRef.current?.(msg.conversationId);
         }
@@ -130,8 +130,8 @@ export default function ChatAdmin() {
       []
     ),
     onConversationUpdate: useCallback(
-      (conv: import('./types').Conversation) => { 
-        _updateFnRef.current?.(conv); 
+      (conv: import('./types').Conversation) => {
+        _updateFnRef.current?.(conv);
       },
       []
     ),
@@ -205,7 +205,7 @@ export default function ChatAdmin() {
   // Use conversationsRef to get immediate data without waiting for memo/render cycles
   useEffect(() => {
     if (!selectedId) return;
-    
+
     const conv = conversationsRef.current.find(c => c.id === selectedId);
     if (conv?.hasUnread || (conv?.unreadCount && conv.unreadCount > 0)) {
       markAsRead();
@@ -213,8 +213,8 @@ export default function ChatAdmin() {
   }, [selectedId, markAsRead]);
 
   // Sync references to keep hooks consistent
-  useEffect(() => { 
-    _appendFnRef.current = appendMessage; 
+  useEffect(() => {
+    _appendFnRef.current = appendMessage;
     _updateFnRef.current = applyConversationUpdate;
     _messageStatusFnRef.current = (messageId: string, status: 'delivered' | 'read') => {
       updateMessageStatus(messageId, status);
@@ -293,9 +293,9 @@ export default function ChatAdmin() {
   /* ---- Derived ------------------------------------------- */
   const headerStats = useMemo(
     () => [
-      { label: 'Active',        value: stats.active },
-      { label: 'Total',         value: stats.total  },
-      { label: 'Sync Status',   value: isConnected ? 'Live' : 'Polling' },
+      { label: 'Active', value: stats.active },
+      { label: 'Total', value: stats.total },
+      { label: 'Sync Status', value: isConnected ? 'Live' : 'Polling' },
     ],
     [stats, isConnected]
   );
@@ -411,31 +411,6 @@ export default function ChatAdmin() {
     [selectedId, isConnected, sendHubMessage, updateMessageStatus],
   );
 
-  const handleResolveConversation = useCallback(
-    async () => {
-      if (!currentConversation || isResolvingConversation || currentConversation.status === 'resolved') {
-        return;
-      }
-
-      setIsResolvingConversation(true);
-      try {
-        await chatService.updateConversationStatus(currentConversation.id, 'resolved');
-        applyConversationUpdate({
-          ...currentConversation,
-          status: 'resolved',
-          lastMessageTime: new Date().toISOString(),
-        });
-        setTypingByConversation(prev => ({ ...prev, [currentConversation.id]: false }));
-        toast.success('Conversation marked as resolved.');
-      } catch (error) {
-        console.error('[Chat] Resolve conversation failed:', error);
-        toast.error('Could not resolve conversation. Please verify backend endpoint.');
-      } finally {
-        setIsResolvingConversation(false);
-      }
-    },
-    [currentConversation, isResolvingConversation, applyConversationUpdate]
-  );
 
   const handleTyping = useCallback(
     (isTyping: boolean) => {
@@ -448,8 +423,8 @@ export default function ChatAdmin() {
     [currentConversation?.customerId, currentConversation?.id, currentConversation?.status, sendTyping]
   );
 
-  const isCurrentTyping = currentConversation 
-    ? !!typingByConversation[currentConversation.id] 
+  const isCurrentTyping = currentConversation
+    ? !!typingByConversation[currentConversation.id]
     : false;
 
   /* -------------------------------------------------------- */
@@ -475,17 +450,21 @@ export default function ChatAdmin() {
             isLoading={convsLoading}
             error={convsError}
             formatTime={formatTime}
+            className="col-span-12 lg:col-span-3 min-w-0"
           />
 
           {/* Chat window */}
-          <div className="col-span-12 lg:col-span-8 h-full flex flex-col border border-gray-100 bg-white rounded-md overflow-hidden shadow-sm">
+          <div className={cn(
+            "h-full flex flex-col border border-gray-100 bg-white rounded-md overflow-hidden shadow-sm",
+            currentConversation?.tradeInOrderId
+              ? "col-span-12 lg:col-span-6"
+              : "col-span-12 lg:col-span-9"
+          )}>
             {currentConversation ? (
               <>
-                <ChatHeader 
-                   conversation={currentConversation} 
-                   isTyping={isCurrentTyping}
-                   onResolveConversation={handleResolveConversation}
-                   isResolving={isResolvingConversation}
+                <ChatHeader
+                  conversation={currentConversation}
+                  isTyping={isCurrentTyping}
                 />
 
                 <MessageList
@@ -505,6 +484,7 @@ export default function ChatAdmin() {
                   uploadProgress={uploadProgress}
                   onSend={handleSend}
                   onTyping={handleTyping}
+                  tradeInOrderId={currentConversation.tradeInOrderId}
                   onFocus={() => {
                     if (currentConversation?.hasUnread || currentConversation?.unreadCount > 0) {
                       markAsRead();
@@ -516,6 +496,16 @@ export default function ChatAdmin() {
               <EmptyState />
             )}
           </div>
+
+          {/* Trade-In Negotiation Panel (Smart Panel) */}
+          {currentConversation?.tradeInOrderId && (
+            <div className="col-span-12 lg:col-span-3 h-full overflow-hidden">
+              <TradeInNegotiationSidebar
+                orderId={currentConversation.tradeInOrderId}
+                orderCode={currentConversation.tradeInOrderCode}
+              />
+            </div>
+          )}
 
         </div>
       </div>
@@ -531,6 +521,7 @@ function MessageInputWrapper({
   onSend,
   onTyping,
   onFocus,
+  tradeInOrderId,
 }: {
   disabled: boolean;
   isSending: boolean;
@@ -538,6 +529,7 @@ function MessageInputWrapper({
   onSend: (payload: { text: string; imageFile?: File | null; appointment?: ChatPayloadAppointment }) => Promise<void>;
   onTyping: (is: boolean) => void;
   onFocus?: () => void;
+  tradeInOrderId?: string | null;
 }) {
   const [draft, setDraft] = useState('');
 
@@ -555,6 +547,7 @@ function MessageInputWrapper({
         onDraftChange={setDraft}
         onSend={handleSend}
         onTyping={onTyping}
+        tradeInOrderId={tradeInOrderId}
       />
     </div>
   );

@@ -118,7 +118,7 @@ const productService = {
 
   /** Update product status */
   updateStatus: ({ productId, status }: UpdateProductStatusParams): Promise<void> =>
-    apiClient.put('/product', { id: productId, status }).then((res) => res.data),
+    apiClient.put(`/product/${productId}`, null, { params: { status } }).then((res) => res.data),
 
   /** Delete product */
   delete: (id: string): Promise<void> =>
@@ -159,6 +159,10 @@ const productService = {
   /** Delete fully customized product */
   deleteFullyCustomize: (id: string): Promise<void> =>
     apiClient.delete(`/product/fully-customize/${id}`).then(res => res.data),
+
+  /** Get AI customization recommendations based on baby profile */
+  getCustomizationRecommendation: (babyId: string, productId: string): Promise<import('../types/product.types').ProductRecommendationResponse> =>
+    apiClient.post('/ai/recommendation/customize', { baby_id: babyId, product_id: productId }).then(res => res.data?.data ?? res.data),
 };
 
 export default productService;

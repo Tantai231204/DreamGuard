@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { Check, Clock4, X, Package, Minus, RotateCcw, Truck, MapPin, History, ShieldAlert, FileEdit, PackageX, EyeOff, ShieldCheck, PackageCheck, CheckCircle2, MinusCircle, CreditCard, Sparkles, RefreshCcw, ArrowLeftRight } from "lucide-react";
+import { Check, Clock4, X, Package, Minus, RotateCcw, Truck, MapPin, History, ShieldAlert, FileEdit, PackageX, EyeOff, ShieldCheck, PackageCheck, CheckCircle2, MinusCircle, CreditCard, Sparkles, RefreshCcw, ArrowLeftRight, AlertCircle } from "lucide-react";
 import React from "react";
 
 export type StatusType = 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'sky' | 'primary' | 'amber' | 'rose' | 'emerald';
@@ -38,6 +38,20 @@ const STATUS_MAP: Record<string, StatusType> = {
   'refundedandrestocked': 'success',
   'refunded_and_damaged': 'rose',
   'refundedanddamaged': 'rose',
+  'partialrefunded': 'info',
+  'partial_refunded': 'info',
+  'partialrefunding': 'amber',
+  'partial_refunding': 'amber',
+  'partialcompleted': 'info',
+  'partial_completed': 'info',
+  'returnedandrefunding': 'amber',
+  'returnedandrefunded': 'rose',
+  'returned&refunding': 'amber',
+  'returned&refunded': 'rose',
+  'exchangerequested': 'info',
+  'exchange_requested': 'info',
+  'shipping_replacement': 'info',
+  'shippingreplacement': 'info',
 
   'pending': 'warning',
   'waiting_for_staff': 'warning',
@@ -51,13 +65,10 @@ const STATUS_MAP: Record<string, StatusType> = {
   'completed': 'success',
   'cancelled': 'rose',
   'returning': 'primary',
-  'exchangerequested': 'info',
-  'exchange_requested': 'info',
-  'shipping_replacement': 'info',
-  'shippingreplacement': 'info',
   'returned': 'danger',
   'success': 'success',
   'delivered': 'primary',
+  'rejected': 'rose',
   'active': 'success',
   'published': 'success',
   'draft': 'amber', // Screenshot has orange for Draft
@@ -83,6 +94,11 @@ const STATUS_MAP: Record<string, StatusType> = {
   'reassigned': 'neutral',
   'dispatched': 'info',
   'rescheduled': 'amber',
+
+  // Assessment keywords
+  'good': 'success',
+  'premium': 'success',
+  'fair': 'amber',
 
   // Neutral for fallback
   'archived': 'neutral',
@@ -250,6 +266,19 @@ const ICON_MAP: Record<string, React.ElementType> = {
   'reassigned': RotateCcw,
   'dispatched': Truck,
   'rescheduled': History,
+  'partialrefunded': MinusCircle,
+  'partial_refunded': MinusCircle,
+  'partialrefunding': MinusCircle,
+  'partial_refunding': MinusCircle,
+  'partialcompleted': MinusCircle,
+  'partial_completed': MinusCircle,
+  'returnedandrefunding': RotateCcw,
+  'returnedandrefunded': RotateCcw,
+  'returned&refunding': RotateCcw,
+  'returned&refunded': RotateCcw,
+  'good': ShieldCheck,
+  'premium': Sparkles,
+  'fair': AlertCircle,
 };
 
 const PAYMENT_CONFIG: Record<string, { container: string, textColor: string, iconBg: string, icon: string }> = {
@@ -285,8 +314,8 @@ const LABEL_MAP: Record<string, string> = {
   '6': 'Cancelled',
   '7': 'Returned',
   '8': 'Returning',
-  '9': 'Refunded (Restocked)',
-  '10': 'Refunded (Damaged)',
+  '9': 'Returned & Restocked',
+  '10': 'Returned (Damaged)',
   '11': 'Exchange Requested',
   '12': 'Shipping Replacement',
   'cod': 'COD',
@@ -296,10 +325,10 @@ const LABEL_MAP: Record<string, string> = {
   'forcenancelled': 'Forced Cancelled',
   'vnpay': 'VNPay',
   'negotiating': 'Negotiating',
-  'refunded_and_restocked': 'Refunded (Restocked)',
-  'refundedandrestocked': 'Refunded (Restocked)',
-  'refunded_and_damaged': 'Refunded (Damaged)',
-  'refundedanddamaged': 'Refunded (Damaged)',
+  'refunded_and_restocked': 'Returned & Restocked',
+  'refundedandrestocked': 'Returned & Restocked',
+  'refunded_and_damaged': 'Returned (Damaged)',
+  'refundedanddamaged': 'Returned (Damaged)',
   'exchangerequested': 'Exchange Requested',
   'exchange_requested': 'Exchange Requested',
   'shipping_replacement': 'Shipping Replacement',
@@ -332,6 +361,19 @@ const LABEL_MAP: Record<string, string> = {
   'reassigned': 'Reassigned',
   'dispatched': 'Dispatched',
   'rescheduled': 'Rescheduled',
+  'partialrefunded': 'Partial Refunded',
+  'partial_refunded': 'Partial Refunded',
+  'partialrefunding': 'Partial Refunding',
+  'partial_refunding': 'Partial Refunding',
+  'partialcompleted': 'Partial Completed',
+  'partial_completed': 'Partial Completed',
+  'returnedandrefunding': 'Returned & Refunding',
+  'returnedandrefunded': 'Returned & Refunded',
+  'returned&refunding': 'Returned & Refunding',
+  'returned&refunded': 'Returned & Refunded',
+  'good': 'Premium Condition',
+  'premium': 'Premium Condition',
+  'fair': 'Fair Condition',
 };
 
 const formatLabelFallback = (label: string) => {

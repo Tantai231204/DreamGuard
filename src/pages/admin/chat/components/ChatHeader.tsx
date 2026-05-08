@@ -1,32 +1,35 @@
 import { memo, useMemo } from 'react';
-import { Phone, Video, MoreVertical, Shield, Star, ChevronDown, Loader2 } from 'lucide-react';
+import { MoreVertical, User as UserIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import type { Conversation } from '../types';
 import { getAvatarGradient } from '../constants';
 import { cn } from '@/lib/utils';
+import { useState } from 'react';
+import { useCustomerDetail } from '@/hooks/queries/useCustomer';
+import { CustomerDetailDialog } from '../../users/components/CustomerDetailDialog';
+import type { User } from '../../users/types';
 
 interface ChatHeaderProps {
   conversation: Conversation;
   isTyping?: boolean;
-  onResolveConversation?: () => void;
-  isResolving?: boolean;
 }
 
 function ChatHeaderInner({
   conversation,
   isTyping = false,
-  onResolveConversation,
-  isResolving = false,
 }: ChatHeaderProps) {
-  const { customerName, isOnline, status } = conversation;
-  const isResolved = status === 'resolved';
+  const { customerName, isOnline, customerId } = conversation;
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  // Fetch customer detail only when requested via dialog
+  const { data: customerData } = useCustomerDetail(customerId, isDetailOpen);
 
   const gradient = useMemo(() => getAvatarGradient(customerName), [customerName]);
   const initials = useMemo(
@@ -81,49 +84,21 @@ function ChatHeaderInner({
 
       {/* Right — Actions */}
       <div className="flex items-center gap-0.5">
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={isResolved || isResolving || !onResolveConversation}
-          onClick={onResolveConversation}
-          className="h-7 rounded-md px-2.5 text-[10px] font-semibold mr-2 border-emerald-200 text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
-          title={isResolved ? 'Conversation already resolved' : 'Mark conversation as resolved'}
-        >
-          {isResolving ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Shield className="h-3 w-3 mr-1" />}
-          {isResolved ? 'Resolved' : 'Resolve'}
-        </Button>
 
         {/* Conversation status badge */}
         <span
           className={cn(
             'hidden sm:flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full mr-2',
-            status === 'active' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' :
-              status === 'pending' ? 'bg-amber-50   text-amber-600   border border-amber-200' :
-                status === 'resolved' ? 'bg-gray-100   text-gray-500    border border-gray-200' :
+            conversation.status === 'active' ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' :
+              conversation.status === 'pending' ? 'bg-amber-50   text-amber-600   border border-amber-200' :
+                conversation.status === 'resolved' ? 'bg-gray-100   text-gray-500    border border-gray-200' :
                   'bg-gray-100   text-gray-400    border border-gray-200'
           )}
         >
-          {status.charAt(0).toUpperCase() + status.slice(1)}
-          <ChevronDown className="h-2.5 w-2.5" />
+          {conversation.status.charAt(0).toUpperCase() + conversation.status.slice(1)}
         </span>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 w-8 p-0 rounded-lg hover:bg-blue-50 hover:text-[var(--color-primary)] transition-all"
-          title="Voice call"
-        >
-          <Phone className="h-3.5 w-3.5" />
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 w-8 p-0 rounded-lg hover:bg-blue-50 hover:text-[var(--color-primary)] transition-all"
-          title="Video call"
-        >
-          <Video className="h-3.5 w-3.5" />
-        </Button>
+        {/* Call actions removed as they have no task implementation */}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -135,32 +110,30 @@ function ChatHeaderInner({
               <MoreVertical className="h-3.5 w-3.5" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-52 shadow-lg rounded-lg border-gray-100">
-            <DropdownMenuItem className="gap-2 text-xs cursor-pointer rounded-md">
-              <Star className="h-3.5 w-3.5 text-amber-400" />
-              Mark as priority
-            </DropdownMenuItem>
-            <DropdownMenuItem className="gap-2 text-xs cursor-pointer rounded-md">
-              <Shield className="h-3.5 w-3.5 text-blue-500" />
-              View customer profile
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
+          <DropdownMenuContent align="end" className="w-60 shadow-2xl rounded-2xl border-slate-100 p-1.5 animate-in fade-in zoom-in duration-200">
+            <DropdownMenuLabel className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+              Customer Data
+            </DropdownMenuLabel>
             <DropdownMenuItem
-              disabled={isResolved || isResolving || !onResolveConversation}
-              onSelect={(event) => {
-                event.preventDefault();
-                if (!isResolved && !isResolving) {
-                  onResolveConversation?.();
-                }
-              }}
-              className="gap-2 text-xs cursor-pointer text-emerald-600 rounded-md focus:text-emerald-600 focus:bg-emerald-50 disabled:opacity-50"
+              className="gap-3 px-3 py-2.5 text-xs font-semibold cursor-pointer rounded-xl hover:bg-blue-50 hover:text-blue-600 transition-colors"
+              onClick={() => setIsDetailOpen(true)}
             >
-              {isResolving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Shield className="h-3.5 w-3.5" />}
-              {isResolved ? 'Conversation resolved' : 'Mark as resolved'}
+              <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600">
+                <UserIcon className="h-4 w-4" />
+              </div>
+              <div className="flex flex-col">
+                <span>View Full Profile</span>
+                <span className="text-[10px] font-normal text-slate-400">Review account & orders</span>
+              </div>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+      <CustomerDetailDialog
+        open={isDetailOpen}
+        onOpenChange={setIsDetailOpen}
+        customer={customerData as User}
+      />
     </div>
   );
 }

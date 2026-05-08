@@ -143,9 +143,7 @@ export const ServiceBookingCard = memo(function ServiceBookingCard({
           {/* Customer Info */}
           <div className="flex items-center gap-3">
             <Avatar className="h-9 w-9 flex-shrink-0">
-              <AvatarFallback className="bg-blue-100 text-blue-700 text-sm font-medium">
-                {booking.customerName.charAt(0)}
-              </AvatarFallback>
+              <AvatarFallback className="bg-slate-100" />
             </Avatar>
             <div className="min-w-0 flex-1">
               <p className="font-medium text-gray-900 text-sm truncate">{booking.customerName}</p>
@@ -184,9 +182,7 @@ export const ServiceBookingCard = memo(function ServiceBookingCard({
             <div className="flex items-center gap-2 p-2 bg-green-50 rounded-lg text-xs border border-green-100/50">
               <Avatar className="h-6 w-6 flex-shrink-0">
                 <AvatarImage src={technician.avatar || ""} />
-                <AvatarFallback className="bg-green-600 text-white text-[10px] font-bold">
-                  {technician.name.charAt(0)}
-                </AvatarFallback>
+                <AvatarFallback className="bg-slate-200" />
               </Avatar>
               <span className="text-gray-900 font-bold truncate flex-1">{technician.name}</span>
               <div className="flex items-center gap-0.5 mr-2">

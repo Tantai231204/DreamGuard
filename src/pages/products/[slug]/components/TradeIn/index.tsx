@@ -263,6 +263,8 @@ export const TradeInSelector = memo(function TradeInSelector({
                   contact={flow.contact}
                   setContact={flow.setContact}
                   addresses={addresses}
+                  isManualEntry={flow.isManualEntry}
+                  setIsManualEntry={flow.setIsManualEntry}
                 />
               )}
               {flow.step === 'summary' && (
@@ -300,6 +302,7 @@ export const TradeInSelector = memo(function TradeInSelector({
             onComplete={handleOpenCreateConfirm}
             onClose={() => handleDialogOpenChange(false)}
             contact={flow.contact}
+            isManualEntry={flow.isManualEntry}
           />
 
           <ConfirmDialog

@@ -16,6 +16,7 @@ export const TRADE_IN_STATUS = {
   CANCELLED: "CANCELLED",
   FORCED_CANCELLED: "FORCED_CANCELLED",
   ADMIN_CANCELLED: "ADMIN_CANCELLED",
+  RETURNED: "RETURNED",
 } as const;
 
 export type TradeInStatus =
@@ -45,149 +46,164 @@ const TRADE_IN_STATUS_DEFINITION_MAP: Record<
     label: "Waiting For Staff",
     badgeStatus: "pending",
     step: 0,
-    description:
-      "Waiting for staff to receive and review your trade-in request",
+    description: "Waiting for staff review",
   },
   PENDING: {
     label: "Pending",
     badgeStatus: "pending",
     step: 0,
-    description: "Your trade-in request is pending review",
+    description: "Pending review",
   },
   NEGOTIATING: {
     label: "Negotiating",
     badgeStatus: "processing",
     step: 1,
-    description: "You and staff can discuss and negotiate trade-in valuation",
+    description: "Valuation negotiation",
   },
   CONFIRMED: {
     label: "Confirmed",
     badgeStatus: "processing",
     step: 1,
-    description: "Your trade-in valuation has been confirmed",
+    description: "Valuation confirmed",
   },
   PROCESSING: {
     label: "Processing",
     badgeStatus: "processing",
     step: 2,
-    description: "Your trade-in order is being processed",
+    description: "Order processing",
   },
   DELIVERING: {
     label: "Delivering",
     badgeStatus: "processing",
     step: 3,
-    description: "Trade-in parcel is in transit",
+    description: "In transit",
   },
   ARRIVED: {
     label: "Arrived",
     badgeStatus: "processing",
     step: 4,
-    description: "Delivery staff has arrived at destination",
+    description: "Staff arrived",
   },
   DELIVERED: {
     label: "Delivered",
     badgeStatus: "processing",
     step: 4,
-    description: "Your upgrade package has been delivered",
+    description: "Package delivered",
   },
   RETURNING: {
     label: "Returning",
     badgeStatus: "processing",
     step: 8,
-    description: "Return workflow is being handled",
+    description: "Return workflow",
   },
   EXCHANGE_REQUESTED: {
     label: "Exchange Requested",
     badgeStatus: "processing",
     step: 11,
-    description: "Replacement request has been created",
+    description: "Replacement request",
   },
   SHIPPING_REPLACEMENT: {
     label: "Shipping Replacement",
     badgeStatus: "processing",
     step: 12,
-    description: "Replacement shipment is in transit",
+    description: "Replacement transit",
   },
   REFUNDED_AND_RESTOCKED: {
-    label: "Refunded (Restocked)",
+    label: "Returned & Restocked",
     badgeStatus: "completed",
     step: 9,
-    description: "Refund settled and stock returned to inventory",
+    description: "Refunded and restocked",
   },
   REFUNDED_AND_DAMAGED: {
-    label: "Refunded (Damaged)",
+    label: "Returned (Damaged)",
     badgeStatus: "cancelled",
     step: 10,
-    description: "Refund settled and item marked as damaged",
+    description: "Refunded as damaged",
   },
   COMPLETED: {
     label: "Completed",
     badgeStatus: "completed",
     step: 5,
-    description: "Trade-in process completed successfully",
+    description: "Successfully completed",
   },
   CANCELLED: {
     label: "Cancelled",
     badgeStatus: "cancelled",
     step: 6,
-    description: "Trade-in request was cancelled",
+    description: "Request cancelled",
   },
   FORCED_CANCELLED: {
     label: "Forced Cancelled",
     badgeStatus: "cancelled",
     step: 6,
-    description: "Trade-in request was force-cancelled by administration",
+    description: "Force-cancelled by admin",
   },
   ADMIN_CANCELLED: {
     label: "Admin Cancelled",
     badgeStatus: "cancelled",
     step: 6,
-    description: "Trade-in request was cancelled by administration",
+    description: "Cancelled by administration",
+  },
+  RETURNED: {
+    label: "Returned",
+    badgeStatus: "processing",
+    step: 7,
+    description: "The item has been successfully returned to the hub",
   },
 };
 
 export const TRADE_IN_FILTER_BASE_STATUSES: TradeInStatus[] = [
-  TRADE_IN_STATUS.PENDING,
   TRADE_IN_STATUS.WAITING_FOR_STAFF,
   TRADE_IN_STATUS.NEGOTIATING,
   TRADE_IN_STATUS.CONFIRMED,
   TRADE_IN_STATUS.PROCESSING,
   TRADE_IN_STATUS.DELIVERING,
-  TRADE_IN_STATUS.ARRIVED,
-  TRADE_IN_STATUS.DELIVERED,
   TRADE_IN_STATUS.RETURNING,
   TRADE_IN_STATUS.EXCHANGE_REQUESTED,
-  TRADE_IN_STATUS.SHIPPING_REPLACEMENT,
-  TRADE_IN_STATUS.REFUNDED_AND_RESTOCKED,
-  TRADE_IN_STATUS.REFUNDED_AND_DAMAGED,
   TRADE_IN_STATUS.COMPLETED,
   TRADE_IN_STATUS.CANCELLED,
-  TRADE_IN_STATUS.FORCED_CANCELLED,
   TRADE_IN_STATUS.ADMIN_CANCELLED,
+  TRADE_IN_STATUS.FORCED_CANCELLED,
 ];
 
 const TRADE_IN_STATUS_SET = new Set<TradeInStatus>(
   Object.values(TRADE_IN_STATUS),
 );
 const TRADE_IN_STATUS_ALIAS_MAP: Record<string, TradeInStatus> = {
-  "0": TRADE_IN_STATUS.PENDING,
+  "0": TRADE_IN_STATUS.WAITING_FOR_STAFF,
   "1": TRADE_IN_STATUS.CONFIRMED,
   "2": TRADE_IN_STATUS.PROCESSING,
   "3": TRADE_IN_STATUS.DELIVERING,
   "4": TRADE_IN_STATUS.DELIVERED,
   "5": TRADE_IN_STATUS.COMPLETED,
   "6": TRADE_IN_STATUS.CANCELLED,
+  "7": TRADE_IN_STATUS.RETURNED,
   "8": TRADE_IN_STATUS.RETURNING,
   "9": TRADE_IN_STATUS.REFUNDED_AND_RESTOCKED,
   "10": TRADE_IN_STATUS.REFUNDED_AND_DAMAGED,
   "11": TRADE_IN_STATUS.EXCHANGE_REQUESTED,
   "12": TRADE_IN_STATUS.SHIPPING_REPLACEMENT,
+  
+  // Exact matches from API response
+  "PENDING": TRADE_IN_STATUS.WAITING_FOR_STAFF,
+  "ADMINCANCELLED": TRADE_IN_STATUS.ADMIN_CANCELLED,
+  "FORCED_CANCELLED": TRADE_IN_STATUS.FORCED_CANCELLED,
+  "REFUNDEDANDDAMAGED": TRADE_IN_STATUS.REFUNDED_AND_DAMAGED,
+  "REFUNDEDANDRESTOCKED": TRADE_IN_STATUS.REFUNDED_AND_RESTOCKED,
+  "SHIPPING_REPLACEMENT": TRADE_IN_STATUS.SHIPPING_REPLACEMENT,
+  "SHIPPINGREPLACEMENT": TRADE_IN_STATUS.SHIPPING_REPLACEMENT,
+  
+  // Human readable variations
+  "ADMIN CANCELLED": TRADE_IN_STATUS.ADMIN_CANCELLED,
+  "FORCED CANCELLED": TRADE_IN_STATUS.FORCED_CANCELLED,
+  "REFUNDED AND DAMAGED": TRADE_IN_STATUS.REFUNDED_AND_DAMAGED,
+  "REFUNDED AND RESTOCKED": TRADE_IN_STATUS.REFUNDED_AND_RESTOCKED,
+  "EXCHANGE REQUESTED": TRADE_IN_STATUS.EXCHANGE_REQUESTED,
+  
   SHIPPING: TRADE_IN_STATUS.DELIVERING,
-  SHIPPING_REPLACEMENT: TRADE_IN_STATUS.SHIPPING_REPLACEMENT,
-  SHIPPINGREPLACEMENT: TRADE_IN_STATUS.SHIPPING_REPLACEMENT,
-  FORCECANCELLED: TRADE_IN_STATUS.FORCED_CANCELLED,
-  ADMINCANCELLED: TRADE_IN_STATUS.ADMIN_CANCELLED,
-  ADMIN_CANCELLED: TRADE_IN_STATUS.ADMIN_CANCELLED,
+  RETURNED: TRADE_IN_STATUS.RETURNED,
+  "14": TRADE_IN_STATUS.ADMIN_CANCELLED,
+  "15": TRADE_IN_STATUS.FORCED_CANCELLED,
 };
 
 const WAITING_STATUS_SET = new Set<TradeInStatus>([
@@ -198,6 +214,7 @@ const CUSTOMER_CANCELABLE_STATUS_SET = new Set<TradeInStatus>([
   TRADE_IN_STATUS.WAITING_FOR_STAFF,
   TRADE_IN_STATUS.PENDING,
   TRADE_IN_STATUS.NEGOTIATING,
+  TRADE_IN_STATUS.CONFIRMED,
 ]);
 const ADMIN_CANCELABLE_STATUS_SET = new Set<TradeInStatus>([
   TRADE_IN_STATUS.WAITING_FOR_STAFF,
@@ -213,6 +230,7 @@ const ACTIVE_PROGRESS_STATUS_SET = new Set<TradeInStatus>([
   TRADE_IN_STATUS.ARRIVED,
   TRADE_IN_STATUS.DELIVERED,
   TRADE_IN_STATUS.RETURNING,
+  TRADE_IN_STATUS.RETURNED,
   TRADE_IN_STATUS.EXCHANGE_REQUESTED,
   TRADE_IN_STATUS.SHIPPING_REPLACEMENT,
 ]);
@@ -258,6 +276,7 @@ const TRANSITION_TARGETS: Record<TradeInStatus, TradeInStatus[]> = {
   [TRADE_IN_STATUS.CANCELLED]: [],
   [TRADE_IN_STATUS.FORCED_CANCELLED]: [],
   [TRADE_IN_STATUS.ADMIN_CANCELLED]: [],
+  [TRADE_IN_STATUS.RETURNED]: [],
 };
 
 const API_TRANSITION_TARGET_SET = new Set<TradeInStatus>([
@@ -368,4 +387,16 @@ export const getTradeInStatusBadgeStatus = (
   status: string | null | undefined,
 ): TradeInBadgeStatus => {
   return getTradeInStatusMeta(status).badgeStatus;
+};
+
+/**
+ * Maps a frontend status constant back to its API-friendly representation (e.g., numeric string).
+ */
+export const toApiStatus = (status: string): string => {
+  const normalized = normalizeTradeInStatus(status);
+  // Find the numeric key in the alias map if it exists
+  const entry = Object.entries(TRADE_IN_STATUS_ALIAS_MAP).find(([key, value]) =>
+    value === normalized && !isNaN(Number(key))
+  );
+  return entry ? entry[0] : normalized;
 };

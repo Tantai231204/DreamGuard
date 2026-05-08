@@ -7,7 +7,6 @@ import type { TabId } from "./types"
 import {
     AddressesTab,
     BabiesTab,
-    NotificationsTab,
     OrdersTab,
     ProfileInfoTab,
     ProfileSidebar,
@@ -26,7 +25,6 @@ const TAB_COMPONENTS: Record<TabId, React.ComponentType> = {
     wishlist: WishlistTab,
     vouchers: VouchersTab,
     addresses: AddressesTab,
-    notifications: NotificationsTab,
     security: SecurityTab,
     "trade-in-orders": TradeInOrdersTab,
 };

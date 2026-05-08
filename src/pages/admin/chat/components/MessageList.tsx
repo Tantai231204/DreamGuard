@@ -157,24 +157,50 @@ function MessageListInner({
       {messages.length > 0 && (
         <div className="px-4 py-4 space-y-4">
           {pinnedAppointmentMessage?.appointment && (
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-3 shadow-sm">
-              <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 uppercase tracking-wide">
-                <Pin className="h-3.5 w-3.5" />
+            <div className="rounded-xl border border-slate-200 bg-white px-4 py-3.5 shadow-sm mb-2">
+              <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">
+                <Pin className="h-3 w-3" />
                 Pinned Appointment
               </div>
-              <div className="mt-2 space-y-1 text-[12px] text-emerald-800">
-                <p className="flex items-center gap-1.5">
-                  <CalendarClock className="h-3.5 w-3.5" />
-                  {formatAppointmentTimeLabel(pinnedAppointmentMessage.appointment.scheduledAt)}
-                </p>
+              <div className="space-y-2.5">
+                {pinnedAppointmentMessage.appointment.scheduledAt && (
+                  <p className="flex items-center gap-2 text-[12px] font-bold text-slate-700">
+                    <CalendarClock className="h-4 w-4 text-slate-300" />
+                    {formatAppointmentTimeLabel(pinnedAppointmentMessage.appointment.scheduledAt)}
+                  </p>
+                )}
                 {pinnedAppointmentMessage.appointment.location && (
-                  <p className="flex items-center gap-1.5">
-                    <MapPin className="h-3.5 w-3.5" />
+                  <p className="flex items-center gap-2 text-[12px] font-medium text-slate-600 leading-tight">
+                    <MapPin className="h-4 w-4 text-slate-300" />
                     {pinnedAppointmentMessage.appointment.location}
                   </p>
                 )}
+
+                {(pinnedAppointmentMessage.appointment.tradeInPrice !== undefined || pinnedAppointmentMessage.appointment.amountToPay !== undefined) && (
+                  <div className="pt-2.5 mt-2 border-t border-slate-100 space-y-1.5">
+                    {pinnedAppointmentMessage.appointment.tradeInPrice !== undefined && (
+                      <div className="flex justify-between items-center text-[11px]">
+                        <span className="font-bold uppercase tracking-widest opacity-40">Valuation</span>
+                        <span className="font-black text-slate-900">
+                          {new Intl.NumberFormat('vi-VN').format(pinnedAppointmentMessage.appointment.tradeInPrice)}đ
+                        </span>
+                      </div>
+                    )}
+                    {pinnedAppointmentMessage.appointment.amountToPay !== undefined && (
+                      <div className="flex justify-between items-center text-[11px]">
+                        <span className="font-bold uppercase tracking-widest opacity-40">Net Balance</span>
+                        <span className="font-black text-blue-700 text-xs">
+                          {new Intl.NumberFormat('vi-VN').format(pinnedAppointmentMessage.appointment.amountToPay)}đ
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+                
                 {pinnedAppointmentMessage.appointment.note && (
-                  <p className="text-[11px] text-emerald-700/90">{pinnedAppointmentMessage.appointment.note}</p>
+                  <p className="text-[11px] text-slate-400 font-medium italic pt-1 line-clamp-2 border-t border-slate-50 mt-2">
+                    &ldquo;{pinnedAppointmentMessage.appointment.note}&rdquo;
+                  </p>
                 )}
               </div>
             </div>

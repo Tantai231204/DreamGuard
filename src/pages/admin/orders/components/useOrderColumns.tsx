@@ -4,18 +4,19 @@ import { Eye, Trash2 } from 'lucide-react';
 import { SortableHeader, AdminRowActions, AdminStatusBadge } from '@/components/admin';
 import { type ColumnDef } from '@tanstack/react-table';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import type { OrderResponse } from '@/api/types/order';
+import type { CheckoutOrderResponse } from '@/api/types/checkoutOrder';
 import { formatPrice } from '@/pages/profile/utils';
 import { OrderStatus, ORDER_STATUS_MAP } from '../constants';
 import { formatDate, formatTime } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
+import { CustomerCell } from './CustomerCell';
 
-export const useOrderColumns = (onCancelRequested: (order: OrderResponse) => void) => {
+
+export const useOrderColumns = (onCancelRequested: (order: CheckoutOrderResponse) => void) => {
     const { role } = useAuthStore();
     const isAdmin = ['Admin', 'Staff'].includes(role || '');
 
-    const columns: ColumnDef<OrderResponse>[] = useMemo(
+    const columns: ColumnDef<CheckoutOrderResponse>[] = useMemo(
         () => [
             {
                 id: 'select',
@@ -49,41 +50,19 @@ export const useOrderColumns = (onCancelRequested: (order: OrderResponse) => voi
                 size: 100,
             },
             {
-                accessorKey: 'orderCode',
+                accessorKey: 'checkoutOrderCode',
                 enableSorting: true,
                 header: ({ column }) => <SortableHeader column={column} label="Order ID" />,
                 cell: ({ row }) => (
                     <div className="font-mono text-sm font-bold text-[#4988c4]">
-                        #{row.original.orderCode}
+                        #{row.original.checkoutOrderCode}
                     </div>
                 ),
             },
             {
                 id: 'customer',
                 header: ({ column }) => <SortableHeader column={column} label="Customer" />,
-                cell: ({ row }) => (
-                    <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9 border-2 border-gray-200">
-                            <AvatarFallback className="bg-gradient-to-br from-[#4988c4] to-[#3a6da0] text-white text-xs font-semibold">
-                                {row.original.orderCode.charAt(row.original.orderCode.length - 1)}
-                            </AvatarFallback>
-                        </Avatar>
-                        <div>
-                            <div className="font-semibold text-gray-900 truncate max-w-[150px]">Guest Customer</div>
-                            <div className="text-xs text-gray-500">Order ID: {row.original.id.substring(0, 8)}...</div>
-                        </div>
-                    </div>
-                ),
-            },
-            {
-                accessorKey: 'itemCount',
-                header: () => <span className="font-semibold">Items</span>,
-                cell: ({ row }) => (
-                    <div className="flex items-center gap-1.5 text-sm font-medium text-gray-700">
-                        <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-bold">{row.original.itemCount || 0}</span>
-                        <span>Products</span>
-                    </div>
-                ),
+                cell: ({ row }) => <CustomerCell order={row.original} />,
             },
             {
                 accessorKey: 'totalAmount',
@@ -92,6 +71,49 @@ export const useOrderColumns = (onCancelRequested: (order: OrderResponse) => voi
                 cell: ({ row }) => (
                     <div className="font-bold text-gray-900">{formatPrice(row.original.totalAmount)}</div>
                 ),
+            },
+            {
+                id: 'refunded',
+                header: () => <span className="font-semibold">Refunded</span>,
+                cell: ({ row }) => {
+                    const hasRefund = row.original.refundedAmount > 0 || row.original.refundingAmount > 0;
+                    if (!hasRefund) return <span className="text-gray-300">-</span>;
+                    return (
+                        <div className="flex flex-col gap-0.5">
+                            {row.original.refundedAmount > 0 && (
+                                <span className="text-[11px] font-black text-emerald-600">
+                                    {formatPrice(row.original.refundedAmount)}
+                                </span>
+                            )}
+                            {row.original.refundingAmount > 0 && (
+                                <span className="text-[9px] font-bold text-amber-500 uppercase tracking-tighter">
+                                    Refunding: {formatPrice(row.original.refundingAmount)}
+                                </span>
+                            )}
+                        </div>
+                    );
+                },
+                size: 120,
+            },
+            {
+                id: 'shipments',
+                header: () => <span className="font-semibold">Shipments</span>,
+                cell: ({ row }) => {
+                    const children = row.original.childOrders || [];
+                    if (children.length === 0) return <span className="text-gray-300">-</span>;
+                    
+                    const completed = children.filter(c => c.status === 'Completed' || c.status === 'Delivered').length;
+                    
+                    return (
+                        <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-black text-slate-900 bg-slate-100 px-2 py-0.5 rounded">
+                                {completed}/{children.length}
+                            </span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Complete</span>
+                        </div>
+                    );
+                },
+                size: 140,
             },
             {
                 accessorKey: 'status',
@@ -121,14 +143,14 @@ export const useOrderColumns = (onCancelRequested: (order: OrderResponse) => voi
                 header: () => <div className="text-right">Actions</div>,
                 cell: ({ row }) => {
                     const currentStatusEnum = ORDER_STATUS_MAP[row.original.status.toString()];
-                    const canCancel = currentStatusEnum === OrderStatus.Pending || currentStatusEnum === OrderStatus.Confirmed;
+                    const canCancel = currentStatusEnum === OrderStatus.Pending;
 
                     const actions: React.ComponentProps<typeof AdminRowActions>['actions'] = [
                         {
                             label: 'View Details',
                             icon: <Eye className="h-4 w-4" />,
                             component: (
-                                <Link to={`/admin/orders/${row.original.id}`} className="flex items-center gap-2.5 w-full">
+                                <Link to={`/admin/checkout-orders/${row.original.id}`} className="flex items-center gap-2.5 w-full">
                                     <Eye className="h-4 w-4 opacity-70" />
                                     <span className="text-[13px]">View Details</span>
                                 </Link>

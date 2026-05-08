@@ -95,12 +95,12 @@ export const useAdminCancelOrder = () => {
     const { role } = useAuthStore.getState();
 
     return useMutation({
-        mutationFn: async ({ id, reason }: { id: string, reason: string }) => {
-            const isAdmin = ['Admin', 'Staff'].includes(role || '');
-            if (!isAdmin) {
+        mutationFn: async ({ id, reason, amount }: { id: string, reason: string, amount?: number }) => {
+            const hasPrivilege = ['Admin', 'Staff', 'Manager', 'Seller'].includes(role || '');
+            if (!hasPrivilege) {
                 throw new Error('Forbidden: Insufficient privileges to cancel orders.');
             }
-            return orderService.adminCancelOrder(id, reason);
+            return orderService.adminCancelOrder(id, reason, amount);
         },
         onSuccess: (_, { id }) => {
             queryClient.invalidateQueries({ queryKey: orderKeys.all });
@@ -117,3 +117,12 @@ export const useUserOrderItemsForTradeIn = (id: string, options?: { enabled?: bo
         staleTime: 60000,
     });
 };
+
+export const useTopSellerProducts = (limit: number = 5) => {
+    return useQuery({
+        queryKey: [...orderKeys.all, 'top-sellers', limit],
+        queryFn: () => orderService.getTopSellerProducts(limit),
+        staleTime: 300000, // 5 minutes
+    });
+};
+

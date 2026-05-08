@@ -11,5 +11,6 @@ export * from "./useServiceOrder";
 export * from "./useRating";
 export * from "./usePayment";
 export * from "./useTradeInOrder";
+export * from "./useCheckoutOrder";
 export * from "./useCustomizeType";
 export * from "../useAddress";

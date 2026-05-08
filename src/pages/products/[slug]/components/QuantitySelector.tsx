@@ -20,7 +20,8 @@ export const QuantitySelector = memo(({
     const inputRef = useRef<HTMLInputElement>(null);
 
     const handleChange = (delta: number) => {
-        onChange(Math.max(1, Math.min(max, value + delta)));
+        const upperLimit = stockLeft !== undefined ? Math.min(max, stockLeft) : max;
+        onChange(Math.max(1, Math.min(upperLimit, value + delta)));
     };
 
     const isLowStock = stockLeft !== undefined && stockLeft > 0 && stockLeft < 10;

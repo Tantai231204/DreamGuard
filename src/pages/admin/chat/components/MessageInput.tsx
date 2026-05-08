@@ -8,6 +8,9 @@ import {
 import { Send, Paperclip, Smile, Image as ImageIcon, Zap, X, CalendarClock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AnimatePresence, motion } from 'framer-motion';
+import { toast } from 'sonner';
+import { useAdminTradeInOrderDetail } from '@/hooks/queries/useTradeInOrder';
+import { formatNumber, unformatNumber } from '@/lib/utils';
 import {
   Popover,
   PopoverContent,
@@ -16,6 +19,12 @@ import {
 import { QUICK_REPLIES, MAX_MESSAGE_LENGTH } from '../constants';
 import type { ChatPayloadAppointment } from '@/utils/chatPayload';
 
+const COMMON_EMOJIS = [
+  '😀', '😃', '😄', '😁', '😅', '😂', '🤣', '😊', '😇', '🙂', '😉', '😍', '🤩', '😘', '😋', '😎', 
+  '👍', '👎', '👌', '🤝', '👋', '🙌', '👏', '🙏', '❤️', '✨', '🔥', '💡',
+  '💰', '📦', '✅', '❌', '🔄', '💎', '🏠', '🛠️', '📞', '📅', '🚀', '🎁'
+];
+
 interface MessageInputProps {
   draft: string;
   isSending: boolean;
@@ -23,6 +32,7 @@ interface MessageInputProps {
   onDraftChange: (val: string) => void;
   onSend: (payload: { text: string; imageFile?: File | null; appointment?: ChatPayloadAppointment }) => void | Promise<void>;
   onTyping?: (isTyping: boolean) => void;
+  tradeInOrderId?: string | null;
 }
 
 function MessageInputInner({
@@ -32,6 +42,7 @@ function MessageInputInner({
   onDraftChange,
   onSend,
   onTyping,
+  tradeInOrderId,
 }: MessageInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -44,6 +55,13 @@ function MessageInputInner({
   const [appointmentDateTime, setAppointmentDateTime] = useState('');
   const [appointmentLocation, setAppointmentLocation] = useState('');
   const [appointmentNote, setAppointmentNote] = useState('');
+  const [appointmentTradeInPrice, setAppointmentTradeInPrice] = useState('');
+  const [appointmentAmountToPay, setAppointmentAmountToPay] = useState('');
+
+  // Fetch trade-in order for validation if ID is provided
+  const { data: tradeInOrder } = useAdminTradeInOrderDetail(tradeInOrderId || '', {
+    enabled: !!tradeInOrderId
+  });
 
   /* ---- Auto-grow textarea --------------------------------- */
   const autoResize = useCallback(() => {
@@ -116,29 +134,56 @@ function MessageInputInner({
     setAppointmentDateTime('');
     setAppointmentLocation('');
     setAppointmentNote('');
+    setAppointmentTradeInPrice('');
+    setAppointmentAmountToPay('');
     setIsAppointmentOpen(false);
   }, []);
 
   const handlePinAppointment = useCallback(async () => {
     if (isSending) return;
+    
     const normalizedDateTime = appointmentDateTime.trim();
-    if (!normalizedDateTime) return;
-
-    const scheduledAt = new Date(normalizedDateTime);
-    if (Number.isNaN(scheduledAt.getTime())) return;
-
     const normalizedNote = appointmentNote.trim();
     const normalizedLocation = appointmentLocation.trim();
+    const tradeInPrice = appointmentTradeInPrice.trim() ? unformatNumber(appointmentTradeInPrice) : undefined;
+    const amountToPay = appointmentAmountToPay.trim() ? unformatNumber(appointmentAmountToPay) : undefined;
+
+    // Check if we have at least something
+    if (!normalizedDateTime && !normalizedLocation && !normalizedNote && tradeInPrice === undefined && amountToPay === undefined) {
+      return;
+    }
+
+    // Validation for price if order is available
+    if (tradeInOrder && tradeInPrice !== undefined) {
+      const min = tradeInOrder.minTradeInPrice || 0;
+      const max = tradeInOrder.maxTradeInPrice || 0;
+      if (tradeInPrice < min || tradeInPrice > max) {
+        toast.error(`Price must be between ${new Intl.NumberFormat('vi-VN').format(min)}đ and ${new Intl.NumberFormat('vi-VN').format(max)}đ`);
+        return;
+      }
+    }
+
+    let isoDate: string | undefined = undefined;
+    if (normalizedDateTime) {
+      const scheduledAt = new Date(normalizedDateTime);
+      if (!Number.isNaN(scheduledAt.getTime())) {
+        isoDate = scheduledAt.toISOString();
+      }
+    }
 
     const appointmentPayload: ChatPayloadAppointment = {
       kind: 'appointment',
-      scheduledAt: scheduledAt.toISOString(),
+      scheduledAt: isoDate,
       location: normalizedLocation || undefined,
       note: normalizedNote || undefined,
+      tradeInPrice,
+      amountToPay,
       pinned: true,
     };
 
-    const fallbackText = `Lich hen tham dinh: ${scheduledAt.toLocaleString('vi-VN')}`;
+    const fallbackText = isoDate 
+      ? `Lich hen tham dinh: ${new Date(isoDate).toLocaleString('vi-VN')}`
+      : 'Giao thuc thu mua duoc thiet lap';
 
     await Promise.resolve(onSend({
       text: normalizedNote || fallbackText,
@@ -151,10 +196,37 @@ function MessageInputInner({
     appointmentDateTime,
     appointmentLocation,
     appointmentNote,
+    appointmentTradeInPrice,
+    appointmentAmountToPay,
+    tradeInOrder,
     isSending,
     onSend,
     resetAppointmentDraft,
   ]);
+
+  const handleEmojiSelect = useCallback((emoji: string) => {
+    const el = textareaRef.current;
+    if (!el) {
+      onDraftChange(draft + emoji);
+      return;
+    }
+
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const text = draft;
+    const before = text.substring(0, start);
+    const after = text.substring(end);
+    const newVal = before + emoji + after;
+
+    onDraftChange(newVal);
+    setCharCount(newVal.length);
+
+    // Reposition cursor after the emoji
+    setTimeout(() => {
+      el.focus();
+      el.setSelectionRange(start + emoji.length, start + emoji.length);
+    }, 0);
+  }, [draft, onDraftChange]);
 
   /* ---- Keyboard send -------------------------------------- */
   const handleKeyDown = useCallback(
@@ -265,13 +337,35 @@ function MessageInputInner({
           >
             <ImageIcon className="h-3.5 w-3.5" />
           </Button>
-          <Button
-            variant="ghost" size="sm"
-            className="h-7 w-7 p-0 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-50 transition-all"
-            title="Emoji"
-          >
-            <Smile className="h-3.5 w-3.5" />
-          </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="ghost" size="sm"
+                className="h-7 w-7 p-0 rounded-lg text-gray-400 hover:text-amber-500 hover:bg-amber-50 transition-all"
+                title="Emoji"
+                disabled={isSending}
+              >
+                <Smile className="h-3.5 w-3.5" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent 
+              align="start" 
+              side="top" 
+              className="w-[280px] p-2 rounded-2xl shadow-xl border-gray-100 bg-white"
+            >
+              <div className="grid grid-cols-8 gap-1">
+                {COMMON_EMOJIS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    onClick={() => handleEmojiSelect(emoji)}
+                    className="h-8 w-8 flex items-center justify-center text-lg hover:bg-gray-100 rounded-lg transition-colors active:scale-90"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
 
           {/* Quick replies */}
           <Popover>
@@ -327,60 +421,90 @@ function MessageInputInner({
             <PopoverContent
               align="start"
               side="top"
-              className="w-80 p-4 rounded-3xl shadow-2xl border-none bg-white ring-1 ring-black/[0.03]"
+              className="w-80 p-0 overflow-hidden rounded-[24px] shadow-2xl border-none bg-white ring-1 ring-black/[0.05]"
             >
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center">
-                  <CalendarClock className="h-4 w-4 text-emerald-600" />
-                </div>
-                <div>
-                  <p className="text-[11px] font-black text-slate-900 uppercase tracking-widest">
-                    Schedule Appraisal
-                  </p>
-                  <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">Protocol Placement</p>
+              <div className="p-5 bg-slate-50/50 border-b border-slate-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shadow-sm">
+                    <CalendarClock className="h-5 w-5 text-slate-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-black text-slate-900 tracking-tight">SET PROTOCOL</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Administrative Pin</p>
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Event Horizon</label>
-                  <input
-                    type="datetime-local"
-                    value={appointmentDateTime}
-                    onChange={(event) => setAppointmentDateTime(event.target.value)}
-                    className="w-full rounded-xl bg-slate-50/80 border-none px-3 py-2.5 text-xs text-slate-700 focus:ring-2 focus:ring-emerald-500/20 focus:bg-white transition-all outline-none"
-                  />
+              <div className="p-5 space-y-5">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Event Horizon</label>
+                    <input
+                      type="datetime-local"
+                      value={appointmentDateTime}
+                      onChange={(event) => setAppointmentDateTime(event.target.value)}
+                      className="w-full rounded-xl bg-slate-50 border-0 px-3 py-2.5 text-xs text-slate-700 focus:ring-2 focus:ring-slate-500/20 focus:bg-white transition-all outline-none"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Operations Hub</label>
+                    <input
+                      type="text"
+                      value={appointmentLocation}
+                      onChange={(event) => setAppointmentLocation(event.target.value)}
+                      placeholder="Site address"
+                      className="w-full rounded-xl bg-slate-50 border-0 px-3 py-2.5 text-xs text-slate-700 placeholder:text-slate-300 focus:ring-2 focus:ring-slate-500/20 focus:bg-white transition-all outline-none"
+                    />
+                  </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Operations Hub</label>
-                  <input
-                    type="text"
-                    value={appointmentLocation}
-                    onChange={(event) => setAppointmentLocation(event.target.value)}
-                    placeholder="Store or site address"
-                    className="w-full rounded-xl bg-slate-50/80 border-none px-3 py-2.5 text-xs text-slate-700 placeholder:text-slate-300 focus:ring-2 focus:ring-emerald-500/20 focus:bg-white transition-all outline-none"
-                  />
+                <div className="grid grid-cols-2 gap-4 border-t border-slate-50 pt-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Trade-in Price</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={formatNumber(appointmentTradeInPrice)}
+                        onChange={(event) => setAppointmentTradeInPrice(event.target.value)}
+                        placeholder="0"
+                        className="w-full rounded-xl bg-slate-50 border-0 px-3 py-2.5 text-xs font-bold text-slate-900 placeholder:text-slate-300 focus:ring-2 focus:ring-slate-500/20 focus:bg-white transition-all outline-none pr-8"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-300">đ</span>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Net Balance</label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={formatNumber(appointmentAmountToPay)}
+                        onChange={(event) => setAppointmentAmountToPay(event.target.value)}
+                        placeholder="0"
+                        className="w-full rounded-xl bg-slate-50 border-0 px-3 py-2.5 text-xs font-bold text-slate-900 placeholder:text-slate-300 focus:ring-2 focus:ring-slate-500/20 focus:bg-white transition-all outline-none pr-8"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-300">đ</span>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Special Directives</label>
+                <div className="space-y-1.5 border-t border-slate-50 pt-4">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Special Directives</label>
                   <input
                     type="text"
                     value={appointmentNote}
                     onChange={(event) => setAppointmentNote(event.target.value)}
-                    placeholder="Brief instruction for client"
-                    className="w-full rounded-xl bg-slate-50/80 border-none px-3 py-2.5 text-xs text-slate-700 placeholder:text-gray-300 focus:ring-2 focus:ring-emerald-500/20 focus:bg-white transition-all outline-none"
+                    placeholder="Instructions for the client"
+                    className="w-full rounded-xl bg-slate-50 border-0 px-3 py-2.5 text-xs text-slate-700 placeholder:text-slate-300 focus:ring-2 focus:ring-slate-500/20 focus:bg-white transition-all outline-none"
                   />
                 </div>
 
                 <Button
                   type="button"
-                  className="w-full h-11 rounded-xl bg-emerald-600 text-white text-[11px] font-black uppercase tracking-widest hover:bg-emerald-700 shadow-xl shadow-emerald-500/20 transition-all active:scale-[0.98] mt-2"
-                  disabled={!appointmentDateTime || isSending}
+                  className="w-full h-10 rounded-xl bg-slate-900 text-white text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 shadow-lg transition-all active:scale-[0.98] mt-2"
+                  disabled={isSending}
                   onClick={handlePinAppointment}
                 >
-                  Confirm & Pin Protocol
+                  Pin Protocol
                 </Button>
               </div>
             </PopoverContent>

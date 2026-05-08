@@ -1,26 +1,21 @@
 import { memo, useMemo, useState } from "react";
 import { Upload, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { patternOptions } from "../data";
 import type { MaterialOption } from "../types";
 
 interface TextureLabProps {
-  selectedPattern: string;
   selectedMaterial: string;
   materials: MaterialOption[];
   basePrice: number;
-  onPatternSelect: (p: string) => void;
   onMaterialSelect: (m: string) => void;
   onImageUpload: (f: File | null) => void;
   addOnFee?: number;
 }
 
 export const TextureLab = memo(({
-  selectedPattern,
   selectedMaterial,
   materials,
   basePrice = 0,
-  onPatternSelect,
   onMaterialSelect,
   onImageUpload,
   addOnFee = 0
@@ -36,32 +31,6 @@ export const TextureLab = memo(({
   return (
     <div className="space-y-5">
 
-      {/* PATTERN */}
-      <div className="space-y-3">
-        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Pattern</p>
-        <div className="flex flex-wrap gap-1.5">
-          {patternOptions.map((p) => {
-            const active = selectedPattern === p.id;
-            return (
-              <button
-                key={p.id}
-                onClick={() => onPatternSelect(p.id)}
-                className={cn(
-                  "flex items-center gap-1.5 px-3 py-2 rounded-lg border text-[10px] font-bold uppercase tracking-wide transition-all duration-200",
-                  active
-                    ? "border-[#4988c4] bg-[#4988c4]/8 text-[#4988c4]"
-                    : "border-slate-100 bg-slate-50 text-slate-400 hover:border-slate-200 hover:bg-white hover:text-slate-600"
-                )}
-              >
-                <span className={cn("text-sm transition-all duration-200", active ? "" : "grayscale opacity-50")}>
-                  {p.emoji}
-                </span>
-                {p.name}
-              </button>
-            );
-          })}
-        </div>
-      </div>
 
       {/* MATERIAL */}
       {materials.length > 0 && (

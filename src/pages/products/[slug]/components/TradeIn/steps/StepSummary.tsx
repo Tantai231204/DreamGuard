@@ -200,11 +200,10 @@ export const StepSummary = memo(function StepSummary({
                   : product.originalPrice;
 
                 return (
-                  <button
+                  <div
                     key={product.id}
-                    type="button"
                     onClick={() => handleSelectTradeInProduct(product.id)}
-                    className="rounded-xl border border-[#EDE8E1] bg-white p-3 text-left hover:border-[#3D5140]/30 hover:bg-[#F7FBF7] transition-all flex gap-3 items-center group/card"
+                    className="rounded-xl border border-[#EDE8E1] bg-white p-3 text-left hover:border-[#3D5140]/30 hover:bg-[#F7FBF7] transition-all flex gap-3 items-center group/card cursor-pointer"
                   >
                     {product.image && (
                       <div className="w-12 h-12 rounded-lg overflow-hidden border border-slate-100 shrink-0 shadow-sm bg-slate-50">
@@ -231,7 +230,7 @@ export const StepSummary = memo(function StepSummary({
                         Use this item
                       </div>
                     </div>
-                  </button>
+                  </div>
                 );
               })}
 

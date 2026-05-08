@@ -22,6 +22,8 @@ export interface Conversation {
   status: ConversationStatus;
   isOnline?: boolean;
   tags?: string[];
+  tradeInOrderCode?: string;
+  tradeInOrderId?: string;
 }
 
 /* ---- Message ---------------------------------------------- */

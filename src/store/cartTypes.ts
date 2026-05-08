@@ -42,4 +42,5 @@ export interface CartItem {
         customizeContent: string;
         addOnPrice: number;
     }>;
+    weight?: number;
 }

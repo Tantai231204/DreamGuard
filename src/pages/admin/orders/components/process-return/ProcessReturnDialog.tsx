@@ -8,7 +8,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, RotateCcw, ChevronDown, Package } from "lucide-react";
+import { Loader2, RotateCcw, ChevronDown, Package, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { OrderItem } from "@/api/types/order";
 
@@ -25,9 +25,9 @@ interface ProcessReturnDialogProps {
   orderId: string;
   taskId: string;
   items: OrderItem[];
-  totalPrice?: number;
   paymentMethod?: string;
   paymentStatus?: string;
+  totalAmount?: number;
 }
 
 export const ProcessReturnDialog = memo(function ProcessReturnDialog({
@@ -36,21 +36,20 @@ export const ProcessReturnDialog = memo(function ProcessReturnDialog({
   orderId,
   taskId,
   items,
-  totalPrice = 0,
   paymentMethod,
-  paymentStatus
+  paymentStatus,
+  totalAmount
 }: ProcessReturnDialogProps) {
   
-  const isVNPayPaid = paymentMethod?.toLowerCase() === 'vnpay' &&
+  const isRefundableMethod = (paymentMethod?.toLowerCase() === 'vnpay' || paymentMethod?.toLowerCase() === 'other') &&
     (paymentStatus?.toLowerCase() === 'paid' || paymentStatus?.toLowerCase() === 'codpaid');
-  const showRefundSection = isVNPayPaid && totalPrice > 0;
 
   const { state, actions } = useProcessReturn({
     orderId,
     taskId,
-    totalPrice,
     onClose,
-    showRefundSection
+    isRefundableMethod,
+    totalAmount
   });
 
   const {
@@ -61,23 +60,25 @@ export const ProcessReturnDialog = memo(function ProcessReturnDialog({
     hasDamages,
     totalDamaged,
     expanded,
-    percentage,
-    refundAmount,
     isSubmitting,
-    uploadedCount
+    uploadedCount,
+    isRefund,
+    refundAmount,
+    percentage
   } = state;
 
   const {
     setDamageNote,
     setSelectedReason,
     setExpanded,
-    setPercentage,
-    setRefundAmount,
     handleQtyChange,
     resetAndClose,
     addEvidenceFiles,
     removeEvidenceFile,
-    handleConfirm
+    handleConfirm,
+    setIsRefund,
+    setRefundAmount,
+    setPercentage
   } = actions;
 
   const totalUnits = items.reduce((s, i) => s + i.quantity, 0);
@@ -89,8 +90,7 @@ export const ProcessReturnDialog = memo(function ProcessReturnDialog({
     <Dialog open={isOpen} onOpenChange={(open: boolean) => !open && resetAndClose()}>
       <DialogContent className="sm:max-w-[560px] p-0 overflow-hidden rounded-2xl border border-slate-200 shadow-xl gap-0 animate-in zoom-in-95 duration-300">
         {/* Compact Header */}
-        <DialogHeader className="px-6 pt-6 pb-4 border-b border-slate-100 bg-slate-50/70 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-12 -mt-12 blur-2xl opacity-40" />
+        <DialogHeader className="px-6 pt-6 pb-4 border-b border-slate-100 bg-slate-50/70 relative">
           <div className="flex items-center gap-3 relative z-10">
             <div className={cn(
               "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-colors duration-500",
@@ -196,22 +196,29 @@ export const ProcessReturnDialog = memo(function ProcessReturnDialog({
               )}
             </AnimatePresence>
 
-            {showRefundSection && (
-              <motion.div
-                layout
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-              >
+            {isRefundableMethod && (
+              <div className="space-y-3 pt-4 border-t border-slate-100">
+                <div className="flex items-center gap-2 px-1">
+                  <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center border border-blue-100/50">
+                    <CreditCard className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <h4 className="text-[11px] font-black text-slate-900 uppercase tracking-wider">Financial Settlement</h4>
+                    <p className="text-[9px] text-blue-600/60 font-bold uppercase tracking-tight">Authorize automated reverse transaction</p>
+                  </div>
+                </div>
+
                 <RefundSection
-                  hasDamages={hasDamages}
-                  percentage={percentage}
+                  isRefund={isRefund}
+                  setIsRefund={setIsRefund}
                   refundAmount={refundAmount}
-                  totalPrice={totalPrice}
-                  setPercentage={setPercentage}
                   setRefundAmount={setRefundAmount}
+                  percentage={percentage}
+                  setPercentage={setPercentage}
+                  totalAmount={totalAmount || 0}
+                  compact={true}
                 />
-              </motion.div>
+              </div>
             )}
           </div>
         </div>

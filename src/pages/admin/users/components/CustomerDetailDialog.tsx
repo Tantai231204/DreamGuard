@@ -3,10 +3,9 @@ import {
   DialogContent,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import type { User } from '../types';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Mail, Phone, Calendar, Heart, ShieldAlert, Lock, RefreshCw } from 'lucide-react';
+import { Mail, Phone, Calendar, Heart, ShieldAlert } from 'lucide-react';
 
 interface CustomerDetailDialogProps {
   open: boolean;
@@ -100,16 +99,7 @@ export function CustomerDetailDialog({ open, onOpenChange, customer }: CustomerD
           </div>
         </div>
 
-        <div className="flex items-center justify-end gap-2 border-t pt-4 pb-4 px-6 bg-slate-50/80 flex-shrink-0">
-          <Button variant="outline" size="sm" className="gap-2 rounded-xl border-slate-200 font-semibold shadow-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900 transition-all">
-            <RefreshCw className="h-3.5 w-3.5" />
-            Reset PW
-          </Button>
-          <Button variant="outline" size="sm" className="gap-2 rounded-xl border-red-200 font-semibold shadow-sm text-red-600 hover:bg-red-50 hover:text-red-700 hover:border-red-300 transition-all">
-            <Lock className="h-3.5 w-3.5" />
-            Suspend
-          </Button>
-        </div>
+        {/* Footer actions removed as they are not currently supported by the API */}
       </DialogContent>
     </Dialog>
   );

@@ -2,6 +2,7 @@ export interface CreateOrderRequest {
     addressId: string;
     userVoucherId?: string | null;
     note?: string;
+    shippingFee: string | number;
     paymentMethod: "VnPay" | "COD";
 }
 
@@ -17,8 +18,8 @@ export const OrderStatusValue = {
     Cancelled: 6,
     Returned: 7,
     Returning: 8,
-    RefundedAndRestocked: 9,
-    RefundedAndDamaged: 10,
+    ReturnedAndRefunding: 9,
+    ReturnedAndRefunded: 10,
     ExchangeRequested: 11,
     Shipping_Replacement: 12
 } as const;
@@ -26,6 +27,8 @@ export const OrderStatusValue = {
 export interface OrderResponse {
     id: string;
     orderCode: string;
+    checkoutOrderId?: string;
+    checkoutOrderCode?: string;
     status: OrderStatus | string;
     itemCount?: number;
     subTotal?: number;
@@ -35,6 +38,7 @@ export interface OrderResponse {
     paymentUrl?: string;
     createdAt: string;
     updatedAt?: string;
+    shippingFee?: number;
 }
 
 export interface ProductCustomizeDetail {
@@ -54,6 +58,8 @@ export interface OrderItem {
     image?: string;
     productCustomizeDetails?: ProductCustomizeDetail[];
     customizeHash?: string;
+    exchangeRequestedQuantity?: number;
+    tradeInUsedAmount?: number;
 }
 
 export interface TradeInEligibleOrderItem extends OrderItem {
@@ -99,3 +105,13 @@ export interface OrderDashboardResponse {
     fromDate: string;
     toDate: string;
 }
+
+export interface TopSellerProduct {
+    product: import('./product.types').ProductResponse & {
+        basePrice: number;
+        salePrice: number;
+    };
+    totalQuantity: number;
+}
+
+

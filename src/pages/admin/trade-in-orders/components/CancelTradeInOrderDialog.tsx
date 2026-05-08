@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { AlertTriangle, ShieldAlert, XCircle, Loader2, RotateCcw, Package } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { RefundSection } from "../../orders/components/process-return/RefundSection";
+import { RefundSection } from "../../orders/components/RefundSection";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +38,8 @@ interface CancelTradeInOrderDialogProps {
   isRefundOnly?: boolean;
   paymentMethod?: string;
   paymentStatus?: string;
+  shippingTaskStatus?: string;
+  status?: string;
 }
 
 const REASONS = [
@@ -59,6 +61,8 @@ export function CancelTradeInOrderDialog({
   isRefundOnly = false,
   paymentMethod,
   paymentStatus,
+  shippingTaskStatus,
+  status,
 }: CancelTradeInOrderDialogProps) {
   const [selectedReason, setSelectedReason] = React.useState<string>(isRefundOnly ? "Return" : "");
   const [otherReason, setOtherReason] = React.useState("");
@@ -70,12 +74,15 @@ export function CancelTradeInOrderDialog({
 
   React.useEffect(() => {
     if (open) {
-      setRefundAmount(totalPrice);
-      setPercentage(100);
-      setSelectedReason(isRefundOnly ? "Return" : "");
-      setOtherReason("");
-      setError("");
-      setShouldCreateReturn(false);
+      const timer = requestAnimationFrame(() => {
+        setRefundAmount(totalPrice);
+        setPercentage(100);
+        setSelectedReason(isRefundOnly ? "Return" : "");
+        setOtherReason("");
+        setError("");
+        setShouldCreateReturn(false);
+      });
+      return () => cancelAnimationFrame(timer);
     }
   }, [open, totalPrice, isRefundOnly]);
 
@@ -118,7 +125,7 @@ export function CancelTradeInOrderDialog({
     }
   };
 
-  const showRefundSection = isRefundOnly || totalPrice > 0;
+  const showRefundSection = isRefundOnly || (totalPrice > 0 && !(status?.toUpperCase() === 'CONFIRMED' && shippingTaskStatus?.toUpperCase() === 'PENDING'));
   const isSubmitting = isLoading;
 
   return (
@@ -145,6 +152,23 @@ export function CancelTradeInOrderDialog({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto px-8 py-6 space-y-6 custom-scrollbar">
+          {/* Status Warning for Confirmed + Pending Shipping */}
+          {status?.toUpperCase() === 'CONFIRMED' && shippingTaskStatus?.toUpperCase() === 'PENDING' && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 shadow-sm"
+            >
+              <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+              <div className="space-y-1">
+                <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Lưu ý quan trọng</p>
+                <p className="text-xs text-amber-800 font-bold leading-relaxed">
+                  Đơn hàng đang ở trạng thái <span className="underline italic">Confirmed</span> và có <span className="underline italic">Shipping Task</span> đang xử lý. Việc hủy đơn ở trạng thái này sẽ <span className="text-rose-600 underline">không được hoàn tiền cọc</span>.
+                </p>
+              </div>
+            </motion.div>
+          )}
+
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -266,8 +290,6 @@ export function CancelTradeInOrderDialog({
                     totalPrice={totalPrice}
                     setPercentage={handlePercentageChange}
                     setRefundAmount={handleAmountChange}
-                    paymentMethod={paymentMethod}
-                    paymentStatus={paymentStatus}
                   />
                 </div>
               )}

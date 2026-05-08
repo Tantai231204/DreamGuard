@@ -94,15 +94,23 @@ export default function ProductsPage() {
       state.setVariantDialogOpen(true);
     }, [state]),
     onUpdateStatus: useCallback((id: string, s: string, name?: string, cur?: string) => {
+      // Find the product to check if it's a template
+      const isTemplate = templates.some(t => t.id === id);
+      
       mutations.handleStatusChangeRequest({
         id,
-        name: name || 'Product',
+        name: name || (isTemplate ? 'Customization Template' : 'Product'),
         type: 'product',
         currentStatus: (cur || 'Draft') as ProductStatus,
         newStatus: s as ProductStatus,
       });
-    }, [mutations]),
+    }, [mutations, templates]),
   });
+
+  // Specialized columns for templates to ensure correct status handler binding if needed
+  // (In this case, since we updated the shared handler to check templates array, 
+  // the shared productColumns will now work correctly for both tabs).
+
 
   const handleUpdateStatus = useCallback((id: string, status: string, name?: string, cur?: string, totalStock?: number, hasPublishedChild?: boolean) => {
     mutations.handleStatusChangeRequest({
@@ -247,15 +255,6 @@ export default function ProductsPage() {
                           onPaginationChange={state.setPagination}
                           onBulkDelete={(table) => mutations.handleBulkDelete(table as unknown as Table<Product | Combo | Certificate>, 'single')}
                           onExport={handleExport}
-                          onUpdateStatus={(id, s, name, cur) => {
-                            mutations.handleStatusChangeRequest({
-                              id,
-                              name: name || 'Product',
-                              type: 'product',
-                              currentStatus: (cur || 'Draft') as ProductStatus,
-                              newStatus: s as ProductStatus,
-                            });
-                          }}
                           hideHeaderActions
                         />
                       ) : effectiveActiveTab === 'customize' ? (
@@ -273,15 +272,6 @@ export default function ProductsPage() {
                           onPaginationChange={state.setPagination}
                           onBulkDelete={(table) => mutations.handleBulkDelete(table as unknown as Table<Product | Combo | Certificate>, 'single')}
                           onExport={handleExport}
-                          onUpdateStatus={(id, s, name, cur) => {
-                            mutations.handleStatusChangeRequest({
-                              id,
-                              name: name || 'Customization Template',
-                              type: 'product',
-                              currentStatus: (cur || 'Draft') as ProductStatus,
-                              newStatus: s as ProductStatus,
-                            });
-                          }}
                           hideHeaderActions
                         />
                       ) : effectiveActiveTab === 'combo' ? (

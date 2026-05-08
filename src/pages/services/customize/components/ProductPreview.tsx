@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import type { CustomizableProduct, DesignConfig } from "../types";
-import { patternOptions, materialOptions } from "../data";
+import { materialOptions } from "../data";
 
 interface ProductPreviewProps {
   product: CustomizableProduct;
@@ -22,18 +22,9 @@ function isLightColor(hex: string) {
 }
 
 export default function ProductPreview({ product, design, totalPrice }: ProductPreviewProps) {
-  const currentPattern = patternOptions.find((p) => p.id === design.pattern);
   const currentMaterial = materialOptions.find((m) => m.id === design.material);
   const currentSize = product.availableSizes.find((s) => s.id === design.size);
 
-  const getPatternStyle = (): React.CSSProperties => {
-    if (!currentPattern?.cssPattern) return {};
-    const patternColor = isLightColor(design.baseColor) ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.12)";
-    return {
-      backgroundImage: currentPattern.cssPattern.replace(/currentColor/g, patternColor),
-      backgroundSize: currentPattern.id === "dots" ? "20px 20px" : currentPattern.id === "stripes" ? "14px 14px" : "40px 40px",
-    };
-  };
 
   return (
     <div className="bg-white border border-slate-100 rounded-[2.5rem] shadow-2xl shadow-slate-200/50 overflow-hidden group">
@@ -48,14 +39,14 @@ export default function ProductPreview({ product, design, totalPrice }: ProductP
         <div className="absolute bottom-0 left-0 w-32 h-32 bg-[#4988c4]/5 rounded-full blur-3xl -translate-x-10 translate-y-10" />
 
         <motion.div
-          key={`${design.baseColor}-${design.pattern}-${design.embroideryText}`}
+          key={`${design.baseColor}-${design.embroideryText}`}
           initial={{ opacity: 0, scale: 0.9, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
           className="relative w-72 h-72 rounded-[3.5rem] overflow-hidden shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] outline outline-8 outline-white/50"
           style={{ backgroundColor: design.baseColor || "#f8f8f8" }}
         >
-          <div className="absolute inset-0 transition-opacity duration-500" style={getPatternStyle()} />
+          <div className="absolute inset-0 transition-opacity duration-500" />
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span className="text-7xl drop-shadow-2xl filter brightness-110">{product.icon}</span>
             {design.embroideryText && (
@@ -76,11 +67,6 @@ export default function ProductPreview({ product, design, totalPrice }: ProductP
           {currentMaterial && (
             <div className="absolute top-4 left-4 px-3 py-1.5 rounded-2xl bg-white/90 backdrop-blur-md shadow-sm border border-white/50">
               <span className="text-[10px] font-black uppercase tracking-wider text-slate-700">{currentMaterial.name}</span>
-            </div>
-          )}
-          {currentPattern && currentPattern.id !== "solid" && (
-            <div className="absolute top-4 right-4 px-3 py-1.5 rounded-2xl bg-white/90 backdrop-blur-md shadow-sm border border-white/50">
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-700">{currentPattern.emoji} {currentPattern.name}</span>
             </div>
           )}
         </motion.div>

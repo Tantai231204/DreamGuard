@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import type { ProductVariantResponse, ProductResponse } from "@/api/types/product.types";
 import { useCartStore } from "@/store/useCartStore";
 import { useCartAnimation } from "@/store/useCartAnimation";
@@ -266,6 +266,26 @@ export function useProductDetailState({ product, productImageRef }: UseProductDe
         };
     }, [currentVariant]);
 
+    // ── QUANTITY SYNCHRONIZATION ──
+    // Senior Reactive Pattern: Ensure quantity is always capped by available stock.
+    // We use a micro-delay to avoid synchronous setState warnings in strict environments.
+    useEffect(() => {
+        const stock = currentStock.stockLeft;
+        if (stock !== undefined && stock >= 0) {
+            const timer = setTimeout(() => {
+                setQuantity(prev => {
+                    if (prev > stock) return Math.max(1, stock);
+                    if (stock === 0 && prev > 1) return 1;
+                    return prev;
+                });
+            }, 0);
+            return () => clearTimeout(timer);
+        }
+    }, [currentStock.stockLeft]);
+
+
+
+
     // ── STABLE ACTIONS ──
     const handleSetIsCustomColor = useCallback((val: boolean) => {
         if (val === isCustomColor) return;
@@ -294,25 +314,30 @@ export function useProductDetailState({ product, productImageRef }: UseProductDe
         const norm = color.toLowerCase().trim();
         setUserSelectedColor(norm);
 
-        // Reset customization modes when switching color
         if (isCustomColor) setIsCustomColor(false);
 
         const sizes = processedData.availableSizesByColor.get(norm);
         const caps = processedData.customizableByColor.get(norm);
 
         if (sizes && sizes.size > 0) {
-            // New color has standard sizes: Turn off custom mode and pick first size
             setIsCustomSize(false);
-            setUserSelectedSize(prev => (prev && sizes.has(prev)) ? prev : Array.from(sizes)[0]);
+            const prevSize = userSelectedSize;
+            const nextSize = (prevSize && sizes.has(prevSize)) ? prevSize : Array.from(sizes)[0];
+
+            if (nextSize !== prevSize) {
+                setUserSelectedSize(nextSize);
+            }
         } else if (caps?.size) {
-            // New color ONLY has custom size: Turn on custom mode
             setIsCustomSize(true);
             setUserSelectedSize(null);
         } else {
-            // Safety fallback
             setIsCustomSize(false);
         }
-    }, [processedData, isCustomColor]);
+    }, [processedData, isCustomColor, userSelectedSize]);
+
+    const handleSizeChange = useCallback((size: string) => {
+        setUserSelectedSize(size);
+    }, []);
 
     const handleAddToCart = useCallback(() => {
         if (!product) return;
@@ -395,12 +420,12 @@ export function useProductDetailState({ product, productImageRef }: UseProductDe
 
     const actions = useMemo(() => ({
         setSelectedImage, setUserSelectedColor, setUserSelectedSize, setQuantity, setIsWishlisted, setActiveTab, setSelectedTradeInProducts, setIsTradeInOpen,
-        handleColorChange, handleSizeChange: setUserSelectedSize, handleAddToCart, setIsCustomSize: handleSetIsCustomSize,
+        handleColorChange, handleSizeChange, handleAddToCart, setIsCustomSize: handleSetIsCustomSize,
         setIsCustomColor: handleSetIsCustomColor,
         handleCustomDimensionChange: (field: keyof typeof customDimensions, val: number) => setCustomDimensions(p => ({ ...p, [field]: val })),
         setCustomColorHex
     }), [
-        handleColorChange, handleAddToCart, handleSetIsCustomSize, handleSetIsCustomColor, setCustomDimensions
+        handleColorChange, handleSizeChange, handleAddToCart, handleSetIsCustomSize, handleSetIsCustomColor, setCustomDimensions
     ]);
 
     return { state, actions, getVariantSize };

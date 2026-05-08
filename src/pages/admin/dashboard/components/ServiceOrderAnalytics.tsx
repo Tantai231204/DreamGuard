@@ -92,7 +92,7 @@ export const ServiceOrderAnalytics: React.FC = () => {
         <div className="lg:col-span-2 bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden group">
           <h3 className="text-xl font-black text-slate-900 tracking-tight">Distribution</h3>
           <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mb-4">Lifecycle Ratios</p>
-          <div className="h-[220px] w-full relative">
+          <div className="h-[220px] w-full relative min-w-0">
             {orderData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -114,7 +114,7 @@ export const ServiceOrderAnalytics: React.FC = () => {
         <div className="lg:col-span-3 bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden group">
           <h3 className="text-xl font-black text-slate-900 tracking-tight">Conversion</h3>
           <p className="text-[11px] text-slate-400 font-bold uppercase tracking-widest mb-4">Service Completion Funnel</p>
-          <div className="h-[220px] w-full">
+          <div className="h-[220px] w-full min-w-0">
             {funnelData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <FunnelChart>

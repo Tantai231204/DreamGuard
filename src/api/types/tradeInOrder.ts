@@ -34,6 +34,8 @@ export interface TradeInPayment {
   amount: number;
   paymentMethod: string;
   createdAt: string;
+  updatedAt?: string;
+  evidenceUrl?: string | null;
 }
 
 export interface TradeInImage {
@@ -71,17 +73,22 @@ export interface TradeInOrderDetailResponse {
   tradeInPrice: number;
   amountToPay: number;
   depositAmount: number;
+  minTradeInPrice?: number;
+  maxTradeInPrice?: number;
   payments: TradeInPayment[];
   tradeInImages: TradeInImage[];
   orderItem?: {
     id: string;
+    orderId: string;
     productVariantId: string;
     comboId: string | null;
+    productVariantImageUrl: string;
     itemName: string;
     quantity: number;
     unitPrice: number;
     totalPrice: number;
     tradeInUsedAmount: number;
+    exchangeRequestedQuantity: number;
     productCustomizeDetails: unknown[];
     customizeHash: string;
     image?: string;
@@ -101,6 +108,11 @@ export interface TradeInOrderDetailResponse {
     productId: string;
   };
   conversation?: TradeInConversationInfo | null;
+  sellerName?: string;
+  sellerId?: string;
+  deliveryStaffId?: string;
+  deliveryStaffName?: string;
+  shippingTaskStatus?: string;
 }
 
 export interface TradeInOrderResponse {
@@ -136,14 +148,17 @@ export interface TradeInOrderListItem {
   tradeInPrice: number;
   amountToPay: number;
   depositAmount: number;
+  minTradeInPrice?: number;
+  maxTradeInPrice?: number;
   paymentStatus?: string;
   paymentMethod?: string;
+  shippingTaskStatus?: string;
 }
 
 export interface AdminTradeInOrderSearchParams {
   customerId?: string;
   productVariantId?: string;
-  status?: string;
+  status?: string | string[];
   isGood?: boolean;
   tradeInPrice?: number;
   amountToPay?: number;

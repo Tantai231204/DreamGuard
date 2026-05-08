@@ -3,7 +3,8 @@ import { create } from 'zustand';
 interface ChatStore {
   isOpen: boolean;
   activeConversationId: string | null;
-  openChat: (conversationId?: string) => void;
+  isLocked: boolean;
+  openChat: (conversationId?: string, isLocked?: boolean) => void;
   closeChat: () => void;
   toggleChat: () => void;
 }
@@ -11,9 +12,11 @@ interface ChatStore {
 export const useChatStore = create<ChatStore>((set) => ({
   isOpen: false,
   activeConversationId: null,
-  openChat: (conversationId) => set({ 
+  isLocked: false,
+  openChat: (conversationId, isLocked = false) => set({ 
     isOpen: true, 
-    activeConversationId: conversationId || null 
+    activeConversationId: conversationId || null,
+    isLocked
   }),
   closeChat: () => set({ isOpen: false }),
   toggleChat: () => set((state) => ({ isOpen: !state.isOpen })),

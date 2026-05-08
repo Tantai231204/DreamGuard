@@ -6,10 +6,12 @@ export interface ChatPayloadAttachment {
 
 export interface ChatPayloadAppointment {
   kind: 'appointment';
-  scheduledAt: string;
+  scheduledAt?: string;
   location?: string;
   note?: string;
   pinned?: boolean;
+  tradeInPrice?: number;
+  amountToPay?: number;
 }
 
 export interface ChatPayloadMetadata {
@@ -74,18 +76,26 @@ const normalizeAppointment = (value: unknown): ChatPayloadAppointment | null => 
 
   const item = value as Record<string, unknown>;
   const scheduledAt = typeof item.scheduledAt === 'string' ? item.scheduledAt.trim() : '';
-  if (!scheduledAt) return null;
-
   const location = typeof item.location === 'string' ? item.location.trim() : '';
   const note = typeof item.note === 'string' ? item.note.trim() : '';
   const pinned = item.pinned !== false;
+  
+  const tradeInPrice = typeof item.tradeInPrice === 'number' ? item.tradeInPrice : undefined;
+  const amountToPay = typeof item.amountToPay === 'number' ? item.amountToPay : undefined;
+
+  // We need at least one piece of information to consider it a valid appointment protocol
+  if (!scheduledAt && !location && !note && tradeInPrice === undefined && amountToPay === undefined) {
+    return null;
+  }
 
   return {
     kind: 'appointment',
-    scheduledAt,
+    scheduledAt: scheduledAt || undefined,
     location: location || undefined,
     note: note || undefined,
     pinned,
+    tradeInPrice,
+    amountToPay,
   };
 };
 
@@ -116,7 +126,8 @@ export const formatAppointmentTimeLabel = (scheduledAt: string): string => {
 };
 
 export const buildAppointmentSummaryText = (appointment: ChatPayloadAppointment): string => {
-  const base = `Lich hen tham dinh: ${formatAppointmentTimeLabel(appointment.scheduledAt)}`;
+  const timeLabel = appointment.scheduledAt ? formatAppointmentTimeLabel(appointment.scheduledAt) : '';
+  const base = timeLabel ? `Lich hen tham dinh: ${timeLabel}` : 'Giao thuc thu mua duoc thiet lap';
 
   if (appointment.location) {
     return `${base} - ${appointment.location}`;

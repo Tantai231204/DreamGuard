@@ -143,7 +143,12 @@ export const mapConversation = (item: BackendConversation): Conversation => ({
   unreadCount: resolveUnreadCount(item),
   hasUnread: item.hasUnread,
   status: (item.tradeInOrder?.status?.toLowerCase() || 'active') as Conversation['status'],
-  isOnline: resolveOnlineStatus(item)
+  isOnline: resolveOnlineStatus(item),
+  tradeInOrderCode: item.tradeInOrder?.orderCode,
+  tradeInOrderId: (item as BackendConversation & { tradeInOrderId?: string }).tradeInOrderId || 
+                  (item as BackendConversation & { id?: string }).id || 
+                  (item as BackendConversation & { tradeInOrder?: { id?: string; tradeInOrderId?: string } }).tradeInOrder?.id || 
+                  (item as BackendConversation & { tradeInOrder?: { id?: string; tradeInOrderId?: string } }).tradeInOrder?.tradeInOrderId,
 });
 
 /** Map backend message schema to UI model */

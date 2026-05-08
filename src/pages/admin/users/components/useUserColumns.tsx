@@ -34,8 +34,8 @@ export function useUserColumns({ onView, onViewOrders }: UserColumnsProps = {}) 
             <div className="flex items-center gap-3">
               <Avatar className="h-9 w-9 border-2 border-slate-100 shadow-sm">
                 <AvatarImage src={user.avatarUrl || randomAvatarUrl} />
-                <AvatarFallback className="bg-blue-600 text-white text-xs font-semibold">
-                  {user.fullName?.charAt(0) || 'C'}
+                <AvatarFallback className="bg-slate-50 flex items-center justify-center">
+                  <img src="/images/logo_no_name.svg" alt="DG" className="w-5 h-5 opacity-40 grayscale" />
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0">

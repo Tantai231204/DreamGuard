@@ -3,7 +3,6 @@ import {
   getCoreRowModel,
   getPaginationRowModel,
   useReactTable,
-  type PaginationState,
   type SortingState,
 } from '@tanstack/react-table';
 
@@ -13,9 +12,9 @@ import {
   paymentKeys,
   tradeInOrderKeys,
 } from '@/hooks/queries';
-import { useDebounce } from '@/hooks/useDebounce';
+import { useAdminTableSync } from '@/hooks/admin/useAdminTableSync';
 import { usePermission } from '@/hooks/usePermission';
-import { isTradeInAdminCancelableStatus, isTradeInFinalStatus } from '@/utils/tradeInWorkflow';
+import { isTradeInAdminCancelableStatus, isTradeInFinalStatus, toTradeInStatus } from '@/utils/tradeInWorkflow';
 
 import { tradeInOrderService, paymentService } from '@/api/services';
 import { toast } from 'sonner';
@@ -31,28 +30,73 @@ export const TRADE_IN_ORDERS_VIRTUALIZE_THRESHOLD = 30;
 export const useTradeInOrdersTabViewModel = () => {
   const queryClient = useQueryClient();
   const { isSeller } = usePermission();
+  const {
+    pagination,
+    setPagination,
+    globalFilter,
+    setGlobalFilter,
+    debouncedFilter,
+    setFieldFilter,
+    getFieldFilter,
+  } = useAdminTableSync(TRADE_IN_ORDERS_DEFAULT_PAGE_SIZE);
+
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [globalFilter, setGlobalFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [pagination, setPagination] = useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: TRADE_IN_ORDERS_DEFAULT_PAGE_SIZE,
-  });
+  const statusFilter = getFieldFilter('status', 'all');
 
   // Cancel Dialog State
   const [isCancelOpen, setIsCancelOpen] = useState(false);
   const [isRefundOnly, setIsRefundOnly] = useState(false);
   const [orderToCancel, setOrderToCancel] = useState<TradeInOrderListItem | null>(null);
 
-  const debouncedFilter = useDebounce(globalFilter, 500);
-
   const queryParams = useMemo(
-    () => ({
-      pageNumber: pagination.pageIndex + 1,
-      pageSize: pagination.pageSize,
-      key: debouncedFilter || undefined,
-      status: statusFilter !== 'all' ? statusFilter : undefined,
-    }),
+    () => {
+      let apiStatus: string | string[] | undefined = undefined;
+
+      if (statusFilter !== 'all') {
+        switch (statusFilter) {
+          case 'CANCELLED':
+            apiStatus = 'CANCELLED';
+            break;
+          case 'ADMIN_CANCELLED':
+            apiStatus = 'ADMINCANCELLED';
+            break;
+          case 'FORCED_CANCELLED':
+            apiStatus = 'FORCED_CANCELLED';
+            break;
+          case 'COMPLETED':
+            apiStatus = ['COMPLETED', 'RefundedAndRestocked', 'RefundedAndDamaged'];
+            break;
+          case 'EXCHANGE_REQUESTED':
+            apiStatus = ['EXCHANGE_REQUESTED', 'Shipping_Replacement'];
+            break;
+          case 'DELIVERING':
+            apiStatus = ['DELIVERING', 'ARRIVED', 'DELIVERED'];
+            break;
+          case 'RETURNING':
+            apiStatus = 'RETURNING';
+            break;
+          case 'WAITING_FOR_STAFF':
+            apiStatus = ['WAITING_FOR_STAFF', 'Pending'];
+            break;
+          case 'CONFIRMED':
+            apiStatus = 'CONFIRMED';
+            break;
+          case 'PROCESSING':
+            apiStatus = 'PROCESSING';
+            break;
+          default:
+            apiStatus = statusFilter;
+        }
+      }
+
+      return {
+        pageNumber: pagination.pageIndex + 1,
+        pageSize: pagination.pageSize,
+        key: debouncedFilter || undefined,
+        search: debouncedFilter || undefined,
+        status: apiStatus,
+      };
+    },
     [debouncedFilter, pagination.pageIndex, pagination.pageSize, statusFilter],
   );
 
@@ -61,6 +105,7 @@ export const useTradeInOrdersTabViewModel = () => {
     {
       pageNumber: queryParams.pageNumber,
       pageSize: queryParams.pageSize,
+      key: queryParams.key,
     },
     { enabled: isSeller }
   );
@@ -74,9 +119,45 @@ export const useTradeInOrdersTabViewModel = () => {
     refetch,
   } = activeQuery;
 
-  const rows = useMemo(() => data?.items ?? [], [data]);
+  const rows = useMemo(() => {
+    const items = data?.items ?? [];
+    if (statusFilter === 'all') return items;
+
+    return items.filter((item) => {
+      const s = toTradeInStatus(item.status);
+      const target = toTradeInStatus(statusFilter);
+      
+      switch (statusFilter) {
+        case 'COMPLETED':
+          return s === 'COMPLETED' || s === 'REFUNDED_AND_RESTOCKED' || s === 'REFUNDED_AND_DAMAGED';
+        case 'EXCHANGE_REQUESTED':
+          return s === 'EXCHANGE_REQUESTED' || s === 'SHIPPING_REPLACEMENT';
+        case 'DELIVERING':
+          return s === 'DELIVERING' || s === 'ARRIVED' || s === 'DELIVERED';
+        default:
+          return s === target;
+      }
+    });
+  }, [data, statusFilter]);
   const pageCount = data?.totalPages ?? -1;
   const statusOptions = useMemo(() => buildTradeInStatusOptions(rows), [rows]);
+
+  // Comprehensive logic for identifying orders requiring financial settlement
+  const pendingRefundCount = useMemo(() => {
+    if (!adminQuery.data?.items) return 0;
+    return adminQuery.data.items.filter(r => {
+      const s = r.status.toUpperCase();
+      const ps = r.paymentStatus?.toUpperCase() || '';
+
+      // Match any termination state that involves a paid deposit not yet settled
+      const isTerminated = s.includes('CANCEL') || s.includes('REJECTED');
+      const hasValueToReturn = (r.depositAmount || 0) > 0;
+      const isSettled = ps.includes('REFUND') || s.includes('REFUND');
+
+      return isTerminated && hasValueToReturn && !isSettled;
+    }).length;
+  }, [adminQuery.data?.items]);
+
   const { mutate: cancelMutation, isPending: isCancelling } = useMutation({
     mutationFn: async ({
       id,
@@ -164,23 +245,24 @@ export const useTradeInOrdersTabViewModel = () => {
     state: {
       sorting,
       pagination,
+      globalFilter,
     },
     onPaginationChange: setPagination,
     onSortingChange: setSorting,
+    onGlobalFilterChange: setGlobalFilter,
     manualPagination: true,
+    manualFiltering: true,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
   });
 
   const handleSearchChange = useCallback((value: string) => {
     setGlobalFilter(value);
-    setPagination((prev) => (prev.pageIndex === 0 ? prev : { ...prev, pageIndex: 0 }));
-  }, []);
+  }, [setGlobalFilter]);
 
   const handleStatusChange = useCallback((value: string) => {
-    setStatusFilter(value);
-    setPagination((prev) => (prev.pageIndex === 0 ? prev : { ...prev, pageIndex: 0 }));
-  }, []);
+    setFieldFilter('status', value);
+  }, [setFieldFilter]);
 
   const handleRefresh = useCallback(() => {
     void refetch();
@@ -210,5 +292,6 @@ export const useTradeInOrdersTabViewModel = () => {
     totalPriceToRefund: orderToCancel?.depositAmount || orderToCancel?.amountToPay || 0,
     paymentMethod: orderToCancel?.paymentMethod,
     paymentStatus: orderToCancel?.paymentStatus,
+    pendingRefundCount,
   };
 };

@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AlertTriangle, ShieldAlert, XCircle, Loader2, RotateCcw } from "lucide-react";
-import { RefundSection } from "./process-return/RefundSection";
+import { RefundSection } from "./RefundSection";
 
 interface CancelOrderDialogProps {
   open: boolean;
@@ -70,7 +70,10 @@ export function CancelOrderDialog({
 
   const handleSetPercentage = React.useCallback((val: number) => {
     setPercentage(val);
-    setRefundAmount((totalPrice * val) / 100);
+    const rawAmount = (totalPrice * val) / 100;
+    // Round up to nearest thousand as requested (e.g., 55,400 -> 56,000)
+    const roundedAmount = Math.ceil(rawAmount / 1000) * 1000;
+    setRefundAmount(roundedAmount);
   }, [totalPrice]);
 
   const handleSetRefundAmount = React.useCallback((val: number) => {
@@ -108,9 +111,9 @@ export function CancelOrderDialog({
     }
   };
 
-  const isVNPayPaid = paymentMethod?.toLowerCase() === 'vnpay' &&
+  const isRefundableMethod = (paymentMethod?.toLowerCase() === 'vnpay' || paymentMethod?.toLowerCase() === 'other') &&
     (paymentStatus?.toLowerCase() === 'paid' || paymentStatus?.toLowerCase() === 'codpaid');
-  const showRefundSection = isRefundOnly || (isVNPayPaid && totalPrice > 0);
+  const showRefundSection = isRefundOnly || (isRefundableMethod && totalPrice > 0);
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -120,7 +123,7 @@ export function CancelOrderDialog({
           <div className="flex items-center gap-4 relative z-10">
             <div className={cn(
               "h-10 w-10 rounded-xl flex items-center justify-center border transition-colors shadow-sm",
-              isRefundOnly ? "bg-blue-50 border-blue-100 text-blue-600" : "bg-white border-slate-200 text-slate-600"
+              isRefundOnly ? "bg-slate-900 border-slate-900 text-white" : "bg-white border-slate-200 text-slate-600"
             )}>
               {isRefundOnly ? (
                 <RotateCcw className="h-5 w-5" />
@@ -145,12 +148,12 @@ export function CancelOrderDialog({
             animate={{ opacity: 1, y: 0 }}
             className={cn(
               "border-l-4 p-4 flex items-start gap-4 rounded-r-xl shadow-sm",
-              isRefundOnly ? "bg-blue-50/30 border-blue-500" : "bg-rose-50/20 border-rose-500"
+              isRefundOnly ? "bg-slate-50 border-slate-900" : "bg-rose-50/20 border-rose-500"
             )}
           >
-            <AlertTriangle className={cn("h-5 w-5 shrink-0 mt-0.5", isRefundOnly ? "text-blue-500" : "text-rose-500")} />
+            <AlertTriangle className={cn("h-5 w-5 shrink-0 mt-0.5", isRefundOnly ? "text-slate-900" : "text-rose-500")} />
             <div className="space-y-1">
-              <p className={cn("text-[10px] font-black uppercase tracking-widest", isRefundOnly ? "text-blue-600" : "text-rose-600")}>
+              <p className={cn("text-[10px] font-black uppercase tracking-widest", isRefundOnly ? "text-slate-900" : "text-rose-600")}>
                 {isRefundOnly ? "Financial Settlement" : "Administrative Override"}
               </p>
               <p className="text-xs text-slate-600 font-medium leading-relaxed">
@@ -239,7 +242,7 @@ export function CancelOrderDialog({
             disabled={isLoading || !selectedReason}
             className={cn(
                 "text-white font-black text-[10px] uppercase tracking-widest px-8 h-11 rounded-xl transition-all active:scale-95 disabled:opacity-50 !border-0 shadow-lg",
-                isRefundOnly ? "bg-blue-600 hover:bg-blue-700 shadow-blue-500/20" : "bg-rose-600 hover:bg-rose-700 shadow-rose-500/20"
+                isRefundOnly ? "bg-slate-900 hover:bg-black shadow-slate-900/20" : "bg-rose-600 hover:bg-rose-700 shadow-rose-500/20"
             )}
           >
             {isLoading ? (

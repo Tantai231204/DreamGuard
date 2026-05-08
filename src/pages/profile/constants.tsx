@@ -1,4 +1,4 @@
-import { Package, CheckCircle2, Truck, Clock3, AlertCircle, ShieldCheck, RotateCcw, MapPin, PackageCheck } from "lucide-react"
+import { Package, CheckCircle2, Truck, Clock3, AlertCircle, ShieldCheck, RotateCcw, MapPin, PackageCheck, MinusCircle } from "lucide-react"
 import { OrderStatusValue } from "@/api/types/order"
 import { resolveTradeInStatusTheme } from "@/utils/tradeInStatusTheme"
 
@@ -94,6 +94,38 @@ const THEME_MAP: Record<string, StatusThemeItem> = {
         step: 7,
         description: "Items received back at our hub"
     },
+    ReturnedAndRefunding: {
+        label: "Returned & Refunding",
+        variant: "amber",
+        icon: <RotateCcw className="h-4 w-4" />,
+        color: "#f59e0b", // Amber 500
+        step: 8,
+        description: "Items returned and refund is being processed"
+    },
+    ReturnedAndRefunded: {
+        label: "Returned & Refunded",
+        variant: "success",
+        icon: <CheckCircle2 className="h-4 w-4" />,
+        color: "#10b981", // Emerald 500
+        step: 9,
+        description: "Items returned and refund completed"
+    },
+    ExchangeRequested: {
+        label: "Exchange Requested",
+        variant: "sky",
+        icon: <RotateCcw className="h-4 w-4" />,
+        color: "#0ea5e9", // Sky 500
+        step: 2,
+        description: "You have requested an exchange"
+    },
+    ShippingReplacement: {
+        label: "Shipping Replacement",
+        variant: "outline",
+        icon: <Truck className="h-4 w-4" />,
+        color: "#2563eb", // Blue 600
+        step: 3,
+        description: "Replacement item is on the way"
+    },
     Refunded: {
         label: "Refunded",
         variant: "success",
@@ -117,6 +149,30 @@ const THEME_MAP: Record<string, StatusThemeItem> = {
         color: "#e11d48", // Rose 600
         step: -1,
         description: "This order was rejected"
+    },
+    PartialRefunded: {
+        label: "Partial Refunded",
+        variant: "amber",
+        icon: <RotateCcw className="h-4 w-4" />,
+        color: "#f59e0b", // Amber 500
+        step: 5,
+        description: "Some items have been refunded"
+    },
+    Refunding: {
+        label: "Refunding",
+        variant: "amber",
+        icon: <RotateCcw className="h-4 w-4" />,
+        color: "#f97316", // Orange 500
+        step: 5,
+        description: "Refund in progress"
+    },
+    PartialCompleted: {
+        label: "Partial Completed",
+        variant: "secondary",
+        icon: <MinusCircle className="h-4 w-4" />,
+        color: "#64748b", // Slate 500
+        step: 5,
+        description: "Some items in this batch have been completed"
     }
 }
 
@@ -132,8 +188,10 @@ export const STATUS_THEME: Record<string | number, StatusThemeItem> = {
     [OrderStatusValue.Cancelled]: THEME_MAP.Cancelled,
     [OrderStatusValue.Returned]: THEME_MAP.Returned,
     [OrderStatusValue.Returning]: THEME_MAP.Returning,
-    [OrderStatusValue.RefundedAndRestocked]: THEME_MAP.Refunded,
-    [OrderStatusValue.RefundedAndDamaged]: THEME_MAP.Refunded,
+    [OrderStatusValue.ReturnedAndRefunding]: THEME_MAP.ReturnedAndRefunding,
+    [OrderStatusValue.ReturnedAndRefunded]: THEME_MAP.ReturnedAndRefunded,
+    [OrderStatusValue.ExchangeRequested]: THEME_MAP.ExchangeRequested,
+    [OrderStatusValue.Shipping_Replacement]: THEME_MAP.ShippingReplacement,
     "Pending": THEME_MAP.Pending,
     "Confirmed": THEME_MAP.Confirmed,
     "Processing": THEME_MAP.Processing,
@@ -149,18 +207,31 @@ export const STATUS_THEME: Record<string | number, StatusThemeItem> = {
     "Forced_Cancelled": THEME_MAP.Cancelled,
     "Returned": THEME_MAP.Returned,
     "Returning": THEME_MAP.Returning,
-    "RefundedAndRestocked": THEME_MAP.Refunded,
-    "RefundedAndDamaged": THEME_MAP.Refunded,
+    "ReturnedAndRefunding": THEME_MAP.ReturnedAndRefunding,
+    "ReturnedAndRefunded": THEME_MAP.ReturnedAndRefunded,
+    "RefundedAndRestocked": THEME_MAP.ReturnedAndRefunding,
+    "RefundedAndDamaged": THEME_MAP.ReturnedAndRefunded,
+    "ExchangeRequested": THEME_MAP.ExchangeRequested,
+    "Shipping_Replacement": THEME_MAP.ShippingReplacement,
+    "ShippingReplacement": THEME_MAP.ShippingReplacement,
     // API may return parenthesized or spaced variants
-    "Refunded (Restocked)": THEME_MAP.Refunded,
-    "Refunded (Damaged)": THEME_MAP.Refunded,
-    "Refunded(Restocked)": THEME_MAP.Refunded,
-    "Refunded(Damaged)": THEME_MAP.Refunded,
+    "Returned & Refunding": THEME_MAP.ReturnedAndRefunding,
+    "Returned & Refunded": THEME_MAP.ReturnedAndRefunded,
+    "Refunded (Restocked)": THEME_MAP.ReturnedAndRefunding,
+    "Refunded (Damaged)": THEME_MAP.ReturnedAndRefunded,
+    "Refunded(Restocked)": THEME_MAP.ReturnedAndRefunding,
+    "Refunded(Damaged)": THEME_MAP.ReturnedAndRefunded,
     "Refunded": THEME_MAP.Refunded,
-    "RefundedRestocked": THEME_MAP.Refunded,
-    "RefundedDamaged": THEME_MAP.Refunded,
+    "RefundedRestocked": THEME_MAP.ReturnedAndRefunding,
+    "RefundedDamaged": THEME_MAP.ReturnedAndRefunded,
     "Rescheduled": THEME_MAP.Rescheduled,
     "Rejected": THEME_MAP.Rejected,
+    "PartialRefunded": THEME_MAP.PartialRefunded,
+    "Partial Refunded": THEME_MAP.PartialRefunded,
+    "Refunding": THEME_MAP.Refunding,
+    "PartialCompleted": THEME_MAP.PartialCompleted,
+    "Partial Completed": THEME_MAP.PartialCompleted,
+    "Partial_Completed": THEME_MAP.PartialCompleted,
 }
 
 // Robust status theme resolver — handles all API response formats

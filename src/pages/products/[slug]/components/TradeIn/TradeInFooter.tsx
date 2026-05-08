@@ -23,6 +23,7 @@ interface TradeInFooterProps {
     phoneNumber: string;
     address: string;
   };
+  isManualEntry: boolean;
 }
 
 export const TradeInFooter = memo(function TradeInFooter({
@@ -39,6 +40,7 @@ export const TradeInFooter = memo(function TradeInFooter({
   onComplete,
   onClose,
   contact,
+  isManualEntry,
 }: TradeInFooterProps) {
   const isLogisticsValid = Boolean(
     contact?.receiverName?.trim() &&
@@ -49,7 +51,9 @@ export const TradeInFooter = memo(function TradeInFooter({
   const isNextDisabled =
     (step === 'selection' && selectedCount !== 1) ||
     (step === 'images' && imagesCount < 5) ||
-    (step === 'logistics' && !isLogisticsValid);
+    (step === 'logistics' && (!isLogisticsValid || isManualEntry));
+
+  const isCompleteDisabled = isSubmitting || imagesCount < 5 || !isLogisticsValid;
 
   return (
     <div className="px-8 py-6 flex items-center justify-between border-t border-[#EDE8E1] bg-white flex-shrink-0 z-10 shadow-[0_-4px_20px_rgba(0,0,0,0.03)]">
@@ -130,7 +134,7 @@ export const TradeInFooter = memo(function TradeInFooter({
         ) : (
           <Button
             onClick={onComplete}
-            disabled={isSubmitting}
+            disabled={isCompleteDisabled}
             className="h-11 px-8 text-[13px] rounded-2xl bg-[#455A48] hover:bg-[#3D5140] text-white font-bold gap-2 shadow-xl shadow-[#455A48]/20"
           >
             {isSubmitting ? 'Confirming...' : 'Confirm'}

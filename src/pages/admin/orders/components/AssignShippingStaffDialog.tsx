@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Dialog,
@@ -13,7 +13,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import {
   UserPlus,
   Loader2,
@@ -22,10 +21,12 @@ import {
   Truck,
   RefreshCw,
 } from 'lucide-react';
-import { useStaffs } from '@/hooks/queries/useStaff';
+import { useDeliveryStaffsForAssignment } from '@/hooks/queries/useStaff';
 import { useShippingTasksByOrder, useShippingTasksByTradeInOrder, useCreateShippingTask, useReassignShippingTask } from '@/hooks/queries/useShippingTask';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/store/authStore';
+import { isAdminOrManager as checkIsAdminOrManager } from '@/lib/role';
 
 interface AssignShippingStaffDialogProps {
   orderId?: string;
@@ -48,15 +49,14 @@ const formatLabel = (value?: string, fallback = 'Delivery Staff') => {
 
 const isActiveStatus = (status?: string) => (status || '').toLowerCase() === 'active';
 
-import { useAuthStore } from '@/store/authStore';
-import { isAdminOrManager as checkIsAdminOrManager } from '@/lib/role';
+
 
 function AssignShippingStaffContent({ orderId, tradeInOrderId, onClose }: { orderId?: string; tradeInOrderId?: string; onClose: () => void }) {
   const role = useAuthStore((s) => s.role);
   const isAdminOrManager = checkIsAdminOrManager(role);
   // Only fetch all delivery staff if admin/manager
-  const { data: staffData, isLoading: isLoadingStaff, isError: isStaffError } = useStaffs(
-    isAdminOrManager ? { pageSize: 100, Role: 'DeliveryStaff' } : undefined,
+  // Use dedicated assignment API
+  const { data: staffData, isLoading: isLoadingStaff, isError: isStaffError } = useDeliveryStaffsForAssignment(
     { enabled: isAdminOrManager }
   );
   const { data: orderTasks } = useShippingTasksByOrder(orderId || '');
@@ -73,10 +73,11 @@ function AssignShippingStaffContent({ orderId, tradeInOrderId, onClose }: { orde
     role?: string;
     status?: string;
     address?: string;
+    taskCount?: number;
   };
 
   const staffs = useMemo(() => {
-    if (isAdminOrManager) return (staffData?.items || []) as CustomStaffInfo[];
+    if (isAdminOrManager) return (staffData || []) as CustomStaffInfo[];
     // For sellers, collect unique staff from tasks (reconstruct minimal staff object)
     const allTasks = tasks || [];
     const uniqueStaff: Record<string, CustomStaffInfo> = {};
@@ -100,28 +101,13 @@ function AssignShippingStaffContent({ orderId, tradeInOrderId, onClose }: { orde
   }, [tasks]);
   const isReassign = !!activeTask;
 
-  const [selectedStaffId, setSelectedStaffId] = useState<string>(activeTask?.staffId || '');
-
-  // Only update selectedStaffId if it is empty and activeTask.staffId changes
-  useEffect(() => {
-    if (!selectedStaffId && activeTask?.staffId) {
-      setSelectedStaffId(activeTask.staffId);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTask?.staffId]);
+  const [userSelectedStaffId, setUserSelectedStaffId] = useState<string>('');
+  const selectedStaffId = userSelectedStaffId || activeTask?.staffId || '';
 
   const deliveryStaffs = useMemo(() => {
-    // For admin/manager, filter by role/position
-    if (isAdminOrManager) {
-      return staffs.filter((s) => {
-        const role = (s.role || '').toLowerCase();
-        const pos = (s.position || '').toLowerCase();
-        return role === 'deliverystaff' || pos === 'deliverystaff';
-      });
-    }
-    // For sellers, staffs are already filtered
+    // Staffs are already filtered by the API
     return staffs;
-  }, [staffs, isAdminOrManager]);
+  }, [staffs]);
 
   const selectedStaff = useMemo(() =>
     deliveryStaffs.find((s) => s.staffId === selectedStaffId),
@@ -131,6 +117,8 @@ function AssignShippingStaffContent({ orderId, tradeInOrderId, onClose }: { orde
   const createTask = useCreateShippingTask();
   const reassignTask = useReassignShippingTask();
   const isPending = createTask.isPending || reassignTask.isPending;
+  const isStatusBlocked = !!activeTask && activeTask.status?.toLowerCase() !== 'pending';
+
 
   const handleAction = async () => {
     if (!selectedStaffId) {
@@ -167,21 +155,21 @@ function AssignShippingStaffContent({ orderId, tradeInOrderId, onClose }: { orde
 
   return (
     <>
-      <DialogHeader className="p-8 pb-6 bg-slate-50 text-slate-900 border-b border-slate-100 relative">
-        <div className="relative z-10 space-y-2">
-          <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center mb-4 shadow-sm">
-            <UserPlus className="h-6 w-6 text-white" />
+      <DialogHeader className="p-6 pb-4 bg-slate-50 text-slate-900 border-b border-slate-100 relative">
+        <div className="relative z-10 space-y-1">
+          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center mb-2 shadow-sm">
+            <UserPlus className="h-5 w-5 text-white" />
           </div>
-          <DialogTitle className="text-2xl font-black tracking-tight">
+          <DialogTitle className="text-xl font-black tracking-tight">
             {!isAdminOrManager ? 'Shipping Staff Details' : isReassign ? 'Reassign Shipping Staff' : 'Assign Shipping Staff'}
           </DialogTitle>
-          <DialogDescription className="text-slate-500 font-medium leading-relaxed">
-            {!isAdminOrManager ? 'View assigned delivery specialist taking care of this shipment.' : 'Select a delivery specialist to handle this shipment request.'}
+          <DialogDescription className="text-slate-500 text-xs font-medium leading-relaxed">
+            {!isAdminOrManager ? 'View assigned delivery specialist.' : 'Select a delivery specialist to handle this shipment.'}
           </DialogDescription>
         </div>
       </DialogHeader>
 
-      <div className="px-8 py-6 space-y-6 bg-white">
+      <div className="px-6 py-4 space-y-4 bg-white">
         {isAdminOrManager && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -194,9 +182,9 @@ function AssignShippingStaffContent({ orderId, tradeInOrderId, onClose }: { orde
               )}
             </div>
 
-            <Select value={selectedStaffId} onValueChange={setSelectedStaffId} disabled={isLoadingStaff || isPending}>
-              <SelectTrigger className="h-14 px-4 rounded-xl border-2 border-slate-100 bg-white hover:border-primary transition-all focus:ring-primary/10">
-                <SelectValue placeholder={isLoadingStaff ? 'Syncing qualified staff...' : 'Browse shipping staff'} />
+            <Select value={selectedStaffId} onValueChange={setUserSelectedStaffId} disabled={isLoadingStaff || isPending || isStatusBlocked}>
+              <SelectTrigger className="h-12 px-4 rounded-xl border-2 border-slate-100 bg-white hover:border-primary transition-all focus:ring-primary/10">
+                <SelectValue placeholder={isLoadingStaff ? 'Syncing staff...' : 'Browse shipping staff'} />
               </SelectTrigger>
               <SelectContent className="max-h-[300px] p-1.5 rounded-xl">
                 {deliveryStaffs.length > 0 ? (
@@ -206,33 +194,45 @@ function AssignShippingStaffContent({ orderId, tradeInOrderId, onClose }: { orde
                       value={staff.staffId}
                       className="rounded-lg mb-1 last:mb-0 focus:bg-slate-50 cursor-pointer py-3"
                     >
-                      <div className="flex items-center justify-between gap-3 w-full">
+                      <div className="flex items-center justify-between gap-4 w-full">
                         <div className="flex items-center gap-3 min-w-0">
-                          <Avatar className="h-8 w-8 border border-slate-100 shadow-sm shrink-0">
-                            <AvatarImage src={staff.avatarUrl} />
+                          <Avatar className="h-9 w-9 border border-slate-200 shadow-sm shrink-0 bg-white overflow-hidden">
+                            <AvatarImage
+                              src={staff.avatarUrl || '/images/logo_no_name.svg'}
+                              className={cn("object-cover", !staff.avatarUrl && "scale-75")}
+                            />
                             <AvatarFallback className="bg-slate-200 text-slate-500 text-[10px] font-black uppercase">
                               {staff.fullName ? staff.fullName.charAt(0) : 'D'}
                             </AvatarFallback>
                           </Avatar>
-                          <div className="min-w-0">
-                            <p className="font-bold text-slate-800 text-sm truncate">{staff.fullName}</p>
-                            <div className="flex items-center gap-2 text-[11px] text-slate-500 min-w-0">
-                              <span className="truncate max-w-[120px]">{staff.phoneNumber || 'No phone'}</span>
-                              <span className="text-slate-300">|</span>
-                              <span className="truncate">{formatLabel(staff.position || staff.role, 'Delivery Staff')}</span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-bold text-slate-900 text-sm truncate">{staff.fullName}</p>
+                              {isActiveStatus(staff.status) && (
+                                <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-0.5">
+                              <span className="truncate">{formatLabel(staff.position || staff.role, 'Staff')}</span>
+                              {typeof staff.taskCount === 'number' && (
+                                <>
+                                  <span className="text-slate-300">•</span>
+                                  <span className="font-bold text-primary">{staff.taskCount} tasks</span>
+                                </>
+                              )}
                             </div>
                           </div>
                         </div>
                         <Badge
                           variant="outline"
                           className={cn(
-                            'font-bold px-2 rounded-md text-[10px]',
+                            "font-bold px-2 py-0.5 rounded-md text-[9px] shrink-0 border-0 uppercase tracking-wider shadow-sm",
                             isActiveStatus(staff.status)
-                              ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                              : 'bg-white border-slate-200 text-slate-500'
+                              ? "bg-emerald-50 text-emerald-600"
+                              : "bg-slate-100 text-slate-500"
                           )}
                         >
-                          {isActiveStatus(staff.status) ? 'Active' : (staff.status || 'Unknown')}
+                          {isActiveStatus(staff.status) ? 'Active' : (staff.status || 'Offline')}
                         </Badge>
                       </div>
                     </SelectItem>
@@ -258,47 +258,46 @@ function AssignShippingStaffContent({ orderId, tradeInOrderId, onClose }: { orde
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="p-5 rounded-2xl bg-slate-50 border border-slate-200 space-y-4 shadow-sm"
+            className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2 shadow-sm"
           >
-            <div className="flex items-center gap-4">
-              <Avatar className="h-14 w-14 border-2 border-white shadow-sm ring-1 ring-slate-200">
-                {isAdminOrManager && (
-                  <AvatarImage src={selectedStaff.avatarUrl} />
-                )}
+            <div className="flex items-center gap-3">
+              <Avatar className="h-10 w-10 border-2 border-white shadow-sm ring-1 ring-slate-200 overflow-hidden bg-white">
+                <AvatarImage
+                  src={selectedStaff.avatarUrl || '/images/logo_no_name.svg'}
+                  className={cn("object-cover", !selectedStaff.avatarUrl && "scale-75")}
+                />
                 <AvatarFallback className="bg-slate-300 text-white font-black">{selectedStaff.fullName.charAt(0)}</AvatarFallback>
               </Avatar>
-              <div className="flex-1">
-                <h4 className="font-black text-slate-800 truncate">{selectedStaff.fullName}</h4>
-                {isAdminOrManager ? (
-                  <>
-                    <p className="text-xs text-slate-500 font-medium">
-                      {formatLabel(selectedStaff.position || selectedStaff.role, 'Delivery Staff')}
-                    </p>
-                    <p className="text-xs text-slate-500 font-medium truncate">{selectedStaff.address || 'Location Verified'}</p>
-                  </>
-                ) : null}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <h4 className="font-black text-slate-800 text-sm truncate">{selectedStaff.fullName}</h4>
+                  {isAdminOrManager && typeof selectedStaff.taskCount === 'number' && (
+                    <Badge variant="outline" className="bg-slate-50 text-slate-500 border-slate-200 font-black text-[9px] uppercase px-1.5 py-0.5 h-fit shrink-0">
+                      {selectedStaff.taskCount} Tasks
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex items-center justify-between mt-0.5">
+                  <p className="text-[10px] text-slate-500 font-medium truncate">
+                    {formatLabel(selectedStaff.position || selectedStaff.role, 'Delivery Staff')} • {selectedStaff.phoneNumber || 'Private'}
+                  </p>
+                  <Badge variant="outline" className="bg-white border-slate-200 text-slate-500 font-bold px-1.5 py-0 rounded-md text-[9px] shrink-0">
+                    {!isAdminOrManager ? 'Assigned' : isReassign ? 'Reassignment' : 'Ready'}
+                  </Badge>
+                </div>
               </div>
-            </div>
-            <Separator className="bg-slate-200" />
-            <div className="flex justify-between items-center text-xs gap-3">
-              <span className="text-slate-600 font-medium truncate">
-                {isAdminOrManager ? (selectedStaff.phoneNumber || 'Contact Private') : 'Contact Private'}
-              </span>
-              <Badge variant="outline" className="bg-white border-slate-200 text-slate-600 font-bold px-2 rounded-md">
-                {!isAdminOrManager ? 'Assigned' : isReassign ? 'Reassignment' : 'Ready to Assign'}
-              </Badge>
             </div>
           </motion.div>
         )}
       </div>
 
-      <DialogFooter className="p-8 bg-slate-50 border-t border-slate-100 flex sm:justify-end items-center gap-4">
+      <DialogFooter className="p-6 bg-slate-50 border-t border-slate-100 flex sm:justify-end items-center gap-4">
         <Button
           variant={isAdminOrManager ? "ghost" : "default"}
           onClick={onClose}
           disabled={isPending}
           className={cn(
-            "font-black uppercase text-[10px] tracking-widest rounded-xl px-6 h-12",
+            "font-black uppercase text-[10px] tracking-widest rounded-xl px-6 h-10",
             isAdminOrManager ? "text-slate-400 hover:bg-slate-200 hover:text-slate-800" : "bg-primary hover:bg-primary-hover text-white shadow-md active:scale-95 border-0 w-full sm:w-auto"
           )}
         >
@@ -307,12 +306,12 @@ function AssignShippingStaffContent({ orderId, tradeInOrderId, onClose }: { orde
         {isAdminOrManager && (
           <Button
             onClick={handleAction}
-            disabled={!selectedStaffId || isPending || (isReassign && selectedStaffId === activeTask?.staffId)}
-            className="flex-1 bg-primary hover:bg-primary-hover text-white font-black uppercase text-[10px] tracking-widest transition-all h-12 rounded-xl shadow-md active:scale-95 border-0"
+            disabled={!selectedStaffId || isPending || (isReassign && selectedStaffId === activeTask?.staffId) || isStatusBlocked}
+            className="flex-1 bg-primary hover:bg-primary-hover text-white font-black uppercase text-[10px] tracking-widest transition-all h-10 rounded-xl shadow-md active:scale-95 border-0"
           >
             {isPending ? (
               <span className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" /> Synchronizing...
+                <Loader2 className="h-4 w-4 animate-spin" /> Syncing...
               </span>
             ) : isReassign ? (
               <span className="flex items-center gap-2">

@@ -102,7 +102,7 @@ const parseHighlight = (text: string, highlightClass: string) => {
             <span
                 key={match.index}
                 className={cn(
-                    "font-bold px-1.5 py-0.5 rounded-md border mx-0.5 whitespace-nowrap shadow-sm align-baseline",
+                    "font-bold px-1.5 py-0.5 rounded-md border mx-0.5 whitespace-normal break-words shadow-sm align-baseline",
                     highlightClass
                 )}
             >

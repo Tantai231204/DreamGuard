@@ -44,12 +44,6 @@ interface CompressionProfile {
 
 const compressionCache = new WeakMap<File, Map<string, Promise<File>>>();
 
-const WEBP_SUPPORTED = (() => {
-  if (typeof document === "undefined") return false;
-  const canvas = document.createElement("canvas");
-  return canvas.toDataURL("image/webp").startsWith("data:image/webp");
-})();
-
 const emitProgress = (
   options: UploadTradeInOrderImagesOptions | undefined,
   progress: number,
@@ -96,7 +90,7 @@ const buildCompressionProfile = (totalFiles: number, file: File): CompressionPro
   return {
     maxEdge: manyFiles ? COMPACT_MAX_IMAGE_EDGE : LARGE_MAX_IMAGE_EDGE,
     targetSizeBytes,
-    mimeType: WEBP_SUPPORTED ? "image/webp" : "image/jpeg",
+    mimeType: "image/jpeg",
     minQuality: MIN_QUALITY,
     maxQuality: MAX_QUALITY,
   };
@@ -242,7 +236,7 @@ const compressImage = (file: File, profile: CompressionProfile): Promise<File> =
   return task;
 };
 
-const compressWithConcurrency = async (
+export const compressWithConcurrency = async (
   files: File[],
   options?: UploadTradeInOrderImagesOptions,
 ): Promise<File[]> => {
@@ -274,7 +268,7 @@ const compressWithConcurrency = async (
   return optimized;
 };
 
-const prepareUploadFiles = async (
+export const prepareUploadFiles = async (
   files: File[],
   options?: UploadTradeInOrderImagesOptions,
 ): Promise<File[]> => {
@@ -302,7 +296,7 @@ const tradeInOrderService = {
   },
 
   getWaitingOrders: async (
-    params?: { pageNumber?: number; pageSize?: number }
+    params?: { pageNumber?: number; pageSize?: number; key?: string }
   ): Promise<AdminTradeInOrderListResponse> => {
     const res = await apiClient.get("/TradeInOrders/waiting-orders", { params });
     return res.data?.data ?? res.data;
@@ -338,16 +332,22 @@ const tradeInOrderService = {
     files: File[],
     options?: UploadTradeInOrderImagesOptions,
   ): Promise<UploadTradeInOrderImagesResponse> => {
+    const imageFiles = files.filter(f => f.type.startsWith("image/"));
+    if (imageFiles.length === 0) {
+      throw new Error("No valid images found to upload.");
+    }
+
     emitProgress(options, 1, "compressing");
-    const optimizedFiles = await prepareUploadFiles(files, options);
+    const optimizedFiles = await prepareUploadFiles(imageFiles, options);
 
     const formData = new FormData();
     optimizedFiles.forEach((file) => {
       formData.append("files", file);
     });
 
-    const res = await apiClient.post(`/TradeInOrders/${tradeInOrderId}/upload-image`, formData, {
+    const res = await apiClient.post(`/TradeInOrders/${tradeInOrderId}/upload-Image`, formData, {
       timeout: 120000,
+      headers: { "Content-Type": null },
       onUploadProgress: (event) => {
         const ratio =
           typeof event.progress === "number"
@@ -408,7 +408,7 @@ const tradeInOrderService = {
   /** User specific cancel */
   cancelDeal: async (tradeInOrderId: string, reason?: string): Promise<TradeInActionResponse> => {
     const res = await apiClient.patch(`/TradeInOrders/${tradeInOrderId}/cancel`, { reason });
-    return res.data;
+    return res.data?.data ?? res.data;
   },
 
   /** Retry payment for a failed pending trade-in order */
@@ -424,7 +424,7 @@ const tradeInOrderService = {
   /** Admin specific cancel */
   adminCancel: async (tradeInOrderId: string, reason?: string): Promise<TradeInActionResponse> => {
     const res = await apiClient.patch(`/TradeInOrders/${tradeInOrderId}/admin-cancel`, { reason });
-    return res.data;
+    return res.data?.data ?? res.data;
   },
 
   /** POST /TradeInOrders/:orderId/CreateConversation */
@@ -437,6 +437,7 @@ const tradeInOrderService = {
     const res = await apiClient.get("/TradeInOrders/get-trade-in-dash-board", { params });
     return res.data?.data ?? res.data;
   },
+  prepareUploadFiles,
 };
 
 

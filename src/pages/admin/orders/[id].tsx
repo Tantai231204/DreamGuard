@@ -1,6 +1,6 @@
-import { useParams } from 'react-router-dom';
-import { useMemo, useState } from 'react';
-import { Printer, Truck, History, ChevronDown, CreditCard, RotateCcw } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useMemo, useState, useEffect } from 'react';
+import { Printer, Truck, History, ChevronDown, CreditCard, RotateCcw, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useOrderDetail, useUpdateOrderStatus, useAdminCancelOrder, useAdminPayments, useUpdatePaymentStatus, useAdminCreateRefund, orderKeys } from '@/hooks/queries';
 import { useQueryClient } from '@tanstack/react-query';
@@ -26,17 +26,18 @@ import {
   ShippingAssignmentCard,
   PaymentInfoCard,
   AssignShippingStaffDialog,
-  ProcessReturnDialog,
-  ProcessExchangeDialog,
   OrderDetailSkeleton,
   ShippingLogisticsEvidence,
-  ConfirmStatusDialog
+  ConfirmStatusDialog,
+  ProcessExchangeDialog
 } from './components';
+import { ProcessReturnDialog } from './components/process-return/ProcessReturnDialog';
 import { AdminStatusBadge } from '@/components/admin';
 import { OrderStatus, ORDER_STATUS_MAP, ADMIN_ALLOWED_TRANSITION_STATUSES, ADMIN_ORDER_STATUS_THEME } from './constants';
 
 export default function OrderDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
 
   const { data: order, isLoading, isError } = useOrderDetail(id!);
   const updateStatus = useUpdateOrderStatus();
@@ -46,17 +47,21 @@ export default function OrderDetail() {
   const queryClient = useQueryClient();
 
   const { role } = useAuthStore();
-  const isAdmin = ['Admin', 'Staff'].includes(role || '');
+  const hasPrivilege = ['Admin', 'Staff', 'Manager', 'Seller'].includes(role || '');
 
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showAssignDialog, setShowAssignDialog] = useState(false);
-  const [showProcessReturnDialog, setShowProcessReturnDialog] = useState(false);
-  const [showProcessExchangeDialog, setShowProcessExchangeDialog] = useState(false);
   const [showConfirmStatusDialog, setShowConfirmStatusDialog] = useState(false);
   const [showRefundDialog, setShowRefundDialog] = useState(false);
+  const [showProcessReturnDialog, setShowProcessReturnDialog] = useState(false);
+  const [showProcessExchangeDialog, setShowProcessExchangeDialog] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
 
   const resolvedOrderId = order?.id || id || '';
+  const currentStatusEnum = useMemo(() =>
+    order ? (ORDER_STATUS_MAP[order.status.toString()] ?? OrderStatus.Pending) : OrderStatus.Pending
+    , [order]);
+
   const { data: shippingTasks, isLoading: isTasksLoading } = useShippingTasksByOrder(resolvedOrderId);
   const { data: paymentResponse } = useAdminPayments({ orderCode: order?.orderCode });
 
@@ -68,24 +73,23 @@ export default function OrderDetail() {
     );
   }, [paymentResponse]);
 
+
+
   const canCreateRefund = useMemo(() => {
     if (!order) return false;
-    const currentStatus = order.status.toString();
-    const statusEnum = ORDER_STATUS_MAP[currentStatus];
 
-    const isVNPayPaid = order.paymentMethod?.toLowerCase() === 'vnpay' && isPaid;
-    if (!isVNPayPaid) return false;
+    const isRefundableMethod = (order.paymentMethod?.toLowerCase() === 'vnpay' || order.paymentMethod?.toLowerCase() === 'other') && isPaid;
+    if (!isRefundableMethod) return false;
 
     // Prevent duplicate refunds
     const hasRefundProcess = paymentResponse?.items?.some(p =>
       ['refunding', 'refunded'].includes(p.status?.toLowerCase())
-    ) || ['refunding', 'refunded', 'refundedandrestocked', 'refundedanddamaged'].includes(order.paymentStatus?.toLowerCase() || '');
+    ) || ['refunding', 'refunded', 'returnedandrefunding', 'returnedandrefunded'].includes(order.paymentStatus?.toLowerCase() || '');
 
-    const isRefundableState = statusEnum === OrderStatus.Cancelled ||
-      statusEnum === OrderStatus.Returned;
+    const isRefundableState = currentStatusEnum === OrderStatus.Cancelled;
 
     return isRefundableState && !hasRefundProcess;
-  }, [order, isPaid, paymentResponse]);
+  }, [order, isPaid, paymentResponse, currentStatusEnum]);
 
   const sortedShippingTasks = useMemo(() => {
     const tasks = [...(shippingTasks || [])];
@@ -111,6 +115,28 @@ export default function OrderDetail() {
     ),
     [sortedShippingTasks, activeTask]
   );
+
+  // Bridging for QuickActionsCard buttons
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const win = window as Window & {
+        openReturnDialog?: () => void;
+        openExchangeDialog?: () => void;
+      };
+      win.openReturnDialog = () => setShowProcessReturnDialog(true);
+      win.openExchangeDialog = () => setShowProcessExchangeDialog(true);
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        const win = window as Window & {
+          openReturnDialog?: () => void;
+          openExchangeDialog?: () => void;
+        };
+        delete win.openReturnDialog;
+        delete win.openExchangeDialog;
+      }
+    };
+  }, []);
 
   if (isLoading || isTasksLoading) {
     return <OrderDetailSkeleton />;
@@ -140,40 +166,12 @@ export default function OrderDetail() {
       return;
     }
 
-    if ((newStatus === 'Processing' || newStatus === 'Delivering') && !hasActiveTask) {
+    if (newStatus === 'Delivering' && !hasActiveTask) {
       toast.error('Logistics Constraint', {
-        description: 'You must assign a technical agent before transitioning to this state.'
+        description: 'You must assign a technical agent before transitioning to the delivery phase.'
       });
       setShowConfirmStatusDialog(false);
       setPendingStatus(null);
-      return;
-    }
-
-    if (newStatus === 'Completed') {
-      const orderMethod = order?.paymentMethod?.toLowerCase();
-      const hasVNPay = paymentResponse?.items?.some(p => p.paymentMethod?.toLowerCase() === 'vnpay');
-      const isCOD = orderMethod === 'cod' || (!hasVNPay && paymentResponse?.items?.some(p => p.paymentMethod?.toLowerCase() === 'cod')) || (!orderMethod && !hasVNPay);
-
-      if (isCOD) {
-        const codPayment = paymentResponse?.items?.find(p => p.paymentMethod?.toLowerCase() === 'cod') || paymentResponse?.items?.[0];
-
-        if (codPayment) {
-          updatePayment.mutate({ id: codPayment.id, status: 'CODPaid' }, {
-            onSuccess: () => {
-              queryClient.invalidateQueries({ queryKey: orderKeys.detail(order!.id) });
-              setShowConfirmStatusDialog(false);
-              setPendingStatus(null);
-            },
-            onError: () => {
-              setShowConfirmStatusDialog(false);
-              setPendingStatus(null);
-            }
-          });
-        }
-      } else {
-        setShowConfirmStatusDialog(false);
-        setPendingStatus(null);
-      }
       return;
     }
 
@@ -190,20 +188,10 @@ export default function OrderDetail() {
   };
 
   const handleCancelOrder = (reason: string, refundAmount?: number) => {
-    cancelOrder.mutate({ id: order!.id, reason }, {
+    cancelOrder.mutate({ id: order!.id, reason, amount: refundAmount }, {
       onSuccess: () => {
-        if (refundAmount && refundAmount > 0) {
-          createRefund.mutate({
-            orderId: order!.id,
-            reason: "Return",
-            amount: refundAmount
-          }, {
-            onSuccess: () => {
-              queryClient.invalidateQueries({ queryKey: orderKeys.detail(order!.id) });
-              queryClient.invalidateQueries({ queryKey: ['payments', 'list', { orderCode: order!.orderCode }] });
-            }
-          });
-        }
+        queryClient.invalidateQueries({ queryKey: orderKeys.detail(order!.id) });
+        queryClient.invalidateQueries({ queryKey: ['payments'] });
         setShowCancelDialog(false);
       }
     });
@@ -222,8 +210,6 @@ export default function OrderDetail() {
       }
     });
   };
-
-  const currentStatusEnum = ORDER_STATUS_MAP[order!.status.toString()];
 
   const canCancel = currentStatusEnum === OrderStatus.Pending || currentStatusEnum === OrderStatus.Confirmed;
 
@@ -274,7 +260,7 @@ export default function OrderDetail() {
             timestamp: task.completionDate,
             icon: 'check',
           });
-        } else if ((task.status === "RefundedAndRestocked" || task.status === "RefundedAndDamaged" || task.status === "Returning") && task.completionDate) {
+        } else if ((task.status === "ReturnedAndRefunding" || task.status === "ReturnedAndRefunded" || task.status === "Returning") && task.completionDate) {
           items.push({
             title: 'Returning',
             description: `Return procedure initiated. ${task.staffNote ? `(${task.staffNote})` : ''}`,
@@ -341,6 +327,27 @@ export default function OrderDetail() {
 
         <div className="max-w-[1600px] mx-auto flex items-center justify-between relative z-10">
           <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-2 mb-2">
+              {order.checkoutOrderId ? (
+                <Button
+                  variant="ghost"
+                  className="w-fit p-0 h-auto hover:bg-transparent text-slate-400 hover:text-primary transition-all flex items-center gap-1 group/back"
+                  onClick={() => navigate(`/admin/checkout-orders/${order.checkoutOrderId}`)}
+                >
+                  <ChevronLeft className="w-4 h-4 group-hover/back:-translate-x-0.5 transition-transform" />
+                  <span className="text-[11px] font-black uppercase tracking-widest">Return to Batch Detail</span>
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  className="w-fit p-0 h-auto hover:bg-transparent text-slate-400 hover:text-slate-600 transition-all flex items-center gap-1 group/back"
+                  onClick={() => navigate('/admin/orders')}
+                >
+                  <ChevronLeft className="w-4 h-4 group-hover/back:-translate-x-0.5 transition-transform" />
+                  <span className="text-[11px] font-black uppercase tracking-widest">Back to Manifest List</span>
+                </Button>
+              )}
+            </div>
             <div className="flex items-center gap-3">
               <div className="bg-primary/10 text-primary px-2.5 py-0.5 rounded-md text-[10px] font-black tracking-widest uppercase border border-primary/20">
                 {order.orderCode}
@@ -358,33 +365,56 @@ export default function OrderDetail() {
                     <div className="px-3 py-2 border-b border-slate-50 mb-1">
                       <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Transition Override</span>
                     </div>
-                    {Object.entries(ADMIN_ORDER_STATUS_THEME)
-                      .filter(([status]) => {
-                        if (!ADMIN_ALLOWED_TRANSITION_STATUSES.includes(status)) return false;
+                    {(() => {
+                      const seen = new Set();
+                      return Object.entries(ADMIN_ORDER_STATUS_THEME)
+                        .filter(([status]) => {
+                          const statusLabel = ADMIN_ORDER_STATUS_THEME[status]?.label || status;
+                          if (!ADMIN_ALLOWED_TRANSITION_STATUSES.includes(statusLabel) && !ADMIN_ALLOWED_TRANSITION_STATUSES.includes(status)) return false;
 
-                        const targetStatusEnum = ORDER_STATUS_MAP[status];
-                        // Business Rule 1: Cannot move status backward
-                        if (targetStatusEnum <= currentStatusEnum) return false;
+                          const targetStatusEnum = ORDER_STATUS_MAP[status];
 
-                        // Business Rule 2: Cannot cancel if past Confirmed
-                        if (targetStatusEnum === OrderStatus.Cancelled) {
-                          return currentStatusEnum === OrderStatus.Pending || currentStatusEnum === OrderStatus.Confirmed;
-                        }
+                          // Terminal state check: Returned (7) is final
+                          if (currentStatusEnum === OrderStatus.Returned) return false;
 
-                        return true;
-                      })
-                      .map(([status]) => (
-                        <DropdownMenuItem
-                          key={status}
-                          onClick={() => status === 'Cancelled' ? setShowCancelDialog(true) : handleUpdateStatus(status)}
-                          className="rounded-lg cursor-pointer py-1.5 px-2 hover:bg-slate-50 transition-colors"
-                        >
-                          <AdminStatusBadge status={status} className="w-full justify-start" />
-                        </DropdownMenuItem>
-                      ))}
+                          // Business Rule 1: Cannot move status backward (except to Cancelled)
+                          if (targetStatusEnum !== OrderStatus.Cancelled && typeof targetStatusEnum === 'number' && typeof currentStatusEnum === 'number' && targetStatusEnum <= currentStatusEnum) return false;
+
+                          // Business Rule 2: Cannot cancel if past Confirmed
+                          if (targetStatusEnum === OrderStatus.Cancelled) {
+                            return currentStatusEnum === OrderStatus.Pending || currentStatusEnum === OrderStatus.Confirmed;
+                          }
+
+                          // Unique by label
+                          if (seen.has(statusLabel)) return false;
+                          seen.add(statusLabel);
+
+                          return true;
+                        })
+                        .map(([status]) => {
+                          const statusLabel = ADMIN_ORDER_STATUS_THEME[status]?.label || status;
+                          return (
+                            <DropdownMenuItem
+                              key={status}
+                              onClick={() => statusLabel === 'Cancelled' ? setShowCancelDialog(true) : handleUpdateStatus(statusLabel)}
+                              className="rounded-lg cursor-pointer py-1.5 px-2 hover:bg-slate-50 transition-colors"
+                            >
+                              <AdminStatusBadge status={statusLabel} className="w-full justify-start" />
+                            </DropdownMenuItem>
+                          );
+                        });
+                    })()}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
+              {order.items?.some(item => (item.exchangeRequestedQuantity || 0) > 0) && (
+                <div className="flex items-center gap-2 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-md shadow-sm animate-pulse">
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                  <span className="text-[9px] font-black text-amber-600 uppercase tracking-widest">
+                    {order.items.reduce((acc, item) => acc + (item.exchangeRequestedQuantity || 0), 0)} Items Reshipping
+                  </span>
+                </div>
+              )}
             </div>
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">
               Logistic Intelligence <span className="text-slate-400 font-medium">#{order.id.substring(0, 8).toUpperCase()}</span>
@@ -424,6 +454,8 @@ export default function OrderDetail() {
                 {createRefund.isPending ? "Initializing..." : "Initialize Refund"}
               </Button>
             )}
+
+
           </div>
         </div>
       </div>
@@ -432,7 +464,7 @@ export default function OrderDetail() {
         <div className="max-w-[1600px] mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             <div className="col-span-12 lg:col-span-8 space-y-8">
-              <OrderItemsList items={order.items} />
+              <OrderItemsList items={order.items} orderStatus={order.status} />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="flex flex-col space-y-4 h-full">
@@ -466,7 +498,7 @@ export default function OrderDetail() {
                 </div>
               </div>
 
-              <OrderSummary subTotal={order.subTotal} discountAmount={order.discountAmount} totalAmount={order.totalAmount} />
+              <OrderSummary subTotal={order.subTotal} discountAmount={order.discountAmount} shippingFee={order.shippingFee} totalAmount={order.totalAmount} />
             </div>
 
             <div className="col-span-12 lg:col-span-4 space-y-8">
@@ -474,24 +506,19 @@ export default function OrderDetail() {
                 currentStatusEnum={currentStatusEnum}
                 onUpdateStatus={handleUpdateStatus}
                 onCancelOrder={() => setShowCancelDialog(true)}
-                onProcessReturn={() => setShowProcessReturnDialog(true)}
-                onProcessExchange={() => setShowProcessExchangeDialog(true)}
-                canCancel={canCancel && isAdmin}
+                canCancel={canCancel && hasPrivilege}
                 hasTask={!!activeTask}
-                isPaid={isPaid}
               />
 
               {currentStatusEnum !== OrderStatus.Cancelled && (
                 <ShippingAssignmentCard
                   orderId={order.id}
+                  currentStatusEnum={currentStatusEnum}
                   onOpenAssign={() => setShowAssignDialog(true)}
                   delay={0.1}
                   canAssign={
-                    currentStatusEnum !== OrderStatus.Pending &&
-                    currentStatusEnum !== OrderStatus.Completed &&
-                    currentStatusEnum !== OrderStatus.Returned &&
-                    currentStatusEnum !== OrderStatus.RefundedAndRestocked &&
-                    currentStatusEnum !== OrderStatus.RefundedAndDamaged
+                    currentStatusEnum === OrderStatus.Processing || 
+                    currentStatusEnum === OrderStatus.ShippingReplacement
                   }
                 />
               )}
@@ -500,6 +527,7 @@ export default function OrderDetail() {
                 <ShippingLogisticsEvidence
                   taskId={activeTask.shippingTaskId}
                   taskLabel="Current Task"
+                  orderItems={order.items}
                   delay={0.15}
                 />
               )}
@@ -509,6 +537,7 @@ export default function OrderDetail() {
                   key={task.shippingTaskId}
                   taskId={task.shippingTaskId}
                   taskLabel={`Previous Task ${index + 1}`}
+                  orderItems={order.items}
                   delay={0.18 + (index * 0.03)}
                 />
               ))}
@@ -557,25 +586,6 @@ export default function OrderDetail() {
         orderId={order.id}
       />
 
-      <ProcessReturnDialog
-        isOpen={showProcessReturnDialog}
-        onClose={() => setShowProcessReturnDialog(false)}
-        orderId={order!.id}
-        taskId={activeTask?.shippingTaskId || ''}
-        items={order!.items || []}
-        totalPrice={order!.totalAmount}
-        paymentMethod={order!.paymentMethod}
-        paymentStatus={order!.paymentStatus}
-      />
-
-      <ProcessExchangeDialog
-        isOpen={showProcessExchangeDialog}
-        onClose={() => setShowProcessExchangeDialog(false)}
-        orderId={order.id}
-        taskId={activeTask?.shippingTaskId || ''}
-        items={order.items || []}
-      />
-
       <ConfirmStatusDialog
         open={showConfirmStatusDialog}
         onOpenChange={setShowConfirmStatusDialog}
@@ -583,8 +593,27 @@ export default function OrderDetail() {
         isLoading={updateStatus.isPending || updatePayment.isPending}
         title={`Confirm ${pendingStatus || 'Update'}`}
         description={`Are you sure you want to transition this order to ${pendingStatus}? This action will trigger associated workflow updates.`}
-        variant={pendingStatus === 'Completed' || pendingStatus === 'Confirmed' ? 'success' : 'primary'}
-        confirmText={pendingStatus === 'Completed' ? 'Finalize Order' : 'Confirm Update'}
+        variant={pendingStatus === 'Confirmed' ? 'success' : 'primary'}
+        confirmText="Confirm Update"
+      />
+
+      <ProcessReturnDialog
+        isOpen={showProcessReturnDialog}
+        onClose={() => setShowProcessReturnDialog(false)}
+        orderId={order.id}
+        taskId={activeTask?.shippingTaskId || ''}
+        items={order.items}
+        totalAmount={order.totalAmount}
+        paymentMethod={paymentResponse?.items?.[0]?.paymentMethod || order.paymentMethod}
+        paymentStatus={paymentResponse?.items?.[0]?.status || order.paymentStatus}
+      />
+
+      <ProcessExchangeDialog
+        isOpen={showProcessExchangeDialog}
+        onClose={() => setShowProcessExchangeDialog(false)}
+        orderId={order.id}
+        taskId={activeTask?.shippingTaskId || ''}
+        items={order.items}
       />
     </div>
   );

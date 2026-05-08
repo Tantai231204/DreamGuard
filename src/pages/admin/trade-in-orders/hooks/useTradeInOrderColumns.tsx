@@ -19,12 +19,6 @@ export const useTradeInOrderColumns = (
 ) => {
   return useMemo(
     () => [
-      columnHelper.display({
-        id: 'type',
-        header: () => <span className="font-semibold">Type</span>,
-        cell: () => <AdminStatusBadge status="tradein" />,
-        size: 120,
-      }),
       columnHelper.accessor('orderCode', {
         enableSorting: true,
         header: ({ column }) => <SortableHeader column={column} label="Trade-In ID" />,
@@ -78,19 +72,25 @@ export const useTradeInOrderColumns = (
       }),
       columnHelper.accessor('status', {
         header: () => <span className="font-semibold">Status</span>,
-        cell: ({ row }) => (
-          <AdminStatusBadge
-            status={tradeInStatusBadgeValue(row.original.status)}
-          />
-        ),
+        cell: ({ row }) => {
+          const rawStatus = row.original.status || '';
+
+          return (
+            <div className="flex flex-col gap-1.5">
+              <AdminStatusBadge
+                status={tradeInStatusBadgeValue(rawStatus)}
+                className="w-fit"
+              />
+            </div>
+          );
+        },
       }),
       columnHelper.display({
         id: 'condition',
         header: () => <span className="font-semibold">Condition</span>,
         cell: ({ row }) => (
           <AdminStatusBadge
-            status={row.original.isGood ? 'good' : 'failed'}
-            type={row.original.isGood ? 'success' : 'rose'}
+            status={row.original.isGood ? 'good' : 'fair'}
           />
         ),
       }),
@@ -131,7 +131,7 @@ export const useTradeInOrderColumns = (
             onClick: () => onCancel(row.original, false),
           };
 
-          const isVNPayPaid = row.original.paymentMethod?.toLowerCase() === 'vnpay' &&
+          const isRefundableMethod = (row.original.paymentMethod?.toLowerCase() === 'vnpay' || row.original.paymentMethod?.toLowerCase() === 'other') &&
             (row.original.paymentStatus?.toLowerCase() === 'paid' || row.original.paymentStatus?.toLowerCase() === 'codpaid');
 
           const refundAction = {
@@ -148,7 +148,7 @@ export const useTradeInOrderColumns = (
             actions.push(cancelAction);
           }
 
-          if (isVNPayPaid && row.original.amountToPay > 0) {
+          if (isRefundableMethod && row.original.amountToPay > 0) {
             actions.push(refundAction);
           }
 

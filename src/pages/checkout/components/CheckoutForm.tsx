@@ -1,8 +1,5 @@
-import { useForm } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { useEffect } from "react"
+import { useEffect, useMemo } from "react"
 import type { CheckoutFormData } from "../schema"
-import { checkoutSchema } from "../schema"
 import { Button } from "@/components/ui/button"
 import { DeliveryInfoSection } from "./DeliveryInfoSection"
 import { PaymentSection } from "./PaymentSection"
@@ -11,43 +8,27 @@ import { useNavigate } from "react-router-dom"
 import { AppRoute } from "@/lib/constants"
 import { useToast } from "@/hooks/useToast"
 import { useCart } from "@/store/useCart"
-import vnAddress from "@/shared/data/vnAddress.json"
-import type { CreateAddressPayload } from "@/api/types/address"
 import { useCreateOrder, useCreateAddress } from "@/hooks/queries"
 import { formatPrice } from "@/lib/utils"
+import type { UseFormReturn } from "react-hook-form"
 
 interface CheckoutFormProps {
+    form: UseFormReturn<CheckoutFormData>
     totalPrice: number
     selectedVoucherId: string | null
+    shippingFee: number
 }
 
-export function CheckoutForm({ totalPrice, selectedVoucherId }: CheckoutFormProps) {
-    const { clearCart } = useCart()
+export function CheckoutForm({ form, totalPrice, selectedVoucherId, shippingFee }: CheckoutFormProps) {
+    const { cart, clearCart } = useCart()
     const navigate = useNavigate()
-    const { success, error: toastError } = useToast()
+    const { error: toastError } = useToast()
 
     const { mutateAsync: createOrder, isPending: isOrderSubmitting } = useCreateOrder()
-    const { mutateAsync: createAddress, isPending: isAddressCreating } = useCreateAddress()
+    const { isPending: isAddressCreating } = useCreateAddress()
 
     const isSubmitting = isOrderSubmitting || isAddressCreating;
 
-    const form = useForm<CheckoutFormData>({
-        resolver: zodResolver(checkoutSchema),
-        defaultValues: {
-            firstName: "",
-            lastName: "",
-            email: "",
-            phone: "",
-            addressId: null,
-            userVoucherId: null,
-            streetAddress: "",
-            city: "",
-            district: "",
-            ward: "",
-            orderNotes: "",
-            paymentMethod: "VnPay",
-        },
-    })
 
     const { formState: { errors, isSubmitted } } = form
 
@@ -71,52 +52,43 @@ export function CheckoutForm({ totalPrice, selectedVoucherId }: CheckoutFormProp
         form.setValue("userVoucherId", nextVoucherId)
     }, [form, selectedVoucherId])
 
+    const hasCustomProduct = useMemo(() => cart.some(item => item.isCustom), [cart]);
+
+    useEffect(() => {
+        if (hasCustomProduct && form.getValues("paymentMethod") === "COD") {
+            form.setValue("paymentMethod", "VnPay");
+        }
+    }, [hasCustomProduct, form]);
+
     const onSubmit = async (data: CheckoutFormData) => {
         try {
-            let addressId = data.addressId
+            const addressId = data.addressId
 
-            // If manual entry (no addressId), create address first
-            if (!addressId) {
-                const cityObj = vnAddress.find(p => p.code === data.city)
-                const districtObj = cityObj?.districts.find(d => d.code === data.district)
-                const wardObj = districtObj?.wards.find(w => w.code === data.ward)
+            // Extra safety: Clean the ID of any quotes or whitespace
+            const finalAddressId = addressId ? String(addressId).replace(/^["']+|["']+$/g, '').trim() : null
 
-                if (!cityObj || !districtObj || !wardObj) {
-                    toastError("Invalid Address", "Please select a valid city, district, and ward.")
-                    return
-                }
-
-                const addressPayload: CreateAddressPayload = {
-                    receiverName: `${data.firstName} ${data.lastName}`,
-                    phoneNumber: data.phone,
-                    street: data.streetAddress,
-                    province: cityObj.name,
-                    city: cityObj.name,
-                    district: districtObj.name,
-                    ward: wardObj.name
-                }
-
-                addressId = await createAddress(addressPayload)
-
-                if (!addressId) {
-                    throw new Error("Failed to populate addressId after creation.")
-                }
+            if (!finalAddressId || finalAddressId === "null" || finalAddressId.length < 32) {
+                toastError("Address Required", "Please select or confirm your shipping address before placing an order.")
+                return
             }
 
             const response = await createOrder({
-                addressId: addressId!,
-                userVoucherId: data.userVoucherId,
+                addressId: finalAddressId,
+                userVoucherId: data.userVoucherId || null,
                 note: data.orderNotes || "",
+                shippingFee: shippingFee,
                 paymentMethod: data.paymentMethod
             })
+
+            // Clear cart immediately after successful order creation on backend
+            await clearCart()
 
             if (response.paymentUrl) {
                 sessionStorage.setItem('lastOrderType', 'order');
                 window.location.assign(response.paymentUrl)
             } else {
-                clearCart()
-                success("Order Successful", `Your order ${response.orderCode} has been placed.`)
-                navigate(`${AppRoute.CHECKOUT_RESULT}?orderCode=${response.orderCode}`)
+                const code = response.checkoutOrderCode || response.orderCode;
+                navigate(`${AppRoute.CHECKOUT_RESULT}?orderCode=${code}`)
             }
         } catch (err: unknown) {
             console.error("Checkout process failed:", err)
@@ -137,7 +109,7 @@ export function CheckoutForm({ totalPrice, selectedVoucherId }: CheckoutFormProp
             <DeliveryInfoSection form={form} />
 
             {/* Payment Information */}
-            <PaymentSection form={form} />
+            <PaymentSection form={form} isCODRestricted={hasCustomProduct} />
 
             {/* Submit Button & Trust Area */}
             <div className="rounded-[2rem] border border-slate-100 bg-white p-7 shadow-xl shadow-slate-200/35">

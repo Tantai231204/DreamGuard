@@ -8,8 +8,8 @@ export const OrderStatus = {
   Cancelled: 6,
   Returned: 7,
   Returning: 8,
-  RefundedAndRestocked: 9,
-  RefundedAndDamaged: 10,
+  ReturnedAndRefunding: 9,
+  ReturnedAndRefunded: 10,
   ExchangeRequested: 11,
   ShippingReplacement: 12,
   // Mapping Delivering/Arrived to existing numeric steps for UI flow
@@ -20,8 +20,8 @@ export const OrderStatus = {
 
 export type OrderStatus = typeof OrderStatus[keyof typeof OrderStatus];
 
-// Map string state from API to the Enum
-export const ORDER_STATUS_MAP: Record<string, OrderStatus> = {
+// Map string state from API to the Enum or a specific display label
+export const ORDER_STATUS_MAP: Record<string, OrderStatus | string> = {
   'Pending': OrderStatus.Pending,
   'Confirmed': OrderStatus.Confirmed,
   'Processing': OrderStatus.Processing,
@@ -33,8 +33,10 @@ export const ORDER_STATUS_MAP: Record<string, OrderStatus> = {
   'Cancelled': OrderStatus.Cancelled,
   'Returned': OrderStatus.Returned,
   'Returning': OrderStatus.Returning,
-  'RefundedAndRestocked': OrderStatus.RefundedAndRestocked,
-  'RefundedAndDamaged': OrderStatus.RefundedAndDamaged,
+  'ReturnedAndRefunding': OrderStatus.ReturnedAndRefunding,
+  'ReturnedAndRefunded': OrderStatus.ReturnedAndRefunded,
+  'RefundedAndRestocked': OrderStatus.ReturnedAndRefunding,
+  'RefundedAndDamaged': OrderStatus.ReturnedAndRefunded,
   'ExchangeRequested': OrderStatus.ExchangeRequested,
   'Shipping_Replacement': OrderStatus.ShippingReplacement,
   'ShippingReplacement': OrderStatus.ShippingReplacement,
@@ -48,14 +50,19 @@ export const ORDER_STATUS_MAP: Record<string, OrderStatus> = {
   '6': OrderStatus.Cancelled,
   '7': OrderStatus.Returned,
   '8': OrderStatus.Returning,
-  '9': OrderStatus.RefundedAndRestocked,
-  '10': OrderStatus.RefundedAndDamaged,
+  '9': OrderStatus.ReturnedAndRefunding,
+  '10': OrderStatus.ReturnedAndRefunded,
   '11': OrderStatus.ExchangeRequested,
   '12': OrderStatus.ShippingReplacement,
+  'PartialRefunded': 'Partial Refunded',
+  'PartialCompleted': 'Partial Completed',
+  'Partial_Completed': 'Partial Completed',
+  'Rejected': 'Rejected',
 };
 
-// Admin allowed manual transitions
+// Admin allowed manual transitions from the header dropdown
 export const ADMIN_ALLOWED_TRANSITION_STATUSES = [
+  'Confirmed',
   'Processing',
   'Cancelled'
 ];
@@ -70,8 +77,8 @@ export const ADMIN_ORDER_STATUS_THEME: Record<string, { label: string }> = {
   '6': { label: 'Cancelled' },
   '7': { label: 'Returned' },
   '8': { label: 'Returning' },
-  '9': { label: 'Refunded (Restocked)' },
-  '10': { label: 'Refunded (Damaged)' },
+  '9': { label: 'Returned & Refunding' },
+  '10': { label: 'Returned & Refunded' },
   '11': { label: 'Exchange Requested' },
   '12': { label: 'Shipping Replacement' },
 
@@ -85,9 +92,15 @@ export const ADMIN_ORDER_STATUS_THEME: Record<string, { label: string }> = {
   'Cancelled': { label: 'Cancelled' },
   'Completed': { label: 'Completed' },
   'Returning': { label: 'Returning' },
-  'RefundedAndRestocked': { label: 'Refunded (Restocked)' },
-  'RefundedAndDamaged': { label: 'Refunded (Damaged)' },
+  'ReturnedAndRefunding': { label: 'Returned & Refunding' },
+  'ReturnedAndRefunded': { label: 'Returned & Refunded' },
+  'RefundedAndRestocked': { label: 'Returned & Refunding' },
+  'RefundedAndDamaged': { label: 'Returned & Refunded' },
   'ExchangeRequested': { label: 'Exchange Requested' },
   'Shipping_Replacement': { label: 'Shipping Replacement' },
-  'ShippingReplacement': { label: 'Shipping Replacement' }
+  'ShippingReplacement': { label: 'Shipping Replacement' },
+  'PartialRefunded': { label: 'Partial Refunded' },
+  'PartialCompleted': { label: 'Partial Completed' },
+  'Partial_Completed': { label: 'Partial Completed' },
+  'Rejected': { label: 'Rejected' },
 };

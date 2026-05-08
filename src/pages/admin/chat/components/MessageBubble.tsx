@@ -63,9 +63,14 @@ function MessageBubbleInner({ message, formatTime, isLastOutgoing = false, onRet
   const initial = displaySenderName.charAt(0).toUpperCase();
   const timeStr        = useMemo(() => formatTime(timestamp), [timestamp, formatTime]);
   const appointmentTime = useMemo(
-    () => (appointment ? formatAppointmentTimeLabel(appointment.scheduledAt) : ''),
+    () => (appointment?.scheduledAt ? formatAppointmentTimeLabel(appointment.scheduledAt) : ''),
     [appointment],
   );
+
+  const formatCurrency = (val?: number) => {
+    if (val === undefined) return '';
+    return new Intl.NumberFormat('vi-VN').format(val) + ' đ';
+  };
 
   return (
     <div
@@ -114,7 +119,7 @@ function MessageBubbleInner({ message, formatTime, isLastOutgoing = false, onRet
         {appointment && (
           <div
             className={cn(
-              'w-full rounded-2xl px-4 py-3.5 shadow-sm',
+              'w-full min-w-[240px] rounded-2xl px-4 py-3.5 shadow-sm',
               isAdmin
                 ? 'bg-emerald-600 text-white shadow-emerald-900/10'
                 : 'bg-emerald-50/80 text-emerald-900 border-none',
@@ -133,22 +138,48 @@ function MessageBubbleInner({ message, formatTime, isLastOutgoing = false, onRet
               <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
             </div>
 
-            <div className="space-y-2.5">
-              <div className="flex items-center gap-3">
-                <CalendarClock className="h-4 w-4 opacity-70" strokeWidth={2.5} />
-                <span className="text-[13px] font-bold tracking-tight">{appointmentTime}</span>
-              </div>
-              
-              {appointment.location && (
-                <div className="flex items-start gap-3">
-                  <MapPin className="h-4 w-4 mt-0.5 opacity-70" strokeWidth={2.5} />
-                  <span className="text-[12px] font-medium leading-tight opacity-90">{appointment.location}</span>
+            <div className="space-y-3">
+              {(appointmentTime || appointment.location) && (
+                <div className="space-y-2">
+                  {appointmentTime && (
+                    <div className="flex items-center gap-3">
+                      <CalendarClock className="h-4 w-4 opacity-70" strokeWidth={2.5} />
+                      <span className="text-[13px] font-bold tracking-tight">{appointmentTime}</span>
+                    </div>
+                  )}
+                  
+                  {appointment.location && (
+                    <div className="flex items-start gap-3">
+                      <MapPin className="h-4 w-4 mt-0.5 opacity-70" strokeWidth={2.5} />
+                      <span className="text-[12px] font-medium leading-tight opacity-90">{appointment.location}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {(appointment.tradeInPrice !== undefined || appointment.amountToPay !== undefined) && (
+                <div className={cn(
+                  "p-3 rounded-xl space-y-2",
+                  isAdmin ? "bg-black/10" : "bg-white/80 shadow-sm"
+                )}>
+                  {appointment.tradeInPrice !== undefined && (
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-[9px] font-black uppercase tracking-wider opacity-60">Trade-in Price</span>
+                      <span className="text-sm font-black tabular-nums">{formatCurrency(appointment.tradeInPrice)}</span>
+                    </div>
+                  )}
+                  {appointment.amountToPay !== undefined && (
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-[9px] font-black uppercase tracking-wider opacity-60">Net Balance</span>
+                      <span className="text-sm font-black tabular-nums">{formatCurrency(appointment.amountToPay)}</span>
+                    </div>
+                  )}
                 </div>
               )}
 
               {appointment.note && (
                 <div className={cn(
-                  "mt-3 p-3 rounded-xl text-[11px] font-medium italic leading-relaxed",
+                  "p-3 rounded-xl text-[11px] font-medium italic leading-relaxed",
                   isAdmin ? "bg-black/10 text-emerald-50" : "bg-white/60 text-emerald-800"
                 )}>
                   "{appointment.note}"

@@ -73,12 +73,14 @@ export const useServiceManagement = () => {
       if (normalizedStatus === 'pending' || normalizedStatus === 'waiting' || normalizedStatus === 'unconfirmed') {
         await serviceOrderService.rejectServiceOrder(id);
       } else {
-        await serviceOrderService.cancelServiceOrder(id);
+        await serviceOrderService.managerCancelServiceOrder(id);
       }
     },
-    onSuccess: () => {
+    onSuccess: (_, { id }) => {
       toast.success(`Action applied successfully`);
       queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['serviceOrder', id] });
+      queryClient.invalidateQueries({ queryKey: ['serviceTask', 'detail', id] });
       queryClient.invalidateQueries({ queryKey: ['payments'] }); // Important for UI sync
       setIsCancelOpen(false);
     },

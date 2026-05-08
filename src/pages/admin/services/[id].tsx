@@ -9,7 +9,6 @@ import {
   OrderDetailSkeleton
 } from './components/OrderDetail';
 import { AssignTechnicianDialog } from './components/AssignTechnicianDialog';
-import { RescheduleDialog } from './components/RescheduleDialog';
 import { useOrderDetail } from './hooks/useOrderDetail';
 import type { ServiceBooking } from './types';
 
@@ -27,7 +26,6 @@ export default function ServiceDetail() {
     mappingQueries,
     statusCfg,
     isAssignOpen,
-    isRescheduleOpen,
     currentTaskIndex,
     selectedOrderId,
     permissions,
@@ -45,7 +43,7 @@ export default function ServiceDetail() {
         <OrderHeader
           order={{} as ServiceBooking}
           statusCfg={undefined}
-          permissions={{ canConfirm: false, canAssign: false, canCancel: false, isAssigned: false, canComplete: false, canReschedule: false }}
+          permissions={{ canConfirm: false, canAssign: false, canCancel: false, isAssigned: false }}
           onBack={actions.handleBack}
         />
         <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-white m-8 rounded-3xl shadow-sm border border-slate-100">
@@ -72,7 +70,6 @@ export default function ServiceDetail() {
         statusCfg={statusCfg}
         permissions={permissions}
         onAssign={actions.handleAssignOpen}
-        onReschedule={actions.handleRescheduleOpen}
         onBack={actions.handleBack}
       />
 
@@ -101,7 +98,6 @@ export default function ServiceDetail() {
                 scheduledTime={order.scheduledTime}
                 permissions={permissions}
                 onAssign={actions.handleAssignOpen}
-                onReschedule={actions.handleRescheduleOpen}
                 currentTaskIndex={currentTaskIndex}
                 onTaskIndexChange={actions.setCurrentTaskIndex}
               />
@@ -114,15 +110,9 @@ export default function ServiceDetail() {
         isOpen={isAssignOpen}
         onClose={actions.handleAssignClose}
         orderId={selectedOrderId || ""}
+        isRescheduled={permissions.isRescheduled}
       />
 
-      <RescheduleDialog
-        isOpen={isRescheduleOpen}
-        onClose={actions.handleRescheduleClose}
-        orderId={selectedOrderId}
-        currentDate={order.appointmentDate}
-        currentStaffId={order.serviceTask?.staffId || order.staff?.staffId}
-      />
     </div>
   );
 }

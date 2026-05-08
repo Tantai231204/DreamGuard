@@ -55,7 +55,7 @@ export const useUpdateStaff = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ id, data }: { id: string; data: UpdateStaffRequest }) => 
+        mutationFn: ({ id, data }: { id: string; data: UpdateStaffRequest }) =>
             staffService.updateStaff(id, data),
         onSuccess: (_, { id }) => {
             queryClient.invalidateQueries({ queryKey: staffKeys.detail(id) });
@@ -68,7 +68,7 @@ export const useUpdateStaffRole = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ id, newRole }: { id: string; newRole: string }) => 
+        mutationFn: ({ id, newRole }: { id: string; newRole: string }) =>
             staffService.updateStaffRole(id, newRole),
         onMutate: async ({ id, newRole }) => {
             await queryClient.cancelQueries({ queryKey: staffKeys.all });
@@ -102,11 +102,27 @@ export const useUpdateStaffAccount = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: ({ id, data }: { id: string; data: UpdateStaffAccountRequest }) => 
+        mutationFn: ({ id, data }: { id: string; data: UpdateStaffAccountRequest }) =>
             staffService.updateStaffAccount(id, data),
         onSuccess: (_, { id }) => {
             queryClient.invalidateQueries({ queryKey: staffKeys.detail(id) });
             queryClient.invalidateQueries({ queryKey: staffKeys.all });
         },
+    });
+};
+
+export const useCleaningStaffsForAssignment = (options?: { enabled?: boolean }) => {
+    return useQuery({
+        queryKey: [...staffKeys.all, "cleaning-assignment"],
+        queryFn: () => staffService.getCleaningStaffsForAssignment(),
+        enabled: options?.enabled,
+    });
+};
+
+export const useDeliveryStaffsForAssignment = (options?: { enabled?: boolean }) => {
+    return useQuery({
+        queryKey: [...staffKeys.all, "delivery-assignment"],
+        queryFn: () => staffService.getDeliveryStaffsForAssignment(),
+        enabled: options?.enabled,
     });
 };

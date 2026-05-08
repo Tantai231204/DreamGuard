@@ -18,7 +18,7 @@ interface ServiceOrderCardProps {
 
 function toThemeKey(status: unknown) {
   if (status === null || status === undefined) return 'Pending';
-  
+
   const codeMap: Record<number, string> = {
     0: 'Pending',
     1: 'Confirmed',
@@ -61,9 +61,9 @@ export const ServiceOrderCard = memo(({ order }: ServiceOrderCardProps) => {
   const normalizedOrderStatus = toThemeKey(order.status).toLowerCase();
   const paymentMethod = String(order.paymentMethod || '').toLowerCase();
   const paymentStatus = String(order.paymentStatus || '').toLowerCase();
-  const canRetryPayment = !!orderId && 
-    paymentMethod.includes('vnpay') && 
-    paymentStatus !== 'paid' && 
+  const canRetryPayment = !!orderId &&
+    paymentMethod.includes('vnpay') &&
+    paymentStatus !== 'paid' &&
     normalizedOrderStatus === 'pending';
 
   const handleRetryPayment = async () => {

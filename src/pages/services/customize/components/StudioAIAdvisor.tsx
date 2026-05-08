@@ -1,5 +1,6 @@
 import { memo, useState, useCallback } from 'react';
-import { Baby, ChevronRight, Loader2, Sparkles } from 'lucide-react';
+import { Baby, ChevronRight, Loader2, Sparkles, Ruler, Palette, Zap } from 'lucide-react';
+import { toast } from 'sonner';
 import {
     Dialog,
     DialogContent,
@@ -11,26 +12,21 @@ import { useBabyProfiles } from '@/hooks/useBabyProfile';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
-interface Recommendation {
-    width: number;
-    length: number;
-    colorHex: string;
-    explanation: string;
-    babyName: string;
-}
+import { useCustomizationRecommendation } from '@/hooks/queries/useProduct';
+import type { ProductRecommendationResponse, CustomizationRecommendation } from '@/api/types/product.types';
 
 interface StudioAIAdvisorProps {
-    onApplyRecommendation: (rec: { width: number; length: number; colorHex: string }) => void;
-    productType?: string;
+    onApplyRecommendation: (data: ProductRecommendationResponse) => void;
+    productId: string;
 }
 
-export const StudioAIAdvisor = memo(({ onApplyRecommendation, productType }: StudioAIAdvisorProps) => {
+export const StudioAIAdvisor = memo(({ onApplyRecommendation, productId }: StudioAIAdvisorProps) => {
     const [open, setOpen] = useState(false);
     const [selectedBabyId, setSelectedBabyId] = useState<string | null>(null);
-    const [isGenerating, setIsGenerating] = useState(false);
-    const [recommendation, setRecommendation] = useState<Recommendation | null>(null);
+    const [recommendation, setRecommendation] = useState<ProductRecommendationResponse | null>(null);
 
     const { data: babyProfiles, isLoading } = useBabyProfiles();
+    const { mutateAsync: getRecommendation, isPending: isGenerating } = useCustomizationRecommendation();
 
     const handleSelectBaby = useCallback((babyId: string) => {
         setSelectedBabyId(babyId);
@@ -38,178 +34,214 @@ export const StudioAIAdvisor = memo(({ onApplyRecommendation, productType }: Stu
     }, []);
 
     const generateRecommendation = useCallback(async () => {
-        if (!selectedBabyId || !babyProfiles) return;
-        
-        setIsGenerating(true);
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        if (!selectedBabyId || !productId) return;
 
-        const baby = babyProfiles.find(b => b.babyId === selectedBabyId);
-        if (!baby) return;
-
-        const dob = new Date(baby.dateOfBirth);
-        const ageInMonths = Math.max(0, (new Date().getTime() - dob.getTime()) / (1000 * 60 * 60 * 24 * 30.44));
-        const babyHeight = baby.height || 70;
-
-        let recWidth = 60;
-        let recLength = 120;
-
-        if (productType?.includes('pillow')) {
-            recWidth = ageInMonths < 6 ? 20 : 25;
-            recLength = ageInMonths < 6 ? 30 : 35;
-        } else if (productType?.includes('crib') || productType?.includes('mattress')) {
-            recWidth = Math.ceil(babyHeight * 0.7 + 15);
-            recLength = Math.ceil(babyHeight + 40);
-            recWidth = Math.max(40, Math.min(90, recWidth));
-            recLength = Math.max(90, Math.min(190, recLength));
+        try {
+            const data = await getRecommendation({ babyId: selectedBabyId, productId });
+            setRecommendation(data);
+        } catch (error) {
+            console.error("AI Recommendation failed:", error);
+            toast.error("Failed to generate recommendations. Please try again.");
         }
-
-        let colorHex = "#B0D4F1"; 
-        const isBoy = baby.gender.toLowerCase() === 'male' || baby.gender.toLowerCase() === 'nam';
-        const isGirl = baby.gender.toLowerCase() === 'female' || baby.gender.toLowerCase() === 'nữ';
-        
-        if (isBoy) colorHex = "#7EB1D6"; 
-        if (isGirl) colorHex = "#F4B6C2"; 
-
-        const explanation = `Recommended specifications for ${baby.name} based on their current growth stage (~${Math.floor(ageInMonths)}m) to ensure optimal comfort and safety.`;
-
-        setRecommendation({
-            width: recWidth,
-            length: recLength,
-            colorHex,
-            explanation,
-            babyName: baby.name
-        });
-        setIsGenerating(false);
-    }, [selectedBabyId, babyProfiles, productType]);
+    }, [selectedBabyId, productId, getRecommendation]);
 
     const handleApply = useCallback(() => {
         if (recommendation) {
-            onApplyRecommendation({
-                width: recommendation.width,
-                length: recommendation.length,
-                colorHex: recommendation.colorHex
-            });
+            onApplyRecommendation(recommendation);
             setOpen(false);
         }
     }, [recommendation, onApplyRecommendation]);
 
+    const sizeRec = recommendation?.CustomizationRecommendations.find((r: CustomizationRecommendation) => r.Category === 'Size');
+    const colorRec = recommendation?.CustomizationRecommendations.find((r: CustomizationRecommendation) => r.Category === 'Color');
+    const selectedBaby = babyProfiles?.find(b => b.babyId === selectedBabyId);
+
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setRecommendation(null); setSelectedBabyId(null); } }}>
             <DialogTrigger asChild>
-                <Button 
-                    variant="outline" 
-                    className="w-full h-11 rounded-xl border-slate-200 bg-white hover:bg-slate-50 text-slate-600 font-bold text-[11px] uppercase tracking-wider gap-2 transition-all shadow-sm group"
+                <button
+                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-[#4988c4]/15 bg-[#4988c4]/[0.03] hover:bg-[#4988c4]/[0.06] hover:border-[#4988c4]/25 transition-all duration-200 group"
                 >
-                    <Sparkles className="w-3.5 h-3.5 text-slate-400 group-hover:text-[#4988c4] transition-colors" />
-                    Automatic Growth Fit
-                </Button>
+                    <div className="h-8 w-8 rounded-lg bg-[#4988c4]/10 flex items-center justify-center flex-shrink-0 group-hover:bg-[#4988c4]/15 transition-colors">
+                        <Sparkles className="w-3.5 h-3.5 text-[#4988c4]" />
+                    </div>
+                    <div className="flex-1 text-left">
+                        <p className="text-[11px] font-bold text-slate-700">Growth Fit Advisor</p>
+                        <p className="text-[9px] text-slate-400 font-medium">AI-powered sizing for your baby</p>
+                    </div>
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-300 group-hover:text-[#4988c4] group-hover:translate-x-0.5 transition-all" />
+                </button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[400px] p-0 overflow-hidden border-none rounded-3xl shadow-xl bg-white">
-                <div className="bg-slate-50 px-6 py-8 border-b border-slate-100">
-                    <DialogTitle className="text-xl font-bold tracking-tight text-slate-900 mb-1">Growth Advisor</DialogTitle>
-                    <p className="text-slate-400 text-[10px] uppercase tracking-widest font-bold">Tailored to your resident's profile</p>
+
+            <DialogContent className="sm:max-w-[380px] p-0 overflow-hidden border border-slate-200 rounded-2xl shadow-2xl bg-white">
+                {/* Header */}
+                <div className="px-5 pt-5 pb-4">
+                    <div className="flex items-center gap-3 mb-1">
+                        <div className="h-8 w-8 rounded-lg bg-[#4988c4]/10 flex items-center justify-center">
+                            <Sparkles className="w-4 h-4 text-[#4988c4]" />
+                        </div>
+                        <div>
+                            <DialogTitle className="text-sm font-bold text-slate-900">Growth Fit Advisor</DialogTitle>
+                            <p className="text-[10px] text-slate-400 font-medium">Select a profile to get AI recommendations</p>
+                        </div>
+                    </div>
                 </div>
 
-                <div className="p-6 space-y-6">
-                    <div className="space-y-3">
-                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-1">Select Profile</label>
+                <div className="px-5 pb-5 space-y-4">
+                    {/* Baby Profile Selection */}
+                    <div className="space-y-2">
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.15em] px-0.5">Baby Profile</p>
                         {isLoading ? (
-                            <div className="flex items-center justify-center py-10">
-                                <Loader2 className="w-6 h-6 animate-spin text-slate-300" />
+                            <div className="flex items-center justify-center py-8">
+                                <Loader2 className="w-5 h-5 animate-spin text-slate-300" />
                             </div>
                         ) : babyProfiles && babyProfiles.length > 0 ? (
-                            <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1 no-scrollbar">
-                                {babyProfiles.map(baby => (
-                                    <button
-                                        key={baby.babyId}
-                                        onClick={() => handleSelectBaby(baby.babyId)}
-                                        className={cn(
-                                            "w-full flex items-center justify-between p-3.5 rounded-2xl border transition-all",
-                                            selectedBabyId === baby.babyId 
-                                                ? "border-[#4988c4] bg-[#4988c4]/5"
-                                                : "border-slate-50 bg-slate-50/50 hover:bg-slate-50"
-                                        )}
-                                    >
-                                        <div className="flex items-center gap-3">
+                            <div className="space-y-1.5 max-h-[180px] overflow-y-auto no-scrollbar">
+                                {babyProfiles.map(baby => {
+                                    const isSelected = selectedBabyId === baby.babyId;
+                                    return (
+                                        <button
+                                            key={baby.babyId}
+                                            onClick={() => handleSelectBaby(baby.babyId)}
+                                            className={cn(
+                                                "w-full flex items-center gap-3 p-2.5 rounded-xl border transition-all duration-150",
+                                                isSelected
+                                                    ? "border-[#4988c4] bg-[#4988c4]/5"
+                                                    : "border-slate-100 hover:border-slate-200 hover:bg-slate-50/50"
+                                            )}
+                                        >
                                             <div className={cn(
-                                                "w-9 h-9 rounded-xl flex items-center justify-center transition-colors",
-                                                selectedBabyId === baby.babyId ? "bg-[#4988c4] text-white" : "bg-white text-slate-300 shadow-sm"
+                                                "w-8 h-8 rounded-lg flex items-center justify-center transition-colors flex-shrink-0",
+                                                isSelected ? "bg-[#4988c4] text-white" : "bg-slate-100 text-slate-400"
                                             )}>
-                                                <Baby className="w-4.5 h-4.5" />
+                                                <Baby className="w-4 h-4" />
                                             </div>
-                                            <div className="text-left">
+                                            <div className="flex-1 text-left min-w-0">
                                                 <p className={cn(
-                                                    "text-[13px] font-bold",
-                                                    selectedBabyId === baby.babyId ? "text-slate-900" : "text-slate-600"
+                                                    "text-[12px] font-semibold truncate",
+                                                    isSelected ? "text-slate-900" : "text-slate-600"
                                                 )}>{baby.name}</p>
-                                                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">
-                                                    {baby.height}cm • {baby.weight}kg
+                                                <p className="text-[9px] text-slate-400 font-medium">
+                                                    {baby.height}cm · {baby.weight}kg
                                                 </p>
                                             </div>
-                                        </div>
-                                        <ChevronRight className={cn(
-                                            "w-4 h-4 transition-transform",
-                                            selectedBabyId === baby.babyId ? "text-[#4988c4] translate-x-1" : "text-slate-200"
-                                        )} />
-                                    </button>
-                                ))}
+                                            {isSelected && (
+                                                <div className="w-1.5 h-1.5 rounded-full bg-[#4988c4] flex-shrink-0" />
+                                            )}
+                                        </button>
+                                    );
+                                })}
                             </div>
                         ) : (
-                            <div className="text-center py-10 px-6 rounded-2xl border-2 border-dashed border-slate-100 bg-slate-50/30">
-                                <p className="text-[10px] font-bold text-slate-400 leading-relaxed uppercase tracking-wide">No profiles found in your vault.</p>
+                            <div className="text-center py-8 rounded-xl border border-dashed border-slate-200 bg-slate-50/50">
+                                <Baby className="w-5 h-5 text-slate-300 mx-auto mb-2" />
+                                <p className="text-[10px] text-slate-400 font-medium">No baby profiles found</p>
                             </div>
                         )}
                     </div>
 
                     <AnimatePresence mode="wait">
+                        {/* Generate Button */}
                         {selectedBabyId && !recommendation && (
-                            <motion.div initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }}>
-                                <Button 
-                                    onClick={generateRecommendation} 
-                                    className="w-full h-11 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-[10px] uppercase tracking-widest transition-all disabled:opacity-50"
+                            <motion.div
+                                key="generate"
+                                initial={{ opacity: 0, y: 8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -8 }}
+                                transition={{ duration: 0.15 }}
+                            >
+                                <Button
+                                    onClick={generateRecommendation}
+                                    className="w-full h-10 rounded-xl bg-[#4988c4] hover:bg-[#3d7ab5] text-white font-semibold text-[11px] gap-2 transition-all disabled:opacity-60"
                                     disabled={isGenerating}
                                 >
                                     {isGenerating ? (
-                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        <>
+                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                            Analyzing...
+                                        </>
                                     ) : (
-                                        "Synchronize Specs"
+                                        <>
+                                            <Zap className="w-3.5 h-3.5" />
+                                            Generate for {selectedBaby?.name || "Baby"}
+                                        </>
                                     )}
                                 </Button>
                             </motion.div>
                         )}
 
+                        {/* Results */}
                         {recommendation && (
-                            <motion.div 
-                                initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }}
-                                className="p-5 rounded-2xl bg-slate-50 border border-slate-100 space-y-5"
+                            <motion.div
+                                key="results"
+                                initial={{ opacity: 0, y: 8 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.2 }}
+                                className="space-y-3"
                             >
-                                <p className="text-[11px] font-medium text-slate-500 leading-relaxed text-center px-2">
-                                    "{recommendation.explanation}"
-                                </p>
-
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div className="bg-white p-3.5 rounded-xl border border-slate-100 text-center">
-                                        <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest block mb-1">Fit</span>
-                                        <p className="text-sm font-bold text-slate-900">
-                                            {recommendation.width} × {recommendation.length}cm
-                                        </p>
-                                    </div>
-                                    <div className="bg-white p-3.5 rounded-xl border border-slate-100 text-center">
-                                        <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest block mb-1">Foundation</span>
-                                        <div className="flex items-center justify-center gap-2">
-                                            <div className="w-3 h-3 rounded-full border border-black/5" style={{ backgroundColor: recommendation.colorHex }} />
-                                            <p className="text-[11px] font-bold text-slate-900 uppercase">
-                                                {recommendation.colorHex}
+                                {/* Recommendation Cards */}
+                                <div className="grid grid-cols-2 gap-2">
+                                    {sizeRec && (
+                                        <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                            <div className="flex items-center gap-1.5 mb-2">
+                                                <Ruler className="w-3 h-3 text-[#4988c4]" />
+                                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Size</span>
+                                            </div>
+                                            <p className="text-[11px] font-bold text-slate-900 leading-snug">
+                                                {sizeRec.RecommendedValue}
                                             </p>
+                                            {sizeRec.Reason && (
+                                                <p className="text-[9px] text-slate-400 mt-1 leading-relaxed line-clamp-2">
+                                                    {sizeRec.Reason}
+                                                </p>
+                                            )}
                                         </div>
-                                    </div>
+                                    )}
+                                    {colorRec && (
+                                        <div className="p-3 rounded-xl bg-slate-50 border border-slate-100">
+                                            <div className="flex items-center gap-1.5 mb-2">
+                                                <Palette className="w-3 h-3 text-[#4988c4]" />
+                                                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Color</span>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <div
+                                                    className="w-5 h-5 rounded-md border border-black/8 shadow-sm flex-shrink-0"
+                                                    style={{ backgroundColor: colorRec.RecommendedValue }}
+                                                />
+                                                <p className="text-[11px] font-bold text-slate-900 uppercase font-mono">
+                                                    {colorRec.RecommendedValue}
+                                                </p>
+                                            </div>
+                                            {colorRec.Reason && (
+                                                <p className="text-[9px] text-slate-400 mt-1 leading-relaxed line-clamp-2">
+                                                    {colorRec.Reason}
+                                                </p>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
 
-                                <Button 
+                                {/* Match Reasons */}
+                                {recommendation.RecommendedVariant?.MatchReasons?.length > 0 && (
+                                    <div className="flex flex-wrap gap-1.5">
+                                        {recommendation.RecommendedVariant.MatchReasons.map((reason, i) => (
+                                            <span
+                                                key={i}
+                                                className="text-[8px] font-semibold text-[#4988c4] bg-[#4988c4]/8 px-2 py-1 rounded-md border border-[#4988c4]/10"
+                                            >
+                                                {reason}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Apply Button */}
+                                <Button
                                     onClick={handleApply}
-                                    className="w-full h-11 rounded-xl bg-[#4988c4] hover:bg-[#3b6ea0] text-white font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-[#4988c4]/10"
+                                    className="w-full h-10 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-semibold text-[11px] gap-2 transition-all"
                                 >
-                                    Apply Fitting
+                                    <Sparkles className="w-3.5 h-3.5" />
+                                    Apply Recommendations
                                 </Button>
                             </motion.div>
                         )}

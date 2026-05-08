@@ -14,9 +14,8 @@ export const tradeInStatusLabel = (status: string) => {
   return getTradeInStatusMeta(status).label;
 };
 
-export const buildTradeInStatusOptions = (items: TradeInOrderListItem[]) => {
-  const dynamic = Array.from(new Set(items.map((item) => normalizeTradeInStatus(item.status)).filter(Boolean)));
-  return Array.from(new Set([...TRADE_IN_FILTER_BASE_STATUSES, ...dynamic]));
+export const buildTradeInStatusOptions = (_items: TradeInOrderListItem[]) => {
+  return TRADE_IN_FILTER_BASE_STATUSES;
 };
 
 export const getTradeInStats = (items: TradeInOrderListItem[], totalCount?: number) => {

@@ -86,6 +86,10 @@ const serviceOrderService = {
     await apiClient.patch(`/ServiceOrders/${serviceOrderId}/manager-cancel`);
   },
 
+  managerForceCancelServiceOrder: async (serviceOrderId: string): Promise<void> => {
+    await apiClient.patch(`/ServiceOrders/${serviceOrderId}/manager-force-cancel`);
+  },
+
   cancelServiceOrder: async (serviceOrderId: string): Promise<void> => {
     await apiClient.patch(`/ServiceOrders/${serviceOrderId}/cancel`);
   },
@@ -126,6 +130,10 @@ const serviceOrderService = {
 
   updateTaskCompletedStatus: async (taskId: string): Promise<void> => {
     await apiClient.patch(`/ServiceTasks/${taskId}/updateCompletedStatus`);
+  },
+
+  reassignStaffForRescheduled: async (data: { serviceOrderId: string; newStaffId: string }): Promise<void> => {
+    await apiClient.post('/ServiceTasks/reassign-staff-for-rescheduled-service-order', data);
   },
 
   completeServiceOrder: async (orderId: string): Promise<void> => {

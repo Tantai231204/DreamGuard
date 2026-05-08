@@ -17,11 +17,12 @@ import {
   NegotiatingSection,
   WaitingForStaffSection,
 } from './TradeInStatusSections';
-import { TradeInProcessExchangeDialog } from './TradeInProcessExchangeDialog';
-import { TradeInProcessReturnDialog } from './TradeInProcessReturnDialog';
 import { TradeInDeliveryQuickActionsCard } from './TradeInDeliveryQuickActionsCard';
 import { TradeInShippingAssignmentCard } from './TradeInShippingAssignmentCard';
+import { TradeInProcessReturnDialog } from './TradeInProcessReturnDialog';
+import { TradeInProcessExchangeDialog } from './TradeInProcessExchangeDialog';
 import { useTradeInStaffManagement } from './useTradeInStaffManagement';
+import { useState } from 'react';
 
 interface TradeInStaffManagementProps {
   order: TradeInOrderDetailResponse;
@@ -38,11 +39,7 @@ export const TradeInStaffManagement = memo(function TradeInStaffManagement({ ord
     isDealConfirmDialogOpen,
     setIsDealConfirmDialogOpen,
     handleConfirmDealFinal,
-    isCompleteConfirmDialogOpen,
-    setIsCompleteConfirmDialogOpen,
     isAssignDialogOpen,
-    isProcessReturnDialogOpen,
-    isProcessExchangeDialogOpen,
     isSeller,
     canAccessTradeInChat,
     shouldShowAssignedStaff,
@@ -64,35 +61,39 @@ export const TradeInStaffManagement = memo(function TradeInStaffManagement({ ord
     isAccepting,
     isConfirming,
     isCancelling,
-    isTransitioning,
     previewAmountToPay,
     formattedNegotiatedPrice,
     isActiveProgressStatus,
     isFinalizedStatus,
-    canFinalizeTradeIn,
     canHandleUnhappyCase,
-    canProcessReturningUnhappy,
     canAssignDeliveryTask,
     activeShippingTaskId,
-    returningShippingTaskId,
-    defaultProductVariantId,
     handleAcceptTask,
     handleConfirmDeal,
     handleNegotiatedPriceChange,
     handleOpenTradeInChat,
     handleOpenCancelDialog,
-    handleFinalizeTradeIn,
-    handleConfirmFinalizeTradeIn,
-    handleCloseCompleteConfirmDialog,
     handleOpenAssignDialog,
-    handleOpenProcessReturnDialog,
-    handleOpenProcessExchangeDialog,
     handleCloseAssignDialog,
-    handleCloseProcessReturnDialog,
-    handleCloseProcessExchangeDialog,
     adminCancel,
     hasRefundPayment,
+    minTradeInPrice,
+    maxTradeInPrice,
+    unitPrice,
+    salePrice,
+    negotiationError,
+    isNegotiationValid,
   } = useTradeInStaffManagement(order);
+
+  const [showProcessReturnDialog, setShowProcessReturnDialog] = useState(false);
+  const [showProcessExchangeDialog, setShowProcessExchangeDialog] = useState(false);
+
+  // Bridging for QuickActionsCard buttons
+  if (typeof window !== 'undefined') {
+    const win = window as Window & { openTradeInReturnDialog?: () => void; openTradeInExchangeDialog?: () => void };
+    win.openTradeInReturnDialog = () => setShowProcessReturnDialog(true);
+    win.openTradeInExchangeDialog = () => setShowProcessExchangeDialog(true);
+  }
 
   const showDeliveryPanel = [
     'CONFIRMED',
@@ -117,12 +118,7 @@ export const TradeInStaffManagement = memo(function TradeInStaffManagement({ ord
           <TradeInDeliveryQuickActionsCard
             status={status}
             hasTask={!!activeShippingTaskId}
-            canFinalizeTradeIn={canFinalizeTradeIn}
             canHandleUnhappyCase={canHandleUnhappyCase}
-            canProcessReturningUnhappy={canProcessReturningUnhappy}
-            onFinalizeTradeIn={handleFinalizeTradeIn}
-            onProcessReturn={handleOpenProcessReturnDialog}
-            onProcessExchange={handleOpenProcessExchangeDialog}
             onOpenCancelDialog={handleOpenCancelDialog}
             delay={0}
           />
@@ -280,19 +276,19 @@ export const TradeInStaffManagement = memo(function TradeInStaffManagement({ ord
                 onOpenCancelDialog={handleOpenCancelDialog}
                 onConfirmDeal={handleConfirmDeal}
                 assignedStaffHint={assignedStaffHint}
+                minTradeInPrice={minTradeInPrice}
+                maxTradeInPrice={maxTradeInPrice}
+                unitPrice={unitPrice}
+                salePrice={salePrice}
+                negotiationError={negotiationError}
+                isNegotiationValid={isNegotiationValid}
               />
             )}
 
             {isActiveProgressStatus && (
               <ActiveProgressSection
                 status={status}
-                isTransitioning={isTransitioning}
-                canFinalizeTradeIn={canFinalizeTradeIn}
                 canHandleUnhappyCase={canHandleUnhappyCase}
-                canProcessReturningUnhappy={canProcessReturningUnhappy}
-                onFinalizeTradeIn={handleFinalizeTradeIn}
-                onProcessReturn={handleOpenProcessReturnDialog}
-                onProcessExchange={handleOpenProcessExchangeDialog}
                 onOpenCancelDialog={handleOpenCancelDialog}
               />
             )}
@@ -321,21 +317,10 @@ export const TradeInStaffManagement = memo(function TradeInStaffManagement({ ord
         paymentStatus={order.payments?.[0]?.status}
       />
 
-      <ConfirmDialog
-        open={isCompleteConfirmDialogOpen}
-        onOpenChange={(open) => {
-          if (!open) {
-            handleCloseCompleteConfirmDialog();
-          } else {
-            setIsCompleteConfirmDialogOpen(true);
-          }
-        }}
-        title="Finalize Trade-In?"
-        description="Are you sure you want to mark this trade-in as **Completed**? This confirms delivery closure and is intended as a final action."
-        confirmText="Confirm Complete"
-        onConfirm={handleConfirmFinalizeTradeIn}
-        variant="success"
-        isLoading={isTransitioning}
+      <AssignShippingStaffDialog
+        tradeInOrderId={order.tradeInOrderId}
+        isOpen={isAssignDialogOpen}
+        onClose={handleCloseAssignDialog}
       />
 
       <ConfirmDialog
@@ -364,30 +349,23 @@ export const TradeInStaffManagement = memo(function TradeInStaffManagement({ ord
         isLoading={isConfirming}
       />
 
-      <AssignShippingStaffDialog
-        tradeInOrderId={order.tradeInOrderId}
-        isOpen={isAssignDialogOpen}
-        onClose={handleCloseAssignDialog}
-      />
-
       <TradeInProcessReturnDialog
-        isOpen={isProcessReturnDialogOpen}
-        onClose={handleCloseProcessReturnDialog}
+        isOpen={showProcessReturnDialog}
+        onClose={() => setShowProcessReturnDialog(false)}
         tradeInOrderId={order.tradeInOrderId}
-        taskId={returningShippingTaskId}
-        defaultProductVariantId={defaultProductVariantId}
-        totalPrice={order.depositAmount || 0}
+        taskId={activeShippingTaskId || ''}
         paymentMethod={order.payments?.[0]?.paymentMethod}
         paymentStatus={order.payments?.[0]?.status}
+        defaultProductVariantId={order.productVariantId}
         productImageUrl={order.newProductVariantUrl}
       />
 
       <TradeInProcessExchangeDialog
-        isOpen={isProcessExchangeDialogOpen}
-        onClose={handleCloseProcessExchangeDialog}
+        isOpen={showProcessExchangeDialog}
+        onClose={() => setShowProcessExchangeDialog(false)}
         tradeInOrderId={order.tradeInOrderId}
-        taskId={returningShippingTaskId}
-        defaultProductVariantId={defaultProductVariantId}
+        taskId={activeShippingTaskId || ''}
+        defaultProductVariantId={order.productVariantId}
         productImageUrl={order.newProductVariantUrl}
       />
     </div>

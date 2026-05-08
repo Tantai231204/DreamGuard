@@ -465,7 +465,7 @@ export function CartDrawer() {
                                 )}
                                 <div className="flex justify-between">
                                     <span className="text-gray-500">Shipping</span>
-                                    <span className="font-medium text-emerald-600">Free</span>
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Calculated at checkout</span>
                                 </div>
                                 <div className="relative py-2">
                                     <div className="absolute inset-x-0 top-0 h-px border-t border-dashed border-slate-100" />

@@ -19,19 +19,20 @@ export const useServiceActions = () => {
     });
 
     const cancelMutation = useMutation({
-        mutationFn: async ({ id, status, reason, refundAmount }: {
+        mutationFn: async ({ id, status, reason, refundAmount, isForceCancel }: {
             id: string;
             status: string;
             reason: string;
             refundAmount?: number;
+            isForceCancel?: boolean;
         }) => {
             const normalizedStatus = status.toLowerCase();
 
             // 1. Perform cancellation/rejection
-            // Branch strictly follows: Pending uses standard cancel to ensure refunding status.
-            // Statuses like Confirmed (with tasks) must use manager-cancel.
-            if (normalizedStatus === 'pending') {
-                await serviceOrderService.cancelServiceOrder(id);
+            if (isForceCancel) {
+                await serviceOrderService.managerForceCancelServiceOrder(id);
+            } else if (normalizedStatus === 'pending') {
+                await serviceOrderService.rejectServiceOrder(id);
             } else {
                 await serviceOrderService.managerCancelServiceOrder(id);
             }
@@ -73,6 +74,8 @@ export const useServiceActions = () => {
             queryClient.invalidateQueries({ queryKey: ['payments'] });
             queryClient.invalidateQueries({ queryKey: ['serviceOrder', 'detail'] });
             queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
+            queryClient.invalidateQueries({ queryKey: ['orders'] });
+            queryClient.invalidateQueries({ queryKey: ['checkoutOrders'] });
         }
     });
 
@@ -85,6 +88,8 @@ export const useServiceActions = () => {
             queryClient.invalidateQueries({ queryKey: ['payments'] });
             queryClient.invalidateQueries({ queryKey: ['serviceOrder', 'detail'] });
             queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
+            queryClient.invalidateQueries({ queryKey: ['orders'] });
+            queryClient.invalidateQueries({ queryKey: ['checkoutOrders'] });
         }
     });
 
@@ -101,28 +106,12 @@ export const useServiceActions = () => {
         },
     });
 
-    const completeMutation = useMutation({
-        mutationFn: async ({ taskId, orderId }: { taskId: string; orderId: string }) => {
-            await serviceOrderService.updateTaskCompletedStatus(taskId);
-            await serviceOrderService.completeServiceOrder(orderId);
-        },
-        onSuccess: (_, { orderId }) => {
-            toast.success(`Service task and order completed successfully`);
-            queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
-            queryClient.invalidateQueries({ queryKey: ['serviceOrder', 'detail', orderId] });
-            queryClient.invalidateQueries({ queryKey: ['serviceTask', 'detail', orderId] });
-            queryClient.invalidateQueries({ queryKey: ['serviceTasks', 'list', orderId] });
-            queryClient.invalidateQueries({ queryKey: ['serviceEvidences', orderId] });
-        },
-    });
-
+  
     return useMemo(() => ({
         confirmBooking: confirmMutation.mutate,
         isConfirming: confirmMutation.isPending,
         cancelBooking: cancelMutation.mutate,
         isCancelling: cancelMutation.isPending,
-        completeBooking: completeMutation.mutate,
-        isCompleting: completeMutation.isPending,
         rescheduleBooking: rescheduleMutation.mutate,
         isRescheduling: rescheduleMutation.isPending,
         createRefund: createRefundMutation.mutate,
@@ -136,8 +125,6 @@ export const useServiceActions = () => {
         confirmMutation.isPending,
         cancelMutation.mutate,
         cancelMutation.isPending,
-        completeMutation.mutate,
-        completeMutation.isPending,
         rescheduleMutation.mutate,
         rescheduleMutation.isPending,
         createRefundMutation.mutate,

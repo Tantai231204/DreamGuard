@@ -2,7 +2,6 @@ import { useMemo, useRef, useState } from "react"
 import {
     ChevronLeft,
     ChevronRight,
-    Clock3,
     Coins,
     Flame,
     Gift,
@@ -14,8 +13,8 @@ import {
     X,
 } from "lucide-react"
 import { useNavigate } from "react-router-dom"
-import type { UserVoucherResponse } from "@/api"
-import { useClaimVoucher, useUserVouchers, useVoucherDetail } from "@/hooks/queries"
+import type { UserVoucherResponse, VoucherResponse } from "@/api"
+import { useClaimVoucher, useUserVouchers, useVoucherDetail, useVouchers, useProfile } from "@/hooks/queries"
 import { useToast } from "@/hooks/useToast"
 import { AppRoute } from "@/lib/constants"
 import { cn } from "@/lib/utils"
@@ -88,12 +87,36 @@ const toProfileVoucher = (voucher: UserVoucherResponse): ProfileVoucher => {
         usedAt: voucher.usedAt,
     }
 }
+const voucherToProfileVoucher = (voucher: VoucherResponse): ProfileVoucher => {
+    return {
+        userVoucherId: voucher.voucherId, // Fallback to voucherId since it's not claimed yet
+        voucherId: voucher.voucherId,
+        code: voucher.code,
+        name: voucher.name,
+        description: voucher.description,
+        discountValue: voucher.discountValue,
+        maxDiscountAmount: voucher.maxDiscountAmount,
+        requiredCoin: voucher.requiredCoin,
+        voucherType: voucher.voucherType,
+        startDate: voucher.startDate,
+        endDate: voucher.endDate,
+        isActive: voucher.isActive,
+        status: "claimable",
+        isClaimed: false,
+    }
+}
 
 export default function VouchersTab() {
     const navigate = useNavigate()
     const toast = useToast()
-    const { data: userVoucherData, isLoading, isError, refetch } = useUserVouchers()
+    const { data: userVoucherData, isLoading: isLoadingUser, isError: isUserError } = useUserVouchers()
+    const { data: publicVoucherData, isLoading: isLoadingPublic, isError: isPublicError } = useVouchers()
     const claimVoucherMutation = useClaimVoucher()
+
+    const isLoading = isLoadingUser
+    const isError = isUserError
+    // We treat public voucher errors silently for the main UI to prevent blocking the user's wallet
+    const marketplaceError = isPublicError
 
     const [filterStatus, setFilterStatus] = useState<VoucherFilterStatus>("all")
     const [searchQuery, setSearchQuery] = useState("")
@@ -104,15 +127,35 @@ export default function VouchersTab() {
     const [selectedVoucherId, setSelectedVoucherId] = useState<string | null>(null)
     const [modalOpen, setModalOpen] = useState(false)
     const usableSectionRef = useRef<HTMLDivElement | null>(null)
+    const [now] = useState(() => Date.now())
+    const { data: profile } = useProfile()
+    const userCoins = profile?.memberCoin ?? 0
 
     const vouchers = useMemo<ProfileVoucher[]>(() => {
-        return (userVoucherData?.items ?? []).map(toProfileVoucher)
-    }, [userVoucherData?.items])
+        const claimed = (userVoucherData?.items ?? []).map(toProfileVoucher)
+        const publicItems = (publicVoucherData?.items ?? []).map(voucherToProfileVoucher)
+
+        // Avoid duplicates: If a voucher is already in the user's collection, don't show it in the claimable list
+        const claimedVoucherIds = new Set(claimed.map((v) => v.voucherId))
+        
+        // Filter public vouchers: Must be active, not expired, and not already claimed
+        const claimable = publicItems.filter((v) => {
+            if (claimedVoucherIds.has(v.voucherId)) return false
+            if (v.isActive === false) return false
+            
+            const expiry = toTimestamp(v.endDate)
+            if (expiry !== 0 && expiry < now) return false
+            
+            return true
+        })
+
+        return [...claimed, ...claimable]
+    }, [userVoucherData?.items, publicVoucherData?.items, now])
 
     const selectedVoucherBase = useMemo<ProfileVoucher | null>(() => {
         if (!selectedVoucherId) return null
-        return vouchers.find((voucher: ProfileVoucher) => voucher.userVoucherId === selectedVoucherId) ?? null
-    }, [selectedVoucherId, vouchers])
+        return vouchers.find((v) => v.userVoucherId === selectedVoucherId) ?? null
+    }, [vouchers, selectedVoucherId])
 
     const selectedVoucherTemplateId = selectedVoucherBase?.voucherId ?? ""
     const { data: selectedVoucherDetail } = useVoucherDetail(
@@ -255,6 +298,9 @@ export default function VouchersTab() {
             return
         }
 
+        const requiredCoin = voucher.requiredCoin ?? 0
+        const actionLabel = requiredCoin > 0 ? "exchange" : "claim"
+
         setClaimingCode(code)
 
         claimVoucherMutation.mutate(
@@ -269,10 +315,17 @@ export default function VouchersTab() {
                     setClaimedFlowCode(code)
                     window.setTimeout(() => setClaimedFlowCode(null), 3500)
                     scrollToUsableSection()
-                    toast.success("Voucher claimed", "Your voucher is ready in the Ready tab.")
+                    
+                    if (requiredCoin > 0) {
+                        toast.success("Voucher Exchanged", `${requiredCoin} coins were used to get ${code}.`)
+                    } else {
+                        toast.success("Voucher Claimed", `Your voucher ${code} is ready in the Ready tab.`)
+                    }
                 },
-                onError: () => {
-                    toast.error("Unable to claim this voucher right now. Please try again.")
+                onError: (error: unknown) => {
+                    const axiosError = error as { response?: { data?: { message?: string } } }
+                    const message = axiosError?.response?.data?.message || `Unable to ${actionLabel} this voucher. Please check your coins.`
+                    toast.error(message)
                 },
                 onSettled: () => {
                     setClaimingCode(null)
@@ -362,107 +415,141 @@ export default function VouchersTab() {
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
-            <div className="relative overflow-hidden rounded-[28px] border border-primary-200/70 bg-gradient-to-r from-primary-700 via-primary-600 to-primary-500 p-6 text-white shadow-[0_18px_45px_rgba(73,136,196,0.26)] sm:p-7">
-                <div className="pointer-events-none absolute -top-16 -right-10 h-44 w-44 rounded-full bg-white/18 blur-2xl" />
-                <div className="pointer-events-none absolute -bottom-12 left-16 h-36 w-36 rounded-full bg-primary-200/35 blur-2xl" />
-
-                <div className="relative z-10 flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-                    <div>
-                        <p className="text-[11px] font-black uppercase tracking-[0.24em] text-primary-100/90">Voucher Wallet</p>
-                        <h2 className="mt-2 text-2xl font-black tracking-tight sm:text-[1.8rem]">Claim Fast, Save More</h2>
-                        <p className="mt-2 max-w-2xl text-sm font-semibold text-primary-100/90">
-                            Claim available vouchers and apply them instantly at checkout.
+            <div className="relative overflow-hidden rounded-[32px] border border-primary-200/40 bg-[#0f172a] p-8 text-white shadow-2xl">
+                {/* Visual Orbs */}
+                <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-primary-500/20 blur-[80px]" />
+                <div className="absolute -left-20 -bottom-20 h-64 w-64 rounded-full bg-sky-500/10 blur-[80px]" />
+                
+                <div className="relative z-10 flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary-500/20 text-primary-400 ring-1 ring-primary-500/30">
+                                <Ticket className="h-5 w-5" />
+                            </div>
+                            <span className="text-xs font-black uppercase tracking-[0.3em] text-primary-400">Voucher Wallet</span>
+                        </div>
+                        <h2 className="text-3xl font-black tracking-tight sm:text-4xl">Rewards & Savings</h2>
+                        <p className="max-w-md text-sm font-medium text-slate-400">
+                            Exchange your earned coins for exclusive discounts and premium rewards.
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                        <div className="rounded-2xl border border-white/20 bg-white/15 px-4 py-3 backdrop-blur-sm">
-                            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary-100/80">Ready</p>
-                            <p className="mt-1 text-2xl font-black leading-none">{voucherCounts.active}</p>
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                        <div className="group relative overflow-hidden rounded-[24px] border border-white/10 bg-white/5 px-6 py-4 backdrop-blur-md transition-all hover:bg-white/10">
+                            <div className="flex items-center gap-4">
+                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/20 text-amber-500 ring-1 ring-amber-500/30">
+                                    <Coins className="h-6 w-6 animate-pulse" />
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Available Coins</p>
+                                    <p className="text-2xl font-black tabular-nums text-amber-500">{userCoins.toLocaleString()}</p>
+                                </div>
+                            </div>
                         </div>
-                        <div className="rounded-2xl border border-white/20 bg-white/15 px-4 py-3 backdrop-blur-sm">
-                            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary-100/80">Claim</p>
-                            <p className="mt-1 text-2xl font-black leading-none">{voucherCounts.claimable}</p>
-                        </div>
-                        <div className="rounded-2xl border border-white/20 bg-white/15 px-4 py-3 backdrop-blur-sm">
-                            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-primary-100/80">Used</p>
-                            <p className="mt-1 text-2xl font-black leading-none">{voucherCounts.used}</p>
+
+                        <div className="grid grid-cols-2 gap-3 sm:w-auto">
+                            <div className="rounded-2xl bg-white/5 p-3 text-center ring-1 ring-white/10">
+                                <p className="text-[10px] font-bold text-slate-500">READY</p>
+                                <p className="text-xl font-black">{voucherCounts.active}</p>
+                            </div>
+                            <div className="rounded-2xl bg-white/5 p-3 text-center ring-1 ring-white/10">
+                                <p className="text-[10px] font-bold text-slate-500">USED</p>
+                                <p className="text-xl font-black">{voucherCounts.used}</p>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="overflow-hidden rounded-3xl border border-primary-100 bg-white shadow-sm">
-                <div className="flex flex-col gap-3 border-b border-primary-100 bg-gradient-to-r from-primary-50 via-sky-100/60 to-primary-50/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-                    <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-primary-700">Claim Center</p>
-                        <p className="mt-1 text-sm font-semibold text-slate-700">Find available vouchers and claim them in one tap.</p>
+            <div className="space-y-4">
+                <div className="flex items-center justify-between px-2">
+                    <div className="flex items-center gap-2">
+                        <Flame className="h-5 w-5 text-orange-500" />
+                        <h3 className="text-lg font-black tracking-tight text-slate-900">Claim Center</h3>
                     </div>
-
-                    <Badge className="w-fit rounded-xl border border-primary-200 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-wider text-primary-700">
-                        {voucherCounts.claimable} available to claim
+                    <Badge className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-bold text-slate-600">
+                        {voucherCounts.claimable} New Available
                     </Badge>
                 </div>
 
-                <div className="p-4 sm:p-6">
-                    {claimableVouchers.length === 0 ? (
-                        <div className="rounded-2xl border border-dashed border-primary-200 bg-primary-50/40 px-4 py-5 text-sm font-semibold text-slate-600">
-                            No vouchers are available to claim right now.
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-2">
+                    {isLoadingPublic ? (
+                        <div className="col-span-full py-12 flex flex-col items-center justify-center gap-3">
+                            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary-200 border-t-primary-600" />
+                            <p className="text-xs font-bold text-slate-400">Loading rewards...</p>
+                        </div>
+                    ) : marketplaceError || claimableVouchers.length === 0 ? (
+                        <div className="col-span-full rounded-3xl border border-dashed border-slate-200 bg-slate-50/50 p-12 text-center">
+                            <p className="text-sm font-bold text-slate-400 italic">No new vouchers to claim right now.</p>
                         </div>
                     ) : (
-                        <div className="grid gap-3 lg:grid-cols-2">
-                            {claimableVouchers.map((voucher) => {
-                                const normalizedCode = voucher.code.trim().toUpperCase()
-                                const isClaiming = claimVoucherMutation.isPending && claimingCode === normalizedCode
-                                return (
-                                    <div
-                                        key={voucher.userVoucherId}
-                                        className="group relative overflow-hidden rounded-2xl border border-primary-100 bg-gradient-to-r from-white via-primary-50/50 to-sky-100/50 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_28px_rgba(73,136,196,0.18)]"
-                                    >
-                                        <div className="absolute -right-7 top-1/2 h-14 w-14 -translate-y-1/2 rounded-full border border-primary-200 bg-white" />
+                        claimableVouchers.map((voucher) => {
+                            const normalizedCode = voucher.code.trim().toUpperCase()
+                            const isClaiming = claimVoucherMutation.isPending && claimingCode === normalizedCode
+                            const isExchange = (voucher.requiredCoin ?? 0) > 0
+                            const canAfford = userCoins >= (voucher.requiredCoin ?? 0)
 
-                                        <div className="relative z-10 flex items-start justify-between gap-4">
-                                            <div className="min-w-0 flex-1">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="rounded-lg bg-slate-900 px-2.5 py-1 font-mono text-[11px] font-black uppercase tracking-[0.16em] text-white">
-                                                        {voucher.code}
-                                                    </span>
-                                                    <Badge className="border border-primary-200 bg-white text-[10px] font-bold uppercase tracking-wider text-primary-700">
-                                                        {voucher.voucherType}
-                                                    </Badge>
+                            return (
+                                <div
+                                    key={voucher.userVoucherId}
+                                    className="group relative flex flex-col overflow-hidden rounded-[24px] border border-slate-100 bg-white p-5 transition-all duration-300 hover:shadow-[0_20px_50px_rgba(0,0,0,0.06)] hover:ring-1 hover:ring-primary-100"
+                                >
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div className="flex-1 space-y-3">
+                                            <div className="flex items-center gap-2">
+                                                <div className="rounded-lg bg-slate-900 px-2 py-1 font-mono text-[10px] font-black tracking-wider text-white">
+                                                    {voucher.code}
                                                 </div>
-
-                                                <p className="mt-2 truncate text-sm font-bold text-slate-800">{voucher.name}</p>
-
-                                                <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] font-semibold text-slate-600">
-                                                    <span className="inline-flex items-center gap-1 rounded-md bg-primary-100 px-2 py-1 text-primary-700">
-                                                        <Flame className="h-3.5 w-3.5" />
-                                                        {(voucher.discountValue * 100).toFixed(0)}%
-                                                    </span>
-                                                    <span className="inline-flex items-center gap-1 rounded-md bg-primary-100 px-2 py-1 text-primary-700">
-                                                        <Coins className="h-3.5 w-3.5" />
-                                                        {voucher.requiredCoin ?? 0} coin
-                                                    </span>
-                                                    <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-1 text-slate-600">
-                                                        <Clock3 className="h-3.5 w-3.5" />
-                                                        {formatExpiryDate(voucher.endDate)}
-                                                    </span>
-                                                </div>
+                                                <Badge variant="outline" className="rounded-md border-slate-200 bg-slate-50 text-[9px] font-bold uppercase text-slate-500">
+                                                    {voucher.voucherType}
+                                                </Badge>
                                             </div>
-
-                                            <Button
-                                                size="sm"
-                                                onClick={() => handleClaimVoucher(voucher)}
-                                                disabled={claimVoucherMutation.isPending}
-                                                className="h-9 rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 px-4 text-[10px] font-black uppercase tracking-[0.16em] text-white shadow-sm hover:from-primary-600 hover:to-primary-700"
-                                            >
-                                                {isClaiming ? "Claiming" : "Claim"}
-                                            </Button>
+                                            <div>
+                                                <h4 className="text-sm font-bold text-slate-900">{voucher.name}</h4>
+                                                <p className="mt-1 line-clamp-1 text-[11px] font-medium text-slate-500">{voucher.description}</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="flex flex-col items-end gap-2 text-right">
+                                            <div className="flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-amber-700">
+                                                <Coins className="h-3.5 w-3.5" />
+                                                <span className="text-xs font-black">{voucher.requiredCoin?.toLocaleString() ?? 0}</span>
+                                            </div>
+                                            <p className="text-[10px] font-bold text-slate-400">EXP: {formatExpiryDate(voucher.endDate)}</p>
                                         </div>
                                     </div>
-                                )
-                            })}
-                        </div>
+
+                                    <div className="mt-5 flex items-center justify-between gap-4 pt-4 border-t border-slate-50">
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">
+                                                <Sparkles className="h-3.5 w-3.5" />
+                                                {(voucher.discountValue * 100).toFixed(0)}% OFF
+                                            </div>
+                                        </div>
+                                        
+                                        <Button
+                                            size="sm"
+                                            onClick={() => handleClaimVoucher(voucher)}
+                                            disabled={claimVoucherMutation.isPending || (isExchange && !canAfford)}
+                                            className={cn(
+                                                "h-9 rounded-xl px-6 text-[10px] font-black uppercase tracking-widest text-white shadow-md transition-all duration-300",
+                                                isExchange 
+                                                    ? (canAfford 
+                                                        ? "bg-amber-500 hover:bg-amber-600 shadow-amber-200" 
+                                                        : "bg-slate-300 cursor-not-allowed")
+                                                    : "bg-primary-600 hover:bg-primary-700 shadow-primary-200"
+                                            )}
+                                        >
+                                            {isClaiming 
+                                                ? (isExchange ? "Exchanging..." : "Claiming...") 
+                                                : (isExchange 
+                                                    ? (canAfford ? "Exchange" : "Not Enough Coins") 
+                                                    : "Claim")}
+                                        </Button>
+                                    </div>
+                                </div>
+                            )
+                        })
                     )}
                 </div>
             </div>
@@ -628,25 +715,9 @@ export default function VouchersTab() {
                             </Card>
                         )}
 
-                        {!isLoading && isError && (
-                            <Card className="rounded-2xl border border-rose-200 bg-rose-50/30">
-                                <CardContent className="flex flex-col items-center justify-center gap-3 py-16">
-                                    <h3 className="text-base font-bold text-rose-700">Unable to load vouchers</h3>
-                                    <p className="text-sm text-rose-600">Please try again in a moment.</p>
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => refetch()}
-                                        className="rounded-xl border-rose-300 text-rose-700 hover:bg-rose-100"
-                                    >
-                                        Retry
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                        )}
-
-                        {!isLoading && !isError && (
+                        {!isLoading && (
                             <>
-                                {filteredVouchers.length === 0 ? (
+                                {isError || filteredVouchers.length === 0 ? (
                                     <Card className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50">
                                         <CardContent className="flex flex-col items-center justify-center py-20">
                                             <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-xl bg-white shadow-sm">

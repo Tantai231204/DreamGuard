@@ -19,7 +19,6 @@ export function useOrderDetail() {
 
   const [isAssignOpen, setIsAssignOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-  const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
   const [currentTaskIndex, setCurrentTaskIndex] = useState(0);
 
   // 1. Core Order Data Fetching
@@ -55,15 +54,22 @@ export function useOrderDetail() {
         .map(mapApiTaskToServiceTask)
         .filter((t): t is ServiceTask => !!t)
         .sort((a, b) => {
-          // 1. Status Priority: Active tasks (pending, processing, confirmed) come FIRST
-          const activeStatuses = ['pending', 'processing', 'confirmed'];
-          const aActive = activeStatuses.includes(a.status?.toLowerCase());
-          const bActive = activeStatuses.includes(b.status?.toLowerCase());
+          const aStatus = (a.status || '').toLowerCase();
+          const bStatus = (b.status || '').toLowerCase();
+          
+          const activeStatuses = ['pending', 'processing', 'confirmed', 'waiting', 'arriving', 'inprogress', 'started'];
+          const aActive = activeStatuses.includes(aStatus);
+          const bActive = activeStatuses.includes(bStatus);
 
+          // 1. Active tasks always come first
           if (aActive && !bActive) return -1;
           if (!aActive && bActive) return 1;
 
-          // 2. ID Heuristic: Sort by UUID/ID descending (Assuming newest ID has higher value)
+          // 2. 'Rescheduled' tasks go to the very bottom (less priority than terminal states like Completed)
+          if (aStatus === 'rescheduled' && bStatus !== 'rescheduled') return 1;
+          if (bStatus === 'rescheduled' && aStatus !== 'rescheduled') return -1;
+
+          // 3. Chronological Heuristic: Sort by ID descending (Assuming newest ID is the most relevant)
           return (b.serviceTaskId || '').localeCompare(a.serviceTaskId || '');
         });
     },
@@ -169,31 +175,38 @@ export function useOrderDetail() {
     return false;
   }, [mergedOrder, isAssigned]);
 
+  const hasActiveTask = useMemo(() => {
+    const activeStatuses = ['pending', 'processing', 'confirmed', 'waiting', 'arriving', 'inprogress', 'started'];
+    return tasks.some(t => activeStatuses.includes((t.status || '').toLowerCase()));
+  }, [tasks]);
+
   const canAssign = useMemo(() => {
     if (!mergedOrder) return false;
     const status = mergedOrder.status?.toLowerCase();
-    return (status === 'confirmed' || status === 'processing') && !isAssigned;
-  }, [mergedOrder, isAssigned]);
+    
+    // Core terminal states – no further assignment possible
+    if (['cancelled', 'completed', 'refunded', 'forcedcancelled', 'rejected'].includes(status || '')) return false;
 
-  const canComplete = useMemo(() => {
-    if (!mergedOrder) return false;
-    const orderStatus = mergedOrder.status?.toLowerCase();
-    const taskStatus = mergedOrder.serviceTask?.status?.toLowerCase();
-    return (orderStatus === 'processing' || orderStatus === 'rescheduled') &&
-      (taskStatus === 'completed' || !!mergedOrder.serviceTask?.checkOut);
-  }, [mergedOrder]);
+    // IF there is already an active/ongoing task, we do NOT allow another assignment
+    if (hasActiveTask) return false;
 
-  const canReschedule = useMemo(() => {
-    if (!mergedOrder) return false;
-    const orderStatus = mergedOrder.status?.toLowerCase();
-    const taskStatus = (mergedOrder.serviceTask?.status || '').toLowerCase();
-    // Backend strictly enforces "Only processing order can be rescheduled"
-    // We allow 'rescheduled' too in the frontend to permit multiple re-plannings
-    const isOrderReady = orderStatus === 'processing' || orderStatus === 'rescheduled';
-    const isTaskReady = taskStatus === 'processing' || taskStatus === 'pending' || taskStatus === 'confirmed';
+    // 1. Standard assignment: Confirmed and not assigned yet
+    if (status === 'confirmed' && !isAssigned) return true;
 
-    return isOrderReady && isTaskReady;
-  }, [mergedOrder]);
+    // 2. Rescheduled ALWAYS allows new assignment to move forward (if no active task)
+    if (status === 'rescheduled' || status === 'reschedule') return true;
+
+    // 3. Processing could allow assignment if latest task was lost or rescheduled
+    if (status === 'processing' || status === 'inprogress') {
+      const latestTask = tasks[0];
+      const latestTaskStatus = (latestTask?.status || '').toLowerCase();
+      return latestTaskStatus === 'rescheduled' || !isAssigned;
+    }
+
+    return false;
+  }, [mergedOrder, isAssigned, hasActiveTask, tasks]);
+
+
 
 
 
@@ -208,16 +221,6 @@ export function useOrderDetail() {
     setIsAssignOpen(false);
   }, []);
 
-  const handleRescheduleOpen = useCallback(() => {
-    if (mergedOrder) {
-      setSelectedOrderId(mergedOrder.soId || mergedOrder.id);
-      setIsRescheduleOpen(true);
-    }
-  }, [mergedOrder, setIsRescheduleOpen]);
-
-  const handleRescheduleClose = useCallback(() => {
-    setIsRescheduleOpen(false);
-  }, [setIsRescheduleOpen]);
 
   const handleBack = useCallback(() => {
     navigate('/admin/services');
@@ -227,11 +230,11 @@ export function useOrderDetail() {
     if (!mergedOrder) return false;
     const orderStatus = mergedOrder.status?.toLowerCase();
     
-    // Core Requirement: Only for VNPay orders that have been paid
-    const isVNPayPaid = mergedOrder.paymentMethod?.toLowerCase() === 'vnpay' && 
+    // Core Requirement: Only for VNPay or Other orders that have been paid
+    const isRefundableMethod = (mergedOrder.paymentMethod?.toLowerCase() === 'vnpay' || mergedOrder.paymentMethod?.toLowerCase() === 'other') && 
                         (mergedOrder.paymentStatus?.toLowerCase() === 'paid' || mergedOrder.paymentStatus?.toLowerCase() === 'codpaid');
     
-    if (!isVNPayPaid) return false;
+    if (!isRefundableMethod) return false;
 
     // Check if there's already a refund process active in the payments history
     // We prevent duplicate refund creations
@@ -246,24 +249,28 @@ export function useOrderDetail() {
     return isRefundableState && !hasRefundProcess;
   }, [mergedOrder, paymentsQuery.data]);
 
+  const isRescheduled = useMemo(() => {
+    if (!mergedOrder) return false;
+    const orderStatus = (mergedOrder.status || '').toLowerCase();
+    const taskStatus = (mergedOrder.serviceTask?.status || '').toLowerCase();
+    return orderStatus === 'rescheduled' || taskStatus === 'rescheduled';
+  }, [mergedOrder]);
+
   const permissions = useMemo(() => ({
     canConfirm,
     canAssign,
     canCancel,
-    canComplete,
-    canReschedule,
     canCreateRefund,
-    isAssigned
-  }), [canConfirm, canAssign, canCancel, canComplete, canReschedule, canCreateRefund, isAssigned]);
+    isAssigned,
+    isRescheduled
+  }), [canConfirm, canAssign, canCancel, canCreateRefund, isAssigned, isRescheduled]);
 
   const memoizedActions = useMemo(() => ({
     handleAssignOpen,
     handleAssignClose,
-    handleRescheduleOpen,
-    handleRescheduleClose,
     handleBack,
     setCurrentTaskIndex
-  }), [handleAssignOpen, handleAssignClose, handleRescheduleOpen, handleRescheduleClose, handleBack, setCurrentTaskIndex]);
+  }), [handleAssignOpen, handleAssignClose, handleBack, setCurrentTaskIndex]);
 
   return useMemo(() => ({
     order: mergedOrder,
@@ -272,7 +279,6 @@ export function useOrderDetail() {
     mappingQueries,
     statusCfg,
     isAssignOpen,
-    isRescheduleOpen,
     currentTaskIndex,
     selectedOrderId,
     permissions,
@@ -286,7 +292,6 @@ export function useOrderDetail() {
     mappingQueries,
     statusCfg,
     isAssignOpen,
-    isRescheduleOpen,
     currentTaskIndex,
     selectedOrderId,
     permissions,

@@ -22,6 +22,8 @@ export default function CheckoutResult() {
         if (isSuccess) {
             clearCart()
             queryClient.invalidateQueries({ queryKey: ['orders'] })
+            queryClient.invalidateQueries({ queryKey: ['checkoutOrders'] })
+            queryClient.invalidateQueries({ queryKey: ['cart'] })
             queryClient.invalidateQueries({ queryKey: ['service-orders'] })
             queryClient.invalidateQueries({ queryKey: ['trade-in-orders'] })
             queryClient.invalidateQueries({ queryKey: ['notifications'] })

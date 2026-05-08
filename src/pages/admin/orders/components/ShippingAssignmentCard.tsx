@@ -10,13 +10,14 @@ interface ShippingAssignmentCardProps {
     orderId: string;
     onOpenAssign: () => void;
     canAssign: boolean;
+    currentStatusEnum: number | string;
     delay?: number;
 }
 
 import { useAuthStore } from '@/store/authStore';
 import { isAdminOrManager as checkIsAdminOrManager } from '@/lib/role';
 
-export function ShippingAssignmentCard({ orderId, onOpenAssign, canAssign, delay = 0 }: ShippingAssignmentCardProps) {
+export function ShippingAssignmentCard({ orderId, onOpenAssign, canAssign, currentStatusEnum, delay = 0 }: ShippingAssignmentCardProps) {
         const role = useAuthStore((s) => s.role);
         const isAdminOrManager = checkIsAdminOrManager(role);
         const { data: staffsResponse } = useStaffs(
@@ -26,6 +27,13 @@ export function ShippingAssignmentCard({ orderId, onOpenAssign, canAssign, delay
         const { data: tasks } = useShippingTasksByOrder(orderId);
 
         const activeTask = tasks?.find(t => t.status !== "Reassigned");
+        const taskStatus = activeTask?.status?.toLowerCase();
+        const isTaskPending = !activeTask || 
+                             taskStatus === "pending" || 
+                             taskStatus === "waiting_for_staff" || 
+                             taskStatus === "waitingforstaff" || 
+                             taskStatus === "0";
+
         // For sellers, reconstruct minimal staff info from task
         let currentStaff = null;
         if (isAdminOrManager) {
@@ -52,15 +60,13 @@ export function ShippingAssignmentCard({ orderId, onOpenAssign, canAssign, delay
                 {currentStaff ? (
                     <div className="space-y-4">
                         <div
-                            className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${canAssign && isAdminOrManager ? 'bg-slate-50 border-slate-100/80 cursor-pointer hover:bg-slate-100/60' : 'bg-slate-50 border-slate-100/40 cursor-default'}`}
-                            onClick={canAssign && isAdminOrManager ? onOpenAssign : undefined}
-                            title={canAssign && isAdminOrManager ? "Click to Reassign" : "Assigned personnel"}
+                            className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${canAssign && isAdminOrManager && isTaskPending ? 'bg-slate-50 border-slate-100/80 cursor-pointer hover:bg-slate-100/60' : 'bg-slate-50 border-slate-100/40 cursor-default'}`}
+                            onClick={canAssign && isAdminOrManager && isTaskPending ? onOpenAssign : undefined}
+                            title={canAssign && isAdminOrManager ? (isTaskPending ? "Click to Reassign" : `Task is ${activeTask?.status} and cannot be reassigned`) : "Assigned personnel"}
                         >
-                            <Avatar className="h-12 w-12 border-2 border-white shadow-sm ring-1 ring-slate-100">
+                            <Avatar className="h-12 w-12 border-2 border-white shadow-sm ring-1 ring-slate-100 overflow-hidden bg-white">
                                 <AvatarImage src={currentStaff.avatarUrl} />
-                                <AvatarFallback className="bg-blue-600 text-white font-black text-base">
-                                    {currentStaff.fullName.charAt(0)}
-                                </AvatarFallback>
+                                <AvatarFallback className="bg-slate-200" />
                             </Avatar>
                             <div className="min-w-0 flex-1">
                                 <div className="flex items-center justify-between gap-2">
@@ -103,18 +109,18 @@ export function ShippingAssignmentCard({ orderId, onOpenAssign, canAssign, delay
                     </div>
                 ) : (
                     <div
-                        className={`w-full h-full flex flex-col items-center justify-center py-10 rounded-xl border-[1.5px] border-dashed text-center transition-all duration-300 ${canAssign && isAdminOrManager
+                        className={`w-full h-full flex flex-col items-center justify-center py-10 rounded-xl border-[1.5px] border-dashed text-center transition-all duration-300 ${canAssign && isAdminOrManager && isTaskPending
                             ? "bg-slate-50/50 border-slate-200 hover:bg-slate-50 hover:border-slate-300 group cursor-pointer"
                             : "bg-slate-50/30 border-slate-100 cursor-default"
                             }`}
-                        onClick={canAssign && isAdminOrManager ? onOpenAssign : undefined}
-                        title={!isAdminOrManager ? "Awaiting staff assignment" : !canAssign ? "Order must be Confirmed to assign delivery personnel." : "Assign Delivery Personnel"}
+                        onClick={canAssign && isAdminOrManager && isTaskPending ? onOpenAssign : undefined}
+                        title={!isAdminOrManager ? "Awaiting staff assignment" : !canAssign ? (currentStatusEnum === 1 ? "Move order to Processing to assign delivery personnel." : "Awaiting Confirmation") : isTaskPending ? "Assign Delivery Personnel" : `Task is ${activeTask?.status} and cannot be modified`}
                     >
                         <div className={`h-10 w-10 rounded-full flex items-center justify-center mb-3 transition-colors ${canAssign && isAdminOrManager ? "bg-slate-100 group-hover:bg-slate-200/50" : "bg-slate-100"}`}>
                             <User className={`h-4 w-4 transition-colors ${canAssign && isAdminOrManager ? "text-slate-400 group-hover:text-slate-500" : "text-slate-300"}`} />
                         </div>
                         <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${canAssign && isAdminOrManager ? "text-slate-400 group-hover:text-slate-500" : "text-slate-300"}`}>
-                            {!isAdminOrManager ? "Unassigned" : canAssign ? "Assign Technician" : "Awaiting Confirmation"}
+                            {!isAdminOrManager ? "Unassigned" : canAssign ? "Assign Technician" : (currentStatusEnum === 1 ? "Awaiting Processing" : "Awaiting Confirmation")}
                         </span>
                     </div>
                 )}

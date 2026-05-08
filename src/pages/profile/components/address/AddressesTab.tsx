@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { PlusIcon } from "@radix-ui/react-icons";
-import { MapPin } from "lucide-react";
+import { MapPin, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "../../../../components/ui/button";
 import type { Address } from "../../../../api/types/address";
 import { useAddresses, useDeleteAddress } from "@/hooks/useAddress";
@@ -9,9 +9,12 @@ import { AddressDeleteDialog } from "./AddressDeleteDialog";
 import { AddressCard } from "./AddressCard";
 import { toast } from "sonner";
 
+const ITEMS_PER_PAGE = 4;
+
 export default function AddressesTab() {
   const { data: addresses = [], isPending } = useAddresses();
   const [showForm, setShowForm] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
   const deleteMutation = useDeleteAddress();
 
@@ -26,7 +29,7 @@ export default function AddressesTab() {
   useEffect(() => {
     if (addresses.length > 0) {
       const currentDefaultExists = addresses.some(a => a.addressId === defaultAddressId);
-      
+
       if (!defaultAddressId || !currentDefaultExists) {
         // Auto-pick the first one if no default exists or it was deleted
         const firstId = addresses[0].addressId;
@@ -58,6 +61,18 @@ export default function AddressesTab() {
     setAddressToDelete(id);
     setDeleteOpen(true);
   };
+
+  const totalPages = Math.max(1, Math.ceil(sortedAddresses.length / ITEMS_PER_PAGE));
+  const paginatedAddresses = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return sortedAddresses.slice(start, start + ITEMS_PER_PAGE);
+  }, [sortedAddresses, currentPage]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      queueMicrotask(() => setCurrentPage(totalPages));
+    }
+  }, [totalPages, currentPage]);
 
   const handleConfirmDelete = () => {
     if (addressToDelete) {
@@ -113,7 +128,7 @@ export default function AddressesTab() {
 
       {/* Address Cards */}
       <div className="grid gap-5 md:grid-cols-2">
-        {sortedAddresses.map((address: Address) => (
+        {paginatedAddresses.map((address: Address) => (
           <AddressCard
             key={address.addressId}
             address={address}
@@ -127,6 +142,37 @@ export default function AddressesTab() {
           />
         ))}
       </div>
+
+      {/* Pagination Footer */}
+      {!isPending && totalPages > 1 && (
+        <div className="flex items-center justify-between pt-8 border-t border-gray-100">
+          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+            Page {currentPage} of {totalPages}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(prev => prev - 1)}
+              className="h-10 px-5 rounded-2xl border-gray-200 text-gray-600 font-bold text-[10px] uppercase tracking-wider hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-95"
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Prev
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(prev => prev + 1)}
+              className="h-10 px-5 rounded-2xl border-gray-200 text-gray-600 font-bold text-[10px] uppercase tracking-wider hover:bg-gray-50 hover:border-gray-300 transition-all active:scale-95"
+            >
+              Next
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Empty State */}
       {addresses.length === 0 && (

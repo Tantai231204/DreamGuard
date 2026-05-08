@@ -11,6 +11,9 @@ export interface StaffResponse {
   avatarUrl?: string;
   createdDate?: string;
   status?: string;
+  taskCount?: number;
+  averageRating?: number;
+  totalRating?: number;
 }
 
 export interface StaffPageResponse {

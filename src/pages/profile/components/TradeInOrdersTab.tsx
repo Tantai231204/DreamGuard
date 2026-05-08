@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState, useMemo } from "react";
 import {
     useCustomerTradeInOrders,
     useReOrderFailedTradeInOrder,
@@ -14,6 +14,7 @@ import { OrderSkeleton } from "./orders/OrderSkeleton";
 import { useNavigate } from "react-router-dom";
 import { AppRoute } from "@/lib/constants";
 import { TradeInOrderCard } from "./trade-in/TradeInOrderCard";
+import { normalizeTradeInStatus } from "@/utils/tradeInWorkflow";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
@@ -30,6 +31,7 @@ export const TradeInOrdersTab = () => {
     const [isCreatingChat, setIsCreatingChat] = useState<string | null>(null);
     const [retryingPaymentOrderId, setRetryingPaymentOrderId] = useState<string | null>(null);
     const [retryConfirmOrderId, setRetryConfirmOrderId] = useState<string | null>(null);
+    const orders = useMemo(() => data?.items || [], [data?.items]);
     const { openChat } = useChatStore();
     const navigate = useNavigate();
     const reOrderFailedTradeInMutation = useReOrderFailedTradeInOrder();
@@ -51,7 +53,9 @@ export const TradeInOrdersTab = () => {
             const conversationId = await tradeInOrderService.getTradeInConversationId(orderId);
 
             if (conversationId) {
-                openChat(conversationId);
+                const order = orders.find(o => o.tradeInOrderId === orderId);
+                const isLocked = order ? normalizeTradeInStatus(order.status) !== "NEGOTIATING" : false;
+                openChat(conversationId, isLocked);
                 toast.success("Connected to trade-in support.");
             } else {
                 toast.info("Chat is not ready yet", {
@@ -64,7 +68,7 @@ export const TradeInOrdersTab = () => {
         } finally {
             setIsCreatingChat(null);
         }
-    }, [openChat]);
+    }, [openChat, orders]);
 
     const handleCancelRequest = useCallback((id: string, reason: string) => {
         cancelRequest({ id, reason });
@@ -107,12 +111,6 @@ export const TradeInOrdersTab = () => {
         await handleRetryPayment(targetOrderId);
     }, [handleRetryPayment, retryConfirmOrderId]);
 
-    useEffect(() => {
-        const totalPages = data?.totalPages ?? 1;
-        if (totalPages > 0 && pageNumber > totalPages) {
-            setPageNumber(totalPages);
-        }
-    }, [data?.totalPages, pageNumber]);
 
     if (isLoading) {
         return (
@@ -125,7 +123,6 @@ export const TradeInOrdersTab = () => {
         );
     }
 
-    const orders = data?.items || [];
     const totalCount = data?.totalCount ?? orders.length;
     const totalPages = Math.max(1, data?.totalPages ?? 1);
     const hasPreviousPage = data?.hasPreviousPage ?? pageNumber > 1;

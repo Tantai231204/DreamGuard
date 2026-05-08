@@ -426,11 +426,9 @@ export default function AdminSidebar() {
           collapsed ? "justify-center" : "bg-white p-2.5 rounded-2xl border border-gray-100 gap-3"
         )}>
           <div className="relative group/avatar">
-            <Avatar className="h-10 w-10 border-2 border-white ring-2 ring-[var(--color-primary-light)] ring-offset-2 flex-shrink-0 transition-transform hover:scale-105">
+            <Avatar className="h-10 w-10 border-2 border-white ring-2 ring-[var(--color-primary-light)] ring-offset-2 flex-shrink-0 transition-transform hover:scale-105 overflow-hidden">
               <AvatarImage src={profile?.avatarUrl} alt={profile?.fullName || "Admin"} />
-              <AvatarFallback className="bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-hover)] text-white font-black text-xs">
-                {profile?.fullName ? profile.fullName[0].toUpperCase() : 'AD'}
-              </AvatarFallback>
+              <AvatarFallback className="bg-[#4988c4]" />
             </Avatar>
             <div className="absolute bottom-0 right-0 h-3 w-3 bg-green-500 border-2 border-white rounded-full" />
 

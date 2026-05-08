@@ -11,7 +11,7 @@ export interface TradeInAudit {
   isGood: boolean;
 }
 
-export type CollectionType = 'pickup' | 'dropoff';
+export type CollectionType = 'pickup';
 
 export interface UseTradeInFlowProps {
   eligibleProducts: TradeInProduct[];
@@ -46,7 +46,6 @@ const DEFAULT_AUDIT: TradeInAudit = {
 
 const FALLBACK_DESCRIPTION_BY_COLLECTION: Record<CollectionType, string> = {
   pickup: 'Home pickup at delivery',
-  dropoff: 'Drop-off at hub',
 };
 
 /**
@@ -73,6 +72,7 @@ export function useTradeInFlow({
     address: initialContact?.address || '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isManualEntry, setIsManualEntry] = useState(false);
 
   const selectedCount = selectedProducts.length;
   const [sessionOrderId] = useState(() => Math.floor(Math.random() * 90000 + 10000));
@@ -99,11 +99,16 @@ export function useTradeInFlow({
   }, [selectedTradeInItems]);
 
   const handleNext = useCallback(() => {
-    if (step === 'selection' && selectedCount === 1) setStep('audit');
-    else if (step === 'audit') setStep('images');
-    else if (step === 'images' && images.length >= 5) setStep('logistics');
-    else if (step === 'logistics') setStep('summary');
-  }, [step, selectedCount, images.length]);
+    if (step === 'selection') {
+      if (selectedCount === 1) setStep('audit');
+    } else if (step === 'audit') {
+      setStep('images');
+    } else if (step === 'images') {
+      if (images.length >= 5) setStep('logistics');
+    } else if (step === 'logistics') {
+      if (!isManualEntry) setStep('summary');
+    }
+  }, [step, selectedCount, images.length, isManualEntry]);
 
   const handleBack = useCallback(() => {
     if (step === 'audit') setStep('selection');
@@ -139,6 +144,7 @@ export function useTradeInFlow({
       phoneNumber: initialContact?.phoneNumber || '',
       address: initialContact?.address || '',
     });
+    setIsManualEntry(false);
   }, [initialContact]);
 
   const handleComplete = useCallback(async () => {
@@ -201,6 +207,8 @@ export function useTradeInFlow({
     totalTradeInValue,
     sessionOrderId,
     isSubmitting,
+    isManualEntry,
+    setIsManualEntry,
     resetFlow,
     handleNext,
     handleBack,
@@ -209,7 +217,7 @@ export function useTradeInFlow({
   }), [
     isOpen, step, audit, toggleAudit, setAuditDescription, setAuditIsGood,
     images, collectionType, contact, selectedCount, totalTradeInValue,
-    sessionOrderId, isSubmitting, resetFlow, handleNext, handleBack,
+    sessionOrderId, isSubmitting, isManualEntry, setIsManualEntry, resetFlow, handleNext, handleBack,
     handleComplete, onToggleProduct
   ]);
 }

@@ -35,6 +35,7 @@ export const TradeInOrdersTab = memo(function TradeInOrdersTab() {
             label={tradeInStatusLabel(status)}
             isActive={viewModel.statusFilter === status}
             onClick={() => viewModel.handleStatusChange(status)}
+            attentionCount={status.toUpperCase().includes('CANCEL') ? viewModel.pendingRefundCount : 0}
           />
         ))}
       </div>
@@ -89,6 +90,8 @@ export const TradeInOrdersTab = memo(function TradeInOrdersTab() {
         isLoading={viewModel.isCancelling}
         isRefundOnly={viewModel.isRefundOnly}
         totalPrice={viewModel.totalPriceToRefund}
+        status={viewModel.orderToCancel?.status}
+        shippingTaskStatus={viewModel.orderToCancel?.shippingTaskStatus}
       />
     </div>
   );
@@ -103,9 +106,10 @@ interface FilterChipProps {
   count?: number;
   isActive: boolean;
   onClick: () => void;
+  attentionCount?: number;
 }
 
-function FilterChip({ label, count, isActive, onClick }: FilterChipProps) {
+function FilterChip({ label, count, isActive, onClick, attentionCount }: FilterChipProps) {
   return (
     <button
       type="button"
@@ -124,7 +128,7 @@ function FilterChip({ label, count, isActive, onClick }: FilterChipProps) {
           transition={{ type: "tween", duration: 0.25, ease: "circOut" }}
         />
       )}
-      <span className="relative z-10 flex items-center gap-2">
+      <div className="relative z-10 flex items-center gap-2">
         <span className="text-xs font-semibold">{label}</span>
         {typeof count === 'number' && (
           <Badge
@@ -138,7 +142,14 @@ function FilterChip({ label, count, isActive, onClick }: FilterChipProps) {
             {count}
           </Badge>
         )}
-      </span>
+        {typeof attentionCount === 'number' && attentionCount > 0 && (
+          <Badge
+            className="h-4 min-w-[16px] px-1 flex items-center justify-center text-[9px] font-black rounded-full bg-rose-500 text-white border-2 border-white shadow-sm -mt-3 -mr-1"
+          >
+            {attentionCount}
+          </Badge>
+        )}
+      </div>
     </button>
   );
 }

@@ -2,8 +2,6 @@ import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import type { ProcessReturnedRequest } from "@/api/types/shipping";
 import { useProcessReturnedShippingTask } from "@/hooks/queries/useShippingTask";
-import { useAdminCreateRefund, orderKeys } from "@/hooks/queries";
-import { useQueryClient } from "@tanstack/react-query";
 import { uploadEvidenceItems } from "@/utils/evidenceUpload";
 import { OTHER_REASON_LABEL } from "@/constants/logistics";
 import { MAX_EVIDENCE_FILES } from "./constants";
@@ -25,15 +23,13 @@ const getEvidenceFileKey = (file: File) => `${file.name}-${file.size}-${file.las
 interface UseProcessReturnProps {
   orderId: string;
   taskId: string;
-  totalPrice: number;
   onClose: () => void;
-  showRefundSection: boolean;
+  isRefundableMethod?: boolean;
+  totalAmount?: number;
 }
 
-export function useProcessReturn({ orderId, taskId, totalPrice, onClose, showRefundSection }: UseProcessReturnProps) {
-  const queryClient = useQueryClient();
+export function useProcessReturn({ orderId, taskId, onClose, isRefundableMethod, totalAmount = 0 }: UseProcessReturnProps) {
   const processReturned = useProcessReturnedShippingTask();
-  const createRefund = useAdminCreateRefund();
 
   // --- State Management ---
   const [damageNote, setDamageNote] = useState("");
@@ -42,9 +38,9 @@ export function useProcessReturn({ orderId, taskId, totalPrice, onClose, showRef
   const [isUploadingEvidence, setIsUploadingEvidence] = useState(false);
   const [damagedQty, setDamagedQty] = useState<Record<string, number>>({});
   const [expanded, setExpanded] = useState(false);
-
+  const [isRefund, setIsRefund] = useState(true);
+  const [refundAmount, setRefundAmount] = useState<number>(totalAmount);
   const [percentage, setPercentage] = useState<number>(100);
-  const [refundAmount, setRefundAmount] = useState<number>(totalPrice);
 
   const evidenceItemsRef = useRef<EvidenceItem[]>([]);
 
@@ -58,13 +54,6 @@ export function useProcessReturn({ orderId, taskId, totalPrice, onClose, showRef
       evidenceItemsRef.current.forEach((item) => URL.revokeObjectURL(item.previewUrl));
     };
   }, []);
-
-  // Sync refund amount with percentage
-  useEffect(() => {
-    if (totalPrice > 0) {
-      setRefundAmount(Math.round((totalPrice * percentage) / 100));
-    }
-  }, [percentage, totalPrice]);
 
   // Reset logic if damages cleared
   const hasDamages = Object.keys(damagedQty).length > 0;
@@ -88,6 +77,21 @@ export function useProcessReturn({ orderId, taskId, totalPrice, onClose, showRef
     });
   }, []);
 
+  const handleSetPercentage = useCallback((val: number) => {
+    setPercentage(val);
+    const rawAmount = (totalAmount * val) / 100;
+    const roundedAmount = Math.ceil(rawAmount / 1000) * 1000;
+    setRefundAmount(Math.min(roundedAmount, totalAmount));
+  }, [totalAmount]);
+
+  const handleSetRefundAmount = useCallback((val: number) => {
+    const safeVal = Math.min(val, totalAmount);
+    setRefundAmount(safeVal);
+    if (totalAmount > 0) {
+      setPercentage(Math.round((safeVal / totalAmount) * 100));
+    }
+  }, [totalAmount]);
+
   const resetAndClose = useCallback(() => {
     setDamageNote("");
     setSelectedReason("");
@@ -98,10 +102,8 @@ export function useProcessReturn({ orderId, taskId, totalPrice, onClose, showRef
     setIsUploadingEvidence(false);
     setDamagedQty({});
     setExpanded(false);
-    setPercentage(100);
-    setRefundAmount(totalPrice);
     onClose();
-  }, [onClose, totalPrice]);
+  }, [onClose]);
 
   const addEvidenceFiles = useCallback((files: File[]) => {
     const nextItems = files.map((file) => ({
@@ -144,8 +146,13 @@ export function useProcessReturn({ orderId, taskId, totalPrice, onClose, showRef
       return;
     }
 
+    if (isRefundableMethod && isRefund && evidenceItems.length === 0) {
+      toast.error("Evidence is required for refund processing.");
+      return;
+    }
+
     let uploadedUrls: string[] = [];
-    if (hasDamages && evidenceItems.length > 0) {
+    if ((hasDamages || (isRefundableMethod && isRefund)) && evidenceItems.length > 0) {
       setIsUploadingEvidence(true);
       try {
         uploadedUrls = await uploadEvidenceItems(
@@ -167,31 +174,22 @@ export function useProcessReturn({ orderId, taskId, totalPrice, onClose, showRef
     }
 
     const finalNote = selectedReason === OTHER_REASON_LABEL ? damageNote : selectedReason;
-    const requestData: Partial<ProcessReturnedRequest> = hasDamages ? {
-      damageNote: finalNote,
+    const requestData: Partial<ProcessReturnedRequest> = {
+      damageNote: hasDamages ? finalNote : undefined,
       evidenceUrls: uploadedUrls.length > 0 ? uploadedUrls : undefined,
-      damagedItems: Object.entries(damagedQty).map(([id, qty]) => ({ orderItemId: id, damagedQuantity: qty }))
-    } : {};
+      damagedItems: hasDamages ? Object.entries(damagedQty).map(([id, qty]) => ({ orderItemId: id, damagedQuantity: qty })) : [],
+      isRefund: isRefund,
+      refundAmount: isRefund ? refundAmount : undefined
+    };
 
     try {
-      await processReturned.mutateAsync({ taskId, orderId, data: requestData });
-
-      if (showRefundSection && refundAmount > 0) {
-        try {
-          await createRefund.mutateAsync({ orderId, reason: "Return", amount: refundAmount });
-          queryClient.invalidateQueries({ queryKey: orderKeys.detail(orderId) });
-          queryClient.invalidateQueries({ queryKey: ['payments'] });
-        } catch {
-          toast.error("Logistics processed, but refund settlement failed.");
-        }
-      }
-
+      await processReturned.mutateAsync({ taskId, orderId, data: requestData as ProcessReturnedRequest });
       toast.success("Return processed successfully.");
       resetAndClose();
     } catch {
       toast.error("Return processing failed.");
     }
-  }, [taskId, hasDamages, damageNote, selectedReason, evidenceItems, damagedQty, processReturned, orderId, showRefundSection, refundAmount, createRefund, queryClient, resetAndClose, updateEvidenceItem]);
+  }, [taskId, hasDamages, damageNote, selectedReason, evidenceItems, damagedQty, isRefund, refundAmount, processReturned, orderId, resetAndClose, updateEvidenceItem, isRefundableMethod]);
 
   // --- Derived ---
   const totalDamaged = useMemo(() => Object.values(damagedQty).reduce((s, q) => s + q, 0), [damagedQty]);
@@ -208,17 +206,19 @@ export function useProcessReturn({ orderId, taskId, totalPrice, onClose, showRef
       hasDamages,
       totalDamaged,
       expanded,
-      percentage,
-      refundAmount,
       isSubmitting,
-      uploadedCount
+      uploadedCount,
+      isRefund,
+      refundAmount,
+      percentage
     },
     actions: {
       setDamageNote,
       setSelectedReason,
       setExpanded,
-      setPercentage,
-      setRefundAmount,
+      setIsRefund,
+      setRefundAmount: handleSetRefundAmount,
+      setPercentage: handleSetPercentage,
       handleQtyChange,
       resetAndClose,
       addEvidenceFiles,

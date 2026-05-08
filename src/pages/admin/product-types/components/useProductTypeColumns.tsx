@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Pencil, Power, Eye } from 'lucide-react';
+import { Pencil, Power } from 'lucide-react';
 import {
     AdminRowActions,
     AdminStatusBadge,
@@ -81,11 +81,6 @@ export function useProductTypeColumns({ onEdit, onToggleStatus }: UseProductType
                         <AdminRowActions
                             sections={[
                                 [
-                                    {
-                                        label: 'Quick View',
-                                        icon: <Eye className="h-4 w-4" />,
-                                        onClick: () => console.log('View', pt.productTypeId)
-                                    },
                                     {
                                         label: 'Edit Details',
                                         icon: <Pencil className="h-4 w-4" />,
